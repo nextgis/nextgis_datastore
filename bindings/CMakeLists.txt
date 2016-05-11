@@ -33,7 +33,7 @@ if(BUILD_BINDINGS)
         if(ANDROID)
             execute_process(COMMAND ${SWIG_EXECUTABLE} -java -c++
                 -package ${PACKAGE_ID} -outdir ${CMAKE_CURRENT_BINARY_DIR}
-                -o ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.c
+                -o ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/api.i)
 
             set(JAVA_CODE
@@ -42,10 +42,7 @@ if(BUILD_BINDINGS)
             )
 
             install(FILES ${JAVA_CODE} DESTINATION src)
-            install(FILES ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.c DESTINATION src)
-            # do copy of wrap file as cpp needed for some android ABI builds
-            install(FILES ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.c DESTINATION src
-                RENAME api_wrap.cpp)
+            install(FILES ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp DESTINATION src)
         else()
             set_source_files_properties(api.i PROPERTIES CPLUSPLUS ON)
             set(CMAKE_SWIG_FLAGS -package com.nextgis.supportlib )

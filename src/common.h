@@ -22,11 +22,11 @@
 #ifndef COMMON_H
 #define COMMON_H
  
-#ifdef NGM_STATIC
+#ifdef NGSTOR_STATIC
 #   define EXTERN 
 #else
 #   if defined (_WIN32) || defined (WINDOWS)
-#    ifdef NGM_EXPORTS
+#    ifdef NGSTOR_EXPORTS
 #      ifdef __GNUC__
 #        define EXTERN __attribute__((dllexport))
 #      else        

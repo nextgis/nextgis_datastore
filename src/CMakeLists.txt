@@ -59,9 +59,11 @@ if(BUILD_SHARED_LIBS)
     endif()
     set_target_properties (${LIB_NAME} PROPERTIES VERSION ${LIB_VERSION})
     set_target_properties (${LIB_NAME} PROPERTIES SOVERSION ${SOVERSION})
-    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGW_EXPORTS)
+    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_EXPORTS)
 
     set(TARGET_LIBS ${LIB_NAME} PARENT_SCOPE)
+else()
+    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)    
 endif()
 
 if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
