@@ -24,16 +24,16 @@
 
 #include "common.h"
 
-#ifdef __cplusplus
-extern "C" {  // only need to export C interface if
+//#ifdef __cplusplus
+//extern "C" {  // only need to export C interface if
               // used by C++ source code
-#endif
+//#endif
 
-EXTERN int GetVersion();
-EXTERN const char* GetVersionString();
+extern EXTERN int GetVersion();
+extern EXTERN const char* GetVersionString();
 
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif
 
 #endif // API_H
