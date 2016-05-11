@@ -39,7 +39,7 @@ Supported tiled services
  * TMS (EPSG:3857, 3395)
  * MVT
 
-## NextGIS Web and NextGIS Online integration
+## NextGIS Web and My NextGIS integration
 
 Library also supports NextGIS Web integration: 
 
