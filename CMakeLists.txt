@@ -62,10 +62,14 @@ set(SOVERSION 1)
 
 report_version(${PROJECT_NAME} ${VERSION})
 
+enable_testing()
+include(FindAnyProject)
+
 set(TARGET_LIBS "")
 
 add_subdirectory(src)
 add_subdirectory(bindings)
+add_subdirectory(test)
 
 # uninstall
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)

@@ -18,13 +18,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
-#ifndef API_H
-#define API_H
 
-#include "common.h"
+#include "gtest/gtest.h"
+#include "api.h"
+#include "version.h"
 
-extern "C" EXTERN int GetVersion();
-extern "C" EXTERN const char* GetVersionString();
-
-#endif // API_H
+TEST(BasicTests, TestVersions) {
+    EXPECT_EQ(NGM_VERSION_NUM, GetVersion());
+    EXPECT_STREQ(NGM_VERSION, GetVersionString());
+}
