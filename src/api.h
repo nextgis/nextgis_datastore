@@ -24,7 +24,7 @@
 
 #include "common.h"
 
-extern "C" EXTERN int GetVersion();
-extern "C" EXTERN const char* GetVersionString();
+EXTERNC int GetVersion();
+EXTERNC const char* GetVersionString();
 
 #endif // API_H

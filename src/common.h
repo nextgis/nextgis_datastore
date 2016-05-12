@@ -48,4 +48,10 @@
 #   endif
 #endif
 
+#if defined __cplusplus && !defined __ANDROID__
+#define EXTERNC extern "C" EXTERN
+#else
+#define EXTERNC EXTERN
+#endif
+
 #endif // COMMON_H
