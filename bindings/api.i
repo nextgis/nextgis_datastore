@@ -23,6 +23,20 @@
 %module api
 
 %inline %{
-extern int GetVersion();
-extern const char* GetVersionString();
+extern int ngsGetVersion();
+extern const char* ngsGetVersionString();
+extern int ngsInit();
+extern void ngsUninit();
+%}
+
+%pragma(java) jniclasscode=%{
+  static {
+    try {
+        System.loadLibrary("ngstore");
+        System.loadLibrary("ngstoreapi");
+    } catch (UnsatisfiedLinkError e) {
+      System.err.println("Native code library failed to load. \n" + e);
+      System.exit(1);
+    }
+  }
 %}
