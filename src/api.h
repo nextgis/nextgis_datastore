@@ -24,7 +24,18 @@
 
 #include "common.h"
 
-EXTERNC int GetVersion();
-EXTERNC const char* GetVersionString();
+/**
+ * @brief The NextGIS store and visualisation library error codes enum
+ */
+enum ngsErrorCodes {
+    SUCCESS = 0,        /**< success */
+    UNEXPECTED_ERROR    /**< unexpected error */
+};
+
+
+EXTERNC int ngsGetVersion();
+EXTERNC const char* ngsGetVersionString();
+EXTERNC int ngsInit();
+EXTERNC void ngsUninit();
 
 #endif // API_H

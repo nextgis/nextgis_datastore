@@ -31,10 +31,14 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV    
-)
+    datastore.h
+    mapstore.h
+    )
 
 set(CSOURCES
     api.cpp
+    datastore.cpp
+    mapstore.cpp
 )
 
 set(LIB_NAME)

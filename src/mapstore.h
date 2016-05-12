@@ -18,12 +18,21 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#ifndef MAPSTORE_H
+#define MAPSTORE_H
 
-#include "gtest/gtest.h"
-#include "api.h"
-#include "version.h"
+namespace ngs {
 
-TEST(BasicTests, TestVersions) {
-    EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion());
-    EXPECT_STREQ(NGM_VERSION, ngsGetVersionString());
 }
+
+/**
+ * @brief The MapStore class store maps with layers connected to datastore tables
+ *        and styles
+ */
+class MapStore
+{
+public:
+    MapStore();
+};
+
+#endif // MAPSTORE_H

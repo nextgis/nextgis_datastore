@@ -18,12 +18,20 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#ifndef DATASTORE_H
+#define DATASTORE_H
 
-#include "gtest/gtest.h"
-#include "api.h"
-#include "version.h"
+namespace ngs {
+/**
+ * @brief The main geodata storage and manipulation class
+ */
+class DataStore
+{
+public:
+    DataStore();
+protected:
+};
 
-TEST(BasicTests, TestVersions) {
-    EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion());
-    EXPECT_STREQ(NGM_VERSION, ngsGetVersionString());
 }
+
+#endif // DATASTORE_H

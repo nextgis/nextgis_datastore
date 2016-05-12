@@ -18,12 +18,11 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include "datastore.h"
 
-#include "gtest/gtest.h"
-#include "api.h"
-#include "version.h"
+using namespace ngs;
 
-TEST(BasicTests, TestVersions) {
-    EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion());
-    EXPECT_STREQ(NGM_VERSION, ngsGetVersionString());
+DataStore::DataStore()
+{
+
 }

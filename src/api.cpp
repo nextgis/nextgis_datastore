@@ -19,14 +19,25 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
  
- #include "api.h"
- #include "version.h"
+#include "api.h"
+#include "version.h"
+#include "datastore.h"
+#include "mapstore.h"
+
+#include <memory>
+
+using namespace ngs;
+using namespace std;
+
+static unique_ptr<DataStore> gDataStore;
+static unique_ptr<DataStore> gMapStore;
+
  
 /**
  * @brief Get library version number as major * 10000 + minor * 100 + rev
  * @return library version number
  */
-int GetVersion()
+int ngsGetVersion()
 {
     return NGM_VERSION_NUM;
 }
@@ -35,7 +46,23 @@ int GetVersion()
  * @brief Get library version string
  * @return library version string
  */
-const char* GetVersionString()
+const char* ngsGetVersionString()
 {
     return NGM_VERSION;
+}
+
+/**
+ * @brief init library structures
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsInit()
+{
+    gDataStore.reset(new DataStore());
+    return ngsErrorCodes::SUCCESS;
+}
+
+
+
+void ngsUninit()
+{
 }
