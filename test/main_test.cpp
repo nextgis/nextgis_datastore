@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "api.h"
 #include "version.h"
+#include "gdal.h"
 
 TEST(BasicTests, TestVersions) {
     EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion());
@@ -37,3 +38,6 @@ TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
 }
 
+TEST(BasicTests, TestGDAL) {
+    EXPECT_EQ(GDALCheckVersion(2,1,NULL), 1);
+}

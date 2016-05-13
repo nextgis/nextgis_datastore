@@ -65,8 +65,6 @@ report_version(${PROJECT_NAME} ${VERSION})
 enable_testing()
 include(FindAnyProject)
 
-set(TARGET_LIBS "")
-
 add_subdirectory(src)
 add_subdirectory(bindings)
 add_subdirectory(test)

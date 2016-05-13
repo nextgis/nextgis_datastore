@@ -24,6 +24,8 @@
  
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+include(extlib)
+
 set(HHEADERS
     version.h
     common.h
@@ -67,7 +69,8 @@ if(BUILD_SHARED_LIBS)
 else()
     set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)    
 endif()
-set(TARGET_LIBS ${TARGET_LIBS} ${LIB_NAME} PARENT_SCOPE)
+
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${LIB_NAME} PARENT_SCOPE)
 
 if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
     install(TARGETS ${LIB_NAME}

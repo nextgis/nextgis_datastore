@@ -29,11 +29,15 @@ if(BUILD_TESTS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
     find_anyproject(GTest REQUIRED)
-    find_package(Threads)
     include_directories(${GTEST_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/src)
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${TARGET_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+
+    if(NOT BUILD_SHARED_LIBS)
+        find_package(Threads)
+        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
+    endif()
 
     add_executable(main_test main_test.cpp)
+    message(STATUS "TARGET_LINK_LIB ${TARGET_LINK_LIB}")
     target_link_extlibraries(main_test)
     add_test(MainTests ${CMAKE_CURRENT_BINARY_DIR}/main_test)
 
