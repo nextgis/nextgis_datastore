@@ -19,10 +19,50 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "datastore.h"
+#include "api.h"
+
+#if defined(WIN32) || defined(_WIN32)
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
+
+#define DEFAULT_CACHE PATH_SEPARATOR ".cache"
 
 using namespace ngs;
 
-DataStore::DataStore()
+DataStore::DataStore(const char *path, const char *cachePath)
 {
+    if(nullptr != path)
+        m_sPath = path;
+    if(nullptr == cachePath) {
+        if(nullptr != path) {
+            m_sCachePath = path;
+            m_sCachePath += DEFAULT_CACHE;
+        }
+    }
+    else {
+        m_sCachePath = cachePath;
+    }
+}
 
+int DataStore::create()
+{
+    if(m_sPath.empty())
+        return ngsErrorCodes::PATH_NOT_SPECIFIED;
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::open()
+{
+    if(m_sPath.empty())
+        return ngsErrorCodes::PATH_NOT_SPECIFIED;
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::openOrCreate()
+{
+    if(open() != ngsErrorCodes::SUCCESS)
+        return create();
+    return open();
 }

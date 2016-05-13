@@ -21,15 +21,24 @@
 #ifndef DATASTORE_H
 #define DATASTORE_H
 
+#include <string>
+
 namespace ngs {
+
+using namespace std;
 /**
  * @brief The main geodata storage and manipulation class
  */
 class DataStore
 {
 public:
-    DataStore();
+    DataStore(const char* path, const char* cachePath);
+    int create();
+    int open();
+    int openOrCreate();
 protected:
+    string m_sPath;
+    string m_sCachePath;
 };
 
 }

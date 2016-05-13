@@ -27,3 +27,13 @@ TEST(BasicTests, TestVersions) {
     EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion());
     EXPECT_STREQ(NGM_VERSION, ngsGetVersionString());
 }
+
+TEST(BasicTests, TestCreate) {
+
+}
+
+
+TEST(BasicTests, TestOpen) {
+    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
+}
+

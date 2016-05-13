@@ -30,7 +30,7 @@ using namespace ngs;
 using namespace std;
 
 static unique_ptr<DataStore> gDataStore;
-static unique_ptr<DataStore> gMapStore;
+static unique_ptr<MapStore> gMapStore;
 
  
 /**
@@ -53,14 +53,18 @@ const char* ngsGetVersionString()
 
 /**
  * @brief init library structures
+ * @param path path to data store folder
+ * @param cachePath path to cache folder
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInit()
+int ngsInit(const char* path, const char* cachePath)
 {
-    gDataStore.reset(new DataStore());
-    return ngsErrorCodes::SUCCESS;
+    gDataStore.reset(new DataStore(path, cachePath));
+    int nResult = gDataStore->openOrCreate();
+    if(nResult != ngsErrorCodes::SUCCESS)
+        gDataStore.reset(nullptr);
+    return nResult;
 }
-
 
 
 void ngsUninit()

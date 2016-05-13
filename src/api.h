@@ -29,13 +29,14 @@
  */
 enum ngsErrorCodes {
     SUCCESS = 0,        /**< success */
-    UNEXPECTED_ERROR    /**< unexpected error */
+    UNEXPECTED_ERROR,   /**< unexpected error */
+    PATH_NOT_SPECIFIED /**< path is not specified */
 };
 
 
 EXTERNC int ngsGetVersion();
 EXTERNC const char* ngsGetVersionString();
-EXTERNC int ngsInit();
+EXTERNC int ngsInit(const char* path, const char* cachePath);
 EXTERNC void ngsUninit();
 
 #endif // API_H
