@@ -3,7 +3,7 @@
 # Purpose:  CMake build scripts
 # Author:   Dmitry Baryshnikov, polimax@mail.ru
 ################################################################################
-# Copyright (C) 2015, NextGIS <info@nextgis.com>
+# Copyright (C) 2015-2016, NextGIS <info@nextgis.com>
 # Copyright (C) 2015 Dmitry Baryshnikov
 #
 # This script is free software: you can redistribute it and/or modify
@@ -202,23 +202,28 @@ function(find_extproject name)
         #execute_process(COMMAND ${GIT_EXECUTABLE} checkout master
         #    WORKING_DIRECTORY  ${EP_BASE}/Source/${name}_EP)
         file(WRITE ${EP_BASE}/Stamp/${name}_EP/${name}_EP-gitclone-lastrun.txt "")
+        execute_process(COMMAND ${CMAKE_COMMAND} ${EP_BASE}/Source/${name}_EP
+            ${find_extproject_CMAKE_ARGS}
+            WORKING_DIRECTORY ${EP_BASE}/Build/${name}_EP)
         set(RECONFIGURE ON)
     else() 
         if(EXISTS ${INCLUDE_EXPORT_PATH})
             check_updates(${EP_BASE}/Stamp/${name}_EP/${name}_EP-gitpull.txt ${PULL_UPDATE_PERIOD} CHECK_UPDATES)
         else()
-            set(CHECK_UPDATES ON)
+            set(RECONFIGURE ON)
         endif()
         if(CHECK_UPDATES)
             color_message("Git pull ${repo_name} ...")
             execute_process(COMMAND ${GIT_EXECUTABLE} pull
                WORKING_DIRECTORY  ${EP_BASE}/Source/${name}_EP
                TIMEOUT ${PULL_TIMEOUT} OUTPUT_VARIABLE OUT_STR)
-            string(FIND ${OUT_STR} "Already up-to-date" STR_POS)
-            if(STR_POS LESS 0) 
-                set(RECONFIGURE ON)
-            endif()   
-            file(WRITE ${EP_BASE}/Stamp/${name}_EP/${name}_EP-gitpull.txt "")              
+           if(OUT_STR)
+                string(FIND ${OUT_STR} "Already up-to-date" STR_POS)
+                if(STR_POS LESS 0)
+                    set(RECONFIGURE ON)
+                endif()
+                file(WRITE ${EP_BASE}/Stamp/${name}_EP/${name}_EP-gitpull.txt "")
+            endif()
         endif()        
     endif() 
 
@@ -271,8 +276,8 @@ function(find_extproject name)
     include_directories(${EP_BASE}/Install/${name}_EP/include)
     foreach (inc ${repo_include})
         include_directories(${EP_BASE}/Install/${name}_EP/include/${inc})
-    endforeach ()    
-    
+    endforeach ()  
+        
     if(WIN32)
         set(_INST_ROOT_PATH /)
     else()
@@ -284,4 +289,5 @@ function(find_extproject name)
              COMPONENT libraries)
         
     set(EXPORTS_PATHS ${EXPORTS_PATHS} PARENT_SCOPE)
+    set(LINK_SEARCH_PATHS ${LINK_SEARCH_PATHS} ${EP_BASE}/Install/${name}_EP/lib PARENT_SCOPE)
 endfunction()
