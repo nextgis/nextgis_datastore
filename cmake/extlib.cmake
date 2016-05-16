@@ -22,6 +22,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
+find_host_program(Git REQUIRED)
+
 # do we need direct access to:
 set(WITH_ZLIB ON CACHE BOOL "zlib on")
 # find_anyproject(ZLIB DEFAULT ON)
@@ -30,8 +32,9 @@ set(WITH_ZLIB ON CACHE BOOL "zlib on")
 set(WITH_SQLite3 ON CACHE BOOL "SQLite3 on")
 # find_anyproject(SQLite3 CMAKE_ARGS -DENABLE_COLUMN_METADATA=ON)
 
-set(WITH_OpenSSL ON CACHE BOOL "OpenSSL on")
-set(WITH_OpenSSL_EXTERNAL ON CACHE BOOL "OpenSSL external on")
+set(WITH_OpenSSL OFF CACHE BOOL "OpenSSL on")
+set(WITH_OpenSSL_EXTERNAL OFF CACHE BOOL "OpenSSL external on")
+
 set(WITH_GEOS ON CACHE BOOL "GEOS on")
 set(WITH_GEOS_EXTERNAL ON CACHE BOOL "GEOS external on")
 set(WITH_PROJ4 ON CACHE BOOL "PROJ4 on")
@@ -62,6 +65,7 @@ find_anyproject(CURL REQUIRED CMAKE_ARGS
     -DBUILD_CURL_EXE=OFF
     -DHTTP_ONLY=ON)
 
+#[==[
 set(WITH_GDAL ON CACHE BOOL "GDAL on")
 set(WITH_GDAL_EXTERNAL ON CACHE BOOL "GDAL external on")
 find_anyproject(GDAL REQUIRED CMAKE_ARGS
@@ -182,4 +186,4 @@ find_anyproject(GDAL REQUIRED CMAKE_ARGS
     -DENABLE_XLSX=OFF
     -DGDAL_BUILD_APPS=OFF
     -DGDAL_BUILD_DOCS=OFF)
-
+#]==]
