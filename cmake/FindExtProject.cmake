@@ -137,7 +137,7 @@ function(find_extproject name)
 
     
     # search CMAKE_INSTALL_PREFIX
-    string (REGEX MATCHALL "(^|;)-DCMAKE_INSTALL_PREFIX[A-Za-z0-9_]*" _matchedVars "${find_extproject_CMAKE_ARGS}")    
+    string (REGEX MATCHALL "(^|;)-DCMAKE_INSTALL_PREFIX=[A-Za-z0-9_]*" _matchedVars "${find_extproject_CMAKE_ARGS}")    
     list(LENGTH _matchedVars _list_size)    
     if(_list_size EQUAL 0)
         list(APPEND find_extproject_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EP_BASE}/Install/${name}_EP)
@@ -145,7 +145,7 @@ function(find_extproject name)
     unset(_matchedVars)
     
     # search BUILD_SHARED_LIBS
-    string (REGEX MATCHALL "(^|;)-DBUILD_SHARED_LIBS[A-Za-z0-9_]*" _matchedVars "${find_extproject_CMAKE_ARGS}")   
+    string (REGEX MATCHALL "(^|;)-DBUILD_SHARED_LIBS=[A-Za-z0-9_]*" _matchedVars "${find_extproject_CMAKE_ARGS}")   
     list(LENGTH _matchedVars _list_size)    
     if(_list_size EQUAL 0)
         list(APPEND find_extproject_CMAKE_ARGS -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS})

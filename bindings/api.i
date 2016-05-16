@@ -32,6 +32,8 @@ extern void ngsUninit();
 %pragma(java) jniclasscode=%{
   static {
     try {
+        System.loadLibrary("crypto");
+        System.loadLibrary("ssl");
         System.loadLibrary("curl");
         System.loadLibrary("ngstore");
         System.loadLibrary("ngstoreapi");

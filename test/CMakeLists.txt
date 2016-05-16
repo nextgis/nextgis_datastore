@@ -26,8 +26,6 @@ option(BUILD_TESTS "Build unit tests" OFF)
 if(BUILD_TESTS)
     include(CTest)
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
     set(WITH_GTest ON CACHE BOOL "Google test on")
     set(WITH_GTest_EXTERNAL ON CACHE BOOL "Google test external on")
     find_anyproject(GTest REQUIRED)
@@ -44,6 +42,10 @@ if(BUILD_TESTS)
     link_directories(${LINK_SEARCH_PATHS})
     add_executable(main_test main_test.cpp)
     target_link_extlibraries(main_test)
+    
+    set_property(TARGET main_test PROPERTY CXX_STANDARD 11)
+    set_property(TARGET main_test PROPERTY C_STANDARD 11)
+
     add_test(MainTests ${CMAKE_CURRENT_BINARY_DIR}/main_test)
 
 endif()
