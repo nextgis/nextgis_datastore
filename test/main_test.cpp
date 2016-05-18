@@ -22,11 +22,24 @@
 #include "gtest/gtest.h"
 #include "api.h"
 #include "version.h"
-#include "gdal.h"
 
 TEST(BasicTests, TestVersions) {
-    EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion());
-    EXPECT_STREQ(NGM_VERSION, ngsGetVersionString());
+    EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion(nullptr));
+    EXPECT_STREQ(NGM_VERSION, ngsGetVersionString(nullptr));
+
+    EXPECT_EQ(2010000, ngsGetVersion("gdal"));
+    EXPECT_STREQ("2.1.0", ngsGetVersionString("gdal"));
+
+    EXPECT_EQ(471040, ngsGetVersion("curl"));
+    EXPECT_STREQ("7.48.0", ngsGetVersionString("curl"));
+
+    EXPECT_EQ(10, ngsGetVersion("geos"));
+    EXPECT_STREQ("3.5.0-CAPI-1.9.0", ngsGetVersionString("geos"));
+
+    EXPECT_EQ(3011001, ngsGetVersion("sqlite"));
+    EXPECT_STREQ("3.11.1", ngsGetVersionString("sqlite"));
+
+    // TODO: proj, jpeg, png, zlib, iconv, sqlite3, openssl, expat, jsonc, tiff, geotiff
 }
 
 TEST(BasicTests, TestCreate) {
@@ -38,6 +51,4 @@ TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
 }
 
-TEST(BasicTests, TestGDAL) {
-    EXPECT_EQ(GDALCheckVersion(2,1,NULL), 1);
-}
+

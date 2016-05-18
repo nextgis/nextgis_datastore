@@ -31,7 +31,7 @@ function(get_imported_targets file_to_search targets)
     set(${targets} ${targets_local} PARENT_SCOPE)
 endfunction()
 
-function(get_target_name target_lib target_name)    
+function(get_target_name target_lib target_name)
     string(LENGTH ${target_lib} STR_LEN)
     if(STR_LEN LESS 21)
         return()
@@ -66,7 +66,7 @@ function(color_message text)
         
     message(STATUS "${BoldGreen}${text}${ColourReset}")
     
-endfunction() 
+endfunction()
 
 function(include_exports_path include_path)
     #add to list imported 
@@ -80,17 +80,17 @@ function(include_exports_path include_path)
         file (READ ${include_path} _file_content)
         string (REPLACE "IMPORTED)" "IMPORTED GLOBAL)" _file_content "${_file_content}")
         file(WRITE ${include_path} "${_file_content}") 
-        
+
         include(${include_path})
     endif()
-endfunction() 
+endfunction()
 
 function(find_extproject name)
   
     include (CMakeParseArguments)
   
     set(options OPTIONAL)
-    set(oneValueArgs )
+    set(oneValueArgs SHARED)
     set(multiValueArgs CMAKE_ARGS)
     cmake_parse_arguments(find_extproject "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
     
@@ -129,7 +129,7 @@ function(find_extproject name)
         list(APPEND find_extproject_CMAKE_ARGS -DANDROID_NDK=${ANDROID_NDK})
         list(APPEND find_extproject_CMAKE_ARGS -DANDROID_NATIVE_API_LEVEL=${ANDROID_NATIVE_API_LEVEL})
         list(APPEND find_extproject_CMAKE_ARGS -DANDROID_ABI=${ANDROID_ABI})
-        list(APPEND find_extproject_CMAKE_ARGS -DANDROID=TRUE)
+        list(APPEND find_extproject_CMAKE_ARGS -DANDROID=ON)
     endif()     
         
     include(ExternalProject)
@@ -145,12 +145,14 @@ function(find_extproject name)
     unset(_matchedVars)
     
     # search BUILD_SHARED_LIBS
-    string (REGEX MATCHALL "(^|;)-DBUILD_SHARED_LIBS=[A-Za-z0-9_]*" _matchedVars "${find_extproject_CMAKE_ARGS}")   
-    list(LENGTH _matchedVars _list_size)    
-    if(_list_size EQUAL 0)
+    if(NOT DEFINED find_extproject_SHARED)
         list(APPEND find_extproject_CMAKE_ARGS -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS})
+        set(find_extproject_SHARED ${BUILD_SHARED_LIBS})
+    elseif(find_extproject_SHARED)
+        list(APPEND find_extproject_CMAKE_ARGS -DBUILD_SHARED_LIBS=ON)
+    else()
+        list(APPEND find_extproject_CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF)
     endif()
-    unset(_matchedVars)
     
     # set some arguments  
     if(CMAKE_GENERATOR)        
@@ -166,6 +168,7 @@ function(find_extproject name)
     
     if(EXISTS ${EP_BASE}/Build/${name}_EP/ext_options.cmake)         
         include(${EP_BASE}/Build/${name}_EP/ext_options.cmake)
+
         # add include into  ext_options.cmake
         set(WITHOPT "${WITHOPT}include(${EP_BASE}/Build/${name}_EP/ext_options.cmake)\n" PARENT_SCOPE)   
        
@@ -261,7 +264,7 @@ function(find_extproject name)
     set(IMPORTED_TARGET_PATH)
     foreach(IMPORTED_TARGET ${IMPORTED_TARGETS})
         set(IMPORTED_TARGET_PATH ${IMPORTED_TARGET_PATH} $<TARGET_LINKER_FILE:${IMPORTED_TARGET}>) #${IMPORTED_TARGET}
-        if(NOT BUILD_SHARED_LIBS)
+        if(NOT find_extproject_SHARED)
             get_target_property(LINK_INTERFACE_LIBS "${IMPORTED_TARGET}" INTERFACE_LINK_LIBRARIES)
             foreach(LINK_INTERFACE_LIB ${LINK_INTERFACE_LIBS}) 
                 if(LINK_INTERFACE_LIB)
@@ -274,7 +277,7 @@ function(find_extproject name)
                             set(IMPORTED_TARGET_PATH ${IMPORTED_TARGET_PATH} ${LINK_INTERFACE_LIB})
                         else()
                             message(STATUS "NO TARGET ${LINK_INTERFACE_LIB} -> INTERFACE_TARGET ${INTERFACE_TARGET}")
-                        endif()    
+                        endif()
                     endif()
                 endif()
             endforeach()
@@ -296,7 +299,7 @@ function(find_extproject name)
     install( DIRECTORY ${EP_BASE}/Install/${name}_EP/ 
              DESTINATION ${_INST_ROOT_PATH}
              COMPONENT libraries)
-        
+
     set(EXPORTS_PATHS ${EXPORTS_PATHS} PARENT_SCOPE)
-    set(LINK_SEARCH_PATHS ${LINK_SEARCH_PATHS} ${EP_BASE}/Install/${name}_EP/lib PARENT_SCOPE)
+    set(LINK_SEARCH_PATHS ${LINK_SEARCH_PATHS} ${INCLUDE_LINK_SEARCH_PATHS} ${EP_BASE}/Install/${name}_EP/lib PARENT_SCOPE)
 endfunction()

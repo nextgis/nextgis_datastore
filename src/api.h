@@ -34,8 +34,8 @@ enum ngsErrorCodes {
 };
 
 
-EXTERNC int ngsGetVersion();
-EXTERNC const char* ngsGetVersionString();
+EXTERNC int ngsGetVersion(const char* request);
+EXTERNC const char* ngsGetVersionString(const char* request);
 EXTERNC int ngsInit(const char* path, const char* cachePath);
 EXTERNC void ngsUninit();
 

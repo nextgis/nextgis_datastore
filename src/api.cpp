@@ -24,6 +24,11 @@
 #include "datastore.h"
 #include "mapstore.h"
 
+#include "gdal.h"
+#include <curl/curl.h>
+#include "geos_c.h"
+#include "sqlite3.h"
+
 #include <memory>
 
 using namespace ngs;
@@ -35,19 +40,50 @@ static unique_ptr<MapStore> gMapStore;
  
 /**
  * @brief Get library version number as major * 10000 + minor * 100 + rev
+ * @param request may be gdal, proj, geos, curl, jpeg, png, zlib, iconv, sqlite3,
+ *        openssl, expat, jsonc, tiff, geotiff
  * @return library version number
  */
-int ngsGetVersion()
+int ngsGetVersion(const char* request)
 {
+    if(nullptr == request)
+        return NGM_VERSION_NUM;
+
+    if(EQUAL(request, "gdal"))
+        return atoi(GDALVersionInfo("VERSION_NUM"));
+    else if(EQUAL(request, "curl")){
+        curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
+        return data->version_num;
+    }
+    else if(EQUAL(request, "geos"))
+        return GEOS_CAPI_LAST_INTERFACE;
+    else if(EQUAL(request, "sqlite"))
+        return sqlite3_libversion_number();
+    //else if(request == nullptr || EQUAL(request, "self"))
     return NGM_VERSION_NUM;
 }
 
 /**
  * @brief Get library version string
+ * @param request may be gdal, proj, geos, curl, jpeg, png, zlib, iconv, sqlite3,
+ *        openssl, expat, jsonc, tiff, geotiff
  * @return library version string
  */
-const char* ngsGetVersionString()
+const char* ngsGetVersionString(const char* request)
 {
+    if(nullptr == request)
+        return NGM_VERSION;
+
+    if(EQUAL(request, "gdal"))
+        return GDALVersionInfo("RELEASE_NAME");
+    else if(EQUAL(request, "curl")){
+        curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
+        return data->version;
+    }
+    else if(EQUAL(request, "geos"))
+        return GEOS_CAPI_VERSION;
+    else if(EQUAL(request, "sqlite"))
+        return sqlite3_libversion();
     return NGM_VERSION;
 }
 
@@ -66,7 +102,9 @@ int ngsInit(const char* path, const char* cachePath)
     return nResult;
 }
 
-
+/**
+ * @brief Clean up library structures
+ */
 void ngsUninit()
 {
 }

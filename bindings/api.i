@@ -23,8 +23,8 @@
 %module api
 
 %inline %{
-extern int ngsGetVersion();
-extern const char* ngsGetVersionString();
+extern int ngsGetVersion(const char* request);
+extern const char* ngsGetVersionString(const char* request);
 extern int ngsInit(const char* path, const char* cachePath);
 extern void ngsUninit();
 %}
@@ -32,9 +32,6 @@ extern void ngsUninit();
 %pragma(java) jniclasscode=%{
   static {
     try {
-        System.loadLibrary("crypto");
-        System.loadLibrary("ssl");
-        System.loadLibrary("curl");
         System.loadLibrary("ngstore");
         System.loadLibrary("ngstoreapi");
     } catch (UnsatisfiedLinkError e) {
