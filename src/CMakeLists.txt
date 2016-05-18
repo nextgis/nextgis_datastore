@@ -41,6 +41,11 @@ set(CSOURCES
     mapstore.cpp
 )
 
+if(UNIX)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
+endif()
+
 set(LIB_NAME)
 if(BUILD_SHARED_LIBS)
     set(LIB_TYPE SHARED)
