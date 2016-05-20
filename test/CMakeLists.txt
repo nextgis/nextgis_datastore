@@ -41,8 +41,8 @@ if(BUILD_TESTS)
 
     #list(REMOVE_DUPLICATES TARGET_LINK_LIB)
 
-    message(STATUS "target_link_libraries(${TARGET_LINK_LIB})")
-    message(STATUS "link_directories(${LINK_SEARCH_PATHS})")
+    #message(STATUS "target_link_libraries(${TARGET_LINK_LIB})")
+    #message(STATUS "link_directories(${LINK_SEARCH_PATHS})")
 
     link_directories(${LINK_SEARCH_PATHS})
     add_executable(main_test main_test.cpp)

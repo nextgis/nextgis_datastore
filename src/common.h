@@ -23,35 +23,35 @@
 #define COMMON_H
  
 #ifdef NGSTOR_STATIC
-#   define EXTERN 
+#   define NGS_EXTERN
 #else
 #   if defined (_WIN32) || defined (WINDOWS)
 #    ifdef NGSTOR_EXPORTS
 #      ifdef __GNUC__
-#        define EXTERN __attribute__((dllexport))
+#        define NGS_EXTERN __attribute__((dllexport))
 #      else        
-#        define EXTERN __declspec(dllexport)
+#        define NGS_EXTERN __declspec(dllexport)
 #      endif 
 #    else
 #      ifdef __GNUC__
-#        define EXTERN __attribute__((dllimport))
+#        define NGS_EXTERN __attribute__((dllimport))
 #      else        
-#        define EXTERN __declspec(dllimport)
+#        define NGS_EXTERN __declspec(dllimport)
 #      endif 
 #    endif
 #   else
 #     if __GNUC__ >= 4
-#       define EXTERN __attribute__((visibility("default")))
+#       define NGS_EXTERN __attribute__((visibility("default")))
 #     else
-#       define EXTERN                
+#       define NGS_EXTERN
 #     endif 
 #   endif
 #endif
 
 #if defined __cplusplus && !defined __ANDROID__
-#define EXTERNC extern "C" EXTERN
+#define NGS_EXTERNC extern "C" NGS_EXTERN
 #else
-#define EXTERNC EXTERN
+#define NGS_EXTERNC NGS_EXTERN
 #endif
 
 #endif // COMMON_H
