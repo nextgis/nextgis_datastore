@@ -26,6 +26,8 @@
 
 // GDAL
 #include "gdal.h"
+#include "gdal_frmts.h"
+#include "ogrsf_frmts.h"
 #include "cpl_string.h"
 
 #include <curl/curl.h>
@@ -55,6 +57,30 @@ static string gFormats;
 #ifndef _LIBICONV_VERSION
 #define _LIBICONV_VERSION 0x010E
 #endif
+
+void RegisterDeivers()
+{
+    static bool isRegistered = false;
+    if(!isRegistered){
+        isRegistered = true;
+        GDALRegister_VRT();
+        GDALRegister_GTiff();
+        GDALRegister_HFA();
+        GDALRegister_PNG();
+        GDALRegister_JPEG();
+        GDALRegister_MEM();
+        RegisterOGRShape();
+        RegisterOGRTAB();
+        RegisterOGRVRT();
+        RegisterOGRMEM();
+        RegisterOGRGPX();
+        RegisterOGRKML();
+        RegisterOGRGeoJSON();
+        RegisterOGRGeoPackage();
+        RegisterOGRSQLite();
+        //GDALRegister_WMS();
+    }
+}
  
 /**
  * @brief Get library version number as major * 10000 + minor * 100 + rev
@@ -70,7 +96,7 @@ int ngsGetVersion(const char* request)
         return atoi(GDALVersionInfo("VERSION_NUM"));
     else if(EQUAL(request, "curl")){
         curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
-        return data->version_num;
+        return static_cast<int>(data->version_num);
     }
     else if(EQUAL(request, "geos"))
         return GEOS_CAPI_LAST_INTERFACE;
@@ -123,6 +149,7 @@ const char* ngsGetVersionString(const char* request)
         return sqlite3_libversion();
     else if(EQUAL(request, "formats")){
         if(gFormats.empty ()){
+            RegisterDeivers();
             for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
                 GDALDriverH hDriver = GDALGetDriver(iDr);
 
@@ -209,13 +236,13 @@ const char* ngsGetVersionString(const char* request)
     else if(EQUAL(request, "zlib"))
         return ZLIB_VERSION;
     else if(EQUAL(request, "openssl")) {
-        string val = CPLSPrintf("%#x", OPENSSL_VERSION_NUMBER);
+        string val = CPLSPrintf("%#lx", OPENSSL_VERSION_NUMBER);
         int major = atoi(val.substr (2, 1).c_str ());
         int minor = atoi(val.substr (3, 2).c_str ());
         int rev = atoi(val.substr (5, 2).c_str ());
         return CPLSPrintf("%d.%d.%d", major, minor, rev);
     }
-    else if(request == nullptr || EQUAL(request, "self"))
+    else if(EQUAL(request, "self"))
         return NGM_VERSION;
     return nullptr;
 }
@@ -228,6 +255,7 @@ const char* ngsGetVersionString(const char* request)
  */
 int ngsInit(const char* path, const char* cachePath)
 {
+    RegisterDeivers();
     gDataStore.reset(new DataStore(path, cachePath));
     int nResult = gDataStore->openOrCreate();
     if(nResult != ngsErrorCodes::SUCCESS)

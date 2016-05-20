@@ -24,6 +24,8 @@
 
 include(extlib)
 
+option (BUILD_SHARED_LIBS "Build as dynamic library" ON)
+
 set(HHEADERS
     version.h
     common.h
