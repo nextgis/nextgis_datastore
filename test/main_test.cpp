@@ -37,9 +37,39 @@ TEST(BasicTests, TestVersions) {
     EXPECT_STREQ("3.5.0-CAPI-1.9.0", ngsGetVersionString("geos"));
 
     EXPECT_EQ(3011001, ngsGetVersion("sqlite"));
-    EXPECT_STREQ("3.11.1", ngsGetVersionString("sqlite"));
+    EXPECT_STREQ("3.11.1", ngsGetVersionString("sqlite"));    
 
-    // TODO: proj, jpeg, png, zlib, iconv, sqlite3, openssl, expat, jsonc, tiff, geotiff
+    EXPECT_EQ(3171, ngsGetVersion("jsonc"));
+    EXPECT_STREQ("0.12.99", ngsGetVersionString("jsonc"));
+
+    EXPECT_EQ(492, ngsGetVersion("proj"));
+    EXPECT_STREQ("4.9.2", ngsGetVersionString("proj"));
+
+    EXPECT_EQ(90, ngsGetVersion("jpeg"));
+    EXPECT_STREQ("9.1", ngsGetVersionString("jpeg"));
+
+    EXPECT_EQ(43, ngsGetVersion("tiff"));
+    EXPECT_STREQ("4.3", ngsGetVersionString("tiff"));
+
+    EXPECT_EQ(1410, ngsGetVersion("geotiff"));
+    EXPECT_STREQ("1.4.1", ngsGetVersionString("geotiff"));
+
+    EXPECT_EQ(10621, ngsGetVersion("png"));
+    EXPECT_STREQ("1.6.21", ngsGetVersionString("png"));
+
+    EXPECT_EQ(210, ngsGetVersion("expat"));
+    EXPECT_STREQ("2.1.0", ngsGetVersionString("expat"));
+
+    EXPECT_EQ(270, ngsGetVersion("iconv"));
+    EXPECT_STREQ("1.14", ngsGetVersionString("iconv"));
+
+    EXPECT_EQ(4736, ngsGetVersion("zlib"));
+    EXPECT_STREQ("1.2.8", ngsGetVersionString("zlib"));
+
+    EXPECT_EQ(268443663, ngsGetVersion("openssl"));
+    EXPECT_STREQ("1.0.2", ngsGetVersionString("openssl"));
+
+    EXPECT_NE(nullptr, ngsGetVersionString("formats"));
 }
 
 TEST(BasicTests, TestCreate) {

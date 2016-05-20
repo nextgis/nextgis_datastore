@@ -31,8 +31,19 @@
 #include <curl/curl.h>
 #include "geos_c.h"
 #include "sqlite3.h"
+#include "json-c/json_c_version.h"
+#include "proj_api.h"
+#include "jpeglib.h"
+#include "tiff.h"
+#include "geotiff.h"
+#include "png.h"
+#include "expat.h"
+#include "iconv.h"
+#include "zlib.h"
+#include "openssl/opensslv.h"
 
 #include <memory>
+#include <iostream>
 
 using namespace ngs;
 using namespace std;
@@ -41,6 +52,9 @@ static unique_ptr<DataStore> gDataStore;
 static unique_ptr<MapStore> gMapStore;
 static string gFormats;
 
+#ifndef _LIBICONV_VERSION
+#define _LIBICONV_VERSION 0x010E
+#endif
  
 /**
  * @brief Get library version number as major * 10000 + minor * 100 + rev
@@ -52,8 +66,7 @@ int ngsGetVersion(const char* request)
 {
     if(nullptr == request)
         return NGM_VERSION_NUM;
-
-    if(EQUAL(request, "gdal"))
+    else if(EQUAL(request, "gdal"))
         return atoi(GDALVersionInfo("VERSION_NUM"));
     else if(EQUAL(request, "curl")){
         curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
@@ -62,8 +75,28 @@ int ngsGetVersion(const char* request)
     else if(EQUAL(request, "geos"))
         return GEOS_CAPI_LAST_INTERFACE;
     else if(EQUAL(request, "sqlite"))
-        return sqlite3_libversion_number();
-    else if(request == nullptr || EQUAL(request, "self"))
+        return sqlite3_libversion_number();    
+    else if(EQUAL(request, "jsonc"))
+        return JSON_C_VERSION_NUM;
+    else if(EQUAL(request, "proj"))
+        return PJ_VERSION;
+    else if(EQUAL(request, "jpeg"))
+        return JPEG_LIB_VERSION;
+    else if(EQUAL(request, "tiff"))
+        return TIFF_VERSION_BIG;
+    else if(EQUAL(request, "geotiff"))
+        return LIBGEOTIFF_VERSION;
+    else if(EQUAL(request, "png"))
+        return PNG_LIBPNG_VER;
+    else if(EQUAL(request, "expat"))
+        return XML_MAJOR_VERSION * 100 + XML_MINOR_VERSION * 10 + XML_MICRO_VERSION;
+    else if(EQUAL(request, "iconv"))
+        return _LIBICONV_VERSION;
+    else if(EQUAL(request, "zlib"))
+        return ZLIB_VERNUM;
+    else if(EQUAL(request, "openssl"))
+        return OPENSSL_VERSION_NUMBER;
+    else if(EQUAL(request, "self"))
         return NGM_VERSION_NUM;
     return 0;
 }
@@ -78,8 +111,7 @@ const char* ngsGetVersionString(const char* request)
 {
     if(nullptr == request)
         return NGM_VERSION;
-
-    if(EQUAL(request, "gdal"))
+    else if(EQUAL(request, "gdal"))
         return GDALVersionInfo("RELEASE_NAME");
     else if(EQUAL(request, "curl")){
         curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
@@ -138,6 +170,50 @@ const char* ngsGetVersionString(const char* request)
         }
 
         return gFormats.c_str ();
+    }
+    else if(EQUAL(request, "jsonc"))
+        return JSON_C_VERSION;
+    else if(EQUAL(request, "proj")) {
+        int major = PJ_VERSION / 100;
+        int major_full = major * 100;
+        int minor = (PJ_VERSION - major_full) / 10;
+        int minor_full = minor * 10;
+        int rev = PJ_VERSION - (major_full + minor_full);
+        return CPLSPrintf("%d.%d.%d", major, minor, rev);
+    }
+    else if(EQUAL(request, "jpeg"))
+        return CPLSPrintf("%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
+    else if(EQUAL(request, "tiff")){
+        int major = TIFF_VERSION_BIG / 10;
+        int major_full = major * 10;
+        int minor = TIFF_VERSION_BIG - major_full;
+        return CPLSPrintf("%d.%d", major, minor);
+    }
+    else if(EQUAL(request, "geotiff")) {
+        int major = LIBGEOTIFF_VERSION / 1000;
+        int major_full = major * 1000;
+        int minor = (LIBGEOTIFF_VERSION - major_full) / 100;
+        int minor_full = minor * 100;
+        int rev = (LIBGEOTIFF_VERSION - (major_full + minor_full)) / 10;
+        return CPLSPrintf("%d.%d.%d", major, minor, rev);
+    }
+    else if(EQUAL(request, "png"))
+        return PNG_LIBPNG_VER_STRING;
+    else if(EQUAL(request, "expat"))
+        return CPLSPrintf("%d.%d.%d", XML_MAJOR_VERSION, XML_MINOR_VERSION, XML_MICRO_VERSION);
+    else if(EQUAL(request, "iconv")) {
+        int major = _LIBICONV_VERSION / 256;
+        int minor = _LIBICONV_VERSION - major * 256;
+        return CPLSPrintf("%d.%d", major, minor);
+    }
+    else if(EQUAL(request, "zlib"))
+        return ZLIB_VERSION;
+    else if(EQUAL(request, "openssl")) {
+        string val = CPLSPrintf("%#x", OPENSSL_VERSION_NUMBER);
+        int major = atoi(val.substr (2, 1).c_str ());
+        int minor = atoi(val.substr (3, 2).c_str ());
+        int rev = atoi(val.substr (5, 2).c_str ());
+        return CPLSPrintf("%d.%d.%d", major, minor, rev);
     }
     else if(request == nullptr || EQUAL(request, "self"))
         return NGM_VERSION;
