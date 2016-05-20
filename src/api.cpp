@@ -24,7 +24,10 @@
 #include "datastore.h"
 #include "mapstore.h"
 
+// GDAL
 #include "gdal.h"
+#include "cpl_string.h"
+
 #include <curl/curl.h>
 #include "geos_c.h"
 #include "sqlite3.h"
@@ -36,6 +39,7 @@ using namespace std;
 
 static unique_ptr<DataStore> gDataStore;
 static unique_ptr<MapStore> gMapStore;
+static string gFormats;
 
  
 /**
@@ -59,8 +63,9 @@ int ngsGetVersion(const char* request)
         return GEOS_CAPI_LAST_INTERFACE;
     else if(EQUAL(request, "sqlite"))
         return sqlite3_libversion_number();
-    //else if(request == nullptr || EQUAL(request, "self"))
-    return NGM_VERSION_NUM;
+    else if(request == nullptr || EQUAL(request, "self"))
+        return NGM_VERSION_NUM;
+    return 0;
 }
 
 /**
@@ -84,7 +89,59 @@ const char* ngsGetVersionString(const char* request)
         return GEOS_CAPI_VERSION;
     else if(EQUAL(request, "sqlite"))
         return sqlite3_libversion();
-    return NGM_VERSION;
+    else if(EQUAL(request, "formats")){
+        if(gFormats.empty ()){
+            for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
+                GDALDriverH hDriver = GDALGetDriver(iDr);
+
+                const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets, *pszKind;
+                char** papszMD = GDALGetMetadata( hDriver, NULL );
+
+                if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
+                    pszRFlag = "r";
+
+                if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
+                    pszWFlag = "w+";
+                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
+                    pszWFlag = "w";
+                else
+                    pszWFlag = "o";
+
+                if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
+                    pszVirtualIO = "v";
+                else
+                    pszVirtualIO = "";
+
+                if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
+                    pszSubdatasets = "s";
+                else
+                    pszSubdatasets = "";
+
+                if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
+                    CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
+                    pszKind = "raster,vector";
+                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
+                    pszKind = "raster";
+                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
+                    pszKind = "vector";
+                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
+                    pszKind = "geography network";
+                else
+                    pszKind = "unknown kind";
+
+                gFormats += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
+                        GDALGetDriverShortName( hDriver ),
+                        pszKind,
+                        pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
+                        GDALGetDriverLongName( hDriver ) );
+            }
+        }
+
+        return gFormats.c_str ();
+    }
+    else if(request == nullptr || EQUAL(request, "self"))
+        return NGM_VERSION;
+    return nullptr;
 }
 
 /**
