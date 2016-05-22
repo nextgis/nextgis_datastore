@@ -2285,7 +2285,7 @@ function(_ep_add_build_command name)
     COMMAND ${cmd}
     BYPRODUCTS ${build_byproducts}
     WORKING_DIRECTORY ${binary_dir}
-    DEPENDEES configure
+    #DEPENDEES configure
     ALWAYS ${always}
     ${log}
     ${uses_terminal}
@@ -2456,15 +2456,15 @@ function(ExternalProject_Add name)
   # (Already set up above in the DEPENDS of the add_custom_target command.)
   #
   _ep_add_mkdir_command(${name})
-  _ep_add_download_command(${name})
-  _ep_add_update_command(${name})
-  _ep_add_patch_command(${name})
-  _ep_add_configure_command(${name})
+  ## _ep_add_download_command(${name})
+  ## _ep_add_update_command(${name})
+  ## _ep_add_patch_command(${name})
+  ## _ep_add_configure_command(${name})
   _ep_add_build_command(${name})
   _ep_add_install_command(${name})
 
   # Test is special in that it might depend on build, or it might depend
   # on install.
   #
-  _ep_add_test_command(${name})
+  ## _ep_add_test_command(${name})
 endfunction()
