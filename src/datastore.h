@@ -21,7 +21,10 @@
 #ifndef DATASTORE_H
 #define DATASTORE_H
 
+#include "ogrsf_frmts.h"
+
 #include <string>
+
 
 namespace ngs {
 
@@ -32,13 +35,16 @@ using namespace std;
 class DataStore
 {
 public:
-    DataStore(const char* path, const char* cachePath);
+    DataStore(const char* path, const char* dataPath, const char* cachePath);
+    ~DataStore();
     int create();
     int open();
     int openOrCreate();
 protected:
     string m_sPath;
     string m_sCachePath;
+    string m_sDataPath;
+    GDALDataset *m_poDS;
 };
 
 }

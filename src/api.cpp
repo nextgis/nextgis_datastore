@@ -253,10 +253,10 @@ const char* ngsGetVersionString(const char* request)
  * @param cachePath path to cache folder
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInit(const char* path, const char* cachePath)
+int ngsInit(const char* path, const char* dataPath, const char* cachePath)
 {
     RegisterDeivers();
-    gDataStore.reset(new DataStore(path, cachePath));
+    gDataStore.reset(new DataStore(path, dataPath, cachePath));
     int nResult = gDataStore->openOrCreate();
     if(nResult != ngsErrorCodes::SUCCESS)
         gDataStore.reset(nullptr);
@@ -268,4 +268,16 @@ int ngsInit(const char* path, const char* cachePath)
  */
 void ngsUninit()
 {
+    gDataStore.reset(nullptr);
+}
+
+/**
+ * @brief Delete storage directory and cache (optional)
+ * @param path Path to storage
+ * @param cachePath Path to cache (may be NULL)
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsDestroy(const char *path, const char *cachePath)
+{
+    return ngsErrorCodes::SUCCESS;
 }

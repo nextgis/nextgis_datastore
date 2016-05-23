@@ -30,13 +30,18 @@
 enum ngsErrorCodes {
     SUCCESS = 0,        /**< success */
     UNEXPECTED_ERROR,   /**< unexpected error */
-    PATH_NOT_SPECIFIED /**< path is not specified */
+    PATH_NOT_SPECIFIED, /**< path is not specified */
+    INVALID_PATH,       /**< path is invalid */
+    UNSUPPORTED_GDAL_DRIVER, /**< the gdal driver is unsupported */
+    CREATE_DB_FAILED,   /**< Create database failed */
+    CREATE_DIR_FAILED   /**< Create directory failed */
 };
 
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
-NGS_EXTERNC int ngsInit(const char* path, const char* cachePath);
+NGS_EXTERNC int ngsInit(const char* path, const char* dataPath, const char* cachePath);
 NGS_EXTERNC void ngsUninit();
+NGS_EXTERNC int ngsDestroy(const char* path, const char* cachePath);
 
 #endif // API_H

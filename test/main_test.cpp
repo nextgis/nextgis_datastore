@@ -73,12 +73,15 @@ TEST(BasicTests, TestVersions) {
 }
 
 TEST(BasicTests, TestCreate) {
-
+    EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    ngsUninit();
 }
 
 
 TEST(BasicTests, TestOpen) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
+    EXPECT_EQ(ngsInit(nullptr, nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
+    EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    ngsUninit();
 }
 
 

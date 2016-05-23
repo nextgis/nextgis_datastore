@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "datastore.h"
 #include "api.h"
+#include "cpl_vsi.h"
 
 #if defined(WIN32) || defined(_WIN32)
 #define PATH_SEPARATOR "\\"
@@ -28,10 +29,13 @@
 #endif
 
 #define DEFAULT_CACHE PATH_SEPARATOR ".cache"
+#define DEFAULT_DATA PATH_SEPARATOR ".data"
+#define MAIN_DATABASE "ngm.gpkg"
 
 using namespace ngs;
 
-DataStore::DataStore(const char *path, const char *cachePath)
+DataStore::DataStore(const char* path, const char* dataPath,
+                     const char* cachePath) : m_poDS(nullptr)
 {
     if(nullptr != path)
         m_sPath = path;
@@ -44,12 +48,52 @@ DataStore::DataStore(const char *path, const char *cachePath)
     else {
         m_sCachePath = cachePath;
     }
+    if(nullptr == dataPath) {
+        if(nullptr != path) {
+            m_sDataPath = path;
+            m_sDataPath += DEFAULT_DATA;
+        }
+    }
+    else {
+        m_sDataPath = dataPath;
+    }
+}
+
+DataStore::~DataStore()
+{
+    GDALClose( m_poDS );
 }
 
 int DataStore::create()
 {
+    if(nullptr != m_poDS)
+        return ngsErrorCodes::UNEXPECTED_ERROR;
+
     if(m_sPath.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
+
+    // get GeoPackage driver
+    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
+    if( poDriver == nullptr ) {
+        return ngsErrorCodes::UNSUPPORTED_GDAL_DRIVER;
+    }
+
+    // create folder if not exist
+    if( VSIMkdir( m_sPath.c_str (), 0755 ) != 0 ) {
+        return ngsErrorCodes::CREATE_DIR_FAILED;
+    }
+
+    string sFullPath = m_sPath + string(PATH_SEPARATOR MAIN_DATABASE);
+
+    // create ngm.gpkg
+    m_poDS = poDriver->Create( sFullPath.c_str (), 0, 0, 0,
+                                          GDT_Unknown, nullptr );
+    if( m_poDS == nullptr ) {
+        return ngsErrorCodes::CREATE_DB_FAILED;
+    }
+
+    // create system tables
+
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -57,6 +101,21 @@ int DataStore::open()
 {
     if(m_sPath.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
+    string sFullPath = m_sPath + string(PATH_SEPARATOR MAIN_DATABASE);
+    if (CPLCheckForFile(const_cast<char*>(sFullPath.c_str()), nullptr) != TRUE) {
+        return ngsErrorCodes::INVALID_PATH;
+    }
+
+    // get GeoPackage driver
+    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
+    if( poDriver == nullptr ) {
+        return ngsErrorCodes::UNSUPPORTED_GDAL_DRIVER;
+    }
+
+    m_poDS = static_cast<GDALDataset*>( GDALOpenEx(sFullPath.c_str (),
+                                                   GDAL_OF_UPDATE,
+                                                   nullptr, nullptr, nullptr) );
+
     return ngsErrorCodes::SUCCESS;
 }
 
