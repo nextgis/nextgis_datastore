@@ -30,9 +30,53 @@
 
 #define DEFAULT_CACHE PATH_SEPARATOR ".cache"
 #define DEFAULT_DATA PATH_SEPARATOR ".data"
-#define MAIN_DATABASE "ngm.gpkg"
+#define MAIN_DATABASE "ngs.gpkg"
+#define METHADATA_TABLE_NAME "ngs_meta"
+#define ATTACHEMENTS_TABLE_NAME "ngs_attach"
+#define RASTER_LAYER_TABLE_NAME "ngs_raster"
+#define META_KEY "key"
+#define META_KEY_LIMIT 64
+#define META_VALUE "value"
+#define META_VALUE_LIMIT 255
+#define NGS_VERSION_KEY "ngs_version"
+#define NGS_VERSION 1
 
 using namespace ngs;
+
+//------------------------------------------------------------------------------
+// OGRFeaturePtr
+//------------------------------------------------------------------------------
+OGRFeaturePtr::OGRFeaturePtr(OGRFeature* pFeature) :
+    unique_ptr(pFeature, OGRFeature::DestroyFeature )
+{
+
+}
+
+OGRFeaturePtr:: OGRFeaturePtr() :
+    unique_ptr(nullptr, OGRFeature::DestroyFeature )
+{
+
+}
+
+OGRFeaturePtr::OGRFeaturePtr( OGRFeaturePtr& other ) :
+    unique_ptr< OGRFeature, void (*)(OGRFeature*) >( move( other ) )
+{
+
+}
+
+OGRFeaturePtr& OGRFeaturePtr::operator=(OGRFeaturePtr& feature) {
+    move(feature);
+    return *this;
+}
+
+OGRFeaturePtr& OGRFeaturePtr::operator=(OGRFeature* pFeature) {
+    reset(pFeature);
+    return *this;
+}
+
+//------------------------------------------------------------------------------
+// DataStore
+//------------------------------------------------------------------------------
 
 DataStore::DataStore(const char* path, const char* dataPath,
                      const char* cachePath) : m_poDS(nullptr)
@@ -76,7 +120,7 @@ int DataStore::create()
     if(m_sPath.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
 
-    RegisterDrivers();
+    registerDrivers();
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
@@ -103,6 +147,17 @@ int DataStore::create()
     }
 
     // create system tables
+    int nResult;
+    nResult = createMetadataTable ();
+    if(nResult != ngsErrorCodes::SUCCESS)
+        return nResult;
+    nResult = createRastersTable ();
+    if(nResult != ngsErrorCodes::SUCCESS)
+        return nResult;
+    nResult = createAttachmentsTable ();
+    if(nResult != ngsErrorCodes::SUCCESS)
+        return nResult;
+
 
     return ngsErrorCodes::SUCCESS;
 }
@@ -116,7 +171,7 @@ int DataStore::open()
         return ngsErrorCodes::INVALID_PATH;
     }
 
-    RegisterDrivers();
+    registerDrivers();
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
@@ -126,6 +181,25 @@ int DataStore::open()
     m_poDS = static_cast<GDALDataset*>( GDALOpenEx(sFullPath.c_str (),
                                                    GDAL_OF_UPDATE,
                                                    nullptr, nullptr, nullptr) );
+
+    // check version and upgrade if needed
+    OGRLayer* pMetadataLayer = m_poDS->GetLayerByName (METHADATA_TABLE_NAME);
+    if(nullptr == pMetadataLayer)
+        return ngsErrorCodes::INVALID_DB_STUCTURE;
+
+    pMetadataLayer->ResetReading();
+    OGRFeaturePtr feature;
+    while( (feature = pMetadataLayer->GetNextFeature()) != nullptr ) {
+        if(EQUAL(feature->GetFieldAsString(META_KEY), NGS_VERSION_KEY)) {
+            int nVersion = atoi(feature->GetFieldAsString(META_VALUE));
+            if(nVersion < NGS_VERSION) {
+                int nResult = upgrade (nVersion);
+                if(nResult != ngsErrorCodes::SUCCESS)
+                    return nResult;
+            }
+            break;
+        }
+    }
 
     return ngsErrorCodes::SUCCESS;
 }
@@ -137,10 +211,10 @@ int DataStore::openOrCreate()
     return open();
 }
 
-string &DataStore::ReportFormats()
+string &DataStore::reportFormats()
 {
     if(m_sFormats.empty ()){
-        RegisterDrivers();
+        registerDrivers();
         for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
             GDALDriverH hDriver = GDALGetDriver(iDr);
 
@@ -203,7 +277,7 @@ int DataStore::destroy()
                                                   ngsErrorCodes::DELETE_FAILED;
 }
 
-void DataStore::RegisterDrivers()
+void DataStore::registerDrivers()
 {
     if(m_bDriversLoaded)
         return;
@@ -225,4 +299,53 @@ void DataStore::RegisterDrivers()
     //GDALRegister_WMS();
 
     m_bDriversLoaded = true;
+}
+
+int DataStore::createMetadataTable()
+{
+    OGRLayer* pMetadataLayer = m_poDS->CreateLayer(METHADATA_TABLE_NAME, NULL, 
+                                                   wkbNone, NULL);
+    if (NULL == pMetadataLayer) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    OGRFieldDefn oFieldKey(META_KEY, OFTString);
+    oFieldKey.SetWidth(META_KEY_LIMIT);
+    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
+    oFieldValue.SetWidth(META_VALUE_LIMIT);
+
+    if(pMetadataLayer->CreateField(&oFieldKey) != OGRERR_NONE ||
+       pMetadataLayer->CreateField(&oFieldValue) != OGRERR_NONE) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+    
+    OGRFeature *poFeature = OGRFeature::CreateFeature(
+                pMetadataLayer->GetLayerDefn());
+
+    // write version
+    poFeature->SetField(META_KEY, NGS_VERSION_KEY);
+    poFeature->SetField(META_VALUE, NGS_VERSION);
+    if(pMetadataLayer->CreateFeature(poFeature) != OGRERR_NONE) {
+        OGRFeature::DestroyFeature( poFeature );
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+    OGRFeature::DestroyFeature(poFeature);
+    
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::createRastersTable()
+{
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::createAttachmentsTable()
+{
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::upgrade(int /* oldVersion */)
+{
+    // no structure changes for version 1    
+    return ngsErrorCodes::SUCCESS;
 }

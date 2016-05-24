@@ -123,7 +123,7 @@ const char* ngsGetVersionString(const char* request)
     else if(EQUAL(request, "formats")){
         if(nullptr == gDataStore)
             gDataStore.reset (new DataStore(nullptr, nullptr, nullptr));
-        return gDataStore->ReportFormats ().c_str();
+        return gDataStore->reportFormats ().c_str();
     }
     else if(EQUAL(request, "jsonc"))
         return JSON_C_VERSION;

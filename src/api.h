@@ -35,7 +35,9 @@ enum ngsErrorCodes {
     UNSUPPORTED_GDAL_DRIVER, /**< the gdal driver is unsupported */
     CREATE_DB_FAILED,   /**< Create database failed */
     CREATE_DIR_FAILED,  /**< Create directory failed */
-    DELETE_FAILED       /**< Faild to delete file, folder or something else*/
+    CREATE_TABLE_FAILED,/**< Create table failed */
+    DELETE_FAILED,      /**< Faild to delete file, folder or something else */
+    INVALID_DB_STUCTURE /**< Invalid storage structure */
 };
 
 

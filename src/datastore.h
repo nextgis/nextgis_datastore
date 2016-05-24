@@ -25,11 +25,23 @@
 #include "gdal_frmts.h"
 
 #include <string>
-
+#include <memory>
 
 namespace ngs {
 
 using namespace std;
+
+class OGRFeaturePtr : public unique_ptr< OGRFeature, void (*)(OGRFeature*) >
+{
+public:
+    OGRFeaturePtr(OGRFeature* pFeature);
+    OGRFeaturePtr();
+    OGRFeaturePtr( OGRFeaturePtr& other );
+    OGRFeaturePtr& operator=(OGRFeaturePtr& feature);
+    OGRFeaturePtr& operator=(OGRFeature* pFeature);
+};
+
+
 /**
  * @brief The main geodata storage and manipulation class
  */
@@ -44,10 +56,14 @@ public:
     int openOrCreate();
 
 public:
-    string& ReportFormats();
+    string& reportFormats();
 
 protected:
-    void RegisterDrivers();
+    void registerDrivers();
+    int createMetadataTable();
+    int createRastersTable();
+    int createAttachmentsTable();
+    int upgrade(int oldVersion);
 
 protected:
     string m_sPath;
