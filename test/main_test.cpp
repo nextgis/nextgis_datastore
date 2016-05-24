@@ -84,4 +84,6 @@ TEST(BasicTests, TestOpen) {
     ngsUninit();
 }
 
-
+TEST(BasicTests, TestDelete) {
+    EXPECT_EQ(ngsDestroy ("./tmp", nullptr), ngsErrorCodes::SUCCESS);
+}

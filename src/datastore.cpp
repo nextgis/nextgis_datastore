@@ -57,11 +57,15 @@ DataStore::DataStore(const char* path, const char* dataPath,
     else {
         m_sDataPath = dataPath;
     }
+
+    m_bDriversLoaded = false;
 }
 
 DataStore::~DataStore()
 {
     GDALClose( m_poDS );
+
+    GDALDestroyDriverManager();
 }
 
 int DataStore::create()
@@ -72,6 +76,7 @@ int DataStore::create()
     if(m_sPath.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
 
+    RegisterDrivers();
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
@@ -80,6 +85,11 @@ int DataStore::create()
 
     // create folder if not exist
     if( VSIMkdir( m_sPath.c_str (), 0755 ) != 0 ) {
+        return ngsErrorCodes::CREATE_DIR_FAILED;
+    }
+
+    // create folder if not exist
+    if( VSIMkdir( m_sCachePath.c_str (), 0755 ) != 0 ) {
         return ngsErrorCodes::CREATE_DIR_FAILED;
     }
 
@@ -106,6 +116,7 @@ int DataStore::open()
         return ngsErrorCodes::INVALID_PATH;
     }
 
+    RegisterDrivers();
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
@@ -124,4 +135,94 @@ int DataStore::openOrCreate()
     if(open() != ngsErrorCodes::SUCCESS)
         return create();
     return open();
+}
+
+string &DataStore::ReportFormats()
+{
+    if(m_sFormats.empty ()){
+        RegisterDrivers();
+        for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
+            GDALDriverH hDriver = GDALGetDriver(iDr);
+
+            const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets,
+                    *pszKind;
+            char** papszMD = GDALGetMetadata( hDriver, NULL );
+
+            if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
+                pszRFlag = "r";
+
+            if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
+                pszWFlag = "w+";
+            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
+                pszWFlag = "w";
+            else
+                pszWFlag = "o";
+
+            if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
+                pszVirtualIO = "v";
+            else
+                pszVirtualIO = "";
+
+            if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
+                pszSubdatasets = "s";
+            else
+                pszSubdatasets = "";
+
+            if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
+                CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
+                pszKind = "raster,vector";
+            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
+                pszKind = "raster";
+            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
+                pszKind = "vector";
+            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
+                pszKind = "geography network";
+            else
+                pszKind = "unknown kind";
+
+            m_sFormats += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
+                    GDALGetDriverShortName( hDriver ),
+                    pszKind,
+                    pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
+                    GDALGetDriverLongName( hDriver ) );
+        }
+    }
+    return m_sFormats;
+}
+
+int DataStore::destroy()
+{
+    if(m_sPath.empty())
+        return ngsErrorCodes::INVALID_PATH;
+    if(!m_sCachePath.empty()) {
+        if(CPLUnlinkTree(m_sCachePath.c_str()) != 0){
+            return ngsErrorCodes::DELETE_FAILED;
+        }
+    }
+    return CPLUnlinkTree (m_sPath.c_str()) == 0 ? ngsErrorCodes::SUCCESS :
+                                                  ngsErrorCodes::DELETE_FAILED;
+}
+
+void DataStore::RegisterDrivers()
+{
+    if(m_bDriversLoaded)
+        return;
+    GDALRegister_VRT();
+    GDALRegister_GTiff();
+    GDALRegister_HFA();
+    GDALRegister_PNG();
+    GDALRegister_JPEG();
+    GDALRegister_MEM();
+    RegisterOGRShape();
+    RegisterOGRTAB();
+    RegisterOGRVRT();
+    RegisterOGRMEM();
+    RegisterOGRGPX();
+    RegisterOGRKML();
+    RegisterOGRGeoJSON();
+    RegisterOGRGeoPackage();
+    RegisterOGRSQLite();
+    //GDALRegister_WMS();
+
+    m_bDriversLoaded = true;
 }

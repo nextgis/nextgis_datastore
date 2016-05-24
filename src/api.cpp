@@ -26,8 +26,6 @@
 
 // GDAL
 #include "gdal.h"
-#include "gdal_frmts.h"
-#include "ogrsf_frmts.h"
 #include "cpl_string.h"
 
 #include <curl/curl.h>
@@ -52,36 +50,11 @@ using namespace std;
 
 static unique_ptr<DataStore> gDataStore;
 static unique_ptr<MapStore> gMapStore;
-static string gFormats;
 
 #ifndef _LIBICONV_VERSION
 #define _LIBICONV_VERSION 0x010E
 #endif
 
-void RegisterDeivers()
-{
-    static bool isRegistered = false;
-    if(!isRegistered){
-        isRegistered = true;
-        GDALRegister_VRT();
-        GDALRegister_GTiff();
-        GDALRegister_HFA();
-        GDALRegister_PNG();
-        GDALRegister_JPEG();
-        GDALRegister_MEM();
-        RegisterOGRShape();
-        RegisterOGRTAB();
-        RegisterOGRVRT();
-        RegisterOGRMEM();
-        RegisterOGRGPX();
-        RegisterOGRKML();
-        RegisterOGRGeoJSON();
-        RegisterOGRGeoPackage();
-        RegisterOGRSQLite();
-        //GDALRegister_WMS();
-    }
-}
- 
 /**
  * @brief Get library version number as major * 10000 + minor * 100 + rev
  * @param request may be gdal, proj, geos, curl, jpeg, png, zlib, iconv, sqlite3,
@@ -148,55 +121,9 @@ const char* ngsGetVersionString(const char* request)
     else if(EQUAL(request, "sqlite"))
         return sqlite3_libversion();
     else if(EQUAL(request, "formats")){
-        if(gFormats.empty ()){
-            RegisterDeivers();
-            for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
-                GDALDriverH hDriver = GDALGetDriver(iDr);
-
-                const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets, *pszKind;
-                char** papszMD = GDALGetMetadata( hDriver, NULL );
-
-                if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
-                    pszRFlag = "r";
-
-                if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
-                    pszWFlag = "w+";
-                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
-                    pszWFlag = "w";
-                else
-                    pszWFlag = "o";
-
-                if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
-                    pszVirtualIO = "v";
-                else
-                    pszVirtualIO = "";
-
-                if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
-                    pszSubdatasets = "s";
-                else
-                    pszSubdatasets = "";
-
-                if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
-                    CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
-                    pszKind = "raster,vector";
-                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
-                    pszKind = "raster";
-                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
-                    pszKind = "vector";
-                else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
-                    pszKind = "geography network";
-                else
-                    pszKind = "unknown kind";
-
-                gFormats += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
-                        GDALGetDriverShortName( hDriver ),
-                        pszKind,
-                        pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
-                        GDALGetDriverLongName( hDriver ) );
-            }
-        }
-
-        return gFormats.c_str ();
+        if(nullptr == gDataStore)
+            gDataStore.reset (new DataStore(nullptr, nullptr, nullptr));
+        return gDataStore->ReportFormats ().c_str();
     }
     else if(EQUAL(request, "jsonc"))
         return JSON_C_VERSION;
@@ -227,7 +154,8 @@ const char* ngsGetVersionString(const char* request)
     else if(EQUAL(request, "png"))
         return PNG_LIBPNG_VER_STRING;
     else if(EQUAL(request, "expat"))
-        return CPLSPrintf("%d.%d.%d", XML_MAJOR_VERSION, XML_MINOR_VERSION, XML_MICRO_VERSION);
+        return CPLSPrintf("%d.%d.%d", XML_MAJOR_VERSION, XML_MINOR_VERSION,
+                          XML_MICRO_VERSION);
     else if(EQUAL(request, "iconv")) {
         int major = _LIBICONV_VERSION / 256;
         int minor = _LIBICONV_VERSION - major * 256;
@@ -255,7 +183,6 @@ const char* ngsGetVersionString(const char* request)
  */
 int ngsInit(const char* path, const char* dataPath, const char* cachePath)
 {
-    RegisterDeivers();
     gDataStore.reset(new DataStore(path, dataPath, cachePath));
     int nResult = gDataStore->openOrCreate();
     if(nResult != ngsErrorCodes::SUCCESS)
@@ -279,5 +206,9 @@ void ngsUninit()
  */
 int ngsDestroy(const char *path, const char *cachePath)
 {
-    return ngsErrorCodes::SUCCESS;
+    if(nullptr == path)
+        return ngsErrorCodes::INVALID_PATH;
+    gDataStore.reset(new DataStore(path, nullptr, cachePath));
+
+    return gDataStore->destroy ();
 }

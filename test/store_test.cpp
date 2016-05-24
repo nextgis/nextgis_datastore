@@ -18,31 +18,22 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
-#ifndef API_H
-#define API_H
 
-#include "common.h"
+#include "gtest/gtest.h"
+#include "datastore.h"
+#include "api.h"
 
-/**
- * @brief The NextGIS store and visualisation library error codes enum
- */
-enum ngsErrorCodes {
-    SUCCESS = 0,        /**< success */
-    UNEXPECTED_ERROR,   /**< unexpected error */
-    PATH_NOT_SPECIFIED, /**< path is not specified */
-    INVALID_PATH,       /**< path is invalid */
-    UNSUPPORTED_GDAL_DRIVER, /**< the gdal driver is unsupported */
-    CREATE_DB_FAILED,   /**< Create database failed */
-    CREATE_DIR_FAILED,  /**< Create directory failed */
-    DELETE_FAILED       /**< Faild to delete file, folder or something else*/
-};
+TEST(StoreTests, TestCreate) {
+    ngs::DataStore storage("./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage.create (), ngsErrorCodes::SUCCESS);
+}
 
+TEST(StoreTests, TestOpen) {
+    ngs::DataStore storage("./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
+}
 
-NGS_EXTERNC int ngsGetVersion(const char* request);
-NGS_EXTERNC const char* ngsGetVersionString(const char* request);
-NGS_EXTERNC int ngsInit(const char* path, const char* dataPath, const char* cachePath);
-NGS_EXTERNC void ngsUninit();
-NGS_EXTERNC int ngsDestroy(const char* path, const char* cachePath);
-
-#endif // API_H
+TEST(StoreTests, TestDelete) {
+    ngs::DataStore storage("./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage.destroy (), ngsErrorCodes::SUCCESS);
+}

@@ -46,11 +46,18 @@ if(BUILD_TESTS)
 
     link_directories(${LINK_SEARCH_PATHS})
     add_executable(main_test main_test.cpp)
-    target_link_extlibraries(main_test)
+    target_link_extlibraries(main_test)    
+
+    add_executable(store_test store_test.cpp)
+    target_link_extlibraries(store_test)
     
     set_property(TARGET main_test PROPERTY CXX_STANDARD 11)
     set_property(TARGET main_test PROPERTY C_STANDARD 11)
 
+    set_property(TARGET store_test PROPERTY CXX_STANDARD 11)
+    set_property(TARGET store_test PROPERTY C_STANDARD 11)
+
     add_test(MainTests ${CMAKE_CURRENT_BINARY_DIR}/main_test)
+    add_test(StorageTests ${CMAKE_CURRENT_BINARY_DIR}/store_test)
 
 endif()

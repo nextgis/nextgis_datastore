@@ -22,6 +22,7 @@
 #define DATASTORE_H
 
 #include "ogrsf_frmts.h"
+#include "gdal_frmts.h"
 
 #include <string>
 
@@ -39,12 +40,24 @@ public:
     ~DataStore();
     int create();
     int open();
+    int destroy();
     int openOrCreate();
+
+public:
+    string& ReportFormats();
+
+protected:
+    void RegisterDrivers();
+
 protected:
     string m_sPath;
     string m_sCachePath;
     string m_sDataPath;
     GDALDataset *m_poDS;
+    bool m_bDriversLoaded;
+
+private:
+    string m_sFormats;
 };
 
 }
