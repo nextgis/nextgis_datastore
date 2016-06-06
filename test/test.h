@@ -18,29 +18,19 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef TEST_H
+#define TEST_H
 
-#define NGM_VERSION    "0.1.0"
-#define NGM_VERSION_MAJOR 0
-#define NGM_VERSION_MINOR 1
-#define NGM_VERSION_REV   0
+#include "gtest/gtest.h"
+#include "api.h"
 
-#ifndef NGM_ABI
-#define NGM_ABI "Unknown"
-#endif
+#define TMS_URL "http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1"
+#define TMS_NAME "2gis"
+#define TMS_ALIAS "maps.2gis.com"
+#define TMS_COPYING "2gis (c)"
+#define TMS_EPSG 3857
+#define TMS_MIN_Z 0
+#define TMS_MAX_Z 18
+#define TMS_YORIG_TOP false
 
-#define NGM_USERAGENT "NextGIS Mobile library " NGM_VERSION " [" NGM_ABI "]"
-
-#define NGM_COMPUTE_VERSION(maj,min,rev) ((maj)*10000+(min)*100+rev) // maj - any, min < 99, rev < 99
-#define NGM_VERSION_NUM NGM_COMPUTE_VERSION(NGM_VERSION_MAJOR,NGM_VERSION_MINOR,NGM_VERSION_REV)
-
-/*  check if the current version is at least major.minor.revision */
-#define CHECK_VERSION(major,minor,rev) \
-    (NGM_VERSION_MAJOR > (major) || \
-    (NGM_VERSION_MAJOR == (major) && NGM_VERSION_MINOR > (minor)) || \
-    (NGM_VERSION_MAJOR == (major) && NGM_VERSION_MINOR == (minor) && \
-     NGM_VERSION_REV >= (release)))
-
-#endif // VERSION_H
+#endif // TEST_H

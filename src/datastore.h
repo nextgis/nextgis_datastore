@@ -29,6 +29,15 @@
 
 namespace ngs {
 
+enum ngsLayerType {
+    REMOTE_TMS,
+    LOCAL_TMS,
+    LOCAL_RASTER,
+    WMS,
+    WFS,
+    NGW_IMAGE
+};
+
 using namespace std;
 
 class OGRFeaturePtr : public unique_ptr< OGRFeature, void (*)(OGRFeature*) >
@@ -39,6 +48,7 @@ public:
     OGRFeaturePtr( OGRFeaturePtr& other );
     OGRFeaturePtr& operator=(OGRFeaturePtr& feature);
     OGRFeaturePtr& operator=(OGRFeature* pFeature);
+    operator OGRFeature*() const;
 };
 
 
@@ -54,11 +64,15 @@ public:
     int open();
     int destroy();
     int openOrCreate();
-
+    int createRemoteTMSRaster(const char* url, const char* name,
+                              const char* alias, const char* copyright,
+                              int epsg, int z_min, int z_max,
+                              bool y_origin_top);
 public:
     string& reportFormats();
 
 protected:
+    void initGDAL();
     void registerDrivers();
     int createMetadataTable();
     int createRastersTable();

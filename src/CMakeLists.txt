@@ -57,6 +57,18 @@ else()
     set(LIB_NAME ${PROJECT_NAME}static)
 endif()
 
+if(ANDROID)
+    add_definitions(-DNGM_ABI="Android ${ANDROID_ABI}")
+elseif(IOS)
+    add_definitions(-DNGM_ABI="iOS")
+else()
+    if(WIN32)
+        add_definitions(-DNGM_ABI="Windows")
+    else()
+        add_definitions(-DNGM_ABI="UNIX")
+    endif()
+endif()
+
 add_library(${LIB_NAME} ${LIB_TYPE} ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
 
 if(BUILD_SHARED_LIBS)

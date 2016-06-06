@@ -19,8 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#include "gtest/gtest.h"
-#include "api.h"
+#include "test.h"
 #include "version.h"
 
 TEST(BasicTests, TestVersions) {
@@ -81,7 +80,12 @@ TEST(BasicTests, TestCreate) {
 TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
     EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
-    ngsUninit();
+}
+
+TEST(BasicTests, TestCreateTMS) {
+    EXPECT_EQ(ngsCreateRemoteTMSRaster(TMS_URL, TMS_NAME, TMS_ALIAS, TMS_COPYING,
+                                       TMS_EPSG, TMS_MIN_Z, TMS_MAX_Z,
+                                       TMS_YORIG_TOP), ngsErrorCodes::SUCCESS);
 }
 
 TEST(BasicTests, TestDelete) {

@@ -40,7 +40,6 @@ elseif(BUILD_TARGET_PLATFORM STREQUAL "IOS")
     include(ios)    
 endif()
 
-
 project(ngstore)
 
 include(GNUInstallDirs)
@@ -48,7 +47,7 @@ set(INSTALL_BIN_DIR ${CMAKE_INSTALL_BINDIR} CACHE INTERNAL "Installation directo
 set(INSTALL_LIB_DIR ${CMAKE_INSTALL_LIBDIR} CACHE INTERNAL "Installation directory for libraries" FORCE)
 set(INSTALL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR}/ngstore CACHE INTERNAL "Installation directory for headers" FORCE)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_definitions(-D_DEBUG)
 endif()
 

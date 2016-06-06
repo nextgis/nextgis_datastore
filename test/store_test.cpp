@@ -19,9 +19,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#include "gtest/gtest.h"
+#include "test.h"
 #include "datastore.h"
-#include "api.h"
 
 TEST(StoreTests, TestCreate) {
     ngs::DataStore storage("./tmp", nullptr, nullptr);
@@ -33,7 +32,18 @@ TEST(StoreTests, TestOpen) {
     EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
 }
 
+TEST(StoreTests, TestCreateTMS){
+    ngs::DataStore storage("./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage.createRemoteTMSRaster (TMS_URL, TMS_NAME, TMS_ALIAS,
+                                             TMS_COPYING, TMS_EPSG, TMS_MIN_Z,
+                                             TMS_MAX_Z, TMS_YORIG_TOP),
+              ngsErrorCodes::SUCCESS);
+}
+
 TEST(StoreTests, TestDelete) {
     ngs::DataStore storage("./tmp", nullptr, nullptr);
     EXPECT_EQ(storage.destroy (), ngsErrorCodes::SUCCESS);
 }
+
+

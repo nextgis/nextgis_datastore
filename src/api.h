@@ -36,6 +36,7 @@ enum ngsErrorCodes {
     CREATE_DB_FAILED,   /**< Create database failed */
     CREATE_DIR_FAILED,  /**< Create directory failed */
     CREATE_TABLE_FAILED,/**< Create table failed */
+    CREATE_FAILED,      /**< Create failed */
     DELETE_FAILED,      /**< Faild to delete file, folder or something else */
     INVALID_DB_STUCTURE /**< Invalid storage structure */
 };
@@ -46,5 +47,11 @@ NGS_EXTERNC const char* ngsGetVersionString(const char* request);
 NGS_EXTERNC int ngsInit(const char* path, const char* dataPath, const char* cachePath);
 NGS_EXTERNC void ngsUninit();
 NGS_EXTERNC int ngsDestroy(const char* path, const char* cachePath);
+NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
+                                         const char* alias, const char* copyright,
+                                         int epsg, int z_min, int z_max,
+                                         bool y_origin_top);
+NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
+                              const char* alias, bool move);
 
 #endif // API_H

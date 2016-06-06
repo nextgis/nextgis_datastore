@@ -212,3 +212,40 @@ int ngsDestroy(const char *path, const char *cachePath)
 
     return gDataStore->destroy ();
 }
+
+/**
+ * @brief Create remote TMS Raster
+ * @param url URL to TMS tiles with replacement variables, of the format ${x}, ${y}, etc.
+ * @param name Layer name, only alpha, numeric and underline
+ * @param alias Layer alias name. User readable text
+ * @param copyright Copyright text, link, etc. (optional)
+ * @param epsg EPSG code
+ * @param z_min Minimum zoom level
+ * @param z_max Maximum zoom level. If equal 0 will be set to 18
+ * @param y_origin_top If true - OSGeo TMS, else - Slippy map
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
+                             const char *copyright, int epsg, int z_min, int z_max,
+                             bool y_origin_top)
+{
+    if(z_max == 0)
+        z_max = 18;
+
+    return gDataStore->createRemoteTMSRaster(url, name, alias, copyright, epsg,
+                                             z_min, z_max, y_origin_top);
+}
+
+/**
+ * @brief Load raster file to storage. Maybe georectify raster in 3857 spatial
+ *        reference or NGM v.1 and v.2 zip with tiles
+ * @param path Path to file in OS
+ * @param name Layer name, only alpha, numeric and underline
+ * @param alias Layer alias name. User readable text
+ * @param move Move data to storage or copy
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsLoadRaster(const char */*path*/, const char */*name*/, const char */*alias*/, bool /*move*/)
+{
+    return ngsErrorCodes::SUCCESS;
+}

@@ -20,7 +20,13 @@
  ****************************************************************************/
 #include "datastore.h"
 #include "api.h"
+
 #include "cpl_vsi.h"
+#include "cpl_conv.h"
+#include "version.h"
+
+#include <iostream>
+
 
 #if defined(WIN32) || defined(_WIN32)
 #define PATH_SEPARATOR "\\"
@@ -38,10 +44,26 @@
 #define META_KEY_LIMIT 64
 #define META_VALUE "value"
 #define META_VALUE_LIMIT 255
+#define LAYER_URL "url"
+#define LAYER_NAME "name"
+#define LAYER_ALIAS "alias"
+#define LAYER_TYPE "type"
+#define LAYER_COPYING "copyright"
+#define LAYER_EPSG "epsg"
+#define LAYER_MIN_Z "z_min"
+#define LAYER_MAX_Z "z_max"
+#define LAYER_YORIG_TOP "y_origin_top"
+#define LAYER_ACCOUNT "account"
 #define NGS_VERSION_KEY "ngs_version"
 #define NGS_VERSION 1
+#define NAME_FIELD_LIMIT 64
+#define ALIAS_FIELD_LIMIT 255
+
+#define HTTP_TIMEOUT "5"
+#define HTTP_USE_GZIP "ON"
 
 using namespace ngs;
+using namespace std;
 
 //------------------------------------------------------------------------------
 // OGRFeaturePtr
@@ -72,6 +94,11 @@ OGRFeaturePtr& OGRFeaturePtr::operator=(OGRFeaturePtr& feature) {
 OGRFeaturePtr& OGRFeaturePtr::operator=(OGRFeature* pFeature) {
     reset(pFeature);
     return *this;
+}
+
+ngs::OGRFeaturePtr::operator OGRFeature *() const
+{
+    return get();
 }
 
 //------------------------------------------------------------------------------
@@ -120,7 +147,7 @@ int DataStore::create()
     if(m_sPath.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
 
-    registerDrivers();
+    initGDAL();
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
@@ -171,7 +198,7 @@ int DataStore::open()
         return ngsErrorCodes::INVALID_PATH;
     }
 
-    registerDrivers();
+    initGDAL();
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
@@ -179,7 +206,7 @@ int DataStore::open()
     }
 
     m_poDS = static_cast<GDALDataset*>( GDALOpenEx(sFullPath.c_str (),
-                                                   GDAL_OF_UPDATE,
+                                                   GDAL_OF_SHARED|GDAL_OF_UPDATE,
                                                    nullptr, nullptr, nullptr) );
 
     // check version and upgrade if needed
@@ -201,6 +228,10 @@ int DataStore::open()
         }
     }
 
+    OGRLayer* pRasterLayer = m_poDS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    if(nullptr == pRasterLayer)
+        return ngsErrorCodes::INVALID_DB_STUCTURE;
+
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -209,6 +240,32 @@ int DataStore::openOrCreate()
     if(open() != ngsErrorCodes::SUCCESS)
         return create();
     return open();
+}
+
+int DataStore::createRemoteTMSRaster(const char *url, const char *name,
+                                     const char *alias, const char *copyright,
+                                     int epsg, int z_min, int z_max,
+                                     bool y_origin_top)
+{
+
+    OGRLayer* pRasterLayer = m_poDS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    OGRFeaturePtr feature( OGRFeature::CreateFeature(
+                pRasterLayer->GetLayerDefn()) );
+
+    feature->SetField (LAYER_URL, url);
+    feature->SetField (LAYER_NAME, name);
+    feature->SetField (LAYER_TYPE, ngs::ngsLayerType::REMOTE_TMS);
+    feature->SetField (LAYER_ALIAS, alias);
+    feature->SetField (LAYER_COPYING, copyright);
+    feature->SetField (LAYER_EPSG, epsg);
+    feature->SetField (LAYER_MIN_Z, z_min);
+    feature->SetField (LAYER_MAX_Z, z_max);
+    feature->SetField (LAYER_YORIG_TOP, y_origin_top);
+
+    if(pRasterLayer->CreateFeature(feature) != OGRERR_NONE) {
+        return ngsErrorCodes::CREATE_FAILED;
+    }
+    return ngsErrorCodes::SUCCESS;
 }
 
 string &DataStore::reportFormats()
@@ -262,6 +319,23 @@ string &DataStore::reportFormats()
         }
     }
     return m_sFormats;
+}
+
+void DataStore::initGDAL()
+{
+    // set config options
+    CPLSetConfigOption("GDAL_DATA", m_sDataPath.c_str());
+    CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGM_USERAGENT);
+    CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
+    CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
+    CPLSetConfigOption("CPL_TMPDIR", m_sCachePath.c_str());
+
+#ifdef _DEBUG
+    cout << "HTTP user agent set to: " << NGM_USERAGENT << endl;
+#endif //_DEBUG
+
+    // register drivers
+    registerDrivers ();
 }
 
 int DataStore::destroy()
@@ -319,23 +393,62 @@ int DataStore::createMetadataTable()
         return ngsErrorCodes::CREATE_TABLE_FAILED;
     }
     
-    OGRFeature *poFeature = OGRFeature::CreateFeature(
-                pMetadataLayer->GetLayerDefn());
+    OGRFeaturePtr feature( OGRFeature::CreateFeature(
+                pMetadataLayer->GetLayerDefn()) );
 
     // write version
-    poFeature->SetField(META_KEY, NGS_VERSION_KEY);
-    poFeature->SetField(META_VALUE, NGS_VERSION);
-    if(pMetadataLayer->CreateFeature(poFeature) != OGRERR_NONE) {
-        OGRFeature::DestroyFeature( poFeature );
+    feature->SetField(META_KEY, NGS_VERSION_KEY);
+    feature->SetField(META_VALUE, NGS_VERSION);
+    if(pMetadataLayer->CreateFeature(feature) != OGRERR_NONE) {
         return ngsErrorCodes::CREATE_TABLE_FAILED;
     }
-    OGRFeature::DestroyFeature(poFeature);
     
     return ngsErrorCodes::SUCCESS;
 }
 
 int DataStore::createRastersTable()
 {
+    OGRLayer* pRasterLayer = m_poDS->CreateLayer(RASTER_LAYER_TABLE_NAME, NULL,
+                                                   wkbNone, NULL);
+    if (NULL == pRasterLayer) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    OGRFieldDefn oUrl(LAYER_URL, OFTString);
+    OGRFieldDefn oName(LAYER_NAME, OFTString);
+    oName.SetWidth(NAME_FIELD_LIMIT);
+
+    OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
+
+    OGRFieldDefn oAlias(LAYER_ALIAS, OFTString);
+    oName.SetWidth(ALIAS_FIELD_LIMIT);
+
+    OGRFieldDefn oCopyright(LAYER_COPYING, OFTString);
+    OGRFieldDefn oEPSG(LAYER_EPSG, OFTInteger);
+    OGRFieldDefn oZMin(LAYER_MIN_Z, OFTReal);
+    OGRFieldDefn oZMax(LAYER_MAX_Z, OFTReal);
+    OGRFieldDefn oYOrigTop(LAYER_YORIG_TOP, OFTInteger);
+    oYOrigTop.SetSubType (OFSTBoolean);
+
+    OGRFieldDefn oAccount(LAYER_ACCOUNT, OFTString);
+    oAccount.SetWidth(NAME_FIELD_LIMIT);
+
+    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
+    oFieldValue.SetWidth(META_VALUE_LIMIT);
+
+    if(pRasterLayer->CreateField(&oUrl) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oName) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oType) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oAlias) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oCopyright) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oEPSG) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oZMin) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oZMax) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oYOrigTop) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oAccount) != OGRERR_NONE) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
     return ngsErrorCodes::SUCCESS;
 }
 
