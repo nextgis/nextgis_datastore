@@ -32,14 +32,18 @@ set(HHEADERS
     api.h
 )
 
-set(HHEADER_PRIV    
+set(HHEADER_PRIV
     datastore.h
+    dataset.h
+    rasterdataset.h
     mapstore.h
     )
 
 set(CSOURCES
     api.cpp
     datastore.cpp
+    dataset.cpp
+    rasterdataset.cpp
     mapstore.cpp
 )
 

@@ -27,16 +27,9 @@
 #include <string>
 #include <memory>
 
-namespace ngs {
+#include "dataset.h"
 
-enum ngsLayerType {
-    REMOTE_TMS,
-    LOCAL_TMS,
-    LOCAL_RASTER,
-    WMS,
-    WFS,
-    NGW_IMAGE
-};
+namespace ngs {
 
 using namespace std;
 
@@ -57,6 +50,7 @@ public:
  */
 class DataStore
 {
+    friend class Dataset;
 public:
     DataStore(const char* path, const char* dataPath, const char* cachePath);
     ~DataStore();
@@ -68,8 +62,11 @@ public:
                               const char* alias, const char* copyright,
                               int epsg, int z_min, int z_max,
                               bool y_origin_top);
+    int datasetCount() const;
+    Dataset * getDataset(const char* name);
+    Dataset * getDataset(int index);
 public:
-    string& reportFormats();
+    string& formats();
 
 protected:
     void initGDAL();
@@ -78,16 +75,19 @@ protected:
     int createRastersTable();
     int createAttachmentsTable();
     int upgrade(int oldVersion);
+    int destroyDaraset(enum Dataset::Type type, const string& name);
+    bool isNameValid(const string& name) const;
 
 protected:
-    string m_sPath;
-    string m_sCachePath;
-    string m_sDataPath;
-    GDALDataset *m_poDS;
-    bool m_bDriversLoaded;
+    string m_path;
+    string m_cachePath;
+    string m_dataPath;
+    GDALDataset *m_DS;
+    bool m_driversLoaded;
+    map<string, unique_ptr<Dataset>> m_datasources;
 
 private:
-    string m_sFormats;
+    string m_formats;
 };
 
 }

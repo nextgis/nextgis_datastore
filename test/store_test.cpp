@@ -21,6 +21,7 @@
 
 #include "test.h"
 #include "datastore.h"
+#include "rasterdataset.h"
 
 TEST(StoreTests, TestCreate) {
     ngs::DataStore storage("./tmp", nullptr, nullptr);
@@ -35,10 +36,23 @@ TEST(StoreTests, TestOpen) {
 TEST(StoreTests, TestCreateTMS){
     ngs::DataStore storage("./tmp", nullptr, nullptr);
     EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage.datasetCount (), 0);
     EXPECT_EQ(storage.createRemoteTMSRaster (TMS_URL, TMS_NAME, TMS_ALIAS,
                                              TMS_COPYING, TMS_EPSG, TMS_MIN_Z,
                                              TMS_MAX_Z, TMS_YORIG_TOP),
               ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage.datasetCount (), 1);
+}
+
+TEST(StoreTests, TestDeleteTMS){
+    ngs::DataStore storage("./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage.datasetCount (), 1);
+    ngs::RemoteTMSDataset* pDataset = static_cast<ngs::RemoteTMSDataset*> (
+                storage.getDataset (TMS_NAME));
+    ASSERT_NE(pDataset, nullptr);
+    EXPECT_EQ(pDataset->destroy (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage.datasetCount (), 0);
 }
 
 TEST(StoreTests, TestDelete) {
