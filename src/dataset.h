@@ -28,6 +28,12 @@ namespace ngs {
 using namespace std;
 
 class DataStore;
+
+/**
+ * @brief The Dataset class is base class of DataStore. Each table, raster,
+ * feature class, etc. are Dataset. The DataStore is an array of Datasets as
+ * Map is array of Layers.
+ */
 class Dataset
 {
 public:

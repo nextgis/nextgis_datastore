@@ -28,7 +28,7 @@
 #include "gdal.h"
 #include "cpl_string.h"
 
-#include <curl/curl.h>
+#include <curl/curlver.h>
 #include "geos_c.h"
 #include "sqlite3.h"
 #include "json-c/json_c_version.h"
@@ -67,10 +67,8 @@ int ngsGetVersion(const char* request)
         return NGM_VERSION_NUM;
     else if(EQUAL(request, "gdal"))
         return atoi(GDALVersionInfo("VERSION_NUM"));
-    else if(EQUAL(request, "curl")){
-        curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
-        return static_cast<int>(data->version_num);
-    }
+    else if(EQUAL(request, "curl"))
+        return LIBCURL_VERSION_NUM;
     else if(EQUAL(request, "geos"))
         return GEOS_CAPI_LAST_INTERFACE;
     else if(EQUAL(request, "sqlite"))
@@ -112,10 +110,8 @@ const char* ngsGetVersionString(const char* request)
         return NGM_VERSION;
     else if(EQUAL(request, "gdal"))
         return GDALVersionInfo("RELEASE_NAME");
-    else if(EQUAL(request, "curl")){
-        curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
-        return data->version;
-    }
+    else if(EQUAL(request, "curl"))
+        return LIBCURL_VERSION;
     else if(EQUAL(request, "geos"))
         return GEOS_CAPI_VERSION;
     else if(EQUAL(request, "sqlite"))

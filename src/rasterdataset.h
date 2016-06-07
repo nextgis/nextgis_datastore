@@ -25,6 +25,9 @@
 
 namespace ngs {
 
+/**
+ * @brief The Raster dataset class represent image or raster
+ */
 class RasterDataset : public Dataset
 {
 public:
