@@ -17,56 +17,37 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
+#ifndef TABLE_H
+#define TABLE_H
+
 #include "dataset.h"
-#include "datastore.h"
-#include "api.h"
+#include "ogrsf_frmts.h"
 
-using namespace ngs;
+namespace ngs {
 
-Dataset::Dataset(DataStore *datastore, const string &name,
-                 const string &alias) : m_name(name),
-                 m_deleted(false), m_datastore(datastore)
+class FeaturePtr : public shared_ptr< OGRFeature >
 {
-    if(alias.empty ())
-        m_alias = m_name;
-    else
-        m_alias = alias;
+public:
+    FeaturePtr(OGRFeature* pFeature);
+    FeaturePtr();
+    FeaturePtr& operator=(OGRFeature* pFeature);
+    operator OGRFeature*() const;
+};
 
-    m_type = UNDEFINED;
-}
 
-Dataset::Type Dataset::type() const
+
+class Table : public Dataset
 {
-    return m_type;
+public:
+    Table(OGRLayer* const layer, DataStore * datastore,
+          const string& name, const string& alias = "");
+    FeaturePtr createFeature();
+    int insertFeature(const FeaturePtr& feature);
+    int updateFeature(const FeaturePtr& feature);
+    long featureCount(bool force = true) const;
+protected:
+    OGRLayer * const m_layer;
+};
+
 }
-
-string Dataset::name() const
-{
-    return m_name;
-}
-
-string Dataset::alias() const
-{
-    return m_alias;
-}
-
-int Dataset::destroy()
-{
-    int nRet = m_datastore->destroyDataset(m_type, m_name);
-    if(nRet == ngsErrorCodes::SUCCESS)
-        m_deleted = true;
-    return nRet;
-}
-
-bool Dataset::deleted() const
-{
-    return m_deleted;
-}
-
-
-
-
-
-
-
-
+#endif // TABLE_H

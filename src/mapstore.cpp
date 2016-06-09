@@ -19,10 +19,47 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "mapstore.h"
+#include "api.h"
+#include "constants.h"
+#include "table.h"
 
 using namespace ngs;
 
-MapStore::MapStore()
+MapStore::MapStore(const DataStorePtr &dataStore) : m_dataStore(dataStore)
 {
 
+}
+
+MapStore::~MapStore()
+{
+
+}
+
+int MapStore::create()
+{
+    // TODO: move to map class
+    DatasetPtr dataset = m_dataStore->getDataset (MAPS_TABLE_NAME);
+    Table* pTable = static_cast<Table*>(dataset.get ());
+    if(nullptr == pTable)
+        return ngsErrorCodes::CREATE_MAP_FAILED;
+    FeaturePtr feature = pTable->createFeature ();
+    feature->SetField (MAP_NAME, MAP_DEFAULT_NAME);
+    feature->SetField (MAP_EPSG, 3857);
+    feature->SetField (MAP_DESCRIPTION, "The default map");
+    // TODO: feature->SetField (MAP_CONTENT, data)
+    feature->SetField (MAP_MIN_X, -20037508.34);
+    feature->SetField (MAP_MIN_Y, -20037508.34);
+    feature->SetField (MAP_MAX_X, 20037508.34);
+    feature->SetField (MAP_MAX_Y, 20037508.34);
+
+    return pTable->insertFeature (feature);
+}
+
+long MapStore::mapCount() const
+{
+    DatasetPtr dataset = m_dataStore->getDataset (MAPS_TABLE_NAME);
+    Table* pTable = static_cast<Table*>(dataset.get ());
+    if(nullptr == pTable)
+        return 0;
+    return pTable->featureCount ();
 }

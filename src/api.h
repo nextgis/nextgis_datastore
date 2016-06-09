@@ -36,9 +36,12 @@ enum ngsErrorCodes {
     CREATE_DB_FAILED,   /**< Create database failed */
     CREATE_DIR_FAILED,  /**< Create directory failed */
     CREATE_TABLE_FAILED,/**< Create table failed */
+    CREATE_MAP_FAILED,  /**< Create map failed */
     CREATE_FAILED,      /**< Create failed */
     DELETE_FAILED,      /**< Faild to delete file, folder or something else */
-    INVALID_DB_STUCTURE /**< Invalid storage structure */
+    INVALID_DB_STUCTURE,/**< Invalid storage structure */
+    INSERT_FAILED,      /**< insert new feature failed */
+    UPDATE_FAILED       /**< update feature failed */
 };
 
 

@@ -19,8 +19,10 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "datastore.h"
+#include "table.h"
 #include "api.h"
 #include "rasterdataset.h"
+#include "constants.h"
 
 #include "cpl_vsi.h"
 #include "cpl_conv.h"
@@ -37,70 +39,9 @@
 
 #define DEFAULT_CACHE PATH_SEPARATOR ".cache"
 #define DEFAULT_DATA PATH_SEPARATOR ".data"
-#define MAIN_DATABASE "ngs.gpkg"
-#define METHADATA_TABLE_NAME "ngs_meta"
-#define ATTACHEMENTS_TABLE_NAME "ngs_attach"
-#define RASTER_LAYER_TABLE_NAME "ngs_raster"
-#define SYS_TABLE_COUNT 2
-#define META_KEY "key"
-#define META_KEY_LIMIT 64
-#define META_VALUE "value"
-#define META_VALUE_LIMIT 255
-#define LAYER_URL "url"
-#define LAYER_NAME "name"
-#define LAYER_ALIAS "alias"
-#define LAYER_TYPE "type"
-#define LAYER_COPYING "copyright"
-#define LAYER_EPSG "epsg"
-#define LAYER_MIN_Z "z_min"
-#define LAYER_MAX_Z "z_max"
-#define LAYER_YORIG_TOP "y_origin_top"
-#define LAYER_ACCOUNT "account"
-#define NGS_VERSION_KEY "ngs_version"
-#define NGS_VERSION 1
-#define NAME_FIELD_LIMIT 64
-#define ALIAS_FIELD_LIMIT 255
-
-#define HTTP_TIMEOUT "5"
-#define HTTP_USE_GZIP "ON"
 
 using namespace ngs;
 
-//------------------------------------------------------------------------------
-// OGRFeaturePtr
-//------------------------------------------------------------------------------
-OGRFeaturePtr::OGRFeaturePtr(OGRFeature* pFeature) :
-    unique_ptr(pFeature, OGRFeature::DestroyFeature )
-{
-
-}
-
-OGRFeaturePtr:: OGRFeaturePtr() :
-    unique_ptr(nullptr, OGRFeature::DestroyFeature )
-{
-
-}
-
-OGRFeaturePtr::OGRFeaturePtr( OGRFeaturePtr& other ) :
-    unique_ptr< OGRFeature, void (*)(OGRFeature*) >( move( other ) )
-{
-
-}
-
-OGRFeaturePtr& OGRFeaturePtr::operator=(OGRFeaturePtr& feature) {
-    move(feature);
-    return *this;
-}
-
-OGRFeaturePtr& OGRFeaturePtr::operator=(OGRFeature* pFeature) {
-    reset(pFeature);
-    return *this;
-}
-
-OGRFeaturePtr::operator OGRFeature *() const
-{
-    return get();
-}
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -185,7 +126,9 @@ int DataStore::create()
     nResult = createAttachmentsTable ();
     if(nResult != ngsErrorCodes::SUCCESS)
         return nResult;
-
+    nResult = createMapsTable ();
+    if(nResult != ngsErrorCodes::SUCCESS)
+        return nResult;
 
     return ngsErrorCodes::SUCCESS;
 }
@@ -216,7 +159,7 @@ int DataStore::open()
         return ngsErrorCodes::INVALID_DB_STUCTURE;
 
     pMetadataLayer->ResetReading();
-    OGRFeaturePtr feature;
+    FeaturePtr feature;
     while( (feature = pMetadataLayer->GetNextFeature()) != nullptr ) {
         if(EQUAL(feature->GetFieldAsString(META_KEY), NGS_VERSION_KEY)) {
             int nVersion = atoi(feature->GetFieldAsString(META_VALUE));
@@ -232,8 +175,6 @@ int DataStore::open()
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
     if(nullptr == pRasterLayer)
         return ngsErrorCodes::INVALID_DB_STUCTURE;
-
-    // TODO: fill m_datasources
 
     return ngsErrorCodes::SUCCESS;
 }
@@ -254,7 +195,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
         return ngsErrorCodes::CREATE_FAILED;
 
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
-    OGRFeaturePtr feature( OGRFeature::CreateFeature(
+    FeaturePtr feature( OGRFeature::CreateFeature(
                 pRasterLayer->GetLayerDefn()) );
 
     feature->SetField (LAYER_URL, url);
@@ -271,7 +212,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
         return ngsErrorCodes::CREATE_FAILED;
     }
 
-    // TODO: add to m_datasources
+    // TODO: notify listeners
 
     return ngsErrorCodes::SUCCESS;
 }
@@ -284,49 +225,56 @@ int DataStore::datasetCount() const
     return dsLayerCount - SYS_TABLE_COUNT;
 }
 
-Dataset *DataStore::getDataset(const char *name)
+DatasetPtr DataStore::getDataset(const char *name)
 {
+    DatasetPtr dataset;
     auto it = m_datasources.find (name);
     if( it != m_datasources.end ()){
         if(!it->second->deleted ()){
-            return it->second.get();
+            return it->second;
         }
         else{
-            return nullptr;
+            return dataset;
         }
     }
 
-    Dataset *pDataset = nullptr;
     OGRLayer* pLayer = m_DS->GetLayerByName (name);
-    if(nullptr != pLayer){
-        return nullptr; // TODO: create Dataset* and add it to map
+    if(nullptr != pLayer){ // TODO: get GDALRaster
+        if( EQUAL(pLayer->GetGeometryColumn (), "")){
+            dataset.reset (static_cast<Dataset*>(
+                               new Table(pLayer, this,
+                                       pLayer->GetName (),
+                                       pLayer->GetDescription ())));
+            m_datasources[dataset->name ()] = dataset;
+        }
+        else {
+            // TODO: Add feature dataset
+        }
+
+        return dataset;
     }
 
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
-    OGRFeaturePtr feature;
+    FeaturePtr feature;
     while( (feature = pRasterLayer->GetNextFeature()) != nullptr ) {
         if(EQUAL(feature->GetFieldAsString (LAYER_NAME), name)){
 
             switch(feature->GetFieldAsInteger (LAYER_TYPE)){
             case Dataset::REMOTE_TMS:
-            {
-                RemoteTMSDataset* pRemoteTMSDataset =
-                        new RemoteTMSDataset(this,
+                dataset.reset (static_cast<Dataset*>(new RemoteTMSDataset(this,
                                         feature->GetFieldAsString (LAYER_NAME),
-                                        feature->GetFieldAsString (LAYER_ALIAS));
-                pDataset = pRemoteTMSDataset;
-                m_datasources[pRemoteTMSDataset->name ()].reset (pDataset);
+                                        feature->GetFieldAsString (LAYER_ALIAS))));
+                m_datasources[dataset->name ()] = dataset;
                 break;
             }
-            }
 
-            return pDataset; // TODO: create Dataset* and add it to map
+            return dataset;
         }
     }
-    return pDataset;
+    return dataset;
 }
 
-Dataset *DataStore::getDataset(int index)
+DatasetPtr DataStore::getDataset(int index)
 {
     int dsLayers = m_DS->GetLayerCount () - SYS_TABLE_COUNT;
     if(index < dsLayers){
@@ -334,11 +282,10 @@ Dataset *DataStore::getDataset(int index)
         for(int i = 0; i < m_DS->GetLayerCount (); ++i){
             OGRLayer* pLayer = m_DS->GetLayer (i);
             // skip system tables
-            if(EQUAL (pLayer->GetName (), METHADATA_TABLE_NAME))
-                continue;
-            else if(EQUAL (pLayer->GetName (), ATTACHEMENTS_TABLE_NAME))
-                continue;
-            else if(EQUAL (pLayer->GetName (), RASTER_LAYER_TABLE_NAME))
+            if(EQUAL (pLayer->GetName (), METHADATA_TABLE_NAME) ||
+               EQUAL (pLayer->GetName (), ATTACHEMENTS_TABLE_NAME) ||
+               EQUAL (pLayer->GetName (), RASTER_LAYER_TABLE_NAME) ||
+               EQUAL (pLayer->GetName (), MAPS_TABLE_NAME) )
                 continue;
             if(counter == index)
                 return getDataset (pLayer->GetName());
@@ -346,7 +293,7 @@ Dataset *DataStore::getDataset(int index)
         }
     }
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
-    OGRFeaturePtr feature( pRasterLayer->GetFeature (index - dsLayers) );
+    FeaturePtr feature( pRasterLayer->GetFeature (index - dsLayers) );
     return getDataset (feature->GetFieldAsString (LAYER_NAME));
 }
 
@@ -407,10 +354,11 @@ void DataStore::initGDAL()
 {
     // set config options
     CPLSetConfigOption("GDAL_DATA", m_dataPath.c_str());
+    CPLSetConfigOption("GDAL_CACHEMAX", CACHEMAX);
     CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGM_USERAGENT);
     CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
     CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
-    CPLSetConfigOption("CPL_TMPDIR", m_cachePath.c_str());
+    CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", m_cachePath.c_str());
 
 #ifdef _DEBUG
     cout << "HTTP user agent set to: " << NGM_USERAGENT << endl;
@@ -475,7 +423,7 @@ int DataStore::createMetadataTable()
         return ngsErrorCodes::CREATE_TABLE_FAILED;
     }
     
-    OGRFeaturePtr feature( OGRFeature::CreateFeature(
+    FeaturePtr feature( OGRFeature::CreateFeature(
                 pMetadataLayer->GetLayerDefn()) );
 
     // write version
@@ -536,6 +484,72 @@ int DataStore::createRastersTable()
 
 int DataStore::createAttachmentsTable()
 {
+    OGRLayer* pAttachmentsLayer = m_DS->CreateLayer(ATTACHEMENTS_TABLE_NAME, NULL,
+                                                   wkbNone, NULL);
+    if (NULL == pAttachmentsLayer) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
+    oTable.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oFeatureID(ATTACH_FEATURE, OFTInteger64);
+
+    OGRFieldDefn oAttachID(ATTACH_ID, OFTInteger64);
+    OGRFieldDefn oAttachSize(ATTACH_SIZE, OFTInteger64);
+    OGRFieldDefn oFileName(ATTACH_FILE_NAME, OFTString);
+    oFileName.SetWidth(ALIAS_FIELD_LIMIT);
+    OGRFieldDefn oMime(ATTACH_FILE_MIME, OFTString);
+    oMime.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oDescription(ATTACH_DESCRIPTION, OFTString);
+    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
+    OGRFieldDefn oData(ATTACH_DATA, OFTBinary);
+    OGRFieldDefn oDate(ATTACH_FILE_DATE, OFTDateTime);
+
+    if(pAttachmentsLayer->CreateField(&oTable) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oFeatureID) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oAttachID) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oAttachSize) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oFileName) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oMime) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::createMapsTable()
+{
+    OGRLayer* pMapsLayer = m_DS->CreateLayer(MAPS_TABLE_NAME, NULL,
+                                                   wkbNone, NULL);
+    if (NULL == pMapsLayer) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    OGRFieldDefn oName(MAP_NAME, OFTString);
+    oName.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oEPSG(MAP_EPSG, OFTInteger);
+    OGRFieldDefn oContent(MAP_CONTENT, OFTBinary);
+    OGRFieldDefn oMinX(MAP_MIN_X, OFTReal);
+    OGRFieldDefn oMinY(MAP_MIN_Y, OFTReal);
+    OGRFieldDefn oMaxX(MAP_MAX_X, OFTReal);
+    OGRFieldDefn oMaxY(MAP_MAX_Y, OFTReal);
+    OGRFieldDefn oDescription(MAP_DESCRIPTION, OFTString);
+    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
+
+    if(pMapsLayer->CreateField(&oName) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oEPSG) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oContent) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oMinX) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oMinY) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oMaxX) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oMaxY) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oDescription) != OGRERR_NONE) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -545,8 +559,9 @@ int DataStore::upgrade(int /* oldVersion */)
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::destroyDaraset(Dataset::Type type, const string &name)
+int DataStore::destroyDataset(Dataset::Type type, const string &name)
 {
+    // TODO: notify listeneres about changes
     switch (type) {
     case Dataset::REMOTE_TMS:
     case Dataset::NGW_IMAGE:
@@ -576,6 +591,12 @@ int DataStore::destroyDaraset(Dataset::Type type, const string &name)
     return ngsErrorCodes::DELETE_FAILED;
 }
 
+void DataStore::notifyDatasetCanged(DataStore::ChangeType /*changeType*/,
+                                    const string &/*name*/, long /*id*/)
+{
+    // TODO: notify listeners
+}
+
 bool DataStore::isNameValid(const string &name) const
 {
     if(name.size () < 4)
@@ -586,6 +607,8 @@ bool DataStore::isNameValid(const string &name) const
        (name[3] == '_'))
         return false;
     if(m_datasources.find (name) != m_datasources.end ())
+        return false;
+    if(name.size () >= NAME_FIELD_LIMIT)
         return false;
     return true;
 }

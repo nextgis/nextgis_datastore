@@ -33,17 +33,7 @@ namespace ngs {
 
 using namespace std;
 
-class OGRFeaturePtr : public unique_ptr< OGRFeature, void (*)(OGRFeature*) >
-{
-public:
-    OGRFeaturePtr(OGRFeature* pFeature);
-    OGRFeaturePtr();
-    OGRFeaturePtr( OGRFeaturePtr& other );
-    OGRFeaturePtr& operator=(OGRFeaturePtr& feature);
-    OGRFeaturePtr& operator=(OGRFeature* pFeature);
-    operator OGRFeature*() const;
-};
-
+class MapStore;
 
 /**
  * @brief The main geodata storage and manipulation class
@@ -51,6 +41,20 @@ public:
 class DataStore
 {
     friend class Dataset;
+    friend class Table;
+
+public:
+    enum ChangeType {
+        ADD_FEATURE,
+        CHANGE_FEATURE,
+        DELETE_FEATURE,
+        DELETEALL_FEATURES,
+        ADD_ATTACHMENT,
+        CHANGE_ATTACHMENT,
+        DELETE_ATTACHMENT,
+        DELETEALL_ATTACHMENTS
+    };
+
 public:
     DataStore(const char* path, const char* dataPath, const char* cachePath);
     ~DataStore();
@@ -63,8 +67,8 @@ public:
                               int epsg, int z_min, int z_max,
                               bool y_origin_top);
     int datasetCount() const;
-    Dataset * getDataset(const char* name);
-    Dataset * getDataset(int index);
+    DatasetPtr getDataset(const char* name);
+    DatasetPtr getDataset(int index);
 public:
     string& formats();
 
@@ -74,8 +78,11 @@ protected:
     int createMetadataTable();
     int createRastersTable();
     int createAttachmentsTable();
+    int createMapsTable();
     int upgrade(int oldVersion);
-    int destroyDaraset(enum Dataset::Type type, const string& name);
+    int destroyDataset(enum Dataset::Type type, const string& name);
+    void notifyDatasetCanged(enum ChangeType changeType, const string& name,
+                             long id);
     bool isNameValid(const string& name) const;
 
 protected:
@@ -84,11 +91,13 @@ protected:
     string m_dataPath;
     GDALDataset *m_DS;
     bool m_driversLoaded;
-    map<string, unique_ptr<Dataset>> m_datasources;
+    map<string, DatasetPtr> m_datasources;
 
 private:
     string m_formats;
 };
+
+typedef shared_ptr<DataStore> DataStorePtr;
 
 }
 

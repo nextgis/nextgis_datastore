@@ -22,6 +22,7 @@
 #define DATASET_H
 
 #include <string>
+#include <memory>
 
 namespace ngs {
 
@@ -39,6 +40,7 @@ class Dataset
 public:
     enum Type {
         UNDEFINED,
+        TABLE,
         REMOTE_TMS,
         LOCAL_TMS,
         LOCAL_RASTER,
@@ -63,6 +65,8 @@ protected:
     bool m_deleted;
     DataStore * const m_datastore;
 };
+
+typedef shared_ptr<Dataset> DatasetPtr;
 
 }
 

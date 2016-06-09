@@ -21,9 +21,10 @@
 #ifndef MAPSTORE_H
 #define MAPSTORE_H
 
+#include "datastore.h"
+
 namespace ngs {
 
-}
 
 /**
  * @brief The MapStore class store maps with layers connected to datastore tables
@@ -32,7 +33,20 @@ namespace ngs {
 class MapStore
 {
 public:
-    MapStore();
+    MapStore(const DataStorePtr &dataStore);
+    ~MapStore();
+    /**
+     * @brief create default map
+     * @return ngsErrorCodes value - SUCCES if everything is OK
+     */
+    int create();
+    long mapCount() const;
+
+protected:
+    DataStorePtr m_dataStore;
 };
 
+typedef shared_ptr<MapStore> MapStorePtr;
+
+}
 #endif // MAPSTORE_H

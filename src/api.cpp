@@ -48,8 +48,8 @@
 using namespace ngs;
 using namespace std;
 
-static unique_ptr<DataStore> gDataStore;
-static unique_ptr<MapStore> gMapStore;
+static DataStorePtr gDataStore;
+static MapStorePtr gMapStore;
 
 #ifndef _LIBICONV_VERSION
 #define _LIBICONV_VERSION 0x010E
@@ -180,9 +180,21 @@ const char* ngsGetVersionString(const char* request)
 int ngsInit(const char* path, const char* dataPath, const char* cachePath)
 {
     gDataStore.reset(new DataStore(path, dataPath, cachePath));
-    int nResult = gDataStore->openOrCreate();
-    if(nResult != ngsErrorCodes::SUCCESS)
-        gDataStore.reset(nullptr);
+    int nResult = gDataStore->open();
+    bool create = false;
+    if(nResult != ngsErrorCodes::SUCCESS){
+        nResult = gDataStore->create ();
+        create = true;
+    }
+
+    if(nResult != ngsErrorCodes::SUCCESS) {
+        gDataStore.reset();
+    }
+    else {
+        gMapStore.reset (new MapStore(gDataStore));
+        if(create)
+            nResult = gMapStore->create();
+    }
     return nResult;
 }
 
@@ -191,7 +203,8 @@ int ngsInit(const char* path, const char* dataPath, const char* cachePath)
  */
 void ngsUninit()
 {
-    gDataStore.reset(nullptr);
+    gMapStore.reset ();
+    gDataStore.reset ();
 }
 
 /**
@@ -204,6 +217,7 @@ int ngsDestroy(const char *path, const char *cachePath)
 {
     if(nullptr == path)
         return ngsErrorCodes::INVALID_PATH;
+    gMapStore.reset ();
     gDataStore.reset(new DataStore(path, nullptr, cachePath));
 
     return gDataStore->destroy ();
@@ -241,7 +255,8 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
  * @param move Move data to storage or copy
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsLoadRaster(const char */*path*/, const char */*name*/, const char */*alias*/, bool /*move*/)
+int ngsLoadRaster(const char */*path*/, const char */*name*/,
+                  const char */*alias*/, bool /*move*/)
 {
     return ngsErrorCodes::SUCCESS;
 }

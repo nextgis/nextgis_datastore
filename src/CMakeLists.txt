@@ -37,7 +37,9 @@ set(HHEADER_PRIV
     dataset.h
     rasterdataset.h
     mapstore.h
-    )
+    constants.h
+    table.h
+)
 
 set(CSOURCES
     api.cpp
@@ -45,6 +47,7 @@ set(CSOURCES
     dataset.cpp
     rasterdataset.cpp
     mapstore.cpp
+    table.cpp
 )
 
 if(UNIX)

@@ -48,8 +48,7 @@ TEST(StoreTests, TestDeleteTMS){
     ngs::DataStore storage("./tmp", nullptr, nullptr);
     EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(storage.datasetCount (), 1);
-    ngs::RemoteTMSDataset* pDataset = static_cast<ngs::RemoteTMSDataset*> (
-                storage.getDataset (TMS_NAME));
+    ngs::DatasetPtr pDataset = storage.getDataset (TMS_NAME);
     ASSERT_NE(pDataset, nullptr);
     EXPECT_EQ(pDataset->destroy (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(storage.datasetCount (), 0);

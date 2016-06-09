@@ -45,19 +45,27 @@ if(BUILD_TESTS)
     #message(STATUS "link_directories(${LINK_SEARCH_PATHS})")
 
     link_directories(${LINK_SEARCH_PATHS})
+
     add_executable(main_test main_test.cpp)
     target_link_extlibraries(main_test)    
 
     add_executable(store_test store_test.cpp)
     target_link_extlibraries(store_test)
-    
+
+    add_executable(map_test map_test.cpp)
+    target_link_extlibraries(map_test)
+
     set_property(TARGET main_test PROPERTY CXX_STANDARD 11)
     set_property(TARGET main_test PROPERTY C_STANDARD 11)
 
     set_property(TARGET store_test PROPERTY CXX_STANDARD 11)
     set_property(TARGET store_test PROPERTY C_STANDARD 11)
 
+    set_property(TARGET map_test PROPERTY CXX_STANDARD 11)
+    set_property(TARGET map_test PROPERTY C_STANDARD 11)
+
     add_test(MainTests ${CMAKE_CURRENT_BINARY_DIR}/main_test)
     add_test(StorageTests ${CMAKE_CURRENT_BINARY_DIR}/store_test)
+    add_test(MapTests ${CMAKE_CURRENT_BINARY_DIR}/map_test)
 
 endif()
