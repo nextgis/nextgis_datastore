@@ -22,15 +22,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-# do we need direct access to:
 set(WITH_ZLIB ON CACHE BOOL "zlib on" FORCE)
-# find_anyproject(ZLIB DEFAULT ON)
-# find_anyproject(EXPAT DEFAULT ON)
-# find_anyproject(JSONC REQUIRED)
+
 set(WITH_SQLite3 ON CACHE BOOL "SQLite3 on" FORCE)
 set(WITH_SQLite3_EXTERNAL ON CACHE BOOL "SQLite3 external on" FORCE)
-#find_anyproject(SQLite3 REQUIRED SHARED OFF CMAKE_ARGS
-#    -DENABLE_COLUMN_METADATA=ON)
 
 set(WITH_OpenSSL ON CACHE BOOL "OpenSSL on" FORCE)
 set(WITH_OpenSSL_EXTERNAL ON CACHE BOOL "OpenSSL external on" FORCE)

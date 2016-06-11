@@ -34,17 +34,19 @@ public:
     operator OGRFeature*() const;
 };
 
-
-
 class Table : public Dataset
 {
 public:
     Table(OGRLayer* const layer, DataStore * datastore,
           const string& name, const string& alias = "");
-    FeaturePtr createFeature();
+    FeaturePtr createFeature() const;
+    FeaturePtr getFeature(GIntBig id) const;
     int insertFeature(const FeaturePtr& feature);
     int updateFeature(const FeaturePtr& feature);
-    long featureCount(bool force = true) const;
+    int deleteFeature(GIntBig id);
+    GIntBig featureCount(bool force = true) const;
+    void reset() const;
+    FeaturePtr nextFeature() const;
 protected:
     OGRLayer * const m_layer;
 };

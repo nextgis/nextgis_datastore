@@ -22,6 +22,7 @@
 #define MAPSTORE_H
 
 #include "datastore.h"
+#include "map.h"
 
 namespace ngs {
 
@@ -32,6 +33,7 @@ namespace ngs {
  */
 class MapStore
 {
+    friend class Map;
 public:
     MapStore(const DataStorePtr &dataStore);
     ~MapStore();
@@ -40,10 +42,18 @@ public:
      * @return ngsErrorCodes value - SUCCES if everything is OK
      */
     int create();
-    long mapCount() const;
+    GIntBig mapCount() const;
+    MapWPtr getMap(const char* name);
+    MapWPtr getMap(int index);
+protected:
+    int storeMap(Map* map);
+    bool isNameValid(const string& name) const;
+    int destroyMap(GIntBig mapId);
+    const Table* getLayersTable() const;
 
 protected:
-    DataStorePtr m_dataStore;
+    DataStorePtr m_datastore;
+    map<string, MapPtr> m_maps;
 };
 
 typedef shared_ptr<MapStore> MapStorePtr;

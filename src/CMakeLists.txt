@@ -39,6 +39,8 @@ set(HHEADER_PRIV
     mapstore.h
     constants.h
     table.h
+    map.h
+    mapview.h
 )
 
 set(CSOURCES
@@ -48,6 +50,8 @@ set(CSOURCES
     rasterdataset.cpp
     mapstore.cpp
     table.cpp
+    map.cpp
+    mapview.cpp
 )
 
 if(UNIX)

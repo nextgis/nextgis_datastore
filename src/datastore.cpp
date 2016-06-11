@@ -129,7 +129,9 @@ int DataStore::create()
     nResult = createMapsTable ();
     if(nResult != ngsErrorCodes::SUCCESS)
         return nResult;
-
+    nResult = createLayersTable ();
+    if(nResult != ngsErrorCodes::SUCCESS)
+        return nResult;
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -172,7 +174,7 @@ int DataStore::open()
         }
     }
 
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     if(nullptr == pRasterLayer)
         return ngsErrorCodes::INVALID_DB_STUCTURE;
 
@@ -194,7 +196,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
     if(!isNameValid(name))
         return ngsErrorCodes::CREATE_FAILED;
 
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     FeaturePtr feature( OGRFeature::CreateFeature(
                 pRasterLayer->GetLayerDefn()) );
 
@@ -220,17 +222,17 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
 int DataStore::datasetCount() const
 {
     int dsLayerCount = m_DS->GetLayerCount ();
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     dsLayerCount += pRasterLayer->GetFeatureCount ();
     return dsLayerCount - SYS_TABLE_COUNT;
 }
 
-DatasetPtr DataStore::getDataset(const char *name)
+DatasetWPtr DataStore::getDataset(const char *name)
 {
     DatasetPtr dataset;
     auto it = m_datasources.find (name);
     if( it != m_datasources.end ()){
-        if(!it->second->deleted ()){
+        if(!it->second->isDeleted ()){
             return it->second;
         }
         else{
@@ -254,7 +256,8 @@ DatasetPtr DataStore::getDataset(const char *name)
         return dataset;
     }
 
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
+    pRasterLayer->ResetReading ();
     FeaturePtr feature;
     while( (feature = pRasterLayer->GetNextFeature()) != nullptr ) {
         if(EQUAL(feature->GetFieldAsString (LAYER_NAME), name)){
@@ -274,7 +277,7 @@ DatasetPtr DataStore::getDataset(const char *name)
     return dataset;
 }
 
-DatasetPtr DataStore::getDataset(int index)
+DatasetWPtr DataStore::getDataset(int index)
 {
     int dsLayers = m_DS->GetLayerCount () - SYS_TABLE_COUNT;
     if(index < dsLayers){
@@ -284,7 +287,7 @@ DatasetPtr DataStore::getDataset(int index)
             // skip system tables
             if(EQUAL (pLayer->GetName (), METHADATA_TABLE_NAME) ||
                EQUAL (pLayer->GetName (), ATTACHEMENTS_TABLE_NAME) ||
-               EQUAL (pLayer->GetName (), RASTER_LAYER_TABLE_NAME) ||
+               EQUAL (pLayer->GetName (), RASTERS_TABLE_NAME) ||
                EQUAL (pLayer->GetName (), MAPS_TABLE_NAME) )
                 continue;
             if(counter == index)
@@ -292,62 +295,64 @@ DatasetPtr DataStore::getDataset(int index)
             counter++;
         }
     }
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTER_LAYER_TABLE_NAME);
+    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     FeaturePtr feature( pRasterLayer->GetFeature (index - dsLayers) );
+    if(nullptr == feature)
+        return DatasetWPtr();
     return getDataset (feature->GetFieldAsString (LAYER_NAME));
 }
 
-string &DataStore::formats()
+string DataStore::formats()
 {
-    if(m_formats.empty ()){
-        registerDrivers();
-        for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
-            GDALDriverH hDriver = GDALGetDriver(iDr);
+    string out;
+    registerDrivers();
+    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
+        GDALDriverH hDriver = GDALGetDriver(iDr);
 
-            const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets,
-                    *pszKind;
-            char** papszMD = GDALGetMetadata( hDriver, NULL );
+        const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets,
+                *pszKind;
+        char** papszMD = GDALGetMetadata( hDriver, NULL );
 
-            if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
-                pszRFlag = "r";
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
+            pszRFlag = "r";
 
-            if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
-                pszWFlag = "w+";
-            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
-                pszWFlag = "w";
-            else
-                pszWFlag = "o";
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
+            pszWFlag = "w+";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
+            pszWFlag = "w";
+        else
+            pszWFlag = "o";
 
-            if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
-                pszVirtualIO = "v";
-            else
-                pszVirtualIO = "";
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
+            pszVirtualIO = "v";
+        else
+            pszVirtualIO = "";
 
-            if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
-                pszSubdatasets = "s";
-            else
-                pszSubdatasets = "";
+        if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
+            pszSubdatasets = "s";
+        else
+            pszSubdatasets = "";
 
-            if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
-                CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
-                pszKind = "raster,vector";
-            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
-                pszKind = "raster";
-            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
-                pszKind = "vector";
-            else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
-                pszKind = "geography network";
-            else
-                pszKind = "unknown kind";
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
+            CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
+            pszKind = "raster,vector";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
+            pszKind = "raster";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
+            pszKind = "vector";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
+            pszKind = "geography network";
+        else
+            pszKind = "unknown kind";
 
-            m_formats += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
-                    GDALGetDriverShortName( hDriver ),
-                    pszKind,
-                    pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
-                    GDALGetDriverLongName( hDriver ) );
-        }
+        out += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
+                GDALGetDriverShortName( hDriver ),
+                pszKind,
+                pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
+                GDALGetDriverLongName( hDriver ) );
     }
-    return m_formats;
+
+    return out;
 }
 
 void DataStore::initGDAL()
@@ -438,7 +443,7 @@ int DataStore::createMetadataTable()
 
 int DataStore::createRastersTable()
 {
-    OGRLayer* pRasterLayer = m_DS->CreateLayer(RASTER_LAYER_TABLE_NAME, NULL,
+    OGRLayer* pRasterLayer = m_DS->CreateLayer(RASTERS_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pRasterLayer) {
         return ngsErrorCodes::CREATE_TABLE_FAILED;
@@ -531,7 +536,7 @@ int DataStore::createMapsTable()
     OGRFieldDefn oName(MAP_NAME, OFTString);
     oName.SetWidth(NAME_FIELD_LIMIT);
     OGRFieldDefn oEPSG(MAP_EPSG, OFTInteger);
-    OGRFieldDefn oContent(MAP_CONTENT, OFTBinary);
+    OGRFieldDefn oLayers(MAP_LAYERS, OFTInteger64List);
     OGRFieldDefn oMinX(MAP_MIN_X, OFTReal);
     OGRFieldDefn oMinY(MAP_MIN_Y, OFTReal);
     OGRFieldDefn oMaxX(MAP_MAX_X, OFTReal);
@@ -541,12 +546,39 @@ int DataStore::createMapsTable()
 
     if(pMapsLayer->CreateField(&oName) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oEPSG) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oContent) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oLayers) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oMinX) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oMinY) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oMaxX) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oMaxY) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oDescription) != OGRERR_NONE) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::createLayersTable()
+{
+    OGRLayer* pMapsLayer = m_DS->CreateLayer(LAYERS_TABLE_NAME, NULL,
+                                                   wkbNone, NULL);
+    if (NULL == pMapsLayer) {
+        return ngsErrorCodes::CREATE_TABLE_FAILED;
+    }
+
+    OGRFieldDefn oName(LAYER_NAME, OFTString);
+    oName.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oMapId(MAP_ID, OFTInteger64);
+    OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
+    OGRFieldDefn oStyle(LAYER_STYLE, OFTString);
+    OGRFieldDefn oDSName(DATASET_NAME, OFTString);
+    oDSName.SetWidth(NAME_FIELD_LIMIT);
+
+    if(pMapsLayer->CreateField(&oName) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oMapId) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oType) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oDSName) != OGRERR_NONE ||
+       pMapsLayer->CreateField(&oStyle) != OGRERR_NONE) {
         return ngsErrorCodes::CREATE_TABLE_FAILED;
     }
 
@@ -567,10 +599,10 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
     case Dataset::NGW_IMAGE:
         CPLErrorReset();
         {
-        string statement("DELETE FROM " RASTER_LAYER_TABLE_NAME " WHERE "
+        string statement("DELETE FROM " RASTERS_TABLE_NAME " WHERE "
                          LAYER_NAME " = '");
         statement += name + "'";
-        m_DS->ExecuteSQL ( statement.c_str(), nullptr, nullptr );
+        executeSQL ( statement );
         }
         if (CPLGetLastErrorNo() == CE_None)
             return ngsErrorCodes::SUCCESS;
@@ -599,7 +631,7 @@ void DataStore::notifyDatasetCanged(DataStore::ChangeType /*changeType*/,
 
 bool DataStore::isNameValid(const string &name) const
 {
-    if(name.size () < 4)
+    if(name.size () < 4 || name.size () >= NAME_FIELD_LIMIT)
         return false;
     if((name[0] == 'n' || name[0] == 'N') &&
        (name[1] == 'g' || name[1] == 'G') &&
@@ -608,7 +640,21 @@ bool DataStore::isNameValid(const string &name) const
         return false;
     if(m_datasources.find (name) != m_datasources.end ())
         return false;
-    if(name.size () >= NAME_FIELD_LIMIT)
+    if(m_DS->GetLayerByName (name.c_str ()) != nullptr)
+        return false;
+
+    string statement("SELECT count(*) FROM " RASTERS_TABLE_NAME " WHERE "
+                     LAYER_NAME " = '");
+    statement += name + "'";
+    ResultSetPtr tmpLayer = executeSQL ( statement );
+    FeaturePtr feature = tmpLayer->GetFeature (0);
+    if(feature->GetFieldAsInteger (0) > 0)
         return false;
     return true;
+}
+
+ResultSetPtr DataStore::executeSQL(const string &statement) const
+{
+    return ResultSetPtr(
+                m_DS->ExecuteSQL ( statement.c_str(), nullptr, "SQLITE" ));
 }

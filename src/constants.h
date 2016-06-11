@@ -22,13 +22,16 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#define NOT_FOUND -1
+
 // Structure
 #define MAIN_DATABASE "ngs.gpkg"
 #define METHADATA_TABLE_NAME "ngs_meta"
 #define ATTACHEMENTS_TABLE_NAME "ngs_attach"
-#define RASTER_LAYER_TABLE_NAME "ngs_raster"
+#define RASTERS_TABLE_NAME "ngs_raster"
 #define MAPS_TABLE_NAME "ngs_maps"
-#define SYS_TABLE_COUNT 4
+#define LAYERS_TABLE_NAME "ngs_layers"
+#define SYS_TABLE_COUNT 5
 
 // Metadata
 #define META_KEY "key"
@@ -62,14 +65,18 @@
 // Maps
 #define MAP_NAME "name"
 #define MAP_DESCRIPTION "descript"
+#define MAP_LAYERS "layers"
 #define MAP_EPSG "epsg"
-#define MAP_CONTENT "content"
 #define MAP_MIN_X "min_x"
 #define MAP_MIN_Y "min_y"
 #define MAP_MAX_X "max_x"
 #define MAP_MAX_Y "max_y"
 #define MAP_DEFAULT_NAME "default"
 
+// Layers
+#define MAP_ID "map_id"
+#define LAYER_STYLE "style"
+#define DATASET_NAME "ds_name"
 
 // Common
 #define NGS_VERSION_KEY "ngs_version"

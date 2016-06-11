@@ -270,7 +270,7 @@ function(find_extproject name)
                 string(FIND ${OUT_STR} "Already up-to-date" STR_POS)
                 if(STR_POS LESS 0)
                     file(REMOVE ${EXT_STAMP_DIR}/${name}_EP-build)
-                    set(RECONFIGURE ON)  
+                    set(RECONFIGURE ON)
                 endif()
                 file(WRITE ${EXT_STAMP_DIR}/${name}_EP-gitpull.txt "")
             endif()
@@ -346,6 +346,12 @@ function(find_extproject name)
     else()
         set(_INST_ROOT_PATH ${CMAKE_INSTALL_PREFIX})
     endif()
+    
+    # create directories
+    file(MAKE_DIRECTORY "${EXT_INSTALL_DIR}/bin")
+    file(MAKE_DIRECTORY "${EXT_INSTALL_DIR}/lib")
+    file(MAKE_DIRECTORY "${EXT_INSTALL_DIR}/include")
+    file(MAKE_DIRECTORY "${EXT_INSTALL_DIR}/share")
     
     install( DIRECTORY ${EXT_INSTALL_DIR}/bin
              DESTINATION ${_INST_ROOT_PATH}

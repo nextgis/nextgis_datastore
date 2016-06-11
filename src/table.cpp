@@ -60,12 +60,25 @@ Table::Table(OGRLayer* const layer, DataStore * datastore,
     m_type = TABLE;
 }
 
-FeaturePtr Table::createFeature()
+FeaturePtr Table::createFeature() const
 {
     if(m_deleted)
         return FeaturePtr();
 
     OGRFeature* pFeature = OGRFeature::CreateFeature( m_layer->GetLayerDefn() );
+    if (nullptr == pFeature){
+        return FeaturePtr();
+    }
+
+    return FeaturePtr(pFeature);
+}
+
+FeaturePtr Table::getFeature(GIntBig id) const
+{
+    if(m_deleted)
+        return FeaturePtr();
+
+    OGRFeature* pFeature = m_layer->GetFeature (id);
     if (nullptr == pFeature){
         return FeaturePtr();
     }
@@ -107,7 +120,31 @@ int Table::updateFeature(const FeaturePtr &feature)
     return nReturnCode;
 }
 
-long Table::featureCount(bool force) const
+int Table::deleteFeature(GIntBig id)
 {
-    m_layer->GetFeatureCount (force ? TRUE : FALSE);
+    if(m_deleted)
+        return ngsErrorCodes::DELETE_FAILED;
+    return m_layer->DeleteFeature (id) == OGRERR_NONE ? ngsErrorCodes::SUCCESS :
+                                                        ngsErrorCodes::DELETE_FAILED;
+}
+
+GIntBig Table::featureCount(bool force) const
+{
+    if(m_deleted)
+        return 0;
+
+    return m_layer->GetFeatureCount (force ? TRUE : FALSE);
+}
+
+void Table::reset() const
+{
+    if(!m_deleted)
+        m_layer->ResetReading ();
+}
+
+FeaturePtr Table::nextFeature() const
+{
+    if(m_deleted)
+        return FeaturePtr();
+    return m_layer->GetNextFeature ();
 }

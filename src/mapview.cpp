@@ -18,59 +18,11 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef DATASET_H
-#define DATASET_H
+#include "mapview.h"
 
-#include <string>
-#include <memory>
+using namespace ngs;
 
-namespace ngs {
-
-using namespace std;
-
-class DataStore;
-
-/**
- * @brief The Dataset class is base class of DataStore. Each table, raster,
- * feature class, etc. are Dataset. The DataStore is an array of Datasets as
- * Map is array of Layers.
- */
-class Dataset
+MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore)
 {
-public:
-    enum Type {
-        UNDEFINED,
-        TABLE,
-        REMOTE_TMS,
-        LOCAL_TMS,
-        LOCAL_RASTER,
-        WMS,
-        WFS,
-        NGW_IMAGE
-    };
-public:
-    Dataset(DataStore * datastore,
-            const string& name, const string& alias = "");
-    Type type() const;
-    string name() const;
-    string alias() const;
-    int destroy();
-
-    bool isDeleted() const;
-
-protected:
-    enum Type m_type;
-    const string m_name;
-    string m_alias;
-    bool m_deleted;
-    DataStore * const m_datastore;
-};
-
-typedef shared_ptr<Dataset> DatasetPtr;
-typedef weak_ptr<Dataset> DatasetWPtr;
 
 }
-
-
-
-#endif // DATASET_H

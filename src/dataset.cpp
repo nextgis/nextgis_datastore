@@ -58,7 +58,7 @@ int Dataset::destroy()
     return nRet;
 }
 
-bool Dataset::deleted() const
+bool Dataset::isDeleted() const
 {
     return m_deleted;
 }

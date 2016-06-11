@@ -33,6 +33,8 @@ namespace ngs {
 
 using namespace std;
 
+typedef shared_ptr< OGRLayer > ResultSetPtr;
+
 class MapStore;
 
 /**
@@ -42,6 +44,7 @@ class DataStore
 {
     friend class Dataset;
     friend class Table;
+    friend class MapStore;
 
 public:
     enum ChangeType {
@@ -67,10 +70,10 @@ public:
                               int epsg, int z_min, int z_max,
                               bool y_origin_top);
     int datasetCount() const;
-    DatasetPtr getDataset(const char* name);
-    DatasetPtr getDataset(int index);
+    DatasetWPtr getDataset(const char* name);
+    DatasetWPtr getDataset(int index);
 public:
-    string& formats();
+    string formats();
 
 protected:
     void initGDAL();
@@ -79,11 +82,14 @@ protected:
     int createRastersTable();
     int createAttachmentsTable();
     int createMapsTable();
+    int createLayersTable();
     int upgrade(int oldVersion);
     int destroyDataset(enum Dataset::Type type, const string& name);
     void notifyDatasetCanged(enum ChangeType changeType, const string& name,
                              long id);
     bool isNameValid(const string& name) const;
+
+    ResultSetPtr executeSQL(const string& statement) const;
 
 protected:
     string m_path;
@@ -92,9 +98,6 @@ protected:
     GDALDataset *m_DS;
     bool m_driversLoaded;
     map<string, DatasetPtr> m_datasources;
-
-private:
-    string m_formats;
 };
 
 typedef shared_ptr<DataStore> DataStorePtr;
