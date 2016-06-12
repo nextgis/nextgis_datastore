@@ -24,6 +24,10 @@
 
 include(extlib)
 
+# TODO: find_package (EGL)
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} -lEGL)
+
+
 option (BUILD_SHARED_LIBS "Build as dynamic library" ON)
 
 set(HHEADERS

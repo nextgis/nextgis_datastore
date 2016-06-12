@@ -42,7 +42,10 @@ enum ngsErrorCodes {
     SAVE_FAILED,        /**< Faild to save file, folder or something else */
     INVALID_DB_STUCTURE,/**< Invalid storage structure */
     INSERT_FAILED,      /**< insert new feature failed */
-    UPDATE_FAILED       /**< update feature failed */
+    UPDATE_FAILED,      /**< update feature failed */
+    GL_GET_DISPLAY_FAILED,  /**< Get OpenGL display failed */
+    GL_INIT_FAILED,     /**< Initialise OpenGL failed */
+    GL_UNSUPPORTED_VERSION  /**< Unsupported OpenGL version */
 };
 
 

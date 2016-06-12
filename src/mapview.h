@@ -23,6 +23,8 @@
 
 #include "map.h"
 
+#include "EGL/egl.h"
+
 namespace ngs {
 
 
@@ -30,6 +32,11 @@ class MapView : public Map
 {
 public:
     MapView(FeaturePtr feature, MapStore * mapstore);
+    bool isDisplayInit() const;
+    int initDisplay();
+protected:
+    bool m_displayInit;
+    EGLDisplay m_display;
 };
 
 }
