@@ -24,9 +24,11 @@
 
 include(extlib)
 
-# TODO: find_package (EGL)
-set(TARGET_LINK_LIB ${TARGET_LINK_LIB} -lEGL)
-
+find_package (EGL)
+if(EGL_FOUND)
+    include_directories(${EGL_INCLUDE_DIRS})
+    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
+endif()
 
 option (BUILD_SHARED_LIBS "Build as dynamic library" ON)
 
