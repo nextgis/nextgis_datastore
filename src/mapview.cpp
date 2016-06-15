@@ -28,10 +28,68 @@
 using namespace ngs;
 using namespace std;
 
+// TODO: init and uninit in drawing thread.
+//https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
+//http://stackoverflow.com/questions/214437/opengl-fast-off-screen-rendering
+//http://stackoverflow.com/questions/14785007/can-i-use-opengl-for-off-screen-rendering/14796456#14796456
+//https://gist.github.com/CartBlanche/1271517
+//http://stackoverflow.com/questions/21151259/replacing-glreadpixels-with-egl-khr-image-base-for-faster-pixel-copy
+//https://vec.io/posts/faster-alternatives-to-glreadpixels-and-glteximage2d-in-opengl-es
+//https://www.khronos.org/registry/egl/sdk/docs/man/html/eglIntro.xhtml
+//https://wiki.maemo.org/SimpleGL_example
+//http://stackoverflow.com/questions/12906971/difference-from-eglcreatepbuffersurface-and-eglcreatepixmapsurface-with-opengl-e
+//http://stackoverflow.com/questions/25504188/is-it-possible-to-use-pixmaps-on-android-via-java-api-for-gles
+
+void RenderingThread(void * view)
+{
+    MapView* pMapView = static_cast<MapView*>(view);
+    EGLDisplay display;
+    display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (display == EGL_NO_DISPLAY) {
+        pMapView->setErrorCode(ngsErrorCodes::GL_GET_DISPLAY_FAILED);
+        return;
+    }
+
+    EGLint major, minor;
+    if (!eglInitialize(display, &major, &minor)) {
+        pMapView->setErrorCode(ngsErrorCodes::GL_INIT_FAILED);
+        return;
+    }
+
+    if ((major <= 1) && (minor < 1)) {
+        pMapView->setErrorCode(ngsErrorCodes::GL_UNSUPPORTED_VERSION);
+        return;
+    }
+
+#ifdef _DEBUG
+    cout << "Vendor: " << eglQueryString(display, EGL_VENDOR) << endl;
+    cout << "Version: " << eglQueryString(display, EGL_VERSION) << endl;
+    cout << "Client APIs: " << eglQueryString(display, EGL_CLIENT_APIS) << endl;
+    cout << "Client Extensions: " << eglQueryString(display, EGL_EXTENSIONS) << endl;
+#endif // _DEBUG
+
+    pMapView->setErrorCode(ngsErrorCodes::SUCCESS);
+    pMapView->setDisplayInit (true);
+
+    // TODO: start rendering loop here
+
+    pMapView->setDisplayInit (false);
+
+    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglTerminate ( display );
+
+    display = EGL_NO_DISPLAY;
+}
+
 MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore),
     m_displayInit(false)
 {
     initDisplay();
+}
+
+MapView::~MapView()
+{
+
 }
 
 bool MapView::isDisplayInit() const
@@ -41,27 +99,21 @@ bool MapView::isDisplayInit() const
 
 int MapView::initDisplay()
 {
-    m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (m_display == EGL_NO_DISPLAY) {
-        return ngsErrorCodes::GL_GET_DISPLAY_FAILED;
-    }
+    CPLCreateThread(RenderingThread, this);
+    return m_errorCode;
+}
 
-    EGLint major, minor;
-    if (!eglInitialize(m_display, &major, &minor)) {
-        return ngsErrorCodes::GL_INIT_FAILED;
-    }
+int MapView::errorCode() const
+{
+    return m_errorCode;
+}
 
-    if ((major <= 1) && (minor < 1)) {
-        return ngsErrorCodes::GL_UNSUPPORTED_VERSION;
-    }
+void MapView::setErrorCode(int errorCode)
+{
+    m_errorCode = errorCode;
+}
 
-#ifdef _DEBUG
-    cout << "Vendor: " << eglQueryString(m_display, EGL_VENDOR) << endl;
-    cout << "Version: " << eglQueryString(m_display, EGL_VERSION) << endl;
-    cout << "Client APIs: " << eglQueryString(m_display, EGL_CLIENT_APIS) << endl;
-    cout << "Client Extensions: " << eglQueryString(m_display, EGL_EXTENSIONS) << endl;
-#endif // _DEBUG
-
-    m_displayInit = true;
-    return ngsErrorCodes::SUCCESS;
+void MapView::setDisplayInit(bool displayInit)
+{
+    m_displayInit = displayInit;
 }

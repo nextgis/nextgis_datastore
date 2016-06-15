@@ -32,11 +32,17 @@ class MapView : public Map
 {
 public:
     MapView(FeaturePtr feature, MapStore * mapstore);
+    ~MapView();
     bool isDisplayInit() const;
     int initDisplay();
+    int errorCode() const;
+    void setErrorCode(int errorCode);
+
+    void setDisplayInit(bool displayInit);
+
 protected:
     bool m_displayInit;
-    EGLDisplay m_display;
+    int m_errorCode;
 };
 
 }
