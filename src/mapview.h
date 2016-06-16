@@ -40,9 +40,13 @@ public:
 
     void setDisplayInit(bool displayInit);
 
+    bool cancel() const;
+
 protected:
     bool m_displayInit;
     int m_errorCode;
+    CPLJoinableThread* m_hThread;
+    bool m_cancel;
 };
 
 }

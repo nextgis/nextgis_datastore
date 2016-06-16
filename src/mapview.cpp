@@ -71,7 +71,14 @@ void RenderingThread(void * view)
     pMapView->setErrorCode(ngsErrorCodes::SUCCESS);
     pMapView->setDisplayInit (true);
 
-    // TODO: start rendering loop here
+    // start rendering loop here
+    while(!pMapView->cancel ()){
+        // get task from quere
+        // if not tasks sleep else
+        // render layers
+
+        CPLSleep(0.3);
+    }
 
     pMapView->setDisplayInit (false);
 
@@ -82,14 +89,15 @@ void RenderingThread(void * view)
 }
 
 MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore),
-    m_displayInit(false)
+    m_displayInit(false), m_cancel(false)
 {
     initDisplay();
 }
 
 MapView::~MapView()
 {
-
+    m_cancel = true;
+    CPLJoinThread(m_hThread);
 }
 
 bool MapView::isDisplayInit() const
@@ -99,7 +107,7 @@ bool MapView::isDisplayInit() const
 
 int MapView::initDisplay()
 {
-    CPLCreateThread(RenderingThread, this);
+    m_hThread = CPLCreateJoinableThread(RenderingThread, this);
     return m_errorCode;
 }
 
@@ -116,4 +124,9 @@ void MapView::setErrorCode(int errorCode)
 void MapView::setDisplayInit(bool displayInit)
 {
     m_displayInit = displayInit;
+}
+
+bool MapView::cancel() const
+{
+    return m_cancel;
 }
