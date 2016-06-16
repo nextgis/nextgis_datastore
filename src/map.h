@@ -62,6 +62,7 @@ public:
     Map(FeaturePtr feature, MapStore * mapstore);
     Map(const string& name, const string& description, short epsg, double minX,
         double minY, double maxX, double maxY, MapStore * mapstore);
+    virtual ~Map();
     string name() const;
     void setName(const string &name);
 
@@ -91,7 +92,7 @@ public:
     int save();
     int destroy();
 
-    bool isDeleted() const;
+    bool isDeleted() const;  
 
 protected:
     int loadLayers(const GIntBig* pValues, int count);

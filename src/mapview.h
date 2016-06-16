@@ -32,21 +32,28 @@ class MapView : public Map
 {
 public:
     MapView(FeaturePtr feature, MapStore * mapstore);
-    ~MapView();
+    virtual ~MapView();
     bool isDisplayInit() const;
     int initDisplay();
     int errorCode() const;
     void setErrorCode(int errorCode);
-
     void setDisplayInit(bool displayInit);
-
     bool cancel() const;
+    void *getBufferData() const;
+    int getBufferWidht() const;
+    int getBufferHeight() const;
+    int initBuffer(void* buffer, int width, int height);
+    bool isSizeChanged() const;
+    void setSizeChanged(bool sizeChanged);
 
 protected:
     bool m_displayInit;
     int m_errorCode;
     CPLJoinableThread* m_hThread;
     bool m_cancel;
+    int m_bufferWidht, m_bufferHeight;
+    void* m_bufferData;
+    bool m_sizeChanged;
 };
 
 }

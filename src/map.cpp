@@ -71,6 +71,11 @@ Map::Map(const string& name, const string& description, short epsg, double minX,
 
 }
 
+Map::~Map()
+{
+
+}
+
 string Map::name() const
 {
     return m_name;

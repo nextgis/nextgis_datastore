@@ -45,6 +45,7 @@ public:
     GIntBig mapCount() const;
     MapWPtr getMap(const char* name);
     MapWPtr getMap(int index);
+    int initMap(const char *name, void *buffer, int width, int height);
 protected:
     int storeMap(Map* map);
     bool isNameValid(const string& name) const;

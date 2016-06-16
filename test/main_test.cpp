@@ -88,6 +88,12 @@ TEST(BasicTests, TestCreateTMS) {
                                        TMS_YORIG_TOP), ngsErrorCodes::SUCCESS);
 }
 
+
+TEST(BasicTests, TestInitMap) {
+    EXPECT_NE(ngsInitMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInitMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+}
+
 TEST(BasicTests, TestDelete) {
     EXPECT_EQ(ngsDestroy ("./tmp", nullptr), ngsErrorCodes::SUCCESS);
 }

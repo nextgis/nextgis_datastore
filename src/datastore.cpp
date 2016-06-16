@@ -93,7 +93,7 @@ int DataStore::create()
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
-        return ngsErrorCodes::UNSUPPORTED_GDAL_DRIVER;
+        return ngsErrorCodes::UNSUPPORTED;
     }
 
     // create folder if not exist
@@ -148,7 +148,7 @@ int DataStore::open()
     // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
     if( poDriver == nullptr ) {
-        return ngsErrorCodes::UNSUPPORTED_GDAL_DRIVER;
+        return ngsErrorCodes::UNSUPPORTED;
     }
 
     m_DS = static_cast<GDALDataset*>( GDALOpenEx(sFullPath.c_str (),
@@ -158,7 +158,7 @@ int DataStore::open()
     // check version and upgrade if needed
     OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
     if(nullptr == pMetadataLayer)
-        return ngsErrorCodes::INVALID_DB_STUCTURE;
+        return ngsErrorCodes::INVALID_STUCTURE;
 
     pMetadataLayer->ResetReading();
     FeaturePtr feature;
@@ -176,7 +176,7 @@ int DataStore::open()
 
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     if(nullptr == pRasterLayer)
-        return ngsErrorCodes::INVALID_DB_STUCTURE;
+        return ngsErrorCodes::INVALID_STUCTURE;
 
     return ngsErrorCodes::SUCCESS;
 }

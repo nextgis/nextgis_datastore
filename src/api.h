@@ -32,7 +32,7 @@ enum ngsErrorCodes {
     UNEXPECTED_ERROR,   /**< unexpected error */
     PATH_NOT_SPECIFIED, /**< path is not specified */
     INVALID_PATH,       /**< path is invalid */
-    UNSUPPORTED_GDAL_DRIVER, /**< the gdal driver is unsupported */
+    UNSUPPORTED,        /**< the feature is unsupported */
     CREATE_DB_FAILED,   /**< Create database failed */
     CREATE_DIR_FAILED,  /**< Create directory failed */
     CREATE_TABLE_FAILED,/**< Create table failed */
@@ -40,12 +40,11 @@ enum ngsErrorCodes {
     CREATE_FAILED,      /**< Create failed */
     DELETE_FAILED,      /**< Faild to delete file, folder or something else */
     SAVE_FAILED,        /**< Faild to save file, folder or something else */
-    INVALID_DB_STUCTURE,/**< Invalid storage structure */
+    INVALID_STUCTURE,   /**< Invalid storage, file etc. structure */
     INSERT_FAILED,      /**< insert new feature failed */
     UPDATE_FAILED,      /**< update feature failed */
     GL_GET_DISPLAY_FAILED,  /**< Get OpenGL display failed */
-    GL_INIT_FAILED,     /**< Initialise OpenGL failed */
-    GL_UNSUPPORTED_VERSION  /**< Unsupported OpenGL version */
+    INIT_FAILED     /**< Initialise failed */
 };
 
 
@@ -60,5 +59,5 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          bool y_origin_top);
 NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
-
+NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
 #endif // API_H

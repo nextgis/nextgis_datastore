@@ -43,6 +43,15 @@ TEST(MapTests, TestOpenMap) {
     EXPECT_EQ(mapStore.mapCount(), 1);
 }
 
+TEST(MapTests, TestInitMap) {
+    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
+                "./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
+    ngs::MapStore mapStore(storage);
+    EXPECT_NE(mapStore.initMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+}
+
 TEST(MapTests, TestDeleteMap) {
     ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
                 "./tmp", nullptr, nullptr);

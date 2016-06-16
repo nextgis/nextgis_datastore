@@ -211,3 +211,15 @@ const Table *MapStore::getLayersTable() const
         return nullptr;
     return static_cast<Table*>(dataset.get ());
 }
+
+int MapStore::initMap(const char *name, void *buffer, int width, int height)
+{
+    MapWPtr mapw = getMap (name);
+    if(mapw.expired ())
+        return ngsErrorCodes::INIT_FAILED;
+    MapPtr map = mapw.lock ();
+    MapView* pMapView = static_cast<MapView*>(map.get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INIT_FAILED;
+    return pMapView->initBuffer (buffer, width, height);
+}

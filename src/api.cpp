@@ -260,3 +260,16 @@ int ngsLoadRaster(const char */*path*/, const char */*name*/,
 {
     return ngsErrorCodes::SUCCESS;
 }
+
+/**
+ * @brief Inititialise map with buffer and it size in pixels
+ * @param name Map name
+ * @param buffer Pointer to buffer. Size should be enouth to store image data width x height
+ * @param width Output image width
+ * @param height Output image height
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsInitMap(const char *name, void *buffer, int width, int height)
+{
+    return gMapStore->initMap (name, buffer, width, height);
+}
