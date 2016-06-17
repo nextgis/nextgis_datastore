@@ -27,6 +27,10 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 # some init settings
 set(CMAKE_COLOR_MAKEFILE ON)
 # set path to additional CMake modules
+if (NOT BORSCH_ROOT_FULL_PATH)
+    message(FATAL_ERROR "Variable BORSCH_ROOT_FULL_PATH is not defined! Must point to the borsch root directory.")
+endif()
+set(CMAKE_MODULE_PATH ${BORSCH_ROOT_FULL_PATH}/cmake ${CMAKE_MODULE_PATH})
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 set(PACKAGE_ID "com.nextgis.store")
@@ -52,8 +56,9 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
 endif()
 
 include(util)
+include(util-local)
 
-configure_file(${CMAKE_MODULE_PATH}/uninstall.cmake.in ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
 check_version(NGM_MAJOR_VERSION NGM_MINOR_VERSION NGM_REV_VERSION)
 set(VERSION ${NGM_MAJOR_VERSION}.${NGM_MINOR_VERSION}.${NGM_REV_VERSION})
