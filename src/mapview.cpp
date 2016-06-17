@@ -135,10 +135,11 @@ void RenderingThread(void * view)
             continue;
         }
 
+        // TODO:
         // get task from quere
         // if not tasks sleep 100ms
         CPLSleep(0.1);
-        // else render layers
+        // else render background and layers
 
         // fill buffer with pixels glReadPixels
         // and notify listeners

@@ -28,6 +28,7 @@ extern const char* ngsGetVersionString(const char* request);
 extern int ngsInit(const char* path, const char* dataPath, const char* cachePath);
 extern void ngsUninit();
 extern int ngsDestroy(const char* path, const char* cachePath);
+extern int ngsInitMap(const char* name, void* buffer, int width, int height);
 %}
 
 %pragma(java) jniclasscode=%{
