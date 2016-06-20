@@ -25,7 +25,7 @@
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     message(FATAL_ERROR "Android not support build type ${CMAKE_BUILD_TYPE}")
 endif()
-set(CMAKE_TOOLCHAIN_FILE ${BORSCH_ROOT_FULL_PATH}/cmake/android.toolchain.cmake
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/android.toolchain.cmake
     CACHE PATH "Select android toolchain file path")
 
 set(ANDROID_ABI "armeabi-v7a" CACHE STRING "Select Android ABI")
