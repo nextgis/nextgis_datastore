@@ -24,9 +24,8 @@
 %include "arrays_java.i";
 %include "typemaps.i"
 
-// Typemaps for (void * nioBuffer, int nioWidth, int nioHeight)
-
-%typemap(in, numinputs=1) (void * nioBuffer, int nioWidth, int nioHeight)
+// Typemaps for (void * nioBuffer)
+%typemap(in, numinputs=1) (void * nioBuffer)
 {
     if ($input == 0)
     {
@@ -40,21 +39,15 @@
                                 "Unable to get address of direct buffer. Buffer must be allocated direct.");
         return $null;
     }
-
-    /* The cast to long is actually not that correct, but anyway afterwards */
-    /* we check that the theoretical minimum buffer size is not larger than INT_MAX */
-    /* so truncating to INT_MAX is OK */
-    // TODO: should we multiply to 3 (RGB) or 4 (RGBA)?
-    $2 * $3 = (long) ((jenv->GetDirectBufferCapacity($input) > INT_MAX) ? INT_MAX : jenv->GetDirectBufferCapacity($input));
 }
 
 
 /* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (void * nioBuffer, int nioWidth, int nioHeight)  "jobject"
-%typemap(jtype) (void * nioBuffer, int nioWidth, int nioHeight)  "java.nio.ByteBuffer"
-%typemap(jstype) (void * nioBuffer, int nioWidth, int nioHeight)  "java.nio.ByteBuffer"
-%typemap(javain) (void * nioBuffer, int nioWidth, int nioHeight)  "$javainput"
-%typemap(javaout) (void * nioBuffer, int nioWidth, int nioHeight) {
+%typemap(jni) (void * nioBuffer)  "jobject"
+%typemap(jtype) (void * nioBuffer)  "java.nio.ByteBuffer"
+%typemap(jstype) (void * nioBuffer)  "java.nio.ByteBuffer"
+%typemap(javain) (void * nioBuffer)  "$javainput"
+%typemap(javaout) (void * nioBuffer) {
     return $jnicall;
   }
 
@@ -74,7 +67,7 @@ extern const char* ngsGetVersionString(const char* request);
 extern int ngsInit(const char* path, const char* dataPath, const char* cachePath);
 extern void ngsUninit();
 extern int ngsDestroy(const char* path, const char* cachePath);
-extern int ngsInitMap(const char* name, void * nioBuffer, int nioWidth, int nioHeight);
+extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
 %}
 
 #ifdef SWIGJAVA
