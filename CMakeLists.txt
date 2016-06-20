@@ -53,7 +53,7 @@ endif()
 
 include(util)
 
-configure_file(${CMAKE_MODULE_PATH}/uninstall.cmake.in ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake.in ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
 check_version(NGM_MAJOR_VERSION NGM_MINOR_VERSION NGM_REV_VERSION)
 set(VERSION ${NGM_MAJOR_VERSION}.${NGM_MINOR_VERSION}.${NGM_REV_VERSION})
