@@ -21,40 +21,13 @@
  
 /* File : api.i */
 
-%include "arrays_java.i";
-%include "typemaps.i"
-
-// Typemaps for (void * nioBuffer)
-%typemap(in, numinputs=1) (void * nioBuffer)
-{
-    if ($input == 0)
-    {
-        SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "null array");
-        return $null;
-    }
-    $1 = jenv->GetDirectBufferAddress($input);
-    if ($1 == NULL)
-    {
-        SWIG_JavaThrowException(jenv, SWIG_JavaRuntimeException,
-                                "Unable to get address of direct buffer. Buffer must be allocated direct.");
-        return $null;
-    }
-}
-
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (void * nioBuffer)  "jobject"
-%typemap(jtype) (void * nioBuffer)  "java.nio.ByteBuffer"
-%typemap(jstype) (void * nioBuffer)  "java.nio.ByteBuffer"
-%typemap(javain) (void * nioBuffer)  "$javainput"
-%typemap(javaout) (void * nioBuffer) {
-    return $jnicall;
-  }
-
-%module api
+%module Api
+%{
+#include "api.h"
+%}
 
 #ifdef SWIGJAVA
-
+%include typemap_java.i
 #endif
 
 #ifdef SWIGPYTHON
@@ -70,6 +43,8 @@ extern int ngsDestroy(const char* path, const char* cachePath);
 extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
 %}
 
+%clear const char *request, const char *name, const char* path, const char* cachePath, const char* dataPath;
+
 #ifdef SWIGJAVA
 
 %pragma(java) jniclasscode=%{
@@ -84,4 +59,15 @@ extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height)
   }
 %}
 
+%pragma(java) modulecode=%{
+  public static int ngsInitMap2(String name, java.nio.ByteBuffer nioBuffer, int width, int height) {
+    if(null == nioBuffer)
+       throw new NullPointerException("Need not null buffer");
+    if(width * height > nioBuffer.capacity())
+        throw new IllegalArgumentException("Output buffer too small. Should be greater than width * height");
+    return ngsInitMap(name, nioBuffer, width, height);
+  }
+%}
+
+%include callback_java.i
 #endif

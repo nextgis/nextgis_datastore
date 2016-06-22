@@ -37,15 +37,16 @@ if(BUILD_BINDINGS)
                 ${CMAKE_CURRENT_SOURCE_DIR}/api.i)
 
             set(JAVA_CODE
-                ${CMAKE_CURRENT_BINARY_DIR}/api.java
-                ${CMAKE_CURRENT_BINARY_DIR}/apiJNI.java
+                ${CMAKE_CURRENT_BINARY_DIR}/Api.java
+                ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
+                ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
             )
 
             install(FILES ${JAVA_CODE} DESTINATION src)
             install(FILES ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp DESTINATION src)
         else()
             set_source_files_properties(api.i PROPERTIES CPLUSPLUS ON)
-            set(CMAKE_SWIG_FLAGS -package com.nextgis.supportlib )
+            set(CMAKE_SWIG_FLAGS -package com.nextgis.store )
             # set_source_files_properties(example.i PROPERTIES SWIG_FLAGS "-includeall")
             swig_add_module(${PROJECT_NAME}i java api.i)
             swig_link_libraries(${PROJECT_NAME}i ${TARGET_LIBS})

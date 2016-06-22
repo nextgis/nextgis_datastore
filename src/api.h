@@ -47,8 +47,8 @@ enum ngsErrorCodes {
     INIT_FAILED     /**< Initialise failed */
 };
 
-typedef int (*ngsProgressFunc)(double dfComplete, const char *pszMessage,
-                               void *pProgressArg);
+NGS_EXTERNC typedef int (*ngsProgressFunc)(double complete, const char* message,
+                               void* progressArguments);
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
