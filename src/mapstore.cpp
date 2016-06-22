@@ -223,3 +223,12 @@ int MapStore::initMap(const char *name, void *buffer, int width, int height)
         return ngsErrorCodes::INIT_FAILED;
     return pMapView->initBuffer (buffer, width, height);
 }
+
+void MapStore::onLowMemory()
+{
+    // free all cached maps memory
+    m_maps.clear ();
+
+    if(nullptr != m_datastore)
+        m_datastore->onLowMemory ();
+}

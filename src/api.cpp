@@ -273,3 +273,11 @@ int ngsInitMap(const char *name, void *buffer, int width, int height)
 {
     return gMapStore->initMap (name, buffer, width, height);
 }
+
+/**
+ * @brief Inform library if low memory event occures
+ */
+void ngsOnLowMemory()
+{
+
+}

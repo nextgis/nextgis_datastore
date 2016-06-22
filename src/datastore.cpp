@@ -658,3 +658,8 @@ ResultSetPtr DataStore::executeSQL(const string &statement) const
     return ResultSetPtr(
                 m_DS->ExecuteSQL ( statement.c_str(), nullptr, "SQLITE" ));
 }
+
+void DataStore::onLowMemory()
+{
+    m_datasources.clear ();
+}

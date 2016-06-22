@@ -42,10 +42,15 @@ public:
      * @return ngsErrorCodes value - SUCCES if everything is OK
      */
     int create();
+    /**
+     * @brief inform about map count in storage
+     * @return map count
+     */
     GIntBig mapCount() const;
     MapWPtr getMap(const char* name);
     MapWPtr getMap(int index);
     int initMap(const char *name, void *buffer, int width, int height);
+    void onLowMemory();
 protected:
     int storeMap(Map* map);
     bool isNameValid(const string& name) const;

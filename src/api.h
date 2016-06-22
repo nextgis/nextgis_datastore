@@ -47,7 +47,7 @@ enum ngsErrorCodes {
     INIT_FAILED     /**< Initialise failed */
 };
 
-NGS_EXTERNC typedef int (*ngsProgressFunc)(double complete, const char* message,
+typedef int (*ngsProgressFunc)(double complete, const char* message,
                                void* progressArguments);
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
@@ -62,4 +62,6 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
 NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
 NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
+NGS_EXTERNC void ngsOnLowMemory();
+
 #endif // API_H

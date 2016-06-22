@@ -89,8 +89,8 @@ protected:
                              long id);
     bool isNameValid(const string& name) const;
 
-    ResultSetPtr executeSQL(const string& statement) const;
-
+    ResultSetPtr executeSQL(const string& statement) const;    
+    void onLowMemory();
 protected:
     string m_path;
     string m_cachePath;
