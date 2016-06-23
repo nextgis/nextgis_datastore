@@ -26,7 +26,8 @@
 
 using namespace ngs;
 
-MapStore::MapStore(const DataStorePtr &dataStore) : m_datastore(dataStore)
+MapStore::MapStore(const DataStorePtr &dataStore) : m_datastore(dataStore),
+    m_notifyFunc(nullptr)
 {
 
 }
@@ -129,7 +130,11 @@ int MapStore::storeMap(Map *map)
         map->setId(feature->GetFID ());
 
         if(nRes == ngsErrorCodes::SUCCESS) {
-            // TODO: notify map changed
+            // notify map changed
+            if(nullptr != m_notifyFunc)
+                m_notifyFunc(ngsSourceCode::MAP_STORE,
+                             map->name ().c_str (),
+                             NOT_FOUND, ngsChangeCodes::CREATE_RESOURCE);
         }
         return nRes;
 
@@ -152,7 +157,10 @@ int MapStore::storeMap(Map *map)
 
         int nRes = pTable->updateFeature (feature);
         if(nRes == ngsErrorCodes::SUCCESS) {
-            // TODO: notify map changed
+            // notify map changed
+            if(nullptr != m_notifyFunc)
+                m_notifyFunc(ngsSourceCode::MAP_STORE, map->name ().c_str (),
+                             NOT_FOUND, ngsChangeCodes::CHANGE_RESOURCE);
         }
         return nRes;
     }
@@ -181,7 +189,6 @@ bool MapStore::isNameValid(const string &name) const
 
 int MapStore::destroyMap(GIntBig mapId)
 {
-    // TODO: notify listeneres about changes
     DatasetPtr dataset = m_datastore->getDataset (MAPS_TABLE_NAME).lock ();
     if(nullptr == dataset)
         return ngsErrorCodes::DELETE_FAILED;
@@ -197,8 +204,19 @@ int MapStore::destroyMap(GIntBig mapId)
     m_datastore->executeSQL ( statement );
 
     if (CPLGetLastErrorNo() == CE_None) {
+        FeaturePtr mapFeature = pTable->getFeature (mapId);
+        if(nullptr == mapFeature)
+            return ngsErrorCodes::DELETE_FAILED;
+        string mapName = mapFeature->GetFieldAsString (MAP_NAME);
         // delete map
-        return pTable->deleteFeature (mapId);
+        int nRetCode = pTable->deleteFeature (mapId);
+
+        if(nRetCode == ngsErrorCodes::SUCCESS && nullptr != m_notifyFunc) {
+            m_notifyFunc(ngsSourceCode::DATA_STORE, mapName.c_str (),
+                         NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
+        }
+
+        return nRetCode;
     }
 
     return ngsErrorCodes::DELETE_FAILED;
@@ -210,6 +228,16 @@ const Table *MapStore::getLayersTable() const
     if(nullptr == dataset)
         return nullptr;
     return static_cast<Table*>(dataset.get ());
+}
+
+void MapStore::setNotifyFunc(const ngsNotifyFunc &notifyFunc)
+{
+    m_notifyFunc = notifyFunc;
+}
+
+void MapStore::unsetNotifyFunc()
+{
+    m_notifyFunc = nullptr;
 }
 
 int MapStore::initMap(const char *name, void *buffer, int width, int height)
@@ -226,7 +254,7 @@ int MapStore::initMap(const char *name, void *buffer, int width, int height)
 
 void MapStore::onLowMemory()
 {
-    // free all cached maps memory
+    // free all cached maps
     m_maps.clear ();
 
     if(nullptr != m_datastore)

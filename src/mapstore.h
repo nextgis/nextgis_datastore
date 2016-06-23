@@ -23,6 +23,7 @@
 
 #include "datastore.h"
 #include "map.h"
+#include "api.h"
 
 namespace ngs {
 
@@ -51,6 +52,9 @@ public:
     MapWPtr getMap(int index);
     int initMap(const char *name, void *buffer, int width, int height);
     void onLowMemory();
+    void setNotifyFunc(const ngsNotifyFunc &notifyFunc);
+    void unsetNotifyFunc();
+
 protected:
     int storeMap(Map* map);
     bool isNameValid(const string& name) const;
@@ -60,6 +64,7 @@ protected:
 protected:
     DataStorePtr m_datastore;
     map<string, MapPtr> m_maps;
+    ngsNotifyFunc m_notifyFunc;
 };
 
 typedef shared_ptr<MapStore> MapStorePtr;

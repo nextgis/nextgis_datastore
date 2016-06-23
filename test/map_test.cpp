@@ -26,6 +26,13 @@
 
 #include <memory>
 
+static int counter = 0;
+
+void ngsTestNotifyFunc(char /*src*/, const char* /*table*/, long /*row*/,
+                              enum ngsChangeCodes /*operation*/) {
+    counter++;
+}
+
 TEST(MapTests, TestCreate) {
     ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
                 "./tmp", nullptr, nullptr);
@@ -57,6 +64,9 @@ TEST(MapTests, TestDeleteMap) {
                 "./tmp", nullptr, nullptr);
     EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
     ngs::MapStore mapStore(storage);
+    counter = 0;
+    mapStore.setNotifyFunc (ngsTestNotifyFunc);
+
     ngs::MapPtr map = mapStore.getMap ("default").lock ();
     EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(mapStore.mapCount(), 0);
@@ -65,6 +75,7 @@ TEST(MapTests, TestDeleteMap) {
     ASSERT_NE(dataset, nullptr);
     ngs::Table* pTable = static_cast<ngs::Table*>(dataset.get ());
     EXPECT_EQ(pTable->featureCount (), 0);
+    EXPECT_GE(counter, 1);
 
     EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
 }

@@ -48,7 +48,7 @@ using namespace ngs;
 //------------------------------------------------------------------------------
 
 DataStore::DataStore(const char* path, const char* dataPath,
-                     const char* cachePath) : m_DS(nullptr)
+                     const char* cachePath) : m_DS(nullptr), m_notifyFunc(nullptr)
 {
     if(nullptr != path)
         m_path = path;
@@ -214,8 +214,10 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
         return ngsErrorCodes::CREATE_FAILED;
     }
 
-    // TODO: notify listeners
-
+    // notify listeners
+    if(nullptr != m_notifyFunc)
+        m_notifyFunc(ngsSourceCode::DATA_STORE, RASTERS_TABLE_NAME,
+                     NOT_FOUND, ngsChangeCodes::CREATE_RESOURCE);
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -593,7 +595,6 @@ int DataStore::upgrade(int /* oldVersion */)
 
 int DataStore::destroyDataset(Dataset::Type type, const string &name)
 {
-    // TODO: notify listeneres about changes
     switch (type) {
     case Dataset::REMOTE_TMS:
     case Dataset::NGW_IMAGE:
@@ -604,8 +605,13 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
         statement += name + "'";
         executeSQL ( statement );
         }
-        if (CPLGetLastErrorNo() == CE_None)
+        if (CPLGetLastErrorNo() == CE_None) {
+            if(nullptr != m_notifyFunc) {
+                m_notifyFunc(ngsSourceCode::DATA_STORE, name.c_str (),
+                             NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
+            }
             return ngsErrorCodes::SUCCESS;
+        }
         return ngsErrorCodes::DELETE_FAILED;
 
     case Dataset::LOCAL_RASTER:
@@ -613,20 +619,30 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
         for (int i = 0; i < m_DS->GetLayerCount(); ++i)
         {
             OGRLayer* poLayer = m_DS->GetLayer(i);
-            if(EQUAL(poLayer->GetName(), name.c_str ()))
-                return m_DS->DeleteLayer (i) == OGRERR_NONE ?
+            if(EQUAL(poLayer->GetName(), name.c_str ())) {
+                int nRetCode = m_DS->DeleteLayer (i) == OGRERR_NONE ?
                             ngsErrorCodes::SUCCESS :
                             ngsErrorCodes::DELETE_FAILED;
+                if(nRetCode == ngsErrorCodes::SUCCESS && nullptr != m_notifyFunc) {
+                    m_notifyFunc(ngsSourceCode::DATA_STORE, name.c_str (),
+                                 NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
+                }
+                return nRetCode;
+            }
         }
     }
 
     return ngsErrorCodes::DELETE_FAILED;
 }
 
-void DataStore::notifyDatasetCanged(DataStore::ChangeType /*changeType*/,
-                                    const string &/*name*/, long /*id*/)
+void DataStore::notifyDatasetCanged(DataStore::ChangeType changeType,
+                                    const string &name, long id)
 {
-    // TODO: notify listeners
+    // notify listeners
+    if(nullptr != m_notifyFunc) {
+        m_notifyFunc(ngsSourceCode::DATA_STORE, name.c_str (),
+                     id, static_cast<ngsChangeCodes>(changeType));
+    }
 }
 
 bool DataStore::isNameValid(const string &name) const
@@ -661,5 +677,16 @@ ResultSetPtr DataStore::executeSQL(const string &statement) const
 
 void DataStore::onLowMemory()
 {
+    // free all cached datasources
     m_datasources.clear ();
+}
+
+void DataStore::setNotifyFunc(const ngsNotifyFunc &notifyFunc)
+{
+    m_notifyFunc = notifyFunc;
+}
+
+void DataStore::unsetNotifyFunc()
+{
+    m_notifyFunc = nullptr;
 }

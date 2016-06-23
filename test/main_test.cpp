@@ -22,6 +22,13 @@
 #include "test.h"
 #include "version.h"
 
+static int counter = 0;
+
+void ngsTestNotifyFunc(char /*src*/, const char* /*table*/, long /*row*/,
+                              enum ngsChangeCodes /*operation*/) {
+    counter++;
+}
+
 TEST(BasicTests, TestVersions) {
     EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion(nullptr));
     EXPECT_STREQ(NGM_VERSION, ngsGetVersionString(nullptr));
@@ -80,6 +87,7 @@ TEST(BasicTests, TestCreate) {
 TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
     EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    ngsSetNotifyFunction (ngsTestNotifyFunc);
 }
 
 TEST(BasicTests, TestCreateTMS) {
@@ -88,10 +96,13 @@ TEST(BasicTests, TestCreateTMS) {
                                        TMS_YORIG_TOP), ngsErrorCodes::SUCCESS);
 }
 
-
 TEST(BasicTests, TestInitMap) {
     EXPECT_NE(ngsInitMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(ngsInitMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+}
+
+TEST(BasicTests, TestNotify) {
+    EXPECT_GE(counter, 1);
 }
 
 TEST(BasicTests, TestDelete) {

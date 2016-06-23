@@ -47,8 +47,53 @@ enum ngsErrorCodes {
     INIT_FAILED     /**< Initialise failed */
 };
 
+/**
+ * @brief The table, datsource, map and etc. change codes enum
+ */
+enum ngsChangeCodes {
+    Nop = 0,
+    CREATE_RESOURCE,
+    DELETE_RESOURCE,
+    CHANGE_RESOURCE,
+    CREATE_FEATURE,
+    CHANGE_FEATURE,
+    DELETE_FEATURE,
+    DELETEALL_FEATURES,
+    CREATE_ATTACHMENT,
+    CHANGE_ATTACHMENT,
+    DELETE_ATTACHMENT,
+    DELETEALL_ATTACHMENTS
+};
+
+/**
+ * @brief The notification source code enum
+ */
+enum ngsSourceCode {
+    UNDEFINED = 0,
+    DATA_STORE,
+    MAP_STORE
+};
+
+/**
+ * @brief Prototype of function, which executed periodically during some long
+ * process.
+ * @param complete Progress percent from 0 to 1
+ * @param message Some user friendly message from process
+ * @param progressArguments Data from user
+ * @return 1 to continue execute process or any other value - to cancel
+ */
 typedef int (*ngsProgressFunc)(double complete, const char* message,
                                void* progressArguments);
+/**
+ * @brief Prototype of function, which executed usually then some data changed
+ * (dataset, map, etc.).
+ * @param src Source of notification
+ * @param table Table (Layer, Map) index
+ * @param row Row (Feature) index or NOT_FOUND
+ * @param operation Operation which trigger notification.
+ */
+typedef void (*ngsNotifyFunc)(char src, const char* table, long row,
+                              enum ngsChangeCodes operation);
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
@@ -63,5 +108,6 @@ NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
 NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
 NGS_EXTERNC void ngsOnLowMemory();
+NGS_EXTERNC void ngsSetNotifyFunction(const ngsNotifyFunc &notifyFunc);
 
 #endif // API_H

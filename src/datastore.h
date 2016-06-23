@@ -28,6 +28,7 @@
 #include <memory>
 
 #include "dataset.h"
+#include "api.h"
 
 namespace ngs {
 
@@ -48,14 +49,14 @@ class DataStore
 
 public:
     enum ChangeType {
-        ADD_FEATURE,
-        CHANGE_FEATURE,
-        DELETE_FEATURE,
-        DELETEALL_FEATURES,
-        ADD_ATTACHMENT,
-        CHANGE_ATTACHMENT,
-        DELETE_ATTACHMENT,
-        DELETEALL_ATTACHMENTS
+        ADD_FEATURE = ngsChangeCodes::CREATE_FEATURE,
+        CHANGE_FEATURE = ngsChangeCodes::CHANGE_FEATURE,
+        DELETE_FEATURE = ngsChangeCodes::DELETE_FEATURE,
+        DELETEALL_FEATURES = ngsChangeCodes::DELETEALL_FEATURES,
+        ADD_ATTACHMENT = ngsChangeCodes::CREATE_ATTACHMENT,
+        CHANGE_ATTACHMENT = ngsChangeCodes::CHANGE_ATTACHMENT,
+        DELETE_ATTACHMENT = ngsChangeCodes::DELETE_ATTACHMENT,
+        DELETEALL_ATTACHMENTS = ngsChangeCodes::DELETEALL_ATTACHMENTS
     };
 
 public:
@@ -74,6 +75,9 @@ public:
     DatasetWPtr getDataset(int index);
 public:
     string formats();
+    void onLowMemory();
+    void setNotifyFunc(const ngsNotifyFunc &notifyFunc);
+    void unsetNotifyFunc();
 
 protected:
     void initGDAL();
@@ -89,15 +93,15 @@ protected:
                              long id);
     bool isNameValid(const string& name) const;
 
-    ResultSetPtr executeSQL(const string& statement) const;    
-    void onLowMemory();
+    ResultSetPtr executeSQL(const string& statement) const;
 protected:
     string m_path;
     string m_cachePath;
     string m_dataPath;
     GDALDataset *m_DS;
     bool m_driversLoaded;
-    map<string, DatasetPtr> m_datasources;
+    map<string, DatasetPtr> m_datasources;    
+    ngsNotifyFunc m_notifyFunc;
 };
 
 typedef shared_ptr<DataStore> DataStorePtr;

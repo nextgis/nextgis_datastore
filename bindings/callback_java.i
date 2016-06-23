@@ -36,6 +36,16 @@ public:
         return 1;
     }
 };
+
+class NotificationCallback
+{
+public:
+    virtual ~NotificationCallback() {  }
+    virtual void run(char src, const char* table, long row, int operation)
+    {
+        return 1;
+    }
+};
 %}
 
 %{
@@ -49,6 +59,20 @@ JavaProgressProxy( double complete, const char *message, void *progressArguments
     const jmethodID runMethod = jenv->GetMethodID(progressCallbackClass, "run", "(DLjava/lang/String;)I");
     jstring tempString = jenv->NewStringUTF(message);
     ret = jenv->CallIntMethod(psProgressInfo->pJavaCallback, runMethod, complete, tempString);
+    jenv->DeleteLocalRef(tempString);
+    return ret;
+}
+
+int 
+JavaNotificationProxy( char src, const char* table, long row, int operation, void *progressArguments )
+{
+    JavaProgressData* psProgressInfo = (JavaProgressData*)progressArguments;
+    JNIEnv *jenv = psProgressInfo->jenv;
+    int ret;
+    const jclass notificationCallbackClass = jenv->FindClass("com/nextgis/store/NotificationCallback");
+    const jmethodID runMethod = jenv->GetMethodID(notificationCallbackClass, "run", "(DLjava/lang/String;)I");
+    jstring tempString = jenv->NewStringUTF(table);
+    ret = jenv->CallIntMethod(psProgressInfo->pJavaCallback, runMethod, src, tempString, row, operation);
     jenv->DeleteLocalRef(tempString);
     return ret;
 }
@@ -86,3 +110,36 @@ JavaProgressProxy( double complete, const char *message, void *progressArguments
 %typemap(javaout) (ngsProgressFunc callback = NULL, void* callbackData = NULL) {
     return $jnicall;
   }  
+  
+  
+%typemap(arginit, noblock=1) ( ngsNotifyFunc callback = NULL)
+{
+    JavaProgressData sProgressInfo;
+    sProgressInfo.jenv = jenv;
+    sProgressInfo.pJavaCallback = NULL;
+
+}
+
+%typemap(in) ( ngsNotifyFunc callback = NULL)
+{
+    if ( $input != 0 ) {
+        sProgressInfo.pJavaCallback = $input;
+        $1 = JavaProgressProxy;
+        $2 = &sProgressInfo;
+    }
+    else
+    {
+        $1 = NULL;
+        $2 = NULL;
+    }
+}
+
+
+/* These 3 typemaps tell SWIG what JNI and Java types to use */
+%typemap(jni) (ngsNotifyFunc callback = NULL)  "jobject"
+%typemap(jtype) (ngsNotifyFunc callback = NULL)  "NotificationCallback"
+%typemap(jstype) (ngsNotifyFunc callback = NULL)  "NotificationCallback"
+%typemap(javain) (ngsNotifyFunc callback = NULL)  "$javainput"
+%typemap(javaout) (ngsNotifyFunc callback = NULL) {
+    return $jnicall;
+  }    
