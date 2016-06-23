@@ -28,6 +28,7 @@
 
 #ifdef SWIGJAVA
 %include typemap_java.i
+%include callback_java.i
 #endif
 
 #ifdef SWIGPYTHON
@@ -41,12 +42,20 @@ extern int ngsInit(const char* path, const char* dataPath, const char* cachePath
 extern void ngsUninit();
 extern int ngsDestroy(const char* path, const char* cachePath);
 extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
-extern int ngsSetNotifyFunction(const ngsNotifyFunc &notifyFunc);
+extern void ngsSetNotifyFunction(ngsNotifyFunc callback = NULL);
 %}
 
 %clear const char *request, const char *name, const char* path, const char* cachePath, const char* dataPath;
 
 #ifdef SWIGJAVA
+
+//%pragma(java) jniclassimports=%{
+//import com.nextgis.store.NotificationCallback;
+//%}
+
+//%pragma(java) moduleimports=%{
+//import com.nextgis.store.NotificationCallback;
+//%}
 
 %pragma(java) jniclasscode=%{
   static {
@@ -70,5 +79,4 @@ extern int ngsSetNotifyFunction(const ngsNotifyFunc &notifyFunc);
   }
 %}
 
-%include callback_java.i
 #endif

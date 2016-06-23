@@ -26,6 +26,35 @@ typedef struct {
 } JavaProgressData;
 %}
 
+%include "enumtypeunsafe.swg" // for use in cases
+%javaconst(1);
+
+%rename (SourceCodes) ngsSourceCodes;
+
+enum ngsSourceCodes {
+    UNDEFINED = 0,
+    DATA_STORE,
+    MAP_STORE
+};
+
+%rename (ChangeCodes) ngsChangeCodes;
+
+enum ngsChangeCodes {
+    NOP = 0,
+    CREATE_RESOURCE,
+    DELETE_RESOURCE,
+    CHANGE_RESOURCE,
+    CREATE_FEATURE,
+    CHANGE_FEATURE,
+    DELETE_FEATURE,
+    DELETEALL_FEATURES,
+    CREATE_ATTACHMENT,
+    CHANGE_ATTACHMENT,
+    DELETE_ATTACHMENT,
+    DELETEALL_ATTACHMENTS
+};
+
+
 %inline %{
 class ProgressCallback
 {
@@ -41,9 +70,8 @@ class NotificationCallback
 {
 public:
     virtual ~NotificationCallback() {  }
-    virtual void run(char src, const char* table, long row, int operation)
-    {
-        return 1;
+    virtual void run(enum ngsSourceCodes src, const char* table, long row, enum ngsChangeCodes operation)
+    {       
     }
 };
 %}
@@ -63,8 +91,8 @@ JavaProgressProxy( double complete, const char *message, void *progressArguments
     return ret;
 }
 
-int 
-JavaNotificationProxy( char src, const char* table, long row, int operation, void *progressArguments )
+void 
+JavaNotificationProxy(enum ngsSourceCodes src, const char* table, long row, enum ngsChangeCodes operation, void *progressArguments)
 {
     JavaProgressData* psProgressInfo = (JavaProgressData*)progressArguments;
     JNIEnv *jenv = psProgressInfo->jenv;
@@ -72,14 +100,13 @@ JavaNotificationProxy( char src, const char* table, long row, int operation, voi
     const jclass notificationCallbackClass = jenv->FindClass("com/nextgis/store/NotificationCallback");
     const jmethodID runMethod = jenv->GetMethodID(notificationCallbackClass, "run", "(DLjava/lang/String;)I");
     jstring tempString = jenv->NewStringUTF(table);
-    ret = jenv->CallIntMethod(psProgressInfo->pJavaCallback, runMethod, src, tempString, row, operation);
+    jenv->CallVoidMethod(psProgressInfo->pJavaCallback, runMethod, src, tempString, row, operation);
     jenv->DeleteLocalRef(tempString);
-    return ret;
 }
 %}
 
   
-%typemap(arginit, noblock=1) ( ngsProgressFunc callback = NULL, void* callbackData=NULL)
+%typemap(arginit, noblock=1) ( ngsProgressFunc callback = NULL, void* callbackData = NULL)
 {
     JavaProgressData sProgressInfo;
     sProgressInfo.jenv = jenv;
@@ -87,7 +114,7 @@ JavaNotificationProxy( char src, const char* table, long row, int operation, voi
 
 }
 
-%typemap(in) ( ngsProgressFunc callback = NULL, void* callbackData=NULL)
+%typemap(in) ( ngsProgressFunc callback = NULL, void* callbackData = NULL)
 {
     if ( $input != 0 ) {
         sProgressInfo.pJavaCallback = $input;
@@ -112,7 +139,7 @@ JavaNotificationProxy( char src, const char* table, long row, int operation, voi
   }  
   
   
-%typemap(arginit, noblock=1) ( ngsNotifyFunc callback = NULL)
+%typemap(arginit, noblock=1) ( ngsNotifyFunc callback = NULL, void* callbackData = NULL)
 {
     JavaProgressData sProgressInfo;
     sProgressInfo.jenv = jenv;
@@ -120,11 +147,11 @@ JavaNotificationProxy( char src, const char* table, long row, int operation, voi
 
 }
 
-%typemap(in) ( ngsNotifyFunc callback = NULL)
+%typemap(in) ( ngsNotifyFunc callback = NULL, void* callbackData = NULL)
 {
     if ( $input != 0 ) {
         sProgressInfo.pJavaCallback = $input;
-        $1 = JavaProgressProxy;
+        $1 = JavaNotificationProxy;
         $2 = &sProgressInfo;
     }
     else

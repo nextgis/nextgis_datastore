@@ -132,7 +132,7 @@ int MapStore::storeMap(Map *map)
         if(nRes == ngsErrorCodes::SUCCESS) {
             // notify map changed
             if(nullptr != m_notifyFunc)
-                m_notifyFunc(ngsSourceCode::MAP_STORE,
+                m_notifyFunc(ngsSourceCodes::MAP_STORE,
                              map->name ().c_str (),
                              NOT_FOUND, ngsChangeCodes::CREATE_RESOURCE);
         }
@@ -159,7 +159,7 @@ int MapStore::storeMap(Map *map)
         if(nRes == ngsErrorCodes::SUCCESS) {
             // notify map changed
             if(nullptr != m_notifyFunc)
-                m_notifyFunc(ngsSourceCode::MAP_STORE, map->name ().c_str (),
+                m_notifyFunc(ngsSourceCodes::MAP_STORE, map->name ().c_str (),
                              NOT_FOUND, ngsChangeCodes::CHANGE_RESOURCE);
         }
         return nRes;
@@ -212,7 +212,7 @@ int MapStore::destroyMap(GIntBig mapId)
         int nRetCode = pTable->deleteFeature (mapId);
 
         if(nRetCode == ngsErrorCodes::SUCCESS && nullptr != m_notifyFunc) {
-            m_notifyFunc(ngsSourceCode::DATA_STORE, mapName.c_str (),
+            m_notifyFunc(ngsSourceCodes::DATA_STORE, mapName.c_str (),
                          NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
         }
 

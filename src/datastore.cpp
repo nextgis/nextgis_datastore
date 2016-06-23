@@ -216,7 +216,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
 
     // notify listeners
     if(nullptr != m_notifyFunc)
-        m_notifyFunc(ngsSourceCode::DATA_STORE, RASTERS_TABLE_NAME,
+        m_notifyFunc(ngsSourceCodes::DATA_STORE, RASTERS_TABLE_NAME,
                      NOT_FOUND, ngsChangeCodes::CREATE_RESOURCE);
     return ngsErrorCodes::SUCCESS;
 }
@@ -607,7 +607,7 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
         }
         if (CPLGetLastErrorNo() == CE_None) {
             if(nullptr != m_notifyFunc) {
-                m_notifyFunc(ngsSourceCode::DATA_STORE, name.c_str (),
+                m_notifyFunc(ngsSourceCodes::DATA_STORE, name.c_str (),
                              NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
             }
             return ngsErrorCodes::SUCCESS;
@@ -624,7 +624,7 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
                             ngsErrorCodes::SUCCESS :
                             ngsErrorCodes::DELETE_FAILED;
                 if(nRetCode == ngsErrorCodes::SUCCESS && nullptr != m_notifyFunc) {
-                    m_notifyFunc(ngsSourceCode::DATA_STORE, name.c_str (),
+                    m_notifyFunc(ngsSourceCodes::DATA_STORE, name.c_str (),
                                  NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
                 }
                 return nRetCode;
@@ -640,7 +640,7 @@ void DataStore::notifyDatasetCanged(DataStore::ChangeType changeType,
 {
     // notify listeners
     if(nullptr != m_notifyFunc) {
-        m_notifyFunc(ngsSourceCode::DATA_STORE, name.c_str (),
+        m_notifyFunc(ngsSourceCodes::DATA_STORE, name.c_str (),
                      id, static_cast<ngsChangeCodes>(changeType));
     }
 }

@@ -282,10 +282,10 @@ void ngsOnLowMemory()
 
 }
 
-void ngsSetNotifyFunction(const ngsNotifyFunc &notifyFunc)
+void ngsSetNotifyFunction(ngsNotifyFunc callback)
 {
     if(nullptr != gDataStore)
-        gDataStore->setNotifyFunc (notifyFunc);
+        gDataStore->setNotifyFunc (callback);
     if(nullptr != gMapStore)
-        gMapStore->setNotifyFunc (notifyFunc);
+        gMapStore->setNotifyFunc (callback);
 }

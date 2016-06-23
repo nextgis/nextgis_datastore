@@ -51,7 +51,7 @@ enum ngsErrorCodes {
  * @brief The table, datsource, map and etc. change codes enum
  */
 enum ngsChangeCodes {
-    Nop = 0,
+    NOP = 0,
     CREATE_RESOURCE,
     DELETE_RESOURCE,
     CHANGE_RESOURCE,
@@ -68,7 +68,7 @@ enum ngsChangeCodes {
 /**
  * @brief The notification source code enum
  */
-enum ngsSourceCode {
+enum ngsSourceCodes {
     UNDEFINED = 0,
     DATA_STORE,
     MAP_STORE
@@ -92,7 +92,7 @@ typedef int (*ngsProgressFunc)(double complete, const char* message,
  * @param row Row (Feature) index or NOT_FOUND
  * @param operation Operation which trigger notification.
  */
-typedef void (*ngsNotifyFunc)(char src, const char* table, long row,
+typedef void (*ngsNotifyFunc)(enum ngsSourceCodes src, const char* table, long row,
                               enum ngsChangeCodes operation);
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
@@ -108,6 +108,6 @@ NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
 NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
 NGS_EXTERNC void ngsOnLowMemory();
-NGS_EXTERNC void ngsSetNotifyFunction(const ngsNotifyFunc &notifyFunc);
+NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 
 #endif // API_H

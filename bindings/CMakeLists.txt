@@ -45,7 +45,9 @@ if(BUILD_BINDINGS)
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
-                ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java
+                ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java                
+                ${CMAKE_CURRENT_BINARY_DIR}/SourceCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
             )
 
             install(FILES ${JAVA_CODE} DESTINATION src)

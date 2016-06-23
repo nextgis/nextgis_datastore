@@ -21,7 +21,7 @@
  
 #ifndef COMMON_H
 #define COMMON_H
- 
+
 #ifdef NGSTOR_STATIC
 #   define NGS_EXTERN
 #else
