@@ -36,6 +36,7 @@ if(BUILD_BINDINGS)
                 -o ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/api.i)
 
+# for debug
 #            file(COPY
 #                ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
 #                DESTINATION ${CMAKE_SOURCE_DIR}/src)
