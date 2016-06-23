@@ -64,8 +64,8 @@ report_version(${PROJECT_NAME} ${VERSION})
 enable_testing()
 include(FindAnyProject)
 
-add_subdirectory(src)
 add_subdirectory(bindings)
+add_subdirectory(src)
 add_subdirectory(test)
 
 # uninstall
