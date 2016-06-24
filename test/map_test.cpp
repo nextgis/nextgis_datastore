@@ -28,8 +28,8 @@
 
 static int counter = 0;
 
-void ngsTestNotifyFunc(char /*src*/, const char* /*table*/, long /*row*/,
-                              enum ngsChangeCodes /*operation*/) {
+void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
+                       enum ngsChangeCodes /*operation*/) {
     counter++;
 }
 
