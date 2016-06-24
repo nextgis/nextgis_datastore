@@ -278,14 +278,31 @@ int ngsInitMap(const char *name, void *buffer, int width, int height)
  * @brief Inform library if low memory event occures
  */
 void ngsOnLowMemory()
-{
-
+{    
+    if(nullptr != gMapStore)
+        gMapStore->onLowMemory ();
+    if(nullptr != gDataStore)
+        gDataStore->onLowMemory ();
 }
 
+/**
+ * @brief Set notify function executed on some library events
+ * @param Callback function pointer (not free by library)
+ */
 void ngsSetNotifyFunction(ngsNotifyFunc callback)
 {
     if(nullptr != gDataStore)
         gDataStore->setNotifyFunc (callback);
     if(nullptr != gMapStore)
         gMapStore->setNotifyFunc (callback);
+}
+
+/**
+ * @brief Inform library to free resources as possible
+ */
+void ngsOnPause()
+{
+    // just free maps
+    if(nullptr != gMapStore)
+        gMapStore->onLowMemory ();
 }

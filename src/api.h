@@ -108,6 +108,7 @@ NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
 NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
 NGS_EXTERNC void ngsOnLowMemory();
+NGS_EXTERNC void ngsOnPause();
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 
 #endif // API_H
