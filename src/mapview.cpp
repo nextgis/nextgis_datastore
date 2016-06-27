@@ -40,6 +40,16 @@ using namespace std;
 //http://stackoverflow.com/questions/12906971/difference-from-eglcreatepbuffersurface-and-eglcreatepixmapsurface-with-opengl-e
 //http://stackoverflow.com/questions/25504188/is-it-possible-to-use-pixmaps-on-android-via-java-api-for-gles
 
+//https://solarianprogrammer.com/2013/05/13/opengl-101-drawing-primitives/
+//http://www.glprogramming.com/red/chapter02.html
+//https://www3.ntu.edu.sg/home/ehchua/programming/opengl/CG_Introduction.html
+//https://www3.ntu.edu.sg/home/ehchua/programming/android/Android_3D.html
+//https://www.opengl.org/sdk/docs/man2/xhtml/gluUnProject.xml
+//https://www.opengl.org/sdk/docs/man2/xhtml/gluProject.xml
+
+//https://github.com/libmx3/mx3/blob/master/src/event_loop.cpp
+//https://github.com/libmx3/mx3/blob/master/src/event_loop.hpp
+
 void RenderingThread(void * view)
 {
     MapView* pMapView = static_cast<MapView*>(view);
