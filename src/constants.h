@@ -22,6 +22,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#include <cmath>
+
 #define NOT_FOUND -1
 
 // Structure
@@ -89,5 +91,8 @@
 #define HTTP_TIMEOUT "5"
 #define HTTP_USE_GZIP "ON"
 #define CACHEMAX "24"
+
+#define DELTA 0.00000001
+inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) < DELTA; };
 
 #endif // CONSTANTS_H

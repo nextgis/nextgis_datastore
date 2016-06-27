@@ -22,13 +22,14 @@
 #define MAPVIEW_H
 
 #include "map.h"
+#include "maptransform.h"
 
 #include "EGL/egl.h"
 
 namespace ngs {
 
 
-class MapView : public Map
+class MapView : public Map, public MapTransform
 {
 public:
     MapView(FeaturePtr feature, MapStore * mapstore);
@@ -40,20 +41,14 @@ public:
     void setDisplayInit(bool displayInit);
     bool cancel() const;
     void *getBufferData() const;
-    int getBufferWidht() const;
-    int getBufferHeight() const;
     int initBuffer(void* buffer, int width, int height);
-    bool isSizeChanged() const;
-    void setSizeChanged(bool sizeChanged);
 
 protected:
     bool m_displayInit;
     int m_errorCode;
     CPLJoinableThread* m_hThread;
     bool m_cancel;
-    int m_bufferWidht, m_bufferHeight;
     void* m_bufferData;
-    bool m_sizeChanged;
 };
 
 }

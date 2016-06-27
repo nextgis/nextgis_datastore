@@ -48,19 +48,20 @@ using namespace std;
 //https://www.opengl.org/sdk/docs/man2/xhtml/gluProject.xml
 
 //https://github.com/libmx3/mx3/blob/master/src/event_loop.cpp
-//https://github.com/libmx3/mx3/blob/master/src/event_loop.hpp
+
+#define THREAD_LOOP_SLEEP 0.1
 
 void RenderingThread(void * view)
 {
     MapView* pMapView = static_cast<MapView*>(view);
-    EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (display == EGL_NO_DISPLAY) {
+    EGLDisplay eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (eglDisplay == EGL_NO_DISPLAY) {
         pMapView->setErrorCode(ngsErrorCodes::GL_GET_DISPLAY_FAILED);
         return;
     }
 
     EGLint major, minor;
-    if (!eglInitialize(display, &major, &minor)) {
+    if (!eglInitialize(eglDisplay, &major, &minor)) {
         pMapView->setErrorCode(ngsErrorCodes::INIT_FAILED);
         return;
     }
@@ -71,10 +72,10 @@ void RenderingThread(void * view)
     }
 
 #ifdef _DEBUG
-    cout << "Vendor: " << eglQueryString(display, EGL_VENDOR) << endl;
-    cout << "Version: " << eglQueryString(display, EGL_VERSION) << endl;
-    cout << "Client APIs: " << eglQueryString(display, EGL_CLIENT_APIS) << endl;
-    cout << "Client Extensions: " << eglQueryString(display, EGL_EXTENSIONS) << endl;
+    cout << "Vendor: " << eglQueryString(eglDisplay, EGL_VENDOR) << endl;
+    cout << "Version: " << eglQueryString(eglDisplay, EGL_VERSION) << endl;
+    cout << "Client APIs: " << eglQueryString(eglDisplay, EGL_CLIENT_APIS) << endl;
+    cout << "Client Extensions: " << eglQueryString(eglDisplay, EGL_EXTENSIONS) << endl;
 #endif // _DEBUG
 
     // EGL config attributes
@@ -98,12 +99,12 @@ void RenderingThread(void * view)
     // choose the first config, i.e. best config
     EGLint numConfigs;
     EGLConfig eglConf;
-    if(!eglChooseConfig(display, confAttr, &eglConf, 1, &numConfigs)){
+    if(!eglChooseConfig(eglDisplay, confAttr, &eglConf, 1, &numConfigs)){
         pMapView->setErrorCode(ngsErrorCodes::INIT_FAILED);
         return;
     }
 
-    EGLContext eglCtx = eglCreateContext(display, eglConf, EGL_NO_CONTEXT, ctxAttr);
+    EGLContext eglCtx = eglCreateContext(eglDisplay, eglConf, EGL_NO_CONTEXT, ctxAttr);
     if (eglCtx == EGL_NO_CONTEXT) {
         pMapView->setErrorCode(ngsErrorCodes::INIT_FAILED);
         return;
@@ -117,22 +118,23 @@ void RenderingThread(void * view)
     // start rendering loop here
     while(!pMapView->cancel ()){
         if(pMapView->isSizeChanged ()){
+#ifdef _DEBUG
             cout << "Size changed" << endl;
-
-            eglDestroySurface(display, eglSurface);
+#endif // _DEBUG
+            eglDestroySurface(eglDisplay, eglSurface);
 
             // create a pixelbuffer surface
             // surface attributes
             // the surface size is set to the input frame size
             const EGLint surfaceAttr[] = {
-                 EGL_WIDTH, pMapView->getBufferWidht (),
-                 EGL_HEIGHT, pMapView->getBufferHeight (),
+                 EGL_WIDTH, pMapView->getDisplayWidht (),
+                 EGL_HEIGHT, pMapView->getDisplayHeight (),
                  EGL_NONE
             };
 
-            eglSurface = eglCreatePbufferSurface(display, eglConf, surfaceAttr);
+            eglSurface = eglCreatePbufferSurface(eglDisplay, eglConf, surfaceAttr);
             if(EGL_NO_SURFACE != eglSurface){
-                eglMakeCurrent(display, eglSurface, eglSurface, eglCtx);
+                eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglCtx);
             }
             pMapView->setSizeChanged (false);
         }
@@ -141,14 +143,14 @@ void RenderingThread(void * view)
 #ifdef _DEBUG
             cerr << "No surface to draw" << endl;
 #endif //_DEBUG
-            CPLSleep(0.1);
+            CPLSleep(THREAD_LOOP_SLEEP);
             continue;
         }
 
         // TODO:
         // get task from quere
         // if not tasks sleep 100ms
-        CPLSleep(0.1);
+        CPLSleep(THREAD_LOOP_SLEEP);
         // else render background and layers
 
         // fill buffer with pixels glReadPixels
@@ -159,12 +161,12 @@ void RenderingThread(void * view)
     cout << "Exit draw thread" << endl;
 #endif // _DEBUG
 
-    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    eglDestroyContext(display, eglCtx);
-    eglDestroySurface(display, eglSurface);
-    eglTerminate ( display );
+    eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroyContext(eglDisplay, eglCtx);
+    eglDestroySurface(eglDisplay, eglSurface);
+    eglTerminate ( eglDisplay );
 
-    display = EGL_NO_DISPLAY;
+    eglDisplay = EGL_NO_DISPLAY;
     eglSurface = EGL_NO_SURFACE;
     eglCtx = EGL_NO_CONTEXT;
 
@@ -172,8 +174,8 @@ void RenderingThread(void * view)
 }
 
 MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore),
-    m_displayInit(false), m_cancel(false), m_bufferWidht(480),
-    m_bufferHeight(640), m_bufferData(nullptr), m_sizeChanged(true)
+    MapTransform(480, 640), m_displayInit(false), m_cancel(false),
+    m_bufferData(nullptr)
 {
     initDisplay();
 }
@@ -216,15 +218,6 @@ bool MapView::cancel() const
     return m_cancel;
 }
 
-int MapView::getBufferHeight() const
-{
-    return m_bufferHeight;
-}
-int MapView::getBufferWidht() const
-{
-    return m_bufferWidht;
-}
-
 void *MapView::getBufferData() const
 {
     return m_bufferData;
@@ -233,18 +226,9 @@ void *MapView::getBufferData() const
 int MapView::initBuffer(void *buffer, int width, int height)
 {
     m_bufferData = buffer;
-    m_bufferHeight = height;
-    m_bufferWidht = width;
+
+    setDisplaySize (width, height);
 
     return ngsErrorCodes::SUCCESS;
 }
 
-bool MapView::isSizeChanged() const
-{
-    return m_sizeChanged;
-}
-
-void MapView::setSizeChanged(bool sizeChanged)
-{
-    m_sizeChanged = sizeChanged;
-}

@@ -46,6 +46,7 @@ set(HHEADER_PRIV
     constants.h
     table.h
     map.h
+    maptransform.h
     mapview.h
 )
 
@@ -58,6 +59,7 @@ set(CSOURCES
     mapstore.cpp
     table.cpp
     map.cpp
+    maptransform.cpp
     mapview.cpp
 )
 

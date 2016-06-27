@@ -1,0 +1,66 @@
+/******************************************************************************
+ * Project:  libngstore
+ * Purpose:  NextGIS store and visualisation support library
+ * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ ******************************************************************************
+ *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+#ifndef MAPTRANSFORM_H
+#define MAPTRANSFORM_H
+
+#include "ogr_core.h"
+#include "ogr_geometry.h"
+
+class MapTransform
+{
+public:
+    MapTransform(int width, int height);
+    virtual ~MapTransform();
+
+    int getDisplayWidht() const;
+    int getDisplayHeight() const;
+    bool isSizeChanged() const;
+    void setSizeChanged(bool sizeChanged);
+    double getRotate() const;
+    void setRotate(double rotate);
+
+    OGREnvelope getExtent() const;
+    OGRRawPoint getCenter() const;
+    OGRRawPoint& worldToDisplay(OGRRawPoint& pt);
+    OGRRawPoint& displayToWorld(OGRRawPoint& pt);
+    void setDisplaySize(int width, int height);
+    bool setScale(double scale);
+    bool setCenter(double x, double y);
+    bool setScaleAndCenter(double scale, double x, double y);
+    bool setExtent(const OGREnvelope& env);
+protected:
+    static OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
+    static OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);
+    static OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);
+    static double getEnvelopeWidth(const OGREnvelope& env);
+    static double getEnvelopeHeight(const OGREnvelope& env);
+    bool updateExtent();
+protected:
+    int m_displayWidht, m_displayHeight;
+    bool m_sizeChanged;
+    OGRRawPoint m_center;
+    double m_rotate;
+    double m_scale;
+    OGREnvelope m_extent;
+    double m_ratio;
+};
+
+#endif // MAPTRANSFORM_H
