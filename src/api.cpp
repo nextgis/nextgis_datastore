@@ -24,6 +24,11 @@
 #include "datastore.h"
 #include "mapstore.h"
 
+#if defined __ANDROID__
+#include "platform/android/NgsCoreAndroid.h"
+#endif
+
+
 // GDAL
 #include "gdal.h"
 #include "cpl_string.h"
@@ -289,3 +294,10 @@ void ngsSetNotifyFunction(ngsNotifyFunc callback)
     if(nullptr != gMapStore)
         gMapStore->setNotifyFunc (callback);
 }
+
+#if defined __ANDROID__
+int ngsInitLogger()
+{
+    return initRedirectStdoutsToLogcat() ? ngsErrorCodes::SUCCESS : ngsErrorCodes::INIT_FAILED;
+}
+#endif

@@ -110,4 +110,8 @@ NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height
 NGS_EXTERNC void ngsOnLowMemory();
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 
+#if defined __ANDROID__
+NGS_EXTERNC int ngsInitLogger();
+#endif
+
 #endif // API_H

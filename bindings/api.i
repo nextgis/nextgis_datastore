@@ -43,6 +43,9 @@ extern void ngsUninit();
 extern int ngsDestroy(const char* path, const char* cachePath);
 extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
 extern void ngsSetNotifyFunction(ngsNotifyFunc callback = NULL);
+#ifdef SWIGJAVA
+extern int ngsInitLogger();
+#endif
 %}
 
 %clear const char *request, const char *name, const char* path, const char* cachePath, const char* dataPath;
