@@ -46,6 +46,7 @@ public:
     bool setCenter(double x, double y);
     bool setScaleAndCenter(double scale, double x, double y);
     bool setExtent(const OGREnvelope& env);
+    double getZoom() const;
 protected:
     static OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
     static OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);

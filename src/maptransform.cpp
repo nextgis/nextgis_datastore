@@ -77,11 +77,13 @@ OGREnvelope MapTransform::getExtent() const
 
 OGRRawPoint &MapTransform::worldToDisplay(OGRRawPoint &pt)
 {
+    // TODO: release transform
     return pt;
 }
 
 OGRRawPoint &MapTransform::displayToWorld(OGRRawPoint &pt)
 {
+    // TODO: release transform
     return pt;
 }
 
@@ -217,4 +219,8 @@ bool MapTransform::updateExtent()
     m_extent.MinY = m_center.y - halfHeight;
     m_extent.MaxY = m_center.y + halfHeight;
     return true;  // return false if extent modified to fit limits
+}
+
+double MapTransform::getZoom() const {
+    return log(m_scale) / M_LN2;
 }
