@@ -111,4 +111,8 @@ NGS_EXTERNC void ngsOnLowMemory();
 NGS_EXTERNC void ngsOnPause();
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 
+#if defined __ANDROID__
+NGS_EXTERNC int ngsInitLogger();
+#endif
+
 #endif // API_H
