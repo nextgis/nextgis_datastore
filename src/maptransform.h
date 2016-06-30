@@ -50,6 +50,8 @@ public:
     bool setScaleAndCenter(double scale, double x, double y);
     bool setExtent(const OGREnvelope& env);
     double getZoom() const;
+    double getScale() const;
+
 protected:
     static OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
     static OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);

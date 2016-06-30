@@ -22,11 +22,31 @@
 #include "test.h"
 #include "matrix.h"
 
+#define DEG2RAD M_PI / 180.0
+
+ngs::Matrix4 createMatix(){
+    ngs::Matrix4 mat4;
+    double w = 480.0;
+    double h = 640.0;
+    if(w > h){
+        double add = (w - h) * .5;
+        mat4.ortho (0, w, add, add + h, -1, 1);
+    }
+    else if(w < h){
+        double add = (h - w) * .5;
+        mat4.ortho (0, w, -add, h + add, -1, 1);
+    }
+    else {
+        mat4.ortho (0, w, 0, h, -1, 1);
+    }
+    return mat4;
+}
+
 TEST(MatrixTests, TestProject) {
 
     ngs::Matrix4 mat4;
     mat4.translate (1000, 1000, 0);
-    mat4.scale (0.5, -0.5, 1);
+    mat4.scale (0.5, 0.5, 1);
     OGRRawPoint pt(0, 0);
     OGRRawPoint ppt = mat4.project (pt);
     EXPECT_EQ(ppt.x, 1000);
@@ -38,14 +58,108 @@ TEST(MatrixTests, TestProject) {
     EXPECT_EQ(ppt.x, 1005);
     EXPECT_EQ(ppt.y, 1005);
 
-    mat4.clear ();
-    double scale = 2.0 / 480;
-    mat4.translate (240, 320, 0);
-    mat4.scale (scale, scale, 1);
+}
+
+TEST(MatrixTests, TestWorldToScene) {
+    ngs::Matrix4 mat4 = createMatix();
+    OGRRawPoint pt, ppt;
     pt.x = 240;
     pt.y = 320;
     ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, 0);
+    EXPECT_EQ(ppt.y, 0);
+    pt.x = 0;
+    pt.y = 0;
+    ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, -1);
+    EXPECT_EQ(ppt.y, -0.8);
+    pt.x = 480;
     pt.y = 640;
     ppt = mat4.project (pt);
-    int x = 0;
+    EXPECT_EQ(ppt.x, 1);
+    EXPECT_EQ(ppt.y, 0.8);
+}
+
+TEST(MatrixTests, TestSceneToWorld) {
+    ngs::Matrix4 mat4 = createMatix();
+    OGRRawPoint pt, ppt;
+    mat4.invert ();
+    pt.x = 0;
+    pt.y = 0;
+    ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, 240);
+    EXPECT_EQ(ppt.y, 320);
+    pt.x = -1;
+    pt.y = -0.8;
+    ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, 0);
+    EXPECT_EQ(ppt.y, 0);
+    pt.x = 1;
+    pt.y = 0.8;
+    ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, 480);
+    EXPECT_EQ(ppt.y, 640);
+}
+
+TEST(MatrixTests, TestWorldToWorld) {
+    ngs::Matrix4 matWld2Scn = createMatix();
+    ngs::Matrix4 matScn2Wld = createMatix();
+    matScn2Wld.invert ();
+    OGRRawPoint pt, ppt;
+    pt.x = 0;
+    pt.y = 0;
+    matScn2Wld.multiply (matWld2Scn);
+    ppt = matScn2Wld.project (pt);
+    EXPECT_EQ(ppt.x, 0);
+    EXPECT_EQ(ppt.y, 0);
+    pt.x = 240;
+    pt.y = 320;
+    ppt = matScn2Wld.project (pt);
+    EXPECT_EQ(ppt.x, 240);
+    EXPECT_EQ(ppt.y, 320);
+}
+
+TEST(MatrixTests, TestRotate) {
+    ngs::Matrix4 matWld2Scn = createMatix();
+    double rad = -90 * DEG2RAD;
+    matWld2Scn.rotateZ (rad);
+    ngs::Matrix4 matScn2Wld = createMatix();
+    matScn2Wld.invert ();
+    OGRRawPoint pt, ppt;
+    pt.x = 240.0;
+    pt.y = 320.0;
+    matScn2Wld.multiply (matWld2Scn);
+    ppt = matScn2Wld.project (pt);
+    EXPECT_DOUBLE_EQ(ppt.x, 320.0);
+    EXPECT_DOUBLE_EQ(ppt.y, -240.0);
+}
+
+TEST(MatrixTests, TestRotateByCenter) {
+    ngs::Matrix4 matWld2Scn = createMatix();
+    double rad = -45.0 * DEG2RAD;
+    matWld2Scn.invert ();
+    /* TODO: double aspectRatio;
+    double cosA = cos(rad);
+    double sinA = sin(rad);
+    double w = 480 * cosA + 640 * -sinA;
+    double h = 480 * sinA + 640 * cosA;
+    aspectRatio = h / w;
+    matWld2Scn.scale (aspectRatio, -aspectRatio, 1);*/
+    matWld2Scn.rotateZ (rad);
+    matWld2Scn.invert ();
+    ngs::Matrix4 matScn2Wld = createMatix();
+    matScn2Wld.invert ();
+    OGRRawPoint pt, ppt;
+    pt.x = 240.0;
+    pt.y = 320.0;
+    matScn2Wld.multiply (matWld2Scn);
+    ppt = matScn2Wld.project (pt);
+    EXPECT_DOUBLE_EQ(ppt.x, 240.0);
+    EXPECT_DOUBLE_EQ(ppt.y, 320.0);
+    /* TODO: pt.x = 240.0;
+    pt.y = 321.0;
+    ppt = matScn2Wld.project (pt);
+    EXPECT_DOUBLE_EQ(ppt.x, 241.0);
+    EXPECT_DOUBLE_EQ(ppt.y, 320.0);
+    */
 }

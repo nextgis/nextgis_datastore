@@ -251,30 +251,56 @@ bool MapTransform::updateExtent()
 void MapTransform::initMatrices()
 {
     m_sceneMatrix.clear ();
-    m_sceneMatrix.translate (-m_center.x, -m_center.y, 0);
-    m_sceneMatrix.scale (m_scaleScene, -m_scaleScene, 1);
-    if(!isEqual (m_rotate, 0.0))
-        m_sceneMatrix.rotateZ (m_rotate);
-    m_invSceneMatrix = m_sceneMatrix;
-    bool ret = m_invSceneMatrix.invert ();
-#ifdef _DEBUG
-    if(!ret)
-        cerr << "Compute invert scene matrix failed" << endl;
-#endif //_DEBUG
-    m_viewMatrix.clear ();
-    m_viewMatrix.translate (m_displayWidht * .5, m_displayHeight * .5, 0);
-    m_viewMatrix.scale (m_scaleView, -m_scaleView, 1);
-    m_invViewMatrix = m_viewMatrix;
-    ret = m_invViewMatrix.invert ();
-#ifdef _DEBUG
-    if(!ret)
-        cerr << "Compute invert scene matrix failed" << endl;
-#endif //_DEBUG
-    m_worldToDisplayMatrix = m_sceneMatrix;
-    m_worldToDisplayMatrix.multiply (m_viewMatrix);
 
-    m_invWorldToDisplayMatrix = m_invSceneMatrix;
-    m_invWorldToDisplayMatrix.multiply (m_invViewMatrix);
+    double w = getEnvelopeWidth (m_extent);
+    double h = getEnvelopeHeight (m_extent);
+    if(w > h){
+        double add = (w - h) * .5;
+        m_sceneMatrix.ortho (0, w, add, add + h, -1, 1);
+    }
+    else if(w < h){
+        double add = (h - w) * .5;
+        m_sceneMatrix.ortho (0, w, -add, h + add, -1, 1);
+    }
+    else {
+        m_sceneMatrix.ortho (0, w, 0, h, -1, 1);
+    }
+
+    if(!isEqual(m_rotate, 0.0)){
+        // TODO: rotate m_sceneMatrix
+    }
+
+    m_invSceneMatrix = m_sceneMatrix;
+    m_invSceneMatrix.invert ();
+
+    m_invViewMatrix.clear ();
+    w = m_displayWidht;
+    h = m_displayHeight;
+    if(w > h){
+        double add = (w - h) * .5;
+        m_invViewMatrix.ortho (0, w, add, add + h, -1, 1);
+    }
+    else if(w < h){
+        double add = (h - w) * .5;
+        m_invViewMatrix.ortho (0, w, -add, h + add, -1, 1);
+    }
+    else {
+        m_invViewMatrix.ortho (0, w, 0, h, -1, 1);
+    }
+
+    m_viewMatrix = m_invViewMatrix;
+    m_viewMatrix.invert ();
+
+    m_worldToDisplayMatrix = m_viewMatrix;
+    m_worldToDisplayMatrix.multiply (m_sceneMatrix);
+
+    m_invWorldToDisplayMatrix = m_invViewMatrix;
+    m_invWorldToDisplayMatrix.multiply (m_invSceneMatrix);
+}
+
+double MapTransform::getScale() const
+{
+    return m_scale;
 }
 
 double MapTransform::getZoom() const {

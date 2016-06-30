@@ -76,6 +76,7 @@ TEST(MapTests, TestProject) {
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 480; env.MaxY = 640;
     mapView->setExtent (env);
+    EXPECT_EQ(mapView->getScale (), 1);
     pt.x = 0;
     pt.y = 0;
     OGRRawPoint wdPt = mapView->worldToDisplay (pt);
