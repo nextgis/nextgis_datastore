@@ -23,6 +23,7 @@
 #include "datastore.h"
 #include "mapstore.h"
 #include "constants.h"
+#include "mapview.h"
 
 #include <memory>
 
@@ -57,6 +58,41 @@ TEST(MapTests, TestInitMap) {
     ngs::MapStore mapStore(storage);
     EXPECT_NE(mapStore.initMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(mapStore.initMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+}
+
+TEST(MapTests, TestProject) {
+
+    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
+                "./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
+    ngs::MapStore mapStore(storage);
+    EXPECT_EQ(mapStore.initMap ("default", nullptr, 480, 640), ngsErrorCodes::SUCCESS);
+    ngs::MapWPtr map = mapStore.getMap ("default");
+    EXPECT_EQ(map.expired (), false);
+    ngs::MapPtr defMap = map.lock ();
+    ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
+    OGREnvelope env;
+    OGRRawPoint pt;
+    env.MinX = 0; env.MinY = 0;
+    env.MaxX = 480; env.MaxY = 640;
+    mapView->setExtent (env);
+    pt.x = 0;
+    pt.y = 0;
+    OGRRawPoint wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 0);
+    OGRRawPoint dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 0);
+    EXPECT_EQ(dwPt.y, 0);
+
+    pt.x = 480;
+    pt.y = 640;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 480);
+    EXPECT_EQ(wdPt.y, 640);
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 480);
+    EXPECT_EQ(dwPt.y, 640);
 }
 
 TEST(MapTests, TestDeleteMap) {

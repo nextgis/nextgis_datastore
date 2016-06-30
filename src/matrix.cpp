@@ -27,22 +27,7 @@ using namespace ngs;
 
 Matrix4::Matrix4()
 {
-    m_values[0] = 1.0f;
-    m_values[1] = 0.0f;
-    m_values[2] = 0.0f;
-    m_values[3] = 0.0f;
-    m_values[4] = 0.0f;
-    m_values[5] = 1.0f;
-    m_values[6] = 0.0f;
-    m_values[7] = 0.0f;
-    m_values[8] = 0.0f;
-    m_values[9] = 0.0f;
-    m_values[10] = 1.0f;
-    m_values[11] = 0.0f;
-    m_values[12] = 0.0f;
-    m_values[13] = 0.0f;
-    m_values[14] = 0.0f;
-    m_values[15] = 1.0f;
+    clear ();
 }
 
 Matrix4::Matrix4(const Matrix4 &other)
@@ -165,6 +150,26 @@ void Matrix4::perspective(double fovy, double aspect, double near, double far)
 Matrix4 Matrix4::copy() const
 {
     return Matrix4(*this);
+}
+
+void Matrix4::clear()
+{
+    m_values[0] = 1.0f;
+    m_values[1] = 0.0f;
+    m_values[2] = 0.0f;
+    m_values[3] = 0.0f;
+    m_values[4] = 0.0f;
+    m_values[5] = 1.0f;
+    m_values[6] = 0.0f;
+    m_values[7] = 0.0f;
+    m_values[8] = 0.0f;
+    m_values[9] = 0.0f;
+    m_values[10] = 1.0f;
+    m_values[11] = 0.0f;
+    m_values[12] = 0.0f;
+    m_values[13] = 0.0f;
+    m_values[14] = 0.0f;
+    m_values[15] = 1.0f;
 }
 
 void Matrix4::translate(double x, double y, double z)
@@ -315,4 +320,17 @@ void Matrix4::multiply(const Matrix4 &other)
         m_values[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
         m_values[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
         m_values[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+}
+
+OGRRawPoint Matrix4::project(const OGRRawPoint &pt)
+{
+    double v0 = m_values[0] * pt.x + m_values[4] * pt.y + m_values[8]  * 0 + m_values[12] * 1;
+    double v1 = m_values[1] * pt.x + m_values[5] * pt.y + m_values[9]  * 0 + m_values[13] * 1;
+    //double v2 = m_values[2] * pt.x + m_values[6] * pt.y + m_values[10] * 0 + m_values[14] * 1;
+    double v3 = m_values[3] * pt.x + m_values[7] * pt.y + m_values[11] * 0 + m_values[15] * 1;
+
+    OGRRawPoint outPt;
+    outPt.x = v0 / v3;
+    outPt.y = v1 / v3;
+    return outPt;
 }

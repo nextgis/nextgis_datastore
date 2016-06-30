@@ -55,6 +55,9 @@ if(BUILD_TESTS)
     add_executable(map_test map_test.cpp)
     target_link_extlibraries(map_test)
 
+    add_executable(matrix_test matrix_test.cpp)
+    target_link_extlibraries(matrix_test)
+
     set_property(TARGET main_test PROPERTY CXX_STANDARD 11)
     set_property(TARGET main_test PROPERTY C_STANDARD 11)
 
@@ -64,7 +67,11 @@ if(BUILD_TESTS)
     set_property(TARGET map_test PROPERTY CXX_STANDARD 11)
     set_property(TARGET map_test PROPERTY C_STANDARD 11)
 
+    set_property(TARGET matrix_test PROPERTY CXX_STANDARD 11)
+    set_property(TARGET matrix_test PROPERTY C_STANDARD 11)
+
     add_test(MainTests ${CMAKE_CURRENT_BINARY_DIR}/main_test)
+    add_test(MatrixTests ${CMAKE_CURRENT_BINARY_DIR}/matrix_test)
     add_test(StorageTests ${CMAKE_CURRENT_BINARY_DIR}/store_test)
     add_test(MapTests ${CMAKE_CURRENT_BINARY_DIR}/map_test)
 

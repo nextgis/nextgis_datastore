@@ -22,7 +22,10 @@
 #define MAPTRANSFORM_H
 
 #include "ogr_core.h"
-#include "ogr_geometry.h"
+
+#include "matrix.h"
+
+namespace ngs {
 
 class MapTransform
 {
@@ -39,8 +42,8 @@ public:
 
     OGREnvelope getExtent() const;
     OGRRawPoint getCenter() const;
-    OGRRawPoint& worldToDisplay(OGRRawPoint& pt);
-    OGRRawPoint& displayToWorld(OGRRawPoint& pt);
+    OGRRawPoint worldToDisplay(const OGRRawPoint &pt);
+    OGRRawPoint displayToWorld(const OGRRawPoint &pt);
     void setDisplaySize(int width, int height);
     bool setScale(double scale);
     bool setCenter(double x, double y);
@@ -54,14 +57,23 @@ protected:
     static double getEnvelopeWidth(const OGREnvelope& env);
     static double getEnvelopeHeight(const OGREnvelope& env);
     bool updateExtent();
+    void initMatrices();
 protected:
     int m_displayWidht, m_displayHeight;
     bool m_sizeChanged;
     OGRRawPoint m_center;
     double m_rotate;
-    double m_scale;
+    double m_scale, m_scaleScene, m_scaleView;
     OGREnvelope m_extent;
     double m_ratio;
+    /*
+     * sceneMatrix transform from world coordinates to GL coordinates -1 x 1
+     * vewMatrix transform from scene coordinates to display coordinates 640 x 480
+     */
+    Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
+    Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
 };
+
+}
 
 #endif // MAPTRANSFORM_H

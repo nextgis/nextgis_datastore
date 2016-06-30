@@ -19,38 +19,33 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef MATRIX_H
-#define MATRIX_H
+#include "test.h"
+#include "matrix.h"
 
-#include <array>
-#include "ogr_geometry.h"
+TEST(MatrixTests, TestProject) {
 
-using namespace std;
+    ngs::Matrix4 mat4;
+    mat4.translate (1000, 1000, 0);
+    mat4.scale (0.5, -0.5, 1);
+    OGRRawPoint pt(0, 0);
+    OGRRawPoint ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, 1000);
+    EXPECT_EQ(ppt.y, 1000);
 
-namespace ngs {
+    pt.x = 10;
+    pt.y = 10;
+    ppt = mat4.project (pt);
+    EXPECT_EQ(ppt.x, 1005);
+    EXPECT_EQ(ppt.y, 1005);
 
-class Matrix4
-{
-public:
-    Matrix4();
-    Matrix4(const Matrix4& other);
-    Matrix4& operator=(const Matrix4& other);
-    bool invert();
-    void ortho(double left, double right, double bottom, double top, double near,
-               double far);
-    void perspective(double fovy, double aspect, double near, double far);
-    Matrix4 copy() const;
-    void clear();
-    void translate(double x, double y, double z);
-    void rotateX(double rad);
-    void rotateY(double rad);
-    void rotateZ(double rad);
-    void scale(double x, double y, double z);
-    void multiply(const Matrix4& other);
-    OGRRawPoint project(const OGRRawPoint &pt);
-private:
-    array<double, 16> m_values;
-};
-
+    mat4.clear ();
+    double scale = 2.0 / 480;
+    mat4.translate (240, 320, 0);
+    mat4.scale (scale, scale, 1);
+    pt.x = 240;
+    pt.y = 320;
+    ppt = mat4.project (pt);
+    pt.y = 640;
+    ppt = mat4.project (pt);
+    int x = 0;
 }
-#endif // MATRIX_H
