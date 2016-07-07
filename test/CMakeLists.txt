@@ -29,7 +29,7 @@ if(BUILD_TESTS)
     set(WITH_GTest ON CACHE BOOL "Google test on")
     set(WITH_GTest_EXTERNAL ON CACHE BOOL "Google test external on")
     find_anyproject(GTest REQUIRED)
-    include_directories(${GTEST_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/src)
+    include_directories(${GTEST_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/src)
 
     find_package(Threads)
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})

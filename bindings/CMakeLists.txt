@@ -25,7 +25,7 @@
 if(BUILD_BINDINGS)
     find_host_package(SWIG REQUIRED)
     include(${SWIG_USE_FILE})
-    include_directories(${CMAKE_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
     option(BUILD_BINDINGS_JAVA "Build JAVA bindings" OFF)
     if(BUILD_BINDINGS_JAVA)
@@ -39,7 +39,7 @@ if(BUILD_BINDINGS)
 # for debug
 #            file(COPY
 #                ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
-#                DESTINATION ${CMAKE_SOURCE_DIR}/src)
+#                DESTINATION ${PROJECT_SOURCE_DIR}/src)
 
             set(JAVA_CODE
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java
