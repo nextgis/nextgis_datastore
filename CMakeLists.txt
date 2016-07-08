@@ -63,6 +63,7 @@ report_version(${PROJECT_NAME} ${VERSION})
 
 enable_testing()
 include(FindAnyProject)
+include(extlib)
 
 add_subdirectory(bindings)
 add_subdirectory(src)

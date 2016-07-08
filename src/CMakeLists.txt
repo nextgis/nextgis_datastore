@@ -22,8 +22,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-include(extlib)
-
 find_package (EGL)
 if(EGL_FOUND)
     include_directories(${EGL_INCLUDE_DIRS})
