@@ -63,16 +63,6 @@ set(CSOURCES
     matrix.cpp
 )
 
-if(BUILD_TARGET_PLATFORM STREQUAL "ANDROID")
-    list(APPEND HHEADER_PRIV
-        platform/android/NgsCoreAndroid.h
-    )
-    list(APPEND CSOURCES
-        platform/android/NgsCoreAndroid.cpp
-    )
-endif()
-
-
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
@@ -121,10 +111,6 @@ set_property(TARGET ${LIB_NAME} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${LIB_NAME} PROPERTY C_STANDARD 11)
 
 target_link_extlibraries(${LIB_NAME})
-
-if(BUILD_TARGET_PLATFORM STREQUAL "ANDROID")
-    target_link_libraries(${LIB_NAME} android log jnigraphics)
-endif()
 
 set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${LIB_NAME} PARENT_SCOPE)
 set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${LIB_NAME} PARENT_SCOPE)
