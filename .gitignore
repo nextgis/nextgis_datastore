@@ -35,5 +35,3 @@ inst
 # Temp
 *.user
 *~
-
-src/api_wrap.cpp

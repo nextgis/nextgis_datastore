@@ -50,7 +50,6 @@ set(HHEADER_PRIV
 )
 
 set(CSOURCES
-    api_wrap.cpp
     api.cpp
     datastore.cpp
     dataset.cpp
