@@ -36,22 +36,24 @@ if(BUILD_BINDINGS)
                 -o ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/api.i)
 
-# for debug
-#            file(COPY
-#                ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
-#                DESTINATION ${PROJECT_SOURCE_DIR}/src)
+            set(CPP_CODE
+                ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp
+            )
 
             set(JAVA_CODE
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
-                ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java                
+                ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java
                 ${CMAKE_CURRENT_BINARY_DIR}/SourceCodes.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
             )
 
-            install(FILES ${JAVA_CODE} DESTINATION src)
-            install(FILES ${CMAKE_CURRENT_BINARY_DIR}/api_wrap.cpp DESTINATION src)
+            file(COPY ${CPP_CODE} DESTINATION ${PROJECT_SOURCE_DIR}/build/gen/bindings)
+            file(COPY ${JAVA_CODE} DESTINATION ${PROJECT_SOURCE_DIR}/build/gen/bindings)
+
+#            install(FILES ${CPP_CODE} DESTINATION src)
+#            install(FILES ${JAVA_CODE} DESTINATION src)
         else()
             set_source_files_properties(api.i PROPERTIES CPLUSPLUS ON)
             set(CMAKE_SWIG_FLAGS -package com.nextgis.store )
@@ -60,4 +62,4 @@ if(BUILD_BINDINGS)
             swig_link_libraries(${PROJECT_NAME}i ${TARGET_LIBS})
         endif()
     endif()
-endif()    
+endif()
