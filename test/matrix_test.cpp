@@ -136,7 +136,7 @@ TEST(MatrixTests, TestRotate) {
 
 TEST(MatrixTests, TestRotateByCenter) {
     ngs::Matrix4 matWld2Scn = createMatix();
-    double rad = -45.0 * DEG2RAD;
+    double rad = -90.0 * DEG2RAD;
     matWld2Scn.invert ();
     /* TODO: double aspectRatio;
     double cosA = cos(rad);
@@ -154,8 +154,10 @@ TEST(MatrixTests, TestRotateByCenter) {
     pt.y = 320.0;
     matScn2Wld.multiply (matWld2Scn);
     ppt = matScn2Wld.project (pt);
+    // center not moved
     EXPECT_DOUBLE_EQ(ppt.x, 240.0);
     EXPECT_DOUBLE_EQ(ppt.y, 320.0);
+    // 1 unit shift
     /* TODO: pt.x = 240.0;
     pt.y = 321.0;
     ppt = matScn2Wld.project (pt);
