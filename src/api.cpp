@@ -25,8 +25,8 @@
 #include "mapstore.h"
 
 // GDAL
-#include "gdal/gdal.h"
-#include "gdal/cpl_string.h"
+#include "gdal.h"
+#include "cpl_string.h"
 
 #include <curl/curlver.h>
 #include "geos_c.h"
