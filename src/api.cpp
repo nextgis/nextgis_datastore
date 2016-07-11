@@ -28,19 +28,58 @@
 #include "gdal.h"
 #include "cpl_string.h"
 
+#ifdef HAVE_CURL_H
 #include <curl/curlver.h>
+#endif
+
+#ifdef HAVE_GEOS_C_H
 #include "geos_c.h"
+#endif
+
+#ifdef HAVE_SQLITE3_H
 #include "sqlite3.h"
+#endif
+
+#ifdef HAVE_JSON_C_VERSION_H
 #include "json-c/json_c_version.h"
+#endif
+
+#ifdef HAVE_PROJ_API_H
 #include "proj_api.h"
+#endif
+
+#ifdef HAVE_JPEGLIB_H
 #include "jpeglib.h"
+#endif
+
+#ifdef HAVE_TIFF_H
 #include "tiff.h"
+#endif
+
+#ifdef HAVE_GEOTIFF_H
 #include "geotiff.h"
+#endif
+
+#ifdef HAVE_PNG_H
 #include "png.h"
+#endif
+
+#ifdef HAVE_EXPAT_H
 #include "expat.h"
+#endif
+
+#ifdef HAVE_ICONV_H
 #include "iconv.h"
+#endif
+
+#ifdef HAVE_ZLIB_H
 #include "zlib.h"
+#endif
+
+#ifdef HAVE_OPENSSLV_H
 #include "openssl/opensslv.h"
+#endif
+
 
 #include <memory>
 #include <iostream>
@@ -67,32 +106,59 @@ int ngsGetVersion(const char* request)
         return NGM_VERSION_NUM;
     else if(EQUAL(request, "gdal"))
         return atoi(GDALVersionInfo("VERSION_NUM"));
+#ifdef HAVE_CURL_H
     else if(EQUAL(request, "curl"))
         return LIBCURL_VERSION_NUM;
+#endif
+#ifdef HAVE_GEOS_C_H
     else if(EQUAL(request, "geos"))
         return GEOS_CAPI_LAST_INTERFACE;
+#endif
+#ifdef HAVE_SQLITE3_H
     else if(EQUAL(request, "sqlite"))
+        // TODO: check if GDAL compiled with sqlite
         return sqlite3_libversion_number();    
+#endif
+#ifdef HAVE_JSON_C_H
     else if(EQUAL(request, "jsonc"))
         return JSON_C_VERSION_NUM;
+#endif
+#ifdef HAVE_PROJ_API_H
     else if(EQUAL(request, "proj"))
         return PJ_VERSION;
+#endif
+#ifdef HAVE_JPEGLIB_H
     else if(EQUAL(request, "jpeg"))
         return JPEG_LIB_VERSION;
+#endif
+#ifdef HAVE_TIFF_H
     else if(EQUAL(request, "tiff"))
         return TIFF_VERSION_BIG;
+#endif
+#ifdef HAVE_GEOTIFF_H
     else if(EQUAL(request, "geotiff"))
         return LIBGEOTIFF_VERSION;
+#endif
+#ifdef HAVE_PNG_H
     else if(EQUAL(request, "png"))
         return PNG_LIBPNG_VER;
+#endif
+#ifdef HAVE_EXPAT_H
     else if(EQUAL(request, "expat"))
         return XML_MAJOR_VERSION * 100 + XML_MINOR_VERSION * 10 + XML_MICRO_VERSION;
+#endif
+#ifdef HAVE_ICONV_H
     else if(EQUAL(request, "iconv"))
         return _LIBICONV_VERSION;
+#endif
+#ifdef HAVE_ZLIB_H
     else if(EQUAL(request, "zlib"))
         return ZLIB_VERNUM;
+#endif
+#ifdef HAVE_OPENSSLV_H
     else if(EQUAL(request, "openssl"))
         return OPENSSL_VERSION_NUMBER;
+#endif
     else if(EQUAL(request, "self"))
         return NGM_VERSION_NUM;
     return 0;
@@ -110,19 +176,29 @@ const char* ngsGetVersionString(const char* request)
         return NGM_VERSION;
     else if(EQUAL(request, "gdal"))
         return GDALVersionInfo("RELEASE_NAME");
+#ifdef HAVE_CURL_H
     else if(EQUAL(request, "curl"))
         return LIBCURL_VERSION;
+#endif
+#ifdef HAVE_GEOS_C_H
     else if(EQUAL(request, "geos"))
         return GEOS_CAPI_VERSION;
+#endif
+#ifdef HAVE_SQLITE3_H
     else if(EQUAL(request, "sqlite"))
+        // TODO: check if GDAL compiled with sqlite
         return sqlite3_libversion();
+#endif
     else if(EQUAL(request, "formats")){
         if(nullptr == gDataStore)
             gDataStore.reset (new DataStore(nullptr, nullptr, nullptr));
         return gDataStore->formats ().c_str();
     }
+#ifdef HAVE_JSON_C_H
     else if(EQUAL(request, "jsonc"))
         return JSON_C_VERSION;
+#endif
+#ifdef HAVE_PROJ_API_H
     else if(EQUAL(request, "proj")) {
         int major = PJ_VERSION / 100;
         int major_full = major * 100;
@@ -131,14 +207,24 @@ const char* ngsGetVersionString(const char* request)
         int rev = PJ_VERSION - (major_full + minor_full);
         return CPLSPrintf("%d.%d.%d", major, minor, rev);
     }
+#endif
+#ifdef HAVE_JPEGLIB_H
     else if(EQUAL(request, "jpeg"))
+#if JPEG_LIB_VERSION >= 90
         return CPLSPrintf("%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
+#else
+        return CPLSPrintf("%d.0", JPEG_LIB_VERSION / 10);
+#endif
+#endif
+#ifdef HAVE_TIFF_H
     else if(EQUAL(request, "tiff")){
         int major = TIFF_VERSION_BIG / 10;
         int major_full = major * 10;
         int minor = TIFF_VERSION_BIG - major_full;
         return CPLSPrintf("%d.%d", major, minor);
     }
+#endif
+#ifdef HAVE_GEOTIFF_H
     else if(EQUAL(request, "geotiff")) {
         int major = LIBGEOTIFF_VERSION / 1000;
         int major_full = major * 1000;
@@ -147,18 +233,28 @@ const char* ngsGetVersionString(const char* request)
         int rev = (LIBGEOTIFF_VERSION - (major_full + minor_full)) / 10;
         return CPLSPrintf("%d.%d.%d", major, minor, rev);
     }
+#endif
+#ifdef HAVE_PNG_H
     else if(EQUAL(request, "png"))
         return PNG_LIBPNG_VER_STRING;
+#endif
+#ifdef HAVE_EXPAT_H
     else if(EQUAL(request, "expat"))
         return CPLSPrintf("%d.%d.%d", XML_MAJOR_VERSION, XML_MINOR_VERSION,
                           XML_MICRO_VERSION);
+#endif
+#ifdef HAVE_ICONV_H
     else if(EQUAL(request, "iconv")) {
         int major = _LIBICONV_VERSION / 256;
         int minor = _LIBICONV_VERSION - major * 256;
         return CPLSPrintf("%d.%d", major, minor);
     }
+#endif
+#ifdef HAVE_ZLIB_H
     else if(EQUAL(request, "zlib"))
         return ZLIB_VERSION;
+#endif
+#ifdef HAVE_OPENSSLV_H
     else if(EQUAL(request, "openssl")) {
         string val = CPLSPrintf("%#lx", OPENSSL_VERSION_NUMBER);
         int major = atoi(val.substr (2, 1).c_str ());
@@ -166,6 +262,7 @@ const char* ngsGetVersionString(const char* request)
         int rev = atoi(val.substr (5, 2).c_str ());
         return CPLSPrintf("%d.%d.%d", major, minor, rev);
     }
+#endif
     else if(EQUAL(request, "self"))
         return NGM_VERSION;
     return nullptr;
