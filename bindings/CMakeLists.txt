@@ -49,11 +49,8 @@ if(BUILD_BINDINGS)
                 ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
             )
 
-            file(COPY ${CPP_CODE} DESTINATION ${PROJECT_SOURCE_DIR}/build/gen/bindings)
-            file(COPY ${JAVA_CODE} DESTINATION ${PROJECT_SOURCE_DIR}/build/gen/bindings)
-
-#            install(FILES ${CPP_CODE} DESTINATION src)
-#            install(FILES ${JAVA_CODE} DESTINATION src)
+            install(FILES ${CPP_CODE} DESTINATION src)
+            install(FILES ${JAVA_CODE} DESTINATION src)
         else()
             set_source_files_properties(api.i PROPERTIES CPLUSPLUS ON)
             set(CMAKE_SWIG_FLAGS -package com.nextgis.store )
