@@ -410,14 +410,14 @@ void ngsOnPause()
  * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
  * @param name Map name
  * @param callback Progress function
- * @param progressArguments Progress function arguments
+ * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDrawMap(const char *name, ngsProgressFunc callback, void* progressArguments)
+int ngsDrawMap(const char *name, ngsProgressFunc callback, void* callbackData)
 {
     if(nullptr == gMapStore)
         return ngsErrorCodes::INIT_FAILED;
-    return gMapStore->drawMap (name, callback, progressArguments);
+    return gMapStore->drawMap (name, callback, callbackData);
 }
 
 ngsRGBA ngsGetMapBackgroundColor(const char *name)

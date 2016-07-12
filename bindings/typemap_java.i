@@ -22,6 +22,31 @@
 %include "arrays_java.i";
 %include "typemaps.i"
 
+%rename (Color) _ngsRGBA;
+
+typedef struct _ngsRGBA  {
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+    unsigned char A;
+}ngsRGBA;
+
+%extend _ngsRGBA {
+   char *toString() {
+       static char tmp[1024];
+       sprintf(tmp,"RGBS (%g, %g, %g, %g)", self->R, self->G, self->B, self->A);
+       return tmp;
+   }
+   _ngsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+       ngsRGBA *rgba = (ngsRGBA *) malloc(sizeof(ngsRGBA));
+       rgba->r = r;
+       rgba->g = g;
+       rgba->b = b;
+       rgba->a = a;
+       return rgba;
+   }
+};
+
 // Typemaps for (void * nioBuffer)
 %typemap(in, numinputs=1) (void * nioBuffer)
 {
