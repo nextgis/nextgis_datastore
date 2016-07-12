@@ -34,30 +34,21 @@ else()
 			/usr/include
 	)
 
-	find_library(OPENGLES2_LIBRARY
-		NAMES GLESv2
-		PATHS /opt/graphics/OpenGL/lib
-			/usr/openwin/lib
-			/usr/shlib /usr/X11R6/lib
-			/opt/vc/lib
-			/usr/lib/aarch64-linux-gnu
-			/usr/lib/arm-linux-gnueabihf
-			/usr/lib
-	)
 
-	find_library(OPENGLES1_gl_LIBRARY
-		NAMES GLESv1_CM
+	find_library(OPENGLES2_LIBRARY
+        NAMES GLESv2 glesv2
 		PATHS /opt/graphics/OpenGL/lib
 			/usr/openwin/lib
 			/usr/shlib /usr/X11R6/lib
 			/opt/vc/lib
 			/usr/lib/aarch64-linux-gnu
 			/usr/lib/arm-linux-gnueabihf
-			/usr/lib
-	)
+            /usr/lib/x86_64-linux-gnu
+            /usr/lib
+        )
 endif()
 
-set(OPENGLES2_LIBRARIES ${OPENGLES2_LIBRARIES} ${OPENGLES2_LIBRARY} ${OPENGLES1_gl_LIBRARY})
+set(OPENGLES2_LIBRARIES ${OPENGLES2_LIBRARIES} ${OPENGLES2_LIBRARY})
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OPENGLES2 DEFAULT_MSG OPENGLES2_INCLUDE_DIRS OPENGLES2_LIBRARIES)

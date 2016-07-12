@@ -34,7 +34,6 @@ if(OPENGLES2_FOUND)
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
 endif()
 
-
 option (BUILD_SHARED_LIBS "Build as dynamic library" ON)
 
 set(HHEADERS

@@ -22,6 +22,7 @@
 %include "arrays_java.i";
 %include "typemaps.i"
 
+// Do we need typemap to android or java.awt Color?
 %rename (Color) _ngsRGBA;
 
 typedef struct _ngsRGBA  {
