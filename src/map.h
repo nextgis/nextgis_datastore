@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "table.h"
+#include "api.h"
 
 namespace ngs {
 
@@ -92,7 +93,10 @@ public:
     int save();
     int destroy();
 
-    bool isDeleted() const;  
+    bool isDeleted() const;
+
+    ngsRGBA getBackgroundColor() const;
+    int setBackgroundColor(const ngsRGBA& color);
 
 protected:
     int loadLayers(const GIntBig* pValues, int count);
@@ -106,6 +110,7 @@ protected:
     long m_id;
     bool m_deleted;
     vector<LayerPtr> m_layers;
+    ngsRGBA m_bkColor;
 };
 
 typedef shared_ptr<Map> MapPtr;

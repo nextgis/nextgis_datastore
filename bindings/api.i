@@ -43,6 +43,12 @@ extern void ngsUninit();
 extern int ngsDestroy(const char* path, const char* cachePath);
 extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
 extern void ngsSetNotifyFunction(ngsNotifyFunc callback = NULL);
+extern int ngsDrawMap(const char* name, ngsProgressFunc callback = NULL,
+                           void* progressArguments = NULL);
+extern int ngsSetMapBackgroundColor(const char* name, unsigned char R,
+                                    unsigned char B, unsigned char G,
+                                    unsigned char A);
+extern ngsRGBA ngsGetMapBackgroundColor(const char* name);
 %}
 
 %clear const char *request, const char *name, const char* path, const char* cachePath, const char* dataPath;

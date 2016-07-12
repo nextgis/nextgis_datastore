@@ -55,6 +55,7 @@ Map::Map(FeaturePtr feature, MapStore * mapstore) : m_mapstore(mapstore),
     m_maxX = feature->GetFieldAsDouble (MAP_MAX_X);
     m_maxY = feature->GetFieldAsDouble (MAP_MAX_Y);
     m_id = feature->GetFID ();
+    m_bkColor = ngsHEX2RGBA (feature->GetFieldAsInteger (MAP_BKCOLOR));
 
     int count = 0;
     const GIntBig* pLayersOrder = feature->GetFieldAsInteger64List (MAP_LAYERS,
@@ -68,7 +69,7 @@ Map::Map(const string& name, const string& description, short epsg, double minX,
     m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_id(NOT_FOUND),
     m_deleted(false)
 {
-
+    m_bkColor = {0, 255, 0, 255};
 }
 
 Map::~Map()
@@ -198,4 +199,13 @@ void Map::setId(long id)
     m_id = id;
 }
 
+ngsRGBA Map::getBackgroundColor() const
+{
+    return m_bkColor;
+}
 
+int Map::setBackgroundColor(const ngsRGBA &color)
+{
+    m_bkColor = color;
+    return ngsErrorCodes::SUCCESS;
+}

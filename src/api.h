@@ -134,4 +134,22 @@ NGS_EXTERNC int ngsSetMapBackgroundColor(const char* name, unsigned char R,
                                     unsigned char B, unsigned char G,
                                     unsigned char A);
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(const char* name);
+
+/**
+  * useful functions
+  */
+inline int ngsRGBA2HEX(const ngsRGBA& color){
+    return ((color.R & 0xff) << 24) + ((color.G & 0xff) << 16) +
+            ((color.B & 0xff) << 8) + (color.A & 0xff);
+}
+
+inline ngsRGBA ngsHEX2RGBA(int color){
+    ngsRGBA out;
+    out.R = static_cast<unsigned char>( ((color >> 24) & 0xff) / 255.0 );
+    out.G = static_cast<unsigned char>( ((color >> 16) & 0xff) / 255.0 );
+    out.B = static_cast<unsigned char>( ((color >> 8) & 0xff) / 255.0 );
+    out.A = static_cast<unsigned char>( ((color) & 0xFF) / 255.0 );
+    return out;
+}
+
 #endif // API_H

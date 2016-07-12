@@ -116,3 +116,6 @@ TEST(MapTests, TestDeleteMap) {
 
     EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
 }
+
+// TODO: Add get and set background color tests
+// TODO: Add draw test

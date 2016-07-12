@@ -545,6 +545,7 @@ int DataStore::createMapsTable()
     OGRFieldDefn oMaxY(MAP_MAX_Y, OFTReal);
     OGRFieldDefn oDescription(MAP_DESCRIPTION, OFTString);
     oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
+    OGRFieldDefn oBkColor(MAP_BKCOLOR, OFTInteger);
 
     if(pMapsLayer->CreateField(&oName) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oEPSG) != OGRERR_NONE ||
@@ -553,7 +554,8 @@ int DataStore::createMapsTable()
        pMapsLayer->CreateField(&oMinY) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oMaxX) != OGRERR_NONE ||
        pMapsLayer->CreateField(&oMaxY) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oDescription) != OGRERR_NONE) {
+       pMapsLayer->CreateField(&oDescription) != OGRERR_NONE ||
+       pMapsLayer->CreateField (&oBkColor) != OGRERR_NONE) {
         return ngsErrorCodes::CREATE_TABLE_FAILED;
     }
 

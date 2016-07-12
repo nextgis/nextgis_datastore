@@ -23,9 +23,6 @@
 
 #include "map.h"
 #include "maptransform.h"
-#include "api.h"
-
-#include "EGL/egl.h"
 
 namespace ngs {
 
@@ -51,8 +48,6 @@ public:
     int draw(const ngsProgressFunc &progressFunc, void* progressArguments = nullptr);
     DrawStage getDrawStage() const;
     void setDrawStage(const DrawStage &drawStage);
-    ngsRGBA getBackgroundColor();
-    int setBackgroundColor(const ngsRGBA& color);
 
 public:
     void setErrorCode(int errorCode);
@@ -69,7 +64,6 @@ protected:
     ngsProgressFunc m_progressFunc;
     void* m_progressArguments;
     enum DrawStage m_drawStage;
-    ngsRGBA m_bkColor;
 };
 
 }

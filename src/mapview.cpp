@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include <GLES2/gl2.h>
+#include "EGL/egl.h"
 
 using namespace ngs;
 using namespace std;
@@ -212,7 +213,6 @@ MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore
     MapTransform(480, 640), m_displayInit(false), m_cancel(false),
     m_bufferData(nullptr)
 {
-    m_bkColor = {0, 255, 0, 255};
     initDisplay();
 }
 
@@ -318,14 +318,5 @@ void MapView::setDrawStage(const DrawStage &drawStage)
     m_drawStage = drawStage;
 }
 
-ngsRGBA MapView::getBackgroundColor()
-{
-    return m_bkColor;
-}
 
-int MapView::setBackgroundColor(const ngsRGBA &color)
-{
-    m_bkColor = color;
-    return ngsErrorCodes::SUCCESS;
-}
 

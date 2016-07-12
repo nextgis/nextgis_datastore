@@ -125,6 +125,7 @@ int MapStore::storeMap(Map *map)
         feature->SetField (MAP_MIN_Y, map->minY ());
         feature->SetField (MAP_MAX_X, map->maxX ());
         feature->SetField (MAP_MAX_Y, map->maxY ());
+        feature->SetField (MAP_BKCOLOR, ngsRGBA2HEX(map->getBackgroundColor ()));
 
         int nRes = pTable->insertFeature (feature);
         map->setId(feature->GetFID ());
@@ -154,6 +155,7 @@ int MapStore::storeMap(Map *map)
         feature->SetField (MAP_MIN_Y, map->minY ());
         feature->SetField (MAP_MAX_X, map->maxX ());
         feature->SetField (MAP_MAX_Y, map->maxY ());
+        feature->SetField (MAP_BKCOLOR, ngsRGBA2HEX(map->getBackgroundColor ()));
 
         int nRes = pTable->updateFeature (feature);
         if(nRes == ngsErrorCodes::SUCCESS) {

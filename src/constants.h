@@ -73,6 +73,7 @@
 #define MAP_MIN_Y "min_y"
 #define MAP_MAX_X "max_x"
 #define MAP_MAX_Y "max_y"
+#define MAP_BKCOLOR "bk_color"
 #define MAP_DEFAULT_NAME "default"
 
 // Layers
@@ -94,5 +95,6 @@
 
 #define DELTA 0.00000001
 inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) < DELTA; };
+
 
 #endif // CONSTANTS_H
