@@ -635,7 +635,7 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
     return ngsErrorCodes::DELETE_FAILED;
 }
 
-void DataStore::notifyDatasetCanged(DataStore::ChangeType changeType,
+void DataStore::notifyDatasetChanged(DataStore::ChangeType changeType,
                                     const string &name, long id)
 {
     // notify listeners
@@ -681,7 +681,7 @@ void DataStore::onLowMemory()
     m_datasources.clear ();
 }
 
-void DataStore::setNotifyFunc(const ngsNotifyFunc &notifyFunc)
+void DataStore::setNotifyFunc(ngsNotifyFunc notifyFunc)
 {
     m_notifyFunc = notifyFunc;
 }

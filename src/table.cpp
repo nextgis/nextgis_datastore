@@ -97,7 +97,7 @@ int Table::insertFeature(const FeaturePtr &feature)
         nReturnCode = ngsErrorCodes::SUCCESS;
 
     // notify datasource changed
-    m_datastore->notifyDatasetCanged(DataStore::ADD_FEATURE, name(),
+    m_datastore->notifyDatasetChanged(DataStore::ADD_FEATURE, name(),
                                          feature->GetFID());
 
     return nReturnCode;
@@ -114,7 +114,7 @@ int Table::updateFeature(const FeaturePtr &feature)
         nReturnCode = ngsErrorCodes::SUCCESS;
 
     // notify datasource changed
-    m_datastore->notifyDatasetCanged(DataStore::CHANGE_FEATURE, name(),
+    m_datastore->notifyDatasetChanged(DataStore::CHANGE_FEATURE, name(),
                                          feature->GetFID());
 
     return nReturnCode;

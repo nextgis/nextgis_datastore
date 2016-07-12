@@ -44,7 +44,9 @@ enum ngsErrorCodes {
     INSERT_FAILED,      /**< insert new feature failed */
     UPDATE_FAILED,      /**< update feature failed */
     GL_GET_DISPLAY_FAILED,  /**< Get OpenGL display failed */
-    INIT_FAILED     /**< Initialise failed */
+    INIT_FAILED,        /**< Initialise failed */
+    INVALID_MAP         /**< Invalid map */
+
 };
 
 /**
@@ -95,20 +97,41 @@ typedef int (*ngsProgressFunc)(double complete, const char* message,
 typedef void (*ngsNotifyFunc)(enum ngsSourceCodes src, const char* table, long row,
                               enum ngsChangeCodes operation);
 
+typedef struct _ngsRGBA {
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+    unsigned char A;
+} ngsRGBA;
+
+/**
+ * Common functions
+ */
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
 NGS_EXTERNC int ngsInit(const char* path, const char* dataPath, const char* cachePath);
 NGS_EXTERNC void ngsUninit();
 NGS_EXTERNC int ngsDestroy(const char* path, const char* cachePath);
+NGS_EXTERNC void ngsOnLowMemory();
+NGS_EXTERNC void ngsOnPause();
+NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
+/**
+ * Storage functions
+ */
 NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          const char* alias, const char* copyright,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
 NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
+/**
+ * Map functions
+ */
 NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
-NGS_EXTERNC void ngsOnLowMemory();
-NGS_EXTERNC void ngsOnPause();
-NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
-
+NGS_EXTERNC int ngsDrawMap(const char* name, ngsProgressFunc callback,
+                           void* progressArguments);
+NGS_EXTERNC int ngsSetMapBackgroundColor(const char* name, unsigned char R,
+                                    unsigned char B, unsigned char G,
+                                    unsigned char A);
+NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(const char* name);
 #endif // API_H

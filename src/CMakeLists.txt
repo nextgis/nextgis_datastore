@@ -28,6 +28,13 @@ if(EGL_FOUND)
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
 endif()
 
+find_package (OpenGL)
+if(OPENGL_FOUND)
+    include_directories(${OPENGL_INCLUDE_DIR})
+    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGL_LIBRARIES})
+endif()
+
+
 option (BUILD_SHARED_LIBS "Build as dynamic library" ON)
 
 set(HHEADERS

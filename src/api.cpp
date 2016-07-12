@@ -368,6 +368,8 @@ int ngsLoadRaster(const char */*path*/, const char */*name*/,
  */
 int ngsInitMap(const char *name, void *buffer, int width, int height)
 {
+    if(nullptr == gMapStore)
+        return ngsErrorCodes::INIT_FAILED;
     return gMapStore->initMap (name, buffer, width, height);
 }
 
@@ -402,4 +404,35 @@ void ngsOnPause()
     // just free maps
     if(nullptr != gMapStore)
         gMapStore->onLowMemory ();
+}
+
+/**
+ * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
+ * @param name Map name
+ * @param callback Progress function
+ * @param progressArguments Progress function arguments
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsDrawMap(const char *name, ngsProgressFunc callback, void* progressArguments)
+{
+    if(nullptr == gMapStore)
+        return ngsErrorCodes::INIT_FAILED;
+    return gMapStore->drawMap (name, callback, progressArguments);
+}
+
+ngsRGBA ngsGetMapBackgroundColor(const char *name)
+{
+    if(nullptr == gMapStore)
+        return {0,0,0,0};
+    return gMapStore->getMapBackgroundColor (name);
+
+}
+
+int ngsSetMapBackgroundColor(const char *name, unsigned char R, unsigned char B,
+                             unsigned char G, unsigned char A)
+{
+    if(nullptr == gMapStore)
+        return ngsErrorCodes::INIT_FAILED;
+    return gMapStore->setMapBackgroundColor (name, {R, G, B, A});
+
 }

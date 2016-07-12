@@ -76,7 +76,7 @@ public:
 public:
     string formats();
     void onLowMemory();
-    void setNotifyFunc(const ngsNotifyFunc &notifyFunc);
+    void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
 
 protected:
@@ -89,7 +89,7 @@ protected:
     int createLayersTable();
     int upgrade(int oldVersion);
     int destroyDataset(enum Dataset::Type type, const string& name);
-    void notifyDatasetCanged(enum ChangeType changeType, const string& name,
+    void notifyDatasetChanged(enum ChangeType changeType, const string& name,
                              long id);
     bool isNameValid(const string& name) const;
 

@@ -230,7 +230,7 @@ const Table *MapStore::getLayersTable() const
     return static_cast<Table*>(dataset.get ());
 }
 
-void MapStore::setNotifyFunc(const ngsNotifyFunc &notifyFunc)
+void MapStore::setNotifyFunc(ngsNotifyFunc notifyFunc)
 {
     m_notifyFunc = notifyFunc;
 }
@@ -240,16 +240,52 @@ void MapStore::unsetNotifyFunc()
     m_notifyFunc = nullptr;
 }
 
+ngsRGBA MapStore::getMapBackgroundColor(const char *name)
+{
+    MapWPtr mapw = getMap (name);
+    if(mapw.expired ())
+        return {0,0,0,0};
+    MapPtr map = mapw.lock ();
+    MapView* pMapView = static_cast<MapView*>(map.get ());
+    if(nullptr == pMapView)
+        return {0,0,0,0};
+    return pMapView->getBackgroundColor ();
+}
+
+int MapStore::setMapBackgroundColor(const char *name, const ngsRGBA &color)
+{
+    MapWPtr mapw = getMap (name);
+    if(mapw.expired ())
+        return ngsErrorCodes::INVALID_MAP;
+    MapPtr map = mapw.lock ();
+    MapView* pMapView = static_cast<MapView*>(map.get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID_MAP;
+    return pMapView->setBackgroundColor (color);
+}
+
 int MapStore::initMap(const char *name, void *buffer, int width, int height)
 {
     MapWPtr mapw = getMap (name);
     if(mapw.expired ())
-        return ngsErrorCodes::INIT_FAILED;
+        return ngsErrorCodes::INVALID_MAP;
     MapPtr map = mapw.lock ();
     MapView* pMapView = static_cast<MapView*>(map.get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INIT_FAILED;
+        return ngsErrorCodes::INVALID_MAP;
     return pMapView->initBuffer (buffer, width, height);
+}
+
+int MapStore::drawMap(const char *name, ngsProgressFunc progressFunc, void *progressArguments)
+{
+    MapWPtr mapw = getMap (name);
+    if(mapw.expired ())
+        return ngsErrorCodes::INVALID_MAP;
+    MapPtr map = mapw.lock ();
+    MapView* pMapView = static_cast<MapView*>(map.get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID_MAP;
+    return pMapView->draw (progressFunc, progressArguments);
 }
 
 void MapStore::onLowMemory()

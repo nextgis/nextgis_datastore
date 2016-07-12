@@ -147,14 +147,49 @@ void RenderingThread(void * view)
             continue;
         }
 
-        // TODO:
-        // get task from quere
-        // if not tasks sleep 100ms
-        CPLSleep(THREAD_LOOP_SLEEP);
-        // else render background and layers
+        switch(pMapView->getDrawStage ()){
+        case MapView::DrawStage::Stop:
+#ifdef _DEBUG
+            cout << "MapView::DrawStage::Stop" << endl;
+#endif // _DEBUG
+            // stop extract data threads
+            pMapView->setDrawStage (MapView::DrawStage::Start);
+            break;
+        case MapView::DrawStage::Process:
+#ifdef _DEBUG
+            cout << "MapView::DrawStage::Process" << endl;
+#endif // _DEBUG
+            // get ready portion of geodata to draw
+            // fill buffer with pixels glReadPixels
+            // and notify listeners
 
-        // fill buffer with pixels glReadPixels
-        // and notify listeners
+            // if no more geodata finish
+            pMapView->setDrawStage (MapView::DrawStage::Done);
+            // if notify return false - set stage to done
+            pMapView->notify (1.0, nullptr);
+            break;
+        case MapView::DrawStage::Start:
+#ifdef _DEBUG
+            cout << "MapView::DrawStage::Start" << endl;
+#endif // _DEBUG
+            pMapView->setDrawStage (MapView::DrawStage::Process);
+            {
+            // clear
+            ngsRGBA color = pMapView->getBackgroundColor();
+            float dfR = float(color.R) / 255;
+            float dfG = float(color.G) / 255;
+            float dfB = float(color.B) / 255;
+            float dfA = float(color.A) / 255;
+            glClearColor(dfR, dfG, dfB, dfA);
+            glClear(GL_COLOR_BUFFER_BIT);
+            }
+            pMapView->fillBuffer(eglDisplay, eglSurface);
+            break;
+
+        case MapView::DrawStage::Done:
+            // if not tasks sleep 100ms
+            CPLSleep(THREAD_LOOP_SLEEP);
+        }
     }
 
 #ifdef _DEBUG
@@ -177,6 +212,7 @@ MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore
     MapTransform(480, 640), m_displayInit(false), m_cancel(false),
     m_bufferData(nullptr)
 {
+    m_bkColor = {0, 255, 0, 255};
     initDisplay();
 }
 
@@ -229,6 +265,67 @@ int MapView::initBuffer(void *buffer, int width, int height)
 
     setDisplaySize (width, height);
 
+    return ngsErrorCodes::SUCCESS;
+}
+
+int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
+{
+    m_progressFunc = progressFunc;
+    m_progressArguments = progressArguments;
+
+    if(m_drawStage == DrawStage::Process){
+        m_drawStage = DrawStage::Stop;
+    }
+    else {
+        m_drawStage = DrawStage::Start;
+    }
+
+    // 1.   Finish drawing if any and put scene to buffer
+    // 1.1. Stop extract data threads
+    // 1.2. Put current drawn scene to buffer
+    // 1.3. Notify drawing progress
+    // 2.   Start new drawing
+    // 2.1. Start extract data for current extent
+    // 2.2. Put partially or full scene to buffer
+    // 2.3. Notify drawing progress
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+int MapView::notify(double complete, const char *message)
+{
+    if(nullptr != m_progressFunc) {
+        return m_progressFunc(complete, message, m_progressArguments);
+    }
+    return TRUE;
+}
+
+void MapView::fillBuffer(void* pDisplay, void* pSurface)
+{
+    eglSwapBuffers(pDisplay, pSurface);
+    glReadPixels(0, 0, getDisplayWidht (),
+                 getDisplayHeight (), GL_RGBA,
+                 GL_UNSIGNED_BYTE, m_bufferData);
+}
+
+enum MapView::DrawStage MapView::getDrawStage() const
+{
+    return m_drawStage;
+}
+
+void MapView::setDrawStage(const DrawStage &drawStage)
+{
+    m_drawStage = drawStage;
+}
+
+ngsRGBA MapView::getBackgroundColor()
+{
+    return m_bkColor;
+}
+
+int MapView::setBackgroundColor(const ngsRGBA &color)
+{
+    m_bkColor = color;
     return ngsErrorCodes::SUCCESS;
 }
 

@@ -23,32 +23,53 @@
 
 #include "map.h"
 #include "maptransform.h"
+#include "api.h"
 
 #include "EGL/egl.h"
 
 namespace ngs {
 
-
 class MapView : public Map, public MapTransform
 {
+public:
+    enum DrawStage {
+        Start = 1,
+        Stop,
+        Done,
+        Process
+    };
+
 public:
     MapView(FeaturePtr feature, MapStore * mapstore);
     virtual ~MapView();
     bool isDisplayInit() const;
     int initDisplay();
     int errorCode() const;
-    void setErrorCode(int errorCode);
     void setDisplayInit(bool displayInit);
     bool cancel() const;
-    void *getBufferData() const;
     int initBuffer(void* buffer, int width, int height);
+    int draw(const ngsProgressFunc &progressFunc, void* progressArguments = nullptr);
+    DrawStage getDrawStage() const;
+    void setDrawStage(const DrawStage &drawStage);
+    ngsRGBA getBackgroundColor();
+    int setBackgroundColor(const ngsRGBA& color);
+
+public:
+    void setErrorCode(int errorCode);
+    void *getBufferData() const;
+    int notify(double complete, const char* message);
+    void fillBuffer(void* pDisplay, void* pSurface);
 
 protected:
     bool m_displayInit;
     int m_errorCode;
     CPLJoinableThread* m_hThread;
     bool m_cancel;
-    void* m_bufferData;
+    void* m_bufferData;    
+    ngsProgressFunc m_progressFunc;
+    void* m_progressArguments;
+    enum DrawStage m_drawStage;
+    ngsRGBA m_bkColor;
 };
 
 }

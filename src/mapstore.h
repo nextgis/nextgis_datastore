@@ -51,9 +51,13 @@ public:
     MapWPtr getMap(const char* name);
     MapWPtr getMap(int index);
     int initMap(const char *name, void *buffer, int width, int height);
+    int drawMap(const char *name, ngsProgressFunc progressFunc,
+                void* progressArguments = nullptr);
     void onLowMemory();
-    void setNotifyFunc(const ngsNotifyFunc &notifyFunc);
+    void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
+    ngsRGBA getMapBackgroundColor(const char *name);
+    int setMapBackgroundColor(const char *name, const ngsRGBA& color);
 
 protected:
     int storeMap(Map* map);
