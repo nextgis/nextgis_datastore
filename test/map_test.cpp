@@ -34,6 +34,12 @@ void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long 
     counter++;
 }
 
+int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
+                        void* /*progressArguments*/) {
+    counter++;
+    return TRUE;
+}
+
 TEST(MapTests, TestCreate) {
     ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
                 "./tmp", nullptr, nullptr);
@@ -41,6 +47,15 @@ TEST(MapTests, TestCreate) {
     ngs::MapStore mapStore(storage);
     EXPECT_EQ(mapStore.create(), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(mapStore.mapCount(), 1);
+
+    ngs::MapWPtr map = mapStore.getMap ("default");
+    EXPECT_EQ(map.expired (), false);
+    ngs::MapPtr defMap = map.lock ();
+    ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
+    ngsRGBA color = mapView->getBackgroundColor ();
+    EXPECT_EQ(color.R, 210);
+    EXPECT_EQ(color.G, 245);
+    EXPECT_EQ(color.B, 255);
 }
 
 TEST(MapTests, TestOpenMap) {
@@ -58,6 +73,7 @@ TEST(MapTests, TestInitMap) {
     ngs::MapStore mapStore(storage);
     EXPECT_NE(mapStore.initMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(mapStore.initMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+
 }
 
 TEST(MapTests, TestProject) {
@@ -96,6 +112,34 @@ TEST(MapTests, TestProject) {
     EXPECT_EQ(dwPt.y, 640);
 }
 
+// TODO: Add get and set background color tests
+// TODO: Add draw test
+TEST(MapTests, TestDrawing) {
+
+    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
+                "./tmp", nullptr, nullptr);
+    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
+    ngs::MapStore mapStore(storage);
+    unsigned char buffer[480 * 640 * 4];
+    EXPECT_EQ(mapStore.initMap ("default", buffer, 480, 640), ngsErrorCodes::SUCCESS);
+    ngs::MapWPtr map = mapStore.getMap ("default");
+    EXPECT_EQ(map.expired (), false);
+    ngs::MapPtr defMap = map.lock ();
+    ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
+    mapView->setBackgroundColor ({255, 0, 0, 255}); // RED color
+    counter = 0;
+    mapView->draw(ngsTestProgressFunc, nullptr);
+    CPLSleep(0.6);
+    EXPECT_EQ(buffer[0], 255);
+    EXPECT_EQ(buffer[1], 0);
+    EXPECT_EQ(buffer[2], 0);
+    EXPECT_GE(counter, 1);
+    ngsRGBA color = mapView->getBackgroundColor ();
+    EXPECT_EQ(color.R, 255);
+    EXPECT_EQ(color.G, 0);
+    EXPECT_EQ(color.B, 0);
+}
+
 TEST(MapTests, TestDeleteMap) {
     ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
                 "./tmp", nullptr, nullptr);
@@ -117,5 +161,3 @@ TEST(MapTests, TestDeleteMap) {
     EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
 }
 
-// TODO: Add get and set background color tests
-// TODO: Add draw test

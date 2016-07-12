@@ -69,7 +69,7 @@ Map::Map(const string& name, const string& description, short epsg, double minX,
     m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_id(NOT_FOUND),
     m_deleted(false)
 {
-    m_bkColor = {0, 255, 0, 255};
+    m_bkColor = {210, 245, 255, 255};
 }
 
 Map::~Map()

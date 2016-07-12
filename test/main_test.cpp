@@ -78,6 +78,16 @@ TEST(BasicTests, TestVersions) {
     EXPECT_NE(nullptr, ngsGetVersionString("formats"));
 }
 
+TEST(BasicTests, TestInlines) {
+    ngsRGBA color = {254, 253, 252, 251};
+    int hexColor = ngsRGBA2HEX (color);
+    ngsRGBA newColor = ngsHEX2RGBA (hexColor);
+    EXPECT_EQ(color.R, newColor.R);
+    EXPECT_EQ(color.G, newColor.G);
+    EXPECT_EQ(color.B, newColor.B);
+    EXPECT_EQ(color.A, newColor.A);
+}
+
 TEST(BasicTests, TestCreate) {
     EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
     ngsUninit();

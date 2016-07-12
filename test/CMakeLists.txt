@@ -46,6 +46,8 @@ if(BUILD_TESTS)
 
     link_directories(${LINK_SEARCH_PATHS})
 
+    add_custom_target (clean_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/tmp )
+
     add_executable(main_test main_test.cpp)
     target_link_extlibraries(main_test)    
 

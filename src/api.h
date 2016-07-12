@@ -145,10 +145,10 @@ inline int ngsRGBA2HEX(const ngsRGBA& color){
 
 inline ngsRGBA ngsHEX2RGBA(int color){
     ngsRGBA out;
-    out.R = static_cast<unsigned char>( ((color >> 24) & 0xff) / 255.0 );
-    out.G = static_cast<unsigned char>( ((color >> 16) & 0xff) / 255.0 );
-    out.B = static_cast<unsigned char>( ((color >> 8) & 0xff) / 255.0 );
-    out.A = static_cast<unsigned char>( ((color) & 0xFF) / 255.0 );
+    out.R = (color >> 24) & 0xff;
+    out.G = (color >> 16) & 0xff;
+    out.B = (color >> 8) & 0xff;
+    out.A = (color) & 0xff;
     return out;
 }
 
