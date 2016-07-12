@@ -128,8 +128,8 @@ NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
  * Map functions
  */
 NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
-NGS_EXTERNC int ngsDrawMap(const char* name, ngsProgressFunc callback,
-                           void* progressArguments);
+NGS_EXTERNC int ngsDrawMap(const char* name, ngsProgressFunc callback, 
+                           void* callbackData);
 NGS_EXTERNC int ngsSetMapBackgroundColor(const char* name, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);

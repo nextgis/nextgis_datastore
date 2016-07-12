@@ -42,9 +42,8 @@ extern int ngsInit(const char* path, const char* dataPath, const char* cachePath
 extern void ngsUninit();
 extern int ngsDestroy(const char* path, const char* cachePath);
 extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
-extern void ngsSetNotifyFunction(ngsNotifyFunc callback = NULL);
-extern int ngsDrawMap(const char* name, ngsProgressFunc callback = NULL,
-                           void* progressArguments = NULL);
+extern void ngsSetNotifyFunction(ngsNotifyFunc callback);
+extern int ngsDrawMap(const char* name, ngsProgressFunc callback, void* callbackData);
 extern int ngsSetMapBackgroundColor(const char* name, unsigned char R,
                                     unsigned char B, unsigned char G,
                                     unsigned char A);
@@ -77,7 +76,7 @@ extern ngsRGBA ngsGetMapBackgroundColor(const char* name);
 %pragma(java) modulecode=%{
   public static int ngsInitMap2(String name, java.nio.ByteBuffer nioBuffer, int width, int height) {
     if(null == nioBuffer)
-       throw new NullPointerException("Need not null buffer");
+       throw new NullPointerException("Needed not null buffer");
     if(width * height > nioBuffer.capacity())
         throw new IllegalArgumentException("Output buffer too small. Should be greater than width * height");
     return ngsInitMap(name, nioBuffer, width, height);

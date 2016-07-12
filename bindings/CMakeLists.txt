@@ -47,6 +47,7 @@ if(BUILD_BINDINGS)
                 ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java
                 ${CMAKE_CURRENT_BINARY_DIR}/SourceCodes.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/Color.java
             )
 
             install(FILES ${CPP_CODE} DESTINATION src)

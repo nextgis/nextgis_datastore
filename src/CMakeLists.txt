@@ -22,16 +22,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-find_package (EGL)
+find_package (EGL REQUIRED)
 if(EGL_FOUND)
     include_directories(${EGL_INCLUDE_DIRS})
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
 endif()
 
-find_package (OpenGL)
-if(OPENGL_FOUND)
-    include_directories(${OPENGL_INCLUDE_DIR})
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGL_LIBRARIES})
+find_package (GLES2 REQUIRED)
+if(OPENGLES2_FOUND)
+    include_directories(${OPENGLES2_INCLUDE_DIRS})
+    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
 endif()
 
 

@@ -54,7 +54,6 @@ enum ngsChangeCodes {
     DELETEALL_ATTACHMENTS
 };
 
-
 %inline %{
 class ProgressCallback
 {
