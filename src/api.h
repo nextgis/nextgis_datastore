@@ -131,7 +131,7 @@ NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height
 NGS_EXTERNC int ngsDrawMap(const char* name, ngsProgressFunc callback,
                            void* progressArguments);
 NGS_EXTERNC int ngsSetMapBackgroundColor(const char* name, unsigned char R,
-                                    unsigned char B, unsigned char G,
+                                    unsigned char G, unsigned char B,
                                     unsigned char A);
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(const char* name);
 

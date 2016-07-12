@@ -420,6 +420,11 @@ int ngsDrawMap(const char *name, ngsProgressFunc callback, void* progressArgumen
     return gMapStore->drawMap (name, callback, progressArguments);
 }
 
+/**
+ * @brief ngsGetMapBackgroundColor Map background color
+ * @param name Map name
+ * @return map background color struct
+ */
 ngsRGBA ngsGetMapBackgroundColor(const char *name)
 {
     if(nullptr == gMapStore)
@@ -428,8 +433,17 @@ ngsRGBA ngsGetMapBackgroundColor(const char *name)
 
 }
 
-int ngsSetMapBackgroundColor(const char *name, unsigned char R, unsigned char B,
-                             unsigned char G, unsigned char A)
+/**
+ * @brief ngsSetMapBackgroundColor set specified by name map background color
+ * @param name Map name
+ * @param R red
+ * @param G green
+ * @param B blue
+ * @param A alpha
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsSetMapBackgroundColor(const char *name, unsigned char R, unsigned char G,
+                             unsigned char B, unsigned char A)
 {
     if(nullptr == gMapStore)
         return ngsErrorCodes::INIT_FAILED;
