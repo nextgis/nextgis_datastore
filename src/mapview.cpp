@@ -173,6 +173,7 @@ void RenderingThread(void * view)
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Start" << endl;
 #endif // _DEBUG
+
             pMapView->setDrawStage (MapView::DrawStage::Process);
             {
             // clear
@@ -211,7 +212,7 @@ void RenderingThread(void * view)
 
 MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore),
     MapTransform(480, 640), m_displayInit(false), m_cancel(false),
-    m_bufferData(nullptr)
+    m_bufferData(nullptr), m_progressFunc(nullptr)
 {
     initDisplay();
 }
