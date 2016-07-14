@@ -53,6 +53,7 @@ set(HHEADER_PRIV
     maptransform.h
     mapview.h
     matrix.h
+    glview.h
 )
 
 set(CSOURCES
@@ -66,6 +67,7 @@ set(CSOURCES
     maptransform.cpp
     mapview.cpp
     matrix.cpp
+    glview.cpp
 )
 
 if(UNIX)

@@ -45,7 +45,7 @@ GIntBig Layer::id() const
 //------------------------------------------------------------------------------
 
 Map::Map(FeaturePtr feature, MapStore * mapstore) : m_mapstore(mapstore),
-    m_deleted(false)
+    m_deleted(false), m_bkChanged(true)
 {
     m_name = feature->GetFieldAsString (MAP_NAME);
     m_epsg = static_cast<short>(feature->GetFieldAsInteger (MAP_EPSG));
@@ -67,7 +67,7 @@ Map::Map(const string& name, const string& description, short epsg, double minX,
     double minY, double maxX, double maxY, MapStore *mapstore) :
     m_mapstore(mapstore), m_name(name), m_description(description), m_epsg(epsg),
     m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_id(NOT_FOUND),
-    m_deleted(false)
+    m_deleted(false), m_bkChanged(true)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -207,5 +207,16 @@ ngsRGBA Map::getBackgroundColor() const
 int Map::setBackgroundColor(const ngsRGBA &color)
 {
     m_bkColor = color;
+    m_bkChanged = true;
     return ngsErrorCodes::SUCCESS;
+}
+
+bool Map::isBackgroundChanged() const
+{
+    return m_bkChanged;
+}
+
+void Map::setBackgroundChanged(bool bkChanged)
+{
+    m_bkChanged = bkChanged;
 }

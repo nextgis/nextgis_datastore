@@ -43,7 +43,6 @@ enum ngsErrorCodes {
     INVALID_STUCTURE,   /**< Invalid storage, file etc. structure */
     INSERT_FAILED,      /**< insert new feature failed */
     UPDATE_FAILED,      /**< update feature failed */
-    GL_GET_DISPLAY_FAILED,  /**< Get OpenGL display failed */
     INIT_FAILED,        /**< Initialise failed */
     INVALID_MAP         /**< Invalid map */
 

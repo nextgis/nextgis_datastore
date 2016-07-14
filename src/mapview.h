@@ -53,7 +53,6 @@ public:
     void setErrorCode(int errorCode);
     void *getBufferData() const;
     int notify(double complete, const char* message);
-    void fillBuffer(void* pDisplay, void* pSurface);
 
 protected:
     bool m_displayInit;

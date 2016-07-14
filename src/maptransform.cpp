@@ -33,7 +33,8 @@
 using namespace std;
 using namespace ngs;
 
-MapTransform::MapTransform(int width, int height) : m_rotate(0)
+MapTransform::MapTransform(int width, int height) : m_sizeChanged(true),
+    m_rotate(0)
 {
     setDisplaySize(width, height);
 }
