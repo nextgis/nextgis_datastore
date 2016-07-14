@@ -22,6 +22,7 @@
 #include "api.h"
 
 #include <iostream>
+#include <limits>
 
 #include <GLES2/gl2.h>
 #include "EGL/egl.h"
@@ -51,6 +52,80 @@ using namespace std;
 //https://github.com/libmx3/mx3/blob/master/src/event_loop.cpp
 
 #define THREAD_LOOP_SLEEP 0.1
+
+const GLuint maxUint = numeric_limits<GLuint>::max();
+
+void reportGlStatus(GLuint obj) {
+    GLint length;
+    glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &length);
+    GLchar *pLog = new GLchar[length];
+    glGetShaderInfoLog(obj, length, &length, pLog);
+    cerr << pLog << endl;
+    delete [] pLog;
+}
+
+bool checkShaderCompileStatus(GLuint obj) {
+    GLint status;
+    glGetShaderiv(obj, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE) {
+        reportGlStatus(obj);
+        return false;
+    }
+    return true;
+}
+
+bool checkProgramLinkStatus(GLuint obj) {
+    GLint status;
+    glGetProgramiv(obj, GL_LINK_STATUS, &status);
+    if(status == GL_FALSE) {
+        reportGlStatus(obj);
+        return false;
+    }
+    return true;
+}
+
+GLuint prepareProgram() {
+
+    const GLchar * const vertexShaderSourcePtr = ""
+          "#version 330 core\n"
+          "layout(location = 0) in vec3 vertexPos;\n"
+          "void main(){\n"
+          "  gl_Position.xyz = vertexPos;\n"
+          "  gl_Position.w = 1.0;\n"
+          "}";
+
+    GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShaderId, 1, &vertexShaderSourcePtr, nullptr);
+    glCompileShader(vertexShaderId);
+
+    if( !checkShaderCompileStatus(vertexShaderId) )
+        return maxUint;
+
+    const GLchar * const fragmentShaderSourcePtr = ""
+          "#version 330 core\n"
+          "out vec3 color;\n"
+          "void main() { color = vec3(0,0,1); }\n";
+
+    GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShaderId, 1, &fragmentShaderSourcePtr, nullptr);
+    glCompileShader(fragmentShaderId);
+
+    if (!checkShaderCompileStatus(fragmentShaderId) )
+        return maxUint;
+
+    GLuint programId = glCreateProgram();
+    glAttachShader(programId, vertexShaderId);
+    glAttachShader(programId, fragmentShaderId);
+    glLinkProgram(programId);
+
+    if( !checkProgramLinkStatus(programId) )
+        return maxUint;
+
+    glDeleteShader(vertexShaderId);
+    glDeleteShader(fragmentShaderId);
+
+    return programId;
+}
 
 void RenderingThread(void * view)
 {
@@ -112,6 +187,14 @@ void RenderingThread(void * view)
     }
 
     EGLSurface eglSurface = EGL_NO_SURFACE;
+
+    // load shaders
+    // TODO: need special class to load/undload and manage shaders
+    GLuint progId = prepareProgram();
+    if(maxUint == progId) {
+        pMapView->setErrorCode(ngsErrorCodes::INIT_FAILED);
+        return;
+    }
 
     pMapView->setErrorCode(ngsErrorCodes::SUCCESS);
     pMapView->setDisplayInit (true);
@@ -199,6 +282,7 @@ void RenderingThread(void * view)
 #endif // _DEBUG
 
     eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    glDeleteProgram(progId);
     eglDestroyContext(eglDisplay, eglCtx);
     eglDestroySurface(eglDisplay, eglSurface);
     eglTerminate ( eglDisplay );
