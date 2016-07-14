@@ -22,6 +22,12 @@
 %include "arrays_java.i";
 %include "typemaps.i"
 
+%module Api
+%{
+#include <cstdio>
+%}
+
+
 // Do we need typemap to android or java.awt Color?
 %rename (Color) _ngsRGBA;
 
@@ -40,10 +46,10 @@ typedef struct _ngsRGBA  {
    }
    _ngsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
        ngsRGBA *rgba = (ngsRGBA *) malloc(sizeof(ngsRGBA));
-       rgba->r = r;
-       rgba->g = g;
-       rgba->b = b;
-       rgba->a = a;
+       rgba->R = r;
+       rgba->G = g;
+       rgba->B = b;
+       rgba->A = a;
        return rgba;
    }
 };
