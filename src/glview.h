@@ -39,6 +39,10 @@ typedef struct _glrgb {
     float a;
 } GlColor;
 
+typedef int (*ngsBindVertexArray)(GLuint array);
+typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
+typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);
+
 class GlView
 {
 public:
@@ -69,6 +73,12 @@ protected:
 
     GlColor m_bkColor;
     int m_displayWidth, m_displayHeight;
+
+    bool m_extensionLoad;
+
+    ngsBindVertexArray bindVertexArrayFn;
+    ngsDeleteVertexArrays deleteVertexArraysFn;
+    ngsGenVertexArrays genVertexArraysFn;
 };
 
 }

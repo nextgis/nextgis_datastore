@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include "cpl_error.h"
+#include "cpl_string.h"
 
 // TODO: init and uninit in drawing thread.
 //https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
@@ -56,8 +57,8 @@ static const GLfloat globVertexBufferData[] = {
 };
 
 GlView::GlView() : m_eglDisplay(EGL_NO_DISPLAY), m_eglCtx(EGL_NO_CONTEXT),
-    m_eglSurface(EGL_NO_SURFACE), m_displayWidth(100), m_displayHeight(100),
-    m_programId(m_maxUint)
+    m_eglSurface(EGL_NO_SURFACE), m_programId(m_maxUint), m_displayWidth(100),
+    m_displayHeight(100), m_extensionLoad(false)
 {
 
 }
@@ -134,12 +135,6 @@ bool GlView::init()
         return false;
     }
 
-#ifdef _DEBUG
-    const GLubyte *str = glGetString(GL_EXTENSIONS);
-    if (str != nullptr)
-        cout << "GL extensions:" << reinterpret_cast<const char *>(str) << endl;
-#endif // _DEBUG
-
     m_eglSurface = EGL_NO_SURFACE;
 
     // TODO: need special class to load/undload and manage shaders
@@ -154,9 +149,13 @@ bool GlView::init()
 
 void GlView::setSize(int width, int height)
 {
+    if(m_displayWidth == width && m_displayHeight == height)
+        return;
+
 #ifdef _DEBUG
     cout << "Size changed" << endl;
 #endif // _DEBUG
+
     eglDestroySurface( m_eglDisplay, m_eglSurface );
 
     // create a pixelbuffer surface
@@ -173,8 +172,49 @@ void GlView::setSize(int width, int height)
         eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglCtx);
         m_displayWidth = width;
         m_displayHeight = height;
-    }
 
+        if(!m_extensionLoad){
+            const GLubyte *str = glGetString(GL_EXTENSIONS);
+            if (str != nullptr) {
+                const char* pszList = reinterpret_cast<const char*>(str);
+#ifdef _DEBUG
+                cout << "GL extensions: " << pszList << endl;
+#endif // _DEBUG
+                char **papszTokens=CSLTokenizeString2(pszList," ",
+                                        CSLT_STRIPLEADSPACES|CSLT_STRIPENDSPACES);
+                for (int i = 0; i < CSLCount(papszTokens); ++i) {
+                    if(EQUAL(papszTokens[i], "GL_ARB_vertex_array_object")){
+                        bindVertexArrayFn = reinterpret_cast<int (*)(GLuint)>(
+                                    eglGetProcAddress("glBindVertexArray"));
+                        deleteVertexArraysFn = reinterpret_cast<int (*)(GLsizei, const GLuint*)>(
+                                    eglGetProcAddress("glDeleteVertexArrays"));
+                        genVertexArraysFn = reinterpret_cast<int (*)(GLsizei, GLuint*)>(
+                                    eglGetProcAddress("glGenVertexArrays"));
+                    }
+                    else if(EQUAL(papszTokens[i], "GL_OES_vertex_array_object")){
+                        bindVertexArrayFn = reinterpret_cast<int (*)(GLuint)>(
+                                    eglGetProcAddress("glBindVertexArrayOES"));
+                        deleteVertexArraysFn = reinterpret_cast<int (*)(GLsizei, const GLuint*)>(
+                                    eglGetProcAddress("glDeleteVertexArraysOES"));
+                        genVertexArraysFn = reinterpret_cast<int (*)(GLsizei, GLuint*)>(
+                                    eglGetProcAddress("glGenVertexArraysOES"));
+                    }
+                    else if(EQUAL(papszTokens[i], "GL_APPLE_vertex_array_object")){
+                        bindVertexArrayFn = reinterpret_cast<int (*)(GLuint)>(
+                                    eglGetProcAddress("glBindVertexArrayAPPLE"));
+                        deleteVertexArraysFn = reinterpret_cast<int (*)(GLsizei, const GLuint*)>(
+                                    eglGetProcAddress("glDeleteVertexArraysAPPLE"));
+                        genVertexArraysFn = reinterpret_cast<int (*)(GLsizei, GLuint*)>(
+                                    eglGetProcAddress("glGenVertexArraysAPPLE"));
+                    }
+
+                }
+                CSLDestroy(papszTokens);
+
+                m_extensionLoad = true;
+            }
+        }
+    }
 }
 
 bool GlView::isOk()
@@ -212,15 +252,14 @@ void GlView::draw()
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(globVertexBufferData), globVertexBufferData, GL_STATIC_DRAW);
 
-    /*  GLuint vao;
-      glGenVertexArrays(1, &vao);
+    GLuint vao;
+    genVertexArraysFn(1, &vao);
 
-      glBindVertexArray(vao);
+      bindVertexArrayFn(vao);
       glBindBuffer(GL_ARRAY_BUFFER, vbo);
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
       glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind VBO
-    glBindVertexArray(0); // unbind VAO
-    */
+    bindVertexArrayFn(0); // unbind VAO
 }
 
 void GlView::reportGlStatus(GLuint obj) {
