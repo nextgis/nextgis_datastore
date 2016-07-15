@@ -24,6 +24,33 @@
 #include "api.h"
 
 #include <GLES2/gl2.h>
+
+#if __APPLE__
+    #include "TargetConditionals.h"
+    #if TARGET_OS_IPHONE
+        #include <OpenGLES/ES2/gl.h>
+        #include <OpenGLES/ES2/glext.h>
+    #elif TARGET_IPHONE_SIMULATOR
+        #include <OpenGLES/ES2/gl.h>
+        #include <OpenGLES/ES2/glext.h>
+    #elif TARGET_OS_MAC
+        #include <OpenGL/OpenGL.h>
+        #include <OpenGL/gl.h>
+    #else
+        #error Unsupported Apple platform
+    #endif
+#elif __ANDROID__
+    #define GL_GLEXT_PROTOTYPES
+    #include <GLES2/gl2.h>
+    #include <GLES2/gl2ext.h>
+#else
+    #define GL_GLEXT_PROTOTYPES
+    #include <GLES2/gl2.h>
+    #include <GLES2/gl2ext.h>
+//    #include <GL/gl.h>
+//    #include <GL/glext.h>
+#endif
+
 #include "EGL/egl.h"
 
 #include <limits>
@@ -69,7 +96,6 @@ protected:
     EGLContext m_eglCtx;
     EGLSurface m_eglSurface;
     EGLConfig m_eglConf;
-    GLuint m_programId;
 
     GlColor m_bkColor;
     int m_displayWidth, m_displayHeight;
@@ -79,6 +105,11 @@ protected:
     ngsBindVertexArray bindVertexArrayFn;
     ngsDeleteVertexArrays deleteVertexArraysFn;
     ngsGenVertexArrays genVertexArraysFn;
+
+// shaders
+protected:
+    GLuint m_programId;
+    GLuint m_aPos;
 };
 
 }

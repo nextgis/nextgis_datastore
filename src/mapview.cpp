@@ -53,6 +53,7 @@ void RenderingThread(void * view)
 #ifdef _DEBUG
             cerr << "No surface to draw" << endl;
 #endif //_DEBUG
+            CPLError(CE_Failure, CPLE_OpenFailed, "Get GL version failed.");
             CPLSleep(THREAD_LOOP_SLEEP);
             continue;
         }
@@ -72,6 +73,9 @@ void RenderingThread(void * view)
             // TODO: get ready portion of geodata to draw
             // fill buffer with pixels glReadPixels
             // and notify listeners
+
+            // FIXME: test drawing
+            glView.draw ();
 
             // if no more geodata finish
             glView.fillBuffer (pMapView->getBufferData ());

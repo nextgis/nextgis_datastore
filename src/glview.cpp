@@ -49,13 +49,6 @@
 
 using namespace ngs;
 
-// test data
-static const GLfloat globVertexBufferData[] = {
-  -1.0f, -1.0f,  0.0f,
-   1.0f, -1.0f,  0.0f,
-   0.0f,  1.0f,  0.0f,
-};
-
 GlView::GlView() : m_eglDisplay(EGL_NO_DISPLAY), m_eglCtx(EGL_NO_CONTEXT),
     m_eglSurface(EGL_NO_SURFACE), m_programId(m_maxUint), m_displayWidth(100),
     m_displayHeight(100), m_extensionLoad(false)
@@ -244,22 +237,41 @@ void GlView::clearBackground()
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
+// test data
+
+
 void GlView::draw()
 {
-    // TODO:
+    glUseProgram(m_programId);
+    static const GLfloat globVertexBufferData[] =  { -1,-1, 1,-1, -1,1, 1,1 }; /*{
+        -1.0f, -1.0f,  0.0f,
+         1.0f, -1.0f,  0.0f,
+         0.0f,  1.0f,  0.0f,
+    };*/
+
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(globVertexBufferData), globVertexBufferData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(globVertexBufferData),
+                 globVertexBufferData, GL_STATIC_DRAW);
 
-    GLuint vao;
+    glEnableVertexAttribArray(m_aPos);
+    glVertexAttribPointer(m_aPos, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_DEPTH_TEST);
+
+
+    //glDrawArrays(GL_LINE_STRIP, 0, 3);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    ////////////////////////////////
+    /*GLuint vao;
     genVertexArraysFn(1, &vao);
 
       bindVertexArrayFn(vao);
       glBindBuffer(GL_ARRAY_BUFFER, vbo);
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
       glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind VBO
-    bindVertexArrayFn(0); // unbind VAO
+    bindVertexArrayFn(0); // unbind VAO*/
 }
 
 void GlView::reportGlStatus(GLuint obj) {
@@ -294,13 +306,7 @@ bool GlView::checkProgramLinkStatus(GLuint obj) {
 GLuint GlView::prepareProgram() {
 
     // WARNING: this is only for testing!
-    const GLchar * const vertexShaderSourcePtr = ""
-          "#version 330 core\n"
-          "layout(location = 0) in vec3 vertexPos;\n"
-          "void main(){\n"
-          "  gl_Position.xyz = vertexPos;\n"
-          "  gl_Position.w = 1.0;\n"
-          "}";
+    const GLchar * const vertexShaderSourcePtr = "attribute vec2 a_pos; void main() { gl_Position = vec4(a_pos, 0, 1); }";
 
     GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShaderId, 1, &vertexShaderSourcePtr, nullptr);
@@ -309,10 +315,7 @@ GLuint GlView::prepareProgram() {
     if( !checkShaderCompileStatus(vertexShaderId) )
         return m_maxUint;
 
-    const GLchar * const fragmentShaderSourcePtr = ""
-          "#version 330 core\n"
-          "out vec3 color;\n"
-          "void main() { color = vec3(0,0,1); }\n";
+    const GLchar * const fragmentShaderSourcePtr = "void main() { gl_FragColor = vec4(1, 0, 0, 1); }";
 
     GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShaderId, 1, &fragmentShaderSourcePtr, nullptr);
@@ -325,6 +328,8 @@ GLuint GlView::prepareProgram() {
     glAttachShader(programId, vertexShaderId);
     glAttachShader(programId, fragmentShaderId);
     glLinkProgram(programId);
+
+    m_aPos = static_cast<GLuint>(glGetAttribLocation(m_programId, "a_pos"));
 
     if( !checkProgramLinkStatus(programId) )
         return m_maxUint;
