@@ -53,8 +53,6 @@
 
 #include "EGL/egl.h"
 
-#include <limits>
-
 namespace ngs {
 
 using namespace std;
@@ -87,10 +85,14 @@ protected:
     GLuint prepareProgram();
     bool checkProgramLinkStatus(GLuint obj);
     bool checkShaderCompileStatus(GLuint obj);
-    void reportGlStatus(GLuint obj);
+    void reportGlStatus(GLuint obj);    
+    bool checkGLError(const char *cmd);
+    GLuint loadShader(GLenum type, const char *shaderSrc);
+    bool checkEGLError(const char *cmd);
+    bool createFBO(int width, int height);
+    void destroyFBO();
 
 protected:
-    const GLuint m_maxUint = numeric_limits<GLuint>::max();
 
     EGLDisplay m_eglDisplay;
     EGLContext m_eglCtx;
@@ -100,7 +102,7 @@ protected:
     GlColor m_bkColor;
     int m_displayWidth, m_displayHeight;
 
-    bool m_extensionLoad;
+    bool m_extensionLoad, m_programLoad;
 
     ngsBindVertexArray bindVertexArrayFn;
     ngsDeleteVertexArrays deleteVertexArraysFn;
@@ -109,7 +111,11 @@ protected:
 // shaders
 protected:
     GLuint m_programId;
-    GLuint m_aPos;
+
+//FBO
+protected:
+    GLuint m_defaultFramebuffer;
+    GLuint m_renderbuffers[2];
 };
 
 }

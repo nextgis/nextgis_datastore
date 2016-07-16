@@ -95,6 +95,6 @@
 
 #define DELTA 0.00000001
 inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) < DELTA; };
-
+#define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
 #endif // CONSTANTS_H
