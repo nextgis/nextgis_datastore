@@ -25,7 +25,7 @@
 
 #include "constants.h"
 
-// TODO: init and uninit in drawing thread.
+/* Links:
 //https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
 //http://stackoverflow.com/questions/214437/opengl-fast-off-screen-rendering
 //http://stackoverflow.com/questions/14785007/can-i-use-opengl-for-off-screen-rendering/14796456#14796456
@@ -48,6 +48,7 @@
 
 //https://www.mapbox.com/blog/drawing-antialiased-lines/
 //https://github.com/afiskon/cpp-opengl-vbo-vao-shaders/blob/master/main.cpp
+*/
 
 using namespace ngs;
 
@@ -93,7 +94,7 @@ bool GlView::init()
         return false;
     }
 
-    eglBindAPI(EGL_OPENGL_ES_API);
+    ngsCheckEGLEerror(eglBindAPI(EGL_OPENGL_ES_API));
 
     EGLint numConfigs = 0;
 #ifdef _DEBUG
@@ -280,9 +281,10 @@ void GlView::setSize(int width, int height)
             }
             m_programLoad = true;
         }
-        glClearColor(m_bkColor.r, m_bkColor.g, m_bkColor.b, m_bkColor.a);
+        ngsCheckGLEerror(glClearColor(m_bkColor.r, m_bkColor.g, m_bkColor.b,
+                                       m_bkColor.a));
     }
-    glViewport ( 0, 0, m_displayWidth, m_displayHeight );
+    ngsCheckGLEerror(glViewport ( 0, 0, m_displayWidth, m_displayHeight ));
 }
 
 bool GlView::isOk()
@@ -296,24 +298,21 @@ void GlView::setBackgroundColor(const ngsRGBA &color)
     m_bkColor.g = float(color.G) / 255;
     m_bkColor.b = float(color.B) / 255;
     m_bkColor.a = float(color.A) / 255;
-    glClearColor(m_bkColor.r, m_bkColor.g, m_bkColor.b, m_bkColor.a);
+    ngsCheckGLEerror(glClearColor(m_bkColor.r, m_bkColor.g, m_bkColor.b,
+                                  m_bkColor.a));
 }
 
 void GlView::fillBuffer(void *buffer)
 {
-    eglSwapBuffers(m_eglDisplay, m_eglSurface);
-    glReadPixels(0, 0, m_displayWidth, m_displayHeight, GL_RGBA,
-                 GL_UNSIGNED_BYTE, buffer);
+    ngsCheckEGLEerror(eglSwapBuffers(m_eglDisplay, m_eglSurface));
+    ngsCheckGLEerror(glReadPixels(0, 0, m_displayWidth, m_displayHeight,
+                                   GL_RGBA, GL_UNSIGNED_BYTE, buffer));
 }
 
 void GlView::clearBackground()
 {    
-    // TODO: need it here?
-    glClear(GL_COLOR_BUFFER_BIT);
+    ngsCheckGLEerror(glClear(GL_COLOR_BUFFER_BIT));
 }
-
-// test data
-
 
 void GlView::draw()
 {
@@ -321,13 +320,13 @@ void GlView::draw()
                             -0.5f, -0.5f, 0.0f,
                              0.5f, -0.5f, 0.0f };
 
-    glUseProgram(m_programId);
+    ngsCheckGLEerror(glUseProgram(m_programId));
 
-    glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, vVertices );
-    glEnableVertexAttribArray ( 0 );
+    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
+                                             vVertices ));
+    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
 
-    glDrawArrays ( GL_TRIANGLES, 0, 3 );
-    checkGLError("glDrawArrays");
+    ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
 }
 
 bool GlView::checkEGLError(const char *cmd) {
@@ -427,9 +426,9 @@ bool GlView::checkGLError(const char *cmd) {
 
 void GlView::reportGlStatus(GLuint obj) {
     GLint length;
-    glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &length);
+    ngsCheckGLEerror(glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &length));
     GLchar *pLog = new GLchar[length];
-    glGetShaderInfoLog(obj, length, &length, pLog);
+    ngsCheckGLEerror(glGetShaderInfoLog(obj, length, &length, pLog));
     CPLError(CE_Failure, CPLE_AppDefined, "%s", pLog);
     delete [] pLog;
 }
@@ -493,10 +492,8 @@ GLuint GlView::prepareProgram() {
     if( !checkProgramLinkStatus(programId) )
         return 0;
 
-    //glDeleteShader(vertexShaderId);
-    //glDeleteShader(fragmentShaderId);
-
-//    m_aPos = static_cast<GLuint>(glGetAttribLocation(m_programId, "a_pos"));
+    glDeleteShader(vertexShaderId);
+    glDeleteShader(fragmentShaderId);
 
     return programId;
 }
@@ -532,32 +529,29 @@ GLuint GlView::loadShader ( GLenum type, const char *shaderSrc )
 
 void GlView::destroyFBO()
 {
-    glDeleteFramebuffers(1, &m_defaultFramebuffer);
-    glDeleteRenderbuffers(ARRAY_SIZE(m_renderbuffers), m_renderbuffers);
+    ngsCheckGLEerror(glDeleteFramebuffers(1, &m_defaultFramebuffer));
+    ngsCheckGLEerror(glDeleteRenderbuffers(ARRAY_SIZE(m_renderbuffers),
+                                           m_renderbuffers));
 }
 
 bool GlView::createFBO(int width, int height)
 {
     //Create the FrameBuffer and binds it
-    glGenFramebuffers(1, &m_defaultFramebuffer);
-    checkGLError("glGenFramebuffers");
-    glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFramebuffer);
-    checkGLError("glBindFramebuffer");
+    ngsCheckGLEerror(glGenFramebuffers(1, &m_defaultFramebuffer));
+    ngsCheckGLEerror(glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFramebuffer));
 
-    glGenRenderbuffers(ARRAY_SIZE(m_renderbuffers), m_renderbuffers);
-    checkGLError("glGenRenderbuffers");
+    ngsCheckGLEerror(glGenRenderbuffers(ARRAY_SIZE(m_renderbuffers),
+                                        m_renderbuffers));
 
     //Create the RenderBuffer for offscreen rendering // Color
-    glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[0]);
-    checkGLError("glBindRenderbuffer color");
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA4, width, height);
-    checkGLError("glRenderbufferStorage color");
+    ngsCheckGLEerror(glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[0]));
+    ngsCheckGLEerror(glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA4, width,
+                                           height));
 
     //Create the RenderBuffer for offscreen rendering // Depth
-    glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[1]);
-    checkGLError("glBindRenderbuffer depth");
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
-    checkGLError("glRenderbufferStorage depth");
+    ngsCheckGLEerror(glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[1]));
+    ngsCheckGLEerror(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16,
+                                           width, height));
 
     //Create the RenderBuffer for offscreen rendering // Stencil
     /*glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[2]);
@@ -566,10 +560,10 @@ bool GlView::createFBO(int width, int height)
     checkGLError("glRenderbufferStorage stencil");*/
 
     // bind renderbuffers to framebuffer object
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffers[1]);
-    checkGLError("glFramebufferRenderbuffer depth");
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_renderbuffers[0]);
-    checkGLError("glFramebufferRenderbuffer color");
+    ngsCheckGLEerror(glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                    GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffers[1]));
+    ngsCheckGLEerror(glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                    GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_renderbuffers[0]));
     /*glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffers[2]);
     checkGLError("glFramebufferRenderbuffer stencil");*/
 

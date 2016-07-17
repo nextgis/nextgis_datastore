@@ -23,8 +23,6 @@
 
 #include "api.h"
 
-#include <GLES2/gl2.h>
-
 #if __APPLE__
     #include "TargetConditionals.h"
     #if TARGET_OS_IPHONE
@@ -67,6 +65,14 @@ typedef struct _glrgb {
 typedef int (*ngsBindVertexArray)(GLuint array);
 typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
 typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);
+
+#if defined(_DEBUG)
+#define ngsCheckGLEerror(cmd) {cmd; checkGLError(#cmd);}
+#define ngsCheckEGLEerror(cmd) {cmd; checkEGLError(#cmd);}
+#else
+#define ngsCheckGLEerror(cmd) (cmd)
+#define ngsCheckEGLEerror(cmd) (cmd)
+#endif
 
 class GlView
 {

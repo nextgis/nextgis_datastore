@@ -133,6 +133,10 @@ NGS_EXTERNC int ngsSetMapBackgroundColor(const char* name, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(const char* name);
+// FIXME: ngsCreateMap(name), ngsLoadMap(name, path), ngsSaveMap(name, path)
+// change map store to json or xml file
+// ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
+// ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
 
 /**
   * useful functions
