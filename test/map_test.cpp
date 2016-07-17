@@ -112,8 +112,6 @@ TEST(MapTests, TestProject) {
     EXPECT_EQ(dwPt.y, 640);
 }
 
-// TODO: Add get and set background color tests
-// TODO: Add draw test
 TEST(MapTests, TestDrawing) {
 
     ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(

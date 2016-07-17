@@ -28,14 +28,17 @@
 #define DEFAULT_MAX_Y 90.0
 #define DEFAULT_MIN_X -DEFAULT_MAX_X
 #define DEFAULT_MIN_Y -DEFAULT_MAX_Y
+#define DEFAULT_RATIO DEFAULT_MAX_X / DEFAULT_MAX_Y
 #define BIG_VALUE 10000000.0
 
 using namespace std;
 using namespace ngs;
 
-MapTransform::MapTransform(int width, int height) : m_sizeChanged(true),
-    m_rotate(0)
+MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
+    m_displayHeight(height), m_sizeChanged(true), m_rotate(0), m_ratio(DEFAULT_RATIO)
 {
+    setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
+                          DEFAULT_MAX_Y));
     setDisplaySize(width, height);
 }
 
@@ -105,6 +108,8 @@ void MapTransform::setDisplaySize(int width, int height)
     m_scaleView = min(scaleX, scaleY);
 
     m_ratio = double(width) / height;
+
+    updateExtent();
 }
 
 bool MapTransform::setScale(double scale)
@@ -217,6 +222,17 @@ OGREnvelope MapTransform::setEnvelopeRatio(const OGREnvelope &env, double ratio)
     return output;
 }
 
+OGREnvelope MapTransform::setEnvelope(double minX, double maxX, double minY,
+                                      double maxY)
+{
+    OGREnvelope env;
+    env.MinX = minX;
+    env.MaxX = maxX;
+    env.MinY = minY;
+    env.MaxY = maxY;
+    return env;
+}
+
 double MapTransform::getEnvelopeWidth(const OGREnvelope &env)
 {
     return env.MaxX - env.MinX;
@@ -231,7 +247,7 @@ bool MapTransform::updateExtent()
 {
     double doubleScale = m_scale * 2;
     double halfWidth = double(m_displayWidht) / doubleScale;
-    double halfHeight = double(m_displayWidht) / doubleScale;
+    double halfHeight = double(m_displayHeight) / doubleScale;
     m_extent.MinX = m_center.x - halfWidth;
     m_extent.MaxX = m_center.x + halfWidth;
     m_extent.MinY = m_center.y - halfHeight;
@@ -251,44 +267,26 @@ bool MapTransform::updateExtent()
 
 void MapTransform::initMatrices()
 {
+    // world -> scene matrix
     m_sceneMatrix.clear ();
-
-    double w = getEnvelopeWidth (m_extent);
-    double h = getEnvelopeHeight (m_extent);
-    if(w > h){
-        double add = (w - h) * .5;
-        m_sceneMatrix.ortho (0, w, add, add + h, -1, 1);
-    }
-    else if(w < h){
-        double add = (h - w) * .5;
-        m_sceneMatrix.ortho (0, w, -add, h + add, -1, 1);
-    }
-    else {
-        m_sceneMatrix.ortho (0, w, 0, h, -1, 1);
-    }
+    m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
+                         m_extent.MinY, m_extent.MaxY, -1, 1);
+    m_sceneMatrix.scale (1, -1, 1);
 
     if(!isEqual(m_rotate, 0.0)){
         // TODO: rotate m_sceneMatrix
     }
 
+    // world -> scene inv matrix
     m_invSceneMatrix = m_sceneMatrix;
     m_invSceneMatrix.invert ();
 
+    // scene -> view inv matrix
     m_invViewMatrix.clear ();
-    w = m_displayWidht;
-    h = m_displayHeight;
-    if(w > h){
-        double add = (w - h) * .5;
-        m_invViewMatrix.ortho (0, w, add, add + h, -1, 1);
-    }
-    else if(w < h){
-        double add = (h - w) * .5;
-        m_invViewMatrix.ortho (0, w, -add, h + add, -1, 1);
-    }
-    else {
-        m_invViewMatrix.ortho (0, w, 0, h, -1, 1);
-    }
+    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, -1, 1);
+    m_invViewMatrix.scale (1, -1, 1);
 
+    // scene -> view matrix
     m_viewMatrix = m_invViewMatrix;
     m_viewMatrix.invert ();
 
@@ -302,6 +300,11 @@ void MapTransform::initMatrices()
 double MapTransform::getScale() const
 {
     return m_scale;
+}
+
+Matrix4 MapTransform::getSceneMatrix() const
+{
+    return m_sceneMatrix;
 }
 
 double MapTransform::getZoom() const {

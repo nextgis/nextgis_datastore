@@ -51,11 +51,14 @@ public:
     bool setExtent(const OGREnvelope& env);
     double getZoom() const;
     double getScale() const;
+    Matrix4 getSceneMatrix() const;
 
 protected:
     static OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
     static OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);
     static OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);
+    static OGREnvelope setEnvelope(double minX, double maxX, double minY,
+                                   double maxY);
     static double getEnvelopeWidth(const OGREnvelope& env);
     static double getEnvelopeHeight(const OGREnvelope& env);
     bool updateExtent();

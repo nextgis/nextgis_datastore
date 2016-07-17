@@ -322,7 +322,7 @@ void Matrix4::multiply(const Matrix4 &other)
         m_values[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
 }
 
-OGRRawPoint Matrix4::project(const OGRRawPoint &pt)
+OGRRawPoint Matrix4::project(const OGRRawPoint &pt) const
 {
     double v0 = m_values[0] * pt.x + m_values[4] * pt.y + m_values[8]  * 0 + m_values[12] * 1;
     double v1 = m_values[1] * pt.x + m_values[5] * pt.y + m_values[9]  * 0 + m_values[13] * 1;
@@ -333,4 +333,13 @@ OGRRawPoint Matrix4::project(const OGRRawPoint &pt)
     outPt.x = v0 / v3;
     outPt.y = v1 / v3;
     return outPt;
+}
+
+array<float, 16> Matrix4::dataF() const
+{
+    array<float, 16> out;
+    for(size_t i = 0; i < 16; ++i){
+        out[i] = static_cast<double>(m_values[i]);
+    }
+    return out;
 }

@@ -73,11 +73,9 @@ void RenderingThread(void * view)
             // TODO: get ready portion of geodata to draw
             // fill buffer with pixels glReadPixels
             // and notify listeners
-
-            // FIXME: test drawing
             glView.draw ();
 
-            // if no more geodata finish
+            // if no more geodata - finish
             glView.fillBuffer (pMapView->getBufferData ());
             pMapView->setDrawStage (MapView::DrawStage::Done);
             // if notify return false - set stage to done
@@ -92,9 +90,7 @@ void RenderingThread(void * view)
                 pMapView->setBackgroundChanged (false);
             }
 
-            // FIXME: do we need free VBO and VAO?
-
-            glView.clearBackground ();
+            glView.prepare (pMapView->getSceneMatrix ());
             pMapView->setDrawStage (MapView::DrawStage::Process);
             break;
 
@@ -182,6 +178,7 @@ int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
         m_drawStage = DrawStage::Start;
     }
 
+    // TODO:
     // 1.   Finish drawing if any and put scene to buffer
     // 1.1. Stop extract data threads
     // 1.2. Put current drawn scene to buffer

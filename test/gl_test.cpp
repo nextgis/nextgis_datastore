@@ -19,39 +19,12 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef MATRIX_H
-#define MATRIX_H
+#include "test.h"
+#include "glview.h"
 
-#include <array>
-#include "ogr_geometry.h"
-
-using namespace std;
-
-namespace ngs {
-
-class Matrix4
-{
-public:
-    Matrix4();
-    Matrix4(const Matrix4& other);
-    Matrix4& operator=(const Matrix4& other);
-    bool invert();
-    void ortho(double left, double right, double bottom, double top, double near,
-               double far);
-    void perspective(double fovy, double aspect, double near, double far);
-    Matrix4 copy() const;
-    void clear();
-    void translate(double x, double y, double z);
-    void rotateX(double rad);
-    void rotateY(double rad);
-    void rotateZ(double rad);
-    void scale(double x, double y, double z);
-    void multiply(const Matrix4& other);
-    OGRRawPoint project(const OGRRawPoint &pt) const;
-    array<float, 16> dataF() const;
-private:
-    array<double, 16> m_values;
-};
-
+TEST(GlTests, TestCreate) {
+    ngs::GlView view;
+    EXPECT_EQ(view.init (), true);
+    view.setSize (640, 480);
+    EXPECT_EQ(view.isOk (), true);
 }
-#endif // MATRIX_H

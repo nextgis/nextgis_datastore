@@ -42,6 +42,25 @@ ngs::Matrix4 createMatix(){
     return mat4;
 }
 
+ngs::Matrix4 createWGSMatix(){
+    ngs::Matrix4 mat4;
+    double w = 360.0;
+    double h = 180.0;
+    if(w > h){
+        double add = (w - h) * .5;
+        mat4.ortho (-180, 180, -90 - add, 90 + add, -1, 1);
+    }
+    else if(w < h){
+        double add = (h - w) * .5;
+        mat4.ortho (-180 - add, -90, 180 + add, 90, -1, 1);
+    }
+    else {
+        mat4.ortho (-180, 180, -90, 90, -1, 1);
+    }
+    return mat4;
+}
+
+
 TEST(MatrixTests, TestProject) {
 
     ngs::Matrix4 mat4;
@@ -78,6 +97,24 @@ TEST(MatrixTests, TestWorldToScene) {
     ppt = mat4.project (pt);
     EXPECT_EQ(ppt.x, 1);
     EXPECT_EQ(ppt.y, 0.8);
+
+    ngs::Matrix4 matWgs = createWGSMatix ();
+    pt.x = 0.0;
+    pt.y = 0.0;
+    ppt = matWgs.project (pt);
+    EXPECT_EQ(ppt.x, 0);
+    EXPECT_EQ(ppt.y, 0);
+    pt.x = 180.0;
+    pt.y = 180.0;
+    ppt = matWgs.project (pt);
+    EXPECT_EQ(ppt.x, 1);
+    EXPECT_EQ(ppt.y, 1);
+    pt.x = -180.0;
+    pt.y = -180.0;
+    ppt = matWgs.project (pt);
+    EXPECT_EQ(ppt.x, -1);
+    EXPECT_EQ(ppt.y, -1);
+
 }
 
 TEST(MatrixTests, TestSceneToWorld) {

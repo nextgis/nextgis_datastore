@@ -48,33 +48,18 @@ if(BUILD_TESTS)
 
     add_custom_target (clean_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/tmp )
 
-    add_executable(main_test main_test.cpp)
-    target_link_extlibraries(main_test)    
+    macro(add_ngs_test name exe_name files)
+        add_executable(${exe_name} ${files})
+        target_link_extlibraries(${exe_name})
+        set_property(TARGET ${exe_name} PROPERTY CXX_STANDARD 11)
+        set_property(TARGET ${exe_name} PROPERTY C_STANDARD 11)
+        add_test(${name} ${CMAKE_CURRENT_BINARY_DIR}/${exe_name})
+    endmacro ()
 
-    add_executable(store_test store_test.cpp)
-    target_link_extlibraries(store_test)
-
-    add_executable(map_test map_test.cpp)
-    target_link_extlibraries(map_test)
-
-    add_executable(matrix_test matrix_test.cpp)
-    target_link_extlibraries(matrix_test)
-
-    set_property(TARGET main_test PROPERTY CXX_STANDARD 11)
-    set_property(TARGET main_test PROPERTY C_STANDARD 11)
-
-    set_property(TARGET store_test PROPERTY CXX_STANDARD 11)
-    set_property(TARGET store_test PROPERTY C_STANDARD 11)
-
-    set_property(TARGET map_test PROPERTY CXX_STANDARD 11)
-    set_property(TARGET map_test PROPERTY C_STANDARD 11)
-
-    set_property(TARGET matrix_test PROPERTY CXX_STANDARD 11)
-    set_property(TARGET matrix_test PROPERTY C_STANDARD 11)
-
-    add_test(MainTests ${CMAKE_CURRENT_BINARY_DIR}/main_test)
-    add_test(MatrixTests ${CMAKE_CURRENT_BINARY_DIR}/matrix_test)
-    add_test(StorageTests ${CMAKE_CURRENT_BINARY_DIR}/store_test)
-    add_test(MapTests ${CMAKE_CURRENT_BINARY_DIR}/map_test)
+    add_ngs_test(MainTests main_test main_test.cpp)
+    add_ngs_test(MatrixTests matrix_test matrix_test.cpp)
+    add_ngs_test(StorageTests store_test store_test.cpp)
+    add_ngs_test(GlTests gl_test gl_test.cpp)
+    add_ngs_test(MapTests map_test map_test.cpp)
 
 endif()

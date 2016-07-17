@@ -18,12 +18,11 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 #include "glview.h"
+#include "constants.h"
 
 #include <iostream>
 #include "cpl_error.h"
 #include "cpl_string.h"
-
-#include "constants.h"
 
 /* Links:
 //https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
@@ -314,13 +313,28 @@ void GlView::clearBackground()
     ngsCheckGLEerror(glClear(GL_COLOR_BUFFER_BIT));
 }
 
+void GlView::prepare(const Matrix4 &mat)
+{
+    clearBackground();
+    ngsCheckGLEerror(glUseProgram(m_programId));
+
+#ifdef _DEBUG
+    GLint numActiveUniforms = 0;
+    glGetProgramiv(m_programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
+    cout << "Number active uniforms: " << numActiveUniforms << endl;
+#endif //_DEBUG
+    GLint location = glGetUniformLocation(m_programId, "mvMatrix");
+
+    array<GLfloat, 16> mat4f = mat.dataF ();
+    ngsCheckGLEerror(glUniformMatrix4fv(location, 1, GL_FALSE, mat4f.data()));
+}
+
 void GlView::draw()
 {
-    GLfloat vVertices[] = {  0.0f,  0.5f, 0.0f,
-                            -0.5f, -0.5f, 0.0f,
-                             0.5f, -0.5f, 0.0f };
-
-    ngsCheckGLEerror(glUseProgram(m_programId));
+    GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
+                           -73.99416666f, 40.72833333f, 0.0f, // New York
+                            37.61777777f, 55.75583333f, 0.0f  // Moscow
+                          };
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                              vVertices ));
@@ -458,9 +472,10 @@ GLuint GlView::prepareProgram() {
     // WARNING: this is only for testing!
     const GLchar * const vertexShaderSourcePtr =
             "attribute vec4 vPosition;    \n"
+            "uniform mat4 mvMatrix;       \n"
             "void main()                  \n"
             "{                            \n"
-            "   gl_Position = vPosition;  \n"
+            "   gl_Position = mvMatrix * vPosition;  \n"
             "}                            \n";
 
     GLuint vertexShaderId = loadShader(GL_VERTEX_SHADER, vertexShaderSourcePtr);

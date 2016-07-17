@@ -22,6 +22,7 @@
 #define GLVIEW_H
 
 #include "api.h"
+#include "matrix.h"
 
 #if __APPLE__
     #include "TargetConditionals.h"
@@ -85,6 +86,7 @@ public:
     void setBackgroundColor(const ngsRGBA &color);
     void fillBuffer(void* buffer);
     void clearBackground();
+    void prepare(const Matrix4& mat);
     void draw();
 
 protected:
