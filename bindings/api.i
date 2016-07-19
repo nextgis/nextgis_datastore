@@ -38,26 +38,39 @@
 %inline %{
 extern int ngsGetVersion(const char* request);
 extern const char* ngsGetVersionString(const char* request);
-extern int ngsInit(const char* path, const char* dataPath, const char* cachePath);
+extern int ngsInit(const char* dataPath, const char* cachePath);
 extern void ngsUninit();
-extern int ngsDestroy(const char* path, const char* cachePath);
-extern int ngsInitMap(const char* name, void * nioBuffer, int width, int height);
+extern void ngsOnLowMemory();
+extern void ngsOnPause();
 extern void ngsSetNotifyFunction(ngsNotifyFunc callback);
-extern int ngsDrawMap(const char* name, ngsProgressFunc callback, void* callbackData);
+extern int ngsInitDataStore(const char* path);
+extern int ngsDestroyDataStore(const char* path, const char* cachePath);
+extern int ngsCreateMap(const char* name, const char* description,
+                             unsigned short epsg, double minX, double minY,
+                             double maxX, double maxY);
+extern int ngsOpenMap(const char* path);
+extern int ngsSaveMap(unsigned int mapId, const char* path);
+extern int ngsInitMap(unsigned int mapId, void * nioBuffer, int width,
+                      int height);
+extern int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
+                      void* callbackData);
 extern int ngsSetMapBackgroundColor(const char* name, unsigned char R,
                                     unsigned char B, unsigned char G,
                                     unsigned char A);
 extern ngsRGBA ngsGetMapBackgroundColor(const char* name);
 %}
 
-%clear const char *request, const char *name, const char* path, const char* cachePath, const char* dataPath;
+%clear const char *request, const char *name, const char* path,
+const char* cachePath, const char* dataPath, const char* description;
 
 #ifdef SWIGJAVA
 
+// exampe of adding import declaration
 //%pragma(java) jniclassimports=%{
 //import com.nextgis.store.NotificationCallback;
 //%}
 
+// exampe of adding import declaration
 //%pragma(java) moduleimports=%{
 //import com.nextgis.store.NotificationCallback;
 //%}
@@ -74,6 +87,7 @@ extern ngsRGBA ngsGetMapBackgroundColor(const char* name);
   }
 %}
 
+// exampe of adding fuction to Api class
 %pragma(java) modulecode=%{
   public static int ngsInitMap2(String name, java.nio.ByteBuffer nioBuffer, int width, int height) {
     if(null == nioBuffer)
