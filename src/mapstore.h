@@ -27,47 +27,50 @@
 
 namespace ngs {
 
-
 /**
  * @brief The MapStore class store maps with layers connected to datastore tables
- *        and styles
+ *        and styles (in memory storage)
  */
 class MapStore
 {
     friend class Map;
 public:
-    MapStore(const DataStorePtr &dataStore);
-    ~MapStore();
+    MapStore();
+    virtual ~MapStore();
+
     /**
-     * @brief create default map
-     * @return ngsErrorCodes value - SUCCES if everything is OK
+     * @brief createMap Create new map
+     * @param name Map name
+     * @param description Map description
+     * @param epsg EPSG code
+     * @param minX minimum x
+     * @param minY minimum y
+     * @param maxX maximum x
+     * @param maxY maximum y
+     * @return -1 if some error occures or map Id
      */
-    int create();
+    virtual int createMap(const CPLString& name, const CPLString& description,
+                          unsigned short epsg, double minX, double minY,
+                          double maxX, double maxY);
     /**
-     * @brief inform about map count in storage
+     * @brief map count in storage
      * @return map count
      */
-    GIntBig mapCount() const;
-    MapWPtr getMap(const char* name);
-    MapWPtr getMap(int index);
-    int initMap(const char *name, void *buffer, int width, int height);
-    int drawMap(const char *name, ngsProgressFunc progressFunc,
+    virtual unsigned int mapCount() const;
+    virtual int openMap(const char* path);
+    virtual int saveMap(unsigned int mapId, const char* path);
+    virtual MapWPtr getMap(unsigned int mapId);
+    int initMap(unsigned int mapId, void *buffer, int width, int height);
+    int drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
                 void* progressArguments = nullptr);
     void onLowMemory();
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
-    ngsRGBA getMapBackgroundColor(const char *name);
-    int setMapBackgroundColor(const char *name, const ngsRGBA& color);
+    ngsRGBA getMapBackgroundColor(unsigned int mapId);
+    int setMapBackgroundColor(unsigned int mapId, const ngsRGBA& color);
 
 protected:
-    int storeMap(Map* map);
-    bool isNameValid(const string& name) const;
-    int destroyMap(GIntBig mapId);
-    const Table* getLayersTable() const;
-
-protected:
-    DataStorePtr m_datastore;
-    map<string, MapPtr> m_maps;
+    vector<MapPtr> m_maps;
     ngsNotifyFunc m_notifyFunc;
 };
 

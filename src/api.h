@@ -31,21 +31,15 @@ enum ngsErrorCodes {
     SUCCESS = 0,        /**< success */
     UNEXPECTED_ERROR,   /**< unexpected error */
     PATH_NOT_SPECIFIED, /**< path is not specified */
-    INVALID_PATH,       /**< path is invalid */
+    INVALID,            /**< path, map, structure, etc. is invalid */
     UNSUPPORTED,        /**< the feature is unsupported */
-    CREATE_DB_FAILED,   /**< Create database failed */
-    CREATE_DIR_FAILED,  /**< Create directory failed */
-    CREATE_TABLE_FAILED,/**< Create table failed */
-    CREATE_MAP_FAILED,  /**< Create map failed */
     CREATE_FAILED,      /**< Create failed */
     DELETE_FAILED,      /**< Faild to delete file, folder or something else */
     SAVE_FAILED,        /**< Faild to save file, folder or something else */
-    INVALID_STUCTURE,   /**< Invalid storage, file etc. structure */
+    OPEN_FAILED,        /**< Faild to open file, folder or something else */
     INSERT_FAILED,      /**< insert new feature failed */
     UPDATE_FAILED,      /**< update feature failed */
-    INIT_FAILED,        /**< Initialise failed */
-    INVALID_MAP         /**< Invalid map */
-
+    INIT_FAILED         /**< Initialise failed */
 };
 
 /**
@@ -108,15 +102,16 @@ typedef struct _ngsRGBA {
  */
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
-NGS_EXTERNC int ngsInit(const char* path, const char* dataPath, const char* cachePath);
+NGS_EXTERNC int ngsInit(const char* dataPath, const char* cachePath);
 NGS_EXTERNC void ngsUninit();
-NGS_EXTERNC int ngsDestroy(const char* path, const char* cachePath);
 NGS_EXTERNC void ngsOnLowMemory();
 NGS_EXTERNC void ngsOnPause();
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 /**
  * Storage functions
  */
+NGS_EXTERNC int ngsInitDataStore(const char* path);
+NGS_EXTERNC int ngsDestroyDataStore(const char* path, const char* cachePath);
 NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          const char* alias, const char* copyright,
                                          int epsg, int z_min, int z_max,
@@ -125,18 +120,22 @@ NGS_EXTERNC int ngsLoadRaster(const char* path, const char* name,
                               const char* alias, bool move);
 /**
  * Map functions
+ *
+ *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
+ *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
-NGS_EXTERNC int ngsInitMap(const char* name, void* buffer, int width, int height);
-NGS_EXTERNC int ngsDrawMap(const char* name, ngsProgressFunc callback, 
+NGS_EXTERNC int ngsCreateMap(const char* name, const char* description,
+                             unsigned short epsg, double minX, double minY,
+                             double maxX, double maxY);
+NGS_EXTERNC int ngsOpenMap(const char* path);
+NGS_EXTERNC int ngsSaveMap(unsigned int mapId, const char* path);
+NGS_EXTERNC int ngsInitMap(unsigned int mapId, void* buffer, int width, int height);
+NGS_EXTERNC int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
                            void* callbackData);
-NGS_EXTERNC int ngsSetMapBackgroundColor(const char* name, unsigned char R,
+NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);
-NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(const char* name);
-// FIXME: ngsCreateMap(name), ngsLoadMap(name, path), ngsSaveMap(name, path)
-// change map store to json or xml file
-// ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
-// ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
+NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
 
 /**
   * useful functions
@@ -154,5 +153,7 @@ inline ngsRGBA ngsHEX2RGBA(int color){
     out.A = (color) & 0xff;
     return out;
 }
+
+
 
 #endif // API_H

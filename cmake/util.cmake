@@ -26,15 +26,15 @@ function(check_version major minor rev)
 
     file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/version.h VERSION_H_CONTENTS)
 
-    string(REGEX MATCH "NGM_VERSION_MAJOR[ \t]+([0-9]+)"
+    string(REGEX MATCH "NGS_VERSION_MAJOR[ \t]+([0-9]+)"
       MAJOR_VERSION ${VERSION_H_CONTENTS})
     string (REGEX MATCH "([0-9]+)"
       MAJOR_VERSION ${MAJOR_VERSION})
-    string(REGEX MATCH "NGM_VERSION_MINOR[ \t]+([0-9]+)"
+    string(REGEX MATCH "NGS_VERSION_MINOR[ \t]+([0-9]+)"
       MINOR_VERSION ${VERSION_H_CONTENTS})
     string (REGEX MATCH "([0-9]+)"
       MINOR_VERSION ${MINOR_VERSION})
-    string(REGEX MATCH "NGM_VERSION_REV[ \t]+([0-9]+)"
+    string(REGEX MATCH "NGS_VERSION_REV[ \t]+([0-9]+)"
       REV_VERSION ${VERSION_H_CONTENTS})
     string (REGEX MATCH "([0-9]+)"
       REV_VERSION ${REV_VERSION})

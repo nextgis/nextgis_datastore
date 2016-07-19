@@ -20,6 +20,7 @@
  ****************************************************************************/
 
 #include "test.h"
+#include "constants.h"
 #include "version.h"
 
 static int counter = 0;
@@ -29,9 +30,15 @@ void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long 
     counter++;
 }
 
+int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
+                        void* /*progressArguments*/) {
+    counter++;
+    return 1;
+}
+
 TEST(BasicTests, TestVersions) {
-    EXPECT_EQ(NGM_VERSION_NUM, ngsGetVersion(nullptr));
-    EXPECT_STREQ(NGM_VERSION, ngsGetVersionString(nullptr));
+    EXPECT_EQ(NGS_VERSION_NUM, ngsGetVersion(nullptr));
+    EXPECT_STREQ(NGS_VERSION, ngsGetVersionString(nullptr));
 
     /*EXPECT_EQ(2010000, ngsGetVersion("gdal"));
     EXPECT_STREQ("2.1.0", ngsGetVersionString("gdal"));
@@ -89,14 +96,16 @@ TEST(BasicTests, TestInlines) {
 }
 
 TEST(BasicTests, TestCreate) {
-    EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInitDataStore("./tmp"), ngsErrorCodes::SUCCESS);
     ngsUninit();
 }
 
 
 TEST(BasicTests, TestOpen) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr, nullptr), ngsErrorCodes::PATH_NOT_SPECIFIED);
-    EXPECT_EQ(ngsInit("./tmp", nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInitDataStore(""), ngsErrorCodes::PATH_NOT_SPECIFIED);
+    EXPECT_EQ(ngsInitDataStore("./tmp"), ngsErrorCodes::SUCCESS);
     ngsSetNotifyFunction (ngsTestNotifyFunc);
 }
 
@@ -107,8 +116,13 @@ TEST(BasicTests, TestCreateTMS) {
 }
 
 TEST(BasicTests, TestInitMap) {
-    EXPECT_NE(ngsInitMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsInitMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    int mapId = ngsCreateMap(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
+                             DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
+                             DEFAULT_MAX_Y);
+    EXPECT_GE(mapId, 0);
+    EXPECT_NE(ngsInitMap (1, nullptr, 640, 480), ngsErrorCodes::INVALID);
+    EXPECT_EQ(ngsInitMap (mapId, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsDrawMap(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
 }
 
 TEST(BasicTests, TestNotify) {
@@ -116,5 +130,6 @@ TEST(BasicTests, TestNotify) {
 }
 
 TEST(BasicTests, TestDelete) {
-    EXPECT_EQ(ngsDestroy ("./tmp", nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsDestroyDataStore ("./tmp", nullptr), ngsErrorCodes::SUCCESS);
+    ngsUninit();
 }

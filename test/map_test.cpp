@@ -29,11 +29,6 @@
 
 static int counter = 0;
 
-void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
-                       enum ngsChangeCodes /*operation*/) {
-    counter++;
-}
-
 int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
                         void* /*progressArguments*/) {
     counter++;
@@ -41,14 +36,13 @@ int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
 }
 
 TEST(MapTests, TestCreate) {
-    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
-                "./tmp", nullptr, nullptr);
-    EXPECT_EQ(storage->create (), ngsErrorCodes::SUCCESS);
-    ngs::MapStore mapStore(storage);
-    EXPECT_EQ(mapStore.create(), ngsErrorCodes::SUCCESS);
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.createMap(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
+                                 DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
+                                 DEFAULT_MAX_Y), 0);
     EXPECT_EQ(mapStore.mapCount(), 1);
 
-    ngs::MapWPtr map = mapStore.getMap ("default");
+    ngs::MapWPtr map = mapStore.getMap (0);
     EXPECT_EQ(map.expired (), false);
     ngs::MapPtr defMap = map.lock ();
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
@@ -56,34 +50,31 @@ TEST(MapTests, TestCreate) {
     EXPECT_EQ(color.R, 210);
     EXPECT_EQ(color.G, 245);
     EXPECT_EQ(color.B, 255);
+
+    // ngmd - NextGIS map document
+    EXPECT_EQ (mapView->save ("default.ngmd"), ngsErrorCodes::SUCCESS);
 }
 
 TEST(MapTests, TestOpenMap) {
-    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
-                "./tmp", nullptr, nullptr);
-    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
-    ngs::MapStore mapStore(storage);
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     EXPECT_EQ(mapStore.mapCount(), 1);
 }
 
 TEST(MapTests, TestInitMap) {
-    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
-                "./tmp", nullptr, nullptr);
-    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
-    ngs::MapStore mapStore(storage);
-    EXPECT_NE(mapStore.initMap ("test", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(mapStore.initMap ("default", nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    EXPECT_EQ(mapStore.mapCount(), 1);
+    EXPECT_NE(mapStore.initMap (1, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
 
 }
 
 TEST(MapTests, TestProject) {
-
-    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
-                "./tmp", nullptr, nullptr);
-    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
-    ngs::MapStore mapStore(storage);
-    EXPECT_EQ(mapStore.initMap ("default", nullptr, 480, 640), ngsErrorCodes::SUCCESS);
-    ngs::MapWPtr map = mapStore.getMap ("default");
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640), ngsErrorCodes::SUCCESS);
+    ngs::MapWPtr map = mapStore.getMap (0);
     EXPECT_EQ(map.expired (), false);
     ngs::MapPtr defMap = map.lock ();
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
@@ -113,14 +104,11 @@ TEST(MapTests, TestProject) {
 }
 
 TEST(MapTests, TestDrawing) {
-
-    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
-                "./tmp", nullptr, nullptr);
-    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
-    ngs::MapStore mapStore(storage);
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     unsigned char buffer[480 * 640 * 4];
-    EXPECT_EQ(mapStore.initMap ("default", buffer, 480, 640), ngsErrorCodes::SUCCESS);
-    ngs::MapWPtr map = mapStore.getMap ("default");
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640), ngsErrorCodes::SUCCESS);
+    ngs::MapWPtr map = mapStore.getMap (0);
     EXPECT_EQ(map.expired (), false);
     ngs::MapPtr defMap = map.lock ();
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
@@ -139,23 +127,10 @@ TEST(MapTests, TestDrawing) {
 }
 
 TEST(MapTests, TestDeleteMap) {
-    ngs::DataStorePtr storage = std::make_shared<ngs::DataStore>(
-                "./tmp", nullptr, nullptr);
-    EXPECT_EQ(storage->open (), ngsErrorCodes::SUCCESS);
-    ngs::MapStore mapStore(storage);
-    counter = 0;
-    mapStore.setNotifyFunc (ngsTestNotifyFunc);
-
-    ngs::MapPtr map = mapStore.getMap ("default").lock ();
-    EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(mapStore.mapCount(), 0);
-
-    ngs::DatasetPtr dataset = storage->getDataset (LAYERS_TABLE_NAME).lock ();
-    ASSERT_NE(dataset, nullptr);
-    ngs::Table* pTable = static_cast<ngs::Table*>(dataset.get ());
-    EXPECT_EQ(pTable->featureCount (), 0);
-    EXPECT_GE(counter, 1);
-
-    EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    ngs::MapPtr map = mapStore.getMap (0).lock ();
+    EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);    
+    EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);
 }
 

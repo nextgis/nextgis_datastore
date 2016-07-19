@@ -24,18 +24,12 @@
 #include <algorithm>
 #include <iostream>
 
-#define DEFAULT_MAX_X 180.0
-#define DEFAULT_MAX_Y 90.0
-#define DEFAULT_MIN_X -DEFAULT_MAX_X
-#define DEFAULT_MIN_Y -DEFAULT_MAX_Y
-#define DEFAULT_RATIO DEFAULT_MAX_X / DEFAULT_MAX_Y
-#define BIG_VALUE 10000000.0
-
 using namespace std;
 using namespace ngs;
 
 MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
-    m_displayHeight(height), m_sizeChanged(true), m_rotate(0), m_ratio(DEFAULT_RATIO)
+    m_displayHeight(height), m_sizeChanged(true), m_rotate(0),
+    m_ratio(DEFAULT_RATIO)
 {
     setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
                           DEFAULT_MAX_Y));

@@ -71,6 +71,4 @@ typedef weak_ptr<Dataset> DatasetWPtr;
 
 }
 
-
-
 #endif // DATASET_H

@@ -23,6 +23,8 @@
 #include "api.h"
 #include "table.h"
 
+#include "json.h"
+
 using namespace ngs;
 
 //------------------------------------------------------------------------------
@@ -34,7 +36,7 @@ Layer::Layer()
 
 }
 
-GIntBig Layer::id() const
+short Layer::id() const
 {
     return NOT_FOUND;
 }
@@ -44,30 +46,19 @@ GIntBig Layer::id() const
 // Map
 //------------------------------------------------------------------------------
 
-Map::Map(FeaturePtr feature, MapStore * mapstore) : m_mapstore(mapstore),
-    m_deleted(false), m_bkChanged(true)
+Map::Map() : m_name(DEFAULT_MAP_NAME),
+    m_epsg(DEFAULT_EPSG), m_minX(DEFAULT_MIN_X), m_minY(DEFAULT_MIN_Y),
+    m_maxX(DEFAULT_MAX_X), m_maxY(DEFAULT_MAX_Y), m_deleted(false),
+    m_bkChanged(true)
 {
-    m_name = feature->GetFieldAsString (MAP_NAME);
-    m_epsg = static_cast<short>(feature->GetFieldAsInteger (MAP_EPSG));
-    m_description = feature->GetFieldAsString (MAP_DESCRIPTION);
-    m_minX = feature->GetFieldAsDouble (MAP_MIN_X);
-    m_minY = feature->GetFieldAsDouble (MAP_MIN_Y);
-    m_maxX = feature->GetFieldAsDouble (MAP_MAX_X);
-    m_maxY = feature->GetFieldAsDouble (MAP_MAX_Y);
-    m_id = feature->GetFID ();
-    m_bkColor = ngsHEX2RGBA (feature->GetFieldAsInteger (MAP_BKCOLOR));
-
-    int count = 0;
-    const GIntBig* pLayersOrder = feature->GetFieldAsInteger64List (MAP_LAYERS,
-                                                                    &count);
-    loadLayers(pLayersOrder, count);
+    m_bkColor = {210, 245, 255, 255};
 }
 
-Map::Map(const string& name, const string& description, short epsg, double minX,
-    double minY, double maxX, double maxY, MapStore *mapstore) :
-    m_mapstore(mapstore), m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_id(NOT_FOUND),
-    m_deleted(false), m_bkChanged(true)
+Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
+         double minX, double minY, double maxX, double maxY) :
+    m_name(name), m_description(description), m_epsg(epsg),
+    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_deleted(false),
+    m_bkChanged(true)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -77,32 +68,32 @@ Map::~Map()
 
 }
 
-string Map::name() const
+CPLString Map::name() const
 {
     return m_name;
 }
 
-void Map::setName(const string &name)
+void Map::setName(const CPLString &name)
 {
     m_name = name;
 }
 
-string Map::description() const
+CPLString Map::description() const
 {
     return m_description;
 }
 
-void Map::setDescription(const string &description)
+void Map::setDescription(const CPLString &description)
 {
     m_description = description;
 }
 
-short Map::epsg() const
+unsigned short Map::epsg() const
 {
     return m_epsg;
 }
 
-void Map::setEpsg(short epsg)
+void Map::setEpsg(unsigned short epsg)
 {
     m_epsg = epsg;
 }
@@ -147,43 +138,39 @@ void Map::setMaxY(double maxY)
     m_maxY = maxY;
 }
 
-long Map::id() const
+int Map::load(const char *path)
 {
-    return m_id;
-}
+    m_path = path;
 
-
-vector<GIntBig> Map::getLayerOrder() const
-{
-    vector<GIntBig> out;
-    for(LayerPtr layer : m_layers)
-        out.push_back (layer->id());
-    return out;
-}
-
-int Map::loadLayers(const GIntBig* pValues, int count)
-{
-    const Table* layers = m_mapstore->getLayersTable();
-    for(int i = 0; i < count; ++i) {
-        GIntBig id = pValues[i];
-        FeaturePtr feature = layers->getFeature (id);
-        switch(feature->GetFieldAsInteger (LAYER_TYPE)){
-
-        }
-    }
+    // TODO: load from ngs.ngp file
     return ngsErrorCodes::SUCCESS;
 }
 
-int Map::save()
+int Map::save(const char *path)
 {
     if(m_deleted)
         return ngsErrorCodes::SAVE_FAILED;
-    return m_mapstore->storeMap (this);
+
+    // TODO: save to ngs.ngp file
+    //json_object_to_json_string_ext(poJsonObject, JSON_C_TO_STRING_PRETTY));
+    //json_object_put(poJsonObject);
+
+    return ngsErrorCodes::SUCCESS;
 }
 
 int Map::destroy()
 {
-    int nRet = m_mapstore->destroyMap(m_id);
+    if(m_deleted) {
+        return ngsErrorCodes::DELETE_FAILED;
+    }
+
+    if(m_path.empty ()) {
+        m_deleted = true;
+        return ngsErrorCodes::SUCCESS;
+    }
+
+    int nRet = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
+                                             ngsErrorCodes::DELETE_FAILED;
     if(nRet == ngsErrorCodes::SUCCESS)
         m_deleted = true;
     return nRet;
@@ -192,11 +179,6 @@ int Map::destroy()
 bool Map::isDeleted() const
 {
     return m_deleted;
-}
-
-void Map::setId(long id)
-{
-    m_id = id;
 }
 
 ngsRGBA Map::getBackgroundColor() const

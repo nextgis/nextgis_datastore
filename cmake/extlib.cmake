@@ -238,8 +238,6 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         #include "json-c/json_c_version.h"
         find_path(JSON_C_PATH json_c_version.h PATHS /usr/include /usr/include/json-c /usr/local/include /usr/local/include/json-c)
         if(JSON_C_PATH)
-            # cut json-c
-            string(REPLACE "json-c" "" JSON_C_PATH ${JSON_C_PATH} )
             include_directories (${JSON_C_PATH})
             add_definitions (-DHAVE_JSON_C_VERSION_H)
         endif()

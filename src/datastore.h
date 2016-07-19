@@ -36,8 +36,6 @@ using namespace std;
 
 typedef shared_ptr< OGRLayer > ResultSetPtr;
 
-class MapStore;
-
 /**
  * @brief The main geodata storage and manipulation class
  */
@@ -45,7 +43,6 @@ class DataStore
 {
     friend class Dataset;
     friend class Table;
-    friend class MapStore;
 
 public:
     enum ChangeType {
@@ -59,52 +56,80 @@ public:
         DELETEALL_ATTACHMENTS = ngsChangeCodes::DELETEALL_ATTACHMENTS
     };
 
+    enum StoreType {
+        GPKG
+    };
+
 public:
-    DataStore(const char* path, const char* dataPath, const char* cachePath);
-    ~DataStore();
-    int create();
-    int open();
-    int destroy();
-    int openOrCreate();
-    int createRemoteTMSRaster(const char* url, const char* name,
-                              const char* alias, const char* copyright,
-                              int epsg, int z_min, int z_max,
-                              bool y_origin_top);
-    int datasetCount() const;
-    DatasetWPtr getDataset(const char* name);
-    DatasetWPtr getDataset(int index);
+    DataStore(const char* path);
+    virtual ~DataStore();
+    virtual int create(enum StoreType type);
+    virtual int open();
+    virtual int destroy();
+    virtual int openOrCreate(enum StoreType type);
+    virtual int datasetCount() const;
+    virtual DatasetWPtr getDataset(const char* name);
+    virtual DatasetWPtr getDataset(int index);
 public:
-    string formats();
-    void onLowMemory();
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
+    virtual void onLowMemory() = 0;
 
 protected:
-    void initGDAL();
-    void registerDrivers();
-    int createMetadataTable();
-    int createRastersTable();
-    int createAttachmentsTable();
-    int createMapsTable();
-    int createLayersTable();
-    int upgrade(int oldVersion);
-    int destroyDataset(enum Dataset::Type type, const string& name);
-    void notifyDatasetChanged(enum ChangeType changeType, const string& name,
-                             long id);
-    bool isNameValid(const string& name) const;
+    virtual int destroyDataset(enum Dataset::Type type, const CPLString& name);
+    virtual void notifyDatasetChanged(enum ChangeType changeType,
+                                      const CPLString& name, long id);
+    virtual bool isNameValid(const CPLString &name) const;
 
-    ResultSetPtr executeSQL(const string& statement) const;
+    virtual ResultSetPtr executeSQL(const char* statement) const;
+    static GDALDriver *getDriverForType(enum StoreType type);
 protected:
-    string m_path;
-    string m_cachePath;
-    string m_dataPath;
+    CPLString m_path;
     GDALDataset *m_DS;
-    bool m_driversLoaded;
     map<string, DatasetPtr> m_datasources;    
     ngsNotifyFunc m_notifyFunc;
 };
 
 typedef shared_ptr<DataStore> DataStorePtr;
+
+/**
+ * @brief The geodata storage and manipulation class for raster, vector geodata
+ * and attachments
+ */
+class MobileDataStore : public DataStore
+{
+    friend class Dataset;
+    friend class Table;
+
+public:
+    MobileDataStore(const char* path);
+    virtual ~MobileDataStore();
+    virtual int create(enum StoreType type) override;
+    virtual int open() override;
+    virtual int destroy() override;
+    int createRemoteTMSRaster(const char* url, const char* name,
+                              const char* alias, const char* copyright,
+                              int epsg, int z_min, int z_max,
+                              bool y_origin_top);
+    virtual int datasetCount() const override;
+    virtual DatasetWPtr getDataset(const char* name) override;
+    virtual DatasetWPtr getDataset(int index) override;
+    virtual ResultSetPtr executeSQL(const char *statement) const override;
+    virtual void onLowMemory() override;
+
+protected:
+    int createMetadataTable();
+    int createRastersTable();
+    int createAttachmentsTable();
+    int upgrade(int oldVersion);
+
+protected:
+    virtual int destroyDataset(enum Dataset::Type type, const CPLString &name) override;
+    virtual bool isNameValid(const CPLString &name) const override;
+
+protected:
+    CPLString m_dataPath;
+};
 
 }
 

@@ -26,8 +26,11 @@
 
 using namespace ngs;
 
-MapStore::MapStore(const DataStorePtr &dataStore) : m_datastore(dataStore),
-    m_notifyFunc(nullptr)
+//------------------------------------------------------------------------------
+// MapStore
+//------------------------------------------------------------------------------
+
+MapStore::MapStore() : m_notifyFunc(nullptr)
 {
 
 }
@@ -37,199 +40,45 @@ MapStore::~MapStore()
 
 }
 
-int MapStore::create()
+int MapStore::createMap(const CPLString &name, const CPLString &description,
+                        unsigned short epsg, double minX, double minY,
+                        double maxX, double maxY)
 {
-    Map newMap(MAP_DEFAULT_NAME, "The default map", 3857, -20037508.34,
-               -20037508.34, 20037508.34, 20037508.34, this);
+    MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY));
+    m_maps.push_back (newMap);
 
-    return newMap.save();
+    return static_cast<int>(m_maps.size () - 1);
 }
 
-GIntBig MapStore::mapCount() const
-{
-    DatasetPtr dataset = m_datastore->getDataset (MAPS_TABLE_NAME).lock ();
-    if(nullptr == dataset)
-        return 0;
-    Table* pTable = static_cast<Table*>(dataset.get ());
-    if(nullptr == pTable)
-        return 0;
-    return pTable->featureCount ();
+unsigned int MapStore::mapCount() const
+{    
+    return static_cast<unsigned int>(m_maps.size ());
 }
 
-MapWPtr MapStore::getMap(const char *name)
+int MapStore::openMap(const char *path)
+{
+    MapPtr newMap(new MapView());
+    int nRes = newMap->load (path);
+    if(nRes != ngsErrorCodes::SUCCESS)
+        return NOT_FOUND;
+
+    m_maps.push_back (newMap);
+    return static_cast<int>(m_maps.size () - 1);
+}
+
+int MapStore::saveMap(unsigned int mapId, const char *path)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::SAVE_FAILED;
+    return m_maps[mapId]->save (path);
+}
+
+MapWPtr MapStore::getMap(unsigned int mapId)
 {
     MapPtr map;
-    auto it = m_maps.find (name);
-    if( it != m_maps.end ()){
-        if(!it->second->isDeleted ()){
-            return it->second;
-        }
-        else{
-            return map;
-        }
-    }
-    DatasetPtr dataset = m_datastore->getDataset (MAPS_TABLE_NAME).lock ();
-    if(nullptr == dataset)
-        return MapWPtr();
-    Table* pTable = static_cast<Table*>(dataset.get ());
-    if(nullptr == pTable)
-        return MapWPtr();
-    FeaturePtr feature;
-    pTable->reset();
-    while( (feature = pTable->nextFeature()) != nullptr ) {
-        if(EQUAL(feature->GetFieldAsString (MAP_NAME), name)){
-            map.reset (static_cast<Map*>(new MapView(feature, this)));
-            m_maps[map->name ()] = map;
-            return map;
-        }
-    }
-    return map;
-}
-
-MapWPtr MapStore::getMap(int index)
-{
-    DatasetPtr dataset = m_datastore->getDataset (MAPS_TABLE_NAME).lock ();
-    if(nullptr == dataset)
-        return MapWPtr();
-    Table* pTable = static_cast<Table*>(dataset.get ());
-    if(nullptr == pTable)
-        return MapWPtr();
-
-    FeaturePtr feature = pTable->getFeature (index);
-    return getMap (feature->GetFieldAsString (MAP_NAME));
-}
-
-int MapStore::storeMap(Map *map)
-{
-    DatasetPtr dataset = m_datastore->getDataset (MAPS_TABLE_NAME).lock ();
-    if(nullptr == dataset)
-        return ngsErrorCodes::SAVE_FAILED;
-    Table* pTable = static_cast<Table*>(dataset.get ());
-    if(nullptr == pTable)
-        return ngsErrorCodes::SAVE_FAILED;
-
-    long id = map->id ();
-    if(id == NOT_FOUND){
-        FeaturePtr feature = pTable->createFeature ();
-        feature->SetField (MAP_NAME, map->name ().c_str ());
-        feature->SetField (MAP_EPSG, map->epsg ());
-        feature->SetField (MAP_DESCRIPTION, map->description ().c_str ());
-        vector<GIntBig> order = map->getLayerOrder ();
-        GIntBig *pOrderArray = new GIntBig[order.size ()];
-        int count = 0;
-        for(GIntBig val : order)
-            pOrderArray[count++] = val;
-        feature->SetField (MAP_LAYERS, count, pOrderArray);
-        delete [] pOrderArray;
-        feature->SetField (MAP_MIN_X, map->minX ());
-        feature->SetField (MAP_MIN_Y, map->minY ());
-        feature->SetField (MAP_MAX_X, map->maxX ());
-        feature->SetField (MAP_MAX_Y, map->maxY ());
-        feature->SetField (MAP_BKCOLOR, ngsRGBA2HEX(map->getBackgroundColor ()));
-
-        int nRes = pTable->insertFeature (feature);
-        map->setId(feature->GetFID ());
-
-        if(nRes == ngsErrorCodes::SUCCESS) {
-            // notify map changed
-            if(nullptr != m_notifyFunc)
-                m_notifyFunc(ngsSourceCodes::MAP_STORE,
-                             map->name ().c_str (),
-                             NOT_FOUND, ngsChangeCodes::CREATE_RESOURCE);
-        }
-        return nRes;
-
-    } else{
-        FeaturePtr feature = pTable->getFeature (id);
-        feature->SetField (MAP_NAME, map->name ().c_str ());
-        feature->SetField (MAP_EPSG, map->epsg ());
-        feature->SetField (MAP_DESCRIPTION, map->description ().c_str ());
-        vector<GIntBig> order = map->getLayerOrder ();
-        GIntBig *pOrderArray = new GIntBig[order.size ()];
-        int count = 0;
-        for(GIntBig val : order)
-            pOrderArray[count++] = val;
-        feature->SetField (MAP_LAYERS, count, pOrderArray);
-        delete [] pOrderArray;
-        feature->SetField (MAP_MIN_X, map->minX ());
-        feature->SetField (MAP_MIN_Y, map->minY ());
-        feature->SetField (MAP_MAX_X, map->maxX ());
-        feature->SetField (MAP_MAX_Y, map->maxY ());
-        feature->SetField (MAP_BKCOLOR, ngsRGBA2HEX(map->getBackgroundColor ()));
-
-        int nRes = pTable->updateFeature (feature);
-        if(nRes == ngsErrorCodes::SUCCESS) {
-            // notify map changed
-            if(nullptr != m_notifyFunc)
-                m_notifyFunc(ngsSourceCodes::MAP_STORE, map->name ().c_str (),
-                             NOT_FOUND, ngsChangeCodes::CHANGE_RESOURCE);
-        }
-        return nRes;
-    }
-}
-
-bool MapStore::isNameValid(const string &name) const
-{
-    if(name.size () < 4 || name.size () >= NAME_FIELD_LIMIT)
-        return false;
-    if((name[0] == 'n' || name[0] == 'N') &&
-       (name[1] == 'g' || name[1] == 'G') &&
-       (name[2] == 's' || name[2] == 'S') &&
-       (name[3] == '_'))
-        return false;
-    if(m_maps.find (name) != m_maps.end ())
-        return false;
-    string statement("SELECT count(*) FROM " MAPS_TABLE_NAME " WHERE "
-                     LAYER_NAME " = '");
-    statement += name + "'";
-    ResultSetPtr tmpLayer = m_datastore->executeSQL ( statement );
-    FeaturePtr feature = tmpLayer->GetFeature (0);
-    if(feature->GetFieldAsInteger (0) > 0)
-        return false;
-    return true;
-}
-
-int MapStore::destroyMap(GIntBig mapId)
-{
-    DatasetPtr dataset = m_datastore->getDataset (MAPS_TABLE_NAME).lock ();
-    if(nullptr == dataset)
-        return ngsErrorCodes::DELETE_FAILED;
-    Table* pTable = static_cast<Table*>(dataset.get ());
-    if(nullptr == pTable)
-        return ngsErrorCodes::DELETE_FAILED;
-
-
-    CPLErrorReset();
-    // delete layers
-    CPLString statement = CPLOPrintf("DELETE FROM " LAYERS_TABLE_NAME " WHERE "
-                     MAP_ID " = %lld", mapId);
-    m_datastore->executeSQL ( statement );
-
-    if (CPLGetLastErrorNo() == CE_None) {
-        FeaturePtr mapFeature = pTable->getFeature (mapId);
-        if(nullptr == mapFeature)
-            return ngsErrorCodes::DELETE_FAILED;
-        string mapName = mapFeature->GetFieldAsString (MAP_NAME);
-        // delete map
-        int nRetCode = pTable->deleteFeature (mapId);
-
-        if(nRetCode == ngsErrorCodes::SUCCESS && nullptr != m_notifyFunc) {
-            m_notifyFunc(ngsSourceCodes::DATA_STORE, mapName.c_str (),
-                         NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
-        }
-
-        return nRetCode;
-    }
-
-    return ngsErrorCodes::DELETE_FAILED;
-}
-
-const Table *MapStore::getLayersTable() const
-{
-    DatasetPtr dataset = m_datastore->getDataset (LAYERS_TABLE_NAME).lock ();
-    if(nullptr == dataset)
-        return nullptr;
-    return static_cast<Table*>(dataset.get ());
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return map;
+    return m_maps[mapId];
 }
 
 void MapStore::setNotifyFunc(ngsNotifyFunc notifyFunc)
@@ -242,51 +91,39 @@ void MapStore::unsetNotifyFunc()
     m_notifyFunc = nullptr;
 }
 
-ngsRGBA MapStore::getMapBackgroundColor(const char *name)
+ngsRGBA MapStore::getMapBackgroundColor(unsigned int mapId)
 {
-    MapWPtr mapw = getMap (name);
-    if(mapw.expired ())
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
         return {0,0,0,0};
-    MapPtr map = mapw.lock ();
-    MapView* pMapView = static_cast<MapView*>(map.get ());
-    if(nullptr == pMapView)
-        return {0,0,0,0};
-    return pMapView->getBackgroundColor ();
+    return m_maps[mapId]->getBackgroundColor ();
 }
 
-int MapStore::setMapBackgroundColor(const char *name, const ngsRGBA &color)
+int MapStore::setMapBackgroundColor(unsigned int mapId, const ngsRGBA &color)
 {
-    MapWPtr mapw = getMap (name);
-    if(mapw.expired ())
-        return ngsErrorCodes::INVALID_MAP;
-    MapPtr map = mapw.lock ();
-    MapView* pMapView = static_cast<MapView*>(map.get ());
-    if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID_MAP;
-    return pMapView->setBackgroundColor (color);
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    return m_maps[mapId]->setBackgroundColor (color);
 }
 
-int MapStore::initMap(const char *name, void *buffer, int width, int height)
+int MapStore::initMap(unsigned int mapId, void *buffer, int width, int height)
 {
-    MapWPtr mapw = getMap (name);
-    if(mapw.expired ())
-        return ngsErrorCodes::INVALID_MAP;
-    MapPtr map = mapw.lock ();
-    MapView* pMapView = static_cast<MapView*>(map.get ());
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID_MAP;
+        return ngsErrorCodes::INVALID;
     return pMapView->initBuffer (buffer, width, height);
 }
 
-int MapStore::drawMap(const char *name, ngsProgressFunc progressFunc, void *progressArguments)
+int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
+                      void *progressArguments)
 {
-    MapWPtr mapw = getMap (name);
-    if(mapw.expired ())
-        return ngsErrorCodes::INVALID_MAP;
-    MapPtr map = mapw.lock ();
-    MapView* pMapView = static_cast<MapView*>(map.get ());
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID_MAP;
+        return ngsErrorCodes::INVALID;
+
     return pMapView->draw (progressFunc, progressArguments);
 }
 
@@ -294,7 +131,4 @@ void MapStore::onLowMemory()
 {
     // free all cached maps
     m_maps.clear ();
-
-    if(nullptr != m_datastore)
-        m_datastore->onLowMemory ();
 }

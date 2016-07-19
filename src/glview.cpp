@@ -329,11 +329,12 @@ void GlView::prepare(const Matrix4 &mat)
     ngsCheckGLEerror(glUniformMatrix4fv(location, 1, GL_FALSE, mat4f.data()));
 }
 
+// FIXME: this is for test
 void GlView::draw()
 {
     GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
-                           -73.99416666f, 40.72833333f, 0.0f, // New York
-                            37.61777777f, 55.75583333f, 0.0f  // Moscow
+                           -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
+                            4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
                           };
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,

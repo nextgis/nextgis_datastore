@@ -22,25 +22,27 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define NGM_VERSION    "0.1.0"
-#define NGM_VERSION_MAJOR 0
-#define NGM_VERSION_MINOR 1
-#define NGM_VERSION_REV   0
+#define NGS_VERSION    "0.1.0"
+#define NGS_VERSION_MAJOR 0
+#define NGS_VERSION_MINOR 1
+#define NGS_VERSION_REV   0
 
-#ifndef NGM_ABI
-#define NGM_ABI "Unknown"
+#ifndef NGS_ABI
+#define NGS_ABI "Unknown"
 #endif
 
-#define NGM_USERAGENT "NextGIS Mobile library " NGM_VERSION " [" NGM_ABI "]"
+#ifndef NGS_USERAGENT
+#define NGS_USERAGENT "NextGIS store library " NGS_VERSION " [" NGS_ABI "]"
+#endif
 
-#define NGM_COMPUTE_VERSION(maj,min,rev) ((maj)*10000+(min)*100+rev) // maj - any, min < 99, rev < 99
-#define NGM_VERSION_NUM NGM_COMPUTE_VERSION(NGM_VERSION_MAJOR,NGM_VERSION_MINOR,NGM_VERSION_REV)
+#define NGS_COMPUTE_VERSION(maj,min,rev) ((maj)*10000+(min)*100+rev) // maj - any, min < 99, rev < 99
+#define NGS_VERSION_NUM NGS_COMPUTE_VERSION(NGS_VERSION_MAJOR,NGS_VERSION_MINOR,NGS_VERSION_REV)
 
 /*  check if the current version is at least major.minor.revision */
 #define CHECK_VERSION(major,minor,rev) \
-    (NGM_VERSION_MAJOR > (major) || \
-    (NGM_VERSION_MAJOR == (major) && NGM_VERSION_MINOR > (minor)) || \
-    (NGM_VERSION_MAJOR == (major) && NGM_VERSION_MINOR == (minor) && \
-     NGM_VERSION_REV >= (release)))
+    (NGS_VERSION_MAJOR > (major) || \
+    (NGS_VERSION_MAJOR == (major) && NGS_VERSION_MINOR > (minor)) || \
+    (NGS_VERSION_MAJOR == (major) && NGS_VERSION_MINOR == (minor) && \
+     NGS_VERSION_REV >= (release)))
 
 #endif // VERSION_H

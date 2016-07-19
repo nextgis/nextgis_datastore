@@ -45,7 +45,7 @@ public:
 
 public:
     Layer();
-    GIntBig id() const;
+    short id() const;
 protected:
     string m_name;
     enum Type m_type;
@@ -60,18 +60,18 @@ typedef shared_ptr<Layer> LayerPtr;
 class Map
 {
 public:
-    Map(FeaturePtr feature, MapStore * mapstore);
-    Map(const string& name, const string& description, short epsg, double minX,
-        double minY, double maxX, double maxY, MapStore * mapstore);
+    Map();
+    Map(const CPLString& name, const CPLString& description, unsigned short epsg,
+        double minX, double minY, double maxX, double maxY);
     virtual ~Map();
-    string name() const;
-    void setName(const string &name);
+    CPLString name() const;
+    void setName(const CPLString &name);
 
-    string description() const;
-    void setDescription(const string &description);
+    CPLString description() const;
+    void setDescription(const CPLString &description);
 
-    short epsg() const;
-    void setEpsg(short epsg);
+    unsigned short epsg() const;
+    void setEpsg(unsigned short epsg);
 
     double minX() const;
     void setMinX(double minX);
@@ -85,12 +85,8 @@ public:
     double maxY() const;
     void setMaxY(double maxY);
 
-    long id() const;
-    void setId(long id);
-
-    vector<GIntBig> getLayerOrder() const;
-
-    int save();
+    int load(const char* path);
+    int save(const char* path);
     int destroy();
 
     bool isDeleted() const;
@@ -101,15 +97,11 @@ public:
     void setBackgroundChanged(bool bkChanged);
 
 protected:
-    int loadLayers(const GIntBig* pValues, int count);
-
-protected:
-    MapStore * const m_mapstore;
-    string m_name;
-    string m_description;
-    short m_epsg;
+    CPLString m_name;
+    CPLString m_description;
+    CPLString m_path;
+    unsigned short m_epsg;
     double m_minX, m_minY, m_maxX, m_maxY;
-    long m_id;
     bool m_deleted;
     vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;

@@ -30,16 +30,6 @@
 
 #include <iostream>
 
-
-#if defined(WIN32) || defined(_WIN32)
-#define PATH_SEPARATOR "\\"
-#else
-#define PATH_SEPARATOR "/"
-#endif
-
-#define DEFAULT_CACHE PATH_SEPARATOR ".cache"
-#define DEFAULT_DATA PATH_SEPARATOR ".data"
-
 using namespace ngs;
 
 
@@ -47,41 +37,18 @@ using namespace ngs;
 // DataStore
 //------------------------------------------------------------------------------
 
-DataStore::DataStore(const char* path, const char* dataPath,
-                     const char* cachePath) : m_DS(nullptr), m_notifyFunc(nullptr)
+DataStore::DataStore(const char* path) : m_DS(nullptr), m_notifyFunc(nullptr)
 {
     if(nullptr != path)
         m_path = path;
-    if(nullptr == cachePath) {
-        if(nullptr != path) {
-            m_cachePath = path;
-            m_cachePath += DEFAULT_CACHE;
-        }
-    }
-    else {
-        m_cachePath = cachePath;
-    }
-    if(nullptr == dataPath) {
-        if(nullptr != path) {
-            m_dataPath = path;
-            m_dataPath += DEFAULT_DATA;
-        }
-    }
-    else {
-        m_dataPath = dataPath;
-    }
-
-    m_driversLoaded = false;
 }
 
 DataStore::~DataStore()
 {
     GDALClose( m_DS );
-
-    GDALDestroyDriverManager();
 }
 
-int DataStore::create()
+int DataStore::create(enum StoreType type)
 {
     if(nullptr != m_DS)
         return ngsErrorCodes::UNEXPECTED_ERROR;
@@ -89,30 +56,192 @@ int DataStore::create()
     if(m_path.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
 
-    initGDAL();
     // get GeoPackage driver
-    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
-    if( poDriver == nullptr ) {
+    GDALDriver *poDriver = getDriverForType (type);
+    if( poDriver == nullptr )
         return ngsErrorCodes::UNSUPPORTED;
-    }
-
-    // create folder if not exist
-    if( VSIMkdir( m_path.c_str (), 0755 ) != 0 ) {
-        return ngsErrorCodes::CREATE_DIR_FAILED;
-    }
-
-    // create folder if not exist
-    if( VSIMkdir( m_cachePath.c_str (), 0755 ) != 0 ) {
-        return ngsErrorCodes::CREATE_DIR_FAILED;
-    }
-
-    string sFullPath = m_path + string(PATH_SEPARATOR MAIN_DATABASE);
 
     // create ngm.gpkg
-    m_DS = poDriver->Create( sFullPath.c_str (), 0, 0, 0,
-                                          GDT_Unknown, nullptr );
+    m_DS = poDriver->Create( m_path, 0, 0, 0, GDT_Unknown, nullptr );
     if( m_DS == nullptr ) {
-        return ngsErrorCodes::CREATE_DB_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
+    }
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::open()
+{
+    if(m_path.empty())
+        return ngsErrorCodes::PATH_NOT_SPECIFIED;
+
+    m_DS = static_cast<GDALDataset*>( GDALOpenEx(m_path,
+                    GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr) );
+
+    if(nullptr == m_DS)
+        return ngsErrorCodes::OPEN_FAILED;
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+int DataStore::openOrCreate(enum StoreType type)
+{
+    if(open() != ngsErrorCodes::SUCCESS)
+        return create(type);
+    return open();
+}
+
+int DataStore::datasetCount() const
+{
+    return m_DS->GetLayerCount ();
+}
+
+DatasetWPtr DataStore::getDataset(const char *name)
+{
+    DatasetPtr dataset;
+    auto it = m_datasources.find (name);
+    if( it != m_datasources.end ()){
+        if(!it->second->isDeleted ()){
+            return it->second;
+        }
+        else{
+            return dataset;
+        }
+    }
+
+    OGRLayer* pLayer = m_DS->GetLayerByName (name);
+    if(nullptr != pLayer){ // TODO: get GDALRaster
+        if( EQUAL(pLayer->GetGeometryColumn (), "")){
+            dataset.reset (static_cast<Dataset*>(
+                               new Table(pLayer, this,
+                                       pLayer->GetName (),
+                                       pLayer->GetDescription ())));
+            m_datasources[dataset->name ()] = dataset;
+        }
+        else {
+            // TODO: Add feature dataset
+        }
+
+    }
+
+    return dataset;
+}
+
+DatasetWPtr DataStore::getDataset(int index)
+{
+    for(int i = 0; i < m_DS->GetLayerCount (); ++i){
+        OGRLayer* pLayer = m_DS->GetLayer (i);
+        if( i == index)
+            return getDataset (pLayer->GetName());
+    }
+    return DatasetWPtr();
+}
+
+int DataStore::destroy()
+{
+    return CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
+                                                  ngsErrorCodes::DELETE_FAILED;
+}
+
+void DataStore::notifyDatasetChanged(DataStore::ChangeType changeType,
+                                    const CPLString &name, long id)
+{
+    // notify listeners
+    if(nullptr != m_notifyFunc) {
+        m_notifyFunc(ngsSourceCodes::DATA_STORE, name,
+                     id, static_cast<ngsChangeCodes>(changeType));
+    }
+}
+
+bool DataStore::isNameValid(const CPLString &name) const
+{
+    if(m_datasources.find (name) != m_datasources.end ())
+        return false;
+    if(m_DS->GetLayerByName (name) != nullptr)
+        return false;
+
+    return true;
+}
+
+ResultSetPtr DataStore::executeSQL(const char *statement) const
+{
+    return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, "" ));
+}
+
+GDALDriver *DataStore::getDriverForType(DataStore::StoreType type)
+{
+    switch (type) {
+    case GPKG:
+        return GetGDALDriverManager()->GetDriverByName("GPKG");
+    }
+    return nullptr;
+}
+
+void DataStore::setNotifyFunc(ngsNotifyFunc notifyFunc)
+{
+    m_notifyFunc = notifyFunc;
+}
+
+void DataStore::unsetNotifyFunc()
+{
+    m_notifyFunc = nullptr;
+}
+
+int DataStore::destroyDataset(Dataset::Type /*type*/, const CPLString &name)
+{
+    for (int i = 0; i < m_DS->GetLayerCount(); ++i)
+    {
+        OGRLayer* poLayer = m_DS->GetLayer(i);
+        if(EQUAL(poLayer->GetName(), name.c_str ())) {
+            int nRetCode = m_DS->DeleteLayer (i) == OGRERR_NONE ?
+                        ngsErrorCodes::SUCCESS :
+                        ngsErrorCodes::DELETE_FAILED;
+            if(nRetCode == ngsErrorCodes::SUCCESS && nullptr != m_notifyFunc) {
+                m_notifyFunc(ngsSourceCodes::DATA_STORE, name.c_str (),
+                             NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
+            }
+            return nRetCode;
+        }
+    }
+
+    return ngsErrorCodes::DELETE_FAILED;
+}
+//------------------------------------------------------------------------------
+// MobileDataStore
+//------------------------------------------------------------------------------
+
+MobileDataStore::MobileDataStore(const char* path) : DataStore(path)
+{
+}
+
+MobileDataStore::~MobileDataStore()
+{
+}
+
+int MobileDataStore::create(enum StoreType type)
+{
+    int result = DataStore::create(type);
+    if(result != ngsErrorCodes::SUCCESS)
+        return result;
+
+    CPLString dir = CPLGetPath (m_path);
+    if(dir.empty ()) {
+        dir = CPLGetCurrentDir ();
+        m_path = CPLFormFilename (dir, m_path, nullptr);
+    }
+
+
+    // create folder if not exist
+    if( VSIMkdir( dir, 0755 ) != 0 ) {
+        return ngsErrorCodes::CREATE_FAILED;
+    }
+
+    // create folder for external images and other stuff if not exist
+    // if db name is ngs.gpkg folder shoudl be names ngs.data
+    CPLString baseName = CPLGetBasename (m_path);
+    m_dataPath = CPLFormFilename(dir, baseName, "data");
+    if( VSIMkdir( m_dataPath.c_str (), 0755 ) != 0 ) {
+        return ngsErrorCodes::CREATE_FAILED;
     }
 
     // create system tables
@@ -126,46 +255,34 @@ int DataStore::create()
     nResult = createAttachmentsTable ();
     if(nResult != ngsErrorCodes::SUCCESS)
         return nResult;
-    nResult = createMapsTable ();
-    if(nResult != ngsErrorCodes::SUCCESS)
-        return nResult;
-    nResult = createLayersTable ();
-    if(nResult != ngsErrorCodes::SUCCESS)
-        return nResult;
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::open()
+int MobileDataStore::open()
 {
     if(m_path.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
-    string sFullPath = m_path + string(PATH_SEPARATOR MAIN_DATABASE);
-    if (CPLCheckForFile(const_cast<char*>(sFullPath.c_str()), nullptr) != TRUE) {
-        return ngsErrorCodes::INVALID_PATH;
+    if (CPLCheckForFile(const_cast<char*>(m_path.c_str ()), nullptr) != TRUE) {
+        return ngsErrorCodes::INVALID;
     }
 
-    initGDAL();
-    // get GeoPackage driver
-    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
-    if( poDriver == nullptr ) {
-        return ngsErrorCodes::UNSUPPORTED;
-    }
+    m_DS = static_cast<GDALDataset*>( GDALOpenEx(m_path,
+                      GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr) );
 
-    m_DS = static_cast<GDALDataset*>( GDALOpenEx(sFullPath.c_str (),
-                                                   GDAL_OF_SHARED|GDAL_OF_UPDATE,
-                                                   nullptr, nullptr, nullptr) );
+    if(nullptr == m_DS)
+        return ngsErrorCodes::OPEN_FAILED;
 
     // check version and upgrade if needed
     OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
     if(nullptr == pMetadataLayer)
-        return ngsErrorCodes::INVALID_STUCTURE;
+        return ngsErrorCodes::INVALID;
 
     pMetadataLayer->ResetReading();
     FeaturePtr feature;
     while( (feature = pMetadataLayer->GetNextFeature()) != nullptr ) {
         if(EQUAL(feature->GetFieldAsString(META_KEY), NGS_VERSION_KEY)) {
             int nVersion = atoi(feature->GetFieldAsString(META_VALUE));
-            if(nVersion < NGS_VERSION) {
+            if(nVersion < NGS_VERSION_NUM) {
                 int nResult = upgrade (nVersion);
                 if(nResult != ngsErrorCodes::SUCCESS)
                     return nResult;
@@ -176,19 +293,12 @@ int DataStore::open()
 
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     if(nullptr == pRasterLayer)
-        return ngsErrorCodes::INVALID_STUCTURE;
+        return ngsErrorCodes::INVALID;
 
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::openOrCreate()
-{
-    if(open() != ngsErrorCodes::SUCCESS)
-        return create();
-    return open();
-}
-
-int DataStore::createRemoteTMSRaster(const char *url, const char *name,
+int MobileDataStore::createRemoteTMSRaster(const char *url, const char *name,
                                      const char *alias, const char *copyright,
                                      int epsg, int z_min, int z_max,
                                      bool y_origin_top)
@@ -221,7 +331,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::datasetCount() const
+int MobileDataStore::datasetCount() const
 {
     int dsLayerCount = m_DS->GetLayerCount ();
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
@@ -229,7 +339,7 @@ int DataStore::datasetCount() const
     return dsLayerCount - SYS_TABLE_COUNT;
 }
 
-DatasetWPtr DataStore::getDataset(const char *name)
+DatasetWPtr MobileDataStore::getDataset(const char *name)
 {
     DatasetPtr dataset;
     auto it = m_datasources.find (name);
@@ -279,7 +389,7 @@ DatasetWPtr DataStore::getDataset(const char *name)
     return dataset;
 }
 
-DatasetWPtr DataStore::getDataset(int index)
+DatasetWPtr MobileDataStore::getDataset(int index)
 {
     int dsLayers = m_DS->GetLayerCount () - SYS_TABLE_COUNT;
     if(index < dsLayers){
@@ -304,120 +414,24 @@ DatasetWPtr DataStore::getDataset(int index)
     return getDataset (feature->GetFieldAsString (LAYER_NAME));
 }
 
-string DataStore::formats()
+int MobileDataStore::destroy()
 {
-    string out;
-    registerDrivers();
-    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
-        GDALDriverH hDriver = GDALGetDriver(iDr);
-
-        const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets,
-                *pszKind;
-        char** papszMD = GDALGetMetadata( hDriver, NULL );
-
-        if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
-            pszRFlag = "r";
-
-        if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
-            pszWFlag = "w+";
-        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
-            pszWFlag = "w";
-        else
-            pszWFlag = "o";
-
-        if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
-            pszVirtualIO = "v";
-        else
-            pszVirtualIO = "";
-
-        if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
-            pszSubdatasets = "s";
-        else
-            pszSubdatasets = "";
-
-        if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
-            CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
-            pszKind = "raster,vector";
-        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
-            pszKind = "raster";
-        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
-            pszKind = "vector";
-        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
-            pszKind = "geography network";
-        else
-            pszKind = "unknown kind";
-
-        out += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
-                GDALGetDriverShortName( hDriver ),
-                pszKind,
-                pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
-                GDALGetDriverLongName( hDriver ) );
-    }
-
-    return out;
-}
-
-void DataStore::initGDAL()
-{
-    // set config options
-    CPLSetConfigOption("GDAL_DATA", m_dataPath.c_str());
-    CPLSetConfigOption("GDAL_CACHEMAX", CACHEMAX);
-    CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGM_USERAGENT);
-    CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
-    CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
-    CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", m_cachePath.c_str());
-
-#ifdef _DEBUG
-    cout << "HTTP user agent set to: " << NGM_USERAGENT << endl;
-#endif //_DEBUG
-
-    // register drivers
-    registerDrivers ();
-}
-
-int DataStore::destroy()
-{
-    if(m_path.empty())
-        return ngsErrorCodes::INVALID_PATH;
-    if(!m_cachePath.empty()) {
-        if(CPLUnlinkTree(m_cachePath.c_str()) != 0){
+    // Unlink some folders with external rasters adn etc.
+    if(!m_dataPath.empty()) {
+        if(CPLUnlinkTree(m_dataPath) != 0){
             return ngsErrorCodes::DELETE_FAILED;
         }
     }
-    return CPLUnlinkTree (m_path.c_str()) == 0 ? ngsErrorCodes::SUCCESS :
+    return CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
                                                   ngsErrorCodes::DELETE_FAILED;
 }
 
-void DataStore::registerDrivers()
-{
-    if(m_driversLoaded)
-        return;
-    GDALRegister_VRT();
-    GDALRegister_GTiff();
-    GDALRegister_HFA();
-    GDALRegister_PNG();
-    GDALRegister_JPEG();
-    GDALRegister_MEM();
-    RegisterOGRShape();
-    RegisterOGRTAB();
-    RegisterOGRVRT();
-    RegisterOGRMEM();
-    RegisterOGRGPX();
-    RegisterOGRKML();
-    RegisterOGRGeoJSON();
-    RegisterOGRGeoPackage();
-    RegisterOGRSQLite();
-    //GDALRegister_WMS();
-
-    m_driversLoaded = true;
-}
-
-int DataStore::createMetadataTable()
+int MobileDataStore::createMetadataTable()
 {
     OGRLayer* pMetadataLayer = m_DS->CreateLayer(METHADATA_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pMetadataLayer) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
 
     OGRFieldDefn oFieldKey(META_KEY, OFTString);
@@ -427,28 +441,28 @@ int DataStore::createMetadataTable()
 
     if(pMetadataLayer->CreateField(&oFieldKey) != OGRERR_NONE ||
        pMetadataLayer->CreateField(&oFieldValue) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
-    
+
     FeaturePtr feature( OGRFeature::CreateFeature(
                 pMetadataLayer->GetLayerDefn()) );
 
     // write version
     feature->SetField(META_KEY, NGS_VERSION_KEY);
-    feature->SetField(META_VALUE, NGS_VERSION);
+    feature->SetField(META_VALUE, NGS_VERSION_NUM);
     if(pMetadataLayer->CreateFeature(feature) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
-    
+
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::createRastersTable()
+int MobileDataStore::createRastersTable()
 {
     OGRLayer* pRasterLayer = m_DS->CreateLayer(RASTERS_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pRasterLayer) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
 
     OGRFieldDefn oUrl(LAYER_URL, OFTString);
@@ -483,18 +497,18 @@ int DataStore::createRastersTable()
        pRasterLayer->CreateField(&oZMax) != OGRERR_NONE ||
        pRasterLayer->CreateField(&oYOrigTop) != OGRERR_NONE ||
        pRasterLayer->CreateField(&oAccount) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
 
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::createAttachmentsTable()
+int MobileDataStore::createAttachmentsTable()
 {
     OGRLayer* pAttachmentsLayer = m_DS->CreateLayer(ATTACHEMENTS_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pAttachmentsLayer) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
 
     OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
@@ -521,95 +535,33 @@ int DataStore::createAttachmentsTable()
        pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
        pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
        pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
+        return ngsErrorCodes::CREATE_FAILED;
     }
 
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::createMapsTable()
+int MobileDataStore::upgrade(int /* oldVersion */)
 {
-    OGRLayer* pMapsLayer = m_DS->CreateLayer(MAPS_TABLE_NAME, NULL,
-                                                   wkbNone, NULL);
-    if (NULL == pMapsLayer) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
-    }
-
-    OGRFieldDefn oName(MAP_NAME, OFTString);
-    oName.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oEPSG(MAP_EPSG, OFTInteger);
-    OGRFieldDefn oLayers(MAP_LAYERS, OFTInteger64List);
-    OGRFieldDefn oMinX(MAP_MIN_X, OFTReal);
-    OGRFieldDefn oMinY(MAP_MIN_Y, OFTReal);
-    OGRFieldDefn oMaxX(MAP_MAX_X, OFTReal);
-    OGRFieldDefn oMaxY(MAP_MAX_Y, OFTReal);
-    OGRFieldDefn oDescription(MAP_DESCRIPTION, OFTString);
-    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
-    OGRFieldDefn oBkColor(MAP_BKCOLOR, OFTInteger);
-
-    if(pMapsLayer->CreateField(&oName) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oEPSG) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oLayers) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oMinX) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oMinY) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oMaxX) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oMaxY) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oDescription) != OGRERR_NONE ||
-       pMapsLayer->CreateField (&oBkColor) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
-    }
-
+    // no structure changes for version 1
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::createLayersTable()
-{
-    OGRLayer* pMapsLayer = m_DS->CreateLayer(LAYERS_TABLE_NAME, NULL,
-                                                   wkbNone, NULL);
-    if (NULL == pMapsLayer) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
-    }
-
-    OGRFieldDefn oName(LAYER_NAME, OFTString);
-    oName.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oMapId(MAP_ID, OFTInteger64);
-    OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
-    OGRFieldDefn oStyle(LAYER_STYLE, OFTString);
-    OGRFieldDefn oDSName(DATASET_NAME, OFTString);
-    oDSName.SetWidth(NAME_FIELD_LIMIT);
-
-    if(pMapsLayer->CreateField(&oName) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oMapId) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oType) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oDSName) != OGRERR_NONE ||
-       pMapsLayer->CreateField(&oStyle) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_TABLE_FAILED;
-    }
-
-    return ngsErrorCodes::SUCCESS;
-}
-
-int DataStore::upgrade(int /* oldVersion */)
-{
-    // no structure changes for version 1    
-    return ngsErrorCodes::SUCCESS;
-}
-
-int DataStore::destroyDataset(Dataset::Type type, const string &name)
+int MobileDataStore::destroyDataset(Dataset::Type type, const CPLString &name)
 {
     switch (type) {
     case Dataset::REMOTE_TMS:
     case Dataset::NGW_IMAGE:
         CPLErrorReset();
         {
-        string statement("DELETE FROM " RASTERS_TABLE_NAME " WHERE "
+        CPLString statement("DELETE FROM " RASTERS_TABLE_NAME " WHERE "
                          LAYER_NAME " = '");
         statement += name + "'";
         executeSQL ( statement );
         }
         if (CPLGetLastErrorNo() == CE_None) {
             if(nullptr != m_notifyFunc) {
-                m_notifyFunc(ngsSourceCodes::DATA_STORE, name.c_str (),
+                m_notifyFunc(ngsSourceCodes::DATA_STORE, name,
                              NOT_FOUND, ngsChangeCodes::DELETE_RESOURCE);
             }
             return ngsErrorCodes::SUCCESS;
@@ -637,17 +589,7 @@ int DataStore::destroyDataset(Dataset::Type type, const string &name)
     return ngsErrorCodes::DELETE_FAILED;
 }
 
-void DataStore::notifyDatasetChanged(DataStore::ChangeType changeType,
-                                    const string &name, long id)
-{
-    // notify listeners
-    if(nullptr != m_notifyFunc) {
-        m_notifyFunc(ngsSourceCodes::DATA_STORE, name.c_str (),
-                     id, static_cast<ngsChangeCodes>(changeType));
-    }
-}
-
-bool DataStore::isNameValid(const string &name) const
+bool MobileDataStore::isNameValid(const CPLString &name) const
 {
     if(name.size () < 4 || name.size () >= NAME_FIELD_LIMIT)
         return false;
@@ -658,10 +600,10 @@ bool DataStore::isNameValid(const string &name) const
         return false;
     if(m_datasources.find (name) != m_datasources.end ())
         return false;
-    if(m_DS->GetLayerByName (name.c_str ()) != nullptr)
+    if(m_DS->GetLayerByName (name) != nullptr)
         return false;
 
-    string statement("SELECT count(*) FROM " RASTERS_TABLE_NAME " WHERE "
+    CPLString statement("SELECT count(*) FROM " RASTERS_TABLE_NAME " WHERE "
                      LAYER_NAME " = '");
     statement += name + "'";
     ResultSetPtr tmpLayer = executeSQL ( statement );
@@ -671,24 +613,13 @@ bool DataStore::isNameValid(const string &name) const
     return true;
 }
 
-ResultSetPtr DataStore::executeSQL(const string &statement) const
+ResultSetPtr MobileDataStore::executeSQL(const char *statement) const
 {
-    return ResultSetPtr(
-                m_DS->ExecuteSQL ( statement.c_str(), nullptr, "SQLITE" ));
+    return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, "SQLITE" ));
 }
 
-void DataStore::onLowMemory()
+void MobileDataStore::onLowMemory()
 {
     // free all cached datasources
     m_datasources.clear ();
-}
-
-void DataStore::setNotifyFunc(ngsNotifyFunc notifyFunc)
-{
-    m_notifyFunc = notifyFunc;
-}
-
-void DataStore::unsetNotifyFunc()
-{
-    m_notifyFunc = nullptr;
 }

@@ -107,9 +107,18 @@ void RenderingThread(void * view)
     pMapView->setDisplayInit (false);
 }
 
-MapView::MapView(FeaturePtr feature, MapStore *mapstore) : Map(feature, mapstore),
-    MapTransform(480, 640), m_displayInit(false), m_cancel(false),
-    m_bufferData(nullptr), m_progressFunc(nullptr)
+MapView::MapView() : Map(), MapTransform(480, 640), m_displayInit(false),
+    m_cancel(false), m_bufferData(nullptr), m_progressFunc(nullptr)
+{
+    initDisplay();
+}
+
+MapView::MapView(const CPLString &name, const CPLString &description,
+                 unsigned short epsg, double minX, double minY, double maxX,
+                 double maxY) : Map(name, description, epsg, minX, minY, maxX,
+                                    maxY), MapTransform(480, 640),
+    m_displayInit(false), m_cancel(false), m_bufferData(nullptr),
+    m_progressFunc(nullptr)
 {
     initDisplay();
 }

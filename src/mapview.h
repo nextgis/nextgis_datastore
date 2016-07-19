@@ -37,7 +37,9 @@ public:
     };
 
 public:
-    MapView(FeaturePtr feature, MapStore * mapstore);
+    MapView();
+    MapView(const CPLString& name, const CPLString& description, unsigned short epsg,
+            double minX, double minY, double maxX, double maxY);
     virtual ~MapView();
     bool isDisplayInit() const;
     int initDisplay();

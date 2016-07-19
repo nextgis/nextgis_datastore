@@ -23,6 +23,7 @@
 #include "version.h"
 #include "datastore.h"
 #include "mapstore.h"
+#include "constants.h"
 
 // GDAL
 #include "gdal.h"
@@ -41,7 +42,7 @@
 #endif
 
 #ifdef HAVE_JSON_C_VERSION_H
-#include "json-c/json_c_version.h"
+#include "json_c_version.h"
 #endif
 
 #ifdef HAVE_PROJ_API_H
@@ -89,6 +90,122 @@ using namespace std;
 
 static DataStorePtr gDataStore;
 static MapStorePtr gMapStore;
+static string gFormats;
+
+int ngsInitDataStore(const char *path)
+{
+    gDataStore.reset(new MobileDataStore(path));
+    int nResult = gDataStore->openOrCreate (DataStore::GPKG);
+    if(nResult != ngsErrorCodes::SUCCESS) {
+        gDataStore.reset();
+    }
+
+    return nResult;
+}
+
+void initMapStore()
+{
+    if(nullptr == gMapStore){
+        gMapStore.reset (new MapStore());
+    }
+}
+
+void initGDAL(const char* dataPath, const char* cachePath)
+{
+    // set config options
+    if(dataPath)
+        CPLSetConfigOption("GDAL_DATA", dataPath);
+    CPLSetConfigOption("GDAL_CACHEMAX", CACHEMAX);
+    CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGS_USERAGENT);
+    CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
+    CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
+    if(cachePath)
+        CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
+
+#ifdef _DEBUG
+    cout << "HTTP user agent set to: " << NGS_USERAGENT << endl;
+#endif //_DEBUG
+
+    // register drivers
+#ifdef DNGS_MOBILE // for mobile devices
+    GDALRegister_VRT();
+    GDALRegister_GTiff();
+    GDALRegister_HFA();
+    GDALRegister_PNG();
+    GDALRegister_JPEG();
+    GDALRegister_MEM();
+    RegisterOGRShape();
+    RegisterOGRTAB();
+    RegisterOGRVRT();
+    RegisterOGRMEM();
+    RegisterOGRGPX();
+    RegisterOGRKML();
+    RegisterOGRGeoJSON();
+    RegisterOGRGeoPackage();
+    RegisterOGRSQLite();
+    //GDALRegister_WMS();
+#else
+    GDALAllRegister();
+#endif
+}
+
+/**
+ * @brief reportFormats Return supported GDAL formats. Note, that GDAL library
+ * must be initialized before execute function. In other case empty string will
+ * return.
+ * @return supported raster/vector/network formats or empty string
+ */
+string reportFormats()
+{
+    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
+        GDALDriverH hDriver = GDALGetDriver(iDr);
+
+        const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets,
+                *pszKind;
+        char** papszMD = GDALGetMetadata( hDriver, NULL );
+
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
+            pszRFlag = "r";
+
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) )
+            pszWFlag = "w+";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE ) )
+            pszWFlag = "w";
+        else
+            pszWFlag = "o";
+
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_VIRTUALIO, FALSE ) )
+            pszVirtualIO = "v";
+        else
+            pszVirtualIO = "";
+
+        if( CSLFetchBoolean( papszMD, GDAL_DMD_SUBDATASETS, FALSE ) )
+            pszSubdatasets = "s";
+        else
+            pszSubdatasets = "";
+
+        if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) &&
+            CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ))
+            pszKind = "raster,vector";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
+            pszKind = "raster";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
+            pszKind = "vector";
+        else if( CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) )
+            pszKind = "geography network";
+        else
+            pszKind = "unknown kind";
+
+        gFormats += CPLSPrintf( "  %s -%s- (%s%s%s%s): %s\n",
+                GDALGetDriverShortName( hDriver ),
+                pszKind,
+                pszRFlag, pszWFlag, pszVirtualIO, pszSubdatasets,
+                GDALGetDriverLongName( hDriver ) );
+    }
+
+    return gFormats;
+}
+
 
 #ifndef _LIBICONV_VERSION
 #define _LIBICONV_VERSION 0x010E
@@ -103,7 +220,7 @@ static MapStorePtr gMapStore;
 int ngsGetVersion(const char* request)
 {
     if(nullptr == request)
-        return NGM_VERSION_NUM;
+        return NGS_VERSION_NUM;
     else if(EQUAL(request, "gdal"))
         return atoi(GDALVersionInfo("VERSION_NUM"));
 #ifdef HAVE_CURL_H
@@ -160,7 +277,7 @@ int ngsGetVersion(const char* request)
         return OPENSSL_VERSION_NUMBER;
 #endif
     else if(EQUAL(request, "self"))
-        return NGM_VERSION_NUM;
+        return NGS_VERSION_NUM;
     return 0;
 }
 
@@ -173,7 +290,7 @@ int ngsGetVersion(const char* request)
 const char* ngsGetVersionString(const char* request)
 {
     if(nullptr == request)
-        return NGM_VERSION;
+        return NGS_VERSION;
     else if(EQUAL(request, "gdal"))
         return GDALVersionInfo("RELEASE_NAME");
 #ifdef HAVE_CURL_H
@@ -190,9 +307,7 @@ const char* ngsGetVersionString(const char* request)
         return sqlite3_libversion();
 #endif
     else if(EQUAL(request, "formats")){
-        if(nullptr == gDataStore)
-            gDataStore.reset (new DataStore(nullptr, nullptr, nullptr));
-        return gDataStore->formats ().c_str();
+        return reportFormats().c_str ();
     }
 #ifdef HAVE_JSON_C_H
     else if(EQUAL(request, "jsonc"))
@@ -264,35 +379,26 @@ const char* ngsGetVersionString(const char* request)
     }
 #endif
     else if(EQUAL(request, "self"))
-        return NGM_VERSION;
+        return NGS_VERSION;
     return nullptr;
 }
 
 /**
  * @brief init library structures
- * @param path path to data store folder
+ * @param dataPath path to GDAL_DATA folder
  * @param cachePath path to cache folder
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInit(const char* path, const char* dataPath, const char* cachePath)
+int ngsInit(const char* dataPath, const char* cachePath)
 {
-    gDataStore.reset(new DataStore(path, dataPath, cachePath));
-    int nResult = gDataStore->open();
-    bool create = false;
-    if(nResult != ngsErrorCodes::SUCCESS){
-        nResult = gDataStore->create ();
-        create = true;
-    }
+#ifdef NGS_MOBILE
+    if(nullptr == dataPath)
+        return ngsErrorCodes::PATH_NOT_SPECIFIED;
+#endif
 
-    if(nResult != ngsErrorCodes::SUCCESS) {
-        gDataStore.reset();
-    }
-    else {
-        gMapStore.reset (new MapStore(gDataStore));
-        if(create)
-            nResult = gMapStore->create();
-    }
-    return nResult;
+    initGDAL(dataPath, cachePath);
+
+    return ngsErrorCodes::SUCCESS;
 }
 
 /**
@@ -302,6 +408,8 @@ void ngsUninit()
 {
     gMapStore.reset ();
     gDataStore.reset ();
+
+    GDALDestroyDriverManager();
 }
 
 /**
@@ -310,12 +418,17 @@ void ngsUninit()
  * @param cachePath Path to cache (may be NULL)
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDestroy(const char *path, const char *cachePath)
+int ngsDestroyDataStore(const char *path, const char *cachePath)
 {
     if(nullptr == path)
-        return ngsErrorCodes::INVALID_PATH;
+        return ngsErrorCodes::INVALID;
     gMapStore.reset ();
-    gDataStore.reset(new DataStore(path, nullptr, cachePath));
+    if(cachePath){
+        if(CPLUnlinkTree(cachePath) != 0){
+            return ngsErrorCodes::DELETE_FAILED;
+        }
+    }
+    gDataStore.reset(new MobileDataStore(path));
 
     return gDataStore->destroy ();
 }
@@ -339,8 +452,13 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
     if(z_max == 0)
         z_max = 18;
 
-    return gDataStore->createRemoteTMSRaster(url, name, alias, copyright, epsg,
-                                             z_min, z_max, y_origin_top);
+    MobileDataStore* pMDataStore = static_cast<MobileDataStore*>(
+                gDataStore.get ());
+    if(pMDataStore)
+        return pMDataStore->createRemoteTMSRaster(url, name, alias, copyright,
+                                            epsg, z_min, z_max, y_origin_top);
+
+    return ngsErrorCodes::CREATE_FAILED;
 }
 
 /**
@@ -360,17 +478,16 @@ int ngsLoadRaster(const char */*path*/, const char */*name*/,
 
 /**
  * @brief Inititialise map with buffer and it size in pixels
- * @param name Map name
+ * @param mapId Map id received from create or open map functions
  * @param buffer Pointer to buffer. Size should be enouth to store image data width x height
  * @param width Output image width
  * @param height Output image height
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInitMap(const char *name, void *buffer, int width, int height)
+int ngsInitMap(unsigned int mapId, void *buffer, int width, int height)
 {
-    if(nullptr == gMapStore)
-        return ngsErrorCodes::INIT_FAILED;
-    return gMapStore->initMap (name, buffer, width, height);
+    initMapStore();
+    return gMapStore->initMap (mapId, buffer, width, height);
 }
 
 /**
@@ -378,8 +495,8 @@ int ngsInitMap(const char *name, void *buffer, int width, int height)
  */
 void ngsOnLowMemory()
 {
-    if(nullptr != gMapStore)
-        gMapStore->onLowMemory ();
+    initMapStore();
+    gMapStore->onLowMemory ();
     if(nullptr != gDataStore)
         gDataStore->onLowMemory ();
 }
@@ -392,8 +509,8 @@ void ngsSetNotifyFunction(ngsNotifyFunc callback)
 {
     if(nullptr != gDataStore)
         gDataStore->setNotifyFunc (callback);
-    if(nullptr != gMapStore)
-        gMapStore->setNotifyFunc (callback);
+    initMapStore();
+    gMapStore->setNotifyFunc (callback);
 }
 
 /**
@@ -408,45 +525,85 @@ void ngsOnPause()
 
 /**
  * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
- * @param name Map name
+ * @param mapId Map id received from create or open map functions
  * @param callback Progress function
  * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDrawMap(const char *name, ngsProgressFunc callback, void* callbackData)
+int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback, void* callbackData)
 {
-    if(nullptr == gMapStore)
-        return ngsErrorCodes::INIT_FAILED;
-    return gMapStore->drawMap (name, callback, callbackData);
+    initMapStore();
+    return gMapStore->drawMap (mapId, callback, callbackData);
 }
 
 /**
  * @brief ngsGetMapBackgroundColor Map background color
- * @param name Map name
+ * @param mapId Map id received from create or open map functions
  * @return map background color struct
  */
-ngsRGBA ngsGetMapBackgroundColor(const char *name)
+ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId)
 {
-    if(nullptr == gMapStore)
-        return {0,0,0,0};
-    return gMapStore->getMapBackgroundColor (name);
+    initMapStore();
+    return gMapStore->getMapBackgroundColor (mapId);
 
 }
 
 /**
  * @brief ngsSetMapBackgroundColor set specified by name map background color
- * @param name Map name
+ * @param mapId Map id received from create or open map functions
  * @param R red
  * @param G green
  * @param B blue
  * @param A alpha
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsSetMapBackgroundColor(const char *name, unsigned char R, unsigned char G,
+int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char G,
                              unsigned char B, unsigned char A)
 {
-    if(nullptr == gMapStore)
-        return ngsErrorCodes::INIT_FAILED;
-    return gMapStore->setMapBackgroundColor (name, {R, G, B, A});
+    initMapStore();
+    return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
 
 }
+
+/**
+ * @brief ngsCreateMap Create new empty map
+ * @param name Map name
+ * @param description Map description
+ * @param epsg EPSG code
+ * @param minX minimum X coordinate
+ * @param minY minimum Y coordinate
+ * @param maxX maximum X coordinate
+ * @param maxY maximum Y coordinate
+ * @return -1 if create failed or map id.
+ */
+int ngsCreateMap(const char* name, const char* description,
+                 unsigned short epsg, double minX, double minY,
+                 double maxX, double maxY)
+{
+    initMapStore();
+    return gMapStore->createMap (name, description, epsg, minX, minY, maxX, maxY);
+}
+
+/**
+ * @brief ngsOpenMap Open existing map from file
+ * @param path Path to map file
+ * @return -1 if open failed or map id.
+ */
+int ngsOpenMap(const char *path)
+{
+    initMapStore();
+    return gMapStore->openMap (path);
+}
+
+/**
+ * @brief ngsSaveMap Save map to file
+ * @param mapId Map id to save
+ * @param path Path to store map data
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsSaveMap(unsigned int mapId, const char *path)
+{
+    initMapStore();
+    return gMapStore->saveMap (mapId, path);
+}
+
