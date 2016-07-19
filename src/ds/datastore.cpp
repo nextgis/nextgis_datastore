@@ -32,12 +32,53 @@
 
 using namespace ngs;
 
+void ngs::LoadingThread(void * store)
+{
+    DataStore* pDataStore = static_cast<DataStore*>(store);
+    double totalDataCount;
+    double loadedDataCount = 0;
+    while(!pDataStore->m_cancelLoad || pDataStore->m_loadData.size () > 0) {
+        totalDataCount = pDataStore->m_loadData.size () + loadedDataCount;
+        double percent = loadedDataCount / totalDataCount;
+        LoadData data = pDataStore->m_loadData[pDataStore->m_loadData.size () - 1];
+        pDataStore->m_loadData.pop_back ();
+/*
+        if(data.progressFunc)
+            if(data.progressFunc(percent, CPLSPrintf ("Start loading '%s'",
+                    CPLGetFilename(data.path)), data.progressArguments) == FALSE)
+                continue;
+
+        // 1. Open
+        GDALDataset* pDS = static_cast<GDALDataset*>( GDALOpenEx(data.path,
+                        GDAL_OF_SHARED|GDAL_OF_READONLY, nullptr, nullptr, nullptr) );
+        if(nullptr == pDS) {
+            if(data.progressFunc)
+                data.progressFunc(percent, CPLSPrintf ("Dataset '%s' open failed",
+                            CPLGetFilename(data.path)), data.progressArguments);
+                    continue;
+        }
+        // 2. Analyse structure, etc,
+
+        // 3. Check name and create layer in store
+        // 4. for each feature
+        size_t featureCount;
+        double featureRead = 0;
+        double subPercent = featureRead / featureCount;
+        percent = percent + subPercent / totalDataCount;
+        // 4.1. read
+        // 4.2. create samples for several scales
+        // 4.3. create feature in storage dataset
+        // 4.4. create mapping of fields and original spatial reference metadata
+*/
+    }
+}
 
 //------------------------------------------------------------------------------
 // DataStore
 //------------------------------------------------------------------------------
 
-DataStore::DataStore(const char* path) : m_DS(nullptr), m_notifyFunc(nullptr)
+DataStore::DataStore(const char* path) : m_DS(nullptr), m_notifyFunc(nullptr),
+    m_hLoadThread(nullptr), m_cancelLoad(false)
 {
     if(nullptr != path)
         m_path = path;
@@ -45,6 +86,11 @@ DataStore::DataStore(const char* path) : m_DS(nullptr), m_notifyFunc(nullptr)
 
 DataStore::~DataStore()
 {
+    if(nullptr != m_hLoadThread) {
+        m_cancelLoad = true;
+        // wait thread exit
+        CPLJoinThread(m_hLoadThread);
+    }
     GDALClose( m_DS );
 }
 
@@ -70,13 +116,13 @@ int DataStore::create(enum StoreType type)
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::open()
+int DataStore::open(unsigned int openFlags)
 {
     if(m_path.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
 
     m_DS = static_cast<GDALDataset*>( GDALOpenEx(m_path,
-                    GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr) );
+                    openFlags, nullptr, nullptr, nullptr) );
 
     if(nullptr == m_DS)
         return ngsErrorCodes::OPEN_FAILED;
@@ -84,11 +130,12 @@ int DataStore::open()
     return ngsErrorCodes::SUCCESS;
 }
 
-int DataStore::openOrCreate(enum StoreType type)
+int DataStore::openOrCreate(unsigned int openFlags, enum StoreType type)
 {
-    if(open() != ngsErrorCodes::SUCCESS)
+    int nRes = open(openFlags);
+    if( nRes != ngsErrorCodes::SUCCESS)
         return create(type);
-    return open();
+    return nRes;
 }
 
 int DataStore::datasetCount() const
@@ -135,6 +182,27 @@ DatasetWPtr DataStore::getDataset(int index)
             return getDataset (pLayer->GetName());
     }
     return DatasetWPtr();
+}
+
+int DataStore::loadDataset(const char *path, const char *subDatasetName,
+                           const ngsProgressFunc &progressFunc,
+                           void *progressArguments)
+{
+    // TODO: DataStore is virtual
+    /*m_loadData.push_back ({make_shared<DataStore>(path), subDatasetName,
+                           progressFunc, progressArguments});
+    if(nullptr == m_hLoadThread) {
+        m_hLoadThread = CPLCreateJoinableThread(LoadingThread, this);
+    }*/
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+CPLString DataStore::getName() const
+{
+    if(nullptr == m_DS)
+        return CPLGetBasename (m_path);
+    return m_DS->GetDescription ();
 }
 
 int DataStore::destroy()
@@ -266,7 +334,7 @@ int MobileDataStore::create(enum StoreType type)
     return ngsErrorCodes::SUCCESS;
 }
 
-int MobileDataStore::open()
+int MobileDataStore::open(unsigned int openFlags)
 {
     if(m_path.empty())
         return ngsErrorCodes::PATH_NOT_SPECIFIED;
@@ -275,7 +343,7 @@ int MobileDataStore::open()
     }
 
     m_DS = static_cast<GDALDataset*>( GDALOpenEx(m_path,
-                      GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr) );
+                      openFlags, nullptr, nullptr, nullptr) );
 
     if(nullptr == m_DS)
         return ngsErrorCodes::OPEN_FAILED;

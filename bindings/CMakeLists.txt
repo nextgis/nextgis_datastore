@@ -25,7 +25,11 @@
 if(BUILD_BINDINGS)
     find_host_package(SWIG REQUIRED)
     include(${SWIG_USE_FILE})
-    include_directories(${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/src/ds
+        ${PROJECT_SOURCE_DIR}/src/map
+        ${PROJECT_SOURCE_DIR}/src/util
+        ${CMAKE_CURRENT_BINARY_DIR})
 
     option(BUILD_BINDINGS_JAVA "Build JAVA bindings" OFF)
     if(BUILD_BINDINGS_JAVA)

@@ -95,7 +95,8 @@ static string gFormats;
 int ngsInitDataStore(const char *path)
 {
     gDataStore.reset(new MobileDataStore(path));
-    int nResult = gDataStore->openOrCreate (DataStore::GPKG);
+    int nResult = gDataStore->openOrCreate (GDAL_OF_SHARED|GDAL_OF_UPDATE,
+                                            DataStore::GPKG);
     if(nResult != ngsErrorCodes::SUCCESS) {
         gDataStore.reset();
     }

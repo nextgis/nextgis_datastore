@@ -29,7 +29,7 @@ using namespace std;
 
 #define THREAD_LOOP_SLEEP 0.1
 
-void RenderingThread(void * view)
+void ngs::RenderingThread(void * view)
 {
     MapView* pMapView = static_cast<MapView*>(view);
     GlView glView;
@@ -42,11 +42,11 @@ void RenderingThread(void * view)
     pMapView->setDisplayInit (true);
 
     // start rendering loop here
-    while(!pMapView->cancel ()){
-        if(pMapView->isSizeChanged ()){
+    while(!pMapView->m_cancel){
+        if(pMapView->m_sizeChanged){
             glView.setSize (pMapView->getDisplayWidht (),
-                            pMapView->getDisplayHeight ());
-            pMapView->setSizeChanged (false);
+                            pMapView->getDisplayHeight ())  ;
+            pMapView->m_sizeChanged = false;// >setSizeChanged (false);
         }
 
         if(!glView.isOk ()){
@@ -154,11 +154,6 @@ void MapView::setErrorCode(int errorCode)
 void MapView::setDisplayInit(bool displayInit)
 {
     m_displayInit = displayInit;
-}
-
-bool MapView::cancel() const
-{
-    return m_cancel;
 }
 
 void *MapView::getBufferData() const

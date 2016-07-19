@@ -36,7 +36,6 @@ public:
     int getDisplayWidht() const;
     int getDisplayHeight() const;
     bool isSizeChanged() const;
-    void setSizeChanged(bool sizeChanged);
     double getRotate() const;
     void setRotate(double rotate);
 
@@ -54,6 +53,7 @@ public:
     Matrix4 getSceneMatrix() const;
 
 protected:
+    void setSizeChanged(bool sizeChanged);
     static OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
     static OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);
     static OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);

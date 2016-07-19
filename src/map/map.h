@@ -94,6 +94,8 @@ public:
     ngsRGBA getBackgroundColor() const;
     int setBackgroundColor(const ngsRGBA& color);
     bool isBackgroundChanged() const;
+
+protected:
     void setBackgroundChanged(bool bkChanged);
 
 protected:

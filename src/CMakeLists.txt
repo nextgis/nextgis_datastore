@@ -34,7 +34,11 @@ if(OPENGLES2_FOUND)
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
 endif()
 
-option (BUILD_SHARED_LIBS "Build as dynamic library" ON)
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/ds
+        ${CMAKE_CURRENT_SOURCE_DIR}/map
+        ${CMAKE_CURRENT_SOURCE_DIR}/util)
 
 set(HHEADERS
     version.h
@@ -43,37 +47,23 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-    datastore.h
-    dataset.h
-    rasterdataset.h
-    mapstore.h
-    constants.h
-    table.h
-    map.h
-    maptransform.h
-    mapview.h
-    matrix.h
-    glview.h
 )
 
 set(CSOURCES
     api.cpp
-    datastore.cpp
-    dataset.cpp
-    rasterdataset.cpp
-    mapstore.cpp
-    table.cpp
-    map.cpp
-    maptransform.cpp
-    mapview.cpp
-    matrix.cpp
-    glview.cpp
 )
 
 if(UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
 endif()
+
+set(OBJ_LIBRARIES)
+add_subdirectory (ds)
+add_subdirectory (map)
+add_subdirectory (util)
 
 set(LIB_NAME)
 if(BUILD_SHARED_LIBS)
@@ -96,7 +86,8 @@ else()
     endif()
 endif()
 
-add_library(${LIB_NAME} ${LIB_TYPE} ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
+add_library(${LIB_NAME} ${LIB_TYPE} ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV}
+    ${OBJ_LIBRARIES})
 
 if(BUILD_SHARED_LIBS)
     if(WIN32)

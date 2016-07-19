@@ -32,9 +32,20 @@
 
 namespace ngs {
 
+void LoadingThread(void * store);
+
 using namespace std;
 
+class DataStore;
+
 typedef shared_ptr< OGRLayer > ResultSetPtr;
+typedef shared_ptr<DataStore> DataStorePtr;
+typedef struct _loadData {
+    DataStorePtr ds;
+    CPLString subDatasetName;
+    const ngsProgressFunc &progressFunc;
+    void *progressArguments;
+} LoadData;
 
 /**
  * @brief The main geodata storage and manipulation class
@@ -43,6 +54,7 @@ class DataStore
 {
     friend class Dataset;
     friend class Table;
+    friend void LoadingThread(void * store);
 
 public:
     enum ChangeType {
@@ -64,12 +76,16 @@ public:
     DataStore(const char* path);
     virtual ~DataStore();
     virtual int create(enum StoreType type);
-    virtual int open();
+    virtual int open(unsigned int openFlags);
     virtual int destroy();
-    virtual int openOrCreate(enum StoreType type);
+    virtual int openOrCreate(unsigned int openFlags, enum StoreType type);
     virtual int datasetCount() const;
     virtual DatasetWPtr getDataset(const char* name);
     virtual DatasetWPtr getDataset(int index);
+    virtual int loadDataset(const char* path, const char* subDatasetName,
+                            const ngsProgressFunc &progressFunc,
+                            void* progressArguments = nullptr);
+    CPLString getName() const;
 public:
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
@@ -83,14 +99,20 @@ protected:
 
     virtual ResultSetPtr executeSQL(const char* statement) const;
     static GDALDriver *getDriverForType(enum StoreType type);
+
 protected:
     CPLString m_path;
     GDALDataset *m_DS;
     map<string, DatasetPtr> m_datasources;    
     ngsNotifyFunc m_notifyFunc;
-};
 
-typedef shared_ptr<DataStore> DataStorePtr;
+    /**
+     * Load Dataset
+     */
+    CPLJoinableThread* m_hLoadThread;
+    bool m_cancelLoad;
+    vector<LoadData> m_loadData;
+};
 
 /**
  * @brief The geodata storage and manipulation class for raster, vector geodata
@@ -105,7 +127,7 @@ public:
     MobileDataStore(const char* path);
     virtual ~MobileDataStore();
     virtual int create(enum StoreType type) override;
-    virtual int open() override;
+    virtual int open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE) override;
     virtual int destroy() override;
     int createRemoteTMSRaster(const char* url, const char* name,
                               const char* alias, const char* copyright,

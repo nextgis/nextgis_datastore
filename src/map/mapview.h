@@ -26,8 +26,11 @@
 
 namespace ngs {
 
+void RenderingThread(void * view);
+
 class MapView : public Map, public MapTransform
 {
+    friend void RenderingThread(void * view);
 public:
     enum DrawStage {
         Start = 1,
@@ -44,15 +47,14 @@ public:
     bool isDisplayInit() const;
     int initDisplay();
     int errorCode() const;
-    void setDisplayInit(bool displayInit);
-    bool cancel() const;
     int initBuffer(void* buffer, int width, int height);
     int draw(const ngsProgressFunc &progressFunc, void* progressArguments = nullptr);
     DrawStage getDrawStage() const;
-    void setDrawStage(const DrawStage &drawStage);
 
-public:
+protected:
+    void setDisplayInit(bool displayInit);
     void setErrorCode(int errorCode);
+    void setDrawStage(const DrawStage &drawStage);
     void *getBufferData() const;
     int notify(double complete, const char* message);
 
