@@ -29,9 +29,11 @@ set(HHEADERS
 
 set(HHEADER_PRIV
     constants.h
+    jsondocument.h
 )
 
 set(CSOURCES
+    jsondocument.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})

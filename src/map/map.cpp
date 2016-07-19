@@ -1,29 +1,30 @@
 /******************************************************************************
-*  Project: NextGIS ...
-*  Purpose: Application for ...
-*  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*******************************************************************************
-*  Copyright (C) 2012-2016 NextGIS, info@nextgis.ru
-*
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 2 of the License, or
-*   (at your option) any later version.
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-******************************************************************************/
+ * Project:  libngstore
+ * Purpose:  NextGIS store and visualisation support library
+ * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ ******************************************************************************
+ *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+
 #include "map.h"
 #include "mapstore.h"
 #include "constants.h"
 #include "api.h"
 #include "table.h"
-
-#include "json.h"
+#include "jsondocument.h"
 
 using namespace ngs;
 
@@ -144,55 +145,21 @@ int Map::load(const char *path)
     // for both json-c and new json support.
     m_path = path;
 
-    VSILFILE* fp = VSIFOpenL(path, "rt");
-    if( fp == nullptr )
+    JSONDocument doc;
+    if(doc.load (path) != ngsErrorCodes::SUCCESS)
         return ngsErrorCodes::OPEN_FAILED;
-
-    GByte* pabyOut = nullptr;
-    if( !VSIIngestFile( fp, path, &pabyOut, nullptr, -1) ) {
-        return ngsErrorCodes::OPEN_FAILED;
+    JSONObject root = doc.getRoot ();
+    if(root.getType () == JSONObject::Object) {
+        m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
+        m_description = root.getString (MAP_DESCRIPTION, "");
+        m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,
+                                                              DEFAULT_EPSG));
+        m_minX = root.getDouble (MAP_MIN_X, DEFAULT_MIN_X);
+        m_minY = root.getDouble (MAP_MIN_Y, DEFAULT_MIN_Y);
+        m_maxX = root.getDouble (MAP_MAX_X, DEFAULT_MAX_X);
+        m_maxY = root.getDouble (MAP_MAX_Y, DEFAULT_MAX_Y);
     }
 
-    VSIFCloseL(fp);
-
-    // load from ngs.ngmd file
-    json_tokener* jstok = json_tokener_new();
-    json_object * poObj = json_tokener_parse_ex(jstok, (char*)pabyOut, -1);
-    if( jstok->err != json_tokener_success) {
-        CPLError( CE_Failure, CPLE_AppDefined,
-                  "JSON parsing error: %s (at offset %d)",
-                  json_tokener_error_desc(jstok->err), jstok->char_offset);
-        json_tokener_free(jstok);
-        return ngsErrorCodes::OPEN_FAILED;
-    }
-
-    json_object* poRootInstance = poObj;
-    if( poRootInstance && json_object_get_type(poRootInstance) == json_type_object )
-    {
-        json_object* poName = json_object_object_get(poRootInstance, MAP_NAME);
-        if( poName && json_object_get_type(poName) == json_type_string )
-            m_name = json_object_get_string(poName);
-        json_object* poDescription = json_object_object_get(poRootInstance, MAP_DESCRIPTION);
-        if( poDescription && json_object_get_type(poDescription) == json_type_string )
-            m_description = json_object_get_string(poDescription);
-        json_object* poEPSG = json_object_object_get(poRootInstance, MAP_EPSG);
-        if( poEPSG && json_object_get_type(poEPSG) == json_type_int )
-            m_epsg = json_object_get_int(poEPSG);
-        json_object* poMinX = json_object_object_get(poRootInstance, MAP_MIN_X);
-        if( poMinX && json_object_get_type(poMinX) == json_type_double )
-            m_minX = json_object_get_int(poMinX);
-        json_object* poMinY = json_object_object_get(poRootInstance, MAP_MIN_Y);
-        if( poMinY && json_object_get_type(poMinY) == json_type_double )
-            m_minY = json_object_get_int(poMinY);
-        json_object* poMaxX = json_object_object_get(poRootInstance, MAP_MAX_X);
-        if( poMaxX && json_object_get_type(poMaxX) == json_type_double )
-            m_maxX = json_object_get_int(poMaxX);
-        json_object* poMaxY = json_object_object_get(poRootInstance, MAP_MAX_Y);
-        if( poMaxY && json_object_get_type(poMaxY) == json_type_double )
-            m_maxY = json_object_get_int(poMaxY);
-
-    }
-    json_tokener_free(jstok);
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -201,36 +168,17 @@ int Map::save(const char *path)
     if(m_deleted)
         return ngsErrorCodes::SAVE_FAILED;
 
-    VSILFILE* fp = VSIFOpenL(path, "wt");
-    if( fp == NULL )
-        return ngsErrorCodes::SAVE_FAILED;
+    JSONDocument doc;
+    JSONObject root = doc.getRoot ();
+    root.add (MAP_NAME, m_name);
+    root.add (MAP_DESCRIPTION, m_description);
+    root.add (MAP_EPSG, m_epsg);
+    root.add (MAP_MIN_X, m_minX);
+    root.add (MAP_MIN_Y, m_minY);
+    root.add (MAP_MAX_X, m_maxX);
+    root.add (MAP_MAX_Y, m_maxY);
 
-    // save to *.ngmd file
-    json_object *poJsonObject = json_object_new_object();
-    json_object *poName = json_object_new_string(m_name);
-    json_object_object_add(poJsonObject, MAP_NAME, poName);
-    json_object *poDescription = json_object_new_string(m_description);
-    json_object_object_add(poJsonObject, MAP_DESCRIPTION, poDescription);
-    json_object *poEPSG = json_object_new_int (m_epsg);
-    json_object_object_add(poJsonObject, MAP_EPSG, poEPSG);
-    json_object *poMinX = json_object_new_double (m_minX);
-    json_object_object_add(poJsonObject, MAP_MIN_X, poMinX);
-    json_object *poMinY = json_object_new_double (m_minY);
-    json_object_object_add(poJsonObject, MAP_MIN_Y, poMinY);
-    json_object *poMaxX = json_object_new_double (m_maxX);
-    json_object_object_add(poJsonObject, MAP_MAX_X, poMaxX);
-    json_object *poMaxY = json_object_new_double (m_maxY);
-    json_object_object_add(poJsonObject, MAP_MAX_Y, poMaxY);
-
-
-    const char* data = json_object_to_json_string_ext(poJsonObject,
-                                                      JSON_C_TO_STRING_PRETTY);
-    VSIFWriteL(data, 1, strlen(data), fp);
-    json_object_put(poJsonObject);
-
-    VSIFCloseL(fp);
-
-    return ngsErrorCodes::SUCCESS;
+    return doc.save (path);
 }
 
 int Map::destroy()
