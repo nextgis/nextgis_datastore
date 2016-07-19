@@ -220,9 +220,8 @@ MobileDataStore::~MobileDataStore()
 
 int MobileDataStore::create(enum StoreType type)
 {
-    int result = DataStore::create(type);
-    if(result != ngsErrorCodes::SUCCESS)
-        return result;
+    if(m_path.empty())
+        return ngsErrorCodes::PATH_NOT_SPECIFIED;
 
     CPLString dir = CPLGetPath (m_path);
     if(dir.empty ()) {
@@ -232,16 +231,25 @@ int MobileDataStore::create(enum StoreType type)
 
 
     // create folder if not exist
-    if( VSIMkdir( dir, 0755 ) != 0 ) {
+    if( CPLCheckForFile ((char*)dir.c_str (), nullptr) == FALSE &&
+            VSIMkdir( dir, 0755 ) != 0 ) {
         return ngsErrorCodes::CREATE_FAILED;
     }
+
+    int result = DataStore::create(type);
+    if(result != ngsErrorCodes::SUCCESS)
+        return result;
+
+
 
     // create folder for external images and other stuff if not exist
     // if db name is ngs.gpkg folder shoudl be names ngs.data
     CPLString baseName = CPLGetBasename (m_path);
     m_dataPath = CPLFormFilename(dir, baseName, "data");
-    if( VSIMkdir( m_dataPath.c_str (), 0755 ) != 0 ) {
-        return ngsErrorCodes::CREATE_FAILED;
+    if( CPLCheckForFile ((char*)m_dataPath.c_str (), nullptr) == FALSE) {
+            if( VSIMkdir( m_dataPath.c_str (), 0755 ) != 0 ) {
+                return ngsErrorCodes::CREATE_FAILED;
+        }
     }
 
     // create system tables
@@ -294,6 +302,8 @@ int MobileDataStore::open()
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     if(nullptr == pRasterLayer)
         return ngsErrorCodes::INVALID;
+
+    setDataPath ();
 
     return ngsErrorCodes::SUCCESS;
 }
@@ -399,8 +409,7 @@ DatasetWPtr MobileDataStore::getDataset(int index)
             // skip system tables
             if(EQUAL (pLayer->GetName (), METHADATA_TABLE_NAME) ||
                EQUAL (pLayer->GetName (), ATTACHEMENTS_TABLE_NAME) ||
-               EQUAL (pLayer->GetName (), RASTERS_TABLE_NAME) ||
-               EQUAL (pLayer->GetName (), MAPS_TABLE_NAME) )
+               EQUAL (pLayer->GetName (), RASTERS_TABLE_NAME) )
                 continue;
             if(counter == index)
                 return getDataset (pLayer->GetName());
@@ -416,14 +425,14 @@ DatasetWPtr MobileDataStore::getDataset(int index)
 
 int MobileDataStore::destroy()
 {
+    setDataPath ();
     // Unlink some folders with external rasters adn etc.
     if(!m_dataPath.empty()) {
         if(CPLUnlinkTree(m_dataPath) != 0){
             return ngsErrorCodes::DELETE_FAILED;
         }
     }
-    return CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
-                                                  ngsErrorCodes::DELETE_FAILED;
+    return DataStore::destroy ();
 }
 
 int MobileDataStore::createMetadataTable()
@@ -545,6 +554,17 @@ int MobileDataStore::upgrade(int /* oldVersion */)
 {
     // no structure changes for version 1
     return ngsErrorCodes::SUCCESS;
+}
+
+void MobileDataStore::setDataPath()
+{
+    if(m_dataPath.empty ()) {
+        CPLString baseName = CPLGetBasename (m_path);
+        CPLString dir = CPLGetPath (m_path);
+        m_dataPath = CPLFormFilename(dir, baseName, "data");
+        if( CPLCheckForFile ((char*)m_dataPath.c_str (), nullptr) == FALSE)
+            m_dataPath.clear();
+    }
 }
 
 int MobileDataStore::destroyDataset(Dataset::Type type, const CPLString &name)

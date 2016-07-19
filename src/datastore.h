@@ -122,6 +122,7 @@ protected:
     int createRastersTable();
     int createAttachmentsTable();
     int upgrade(int oldVersion);
+    void setDataPath();
 
 protected:
     virtual int destroyDataset(enum Dataset::Type type, const CPLString &name) override;

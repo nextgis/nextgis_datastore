@@ -107,7 +107,7 @@ TEST(MapTests, TestDrawing) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     unsigned char buffer[480 * 640 * 4];
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640), ngsErrorCodes::SUCCESS);
     ngs::MapWPtr map = mapStore.getMap (0);
     EXPECT_EQ(map.expired (), false);
     ngs::MapPtr defMap = map.lock ();

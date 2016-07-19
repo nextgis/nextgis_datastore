@@ -32,17 +32,17 @@ void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long 
 
 TEST(StoreTests, TestCreate) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
-    ngs::MobileDataStore storage("./tmp");
+    ngs::MobileDataStore storage("./tmp/ngs.gpkg");
     EXPECT_EQ(storage.create (ngs::DataStore::GPKG), ngsErrorCodes::SUCCESS);
 }
 
 TEST(StoreTests, TestOpen) {
-    ngs::MobileDataStore storage("./tmp");
+    ngs::MobileDataStore storage("./tmp/ngs.gpkg");
     EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
 }
 
 TEST(StoreTests, TestCreateTMS){
-    ngs::MobileDataStore storage("./tmp");
+    ngs::MobileDataStore storage("./tmp/ngs.gpkg");
     EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(storage.datasetCount (), 0);
     counter = 0;
@@ -56,7 +56,7 @@ TEST(StoreTests, TestCreateTMS){
 }
 
 TEST(StoreTests, TestDeleteTMS){
-    ngs::MobileDataStore storage("./tmp");
+    ngs::MobileDataStore storage("./tmp/ngs.gpkg");
     EXPECT_EQ(storage.open (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(storage.datasetCount (), 1);
     counter = 0;
@@ -69,8 +69,9 @@ TEST(StoreTests, TestDeleteTMS){
 }
 
 TEST(StoreTests, TestDelete) {
-    ngs::MobileDataStore storage("./tmp");
+    ngs::MobileDataStore storage("./tmp/ngs.gpkg");
     EXPECT_EQ(storage.destroy (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(CSLCount(CPLReadDir("./tmp")), 2); // . and ..
     ngsUninit();
 }
 

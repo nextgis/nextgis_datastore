@@ -28,12 +28,10 @@
 
 // Structure
 #define MAIN_DATABASE "ngs.gpkg"
-#define METHADATA_TABLE_NAME "ngs_meta"
-#define ATTACHEMENTS_TABLE_NAME "ngs_attach"
-#define RASTERS_TABLE_NAME "ngs_raster"
-#define MAPS_TABLE_NAME "ngs_maps"
-#define LAYERS_TABLE_NAME "ngs_layers"
-#define SYS_TABLE_COUNT 5
+#define METHADATA_TABLE_NAME "ngs_meta"         // 1
+#define ATTACHEMENTS_TABLE_NAME "ngs_attach"    // 2
+#define RASTERS_TABLE_NAME "ngs_raster"         // 3
+#define SYS_TABLE_COUNT 3
 
 // Metadata
 #define META_KEY "key"
@@ -81,6 +79,7 @@
 #define DEFAULT_MIN_X -DEFAULT_MAX_X
 #define DEFAULT_MIN_Y -DEFAULT_MAX_Y
 #define DEFAULT_RATIO DEFAULT_MAX_X / DEFAULT_MAX_Y
+#define MAP_DOCUMENT_EXT "ngmd"
 
 // Layers
 #define MAP_ID "map_id"

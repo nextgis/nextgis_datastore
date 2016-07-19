@@ -140,9 +140,59 @@ void Map::setMaxY(double maxY)
 
 int Map::load(const char *path)
 {
+    // TODO: need to switch to SAX json reader/writer, need abstract json class
+    // for both json-c and new json support.
     m_path = path;
 
-    // TODO: load from ngs.ngp file
+    VSILFILE* fp = VSIFOpenL(path, "rt");
+    if( fp == nullptr )
+        return ngsErrorCodes::OPEN_FAILED;
+
+    GByte* pabyOut = nullptr;
+    if( !VSIIngestFile( fp, path, &pabyOut, nullptr, -1) ) {
+        return ngsErrorCodes::OPEN_FAILED;
+    }
+
+    VSIFCloseL(fp);
+
+    // load from ngs.ngmd file
+    json_tokener* jstok = json_tokener_new();
+    json_object * poObj = json_tokener_parse_ex(jstok, (char*)pabyOut, -1);
+    if( jstok->err != json_tokener_success) {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "JSON parsing error: %s (at offset %d)",
+                  json_tokener_error_desc(jstok->err), jstok->char_offset);
+        json_tokener_free(jstok);
+        return ngsErrorCodes::OPEN_FAILED;
+    }
+
+    json_object* poRootInstance = poObj;
+    if( poRootInstance && json_object_get_type(poRootInstance) == json_type_object )
+    {
+        json_object* poName = json_object_object_get(poRootInstance, MAP_NAME);
+        if( poName && json_object_get_type(poName) == json_type_string )
+            m_name = json_object_get_string(poName);
+        json_object* poDescription = json_object_object_get(poRootInstance, MAP_DESCRIPTION);
+        if( poDescription && json_object_get_type(poDescription) == json_type_string )
+            m_description = json_object_get_string(poDescription);
+        json_object* poEPSG = json_object_object_get(poRootInstance, MAP_EPSG);
+        if( poEPSG && json_object_get_type(poEPSG) == json_type_int )
+            m_epsg = json_object_get_int(poEPSG);
+        json_object* poMinX = json_object_object_get(poRootInstance, MAP_MIN_X);
+        if( poMinX && json_object_get_type(poMinX) == json_type_double )
+            m_minX = json_object_get_int(poMinX);
+        json_object* poMinY = json_object_object_get(poRootInstance, MAP_MIN_Y);
+        if( poMinY && json_object_get_type(poMinY) == json_type_double )
+            m_minY = json_object_get_int(poMinY);
+        json_object* poMaxX = json_object_object_get(poRootInstance, MAP_MAX_X);
+        if( poMaxX && json_object_get_type(poMaxX) == json_type_double )
+            m_maxX = json_object_get_int(poMaxX);
+        json_object* poMaxY = json_object_object_get(poRootInstance, MAP_MAX_Y);
+        if( poMaxY && json_object_get_type(poMaxY) == json_type_double )
+            m_maxY = json_object_get_int(poMaxY);
+
+    }
+    json_tokener_free(jstok);
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -151,9 +201,34 @@ int Map::save(const char *path)
     if(m_deleted)
         return ngsErrorCodes::SAVE_FAILED;
 
-    // TODO: save to ngs.ngp file
-    //json_object_to_json_string_ext(poJsonObject, JSON_C_TO_STRING_PRETTY));
-    //json_object_put(poJsonObject);
+    VSILFILE* fp = VSIFOpenL(path, "wt");
+    if( fp == NULL )
+        return ngsErrorCodes::SAVE_FAILED;
+
+    // save to *.ngmd file
+    json_object *poJsonObject = json_object_new_object();
+    json_object *poName = json_object_new_string(m_name);
+    json_object_object_add(poJsonObject, MAP_NAME, poName);
+    json_object *poDescription = json_object_new_string(m_description);
+    json_object_object_add(poJsonObject, MAP_DESCRIPTION, poDescription);
+    json_object *poEPSG = json_object_new_int (m_epsg);
+    json_object_object_add(poJsonObject, MAP_EPSG, poEPSG);
+    json_object *poMinX = json_object_new_double (m_minX);
+    json_object_object_add(poJsonObject, MAP_MIN_X, poMinX);
+    json_object *poMinY = json_object_new_double (m_minY);
+    json_object_object_add(poJsonObject, MAP_MIN_Y, poMinY);
+    json_object *poMaxX = json_object_new_double (m_maxX);
+    json_object_object_add(poJsonObject, MAP_MAX_X, poMaxX);
+    json_object *poMaxY = json_object_new_double (m_maxY);
+    json_object_object_add(poJsonObject, MAP_MAX_Y, poMaxY);
+
+
+    const char* data = json_object_to_json_string_ext(poJsonObject,
+                                                      JSON_C_TO_STRING_PRETTY);
+    VSIFWriteL(data, 1, strlen(data), fp);
+    json_object_put(poJsonObject);
+
+    VSIFCloseL(fp);
 
     return ngsErrorCodes::SUCCESS;
 }
