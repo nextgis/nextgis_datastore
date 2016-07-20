@@ -157,7 +157,7 @@ bool DatasetContainer::isNameValid(const CPLString &name) const
 }
 
 int DatasetContainer::loadDataset(const CPLString& path, const
-                                  CPLString& subDatasetName,
+                                  CPLString& subDatasetName, bool move,
                                   ngsProgressFunc progressFunc,
                                   void* progressArguments)
 {

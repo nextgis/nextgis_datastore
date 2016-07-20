@@ -458,21 +458,6 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
 }
 
 /**
- * @brief Load raster file to storage. Maybe georectify raster in 3857 spatial
- *        reference or NGM v.1 and v.2 zip with tiles
- * @param path Path to file in OS
- * @param name Layer name, only alpha, numeric and underline
- * @param alias Layer alias name. User readable text
- * @param move Move data to storage or copy
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-int ngsLoadRaster(const char */*path*/, const char */*name*/,
-                  const char */*alias*/, bool /*move*/)
-{
-    return ngsErrorCodes::SUCCESS;
-}
-
-/**
  * @brief Inititialise map with buffer and it size in pixels
  * @param mapId Map id received from create or open map functions
  * @param buffer Pointer to buffer. Size should be enouth to store image data width x height
@@ -603,3 +588,19 @@ int ngsSaveMap(unsigned int mapId, const char *path)
     return gMapStore->saveMap (mapId, path);
 }
 
+/**
+ * @brief ngsLoad
+ * @param path Path to file in OS
+ * @param name Layer name, only alpha, numeric and underline
+ * @param move Move data to storage or copy
+ * @param callback Progress function
+ * @param callbackData Progress function arguments
+ * @return  ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsLoad(const char *path, const char *name, bool move,
+            ngsProgressFunc callback, void *callbackData)
+{
+    if(nullptr != gDataStore)
+        return gDataStore->loadDataset (path, name, move, callback, callbackData);
+    return ngsErrorCodes::INSERT_FAILED;
+}

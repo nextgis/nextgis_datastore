@@ -45,7 +45,7 @@ public:
     virtual DatasetWPtr getDataset(const CPLString& name);
     virtual DatasetWPtr getDataset(int index);
     int loadDataset(const CPLString& path, const CPLString& subDatasetName,
-                            ngsProgressFunc progressFunc,
+                            bool move, ngsProgressFunc progressFunc,
                             void* progressArguments = nullptr);
 protected:
     bool isNameValid(const CPLString& name) const;
