@@ -18,42 +18,19 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef TABLE_H
-#define TABLE_H
+#ifndef SPATIALDATASET_H
+#define SPATIALDATASET_H
 
 #include "dataset.h"
-#include "ogrsf_frmts.h"
 
 namespace ngs {
 
-class FeaturePtr : public shared_ptr< OGRFeature >
+class SpatialDataset : public virtual Dataset
 {
 public:
-    FeaturePtr(OGRFeature* pFeature);
-    FeaturePtr();
-    FeaturePtr& operator=(OGRFeature* pFeature);
-    operator OGRFeature*() const;
-};
-
-class Table : public virtual Dataset
-{
-public:
-    Table(OGRLayer * const layer);
-    FeaturePtr createFeature() const;
-    FeaturePtr getFeature(GIntBig id) const;
-    int insertFeature(const FeaturePtr& feature);
-    int updateFeature(const FeaturePtr& feature);
-    int deleteFeature(GIntBig id);
-    GIntBig featureCount(bool force = true) const;
-    void reset() const;
-    FeaturePtr nextFeature() const;
-    ResultSetPtr executeSQL(const CPLString& statement,
-                            const CPLString& dialect = "") const;
-    virtual int destroy(ngsProgressFunc progressFunc = nullptr,
-                void* progressArguments = nullptr);
-protected:
-    OGRLayer * const m_layer;
+    SpatialDataset();
 };
 
 }
-#endif // TABLE_H
+
+#endif // SPATIALDATASET_H

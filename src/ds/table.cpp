@@ -1,22 +1,23 @@
 /******************************************************************************
-*  Project: NextGIS ...
-*  Purpose: Application for ...
-*  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*******************************************************************************
-*  Copyright (C) 2012-2016 NextGIS, info@nextgis.ru
-*
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 2 of the License, or
-*   (at your option) any later version.
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-******************************************************************************/
+ * Project:  libngstore
+ * Purpose:  NextGIS store and visualisation support library
+ * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ ******************************************************************************
+ *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 #include "table.h"
 #include "api.h"
 #include "datastore.h"
@@ -53,11 +54,12 @@ FeaturePtr::operator OGRFeature *() const
 // Table
 //------------------------------------------------------------------------------
 
-Table::Table(OGRLayer* const layer, DataStore * datastore,
-             const string& name, const string& alias) :
-    Dataset(datastore, name, alias), m_layer(layer)
+Table::Table(OGRLayer * const layer) : Dataset(), m_layer(layer)
 {
     m_type = TABLE;
+    m_opened = true;
+    if(layer)
+        m_name = layer->GetName ();
 }
 
 FeaturePtr Table::createFeature() const
@@ -88,34 +90,30 @@ FeaturePtr Table::getFeature(GIntBig id) const
 
 int Table::insertFeature(const FeaturePtr &feature)
 {
-    int nReturnCode = ngsErrorCodes::INSERT_FAILED;
-    if(m_deleted)
-        return nReturnCode;
+   if(m_deleted)
+        return ngsErrorCodes::INSERT_FAILED;
 
-    OGRErr eErr = m_layer->CreateFeature(feature);
-    if(eErr == OGRERR_NONE)
-        nReturnCode = ngsErrorCodes::SUCCESS;
+    int nReturnCode = m_layer->CreateFeature(feature) == OGRERR_NONE ?
+                ngsErrorCodes::SUCCESS : ngsErrorCodes::INSERT_FAILED;
 
     // notify datasource changed
-    m_datastore->notifyDatasetChanged(DataStore::ADD_FEATURE, name(),
-                                         feature->GetFID());
+    if(nReturnCode == ngsErrorCodes::SUCCESS)
+        notifyDatasetChanged(Dataset::ADD_FEATURE, name(), feature->GetFID());
 
     return nReturnCode;
 }
 
 int Table::updateFeature(const FeaturePtr &feature)
 {
-    int nReturnCode = ngsErrorCodes::INSERT_FAILED;
     if(m_deleted)
-        return nReturnCode;
+        return ngsErrorCodes::UPDATE_FAILED;
 
-    OGRErr eErr = m_layer->SetFeature(feature);
-    if(eErr == OGRERR_NONE)
-        nReturnCode = ngsErrorCodes::SUCCESS;
+    int nReturnCode = m_layer->SetFeature(feature) == OGRERR_NONE ?
+                ngsErrorCodes::SUCCESS : ngsErrorCodes::UPDATE_FAILED;
 
     // notify datasource changed
-    m_datastore->notifyDatasetChanged(DataStore::CHANGE_FEATURE, name(),
-                                         feature->GetFID());
+    if(nReturnCode == ngsErrorCodes::SUCCESS)
+        notifyDatasetChanged(Dataset::CHANGE_FEATURE, name(), feature->GetFID());
 
     return nReturnCode;
 }
@@ -124,8 +122,14 @@ int Table::deleteFeature(GIntBig id)
 {
     if(m_deleted)
         return ngsErrorCodes::DELETE_FAILED;
-    return m_layer->DeleteFeature (id) == OGRERR_NONE ? ngsErrorCodes::SUCCESS :
-                                                        ngsErrorCodes::DELETE_FAILED;
+
+    int nReturnCode = m_layer->DeleteFeature (id) == OGRERR_NONE ?
+                ngsErrorCodes::SUCCESS : ngsErrorCodes::DELETE_FAILED;
+    // notify datasource changed
+    if(nReturnCode == ngsErrorCodes::SUCCESS)
+        notifyDatasetChanged(Dataset::DELETE_FEATURE, name(), id);
+
+    return nReturnCode;
 }
 
 GIntBig Table::featureCount(bool force) const
@@ -147,4 +151,29 @@ FeaturePtr Table::nextFeature() const
     if(m_deleted)
         return FeaturePtr();
     return m_layer->GetNextFeature ();
+}
+
+ResultSetPtr Table::executeSQL(const CPLString &statement,
+                               const CPLString &dialect) const
+{
+    return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, dialect ));
+}
+
+int Table::destroy(ngsProgressFunc progressFunc, void *progressArguments)
+{
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Deleting %s", name().c_str ()),
+                     progressArguments);
+    for(int i = 0; i < m_DS->GetLayerCount (); ++i){
+        if(m_DS->GetLayer (i) == m_layer) {
+            m_DS->DeleteLayer (i);
+            m_deleted = true;
+            if(progressFunc)
+                progressFunc(1, CPLSPrintf ("Deleted %s", name().c_str ()),
+                             progressArguments);
+
+            return ngsErrorCodes::SUCCESS;
+        }
+    }
+    return ngsErrorCodes::DELETE_FAILED;
 }

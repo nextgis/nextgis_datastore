@@ -18,42 +18,48 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef TABLE_H
-#define TABLE_H
+#ifndef DATASETCONTAINER_H
+#define DATASETCONTAINER_H
 
 #include "dataset.h"
-#include "ogrsf_frmts.h"
 
 namespace ngs {
 
-class FeaturePtr : public shared_ptr< OGRFeature >
-{
-public:
-    FeaturePtr(OGRFeature* pFeature);
-    FeaturePtr();
-    FeaturePtr& operator=(OGRFeature* pFeature);
-    operator OGRFeature*() const;
-};
+void LoadingThread(void * store);
 
-class Table : public virtual Dataset
+typedef struct _loadData {
+    DatasetPtr ds;
+    // ? CPLString subDatasetName;
+    ngsProgressFunc progressFunc;
+    void *progressArguments;
+} LoadData;
+
+class DatasetContainer : public Dataset
 {
+    friend void LoadingThread(void * store);
 public:
-    Table(OGRLayer * const layer);
-    FeaturePtr createFeature() const;
-    FeaturePtr getFeature(GIntBig id) const;
-    int insertFeature(const FeaturePtr& feature);
-    int updateFeature(const FeaturePtr& feature);
-    int deleteFeature(GIntBig id);
-    GIntBig featureCount(bool force = true) const;
-    void reset() const;
-    FeaturePtr nextFeature() const;
-    ResultSetPtr executeSQL(const CPLString& statement,
-                            const CPLString& dialect = "") const;
-    virtual int destroy(ngsProgressFunc progressFunc = nullptr,
-                void* progressArguments = nullptr);
+    DatasetContainer();
+    virtual ~DatasetContainer();
+    virtual int datasetCount() const;
+    virtual int rasterCount() const;
+    virtual DatasetWPtr getDataset(const CPLString& name);
+    virtual DatasetWPtr getDataset(int index);
+    int loadDataset(const CPLString& path, const CPLString& subDatasetName,
+                            ngsProgressFunc progressFunc,
+                            void* progressArguments = nullptr);
 protected:
-    OGRLayer * const m_layer;
+    bool isNameValid(const CPLString& name) const;
+
+protected:
+    map<string, DatasetPtr> m_datasets;
+    /**
+     * Load Dataset
+     */
+    CPLJoinableThread* m_hLoadThread;
+    bool m_cancelLoad;
+    vector<LoadData> m_loadData;
 };
 
 }
-#endif // TABLE_H
+
+#endif // DATASETCONTAINER_H

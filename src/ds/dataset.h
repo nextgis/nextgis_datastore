@@ -21,14 +21,35 @@
 #ifndef DATASET_H
 #define DATASET_H
 
-#include <string>
+#include "api.h"
+
+#include "cpl_string.h"
+#include "ogrsf_frmts.h"
+#include "gdal_frmts.h"
+
 #include <memory>
 
 namespace ngs {
 
 using namespace std;
 
-class DataStore;
+typedef shared_ptr< OGRLayer > ResultSetPtr;
+
+/**
+ * @brief The GDALDatasetPtr class Wrapper class for GDALDataset
+ */
+class GDALDatasetPtr : public shared_ptr< GDALDataset >
+{
+public:
+    GDALDatasetPtr(GDALDataset* ds);
+    GDALDatasetPtr();
+    GDALDatasetPtr& operator=(GDALDataset* pFeature);
+    operator GDALDataset*() const;
+};
+
+class Dataset;
+typedef shared_ptr<Dataset> DatasetPtr;
+typedef weak_ptr<Dataset> DatasetWPtr;
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
@@ -40,34 +61,82 @@ class Dataset
 public:
     enum Type {
         UNDEFINED,
+        CONTAINER,
         TABLE,
-        REMOTE_TMS,
-        LOCAL_TMS,
-        LOCAL_RASTER,
-        WMS,
-        WFS,
-        NGW_IMAGE
+        FEATURESET,
+        RASTER
+    };
+
+    enum ChangeType {
+        ADD_FEATURE = ngsChangeCodes::CREATE_FEATURE,
+        CHANGE_FEATURE = ngsChangeCodes::CHANGE_FEATURE,
+        DELETE_FEATURE = ngsChangeCodes::DELETE_FEATURE,
+        DELETEALL_FEATURES = ngsChangeCodes::DELETEALL_FEATURES,
+        ADD_ATTACHMENT = ngsChangeCodes::CREATE_ATTACHMENT,
+        CHANGE_ATTACHMENT = ngsChangeCodes::CHANGE_ATTACHMENT,
+        DELETE_ATTACHMENT = ngsChangeCodes::DELETE_ATTACHMENT,
+        DELETEALL_ATTACHMENTS = ngsChangeCodes::DELETEALL_ATTACHMENTS,
+        ADD_DATASET,
+        CHANGE_DATASET,
+        DELETE_DATASET
     };
 public:
-    Dataset(DataStore * datastore,
-            const string& name, const string& alias = "");
-    Type type() const;
-    string name() const;
-    string alias() const;
-    int destroy();
+    Dataset();
+    virtual ~Dataset();
 
+    // base properties
+    Type type() const;
+
+    CPLString name() const;
+    CPLString path() const;
+
+    // is checks
     bool isDeleted() const;
+    bool isOpened() const;
+    bool isReadOnly() const;
+
+    // can checks
+    bool canDelete(void);
+    bool canRename(void);
+    bool canCopy(const CPLString &destPath);
+    bool canMove(const CPLString &destPath);
+
+    // base operations
+    virtual int destroy(ngsProgressFunc progressFunc = nullptr,
+                void* progressArguments = nullptr);
+    /* TODO: release this
+    int rename(const CPLString &newName, ngsProgressFunc progressFunc = nullptr,
+               void* progressArguments = nullptr);
+    int move(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
+             void* progressArguments = nullptr);
+    int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
+             void* progressArguments = nullptr);
+    */
+
+    // static functions
+    static DatasetPtr create(const CPLString& path, const CPLString& driver,
+                             char **options = nullptr);
+    static DatasetPtr open(const CPLString& path,  unsigned int openFlags,
+                           char **options = nullptr);
+
+    // notifications
+    void setNotifyFunc(ngsNotifyFunc notifyFunc);
+    void unsetNotifyFunc();
+protected:
+    virtual void setName(const CPLString& path);
+    void notifyDatasetChanged(enum ChangeType changeType,
+                              const CPLString &name, long id);
+    static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
 
 protected:
     enum Type m_type;
-    const string m_name;
-    string m_alias;
+    CPLString m_name, m_path;
     bool m_deleted;
-    DataStore * const m_datastore;
+    bool m_opened;
+    bool m_readOnly;
+    GDALDatasetPtr m_DS;
+    ngsNotifyFunc m_notifyFunc;
 };
-
-typedef shared_ptr<Dataset> DatasetPtr;
-typedef weak_ptr<Dataset> DatasetWPtr;
 
 }
 

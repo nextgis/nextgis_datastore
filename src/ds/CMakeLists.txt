@@ -30,6 +30,9 @@ set(HHEADERS
 set(HHEADER_PRIV
     datastore.h
     dataset.h
+    datasetcontainer.h
+    spatialdataset.h
+    featuredataset.h
     rasterdataset.h
     table.h
 )
@@ -37,6 +40,9 @@ set(HHEADER_PRIV
 set(CSOURCES
     datastore.cpp
     dataset.cpp
+    datasetcontainer.cpp
+    spatialdataset.cpp
+    featuredataset.cpp
     rasterdataset.cpp
     table.cpp
 )

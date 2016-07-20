@@ -26,6 +26,9 @@
 
 namespace ngs {
 
+/**
+ * @brief The JSONObject class JSON object from JSONDocument
+ */
 class JSONObject
 {
 public:
@@ -52,6 +55,9 @@ protected:
     json_object *m_jsonObject;
 };
 
+/**
+ * @brief The JSONDocument class Wrapper class around json-c library
+ */
 class JSONDocument
 {
 public:
@@ -60,6 +66,13 @@ public:
     int save(const char* path);
     JSONObject getRoot();
     int load(const char* path);
+
+    // TODO: add JSONObject reader(stream);
+    // JsonReader reader = new JsonReader(new InputStreamReader(in, "UTF-8"));
+    // reader.beginObject()
+    // while (reader.hasNext())
+    // String name = reader.nextName()
+    // reader.beginArray();
 protected:
     json_object *m_rootJsonObject;
 };

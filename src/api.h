@@ -66,7 +66,8 @@ enum ngsChangeCodes {
 enum ngsSourceCodes {
     UNDEFINED = 0,
     DATA_STORE,
-    MAP_STORE
+    MAP_STORE,
+    DATASET
 };
 
 /**

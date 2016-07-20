@@ -94,14 +94,12 @@ static string gFormats;
 
 int ngsInitDataStore(const char *path)
 {
-    gDataStore.reset(new MobileDataStore(path));
-    int nResult = gDataStore->openOrCreate (GDAL_OF_SHARED|GDAL_OF_UPDATE,
-                                            DataStore::GPKG);
-    if(nResult != ngsErrorCodes::SUCCESS) {
-        gDataStore.reset();
-    }
-
-    return nResult;
+    if(gDataStore && gDataStore->path().compare (path) == 0)
+        return ngsErrorCodes::SUCCESS;
+    gDataStore = DataStore::openOrCreate(path);
+    if(nullptr == gDataStore)
+        return ngsErrorCodes::OPEN_FAILED;
+    return ngsErrorCodes::SUCCESS;
 }
 
 void initMapStore()
@@ -429,8 +427,7 @@ int ngsDestroyDataStore(const char *path, const char *cachePath)
             return ngsErrorCodes::DELETE_FAILED;
         }
     }
-    gDataStore.reset(new MobileDataStore(path));
-
+    ngsInitDataStore(path);
     return gDataStore->destroy ();
 }
 
@@ -453,10 +450,8 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
     if(z_max == 0)
         z_max = 18;
 
-    MobileDataStore* pMDataStore = static_cast<MobileDataStore*>(
-                gDataStore.get ());
-    if(pMDataStore)
-        return pMDataStore->createRemoteTMSRaster(url, name, alias, copyright,
+    if(gDataStore)
+        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
                                             epsg, z_min, z_max, y_origin_top);
 
     return ngsErrorCodes::CREATE_FAILED;

@@ -22,16 +22,7 @@
 
 using namespace ngs;
 
-RasterDataset::RasterDataset(DataStore * datastore,
-                             const string& name, const string& alias) :
-    Dataset(datastore, name, alias)
+RasterDataset::RasterDataset() : SpatialDataset()
 {
 
-}
-
-RemoteTMSDataset::RemoteTMSDataset(DataStore *datastore, const string &name,
-                                   const string &alias) :
-    RasterDataset(datastore, name, alias)
-{
-    m_type = REMOTE_TMS;
 }

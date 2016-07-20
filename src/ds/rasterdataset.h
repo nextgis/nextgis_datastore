@@ -21,25 +21,17 @@
 #ifndef RASTERDATASET_H
 #define RASTERDATASET_H
 
-#include "dataset.h"
+#include "spatialdataset.h"
 
 namespace ngs {
 
 /**
  * @brief The Raster dataset class represent image or raster
  */
-class RasterDataset : public Dataset
+class RasterDataset : public SpatialDataset
 {
 public:
-    RasterDataset(DataStore * datastore,
-                  const string& name, const string& alias = "");
-};
-
-class RemoteTMSDataset : public RasterDataset
-{
-public:
-    RemoteTMSDataset(DataStore * datastore,
-                     const string& name, const string& alias = "");
+    RasterDataset();
 };
 
 }

@@ -104,7 +104,7 @@ TEST(BasicTests, TestCreate) {
 
 TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsInitDataStore(""), ngsErrorCodes::PATH_NOT_SPECIFIED);
+    EXPECT_EQ(ngsInitDataStore(""), ngsErrorCodes::OPEN_FAILED);
     EXPECT_EQ(ngsInitDataStore("./tmp/ngs.gpkg"), ngsErrorCodes::SUCCESS);
     ngsSetNotifyFunction (ngsTestNotifyFunc);
 }
