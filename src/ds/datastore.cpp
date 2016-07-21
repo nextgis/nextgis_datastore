@@ -193,9 +193,9 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
 
     feature->SetField (LAYER_URL, url);
     feature->SetField (LAYER_NAME, name);
-    // FIXME: do we neet this field?
+    // FIXME: do we need this field?
     feature->SetField (LAYER_TYPE, Dataset::RASTER);
-    // FIXME: do we neet this field?
+    // FIXME: do we need this field?
     feature->SetField (LAYER_ALIAS, alias);
     feature->SetField (LAYER_COPYING, copyright); // show on map copyright string
     feature->SetField (LAYER_EPSG, epsg);
