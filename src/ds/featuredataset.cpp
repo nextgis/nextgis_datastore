@@ -27,3 +27,17 @@ FeatureDataset::FeatureDataset(OGRLayer * const layer) : Table(layer),
 {
 
 }
+
+const OGRSpatialReference *FeatureDataset::getSpatialReference() const
+{
+    if(nullptr != m_layer)
+        return m_layer->GetSpatialRef ();
+    return nullptr;
+}
+
+OGRwkbGeometryType FeatureDataset::getGeometryType() const
+{
+    if(nullptr != m_layer)
+        return m_layer->GetGeomType ();
+    return wkbUnknown;
+}

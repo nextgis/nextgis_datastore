@@ -67,13 +67,20 @@ protected:
     static int createAttachmentsTable(GDALDatasetPtr ds);
     static int upgrade(int oldVersion, GDALDatasetPtr ds);
     void setDataPath();
-    bool isNameValid(const CPLString &name) const;
+    virtual bool isNameValid(const CPLString &name) const override;
 
 protected:
     CPLString m_dataPath;
 };
 
-
+/* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
+// 3. Analyse structure, etc,
+// 4. for each feature
+// 4.1. read
+// 4.2. create samples for several scales
+// 4.3. create feature in storage dataset
+// 4.4. create mapping of fields and original spatial reference metadata
+*/
 
 }
 

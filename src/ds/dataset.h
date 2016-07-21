@@ -86,6 +86,8 @@ public:
 
     // base properties
     Type type() const;
+    bool isVector() const;
+    bool isRaster() const;
 
     CPLString name() const;
     CPLString path() const;
@@ -98,8 +100,6 @@ public:
     // can checks
     bool canDelete(void);
     bool canRename(void);
-    bool canCopy(const CPLString &destPath);
-    bool canMove(const CPLString &destPath);
 
     // base operations
     virtual int destroy(ngsProgressFunc progressFunc = nullptr,
@@ -107,12 +107,7 @@ public:
     /* TODO: release this
     int rename(const CPLString &newName, ngsProgressFunc progressFunc = nullptr,
                void* progressArguments = nullptr);
-    int move(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
-             void* progressArguments = nullptr);
-    int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
-             void* progressArguments = nullptr);
-    */
-
+               */
     // static functions
     static DatasetPtr create(const CPLString& path, const CPLString& driver,
                              char **options = nullptr);

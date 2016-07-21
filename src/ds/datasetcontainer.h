@@ -28,8 +28,9 @@ namespace ngs {
 void LoadingThread(void * store);
 
 typedef struct _loadData {
-    DatasetPtr ds;
-    // ? CPLString subDatasetName;
+    CPLString path;
+    CPLString subDatasetName;
+    bool move;
     ngsProgressFunc progressFunc;
     void *progressArguments;
 } LoadData;
@@ -44,11 +45,35 @@ public:
     virtual int rasterCount() const;
     virtual DatasetWPtr getDataset(const CPLString& name);
     virtual DatasetWPtr getDataset(int index);
+    // TODO: getRaster
     int loadDataset(const CPLString& path, const CPLString& subDatasetName,
                             bool move, ngsProgressFunc progressFunc,
                             void* progressArguments = nullptr);
+    /* TODO: does this need here?
+    bool canCopy(const CPLString &destPath);
+    bool canMove(const CPLString &destPath);
+    */
+    /* TODO: release this
+    int move(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
+             void* progressArguments = nullptr);
+    int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
+             void* progressArguments = nullptr);
+    */
+    virtual int copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc = nullptr,
+                            void* progressArguments = nullptr);
+    virtual int moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc = nullptr,
+                            void* progressArguments = nullptr);
+    virtual DatasetWPtr createDataset(const CPLString &name,
+                                      OGRFeatureDefn *const definition,
+                                      char** options = nullptr);
+    virtual DatasetWPtr createDataset(const CPLString &name,
+                                       OGRFeatureDefn *const definition,
+                                      const OGRSpatialReference &spatialRef,
+                                      OGRwkbGeometryType type = wkbUnknown,
+                                      char** options = nullptr);
+    // TODO: createRaster()
 protected:
-    bool isNameValid(const CPLString& name) const;
+    virtual bool isNameValid(const CPLString& name) const;
 
 protected:
     map<string, DatasetPtr> m_datasets;

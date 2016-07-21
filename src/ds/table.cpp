@@ -177,3 +177,16 @@ int Table::destroy(ngsProgressFunc progressFunc, void *progressArguments)
     }
     return ngsErrorCodes::DELETE_FAILED;
 }
+
+int Table::copyRows(const Table *pSrcTable, const vector<FieldMap> &fieldMap,
+                    ngsProgressFunc progressFunc, void *progressArguments)
+{
+    return ngsErrorCodes::SUCCESS;
+}
+
+OGRFeatureDefn *Table::getDefinition() const
+{
+    if(nullptr != m_layer)
+        return m_layer->GetLayerDefn ();
+    return nullptr;
+}

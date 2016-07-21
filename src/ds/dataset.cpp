@@ -71,6 +71,16 @@ Dataset::Type Dataset::type() const
     return m_type;
 }
 
+bool Dataset::isVector() const
+{
+    return m_type == TABLE || m_type == FEATURESET;
+}
+
+bool Dataset::isRaster() const
+{
+    return m_type == RASTER;
+}
+
 CPLString Dataset::name() const
 {
     return m_name;
@@ -113,18 +123,6 @@ bool Dataset::canDelete()
 }
 
 bool Dataset::canRename()
-{
-    // TODO: correct this
-    return true;
-}
-
-bool Dataset::canCopy(const CPLString &/*destPath*/)
-{
-    // TODO: correct this
-    return true;
-}
-
-bool Dataset::canMove(const CPLString &/*destPath*/)
 {
     // TODO: correct this
     return true;

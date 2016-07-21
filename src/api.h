@@ -39,7 +39,9 @@ enum ngsErrorCodes {
     OPEN_FAILED,        /**< Faild to open file, folder or something else */
     INSERT_FAILED,      /**< insert new feature failed */
     UPDATE_FAILED,      /**< update feature failed */
-    INIT_FAILED         /**< Initialise failed */
+    INIT_FAILED,        /**< Initialise failed */
+    COPY_FAILED,        /**< Copy failed */
+    MOVE_FAILED         /**< Move failed */
 };
 
 /**
@@ -155,6 +157,8 @@ inline ngsRGBA ngsHEX2RGBA(int color){
     return out;
 }
 
+#define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
 
+// TODO: use gettext or something same to translate messages
 
 #endif // API_H

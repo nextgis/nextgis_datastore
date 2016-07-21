@@ -24,12 +24,16 @@
 #include "table.h"
 #include "spatialdataset.h"
 
+#include "ogr_spatialref.h"
+
 namespace ngs {
 
 class FeatureDataset : public Table, public SpatialDataset
 {
 public:
     FeatureDataset(OGRLayer * const layer);
+    virtual const OGRSpatialReference * getSpatialReference() const override;
+    OGRwkbGeometryType getGeometryType() const;
 };
 
 }
