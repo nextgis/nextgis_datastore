@@ -20,8 +20,33 @@
  ****************************************************************************/
 #include "datasetcontainer.h"
 #include "featuredataset.h"
+#include "stringutil.h"
+
+#include <algorithm>
+#include <array>
 
 using namespace ngs;
+
+const static array<char, 22> forbiddenChars = {{':', '@', '#', '%', '^', '&', '*',
+    '!', '$', '(', ')', '+', '-', '?', '=', '/', '\\', '"', '\'', '[', ']', ','}};
+
+const static array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTION",
+    "ADD", "AFTER", "ALL", "ALTER", "ANALYZE", "AND", "AS", "ASC", "ATTACH",
+    "AUTOINCREMENT", "BEFORE", "BEGIN", "BETWEEN", "BY", "CASCADE", "CASE",
+    "CAST", "CHECK", "COLLATE", "COLUMN", "COMMIT", "CONFLICT", "CONSTRAINT",
+    "CREATE", "CROSS", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
+    "DATABASE", "DEFAULT", "DEFERRABLE", "DEFERRED", "DELETE", "DESC", "DETACH",
+    "DISTINCT", "DROP", "EACH", "ELSE", "END", "ESCAPE", "EXCEPT", "EXCLUSIVE",
+    "EXISTS", "EXPLAIN", "FAIL", "FOR", "FOREIGN", "FROM", "FULL", "GLOB",
+    "GROUP", "HAVING", "IF", "IGNORE", "IMMEDIATE", "IN", "INDEX", "INDEXED",
+    "INITIALLY", "INNER", "INSERT", "INSTEAD", "INTERSECT", "INTO", "IS", "ISNULL",
+    "JOIN", "KEY", "LEFT", "LIKE", "LIMIT", "MATCH", "NATURAL", "NO", "NOT",
+    "NOTNULL", "NULL", "OF", "OFFSET", "ON", "OR", "ORDER", "OUTER", "PLAN",
+    "PRAGMA", "PRIMARY", "QUERY", "RAISE", "RECURSIVE", "REFERENCES", "REGEXP",
+    "REINDEX", "RELEASE", "RENAME", "REPLACE", "RESTRICT", "RIGHT", "ROLLBACK",
+    "ROW", "SAVEPOINT", "SELECT", "SET", "TABLE", "TEMP", "TEMPORARY", "THEN",
+    "TO", "TRANSACTION", "TRIGGER", "UNION", "UNIQUE", "UPDATE", "USING",
+    "VACUUM", "VALUES", "VIEW", "VIRTUAL", "WHEN", "WHERE", "WITH", "WITHOUT"}};
 
 void ngs::LoadingThread(void * store)
 {
@@ -41,10 +66,9 @@ void ngs::LoadingThread(void * store)
         DatasetPtr DS = Dataset::open (data.path, GDAL_OF_SHARED|GDAL_OF_READONLY,
                                        nullptr);
         if(nullptr == DS) {
-            if(data.progressFunc)
-                data.progressFunc(0, CPLSPrintf ("Dataset '%s' open failed",
-                            CPLGetFilename(data.path)), data.progressArguments);
-                    continue;
+            CPLError(CE_Failure, CPLE_AppDefined, "Dataset '%s' open failed.",
+                     CPLGetFilename(data.path));
+            continue;
         }
 
         if(DS->type () == Dataset::CONTAINER) {
@@ -130,6 +154,7 @@ DatasetWPtr DatasetContainer::getDataset(const CPLString &name)
         }
 
         pDataset->setNotifyFunc (m_notifyFunc);
+        pDataset->m_DS = m_DS;
         dataset.reset(pDataset);
         if(pDataset)
             m_datasets[dataset->name ()] = dataset;
@@ -153,6 +178,45 @@ DatasetWPtr DatasetContainer::getDataset(int index)
 bool DatasetContainer::isNameValid(const CPLString &name) const
 {
     return m_DS->GetLayerByName (name) == nullptr;
+}
+
+bool forbiddenChar (char c)
+{
+    return find(forbiddenChars.begin(), forbiddenChars.end(), c) !=
+            forbiddenChars.end();
+}
+
+CPLString DatasetContainer::normalizeFieldName(const CPLString &name) const
+{
+    CPLString out = translit (name); // TODO: add lang support, i.e. ru_RU)
+
+    replace_if( out.begin(), out.end(), forbiddenChar, '_');
+
+    if(isdigit (out[0]))
+        out = "Fld_" + out;
+
+    if(isDatabase ()) {
+        // check for sql forbidden names
+        if(find(forbiddenSQLFieldNames.begin (), forbiddenSQLFieldNames.end(),
+                out) != forbiddenSQLFieldNames.end()) {
+            out += "_";
+        }
+    }
+
+    return out;
+}
+
+bool DatasetContainer::isDatabase() const
+{
+    if(nullptr == m_DS)
+        return false;
+    CPLString driverName = m_DS->GetDriver ()->GetDescription ();
+    return driverName == "GPKG" || driverName == "SQLite" ||
+            driverName == "PostgreSQL" || driverName == "OpenFileGDB" ||
+            driverName == "MySQL" || driverName == "MongoDB" ||
+            driverName == "CartoDB" || driverName == "PostGISRaster" ||
+            driverName == "GNMDatabase";
+
 }
 
 int DatasetContainer::loadDataset(const CPLString& path, const
@@ -182,66 +246,85 @@ int DatasetContainer::copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
         if(counter == 10000)
             return ngsErrorCodes::UNEXPECTED_ERROR;
     }
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Copy dataset '%s' to '%s'",
+                        name.c_str (), m_name.c_str ()),
+                     progressArguments);
 
     if(srcDs->type () == TABLE) {
-        Table* srcTable = ngsDynamicCast(Table, srcDs);
+        Table* const srcTable = ngsDynamicCast(Table, srcDs);
         if(nullptr == srcTable) {
+            CPLError(CE_Failure, CPLE_AppDefined,
+                     "Source dataset '%s' report type TABLE, but it is not a table.",
+                     srcDs->name ().c_str ());
             return ngsErrorCodes::COPY_FAILED;
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
-        DatasetWPtr dstDsW = createDataset(name, srcDefinition);
+        DatasetWPtr dstDsW = createDataset(name, srcDefinition, nullptr,
+                                           progressFunc, progressArguments);
         DatasetPtr dstDs = dstDsW.lock ();
-        Table* dstTable = ngsDynamicCast(Table, dstDs);
+        Table* const dstTable = ngsDynamicCast(Table, dstDs);
         if(nullptr == dstTable) {
+            CPLError(CE_Failure, CPLE_AppDefined,
+                     "Destination dataset '%s' report type TABLE, but it is not a table.",
+                     srcDs->name ().c_str ());
             return ngsErrorCodes::COPY_FAILED;
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
         CPLAssert (srcDefinition->GetFieldCount() == dstDefinition->GetFieldCount());
         // Create fields map. We expected equil count of fields
-        vector<FieldMap> fieldMap;
+        FieldMapPtr fieldMap(static_cast<unsigned long>(
+                                 dstDefinition->GetFieldCount()));
         for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
-            fieldMap.push_back ({i, i,
-                                 dstDefinition->GetFieldDefn (i)->GetType ()});
+            fieldMap[i] = i;
         }
 
         return dstTable->copyRows(srcTable, fieldMap,
                                    progressFunc, progressArguments);
     }
     else if(srcDs->type () == FEATURESET) {
-        FeatureDataset* srcTable = ngsDynamicCast(FeatureDataset, srcDs);
+        FeatureDataset* const srcTable = ngsDynamicCast(FeatureDataset, srcDs);
         if(nullptr == srcTable) {
+            CPLError(CE_Failure, CPLE_AppDefined,
+                     "Source dataset '%s' report type FEATURESET, but it is not a "
+                     "feature class.",
+                     srcDs->name ().c_str ());
+
             return ngsErrorCodes::COPY_FAILED;
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
-        if(progressFunc)
-            progressFunc(0, CPLSPrintf ("Create new dataset '%s'",
-                            srcDs->name ().c_str ()), progressArguments);
+
         DatasetWPtr dstDsW = createDataset(name, srcDefinition,
                                       srcTable->getSpatialReference (),
-                                      srcTable->getGeometryType ());
+                                      srcTable->getGeometryType (), nullptr,
+                                           progressFunc, progressArguments);
         DatasetPtr dstDs = dstDsW.lock ();
-        FeatureDataset* dstTable = ngsDynamicCast(FeatureDataset, dstDs);
+        FeatureDataset* const dstTable = ngsDynamicCast(FeatureDataset, dstDs);
         if(nullptr == dstTable) {
+            CPLError(CE_Failure, CPLE_AppDefined,
+                     "Source dataset '%s' report type FEATURESET, but it is not a "
+                     "feature class.",
+                     srcDs->name ().c_str ());
             return ngsErrorCodes::COPY_FAILED;
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
         CPLAssert (srcDefinition.GetFieldCount() == dstDefinition.GetFieldCount());
         // Create fields map. We expected equil count of fields
-        vector<FieldMap> fieldMap;
+        FieldMapPtr fieldMap(static_cast<unsigned long>(
+                                 dstDefinition->GetFieldCount()));
         for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
-            fieldMap.push_back ({i, i,
-                                 dstDefinition->GetFieldDefn (i)->GetType ()});
+            fieldMap[i] = i;
         }
 
         return dstTable->copyRows(srcTable, fieldMap,
                                    progressFunc, progressArguments);
     }
     else { // TODO: raster and container support
-        if(progressFunc)
-            progressFunc(0, CPLSPrintf ("Dataset '%s' unsupported",
-                            srcDs->name ().c_str ()), progressArguments);
+
+        CPLError(CE_Failure, CPLE_AppDefined, "Dataset '%s' unsupported",
+                            srcDs->name ().c_str ());
         return ngsErrorCodes::UNSUPPORTED;
     }
     return ngsErrorCodes::SUCCESS;
@@ -250,6 +333,11 @@ int DatasetContainer::copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
 int DatasetContainer::moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Move dataset '%s' to '%s'",
+                        srcDs->name().c_str (), m_name.c_str ()),
+                     progressArguments);
+
     int nResult = copyDataset (srcDs, progressFunc, progressArguments);
     if(nResult != ngsErrorCodes::SUCCESS)
         return nResult;
@@ -257,111 +345,59 @@ int DatasetContainer::moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
 }
 
 DatasetWPtr DatasetContainer::createDataset(const CPLString& name,
-                                            OGRFeatureDefn * const definition,
-                                            char **options)
+                                            OGRFeatureDefn* const definition,
+                                            char **options,
+                                            ngsProgressFunc progressFunc,
+                                            void* progressArguments)
 {
-    return createDataset (name, definition, nullptr, wkbNone, options);
+    return createDataset (name, definition, nullptr, wkbNone, options,
+                          progressFunc, progressArguments);
 }
 
 DatasetWPtr DatasetContainer::createDataset(const CPLString &name,
-                                            OGRFeatureDefn * const definition,
-                                            const OGRSpatialReference &spatialRef,
+                                            OGRFeatureDefn* const definition,
+                                            const OGRSpatialReference *spatialRef,
                                             OGRwkbGeometryType type,
-                                            char **options)
+                                            char **options,
+                                            ngsProgressFunc progressFunc,
+                                            void *progressArguments)
 {
-    OGRLayer *layerDest = m_DS->CreateLayer(name, spatialRef, type, options);
-    if(poLayerDest == NULL)
-    {
-        wxString sErr = wxString::Format(_("Error create the output layer '%s'!"), sNewName.c_str());
-        wxGISLogError(sErr, wxString::FromUTF8(CPLGetLastErrorMsg()), wxEmptyString, pTrackCancel);
-
-        return NULL;
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
+                     progressArguments);
+    DatasetPtr out;
+    OGRLayer *layerDest = m_DS->CreateLayer(name,
+                                            const_cast<OGRSpatialReference*>(
+                                                spatialRef), type, options);
+    if(layerDest == nullptr) {
+        return out;
     }
 
-    CPLString szNameField, szDescField;
-    if (pFilter->GetType() == enumGISFeatureDataset)
-    {
-        if (pFilter->GetSubType() == enumVecDXF)
-        {
-            wxString sErr(_("DXF layer does not support arbitrary field creation."));
-            wxLogWarning(sErr);
-            CPLError(CE_Warning, CPLE_AppDefined, CPLString(sErr.ToUTF8()));
-            if (pTrackCancel)
-            {
-                pTrackCancel->PutMessage(sErr, wxNOT_FOUND, enumGISMessageWarning);
-            }
+    for (int i = 0; i < definition->GetFieldCount(); ++i) {
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn dstField(srcField);
+
+        // TODO: add special behaviour for different drivers (see. ogr2ogr)
+
+        dstField.SetName(normalizeFieldName(srcField->GetNameRef()));
+        if (layerDest->CreateField(&dstField) != OGRERR_NONE) {
+            return out;
         }
-        else
-        {
-            for (size_t i = 0; i < poFields->GetFieldCount(); ++i)
-            {
-                OGRFieldDefn *pField = poFields->GetFieldDefn(i);
-                OGRFieldDefn oFieldDefn(pField);
-                oFieldDefn.SetName(Transliterate(pField->GetNameRef()));
-                if (pFilter->GetSubType() == enumVecKML || pFilter->GetSubType() == enumVecKMZ)
-                {
-                    OGRFieldType nType = pField->GetType();
-                    if (OFTString == nType)
-                    {
-                        if (szNameField.empty())
-                            szNameField = pField->GetNameRef();
-                        if (szDescField.empty())
-                            szDescField = pField->GetNameRef();
-                    }
-                }
-
-                if (pFilter->GetSubType() == enumVecESRIShapefile && pField->GetType() == OFTTime)
-                {
-                    oFieldDefn.SetType(OFTString);
-                    wxString sErr(_("Unsupported type for shape file - OFTTime. Change to OFTString."));
-                    wxLogWarning(sErr);
-                    CPLError(CE_Warning, CPLE_AppDefined, CPLString(sErr.ToUTF8()));
-                    if (pTrackCancel)
-                    {
-                        pTrackCancel->PutMessage(sErr, wxNOT_FOUND, enumGISMessageWarning);
-                    }
-                }
-
-                if (poLayerDest->CreateField(&oFieldDefn) != OGRERR_NONE)
-                {
-                    wxString sErr = wxString::Format(_("Error create the output layer '%s'!"), sNewName.c_str());
-                    wxGISLogError(sErr, wxString::FromUTF8(CPLGetLastErrorMsg()), wxEmptyString, pTrackCancel);
-                    return NULL;
-                }
-            }
-            if (pFilter->GetSubType() == enumVecKML || pFilter->GetSubType() == enumVecKMZ)
-            {
-                if (!szNameField.empty())
-                    CPLSetConfigOption("LIBKML_NAME_FIELD", szNameField);
-                if (!szDescField.empty())
-                    CPLSetConfigOption("LIBKML_DESCRIPTION_FIELD", szDescField);
-                //CPLSetConfigOption( "LIBKML_TIMESTAMP_FIELD", "YES" );
-            }
-        }
-
-        // TODO: this is hack withg spatial reference for GeoJSON driver
-        wxGISFeatureDataset *pFeatureDataset = new wxGISFeatureDataset(szFullPath, pFilter->GetSubType(), poLayerDest, poDS, oSpatialRef);
-        //pFeatureDataset->
-        int nRefCount = poDS->Dereference();
-        wxASSERT_MSG(nRefCount > 0, wxT("Reference counting error"));
-        pFeatureDataset->SetEncoding(oEncoding);
-        return wxStaticCast(pFeatureDataset, wxGISDataset);
-
     }
 
-    if(nullptr != layer){
-        Dataset* pDataset = nullptr;
-        if( EQUAL(layer->GetGeometryColumn (), "")){
-            pDataset = new Table(layer);
-        }
-        else {
-            pDataset = new FeatureDataset(layer);
-        }
-
-        pDataset->setNotifyFunc (m_notifyFunc);
-        dataset.reset(pDataset);
-        if(pDataset)
-            m_datasets[dataset->name ()] = dataset;
+    Dataset* datasetDest = nullptr;
+    if( type == wkbNone) {
+        datasetDest = new Table(layerDest);
+    }
+    else {
+        datasetDest = new FeatureDataset(layerDest);
     }
 
+    datasetDest->setNotifyFunc (m_notifyFunc);
+    datasetDest->m_DS = m_DS;
+    out.reset(datasetDest);
+    if(datasetDest)
+        m_datasets[out->name ()] = out;
+
+    return out;
 }

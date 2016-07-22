@@ -18,27 +18,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef RASTERDATASET_H
-#define RASTERDATASET_H
+#ifndef STRINGUTIL_H
+#define STRINGUTIL_H
 
-#include "spatialdataset.h"
+#include "cpl_string.h"
 
-namespace ngs {
+CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
+CPLString translit(const CPLString &str, const CPLString &lang = "");
 
-/**
- * @brief The Raster dataset class represent image or raster
- */
-class RasterDataset : public SpatialDataset
-{
-public:
-    RasterDataset();
-
-
-    // SpatialDataset interface
-public:
-    virtual const OGRSpatialReference *getSpatialReference() const override;
-};
-
-}
-
-#endif // RASTERDATASET_H
+#endif // STRINGUTIL_H

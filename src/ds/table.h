@@ -26,7 +26,13 @@
 
 namespace ngs {
 
-extern OGRFeatureDefn NullFeatureDefn;
+class FieldMapPtr : public shared_ptr<int>
+{
+public:
+    FieldMapPtr(unsigned long size);
+    int &operator[](int key);
+    const int &operator[](int key) const;
+};
 
 class FeaturePtr : public shared_ptr< OGRFeature >
 {
@@ -36,13 +42,6 @@ public:
     FeaturePtr& operator=(OGRFeature* pFeature);
     operator OGRFeature*() const;
 };
-
-typedef struct _stFieldMap
-{
-    int nDstFieldNo;
-    int nSrsFieldNo;
-    OGRFieldType eFieldType;
-} FieldMap;
 
 class Table : public virtual Dataset
 {
@@ -60,10 +59,10 @@ public:
                             const CPLString& dialect = "") const;
     virtual int destroy(ngsProgressFunc progressFunc = nullptr,
                 void* progressArguments = nullptr);
-    virtual int copyRows(Table const *pSrcTable, const vector<FieldMap> &fieldMap,
+    virtual int copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
                          ngsProgressFunc progressFunc = nullptr,
                          void* progressArguments = nullptr);
-    OGRFeatureDefn *getDefinition() const;
+    OGRFeatureDefn* getDefinition() const;
 protected:
     OGRLayer * const m_layer;
 };

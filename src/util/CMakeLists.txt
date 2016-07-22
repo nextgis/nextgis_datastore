@@ -30,11 +30,18 @@ set(HHEADERS
 set(HHEADER_PRIV
     constants.h
     jsondocument.h
+    stringutil.h
 )
 
 set(CSOURCES
     jsondocument.cpp
+    stringutil.cpp
 )
+
+if(UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-multichar")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-multichar")
+endif()
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
 

@@ -58,6 +58,7 @@ typedef weak_ptr<Dataset> DatasetWPtr;
  */
 class Dataset
 {
+    friend class DatasetContainer;
 public:
     enum Type {
         UNDEFINED,

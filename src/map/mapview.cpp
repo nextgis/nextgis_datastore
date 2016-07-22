@@ -182,7 +182,7 @@ int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
         m_drawStage = DrawStage::Start;
     }
 
-    // TODO:
+    // TODO: DRAW
     // 1.   Finish drawing if any and put scene to buffer
     // 1.1. Stop extract data threads
     // 1.2. Put current drawn scene to buffer

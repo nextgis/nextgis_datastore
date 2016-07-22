@@ -249,6 +249,24 @@ DatasetWPtr DataStore::getDataset(int index)
     return DatasetWPtr();
 }
 
+DatasetWPtr DataStore::createDataset(const CPLString &name,
+                                     OGRFeatureDefn * const definition,
+                                     const OGRSpatialReference *spatialRef,
+                                     OGRwkbGeometryType type, char **options,
+                                     ngsProgressFunc progressFunc,
+                                     void *progressArguments)
+{
+    return DatasetContainer::createDataset(name, definition, spatialRef, type, options, progressFunc, progressArguments);
+    /* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
+    // 3. Analyse structure, etc,
+    // 4. for each feature
+    // 4.1. read
+    // 4.2. create samples for several scales
+    // 4.3. create feature in storage dataset
+    // 4.4. create mapping of fields and original spatial reference metadata
+    */
+}
+
 /* TODO: getRaster(int index)
  OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
  FeaturePtr feature( pRasterLayer->GetFeature (index - dsLayers) );
@@ -314,7 +332,6 @@ int DataStore::createMetadataTable(GDALDatasetPtr DS)
     if(pMetadataLayer->CreateFeature(feature) != OGRERR_NONE) {
         return ngsErrorCodes::CREATE_FAILED;
     }
-
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -329,9 +346,9 @@ int DataStore::createRastersTable(GDALDatasetPtr DS)
     OGRFieldDefn oUrl(LAYER_URL, OFTString);
     OGRFieldDefn oName(LAYER_NAME, OFTString);
     oName.SetWidth(NAME_FIELD_LIMIT);
-
+// FIXME: do we need this field?
     OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
-
+// FIXME: do we need this field?
     OGRFieldDefn oAlias(LAYER_ALIAS, OFTString);
     oName.SetWidth(ALIAS_FIELD_LIMIT);
 

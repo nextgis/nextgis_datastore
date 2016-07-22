@@ -64,16 +64,22 @@ public:
     virtual int moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
     virtual DatasetWPtr createDataset(const CPLString &name,
-                                      OGRFeatureDefn *const definition,
-                                      char** options = nullptr);
+                                      OGRFeatureDefn* const definition,
+                                      char** options = nullptr,
+                                      ngsProgressFunc progressFunc = nullptr,
+                                      void* progressArguments = nullptr);
     virtual DatasetWPtr createDataset(const CPLString &name,
-                                       OGRFeatureDefn *const definition,
-                                      const OGRSpatialReference &spatialRef,
-                                      OGRwkbGeometryType type = wkbUnknown,
-                                      char** options = nullptr);
+                                      OGRFeatureDefn* const definition,
+                                      const OGRSpatialReference *spatialRef,
+                                       OGRwkbGeometryType type = wkbUnknown,
+                                      char** options = nullptr,
+                                      ngsProgressFunc progressFunc = nullptr,
+                                      void* progressArguments = nullptr);
     // TODO: createRaster()
 protected:
     virtual bool isNameValid(const CPLString& name) const;
+    virtual CPLString normalizeFieldName(const CPLString& name) const;
+    bool isDatabase() const;
 
 protected:
     map<string, DatasetPtr> m_datasets;

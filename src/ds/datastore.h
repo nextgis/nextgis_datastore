@@ -46,6 +46,13 @@ public:
     virtual int datasetCount() const override;
     virtual int rasterCount() const override;
     virtual DatasetWPtr getDataset(int index) override;
+    virtual DatasetWPtr createDataset(const CPLString &name,
+                                      OGRFeatureDefn* const definition,
+                                      const OGRSpatialReference *spatialRef,
+                                       OGRwkbGeometryType type = wkbUnknown,
+                                      char** options = nullptr,
+                                      ngsProgressFunc progressFunc = nullptr,
+                                      void* progressArguments = nullptr) override;
 
     // static
     static DataStorePtr openOrCreate(const CPLString& path);
@@ -72,15 +79,6 @@ protected:
 protected:
     CPLString m_dataPath;
 };
-
-/* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
-// 3. Analyse structure, etc,
-// 4. for each feature
-// 4.1. read
-// 4.2. create samples for several scales
-// 4.3. create feature in storage dataset
-// 4.4. create mapping of fields and original spatial reference metadata
-*/
 
 }
 

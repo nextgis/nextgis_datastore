@@ -25,6 +25,26 @@
 using namespace ngs;
 
 //------------------------------------------------------------------------------
+// FieldMapPtr
+//-------------------------------------------------
+
+FieldMapPtr::FieldMapPtr(unsigned long size) : shared_ptr(static_cast<int*>(CPLMalloc(
+                                                sizeof(int) * size)), CPLFree)
+{
+
+}
+
+int &FieldMapPtr::operator[](int key)
+{
+    return get()[key];
+}
+
+const int &FieldMapPtr::operator[](int key) const
+{
+    return get()[key];
+}
+
+//------------------------------------------------------------------------------
 // FeaturePtr
 //------------------------------------------------------------------------------
 
@@ -178,9 +198,32 @@ int Table::destroy(ngsProgressFunc progressFunc, void *progressArguments)
     return ngsErrorCodes::DELETE_FAILED;
 }
 
-int Table::copyRows(const Table *pSrcTable, const vector<FieldMap> &fieldMap,
+int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
                     ngsProgressFunc progressFunc, void *progressArguments)
 {
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Start copy records from '%s' to '%s'",
+                                    pSrcTable->name ().c_str (), name().c_str ()),
+                     progressArguments);
+
+    GIntBig featureCount = pSrcTable->featureCount();
+    double counter = 0;
+    pSrcTable->reset ();
+    FeaturePtr feature;
+    while((feature = pSrcTable->nextFeature ()) != nullptr) {
+        if(progressFunc)
+            progressFunc(counter / featureCount, "copying...", progressArguments);
+
+        FeaturePtr dstFeature = createFeature ();
+        dstFeature->SetFieldsFrom (feature, fieldMap.get());
+
+        if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {
+            CPLError(CE_Failure, CPLE_AppDefined, "Create feature failed. "
+                     "Source feature FID:%lld", feature->GetFID ());
+        }
+        counter++;
+    }
+
     return ngsErrorCodes::SUCCESS;
 }
 
