@@ -28,12 +28,47 @@
 
 namespace ngs {
 
+class CoordinateTransformationPtr
+{
+public:
+    CoordinateTransformationPtr(OGRCoordinateTransformation* ct);
+    ~CoordinateTransformationPtr();
+    static CoordinateTransformationPtr create(const OGRSpatialReference *srcSRS,
+                                              const OGRSpatialReference *dstSRS);
+
+    bool transform(OGRGeometry *geom);
+protected:
+    OGRCoordinateTransformation* m_oCT;
+};
+
 class FeatureDataset : public Table, public SpatialDataset
 {
+public:
+    enum SkipType {
+        NONE             = 0x0000,
+        EMPTY_GEOMETRY   = 0x0001,
+        INVALID_GEOMETRY = 0x0002
+    };
+
+    enum GeometryReportType {
+        FULL,
+        OGC,
+        SIMPLE
+    };
+
 public:
     FeatureDataset(OGRLayer * const layer);
     virtual const OGRSpatialReference * getSpatialReference() const override;
     OGRwkbGeometryType getGeometryType() const;
+    int copyFeatures(const FeatureDataset *pSrcDataset, const FieldMapPtr fieldMap,
+                     OGRwkbGeometryType filterGeomType,
+                     unsigned int skipGeometryFlags, ngsProgressFunc progressFunc,
+                     void *progressArguments);
+    bool setIgnoredFields(const char **fields);
+    // static
+    static CPLString getGeometryTypeName(OGRwkbGeometryType type,
+                                         enum GeometryReportType reportType);
+
 };
 
 }

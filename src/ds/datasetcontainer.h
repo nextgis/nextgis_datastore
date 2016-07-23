@@ -31,6 +31,7 @@ typedef struct _loadData {
     CPLString path;
     CPLString subDatasetName;
     bool move;
+    unsigned int skipType;
     ngsProgressFunc progressFunc;
     void *progressArguments;
 } LoadData;
@@ -47,7 +48,7 @@ public:
     virtual DatasetWPtr getDataset(int index);
     // TODO: getRaster
     int loadDataset(const CPLString& path, const CPLString& subDatasetName,
-                            bool move, ngsProgressFunc progressFunc,
+                            bool move, unsigned int skipType, ngsProgressFunc progressFunc,
                             void* progressArguments = nullptr);
     /* TODO: does this need here?
     bool canCopy(const CPLString &destPath);
@@ -59,9 +60,11 @@ public:
     int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
              void* progressArguments = nullptr);
     */
-    virtual int copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc = nullptr,
+    virtual int copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+                            ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
-    virtual int moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc = nullptr,
+    virtual int moveDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+                            ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
     virtual DatasetWPtr createDataset(const CPLString &name,
                                       OGRFeatureDefn* const definition,
@@ -71,7 +74,7 @@ public:
     virtual DatasetWPtr createDataset(const CPLString &name,
                                       OGRFeatureDefn* const definition,
                                       const OGRSpatialReference *spatialRef,
-                                       OGRwkbGeometryType type = wkbUnknown,
+                                      OGRwkbGeometryType type = wkbUnknown,
                                       char** options = nullptr,
                                       ngsProgressFunc progressFunc = nullptr,
                                       void* progressArguments = nullptr);
@@ -80,7 +83,7 @@ protected:
     virtual bool isNameValid(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     bool isDatabase() const;
-
+    vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDs);
 protected:
     map<string, DatasetPtr> m_datasets;
     /**

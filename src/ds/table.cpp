@@ -218,7 +218,7 @@ int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
         if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {
-            CPLError(CE_Failure, CPLE_AppDefined, "Create feature failed. "
+            CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
                      "Source feature FID:%lld", feature->GetFID ());
         }
         counter++;

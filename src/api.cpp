@@ -593,14 +593,18 @@ int ngsSaveMap(unsigned int mapId, const char *path)
  * @param path Path to file in OS
  * @param name Layer name, only alpha, numeric and underline
  * @param move Move data to storage or copy
+ * @param skipFlags combination of EMPTY_GEOMETRY(1) - to skip empty geometry
+ * features to load, INVALID_GEOMETRY(2) - to skip invalid geometry or
+ * NONE(0) - to load everything
  * @param callback Progress function
  * @param callbackData Progress function arguments
  * @return  ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsLoad(const char *path, const char *name, bool move,
+int ngsLoad(const char *path, const char *name, bool move, unsigned int skipFlags,
             ngsProgressFunc callback, void *callbackData)
 {
     if(nullptr != gDataStore)
-        return gDataStore->loadDataset (path, name, move, callback, callbackData);
+        return gDataStore->loadDataset (path, name, move, skipFlags, callback,
+                                        callbackData);
     return ngsErrorCodes::INSERT_FAILED;
 }

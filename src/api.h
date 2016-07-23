@@ -119,7 +119,7 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          const char* alias, const char* copyright,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
-NGS_EXTERNC int ngsLoad(const char* path, const char* name, bool move,
+NGS_EXTERNC int ngsLoad(const char* path, const char* name, bool move, unsigned int skipFlags,
                         ngsProgressFunc callback, void* callbackData);
 /**
  * Map functions

@@ -79,10 +79,12 @@ void ngs::LoadingThread(void * store)
 
         // 2. Move or cope ds to container
         if(data.move && DS->canDelete ()) {
-            pDataset->moveDataset(DS, data.progressFunc, data.progressArguments);
+            pDataset->moveDataset(DS, data.skipType, data.progressFunc,
+                                  data.progressArguments);
         }
         else {
-            pDataset->copyDataset(DS, data.progressFunc, data.progressArguments);
+            pDataset->copyDataset(DS, data.skipType, data.progressFunc,
+                                  data.progressArguments);
         }
     }
 }
@@ -219,12 +221,67 @@ bool DatasetContainer::isDatabase() const
 
 }
 
+vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcDs)
+{
+    vector<OGRwkbGeometryType> out;
+    FeatureDataset* const srcFD = ngsDynamicCast(FeatureDataset, srcDs);
+    if(nullptr == srcFD)
+        return out;
+    OGRwkbGeometryType geomType = srcFD->getGeometryType ();
+    if (wkbFlatten(geomType) == wkbUnknown ||
+            wkbFlatten(geomType) == wkbGeometryCollection) {
+
+        char** ignoreFields = nullptr;
+        unique_ptr<char*, void(*)(char**)> fieldsPtr(ignoreFields, CSLDestroy);
+        OGRFeatureDefn* defn = srcFD->getDefinition ();
+        for(int i = 0; i < defn->GetFieldCount (); ++i) {
+            OGRFieldDefn *fld = defn->GetFieldDefn (i);
+            ignoreFields = CSLAddString (ignoreFields, fld->GetNameRef ());
+        }
+        ignoreFields = CSLAddString (ignoreFields, "OGR_STYLE");
+        srcFD->setIgnoredFields ((const char**)fieldsPtr.get());
+        srcFD->reset ();
+        map<OGRwkbGeometryType, int> counts;
+        FeaturePtr feature;
+        while((feature = srcFD->nextFeature ()) != nullptr) {
+            OGRGeometry * geom = feature->GetGeometryRef ();
+            if (nullptr != geom) {
+                OGRwkbGeometryType geomType = geom->getGeometryType ();
+                counts[wkbFlatten(geomType)] += 1;
+            }
+        }
+        if(counts[wkbPoint] > 0) {
+            if(counts[wkbMultiPoint] > 0)
+                out.push_back (wkbMultiPoint);
+            else
+                out.push_back (wkbPoint);
+        }
+        else if(counts[wkbLineString] > 0) {
+            if(counts[wkbMultiLineString] > 0)
+                out.push_back (wkbMultiLineString);
+            else
+                out.push_back (wkbLineString);
+        }
+        else if(counts[wkbPolygon] > 0) {
+            if(counts[wkbMultiPolygon] > 0)
+                out.push_back (wkbMultiPolygon);
+            else
+                out.push_back (wkbPolygon);
+        }
+    }
+    else {
+        out.push_back (geomType);
+    }
+    return out;
+}
+
 int DatasetContainer::loadDataset(const CPLString& path, const
                                   CPLString& subDatasetName, bool move,
+                                  unsigned int skipType,
                                   ngsProgressFunc progressFunc,
                                   void* progressArguments)
 {
-    m_loadData.push_back ({path, subDatasetName, move,
+    m_loadData.push_back ({path, subDatasetName, move, skipType,
                            progressFunc, progressArguments});
     if(nullptr == m_hLoadThread) {
         m_hLoadThread = CPLCreateJoinableThread(LoadingThread, this);
@@ -232,7 +289,8 @@ int DatasetContainer::loadDataset(const CPLString& path, const
     return ngsErrorCodes::SUCCESS;
 }
 
-int DatasetContainer::copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc,
+int DatasetContainer::copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+                                  ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
     // create uniq name
@@ -273,7 +331,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
         CPLAssert (srcDefinition->GetFieldCount() == dstDefinition->GetFieldCount());
-        // Create fields map. We expected equil count of fields
+        // Create fields map. We expected equal count of fields
         FieldMapPtr fieldMap(static_cast<unsigned long>(
                                  dstDefinition->GetFieldCount()));
         for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
@@ -295,31 +353,49 @@ int DatasetContainer::copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
 
-        DatasetWPtr dstDsW = createDataset(name, srcDefinition,
-                                      srcTable->getSpatialReference (),
-                                      srcTable->getGeometryType (), nullptr,
-                                           progressFunc, progressArguments);
-        DatasetPtr dstDs = dstDsW.lock ();
-        FeatureDataset* const dstTable = ngsDynamicCast(FeatureDataset, dstDs);
-        if(nullptr == dstTable) {
-            CPLError(CE_Failure, CPLE_AppDefined,
-                     "Source dataset '%s' report type FEATURESET, but it is not a "
-                     "feature class.",
-                     srcDs->name ().c_str ());
-            return ngsErrorCodes::COPY_FAILED;
-        }
-        OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
+        // get output geometry type
+        vector<OGRwkbGeometryType> geometryTypes = getGeometryTypes(srcDs);
+        for(OGRwkbGeometryType geometryType : geometryTypes) {
+            CPLString newName = name;
+            OGRwkbGeometryType filterGeomType = wkbUnknown;
+            if(geometryTypes.size () > 1) {
+                newName = name + "_" + FeatureDataset::getGeometryTypeName(
+                            geometryType, FeatureDataset::SIMPLE);
+                if (wkbFlatten(geometryType) > wkbPolygon &&
+                    wkbFlatten(geometryType) < wkbGeometryCollection) {
+                   filterGeomType = static_cast<OGRwkbGeometryType>(
+                               geometryType - 3);
+               }
+            }
+            DatasetWPtr dstDsW = createDataset(newName, srcDefinition,
+                                          srcTable->getSpatialReference (),
+                                          geometryType, nullptr,
+                                               progressFunc, progressArguments);
+            DatasetPtr dstDs = dstDsW.lock ();
+            FeatureDataset* const dstTable = ngsDynamicCast(FeatureDataset, dstDs);
+            if(nullptr == dstTable) {
+                CPLError(CE_Failure, CPLE_AppDefined,
+                         "Source dataset '%s' report type FEATURESET, but it is not a "
+                         "feature class.",
+                         srcDs->name ().c_str ());
+                return ngsErrorCodes::COPY_FAILED;
+            }
+            OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
-        CPLAssert (srcDefinition.GetFieldCount() == dstDefinition.GetFieldCount());
-        // Create fields map. We expected equil count of fields
-        FieldMapPtr fieldMap(static_cast<unsigned long>(
-                                 dstDefinition->GetFieldCount()));
-        for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
-            fieldMap[i] = i;
-        }
+            CPLAssert (srcDefinition.GetFieldCount() == dstDefinition.GetFieldCount());
+            // Create fields map. We expected equal count of fields
+            FieldMapPtr fieldMap(static_cast<unsigned long>(
+                                     dstDefinition->GetFieldCount()));
+            for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
+                fieldMap[i] = i;
+            }
 
-        return dstTable->copyRows(srcTable, fieldMap,
-                                   progressFunc, progressArguments);
+            int nRes = dstTable->copyFeatures (srcTable, fieldMap, filterGeomType,
+                                              skipGeometryFlags, progressFunc,
+                                              progressArguments);
+            if(nRes != ngsErrorCodes::SUCCESS)
+                return nRes;
+        }
     }
     else { // TODO: raster and container support
 
@@ -330,7 +406,8 @@ int DatasetContainer::copyDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
     return ngsErrorCodes::SUCCESS;
 }
 
-int DatasetContainer::moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc,
+int DatasetContainer::moveDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+                                  ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
     if(progressFunc)
@@ -338,7 +415,8 @@ int DatasetContainer::moveDataset(DatasetPtr srcDs, ngsProgressFunc progressFunc
                         srcDs->name().c_str (), m_name.c_str ()),
                      progressArguments);
 
-    int nResult = copyDataset (srcDs, progressFunc, progressArguments);
+    int nResult = copyDataset (srcDs, skipGeometryFlags, progressFunc,
+                               progressArguments);
     if(nResult != ngsErrorCodes::SUCCESS)
         return nResult;
     return srcDs->destroy (progressFunc, progressArguments);
