@@ -49,7 +49,7 @@ public:
 
 class Dataset;
 typedef shared_ptr<Dataset> DatasetPtr;
-typedef weak_ptr<Dataset> DatasetWPtr;
+// typedef weak_ptr<Dataset> DatasetWPtr;
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,

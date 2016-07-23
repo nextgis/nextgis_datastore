@@ -51,6 +51,7 @@ if(BUILD_TESTS)
     link_directories(${LINK_SEARCH_PATHS})
 
     add_custom_target (clean_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/tmp )
+    add_custom_target (prepare_test_data ALL COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/data/* ${CMAKE_CURRENT_BINARY_DIR}/data )
 
     macro(add_ngs_test name exe_name files)
         add_executable(${exe_name} ${files})

@@ -591,7 +591,7 @@ int ngsSaveMap(unsigned int mapId, const char *path)
 /**
  * @brief ngsLoad
  * @param path Path to file in OS
- * @param name Layer name, only alpha, numeric and underline
+ * @param name Layer name, if datasource on path has several layers
  * @param move Move data to storage or copy
  * @param skipFlags combination of EMPTY_GEOMETRY(1) - to skip empty geometry
  * features to load, INVALID_GEOMETRY(2) - to skip invalid geometry or

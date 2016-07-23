@@ -23,6 +23,8 @@
 #include "constants.h"
 #include "version.h"
 
+#include "cpl_multiproc.h"
+
 static int counter = 0;
 
 void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
@@ -110,9 +112,12 @@ TEST(BasicTests, TestOpen) {
 }
 
 TEST(BasicTests, TestCreateTMS) {
+    counter = 0;
     EXPECT_EQ(ngsCreateRemoteTMSRaster(TMS_URL, TMS_NAME, TMS_ALIAS, TMS_COPYING,
                                        TMS_EPSG, TMS_MIN_Z, TMS_MAX_Z,
                                        TMS_YORIG_TOP), ngsErrorCodes::SUCCESS);
+    CPLSleep(0.1);
+    EXPECT_GE(counter, 1);
 }
 
 TEST(BasicTests, TestInitMap) {
@@ -122,14 +127,19 @@ TEST(BasicTests, TestInitMap) {
     EXPECT_GE(mapId, 0);
     EXPECT_NE(ngsInitMap (1, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(ngsInitMap (mapId, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    counter = 0;
     EXPECT_EQ(ngsDrawMap(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
-}
-
-TEST(BasicTests, TestNotify) {
+    CPLSleep(0.2);
     EXPECT_GE(counter, 1);
 }
 
-// TODO: add test for ngsLoad
+TEST(BasicTests, TestLoad) {
+    counter = 0;
+    EXPECT_EQ(ngsLoad("./data/bld.shp", "", false, 0, ngsTestProgressFunc,
+                      nullptr), ngsErrorCodes::SUCCESS);
+    CPLSleep(0.3);
+    EXPECT_GE(counter, 1);
+}
 
 TEST(BasicTests, TestDelete) {
     EXPECT_EQ(ngsDestroyDataStore ("./tmp/ngs.gpkg", nullptr), ngsErrorCodes::SUCCESS);

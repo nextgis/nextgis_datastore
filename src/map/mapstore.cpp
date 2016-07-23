@@ -73,7 +73,7 @@ int MapStore::saveMap(unsigned int mapId, const char *path)
     return m_maps[mapId]->save (path);
 }
 
-MapWPtr MapStore::getMap(unsigned int mapId)
+MapPtr MapStore::getMap(unsigned int mapId)
 {
     MapPtr map;
     if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())

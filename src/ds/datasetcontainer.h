@@ -44,8 +44,8 @@ public:
     virtual ~DatasetContainer();
     virtual int datasetCount() const;
     virtual int rasterCount() const;
-    virtual DatasetWPtr getDataset(const CPLString& name);
-    virtual DatasetWPtr getDataset(int index);
+    virtual DatasetPtr getDataset(const CPLString& name);
+    virtual DatasetPtr getDataset(int index);
     // TODO: getRaster
     int loadDataset(const CPLString& path, const CPLString& subDatasetName,
                             bool move, unsigned int skipType, ngsProgressFunc progressFunc,
@@ -66,12 +66,12 @@ public:
     virtual int moveDataset(DatasetPtr srcDataset, unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
-    virtual DatasetWPtr createDataset(const CPLString &name,
+    virtual DatasetPtr createDataset(const CPLString &name,
                                       OGRFeatureDefn* const definition,
                                       char** options = nullptr,
                                       ngsProgressFunc progressFunc = nullptr,
                                       void* progressArguments = nullptr);
-    virtual DatasetWPtr createDataset(const CPLString &name,
+    virtual DatasetPtr createDataset(const CPLString &name,
                                       OGRFeatureDefn* const definition,
                                       const OGRSpatialReference *spatialRef,
                                       OGRwkbGeometryType type = wkbUnknown,

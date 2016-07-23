@@ -42,9 +42,8 @@ TEST(MapTests, TestCreate) {
                                  DEFAULT_MAX_Y), 0);
     EXPECT_EQ(mapStore.mapCount(), 1);
 
-    ngs::MapWPtr map = mapStore.getMap (0);
-    EXPECT_EQ(map.expired (), false);
-    ngs::MapPtr defMap = map.lock ();
+    ngs::MapPtr defMap = mapStore.getMap (0);
+    EXPECT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     ngsRGBA color = mapView->getBackgroundColor ();
     EXPECT_EQ(color.R, 210);
@@ -74,9 +73,8 @@ TEST(MapTests, TestProject) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640), ngsErrorCodes::SUCCESS);
-    ngs::MapWPtr map = mapStore.getMap (0);
-    EXPECT_EQ(map.expired (), false);
-    ngs::MapPtr defMap = map.lock ();
+    ngs::MapPtr defMap = mapStore.getMap (0);
+    EXPECT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     OGREnvelope env;
     OGRRawPoint pt;
@@ -108,14 +106,13 @@ TEST(MapTests, TestDrawing) {
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     unsigned char buffer[480 * 640 * 4];
     EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640), ngsErrorCodes::SUCCESS);
-    ngs::MapWPtr map = mapStore.getMap (0);
-    EXPECT_EQ(map.expired (), false);
-    ngs::MapPtr defMap = map.lock ();
+    ngs::MapPtr defMap = mapStore.getMap (0);
+    EXPECT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     mapView->setBackgroundColor ({255, 0, 0, 255}); // RED color
     counter = 0;
     mapView->draw(ngsTestProgressFunc, nullptr);
-    CPLSleep(0.6);
+    CPLSleep(0.3);
     EXPECT_EQ(buffer[0], 255);
     EXPECT_EQ(buffer[1], 0);
     EXPECT_EQ(buffer[2], 0);
@@ -129,7 +126,8 @@ TEST(MapTests, TestDrawing) {
 TEST(MapTests, TestDeleteMap) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    ngs::MapPtr map = mapStore.getMap (0).lock ();
+    ngs::MapPtr map = mapStore.getMap (0);
+    EXPECT_NE(map, nullptr);
     EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);    
     EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);
 }

@@ -21,6 +21,7 @@
 
 #include "test.h"
 #include "datastore.h"
+#include "featuredataset.h"
 #include "rasterdataset.h"
 
 static int counter = 0;
@@ -28,6 +29,12 @@ static int counter = 0;
 void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
                        enum ngsChangeCodes /*operation*/) {
     counter++;
+}
+
+int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
+                        void* /*progressArguments*/) {
+    counter++;
+    return TRUE;
 }
 
 TEST(StoreTests, TestCreate) {
@@ -70,7 +77,22 @@ TEST(StoreTests, TestDeleteTMS){
 }
 */
 
-// TODO: add test for loadDataset
+TEST(StoreTests, TestLoad) {
+    ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
+    EXPECT_NE(storage, nullptr);
+    EXPECT_EQ(storage->loadDataset ("./data/bld.shp", "", false,
+                                    ngs::FeatureDataset::NONE,
+                                    ngsTestProgressFunc, nullptr),
+              ngsErrorCodes::SUCCESS);
+    CPLSleep(0.3);
+    EXPECT_EQ(storage->datasetCount (), 1);
+    EXPECT_GE(counter, 1);
+    ngs::DatasetPtr data = storage->getDataset (0);
+    EXPECT_NE(data, nullptr);
+    EXPECT_EQ(data->type (), ngs::Dataset::FEATURESET);
+    ngs::FeatureDataset *fData = dynamic_cast<ngs::FeatureDataset*>(data.get ());
+    EXPECT_GE(fData->featureCount(), 3);
+}
 
 TEST(StoreTests, TestDelete) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");

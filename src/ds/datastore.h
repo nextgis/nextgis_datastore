@@ -45,8 +45,8 @@ public:
                         void* progressArguments = nullptr) override;
     virtual int datasetCount() const override;
     virtual int rasterCount() const override;
-    virtual DatasetWPtr getDataset(int index) override;
-    virtual DatasetWPtr createDataset(const CPLString &name,
+    virtual DatasetPtr getDataset(int index) override;
+    virtual DatasetPtr createDataset(const CPLString &name,
                                       OGRFeatureDefn* const definition,
                                       const OGRSpatialReference *spatialRef,
                                        OGRwkbGeometryType type = wkbUnknown,

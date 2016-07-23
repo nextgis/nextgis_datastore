@@ -111,6 +111,6 @@ protected:
 };
 
 typedef shared_ptr<Map> MapPtr;
-typedef weak_ptr<Map> MapWPtr;
+// typedef weak_ptr<Map> MapWPtr;
 }
 #endif // MAP_H

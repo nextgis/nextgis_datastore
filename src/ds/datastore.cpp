@@ -229,7 +229,7 @@ int DataStore::rasterCount() const
                 pRasterLayer->GetFeatureCount ());
 }
 
-DatasetWPtr DataStore::getDataset(int index)
+DatasetPtr DataStore::getDataset(int index)
 {
     int dsLayers = m_DS->GetLayerCount () - SYS_TABLE_COUNT;
     if(index < dsLayers){
@@ -246,10 +246,10 @@ DatasetWPtr DataStore::getDataset(int index)
             counter++;
         }
     }
-    return DatasetWPtr();
+    return DatasetPtr();
 }
 
-DatasetWPtr DataStore::createDataset(const CPLString &name,
+DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
                                      const OGRSpatialReference *spatialRef,
                                      OGRwkbGeometryType type, char **options,

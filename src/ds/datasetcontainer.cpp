@@ -74,7 +74,7 @@ void ngs::LoadingThread(void * store)
         if(srcDataset->type () == Dataset::CONTAINER) {
             DatasetContainer* pDatasetContainer = static_cast<
                     DatasetContainer*>(srcDataset.get ());
-            srcDataset = pDatasetContainer->getDataset (data.subDatasetName).lock ();
+            srcDataset = pDatasetContainer->getDataset (data.subDatasetName);
         }
 
         // 2. Move or cope ds to container
@@ -134,7 +134,7 @@ int DatasetContainer::rasterCount() const
     return out;
 }
 
-DatasetWPtr DatasetContainer::getDataset(const CPLString &name)
+DatasetPtr DatasetContainer::getDataset(const CPLString &name)
 {
     DatasetPtr dataset;
     auto it = m_datasets.find (name);
@@ -169,14 +169,14 @@ DatasetWPtr DatasetContainer::getDataset(const CPLString &name)
 
 // TODO: getRaster(int index)
 // TODO: getRaster(const CPLString &name)
-DatasetWPtr DatasetContainer::getDataset(int index)
+DatasetPtr DatasetContainer::getDataset(int index)
 {
     for(int i = 0; i < m_DS->GetLayerCount (); ++i){
         OGRLayer* pLayer = m_DS->GetLayer (i);
         if( i == index)
             return getDataset (pLayer->GetName());
     }
-    return DatasetWPtr();
+    return DatasetPtr();
 }
 
 bool DatasetContainer::isNameValid(const CPLString &name) const
@@ -323,9 +323,8 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             return ngsErrorCodes::COPY_FAILED;
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
-        DatasetWPtr dstDatasetW = createDataset(newName, srcDefinition, nullptr,
+        DatasetPtr dstDataset = createDataset(newName, srcDefinition, nullptr,
                                            progressFunc, progressArguments);
-        DatasetPtr dstDataset = dstDatasetW.lock ();
         Table* const dstTable = ngsDynamicCast(Table, dstDataset);
         if(nullptr == dstTable) {
             CPLError(CE_Failure, CPLE_AppDefined,
@@ -371,11 +370,10 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                                geometryType - 3);
                }
             }
-            DatasetWPtr dstDatasetW = createDataset(newName, srcDefinition,
+            DatasetPtr dstDataset = createDataset(newName, srcDefinition,
                                           srcTable->getSpatialReference (),
                                           geometryType, nullptr,
                                           progressFunc, progressArguments);
-            DatasetPtr dstDataset = dstDatasetW.lock ();
             FeatureDataset* const dstTable = ngsDynamicCast(FeatureDataset, dstDataset);
             if(nullptr == dstTable) {
                 CPLError(CE_Failure, CPLE_AppDefined,
@@ -427,7 +425,7 @@ int DatasetContainer::moveDataset(DatasetPtr srcDataset, unsigned int skipGeomet
     return srcDataset->destroy (progressFunc, progressArguments);
 }
 
-DatasetWPtr DatasetContainer::createDataset(const CPLString& name,
+DatasetPtr DatasetContainer::createDataset(const CPLString& name,
                                             OGRFeatureDefn* const definition,
                                             char **options,
                                             ngsProgressFunc progressFunc,
@@ -437,7 +435,7 @@ DatasetWPtr DatasetContainer::createDataset(const CPLString& name,
                           progressFunc, progressArguments);
 }
 
-DatasetWPtr DatasetContainer::createDataset(const CPLString &name,
+DatasetPtr DatasetContainer::createDataset(const CPLString &name,
                                             OGRFeatureDefn* const definition,
                                             const OGRSpatialReference *spatialRef,
                                             OGRwkbGeometryType type,
