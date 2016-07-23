@@ -129,6 +129,8 @@ TEST(BasicTests, TestNotify) {
     EXPECT_GE(counter, 1);
 }
 
+// TODO: add test for ngsLoad
+
 TEST(BasicTests, TestDelete) {
     EXPECT_EQ(ngsDestroyDataStore ("./tmp/ngs.gpkg", nullptr), ngsErrorCodes::SUCCESS);
     ngsUninit();

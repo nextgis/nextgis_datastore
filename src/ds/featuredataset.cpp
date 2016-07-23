@@ -29,26 +29,23 @@ using namespace ngs;
 //------------------------------------------------------------------------------
 
 CoordinateTransformationPtr::CoordinateTransformationPtr(
-        OGRCoordinateTransformation *ct) : m_oCT(ct)
+        const OGRSpatialReference *srcSRS, const OGRSpatialReference *dstSRS)
 {
-
+    if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
+        m_oCT = static_cast<OGRCoordinateTransformation*>(
+                                         OGRCreateCoordinateTransformation(
+                    const_cast<OGRSpatialReference *>(srcSRS),
+                    const_cast<OGRSpatialReference *>(dstSRS)));
+    }
+    else {
+        m_oCT = nullptr;
+    }
 }
 
 CoordinateTransformationPtr::~CoordinateTransformationPtr()
 {
-    OCTDestroyCoordinateTransformation(m_oCT);
-}
-
-CoordinateTransformationPtr CoordinateTransformationPtr::create(
-        const OGRSpatialReference *srcSRS, const OGRSpatialReference *dstSRS)
-{
-    if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
-        return CoordinateTransformationPtr(static_cast<OGRCoordinateTransformation*>(
-                                         OGRCreateCoordinateTransformation(
-                    const_cast<OGRSpatialReference *>(srcSRS),
-                    const_cast<OGRSpatialReference *>(dstSRS))));
-    }
-    return CoordinateTransformationPtr(nullptr);
+    if(nullptr != m_oCT)
+        OCTDestroyCoordinateTransformation(m_oCT);
 }
 
 bool CoordinateTransformationPtr::transform(OGRGeometry* geom) {
@@ -64,7 +61,7 @@ bool CoordinateTransformationPtr::transform(OGRGeometry* geom) {
 FeatureDataset::FeatureDataset(OGRLayer * const layer) : Table(layer),
     SpatialDataset()
 {
-
+    m_type = FEATURESET;
 }
 
 const OGRSpatialReference *FeatureDataset::getSpatialReference() const
@@ -81,7 +78,7 @@ OGRwkbGeometryType FeatureDataset::getGeometryType() const
     return wkbUnknown;
 }
 
-int FeatureDataset::copyFeatures(const FeatureDataset *pSrcDataset,
+int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                                  const FieldMapPtr fieldMap,
                                  OGRwkbGeometryType filterGeomType,
                                  unsigned int skipGeometryFlags,
@@ -90,24 +87,23 @@ int FeatureDataset::copyFeatures(const FeatureDataset *pSrcDataset,
 {
     if(progressFunc)
         progressFunc(0, CPLSPrintf ("Start copy features from '%s' to '%s'",
-                                    pSrcDataset->name ().c_str (), name().c_str ()),
+                                    srcDataset->name ().c_str (), name().c_str ()),
                      progressArguments);
 
-    const OGRSpatialReference *srcSRS = pSrcDataset->getSpatialReference();
+    const OGRSpatialReference *srcSRS = srcDataset->getSpatialReference();
     const OGRSpatialReference *dstSRS = getSpatialReference();
-    CoordinateTransformationPtr CT = CoordinateTransformationPtr::create (srcSRS,
-                                                                          dstSRS);
-    GIntBig featureCount = pSrcDataset->featureCount();
+    CoordinateTransformationPtr CT (srcSRS, dstSRS);
+    GIntBig featureCount = srcDataset->featureCount();
     OGRwkbGeometryType dstGeomType = getGeometryType();
     double counter = 0;
-    pSrcDataset->reset ();
+    srcDataset->reset ();
     FeaturePtr feature;
-    while((feature = pSrcDataset->nextFeature ()) != nullptr) {
+    while((feature = srcDataset->nextFeature ()) != nullptr) {
         if(progressFunc)
             progressFunc(counter / featureCount, "copying...", progressArguments);
 
-        const OGRGeometry * geom = feature->GetGeometryRef ();
-        if((skipGeometryFlags & EMPTY_GEOMETRY) && !geom->IsEmpty ())
+        OGRGeometry * geom = feature->GetGeometryRef ();
+        if((skipGeometryFlags & EMPTY_GEOMETRY) && geom->IsEmpty ())
             continue;
         if((skipGeometryFlags & INVALID_GEOMETRY) && !geom->IsValid())
             continue;
@@ -116,8 +112,8 @@ int FeatureDataset::copyFeatures(const FeatureDataset *pSrcDataset,
         OGRGeometry *newGeom = nullptr;
         OGRwkbGeometryType geomType = geom->getGeometryType ();
         OGRwkbGeometryType nonMultiGeomType = geomType;
-        if (wkbFlatten(geomType) > wkbPolygon &&
-                wkbFlatten(geomType) < wkbGeometryCollection) {
+        if (OGR_GT_Flatten(geomType) > wkbPolygon &&
+                OGR_GT_Flatten(geomType) < wkbGeometryCollection) {
             nonMultiGeomType = static_cast<OGRwkbGeometryType>(geomType - 3);
         }
         if (filterGeomType != wkbUnknown && filterGeomType != nonMultiGeomType) {
@@ -125,7 +121,7 @@ int FeatureDataset::copyFeatures(const FeatureDataset *pSrcDataset,
         }
 
         if (dstGeomType != geomType) {
-            newGeom = OGRGeometryFactory::forceTo((OGRGeometry*)geom, dstGeomType);
+            newGeom = OGRGeometryFactory::forceTo(geom, dstGeomType);
         }
         else {
             newGeom = geom->clone ();
@@ -144,7 +140,7 @@ int FeatureDataset::copyFeatures(const FeatureDataset *pSrcDataset,
         counter++;
     }
     if(progressFunc)
-        progressFunc(1, CPLSPrintf ("Copied %d features", int(counter)),
+        progressFunc(1.0, CPLSPrintf ("Done. Copied %d features", int(counter)),
                      progressArguments);
 
     return ngsErrorCodes::SUCCESS;
@@ -163,7 +159,7 @@ CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,
     if(reportType == OGC)
         return OGRToOGCGeomType(type);
 
-    switch (wkbFlatten(type)) {
+    switch (OGR_GT_Flatten(type)) {
     case wkbUnknown:
         return "unk";
     case wkbPoint:

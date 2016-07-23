@@ -223,6 +223,9 @@ int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
         }
         counter++;
     }
+    if(progressFunc)
+        progressFunc(1.0, CPLSPrintf ("Done. Copied %d rows", int(counter)),
+                     progressArguments);
 
     return ngsErrorCodes::SUCCESS;
 }

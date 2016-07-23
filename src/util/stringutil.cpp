@@ -74,3 +74,10 @@ CPLString translit(const CPLString &str, const CPLString &lang)
     }
     return out;
 }
+
+bool testBoolean(const char *str, bool defaultVal)
+{
+    if(nullptr == str)
+        return defaultVal;
+    return CPLTestBool (str);
+}

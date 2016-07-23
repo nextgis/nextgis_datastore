@@ -22,6 +22,7 @@
 #include "rasterdataset.h"
 #include "featuredataset.h"
 #include "api.h"
+#include "stringutil.h"
 
 using namespace ngs;
 
@@ -154,34 +155,34 @@ DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
 {
     GDALDriver* driver = ds->GetDriver ();
     DatasetPtr out;
-    Dataset* pOutDS = nullptr;
-    if(CPLTestBoolean(driver->GetMetadataItem (GDAL_DMD_SUBDATASETS, nullptr)) ||
+    Dataset* outDS = nullptr;
+    if(testBoolean(driver->GetMetadataItem (GDAL_DMD_SUBDATASETS), false) ||
             ds->GetLayerCount () > 1) {
-        pOutDS = new DatasetContainer();
+        outDS = new DatasetContainer();
     }
-    else if (CPLTestBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER, nullptr))) {
-        pOutDS = new RasterDataset();
+    else if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false)) {
+        outDS = new RasterDataset();
     }
     else {
-
-        OGRLayer* pLayer = ds->GetLayer (0);
-        if(nullptr != pLayer){
-            if( EQUAL(pLayer->GetGeometryColumn (), "")){
-                pOutDS = new Table(pLayer);
+        OGRLayer* layer = ds->GetLayer (0);
+        if(nullptr != layer){
+            OGRFeatureDefn* defn = layer->GetLayerDefn ();
+            if( defn->GetGeomFieldCount () == 0 ) {
+                outDS = new Table(layer);
             }
             else {
-                pOutDS = new FeatureDataset(pLayer);
+                outDS = new FeatureDataset(layer);
             }
 
-        //if (CPLTestBoolean(driver->GetMetadataItem (GDAL_DCAP_VECTOR, nullptr)))
+        //if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_VECTOR), false))
         }
     }
 
-    pOutDS->m_DS = ds;
-    pOutDS->m_path = path;
-    pOutDS->m_opened = true;
+    outDS->m_DS = ds;
+    outDS->m_path = path;
+    outDS->m_opened = true;
 
-    out.reset (pOutDS);
+    out.reset (outDS);
     return out;
 }
 

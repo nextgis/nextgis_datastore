@@ -53,6 +53,9 @@ public:
                                       char** options = nullptr,
                                       ngsProgressFunc progressFunc = nullptr,
                                       void* progressArguments = nullptr) override;
+    virtual int copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+                            ngsProgressFunc progressFunc = nullptr,
+                            void* progressArguments = nullptr) override;
 
     // static
     static DataStorePtr openOrCreate(const CPLString& path);
@@ -75,9 +78,11 @@ protected:
     static int upgrade(int oldVersion, GDALDatasetPtr ds);
     void setDataPath();
     virtual bool isNameValid(const CPLString &name) const override;
+    void enableJournal(bool enable);
 
 protected:
     CPLString m_dataPath;
+    short m_disableJornalCounter;
 };
 
 }

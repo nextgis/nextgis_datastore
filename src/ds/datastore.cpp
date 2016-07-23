@@ -36,7 +36,7 @@ using namespace ngs;
 // DataStore
 //------------------------------------------------------------------------------
 
-DataStore::DataStore() : DatasetContainer()
+DataStore::DataStore() : DatasetContainer(), m_disableJornalCounter(0)
 {
 }
 
@@ -256,7 +256,8 @@ DatasetWPtr DataStore::createDataset(const CPLString &name,
                                      ngsProgressFunc progressFunc,
                                      void *progressArguments)
 {
-    return DatasetContainer::createDataset(name, definition, spatialRef, type, options, progressFunc, progressArguments);
+    return DatasetContainer::createDataset(name, definition, spatialRef, type,
+                                           options, progressFunc, progressArguments);
     /* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
     // 3. Analyse structure, etc,
     // 4. for each feature
@@ -265,6 +266,18 @@ DatasetWPtr DataStore::createDataset(const CPLString &name,
     // 4.3. create feature in storage dataset
     // 4.4. create mapping of fields and original spatial reference metadata
     */
+}
+
+int DataStore::copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+                           ngsProgressFunc progressFunc, void *progressArguments)
+{
+    // disable journal
+    enableJournal(false);
+    int nRet = DatasetContainer::copyDataset (srcDs, skipGeometryFlags,
+                                              progressFunc, progressArguments);
+    // enable journal
+    enableJournal(true);
+    return nRet;
 }
 
 /* TODO: getRaster(int index)
@@ -459,6 +472,27 @@ bool DataStore::isNameValid(const CPLString &name) const
     if(feature->GetFieldAsInteger (0) > 0)
         return false;
     return true;
+}
+
+void DataStore::enableJournal(bool enable)
+{
+    if(enable) {
+        m_disableJornalCounter--;
+        if(m_disableJornalCounter == 0)
+        executeSQL ("PRAGMA synchronous=ON");
+        executeSQL ("PRAGMA journal_mode=ON");
+        executeSQL ("PRAGMA count_changes=ON");
+    }
+    else {
+        m_disableJornalCounter++;
+        if(m_disableJornalCounter == 1) {
+            executeSQL ("PRAGMA synchronous=OFF");
+            //executeSQL ("PRAGMA locking_mode=EXCLUSIVE");
+            executeSQL ("PRAGMA journal_mode=OFF");
+            executeSQL ("PRAGMA count_changes=OFF");
+            // executeSQL ("PRAGMA cache_size=15000");
+        }
+    }
 }
 
 ResultSetPtr DataStore::executeSQL(const CPLString &statement) const

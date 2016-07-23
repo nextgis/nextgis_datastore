@@ -70,6 +70,8 @@ TEST(StoreTests, TestDeleteTMS){
 }
 */
 
+// TODO: add test for loadDataset
+
 TEST(StoreTests, TestDelete) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     EXPECT_NE(storage, nullptr);

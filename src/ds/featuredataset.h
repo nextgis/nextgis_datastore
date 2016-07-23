@@ -31,12 +31,13 @@ namespace ngs {
 class CoordinateTransformationPtr
 {
 public:
-    CoordinateTransformationPtr(OGRCoordinateTransformation* ct);
+    CoordinateTransformationPtr(
+            const OGRSpatialReference *srcSRS, const OGRSpatialReference *dstSRS);
     ~CoordinateTransformationPtr();
-    static CoordinateTransformationPtr create(const OGRSpatialReference *srcSRS,
-                                              const OGRSpatialReference *dstSRS);
-
     bool transform(OGRGeometry *geom);
+protected:
+    // no copy constructor
+    CoordinateTransformationPtr(const CoordinateTransformationPtr& /*other*/) {}
 protected:
     OGRCoordinateTransformation* m_oCT;
 };
@@ -60,7 +61,7 @@ public:
     FeatureDataset(OGRLayer * const layer);
     virtual const OGRSpatialReference * getSpatialReference() const override;
     OGRwkbGeometryType getGeometryType() const;
-    int copyFeatures(const FeatureDataset *pSrcDataset, const FieldMapPtr fieldMap,
+    int copyFeatures(const FeatureDataset *srcDataset, const FieldMapPtr fieldMap,
                      OGRwkbGeometryType filterGeomType,
                      unsigned int skipGeometryFlags, ngsProgressFunc progressFunc,
                      void *progressArguments);

@@ -25,5 +25,6 @@
 
 CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
 CPLString translit(const CPLString &str, const CPLString &lang = "");
+bool testBoolean(const char *str, bool defaultVal);
 
 #endif // STRINGUTIL_H

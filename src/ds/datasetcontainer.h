@@ -60,10 +60,10 @@ public:
     int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
              void* progressArguments = nullptr);
     */
-    virtual int copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+    virtual int copyDataset(DatasetPtr srcDataset, unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
-    virtual int moveDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+    virtual int moveDataset(DatasetPtr srcDataset, unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
     virtual DatasetWPtr createDataset(const CPLString &name,
@@ -83,7 +83,7 @@ protected:
     virtual bool isNameValid(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     bool isDatabase() const;
-    vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDs);
+    vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDataset);
 protected:
     map<string, DatasetPtr> m_datasets;
     /**
