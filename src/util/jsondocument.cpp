@@ -149,23 +149,23 @@ int JSONObject::getInteger(const char *name, int defaultVal)
 JSONObject::Type JSONObject::getType() const
 {
     if(nullptr == m_jsonObject)
-        return Null;
+        return Type::Null;
     switch (json_object_get_type(m_jsonObject)) {
     case  json_type_null:
-        return Null;
+        return Type::Null;
     case json_type_boolean:
-        return Boolean;
+        return Type::Boolean;
     case json_type_double:
-        return Double;
+        return Type::Double;
     case json_type_int:
-        return Integer;
+        return Type::Integer;
     case json_type_object:
-        return Object;
+        return Type::Object;
     case json_type_array:
-        return Array;
+        return Type::Array;
     case json_type_string:
-        return String;
+        return Type::String;
     }
-    return Null;
+    return Type::Null;
 }
 

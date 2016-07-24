@@ -37,10 +37,10 @@ class MapStore;
 class Layer
 {
 public:
-    enum Type {
-        GROUP,
-        VECTOR,
-        RASTER
+    enum class Type {
+        Group,
+        Vector,
+        Raster
     };
 
 public:

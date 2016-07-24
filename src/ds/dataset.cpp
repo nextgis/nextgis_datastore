@@ -59,7 +59,7 @@ GDALDatasetPtr::operator GDALDataset *() const
 Dataset::Dataset() : m_deleted(false), m_opened(false), m_readOnly(true),
     m_notifyFunc(nullptr)
 {
-    m_type = UNDEFINED;
+    m_type = Type::Undefined;
 }
 
 Dataset::~Dataset()
@@ -74,12 +74,12 @@ Dataset::Type Dataset::type() const
 
 bool Dataset::isVector() const
 {
-    return m_type == TABLE || m_type == FEATURESET;
+    return m_type == Type::Table || m_type == Type::Featureset;
 }
 
 bool Dataset::isRaster() const
 {
-    return m_type == RASTER;
+    return m_type == Type::Raster;
 }
 
 CPLString Dataset::name() const

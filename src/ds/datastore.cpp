@@ -195,7 +195,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
     feature->SetField (LAYER_URL, url);
     feature->SetField (LAYER_NAME, name);
     // FIXME: do we need this field?
-    feature->SetField (LAYER_TYPE, Dataset::RASTER);
+    feature->SetField (LAYER_TYPE, (int)Type::Raster);
     // FIXME: do we need this field?
     feature->SetField (LAYER_ALIAS, alias);
     feature->SetField (LAYER_COPYING, copyright); // show on map copyright string
@@ -217,9 +217,9 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
 
 int DataStore::datasetCount() const
 {
-    // TODO: each layer have history and changes tables. Count will be  (dsLayerCount - SYS_TABLE_COUNT) / 3
+    // each layer have history table. Count is (dsLayerCount - SYS_TABLE_COUNT) / 2
     int dsLayerCount = m_DS->GetLayerCount ();
-    return dsLayerCount - SYS_TABLE_COUNT;
+    return (dsLayerCount - SYS_TABLE_COUNT) / 2;
 }
 
 int DataStore::rasterCount() const
@@ -229,6 +229,44 @@ int DataStore::rasterCount() const
         return 0;
     return DatasetContainer::rasterCount () + static_cast<int>(
                 pRasterLayer->GetFeatureCount ());
+}
+
+DatasetPtr DataStore::getDataset(const CPLString &name)
+{
+    DatasetPtr outDataset;
+    auto it = m_datasets.find (name);
+    if( it != m_datasets.end ()){
+        if(!it->second->isDeleted ()){
+            return it->second;
+        }
+        else{
+            return outDataset;
+        }
+    }
+
+    OGRLayer* layer = m_DS->GetLayerByName (name);
+    if(nullptr != layer){
+        Dataset* dataset = nullptr;
+        if( layer->GetLayerDefn ()->GetGeomFieldCount () == 0 ){
+            dataset = new Table(layer);
+        }
+        else {
+            CPLString historyName = name + HISTORY_APPEND;
+            OGRLayer* historyLayer = m_DS->GetLayerByName (historyName);
+            StoreFeatureDataset* storeFD = new StoreFeatureDataset(layer);
+            // add link to history layer
+            storeFD->m_history.reset (new StoreFeatureDataset(historyLayer));
+            dataset = storeFD;
+        }
+
+        dataset->setNotifyFunc (m_notifyFunc);
+        dataset->m_DS = m_DS;
+        outDataset.reset(dataset);
+        if(dataset)
+            m_datasets[outDataset->name ()] = outDataset;
+    }
+
+    return outDataset;
 }
 
 DatasetPtr DataStore::getDataset(int index)
@@ -244,7 +282,7 @@ DatasetPtr DataStore::getDataset(int index)
                EQUAL (pLayer->GetName (), RASTERS_TABLE_NAME) )
                 continue;
             if(counter == index)
-                return DatasetContainer::getDataset(pLayer->GetName());
+                return getDataset(pLayer->GetName());
             counter++;
         }
     }
@@ -287,9 +325,10 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
         }
     }
 
-    // create additional geometry fields for zoom levels: 6 9 12 15 only for dstLayer
+    // create additional geometry fields for zoom levels: 6 9 12 15 only for
+    // dstLayer
     for(char zoomLevel : zoomLevels) {
-        OGRFieldDefn dstField(CPLSPrintf ("geom_%d", zoomLevel), OFTBinary);
+        OGRFieldDefn dstField(CPLSPrintf ("ngs_geom_%d", zoomLevel), OFTBinary);
         if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
             return out;
         }
@@ -302,8 +341,8 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     }
     else {
         StoreFeatureDataset* storeFD = new StoreFeatureDataset(dstLayer);
-        // TODO: add links to history
-        //storeFD->m_history =
+        // add link to history layer
+        storeFD->m_history.reset (new StoreFeatureDataset(dstHistoryLayer));
         dstDataset = storeFD;
     }
 

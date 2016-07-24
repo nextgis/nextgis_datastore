@@ -29,13 +29,17 @@ namespace ngs {
 
 const static array<char, 4> zoomLevels = {{6, 9, 12, 15}};
 
+class StoreFeatureDataset;
+typedef shared_ptr<StoreFeatureDataset> StoreFeatureDatasetPtr;
+
 class StoreFeatureDataset : public FeatureDataset
 {
+    friend class DataStore;
 public:
     StoreFeatureDataset(OGRLayer * const layer);
 
 protected:
-    DatasetPtr m_history, m_changes;
+    StoreFeatureDatasetPtr m_history;
 };
 
 }

@@ -71,7 +71,7 @@ void ngs::LoadingThread(void * store)
             continue;
         }
 
-        if(srcDataset->type () == Dataset::CONTAINER) {
+        if(srcDataset->type () == Dataset::Type::Container) {
             DatasetContainer* pDatasetContainer = static_cast<
                     DatasetContainer*>(srcDataset.get ());
             srcDataset = pDatasetContainer->getDataset (data.subDatasetName);
@@ -99,7 +99,7 @@ void ngs::LoadingThread(void * store)
 DatasetContainer::DatasetContainer() : Dataset(), m_hLoadThread(nullptr),
     m_cancelLoad(false)
 {
-    m_type = CONTAINER;
+    m_type = Type::Container;
 }
 
 DatasetContainer::~DatasetContainer()
@@ -150,7 +150,7 @@ DatasetPtr DatasetContainer::getDataset(const CPLString &name)
     OGRLayer* layer = m_DS->GetLayerByName (name);
     if(nullptr != layer){
         Dataset* dataset = nullptr;
-        if( EQUAL(layer->GetGeometryColumn (), "")){
+        if( layer->GetLayerDefn ()->GetGeomFieldCount () == 0 ){
             dataset = new Table(layer);
         }
         else {
@@ -314,7 +314,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                         name.c_str (), m_name.c_str ()),
                      progressArguments);
 
-    if(srcDataset->type () == TABLE) {
+    if(srcDataset->type () == Type::Table) {
         Table* const srcTable = ngsDynamicCast(Table, srcDataset);
         if(nullptr == srcTable) {
             CPLError(CE_Failure, CPLE_AppDefined,
@@ -345,7 +345,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         return dstTable->copyRows(srcTable, fieldMap,
                                    progressFunc, progressArguments);
     }
-    else if(srcDataset->type () == FEATURESET) {
+    else if(srcDataset->type () == Type::Featureset) {
         FeatureDataset* const srcTable = ngsDynamicCast(FeatureDataset, srcDataset);
         if(nullptr == srcTable) {
             CPLError(CE_Failure, CPLE_AppDefined,
@@ -363,7 +363,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             OGRwkbGeometryType filterGeomType = wkbUnknown;
             if(geometryTypes.size () > 1) {
                 newName += "_" + FeatureDataset::getGeometryTypeName(
-                            geometryType, FeatureDataset::SIMPLE);
+                            geometryType, FeatureDataset::GeometryReportType::Simple);
                 if (OGR_GT_Flatten(geometryType) > wkbPolygon &&
                     OGR_GT_Flatten(geometryType) < wkbGeometryCollection) {
                    filterGeomType = static_cast<OGRwkbGeometryType>(

@@ -32,7 +32,7 @@ class MapView : public Map, public MapTransform
 {
     friend void RenderingThread(void * view);
 public:
-    enum DrawStage {
+    enum class DrawStage {
         Start = 1,
         Stop,
         Done,

@@ -149,7 +149,7 @@ int Map::load(const char *path)
     if(doc.load (path) != ngsErrorCodes::SUCCESS)
         return ngsErrorCodes::OPEN_FAILED;
     JSONObject root = doc.getRoot ();
-    if(root.getType () == JSONObject::Object) {
+    if(root.getType () == JSONObject::Type::Object) {
         m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
         m_description = root.getString (MAP_DESCRIPTION, "");
         m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,

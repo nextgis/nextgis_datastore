@@ -76,7 +76,7 @@ FeaturePtr::operator OGRFeature *() const
 
 Table::Table(OGRLayer * const layer) : Dataset(), m_layer(layer)
 {
-    m_type = TABLE;
+    m_type = Type::Table;
     m_opened = true;
     if(layer)
         m_name = layer->GetName ();
@@ -118,7 +118,7 @@ int Table::insertFeature(const FeaturePtr &feature)
 
     // notify datasource changed
     if(nReturnCode == ngsErrorCodes::SUCCESS)
-        notifyDatasetChanged(Dataset::ADD_FEATURE, name(), feature->GetFID());
+        notifyDatasetChanged(Dataset::ChangeType::AddFeature, name(), feature->GetFID());
 
     return nReturnCode;
 }
@@ -133,7 +133,7 @@ int Table::updateFeature(const FeaturePtr &feature)
 
     // notify datasource changed
     if(nReturnCode == ngsErrorCodes::SUCCESS)
-        notifyDatasetChanged(Dataset::CHANGE_FEATURE, name(), feature->GetFID());
+        notifyDatasetChanged(Dataset::ChangeType::ChangeFeature, name(), feature->GetFID());
 
     return nReturnCode;
 }
@@ -147,7 +147,7 @@ int Table::deleteFeature(GIntBig id)
                 ngsErrorCodes::SUCCESS : ngsErrorCodes::DELETE_FAILED;
     // notify datasource changed
     if(nReturnCode == ngsErrorCodes::SUCCESS)
-        notifyDatasetChanged(Dataset::DELETE_FEATURE, name(), id);
+        notifyDatasetChanged(Dataset::ChangeType::DeleteFeature, name(), id);
 
     return nReturnCode;
 }

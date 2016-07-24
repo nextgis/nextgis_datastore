@@ -32,7 +32,7 @@ namespace ngs {
 class JSONObject
 {
 public:
-    enum Type {
+    enum class Type {
         Null,
         Object,
         Array,

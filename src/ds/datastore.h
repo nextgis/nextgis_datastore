@@ -45,6 +45,7 @@ public:
                         void* progressArguments = nullptr) override;
     virtual int datasetCount() const override;
     virtual int rasterCount() const override;
+    virtual DatasetPtr getDataset(const CPLString& name) override;
     virtual DatasetPtr getDataset(int index) override;
     virtual DatasetPtr createDataset(const CPLString &name,
                                      OGRFeatureDefn* const definition,

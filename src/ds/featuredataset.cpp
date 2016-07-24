@@ -61,7 +61,7 @@ bool CoordinateTransformationPtr::transform(OGRGeometry* geom) {
 FeatureDataset::FeatureDataset(OGRLayer * const layer) : Table(layer),
     SpatialDataset()
 {
-    m_type = FEATURESET;
+    m_type = Type::Featureset;
 }
 
 const OGRSpatialReference *FeatureDataset::getSpatialReference() const
@@ -103,9 +103,11 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             progressFunc(counter / featureCount, "copying...", progressArguments);
 
         OGRGeometry * geom = feature->GetGeometryRef ();
-        if((skipGeometryFlags & EMPTY_GEOMETRY) && geom->IsEmpty ())
+        if((skipGeometryFlags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
+                geom->IsEmpty ())
             continue;
-        if((skipGeometryFlags & INVALID_GEOMETRY) && !geom->IsValid())
+        if((skipGeometryFlags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
+                !geom->IsValid())
             continue;
 
 
@@ -154,9 +156,9 @@ bool FeatureDataset::setIgnoredFields(const char** fields)
 CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,
                                                 GeometryReportType reportType)
 {
-    if(reportType == FULL)
+    if(reportType == GeometryReportType::Full)
         return OGRGeometryTypeToName(type);
-    if(reportType == OGC)
+    if(reportType == GeometryReportType::Ogc)
         return OGRToOGCGeomType(type);
 
     switch (OGR_GT_Flatten(type)) {

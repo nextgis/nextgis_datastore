@@ -61,26 +61,26 @@ class Dataset
     friend class DatasetContainer;
     friend class DataStore;
 public:
-    enum Type {
-        UNDEFINED,
-        CONTAINER,
-        TABLE,
-        FEATURESET,
-        RASTER
+    enum class Type {
+        Undefined,
+        Container,
+        Table,
+        Featureset,
+        Raster
     };
 
-    enum ChangeType {
-        ADD_FEATURE = ngsChangeCodes::CREATE_FEATURE,
-        CHANGE_FEATURE = ngsChangeCodes::CHANGE_FEATURE,
-        DELETE_FEATURE = ngsChangeCodes::DELETE_FEATURE,
-        DELETEALL_FEATURES = ngsChangeCodes::DELETEALL_FEATURES,
-        ADD_ATTACHMENT = ngsChangeCodes::CREATE_ATTACHMENT,
-        CHANGE_ATTACHMENT = ngsChangeCodes::CHANGE_ATTACHMENT,
-        DELETE_ATTACHMENT = ngsChangeCodes::DELETE_ATTACHMENT,
-        DELETEALL_ATTACHMENTS = ngsChangeCodes::DELETEALL_ATTACHMENTS,
-        ADD_DATASET,
-        CHANGE_DATASET,
-        DELETE_DATASET
+    enum class ChangeType {
+        AddFeature = ngsChangeCodes::CREATE_FEATURE,
+        ChangeFeature = ngsChangeCodes::CHANGE_FEATURE,
+        DeleteFeature = ngsChangeCodes::DELETE_FEATURE,
+        DeleteAllFeatures = ngsChangeCodes::DELETEALL_FEATURES,
+        AddAttachment = ngsChangeCodes::CREATE_ATTACHMENT,
+        ChangeAttachment = ngsChangeCodes::CHANGE_ATTACHMENT,
+        DeleteAttachment = ngsChangeCodes::DELETE_ATTACHMENT,
+        DeleteAllAttachments = ngsChangeCodes::DELETEALL_ATTACHMENTS,
+        AddDataset,
+        ChangeDataset,
+        DeleteDataset
     };
 public:
     Dataset();

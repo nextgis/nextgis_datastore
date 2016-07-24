@@ -97,7 +97,7 @@ TEST(StoreTests, TestLoad) {
     const OGRSpatialReference *spaRef = srcTable->getSpatialReference ();
     ASSERT_NE(spaRef, nullptr);
     EXPECT_EQ(storage->loadDataset ("./data/bld.shp", "", false,
-                                    ngs::FeatureDataset::NONE,
+                                    ngsFeatureLoadSkipType(None),
                                     ngsTestProgressFunc, nullptr),
               ngsErrorCodes::SUCCESS);
     CPLSleep(0.6);
@@ -105,7 +105,7 @@ TEST(StoreTests, TestLoad) {
     EXPECT_GE(counter, 1);
     ngs::DatasetPtr data = storage->getDataset (0);
     ASSERT_NE(data, nullptr);
-    EXPECT_EQ(data->type (), ngs::Dataset::FEATURESET);
+    EXPECT_EQ(data->type (), ngs::Dataset::Type::Featureset);
     ngs::FeatureDataset *fData = dynamic_cast<ngs::FeatureDataset*>(data.get ());
     EXPECT_GE(fData->featureCount(), 3);
 }
