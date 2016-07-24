@@ -67,17 +67,17 @@ public:
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,
-                                      OGRFeatureDefn* const definition,
-                                      char** options = nullptr,
-                                      ngsProgressFunc progressFunc = nullptr,
-                                      void* progressArguments = nullptr);
+                                     OGRFeatureDefn* const definition,
+                                     char** options = nullptr,
+                                     ngsProgressFunc progressFunc = nullptr,
+                                     void* progressArguments = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,
-                                      OGRFeatureDefn* const definition,
-                                      const OGRSpatialReference *spatialRef,
-                                      OGRwkbGeometryType type = wkbUnknown,
-                                      char** options = nullptr,
-                                      ngsProgressFunc progressFunc = nullptr,
-                                      void* progressArguments = nullptr);
+                                     OGRFeatureDefn* const definition,
+                                     const OGRSpatialReference *spatialRef,
+                                     OGRwkbGeometryType type = wkbUnknown,
+                                     char** options = nullptr,
+                                     ngsProgressFunc progressFunc = nullptr,
+                                     void* progressArguments = nullptr);
     // TODO: createRaster()
 protected:
     virtual bool isNameValid(const CPLString& name) const;

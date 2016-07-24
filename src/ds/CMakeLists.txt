@@ -35,6 +35,7 @@ set(HHEADER_PRIV
     featuredataset.h
     rasterdataset.h
     table.h
+    storefeaturedataset.h
 )
 
 set(CSOURCES
@@ -45,6 +46,7 @@ set(CSOURCES
     featuredataset.cpp
     rasterdataset.cpp
     table.cpp
+    storefeaturedataset.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})

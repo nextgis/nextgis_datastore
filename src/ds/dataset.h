@@ -59,6 +59,7 @@ typedef shared_ptr<Dataset> DatasetPtr;
 class Dataset
 {
     friend class DatasetContainer;
+    friend class DataStore;
 public:
     enum Type {
         UNDEFINED,

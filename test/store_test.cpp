@@ -24,6 +24,8 @@
 #include "featuredataset.h"
 #include "rasterdataset.h"
 
+#include "cpl_conv.h"
+
 static int counter = 0;
 
 void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
@@ -39,6 +41,15 @@ int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
 
 TEST(StoreTests, TestCreate) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    const char* epsgPath = CPLFindFile ("gdal", "gcs.csv");
+    EXPECT_NE(epsgPath, nullptr);
+
+    OGRSpatialReference wgs;
+    wgs.importFromEPSG (4326);
+    OGRSpatialReference wm;
+    wm.importFromEPSG (3857);
+    EXPECT_EQ (wgs.IsSame (&wm), 0);
+
     ngs::DataStorePtr storage = ngs::DataStore::create("./tmp/ngs.gpkg");
     EXPECT_NE(storage, nullptr);
 }
@@ -79,16 +90,21 @@ TEST(StoreTests, TestDeleteTMS){
 
 TEST(StoreTests, TestLoad) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
-    EXPECT_NE(storage, nullptr);
+    ASSERT_NE(storage, nullptr);
+
+    ngs::DatasetPtr shapeF = ngs::Dataset::open ("./data/bld.shp", GDAL_OF_SHARED|GDAL_OF_READONLY, nullptr);
+    ngs::FeatureDataset* const srcTable = ngsDynamicCast(ngs::FeatureDataset, shapeF);
+    const OGRSpatialReference *spaRef = srcTable->getSpatialReference ();
+    ASSERT_NE(spaRef, nullptr);
     EXPECT_EQ(storage->loadDataset ("./data/bld.shp", "", false,
                                     ngs::FeatureDataset::NONE,
                                     ngsTestProgressFunc, nullptr),
               ngsErrorCodes::SUCCESS);
-    CPLSleep(0.3);
-    EXPECT_EQ(storage->datasetCount (), 1);
+    CPLSleep(0.6);
+    EXPECT_GE(storage->datasetCount (), 0);
     EXPECT_GE(counter, 1);
     ngs::DatasetPtr data = storage->getDataset (0);
-    EXPECT_NE(data, nullptr);
+    ASSERT_NE(data, nullptr);
     EXPECT_EQ(data->type (), ngs::Dataset::FEATURESET);
     ngs::FeatureDataset *fData = dynamic_cast<ngs::FeatureDataset*>(data.get ());
     EXPECT_GE(fData->featureCount(), 3);
@@ -96,7 +112,7 @@ TEST(StoreTests, TestLoad) {
 
 TEST(StoreTests, TestDelete) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
-    EXPECT_NE(storage, nullptr);
+    ASSERT_NE(storage, nullptr);
     EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(CSLCount(CPLReadDir("./tmp")), 2); // . and ..
     ngsUninit();

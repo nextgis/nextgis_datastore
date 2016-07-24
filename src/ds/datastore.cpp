@@ -19,9 +19,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "datastore.h"
-#include "table.h"
 #include "api.h"
 #include "rasterdataset.h"
+#include "storefeaturedataset.h"
 #include "constants.h"
 
 #include "cpl_vsi.h"
@@ -36,8 +36,9 @@ using namespace ngs;
 // DataStore
 //------------------------------------------------------------------------------
 
-DataStore::DataStore() : DatasetContainer(), m_disableJornalCounter(0)
+DataStore::DataStore() : DatasetContainer(), m_disableJournalCounter(0)
 {
+    m_storeSpatialRef.importFromEPSG(DEFAULT_EPSG);
 }
 
 DataStore::~DataStore()
@@ -216,6 +217,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
 
 int DataStore::datasetCount() const
 {
+    // TODO: each layer have history and changes tables. Count will be  (dsLayerCount - SYS_TABLE_COUNT) / 3
     int dsLayerCount = m_DS->GetLayerCount ();
     return dsLayerCount - SYS_TABLE_COUNT;
 }
@@ -251,21 +253,67 @@ DatasetPtr DataStore::getDataset(int index)
 
 DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
-                                     const OGRSpatialReference *spatialRef,
+                                     const OGRSpatialReference */*spatialRef*/,
                                      OGRwkbGeometryType type, char **options,
                                      ngsProgressFunc progressFunc,
                                      void *progressArguments)
 {
-    return DatasetContainer::createDataset(name, definition, spatialRef, type,
-                                           options, progressFunc, progressArguments);
-    /* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
-    // 3. Analyse structure, etc,
-    // 4. for each feature
-    // 4.1. read
-    // 4.2. create samples for several scales
-    // 4.3. create feature in storage dataset
-    // 4.4. create mapping of fields and original spatial reference metadata
-    */
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
+                     progressArguments);
+    DatasetPtr out;
+    OGRLayer *dstLayer = m_DS->CreateLayer(name, &m_storeSpatialRef, type, options);
+    if(dstLayer == nullptr) {
+        return out;
+    }
+
+    // create history layer
+    CPLString historyLayerName = name + HISTORY_APPEND;
+    OGRLayer *dstHistoryLayer = m_DS->CreateLayer(historyLayerName,
+                                                 &m_storeSpatialRef, type, options);
+    if(dstHistoryLayer == nullptr) {
+        return out;
+    }
+
+    for (int i = 0; i < definition->GetFieldCount(); ++i) {
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn dstField(srcField);
+        dstField.SetName(normalizeFieldName(srcField->GetNameRef()));
+        if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
+            return out;
+        }
+        if (dstHistoryLayer->CreateField(&dstField) != OGRERR_NONE) {
+            return out;
+        }
+    }
+
+    // create additional geometry fields for zoom levels: 6 9 12 15 only for dstLayer
+    for(char zoomLevel : zoomLevels) {
+        OGRFieldDefn dstField(CPLSPrintf ("geom_%d", zoomLevel), OFTBinary);
+        if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
+            return out;
+        }
+    }
+
+    Dataset* dstDataset = nullptr;
+    if( type == wkbNone) {
+        // TODO: StoreTable
+        dstDataset = new Table(dstLayer);
+    }
+    else {
+        StoreFeatureDataset* storeFD = new StoreFeatureDataset(dstLayer);
+        // TODO: add links to history
+        //storeFD->m_history =
+        dstDataset = storeFD;
+    }
+
+    dstDataset->setNotifyFunc (m_notifyFunc);
+    dstDataset->m_DS = m_DS;
+    out.reset(dstDataset);
+    if(dstDataset)
+        m_datasets[out->name ()] = out;
+
+    return out;
 }
 
 int DataStore::copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
@@ -477,15 +525,16 @@ bool DataStore::isNameValid(const CPLString &name) const
 void DataStore::enableJournal(bool enable)
 {
     if(enable) {
-        m_disableJornalCounter--;
-        if(m_disableJornalCounter == 0)
-        executeSQL ("PRAGMA synchronous=ON");
-        executeSQL ("PRAGMA journal_mode=ON");
-        executeSQL ("PRAGMA count_changes=ON");
+        m_disableJournalCounter--;
+        if(m_disableJournalCounter == 0) {
+            executeSQL ("PRAGMA synchronous=ON");
+            executeSQL ("PRAGMA journal_mode=ON");
+            executeSQL ("PRAGMA count_changes=ON");
+        }
     }
     else {
-        m_disableJornalCounter++;
-        if(m_disableJornalCounter == 1) {
+        m_disableJournalCounter++;
+        if(m_disableJournalCounter == 1) {
             executeSQL ("PRAGMA synchronous=OFF");
             //executeSQL ("PRAGMA locking_mode=EXCLUSIVE");
             executeSQL ("PRAGMA journal_mode=OFF");

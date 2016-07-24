@@ -136,35 +136,35 @@ int DatasetContainer::rasterCount() const
 
 DatasetPtr DatasetContainer::getDataset(const CPLString &name)
 {
-    DatasetPtr dataset;
+    DatasetPtr outDataset;
     auto it = m_datasets.find (name);
     if( it != m_datasets.end ()){
         if(!it->second->isDeleted ()){
             return it->second;
         }
         else{
-            return dataset;
+            return outDataset;
         }
     }
 
     OGRLayer* layer = m_DS->GetLayerByName (name);
     if(nullptr != layer){
-        Dataset* pDataset = nullptr;
+        Dataset* dataset = nullptr;
         if( EQUAL(layer->GetGeometryColumn (), "")){
-            pDataset = new Table(layer);
+            dataset = new Table(layer);
         }
         else {
-            pDataset = new FeatureDataset(layer);
+            dataset = new FeatureDataset(layer);
         }
 
-        pDataset->setNotifyFunc (m_notifyFunc);
-        pDataset->m_DS = m_DS;
-        dataset.reset(pDataset);
-        if(pDataset)
-            m_datasets[dataset->name ()] = dataset;
+        dataset->setNotifyFunc (m_notifyFunc);
+        dataset->m_DS = m_DS;
+        outDataset.reset(dataset);
+        if(dataset)
+            m_datasets[outDataset->name ()] = outDataset;
     }
 
-    return dataset;
+    return outDataset;
 }
 
 // TODO: getRaster(int index)
@@ -172,9 +172,9 @@ DatasetPtr DatasetContainer::getDataset(const CPLString &name)
 DatasetPtr DatasetContainer::getDataset(int index)
 {
     for(int i = 0; i < m_DS->GetLayerCount (); ++i){
-        OGRLayer* pLayer = m_DS->GetLayer (i);
+        OGRLayer* layer = m_DS->GetLayer (i);
         if( i == index)
-            return getDataset (pLayer->GetName());
+            return getDataset (layer->GetName());
     }
     return DatasetPtr();
 }
@@ -447,10 +447,10 @@ DatasetPtr DatasetContainer::createDataset(const CPLString &name,
         progressFunc(0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
                      progressArguments);
     DatasetPtr out;
-    OGRLayer *layerDest = m_DS->CreateLayer(name,
+    OGRLayer *dstLayer = m_DS->CreateLayer(name,
                                             const_cast<OGRSpatialReference*>(
                                                 spatialRef), type, options);
-    if(layerDest == nullptr) {
+    if(dstLayer == nullptr) {
         return out;
     }
 
@@ -461,23 +461,23 @@ DatasetPtr DatasetContainer::createDataset(const CPLString &name,
         // TODO: add special behaviour for different drivers (see. ogr2ogr)
 
         dstField.SetName(normalizeFieldName(srcField->GetNameRef()));
-        if (layerDest->CreateField(&dstField) != OGRERR_NONE) {
+        if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
             return out;
         }
     }
 
-    Dataset* datasetDest = nullptr;
+    Dataset* dstDataset = nullptr;
     if( type == wkbNone) {
-        datasetDest = new Table(layerDest);
+        dstDataset = new Table(dstLayer);
     }
     else {
-        datasetDest = new FeatureDataset(layerDest);
+        dstDataset = new FeatureDataset(dstLayer);
     }
 
-    datasetDest->setNotifyFunc (m_notifyFunc);
-    datasetDest->m_DS = m_DS;
-    out.reset(datasetDest);
-    if(datasetDest)
+    dstDataset->setNotifyFunc (m_notifyFunc);
+    dstDataset->m_DS = m_DS;
+    out.reset(dstDataset);
+    if(dstDataset)
         m_datasets[out->name ()] = out;
 
     return out;

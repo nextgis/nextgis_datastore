@@ -47,12 +47,12 @@ public:
     virtual int rasterCount() const override;
     virtual DatasetPtr getDataset(int index) override;
     virtual DatasetPtr createDataset(const CPLString &name,
-                                      OGRFeatureDefn* const definition,
-                                      const OGRSpatialReference *spatialRef,
-                                       OGRwkbGeometryType type = wkbUnknown,
-                                      char** options = nullptr,
-                                      ngsProgressFunc progressFunc = nullptr,
-                                      void* progressArguments = nullptr) override;
+                                     OGRFeatureDefn* const definition,
+                                     const OGRSpatialReference *,
+                                     OGRwkbGeometryType type = wkbUnknown,
+                                     char** options = nullptr,
+                                     ngsProgressFunc progressFunc = nullptr,
+                                     void* progressArguments = nullptr) override;
     virtual int copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr) override;
@@ -72,6 +72,7 @@ public:
     void onLowMemory();
 
 protected:
+    // TODO: create changes layer CPLString changesLayerName = name + "_changes";
     static int createMetadataTable(GDALDatasetPtr ds);
     static int createRastersTable(GDALDatasetPtr ds);
     static int createAttachmentsTable(GDALDatasetPtr ds);
@@ -82,7 +83,8 @@ protected:
 
 protected:
     CPLString m_dataPath;
-    short m_disableJornalCounter;
+    short m_disableJournalCounter;
+    OGRSpatialReference m_storeSpatialRef;
 };
 
 }

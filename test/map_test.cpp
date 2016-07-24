@@ -43,7 +43,7 @@ TEST(MapTests, TestCreate) {
     EXPECT_EQ(mapStore.mapCount(), 1);
 
     ngs::MapPtr defMap = mapStore.getMap (0);
-    EXPECT_NE(defMap, nullptr);
+    ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     ngsRGBA color = mapView->getBackgroundColor ();
     EXPECT_EQ(color.R, 210);
@@ -74,7 +74,7 @@ TEST(MapTests, TestProject) {
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640), ngsErrorCodes::SUCCESS);
     ngs::MapPtr defMap = mapStore.getMap (0);
-    EXPECT_NE(defMap, nullptr);
+    ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     OGREnvelope env;
     OGRRawPoint pt;
@@ -107,7 +107,7 @@ TEST(MapTests, TestDrawing) {
     unsigned char buffer[480 * 640 * 4];
     EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640), ngsErrorCodes::SUCCESS);
     ngs::MapPtr defMap = mapStore.getMap (0);
-    EXPECT_NE(defMap, nullptr);
+    ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     mapView->setBackgroundColor ({255, 0, 0, 255}); // RED color
     counter = 0;
@@ -127,7 +127,7 @@ TEST(MapTests, TestDeleteMap) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     ngs::MapPtr map = mapStore.getMap (0);
-    EXPECT_NE(map, nullptr);
+    ASSERT_NE(map, nullptr);
     EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);    
     EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);
 }

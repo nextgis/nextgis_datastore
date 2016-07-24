@@ -28,6 +28,7 @@
 // GDAL
 #include "gdal.h"
 #include "cpl_string.h"
+#include "cpl_csv.h"
 
 #ifdef HAVE_CURL_H
 #include <curl/curlver.h>
@@ -109,6 +110,13 @@ void initMapStore()
     }
 }
 
+/* special hook for find EPSG files
+static const char *CSVFileOverride( const char * pszInput )
+{
+    return crash here as we need to duplicate string -> CPLFindFile ("", pszInput);
+}
+*/
+
 void initGDAL(const char* dataPath, const char* cachePath)
 {
     // set config options
@@ -126,7 +134,7 @@ void initGDAL(const char* dataPath, const char* cachePath)
 #endif //_DEBUG
 
     // register drivers
-#ifdef DNGS_MOBILE // for mobile devices
+#ifdef NGS_MOBILE // for mobile devices
     GDALRegister_VRT();
     GDALRegister_GTiff();
     GDALRegister_HFA();
@@ -146,6 +154,7 @@ void initGDAL(const char* dataPath, const char* cachePath)
 #else
     GDALAllRegister();
 #endif
+    //SetCSVFilenameHook( CSVFileOverride );
 }
 
 /**
