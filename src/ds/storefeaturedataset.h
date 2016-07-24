@@ -37,6 +37,12 @@ class StoreFeatureDataset : public FeatureDataset
     friend class DataStore;
 public:
     StoreFeatureDataset(OGRLayer * const layer);
+    virtual int copyFeatures(const FeatureDataset *srcDataset,
+                             const FieldMapPtr fieldMap,
+                             OGRwkbGeometryType filterGeomType,
+                             unsigned int skipGeometryFlags,
+                             ngsProgressFunc progressFunc,
+                             void *progressArguments) override;
 
 protected:
     StoreFeatureDatasetPtr m_history;

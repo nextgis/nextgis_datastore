@@ -48,7 +48,7 @@ class FeatureDataset : public Table, public SpatialDataset
 {
 public:
     enum class SkipType : unsigned int {
-        None             = 0x0000,
+        None            = 0x0000,
         EmptyGeometry   = 0x0001,
         InvalidGeometry = 0x0002
     };

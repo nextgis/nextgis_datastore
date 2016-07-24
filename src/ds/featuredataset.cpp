@@ -103,36 +103,42 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             progressFunc(counter / featureCount, "copying...", progressArguments);
 
         OGRGeometry * geom = feature->GetGeometryRef ();
-        if((skipGeometryFlags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
-                geom->IsEmpty ())
-            continue;
-        if((skipGeometryFlags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
-                !geom->IsValid())
-            continue;
-
-
         OGRGeometry *newGeom = nullptr;
-        OGRwkbGeometryType geomType = geom->getGeometryType ();
-        OGRwkbGeometryType nonMultiGeomType = geomType;
-        if (OGR_GT_Flatten(geomType) > wkbPolygon &&
-                OGR_GT_Flatten(geomType) < wkbGeometryCollection) {
-            nonMultiGeomType = static_cast<OGRwkbGeometryType>(geomType - 3);
-        }
-        if (filterGeomType != wkbUnknown && filterGeomType != nonMultiGeomType) {
+        if(nullptr == geom && ngsFeatureLoadSkipType(EmptyGeometry))
             continue;
-        }
 
-        if (dstGeomType != geomType) {
-            newGeom = OGRGeometryFactory::forceTo(geom, dstGeomType);
-        }
-        else {
-            newGeom = geom->clone ();
-        }
+        if(nullptr != geom) {
+            if((skipGeometryFlags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
+                    geom->IsEmpty ())
+                continue;
+            if((skipGeometryFlags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
+                    !geom->IsValid())
+                continue;
 
-        CT.transform(newGeom);
+
+            OGRwkbGeometryType geomType = geom->getGeometryType ();
+            OGRwkbGeometryType nonMultiGeomType = geomType;
+            if (OGR_GT_Flatten(geomType) > wkbPolygon &&
+                    OGR_GT_Flatten(geomType) < wkbGeometryCollection) {
+                nonMultiGeomType = static_cast<OGRwkbGeometryType>(geomType - 3);
+            }
+            if (filterGeomType != wkbUnknown && filterGeomType != nonMultiGeomType) {
+                continue;
+            }
+
+            if (dstGeomType != geomType) {
+                newGeom = OGRGeometryFactory::forceTo(geom, dstGeomType);
+            }
+            else {
+                newGeom = geom->clone ();
+            }
+
+            CT.transform(newGeom);
+        }
 
         FeaturePtr dstFeature = createFeature ();
-        dstFeature->SetGeometryDirectly (newGeom);
+        if(nullptr != newGeom)
+            dstFeature->SetGeometryDirectly (newGeom);
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
         if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {

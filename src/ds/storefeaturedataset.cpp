@@ -27,6 +27,82 @@ StoreFeatureDataset::StoreFeatureDataset(OGRLayer * const layer) :
 
 }
 
+int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
+                                      const FieldMapPtr fieldMap,
+                                      OGRwkbGeometryType filterGeomType,
+                                      unsigned int skipGeometryFlags,
+                                      ngsProgressFunc progressFunc,
+                                      void *progressArguments)
+{
+    if(progressFunc)
+        progressFunc(0, CPLSPrintf ("Start copy features from '%s' to '%s'",
+                                    srcDataset->name ().c_str (), name().c_str ()),
+                     progressArguments);
+
+    const OGRSpatialReference *srcSRS = srcDataset->getSpatialReference();
+    const OGRSpatialReference *dstSRS = getSpatialReference();
+    CoordinateTransformationPtr CT (srcSRS, dstSRS);
+    GIntBig featureCount = srcDataset->featureCount();
+    OGRwkbGeometryType dstGeomType = getGeometryType();
+    double counter = 0;
+    srcDataset->reset ();
+    FeaturePtr feature;
+    while((feature = srcDataset->nextFeature ()) != nullptr) {
+        if(progressFunc)
+            progressFunc(counter / featureCount, "copying...", progressArguments);
+
+        OGRGeometry * geom = feature->GetGeometryRef ();
+        OGRGeometry *newGeom = nullptr;
+        if(nullptr == geom && ngsFeatureLoadSkipType(EmptyGeometry))
+            continue;
+
+        if(nullptr != geom) {
+            if((skipGeometryFlags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
+                    geom->IsEmpty ())
+                continue;
+            if((skipGeometryFlags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
+                    !geom->IsValid())
+                continue;
+
+
+            OGRwkbGeometryType geomType = geom->getGeometryType ();
+            OGRwkbGeometryType nonMultiGeomType = geomType;
+            if (OGR_GT_Flatten(geomType) > wkbPolygon &&
+                    OGR_GT_Flatten(geomType) < wkbGeometryCollection) {
+                nonMultiGeomType = static_cast<OGRwkbGeometryType>(geomType - 3);
+            }
+            if (filterGeomType != wkbUnknown && filterGeomType != nonMultiGeomType) {
+                continue;
+            }
+
+            if (dstGeomType != geomType) {
+                newGeom = OGRGeometryFactory::forceTo(geom, dstGeomType);
+            }
+            else {
+                newGeom = geom->clone ();
+            }
+
+            CT.transform(newGeom);
+        }
+
+        FeaturePtr dstFeature = createFeature ();
+        if(nullptr != newGeom)
+            dstFeature->SetGeometryDirectly (newGeom);
+        dstFeature->SetFieldsFrom (feature, fieldMap.get());
+
+        if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {
+            CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
+                     "Source feature FID:%lld", feature->GetFID ());
+        }
+        counter++;
+    }
+    if(progressFunc)
+        progressFunc(1.0, CPLSPrintf ("Done. Copied %d features", int(counter)),
+                     progressArguments);
+
+    return ngsErrorCodes::SUCCESS;
+}
+
 /* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
 // 4. for each feature
 // 4.1. read
