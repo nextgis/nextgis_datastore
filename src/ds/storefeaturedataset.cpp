@@ -18,6 +18,8 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 #include "storefeaturedataset.h"
+#include "maputil.h"
+#include "geometryutil.h"
 
 using namespace ngs;
 
@@ -47,6 +49,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
     double counter = 0;
     srcDataset->reset ();
     FeaturePtr feature;
+
     while((feature = srcDataset->nextFeature ()) != nullptr) {
         if(progressFunc)
             progressFunc(counter / featureCount, "copying...", progressArguments);
@@ -86,8 +89,27 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
         }
 
         FeaturePtr dstFeature = createFeature ();
-        if(nullptr != newGeom)
+        if(nullptr != newGeom) {
             dstFeature->SetGeometryDirectly (newGeom);
+
+            // create geometries for zoom levels
+            if(newGeom->getGeometryType () != OGR_GT_Flatten(wkbPoint)) {
+                for(auto sampleDist : sampleDists) {
+                    unique_ptr<OGRGeometry> simpleGeom(simplifyGeometry (newGeom,
+                                                                sampleDist.first));
+                    if(nullptr != simpleGeom) {
+                        int blobLen = simpleGeom->WkbSize();
+                        GByte* geomBlob = (GByte*) VSI_MALLOC_VERBOSE(blobLen);
+                        if( geomBlob != nullptr && simpleGeom->exportToWkb(
+                                    wkbNDR, geomBlob) == OGRERR_NONE )
+                            dstFeature->SetField (dstFeature->GetFieldIndex(
+                                CPLSPrintf ("ngs_geom_%d", sampleDist.second)),
+                                blobLen, geomBlob);
+                        CPLFree(geomBlob);
+                    }
+                }
+            }
+        }
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
         if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {

@@ -44,7 +44,7 @@ bool invalidChar (char c)
     return !isprint( static_cast<unsigned char>( c ) );
 }
 
-CPLString stripUnicode(const CPLString &str, const char replaceChar)
+CPLString ngs::stripUnicode(const CPLString &str, const char replaceChar)
 {
     CPLString out = str;
     replace_if(out.begin (), out.end (), invalidChar, replaceChar);
@@ -52,11 +52,11 @@ CPLString stripUnicode(const CPLString &str, const char replaceChar)
     return out;
 }
 
-CPLString translit(const CPLString &str, const CPLString &lang)
+CPLString ngs::translit(const CPLString &str, const CPLString &lang)
 {
     CPLString out = str;
     if(lang.empty ())
-        return stripUnicode (str);
+        return ngs::stripUnicode (str);
 
     if( lang[0] == 'r' && lang[1] == 'u' ) {
         auto first = str.begin ();
@@ -70,12 +70,12 @@ CPLString translit(const CPLString &str, const CPLString &lang)
         }
     }
     else {
-        return stripUnicode (str);
+        return ngs::stripUnicode (str);
     }
     return out;
 }
 
-bool testBoolean(const char *str, bool defaultVal)
+bool ngs::testBoolean(const char *str, bool defaultVal)
 {
     if(nullptr == str)
         return defaultVal;

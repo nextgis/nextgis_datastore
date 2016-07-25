@@ -17,34 +17,23 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#ifndef STOREFEATUREDATASET_H
-#define STOREFEATUREDATASET_H
+#include "maputil.h"
+#include "constants.h"
 
-#include "featuredataset.h"
-
-#define HISTORY_APPEND "_history"
-
-
-namespace ngs {
-
-class StoreFeatureDataset;
-typedef shared_ptr<StoreFeatureDataset> StoreFeatureDatasetPtr;
-
-class StoreFeatureDataset : public FeatureDataset
+double ngs::getZoomForScale(double scale, double currentZoom)
 {
-    friend class DataStore;
-public:
-    StoreFeatureDataset(OGRLayer * const layer);
-    virtual int copyFeatures(const FeatureDataset *srcDataset,
-                             const FieldMapPtr fieldMap,
-                             OGRwkbGeometryType filterGeomType,
-                             unsigned int skipGeometryFlags,
-                             ngsProgressFunc progressFunc,
-                             void *progressArguments) override;
-
-protected:
-    StoreFeatureDatasetPtr m_history;
-};
-
+    double zoom = currentZoom;
+    if (scale > 1) {
+        zoom = currentZoom + lg(scale);
+    } else if (scale < 1) {
+        zoom = currentZoom - lg(1.0 / scale);
+    }
+    return zoom;
 }
-#endif // STOREFEATUREDATASET_H
+
+double ngs::getPixelSize(int zoom)
+{
+    int tilesInMapOneDimension = 1 << zoom;
+    long sizeOneDimensionPixels = tilesInMapOneDimension * DEFAULT_TILE_SIZE;
+    return DEFAULT_MAX_Y * 2.0 / sizeOneDimensionPixels;
+}

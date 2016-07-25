@@ -18,16 +18,11 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef STRINGUTIL_H
-#define STRINGUTIL_H
+#include "geometryutil.h"
 
-#include "cpl_string.h"
-
-namespace ngs {
-
-CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
-CPLString translit(const CPLString &str, const CPLString &lang = "");
-bool testBoolean(const char *str, bool defaultVal);
-
+OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
+{
+    // TODO: do we need this?
+    // geometry->SimplifyPreserveTopology
+    return geometry->Simplify (distance);
 }
-#endif // STRINGUTIL_H

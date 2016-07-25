@@ -84,7 +84,7 @@ protected:
 
 protected:
     CPLString m_dataPath;
-    short m_disableJournalCounter;
+    unsigned char m_disableJournalCounter;
     OGRSpatialReference m_storeSpatialRef;
 };
 

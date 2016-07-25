@@ -23,6 +23,7 @@
 #include "rasterdataset.h"
 #include "storefeaturedataset.h"
 #include "constants.h"
+#include "geometryutil.h"
 
 #include "cpl_vsi.h"
 #include "cpl_conv.h"
@@ -327,10 +328,13 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
 
     // create additional geometry fields for zoom levels: 6 9 12 15 only for
     // dstLayer
-    for(char zoomLevel : zoomLevels) {
-        OGRFieldDefn dstField(CPLSPrintf ("ngs_geom_%d", zoomLevel), OFTBinary);
-        if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
-            return out;
+    if(type != OGR_GT_Flatten(wkbPoint)) {
+        for(auto sampleDist : sampleDists) {
+            OGRFieldDefn dstField(CPLSPrintf ("ngs_geom_%d", sampleDist.second),
+                                  OFTBinary);
+            if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
+                return out;
+            }
         }
     }
 
@@ -563,7 +567,7 @@ bool DataStore::isNameValid(const CPLString &name) const
 
 void DataStore::enableJournal(bool enable)
 {
-    if(enable) {
+    if(enable) {        
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
             executeSQL ("PRAGMA synchronous=ON");
@@ -572,6 +576,7 @@ void DataStore::enableJournal(bool enable)
         }
     }
     else {
+        CPLAssert (m_disableJournalCounter == 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
             executeSQL ("PRAGMA synchronous=OFF");

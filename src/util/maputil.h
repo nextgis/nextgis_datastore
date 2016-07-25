@@ -17,34 +17,17 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#ifndef STOREFEATUREDATASET_H
-#define STOREFEATUREDATASET_H
+#ifndef MAPUTIL_H
+#define MAPUTIL_H
 
-#include "featuredataset.h"
-
-#define HISTORY_APPEND "_history"
-
+#include <cmath>
 
 namespace ngs {
 
-class StoreFeatureDataset;
-typedef shared_ptr<StoreFeatureDataset> StoreFeatureDatasetPtr;
-
-class StoreFeatureDataset : public FeatureDataset
-{
-    friend class DataStore;
-public:
-    StoreFeatureDataset(OGRLayer * const layer);
-    virtual int copyFeatures(const FeatureDataset *srcDataset,
-                             const FieldMapPtr fieldMap,
-                             OGRwkbGeometryType filterGeomType,
-                             unsigned int skipGeometryFlags,
-                             ngsProgressFunc progressFunc,
-                             void *progressArguments) override;
-
-protected:
-    StoreFeatureDatasetPtr m_history;
-};
+inline static double lg(double x) {return log(x) / log(2.0);};
+double getZoomForScale(double scale, double currentZoom);
+double getPixelSize(int zoom);
 
 }
-#endif // STOREFEATUREDATASET_H
+
+#endif // MAPUTIL_H

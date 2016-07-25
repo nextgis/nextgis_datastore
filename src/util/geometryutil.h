@@ -18,16 +18,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef STRINGUTIL_H
-#define STRINGUTIL_H
+#ifndef GEOMETRYUTIL_H
+#define GEOMETRYUTIL_H
 
-#include "cpl_string.h"
+#include "maputil.h"
+
+#include <array>
+
+#include "ogrsf_frmts.h"
+
+#define SAMPLE_DISTANCE_PX 5
 
 namespace ngs {
 
-CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
-CPLString translit(const CPLString &str, const CPLString &lang = "");
-bool testBoolean(const char *str, bool defaultVal);
+using namespace std;
+
+const static array<pair<double, char>, 4> sampleDists = {
+{{ getPixelSize(6)  * SAMPLE_DISTANCE_PX, 6 },
+ { getPixelSize(9)  * SAMPLE_DISTANCE_PX, 9 },
+ { getPixelSize(12) * SAMPLE_DISTANCE_PX, 12 },
+ { getPixelSize(15) * SAMPLE_DISTANCE_PX, 15 }
+}};
+
+OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
 
 }
-#endif // STRINGUTIL_H
+
+#endif // GEOMETRYUTIL_H

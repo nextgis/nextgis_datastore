@@ -25,17 +25,21 @@
 set(LIB_NAME util)
 
 set(HHEADERS
+    constants.h
 )
 
 set(HHEADER_PRIV
-    constants.h
     jsondocument.h
     stringutil.h
+    maputil.h
+    geometryutil.h
 )
 
 set(CSOURCES
     jsondocument.cpp
     stringutil.cpp
+    maputil.cpp
+    geometryutil.cpp
 )
 
 if(UNIX)

@@ -80,6 +80,7 @@
 #define DEFAULT_MIN_Y -DEFAULT_MAX_Y
 #define DEFAULT_RATIO DEFAULT_MAX_X / DEFAULT_MAX_Y
 #define MAP_DOCUMENT_EXT "ngmd"
+#define DEFAULT_TILE_SIZE 256
 
 // Layers
 #define MAP_ID "map_id"
