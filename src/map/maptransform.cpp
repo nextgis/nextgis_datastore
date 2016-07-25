@@ -177,8 +177,7 @@ void MapTransform::initMatrices()
     // world -> scene matrix
     m_sceneMatrix.clear ();
     m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
-                         m_extent.MinY, m_extent.MaxY, -1, 1);
-    m_sceneMatrix.scale (1, -1, 1);
+                         m_extent.MaxY, m_extent.MinY, -1, 1);
 
     if(!isEqual(m_rotate, 0.0)){
         // TODO: rotate m_sceneMatrix
@@ -190,8 +189,7 @@ void MapTransform::initMatrices()
 
     // scene -> view inv matrix
     m_invViewMatrix.clear ();
-    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, -1, 1);
-    m_invViewMatrix.scale (1, -1, 1);
+    m_invViewMatrix.ortho (0, m_displayWidht, m_displayHeight, 0, -1, 1);
 
     // scene -> view matrix
     m_viewMatrix = m_invViewMatrix;

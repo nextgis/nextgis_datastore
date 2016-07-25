@@ -24,7 +24,6 @@
 #include "constants.h"
 #include "api.h"
 #include "table.h"
-#include "jsondocument.h"
 
 using namespace ngs;
 
@@ -37,9 +36,24 @@ Layer::Layer()
 
 }
 
-short Layer::id() const
+Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
+    m_dataset(dataset)
 {
-    return NOT_FOUND;
+}
+
+int Layer::load(const JSONObject &store)
+{
+    m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
+    return ngsErrorCodes::SUCCESS;
+}
+
+JSONObject Layer::save() const
+{
+    JSONObject out;
+    out.add(LAYER_NAME, m_name);
+    if(nullptr != m_dataset)
+        out.add(LAYER_SOURCE, m_dataset->path ());
+    return out;
 }
 
 
@@ -158,6 +172,13 @@ int Map::load(const char *path)
         m_minY = root.getDouble (MAP_MIN_Y, DEFAULT_MIN_Y);
         m_maxX = root.getDouble (MAP_MAX_X, DEFAULT_MAX_X);
         m_maxY = root.getDouble (MAP_MAX_Y, DEFAULT_MAX_Y);
+
+        JSONArray layers = root.getArray("layers");
+        for(int i = 0; i < layers.size(); ++i) {
+            // load layer
+            LayerPtr layer(new Layer);
+            layer->load(layers[i]);
+        }
     }
 
     return ngsErrorCodes::SUCCESS;
@@ -177,6 +198,12 @@ int Map::save(const char *path)
     root.add (MAP_MIN_Y, m_minY);
     root.add (MAP_MAX_X, m_maxX);
     root.add (MAP_MAX_Y, m_maxY);
+
+    JSONArray layers;
+    for(LayerPtr layer : m_layers) {
+        layers.add(layer->save());
+    }
+    root.add ("layers", layers);
 
     return doc.save (path);
 }
@@ -219,6 +246,12 @@ int Map::setBackgroundColor(const ngsRGBA &color)
 bool Map::isBackgroundChanged() const
 {
     return m_bkChanged;
+}
+
+int Map::createLayer(const CPLString &name, DatasetPtr dataset)
+{
+    // TODO: do it!
+    return ngsErrorCodes::SUCCESS;
 }
 
 void Map::setBackgroundChanged(bool bkChanged)

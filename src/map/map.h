@@ -27,6 +27,7 @@
 
 #include "table.h"
 #include "api.h"
+#include "jsondocument.h"
 
 namespace ngs {
 
@@ -45,13 +46,15 @@ public:
 
 public:
     Layer();
-    short id() const;
+    Layer(const CPLString& name, DatasetPtr dataset);
+    int load(const JSONObject& store);
+    JSONObject save() const;
 protected:
-    string m_name;
+    CPLString m_name;
     enum Type m_type;
+    DatasetPtr m_dataset;
 
-/*    DatasetPtr m_dataset;
-    Style m_style;
+    /*    Style m_style;
 */
 };
 
@@ -94,6 +97,8 @@ public:
     ngsRGBA getBackgroundColor() const;
     int setBackgroundColor(const ngsRGBA& color);
     bool isBackgroundChanged() const;
+
+    int createLayer(const CPLString &name, DatasetPtr dataset);
 
 protected:
     void setBackgroundChanged(bool bkChanged);

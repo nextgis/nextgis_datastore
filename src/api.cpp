@@ -609,11 +609,23 @@ int ngsSaveMap(unsigned int mapId, const char *path)
  * @param callbackData Progress function arguments
  * @return  ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsLoad(const char *path, const char *name, bool move, unsigned int skipFlags,
-            ngsProgressFunc callback, void *callbackData)
+int ngsLoad(const char* name, const char *path, const char *subDatasetName,
+            bool move, unsigned int skipFlags, ngsProgressFunc callback,
+            void *callbackData)
 {
     if(nullptr != gDataStore)
-        return gDataStore->loadDataset (path, name, move, skipFlags, callback,
-                                        callbackData);
+        return gDataStore->loadDataset (name, path, subDatasetName, move,
+                                        skipFlags, callback, callbackData);
     return ngsErrorCodes::INSERT_FAILED;
+}
+
+int ngsCreateLayer(unsigned int mapId, const char *name, const char *path)
+{
+    DatasetPtr dataset = gDataStore->getDataset (path);
+    initMapStore();
+    MapPtr map = gMapStore->getMap (mapId);
+    if(nullptr == map || nullptr == dataset)
+        return ngsErrorCodes::CREATE_FAILED;
+    return map->createLayer (name, dataset);
+
 }

@@ -54,7 +54,8 @@ public:
                                      char** options = nullptr,
                                      ngsProgressFunc progressFunc = nullptr,
                                      void* progressArguments = nullptr) override;
-    virtual int copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+    virtual int copyDataset(DatasetPtr srcDataset, const CPLString& dstName,
+                            unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr) override;
 

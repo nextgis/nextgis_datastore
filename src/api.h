@@ -119,8 +119,10 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          const char* alias, const char* copyright,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
-NGS_EXTERNC int ngsLoad(const char* path, const char* name, bool move, unsigned int skipFlags,
-                        ngsProgressFunc callback, void* callbackData);
+NGS_EXTERNC int ngsLoad(const char* name, const char* path,
+                        const char *subDatasetName, bool move,
+                        unsigned int skipFlags, ngsProgressFunc callback,
+                        void* callbackData);
 /**
  * Map functions
  *
@@ -139,7 +141,8 @@ NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
-
+NGS_EXTERNC int ngsCreateLayer(unsigned int mapId, const char* name,
+                               const char* path);
 /**
   * useful functions
   */

@@ -98,7 +98,26 @@ TEST(MapTests, TestProject) {
     EXPECT_EQ(wdPt.y, 640);
     dwPt = mapView->displayToWorld (pt);
     EXPECT_EQ(dwPt.x, 480);
-    EXPECT_EQ(dwPt.y, 640);
+    EXPECT_EQ(dwPt.y, 640);    
+
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    env.MinX = 0; env.MinY = 0;
+    env.MaxX = 5120; env.MaxY = 3840;
+    mapView->setExtent (env);
+    pt.x = 0;
+    pt.y = 0;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 0);
+
+    env.MinX = -1560.0; env.MinY = -1420.0;
+    env.MaxX = 3560.0; env.MaxY = 2420;
+    mapView->setExtent (env);
+    pt.x = -1560.0;
+    pt.y = -1420.0;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 0);
 }
 
 TEST(MapTests, TestDrawing) {

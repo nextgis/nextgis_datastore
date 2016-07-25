@@ -29,7 +29,8 @@ void LoadingThread(void * store);
 
 typedef struct _loadData {
     CPLString path;
-    CPLString subDatasetName;
+    CPLString srcSubDatasetName;
+    CPLString dstDatasetName;
     bool move;
     unsigned int skipType;
     ngsProgressFunc progressFunc;
@@ -47,9 +48,10 @@ public:
     virtual DatasetPtr getDataset(const CPLString& name);
     virtual DatasetPtr getDataset(int index);
     // TODO: getRaster
-    int loadDataset(const CPLString& path, const CPLString& subDatasetName,
-                            bool move, unsigned int skipType, ngsProgressFunc progressFunc,
-                            void* progressArguments = nullptr);
+    int loadDataset(const CPLString& name, const CPLString& path,
+                    const CPLString& subDatasetName, bool move,
+                    unsigned int skipType, ngsProgressFunc progressFunc,
+                    void* progressArguments = nullptr);
     /* TODO: does this need here?
     bool canCopy(const CPLString &destPath);
     bool canMove(const CPLString &destPath);
@@ -60,10 +62,12 @@ public:
     int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
              void* progressArguments = nullptr);
     */
-    virtual int copyDataset(DatasetPtr srcDataset, unsigned int skipGeometryFlags,
+    virtual int copyDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
+                            unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
-    virtual int moveDataset(DatasetPtr srcDataset, unsigned int skipGeometryFlags,
+    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
+                            unsigned int skipGeometryFlags,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,

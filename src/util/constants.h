@@ -83,9 +83,12 @@
 #define DEFAULT_TILE_SIZE 256
 
 // Layers
-#define MAP_ID "map_id"
-#define LAYER_STYLE "style"
-#define DATASET_NAME "ds_name"
+#define LAYER_NAME "name"
+#define LAYER_SOURCE "source"
+#define DEFAULT_LAYER_NAME "new layer"
+//#define MAP_ID "map_id"
+//#define LAYER_STYLE "style"
+//#define DATASET_NAME "ds_name"
 
 // Common
 #define NGS_VERSION_KEY "ngs_version"

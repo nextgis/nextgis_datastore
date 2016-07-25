@@ -359,12 +359,14 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     return out;
 }
 
-int DataStore::copyDataset(DatasetPtr srcDs, unsigned int skipGeometryFlags,
+int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
+                           unsigned int skipGeometryFlags,
                            ngsProgressFunc progressFunc, void *progressArguments)
 {
     // disable journal
     enableJournal(false);
-    int nRet = DatasetContainer::copyDataset (srcDs, skipGeometryFlags,
+    int nRet = DatasetContainer::copyDataset (srcDataset, dstName,
+                                              skipGeometryFlags,
                                               progressFunc, progressArguments);
     // enable journal
     enableJournal(true);

@@ -339,7 +339,7 @@ array<float, 16> Matrix4::dataF() const
 {
     array<float, 16> out;
     for(size_t i = 0; i < 16; ++i){
-        out[i] = static_cast<double>(m_values[i]);
+        out[i] = static_cast<float>(m_values[i]);
     }
     return out;
 }

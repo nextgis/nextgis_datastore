@@ -74,17 +74,19 @@ void ngs::LoadingThread(void * store)
         if(srcDataset->type () == Dataset::Type::Container) {
             DatasetContainer* pDatasetContainer = static_cast<
                     DatasetContainer*>(srcDataset.get ());
-            srcDataset = pDatasetContainer->getDataset (data.subDatasetName);
+            srcDataset = pDatasetContainer->getDataset (data.srcSubDatasetName);
         }
 
         // 2. Move or cope ds to container
         if(data.move && srcDataset->canDelete ()) {
-            dstDataset->moveDataset(srcDataset, data.skipType, data.progressFunc,
-                                  data.progressArguments);
+            dstDataset->moveDataset(srcDataset, data.dstDatasetName,
+                                    data.skipType, data.progressFunc,
+                                    data.progressArguments);
         }
         else {
-            dstDataset->copyDataset(srcDataset, data.skipType, data.progressFunc,
-                                  data.progressArguments);
+            dstDataset->copyDataset(srcDataset, data.dstDatasetName,
+                                    data.skipType, data.progressFunc,
+                                    data.progressArguments);
         }
     }
 
@@ -279,13 +281,13 @@ vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcData
     return out;
 }
 
-int DatasetContainer::loadDataset(const CPLString& path, const
+int DatasetContainer::loadDataset(const CPLString &name, const CPLString& path, const
                                   CPLString& subDatasetName, bool move,
                                   unsigned int skipType,
                                   ngsProgressFunc progressFunc,
                                   void* progressArguments)
 {
-    m_loadData.push_back ({path, subDatasetName, move, skipType,
+    m_loadData.push_back ({path, subDatasetName, name, move, skipType,
                            progressFunc, progressArguments});
     if(nullptr == m_hLoadThread) {
         m_hLoadThread = CPLCreateJoinableThread(LoadingThread, this);
@@ -294,12 +296,17 @@ int DatasetContainer::loadDataset(const CPLString& path, const
 }
 
 int DatasetContainer::copyDataset(DatasetPtr srcDataset,
+                                  const CPLString &dstDatasetName,
                                   unsigned int skipGeometryFlags,
                                   ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
     // create uniq name
-    CPLString name = srcDataset->name ();
+    CPLString name;
+    if(dstDatasetName.empty ())
+        name = srcDataset->name ();
+    else
+        name = dstDatasetName;
     if(name.empty ())
         name = "new_dataset";
     CPLString newName = name;
@@ -409,7 +416,9 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
     return ngsErrorCodes::SUCCESS;
 }
 
-int DatasetContainer::moveDataset(DatasetPtr srcDataset, unsigned int skipGeometryFlags,
+int DatasetContainer::moveDataset(DatasetPtr srcDataset,
+                                  const CPLString &dstDatasetName,
+                                  unsigned int skipGeometryFlags,
                                   ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
@@ -418,8 +427,8 @@ int DatasetContainer::moveDataset(DatasetPtr srcDataset, unsigned int skipGeomet
                         srcDataset->name().c_str (), m_name.c_str ()),
                      progressArguments);
 
-    int nResult = copyDataset (srcDataset, skipGeometryFlags, progressFunc,
-                               progressArguments);
+    int nResult = copyDataset (srcDataset, dstDatasetName, skipGeometryFlags,
+                               progressFunc, progressArguments);
     if(nResult != ngsErrorCodes::SUCCESS)
         return nResult;
     return srcDataset->destroy (progressFunc, progressArguments);

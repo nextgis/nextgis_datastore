@@ -26,11 +26,13 @@
 
 namespace ngs {
 
+class JSONArray;
 /**
  * @brief The JSONObject class JSON object from JSONDocument
  */
 class JSONObject
 {
+    friend class JSONArray;
 public:
     enum class Type {
         Null,
@@ -43,16 +45,34 @@ public:
     };
 
 public:
+    JSONObject();
     JSONObject(json_object *jsonObject);
     void add(const char* name, const char* val);
     void add(const char* name, double val);
     void add(const char* name, int val);
-    CPLString getString(const char* name, const CPLString& defaultVal);
-    double getDouble(const char* name, double defaultVal);
-    int getInteger(const char* name, int defaultVal);
+    void add(const char* name, const JSONArray& val);
+    CPLString getString(const char* name, const CPLString& defaultVal) const;
+    double getDouble(const char* name, double defaultVal) const;
+    int getInteger(const char* name, int defaultVal) const;
+    JSONArray getArray(const char* name) const;
     enum Type getType() const;
 protected:
     json_object *m_jsonObject;
+};
+
+/**
+ * @brief The JSONArray class JSON array from JSONDocument
+ */
+class JSONArray : public JSONObject
+{
+public:
+    JSONArray();
+    JSONArray(json_object *jsonObject);
+    int size() const;
+    void add(const JSONObject& val);
+    JSONObject operator[](int key);
+    const JSONObject operator[](int key) const;
+
 };
 
 /**

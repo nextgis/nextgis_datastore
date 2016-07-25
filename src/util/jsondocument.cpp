@@ -93,6 +93,11 @@ int JSONDocument::load(const char *path)
 // JSONObject
 //------------------------------------------------------------------------------
 
+JSONObject::JSONObject()
+{
+    m_jsonObject = json_object_new_object();
+}
+
 JSONObject::JSONObject(json_object *jsonObject) : m_jsonObject(jsonObject)
 {
 
@@ -116,7 +121,12 @@ void JSONObject::add(const char *name, int val)
     json_object_object_add(m_jsonObject, name, poVal);
 }
 
-CPLString JSONObject::getString(const char *name, const CPLString& defaultVal)
+void JSONObject::add(const char *name, const JSONArray &val)
+{
+    json_object_object_add(m_jsonObject, name, val.m_jsonObject);
+}
+
+CPLString JSONObject::getString(const char *name, const CPLString& defaultVal) const
 {
     json_object* poVal = nullptr;
     if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
@@ -126,7 +136,7 @@ CPLString JSONObject::getString(const char *name, const CPLString& defaultVal)
     return defaultVal;
 }
 
-double JSONObject::getDouble(const char *name, double defaultVal)
+double JSONObject::getDouble(const char *name, double defaultVal) const
 {
     json_object* poVal = nullptr;
     if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
@@ -136,7 +146,7 @@ double JSONObject::getDouble(const char *name, double defaultVal)
     return defaultVal;
 }
 
-int JSONObject::getInteger(const char *name, int defaultVal)
+int JSONObject::getInteger(const char *name, int defaultVal) const
 {
     json_object* poVal = nullptr;
     if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
@@ -144,6 +154,17 @@ int JSONObject::getInteger(const char *name, int defaultVal)
         return json_object_get_int (poVal);
     }
     return defaultVal;
+}
+
+JSONArray JSONObject::getArray(const char *name) const
+{
+    json_object* poVal = nullptr;
+    if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
+    if( poVal && json_object_get_type(poVal) == json_type_array )
+        return JSONArray (poVal);
+    }
+    return JSONArray(nullptr);
+
 }
 
 JSONObject::Type JSONObject::getType() const
@@ -169,3 +190,39 @@ JSONObject::Type JSONObject::getType() const
     return Type::Null;
 }
 
+//------------------------------------------------------------------------------
+// JSONArray
+//------------------------------------------------------------------------------
+
+JSONArray::JSONArray() : JSONObject( json_object_new_array() )
+{
+
+}
+
+JSONArray::JSONArray(json_object *jsonObject): JSONObject(jsonObject)
+{
+
+}
+
+int JSONArray::size() const
+{
+    if(nullptr == m_jsonObject)
+        return 0;
+    return json_object_array_length(m_jsonObject);
+}
+
+void JSONArray::add(const JSONObject &val)
+{
+    if(val.m_jsonObject)
+        json_object_array_add(m_jsonObject, val.m_jsonObject);
+}
+
+JSONObject JSONArray::operator[](int key)
+{
+    return JSONObject (json_object_array_get_idx(m_jsonObject, key));
+}
+
+const JSONObject JSONArray::operator[](int key) const
+{
+    return JSONObject (json_object_array_get_idx(m_jsonObject, key));
+}
