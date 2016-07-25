@@ -42,6 +42,13 @@ const static array<pair<double, char>, 4> sampleDists = {
 
 OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
 
+OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
+OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);
+OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);
+OGREnvelope setEnvelope(double minX, double maxX, double minY, double maxY);
+double getEnvelopeWidth(const OGREnvelope& env);
+double getEnvelopeHeight(const OGREnvelope& env);
+
 }
 
 #endif // GEOMETRYUTIL_H

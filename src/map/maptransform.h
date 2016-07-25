@@ -54,13 +54,6 @@ public:
 
 protected:
     void setSizeChanged(bool sizeChanged);
-    static OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
-    static OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);
-    static OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);
-    static OGREnvelope setEnvelope(double minX, double maxX, double minY,
-                                   double maxY);
-    static double getEnvelopeWidth(const OGREnvelope& env);
-    static double getEnvelopeHeight(const OGREnvelope& env);
     bool updateExtent();
     void initMatrices();
 protected:

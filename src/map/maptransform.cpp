@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "maptransform.h"
 #include "constants.h"
+#include "geometryutil.h"
 
 #include <algorithm>
 #include <iostream>
@@ -147,94 +148,6 @@ bool MapTransform::setExtent(const OGREnvelope &env)
 
     initMatrices();
     return true; // return false if extent modified to fit limits
-}
-
-OGRRawPoint MapTransform::getEnvelopeCenter(const OGREnvelope &env)
-{
-    OGRRawPoint pt;
-    pt.x = env.MinX + getEnvelopeWidth(env) * .5;
-    pt.y = env.MinY + getEnvelopeHeight(env) * .5;
-    return pt;
-}
-
-OGREnvelope MapTransform::rotateEnvelope(const OGREnvelope &env, double angle)
-{
-    double cosA = cos(angle);
-    double sinA = sin(angle);
-    OGREnvelope output;
-    output.MinX = BIG_VALUE;
-    output.MinY = BIG_VALUE;
-    output.MaxX = -BIG_VALUE;
-    output.MaxY = -BIG_VALUE;
-
-    OGRRawPoint points[4];
-    points[0] = OGRRawPoint(env.MinX, env.MinY);
-    points[1] = OGRRawPoint(env.MaxX, env.MinY);
-    points[2] = OGRRawPoint(env.MaxX, env.MaxY);
-    points[3] = OGRRawPoint(env.MinX, env.MaxY);
-
-    double x, y;
-    for(OGRRawPoint &pt : points){
-        x = pt.x * cosA - pt.y * sinA;
-        y = pt.x * sinA + pt.y * cosA;
-
-        if(x < output.MinX)
-            output.MinX = x;
-        if(x > output.MaxX)
-            output.MaxX = x;
-
-        if(y < output.MinY)
-            output.MinY = y;
-        if(y > output.MaxY)
-            output.MaxY = y;
-    }
-    return output;
-}
-
-OGREnvelope MapTransform::setEnvelopeRatio(const OGREnvelope &env, double ratio)
-{
-    OGREnvelope output = env;
-
-    double halfWidth = getEnvelopeWidth(env) * .5;
-    double halfHeight = getEnvelopeHeight(env) * .5;
-    OGRRawPoint center(env.MinX + halfWidth,  env.MinY + halfHeight);
-    double envRatio = halfWidth / halfHeight;
-    if(isEqual(envRatio, ratio))
-        return output;
-    if(ratio > envRatio) //increase width
-    {
-        double width = halfHeight * ratio;
-        output.MaxX = center.x + width;
-        output.MinX = center.x - width;
-    }
-    else					//increase height
-    {
-        double height = halfWidth / ratio;
-        output.MaxY = center.y + height;
-        output.MinY = center.y - height;
-    }
-    return output;
-}
-
-OGREnvelope MapTransform::setEnvelope(double minX, double maxX, double minY,
-                                      double maxY)
-{
-    OGREnvelope env;
-    env.MinX = minX;
-    env.MaxX = maxX;
-    env.MinY = minY;
-    env.MaxY = maxY;
-    return env;
-}
-
-double MapTransform::getEnvelopeWidth(const OGREnvelope &env)
-{
-    return env.MaxX - env.MinX;
-}
-
-double MapTransform::getEnvelopeHeight(const OGREnvelope &env)
-{
-    return env.MaxY - env.MinY;
 }
 
 bool MapTransform::updateExtent()
