@@ -49,6 +49,14 @@ endif()
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
 
+if(WITH_JSONC_EXTERNAL)
+    add_dependencies(${LIB_NAME} JSONC_EP)
+endif()
+
+if(WITH_GDAL_EXTERNAL)
+    add_dependencies(${LIB_NAME} GDAL_EP)
+endif()
+
 set_property(TARGET ${LIB_NAME} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${LIB_NAME} PROPERTY C_STANDARD 11)
 
