@@ -63,7 +63,7 @@ void ngs::RenderingThread(void * view)
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Stop" << endl;
 #endif // _DEBUG
-            // stop extract data threads
+            // stop extract data threads and start new one
             pMapView->setDrawStage (MapView::DrawStage::Start);
             break;
         case MapView::DrawStage::Process:
