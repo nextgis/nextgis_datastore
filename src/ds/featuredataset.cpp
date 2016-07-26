@@ -61,7 +61,7 @@ bool CoordinateTransformationPtr::transform(OGRGeometry* geom) {
 FeatureDataset::FeatureDataset(OGRLayer * const layer) : Table(layer),
     SpatialDataset()
 {
-    m_type = Type::Featureset;
+    m_type = ngsDatasetType(Featureset);
 }
 
 const OGRSpatialReference *FeatureDataset::getSpatialReference() const
@@ -104,7 +104,7 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
 
         OGRGeometry * geom = feature->GetGeometryRef ();
         OGRGeometry *newGeom = nullptr;
-        if(nullptr == geom && ngsFeatureLoadSkipType(EmptyGeometry))
+        if(nullptr == geom && skipGeometryFlags & ngsFeatureLoadSkipType(EmptyGeometry))
             continue;
 
         if(nullptr != geom) {

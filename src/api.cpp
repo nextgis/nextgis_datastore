@@ -19,9 +19,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
  
-#include "api.h"
-#include "version.h"
+#include "api_priv.h"
 #include "datastore.h"
+#include "version.h"
 #include "mapstore.h"
 #include "constants.h"
 
@@ -93,6 +93,12 @@ static DataStorePtr gDataStore;
 static MapStorePtr gMapStore;
 static string gFormats;
 
+/**
+ * @brief ngsInitDataStore Open or create data store. All datastore functgions
+ * will work with this datastore object until new one willn ot open.
+ * @param path Path to create datastore (geopackage database name)
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
 int ngsInitDataStore(const char *path)
 {
     if(gDataStore && gDataStore->path().compare (path) == 0)
@@ -108,6 +114,16 @@ void initMapStore()
     if(nullptr == gMapStore){
         gMapStore.reset (new MapStore());
     }
+}
+
+DataStorePtr ngsGetCurrentDataStore()
+{
+    return gDataStore;
+}
+
+void ngsSetCurrentDataStore(ngs::DataStorePtr ds)
+{
+    gDataStore = ds;
 }
 
 /* special hook for find EPSG files
@@ -599,8 +615,9 @@ int ngsSaveMap(unsigned int mapId, const char *path)
 
 /**
  * @brief ngsLoad
+ * @param name Destination dataset name
  * @param path Path to file in OS
- * @param name Layer name, if datasource on path has several layers
+ * @param subDatasetName Layer name, if datasource on path has several layers
  * @param move Move data to storage or copy
  * @param skipFlags combination of EMPTY_GEOMETRY(1) - to skip empty geometry
  * features to load, INVALID_GEOMETRY(2) - to skip invalid geometry or

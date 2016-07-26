@@ -47,6 +47,7 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
+    api_priv.h
 )
 
 set(CSOURCES

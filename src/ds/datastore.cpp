@@ -19,7 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "datastore.h"
-#include "api.h"
+#include "api_priv.h"
 #include "rasterdataset.h"
 #include "storefeaturedataset.h"
 #include "constants.h"
@@ -39,6 +39,7 @@ using namespace ngs;
 
 DataStore::DataStore() : DatasetContainer(), m_disableJournalCounter(0)
 {
+    m_type = ngsDatasetType(Store) | ngsDatasetType(Container);
     m_storeSpatialRef.importFromEPSG(DEFAULT_EPSG);
 }
 
@@ -77,11 +78,14 @@ DataStorePtr DataStore::create(const CPLString &path)
     }
 
     // create
-    GDALDatasetPtr DS = poDriver->Create( path, 0, 0, 0, GDT_Unknown, nullptr );
+    GDALDatasetPtr DS (poDriver->Create( path, 0, 0, 0, GDT_Unknown, nullptr ));
     if( DS == nullptr ) {
         CPLError(CE_Failure, CPLE_AppDefined, "Dataset create failed.");
         return out;
     }
+
+    DS->Dereference ();
+    CPLAssert (DS->GetRefCount () == 1)
 
     // create folder for external images and other stuff if not exist
     // if db name is ngs.gpkg folder shoudl be names ngs.data
@@ -106,20 +110,25 @@ DataStorePtr DataStore::create(const CPLString &path)
     if(nResult != ngsErrorCodes::SUCCESS)
         return out;
 
-    DataStore *pOutDS = new DataStore();
+    DataStore *outDS = new DataStore();
 
-    pOutDS->m_DS = DS;
-    pOutDS->m_path = path;
-    pOutDS->m_opened = true;
-    pOutDS->m_dataPath = dataPath;
+    outDS->m_DS = DS;
+    outDS->m_path = path;
+    outDS->m_opened = true;
+    outDS->m_dataPath = dataPath;
 
-    out.reset (pOutDS);
+    out.reset (outDS);
 
     return out;
 }
 
 DataStorePtr DataStore::open(const CPLString &path)
 {
+    // NOTE: Only make sence in one store several maps mode (mobile or etc.)
+    DataStorePtr currentDS = ngsGetCurrentDataStore();
+    if(currentDS && currentDS->path().compare (path) == 0)
+        return currentDS;
+
     CPLErrorReset();
     DataStorePtr out;
     if(path.empty()) {
@@ -133,8 +142,8 @@ DataStorePtr DataStore::open(const CPLString &path)
 
     }
 
-    GDALDataset* DS = static_cast<GDALDataset*>( GDALOpenEx(path,
-                       GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr) );
+    GDALDatasetPtr DS (static_cast<GDALDataset*>( GDALOpenEx(path,
+                       GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr)));
 
     if( DS == nullptr ) {
         CPLError(CE_Failure, CPLE_AppDefined, "Dataset create failed.");
@@ -170,13 +179,16 @@ DataStorePtr DataStore::open(const CPLString &path)
         return out;
     }
 
-    DataStore *pOutDS = new DataStore();
+    DataStore *outDS = new DataStore();
 
-    pOutDS->m_DS = DS;
-    pOutDS->m_path = path;
-    pOutDS->m_opened = true;
-    pOutDS->setDataPath ();
-    out.reset (pOutDS);
+    outDS->m_DS = DS;
+    outDS->m_path = path;
+    outDS->m_opened = true;
+    outDS->setDataPath ();
+    out.reset (outDS);
+
+    if(nullptr == currentDS)
+        ngsSetCurrentDataStore (out);
 
     return out;
 }
@@ -262,6 +274,7 @@ DatasetPtr DataStore::getDataset(const CPLString &name)
 
         dataset->setNotifyFunc (m_notifyFunc);
         dataset->m_DS = m_DS;
+        dataset->m_path = m_path + "/" + name;
         outDataset.reset(dataset);
         if(dataset)
             m_datasets[outDataset->name ()] = outDataset;
@@ -352,6 +365,7 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
 
     dstDataset->setNotifyFunc (m_notifyFunc);
     dstDataset->m_DS = m_DS;
+    dstDataset->m_path = m_path + "/" + name;
     out.reset(dstDataset);
     if(dstDataset)
         m_datasets[out->name ()] = out;

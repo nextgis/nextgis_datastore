@@ -26,7 +26,7 @@ using namespace ngs;
 StoreFeatureDataset::StoreFeatureDataset(OGRLayer * const layer) :
     FeatureDataset(layer)
 {
-
+    m_type = ngsDatasetType(Store) | ngsDatasetType(Featureset);
 }
 
 int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,

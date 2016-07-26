@@ -21,6 +21,7 @@
 
 #include "test.h"
 #include "datastore.h"
+#include "featuredataset.h"
 #include "mapstore.h"
 #include "constants.h"
 #include "mapview.h"
@@ -66,7 +67,6 @@ TEST(MapTests, TestInitMap) {
     EXPECT_EQ(mapStore.mapCount(), 1);
     EXPECT_NE(mapStore.initMap (1, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
-
 }
 
 TEST(MapTests, TestProject) {
@@ -142,6 +142,40 @@ TEST(MapTests, TestDrawing) {
     EXPECT_EQ(color.B, 0);
 }
 
+TEST(MapTests, TestCreateLayer) {
+    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
+
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    ngs::MapPtr defMap = mapStore.getMap (0);
+    ASSERT_NE(defMap, nullptr);
+
+    ngs::DataStorePtr storage = ngs::DataStore::create("./tmp/ngs.gpkg");
+    ASSERT_NE(storage, nullptr);
+    EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", false,
+                                    ngsFeatureLoadSkipType(None),
+                                    ngsTestProgressFunc, nullptr),
+              ngsErrorCodes::SUCCESS);
+    CPLSleep(0.6);
+    EXPECT_GE(storage->datasetCount (), 0);
+    EXPECT_GE(counter, 1);
+    ngs::DatasetPtr data = storage->getDataset (0);
+    ASSERT_NE(data, nullptr);
+    bool isFeatureSet = data->type () & ngsDatasetType(Featureset);
+    EXPECT_EQ(isFeatureSet, true);
+    defMap->createLayer ("test_layer", data);
+    EXPECT_EQ(defMap->save ("default.ngmd"), ngsErrorCodes::SUCCESS);
+}
+
+TEST(MapTests, TestLoadLayer) {
+    ngs::MapStore mapStore;
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    ngs::MapPtr defMap = mapStore.getMap (0);
+    ASSERT_NE(defMap, nullptr);
+    EXPECT_NE (defMap->layerCount (), 0);
+}
+
+
 TEST(MapTests, TestDeleteMap) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
@@ -149,5 +183,9 @@ TEST(MapTests, TestDeleteMap) {
     ASSERT_NE(map, nullptr);
     EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);    
     EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);
+    ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
+    ASSERT_NE(storage, nullptr);
+    EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
+    ngsUninit();
 }
 

@@ -21,7 +21,7 @@
 #ifndef DATASET_H
 #define DATASET_H
 
-#include "api.h"
+#include "api_priv.h"
 
 #include "cpl_string.h"
 #include "ogrsf_frmts.h"
@@ -43,13 +43,16 @@ class GDALDatasetPtr : public shared_ptr< GDALDataset >
 public:
     GDALDatasetPtr(GDALDataset* ds);
     GDALDatasetPtr();
-    GDALDatasetPtr& operator=(GDALDataset* pFeature);
+    GDALDatasetPtr(const GDALDatasetPtr& ds);
+    GDALDatasetPtr& operator=(GDALDataset* ds);
     operator GDALDataset*() const;
 };
 
 class Dataset;
 typedef shared_ptr<Dataset> DatasetPtr;
 // typedef weak_ptr<Dataset> DatasetWPtr;
+#define ngsDatasetType(x) static_cast<unsigned int>( ngs::Dataset::Type::x )
+
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
@@ -62,11 +65,12 @@ class Dataset
     friend class DataStore;
 public:
     enum class Type {
-        Undefined,
-        Container,
-        Table,
-        Featureset,
-        Raster
+        Undefined   = 1 << 0,
+        Container   = 1 << 1,
+        Table       = 1 << 2,
+        Featureset  = 1 << 3,
+        Raster      = 1 << 4,
+        Store       = 1 << 5
     };
 
     enum class ChangeType {
@@ -87,7 +91,7 @@ public:
     virtual ~Dataset();
 
     // base properties
-    Type type() const;
+    unsigned int type() const;
     bool isVector() const;
     bool isRaster() const;
 
@@ -126,7 +130,7 @@ protected:
     static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
 
 protected:
-    enum Type m_type;
+    unsigned int m_type;
     CPLString m_name, m_path;
     bool m_deleted;
     bool m_opened;

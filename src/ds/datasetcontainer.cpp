@@ -71,7 +71,7 @@ void ngs::LoadingThread(void * store)
             continue;
         }
 
-        if(srcDataset->type () == Dataset::Type::Container) {
+        if(srcDataset->type () & ngsDatasetType (Container)) {
             DatasetContainer* pDatasetContainer = static_cast<
                     DatasetContainer*>(srcDataset.get ());
             srcDataset = pDatasetContainer->getDataset (data.srcSubDatasetName);
@@ -101,7 +101,7 @@ void ngs::LoadingThread(void * store)
 DatasetContainer::DatasetContainer() : Dataset(), m_hLoadThread(nullptr),
     m_cancelLoad(false)
 {
-    m_type = Type::Container;
+    m_type = ngsDatasetType (Container);
 }
 
 DatasetContainer::~DatasetContainer()
@@ -161,6 +161,7 @@ DatasetPtr DatasetContainer::getDataset(const CPLString &name)
 
         dataset->setNotifyFunc (m_notifyFunc);
         dataset->m_DS = m_DS;
+        dataset->m_path = m_path + "/" + name;
         outDataset.reset(dataset);
         if(dataset)
             m_datasets[outDataset->name ()] = outDataset;
@@ -321,7 +322,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                         name.c_str (), m_name.c_str ()),
                      progressArguments);
 
-    if(srcDataset->type () == Type::Table) {
+    if(srcDataset->type () & ngsDatasetType(Table)) {
         Table* const srcTable = ngsDynamicCast(Table, srcDataset);
         if(nullptr == srcTable) {
             CPLError(CE_Failure, CPLE_AppDefined,
@@ -352,7 +353,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         return dstTable->copyRows(srcTable, fieldMap,
                                    progressFunc, progressArguments);
     }
-    else if(srcDataset->type () == Type::Featureset) {
+    else if(srcDataset->type () & ngsDatasetType(Featureset)) {
         FeatureDataset* const srcTable = ngsDynamicCast(FeatureDataset, srcDataset);
         if(nullptr == srcTable) {
             CPLError(CE_Failure, CPLE_AppDefined,

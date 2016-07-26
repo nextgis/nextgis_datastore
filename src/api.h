@@ -143,25 +143,5 @@ NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
 NGS_EXTERNC int ngsCreateLayer(unsigned int mapId, const char* name,
                                const char* path);
-/**
-  * useful functions
-  */
-inline int ngsRGBA2HEX(const ngsRGBA& color){
-    return ((color.R & 0xff) << 24) + ((color.G & 0xff) << 16) +
-            ((color.B & 0xff) << 8) + (color.A & 0xff);
-}
-
-inline ngsRGBA ngsHEX2RGBA(int color){
-    ngsRGBA out;
-    out.R = (color >> 24) & 0xff;
-    out.G = (color >> 16) & 0xff;
-    out.B = (color >> 8) & 0xff;
-    out.A = (color) & 0xff;
-    return out;
-}
-
-#define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
-
-// TODO: use gettext or something same to translate messages
 
 #endif // API_H

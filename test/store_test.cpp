@@ -105,7 +105,8 @@ TEST(StoreTests, TestLoad) {
     EXPECT_GE(counter, 1);
     ngs::DatasetPtr data = storage->getDataset (0);
     ASSERT_NE(data, nullptr);
-    EXPECT_EQ(data->type (), ngs::Dataset::Type::Featureset);
+    bool isFeatureSet = data->type () & ngsDatasetType(Featureset);
+    EXPECT_EQ(isFeatureSet, true);
     ngs::FeatureDataset *fData = dynamic_cast<ngs::FeatureDataset*>(data.get ());
     EXPECT_GE(fData->featureCount(), 3);
 }

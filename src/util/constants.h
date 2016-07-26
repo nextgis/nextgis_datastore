@@ -84,6 +84,7 @@
 
 // Layers
 #define LAYER_NAME "name"
+#define LAYER_SOURCE_TYPE "source_type"
 #define LAYER_SOURCE "source"
 #define DEFAULT_LAYER_NAME "new layer"
 //#define MAP_ID "map_id"

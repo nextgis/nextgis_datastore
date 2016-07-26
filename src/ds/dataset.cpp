@@ -24,6 +24,8 @@
 #include "api.h"
 #include "stringutil.h"
 
+#include <iostream>
+
 using namespace ngs;
 
 //------------------------------------------------------------------------------
@@ -33,7 +35,7 @@ using namespace ngs;
 GDALDatasetPtr::GDALDatasetPtr(GDALDataset* ds) :
     shared_ptr(ds, GDALClose )
 {
-
+    ds->Reference ();
 }
 
 GDALDatasetPtr::GDALDatasetPtr() :
@@ -42,8 +44,14 @@ GDALDatasetPtr::GDALDatasetPtr() :
 
 }
 
+GDALDatasetPtr::GDALDatasetPtr(const GDALDatasetPtr &ds) : shared_ptr(ds)
+{
+    ds->Reference ();
+}
+
 GDALDatasetPtr& GDALDatasetPtr::operator=(GDALDataset* ds) {
     reset(ds);
+    ds->Reference ();
     return *this;
 }
 
@@ -59,7 +67,7 @@ GDALDatasetPtr::operator GDALDataset *() const
 Dataset::Dataset() : m_deleted(false), m_opened(false), m_readOnly(true),
     m_notifyFunc(nullptr)
 {
-    m_type = Type::Undefined;
+    m_type = ngsDatasetType(Undefined);
 }
 
 Dataset::~Dataset()
@@ -67,19 +75,19 @@ Dataset::~Dataset()
 
 }
 
-Dataset::Type Dataset::type() const
+unsigned int Dataset::type() const
 {
     return m_type;
 }
 
 bool Dataset::isVector() const
 {
-    return m_type == Type::Table || m_type == Type::Featureset;
+    return m_type & ngsDatasetType(Table) || m_type & ngsDatasetType(Featureset);
 }
 
 bool Dataset::isRaster() const
 {
-    return m_type == Type::Raster;
+    return m_type & ngsDatasetType(Raster);
 }
 
 CPLString Dataset::name() const

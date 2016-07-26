@@ -18,19 +18,41 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef TEST_H
-#define TEST_H
+#ifndef API_PRIV_H
+#define API_PRIV_H
 
-#include "gtest/gtest.h"
-#include "api_priv.h"
+#include "api.h"
 
-#define TMS_URL "http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1"
-#define TMS_NAME "2gis"
-#define TMS_ALIAS "maps.2gis.com"
-#define TMS_COPYING "2gis (c)"
-#define TMS_EPSG 3857
-#define TMS_MIN_Z 0
-#define TMS_MAX_Z 18
-#define TMS_YORIG_TOP false
+#include <memory>
 
-#endif // TEST_H
+using namespace std;
+
+namespace ngs {
+    class DataStore;
+    typedef shared_ptr<DataStore> DataStorePtr;
+}
+
+ngs::DataStorePtr ngsGetCurrentDataStore();
+void ngsSetCurrentDataStore(ngs::DataStorePtr ds);
+/**
+  * useful functions
+  */
+inline int ngsRGBA2HEX(const ngsRGBA& color) {
+    return ((color.R & 0xff) << 24) + ((color.G & 0xff) << 16) +
+            ((color.B & 0xff) << 8) + (color.A & 0xff);
+}
+
+inline ngsRGBA ngsHEX2RGBA(int color) {
+    ngsRGBA out;
+    out.R = (color >> 24) & 0xff;
+    out.G = (color >> 16) & 0xff;
+    out.B = (color >> 8) & 0xff;
+    out.A = (color) & 0xff;
+    return out;
+}
+
+#define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
+
+// TODO: use gettext or something same to translate messages
+
+#endif // API_PRIV_H

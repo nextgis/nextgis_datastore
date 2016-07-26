@@ -44,6 +44,18 @@ Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
 int Layer::load(const JSONObject &store)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
+    unsigned int type = static_cast<unsigned int>(store.getInteger (
+                                 LAYER_SOURCE_TYPE, ngsDatasetType (Undefined)));
+    if(type & ngsDatasetType (Store)) {
+        CPLString path = store.getString (LAYER_SOURCE, "");
+        CPLString datasetName = CPLGetBasename (path);
+        path = CPLGetDirname (path);
+        // load dataset by path and name
+        DataStorePtr dataStore = DataStore::open (path);
+        if(nullptr != dataStore) {
+            m_dataset = dataStore->getDataset (datasetName);
+        }
+    }
     return ngsErrorCodes::SUCCESS;
 }
 
@@ -51,8 +63,10 @@ JSONObject Layer::save() const
 {
     JSONObject out;
     out.add(LAYER_NAME, m_name);
-    if(nullptr != m_dataset)
+    if(nullptr != m_dataset) {
+        out.add(LAYER_SOURCE_TYPE, static_cast<int>(m_dataset->type ()));
         out.add(LAYER_SOURCE, m_dataset->path ());
+    }
     return out;
 }
 
@@ -177,7 +191,8 @@ int Map::load(const char *path)
         for(int i = 0; i < layers.size(); ++i) {
             // load layer
             LayerPtr layer(new Layer);
-            layer->load(layers[i]);
+            if(layer->load(layers[i]) == ngsErrorCodes::SUCCESS)
+                m_layers.push_back (layer);
         }
     }
 
@@ -219,10 +234,13 @@ int Map::destroy()
         return ngsErrorCodes::SUCCESS;
     }
 
+
     int nRet = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
                                              ngsErrorCodes::DELETE_FAILED;
-    if(nRet == ngsErrorCodes::SUCCESS)
+    if(nRet == ngsErrorCodes::SUCCESS) {
+        m_layers.clear ();
         m_deleted = true;
+    }
     return nRet;
 }
 
@@ -250,8 +268,14 @@ bool Map::isBackgroundChanged() const
 
 int Map::createLayer(const CPLString &name, DatasetPtr dataset)
 {
-    // TODO: do it!
+    LayerPtr layer (new Layer(name, dataset));
+    m_layers.push_back (layer);
     return ngsErrorCodes::SUCCESS;
+}
+
+size_t Map::layerCount() const
+{
+    return m_layers.size();
 }
 
 void Map::setBackgroundChanged(bool bkChanged)

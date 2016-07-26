@@ -99,6 +99,7 @@ public:
     bool isBackgroundChanged() const;
 
     int createLayer(const CPLString &name, DatasetPtr dataset);
+    size_t layerCount() const;
 
 protected:
     void setBackgroundChanged(bool bkChanged);

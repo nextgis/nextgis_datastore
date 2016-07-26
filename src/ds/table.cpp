@@ -76,7 +76,7 @@ FeaturePtr::operator OGRFeature *() const
 
 Table::Table(OGRLayer * const layer) : Dataset(), m_layer(layer)
 {
-    m_type = Type::Table;
+    m_type = ngsDatasetType (Table);
     m_opened = true;
     if(layer)
         m_name = layer->GetName ();
