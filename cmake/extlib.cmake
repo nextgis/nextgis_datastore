@@ -202,104 +202,166 @@ find_anyproject(GDAL REQUIRED VERSION 2.0 SHARED OFF CMAKE_ARGS
 
 if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     # this only need for API report version
-    if(WITH_GDAL_EXTERNAL)
+    #include <curl/curlver.h>
+    find_path(CURL_PATH curlver.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/curl
+        /usr/include
+        /usr/include/curl
+        /usr/local/include
+        /usr/local/include/curl)
+    if(CURL_PATH)
+        # cut curl
+        string(REPLACE "curl" "" CURL_PATH ${CURL_PATH})
+        include_directories (${CURL_PATH})
         add_definitions (-DHAVE_CURLVER_H)
+    endif()
+    #include "geos_c.h"
+    find_path(GEOS_PATH geos_c.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/geos
+        /usr/include
+        /usr/include/geos
+        /usr/local/include
+        /usr/local/include/geos)
+    if(GEOS_PATH)
+        include_directories (${GEOS_PATH})
         add_definitions (-DHAVE_GEOS_C_H)
+    endif()
+    #include "sqlite3.h"
+    find_path(SQLITE3_PATH sqlite3.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/sqlite3
+        /usr/include
+        /usr/include/sqlite3
+        /usr/local/include
+        /usr/local/include/sqlite3)
+    if(SQLITE3_PATH)
+        include_directories (${SQLITE3_PATH})
         add_definitions (-DHAVE_SQLITE3_H)
+    endif()
+    #[[include "json-c/json_c_version.h"
+    find_path(JSON_C_PATH json_c_version.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/json-c
+        /usr/include
+        /usr/include/json-c
+        /usr/local/include
+        /usr/local/include/json-c)
+    if(JSON_C_PATH)
+        include_directories (${JSON_C_PATH})
         add_definitions (-DHAVE_JSON_C_VERSION_H)
+    endif()
+    ]]
+    #include "proj_api.h"
+    find_path(PROJ_API_PATH proj_api.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/proj4
+        /usr/include
+        /usr/include/proj4
+        /usr/local/include
+        /usr/local/include/proj4)
+    if(PROJ_API_PATH)
+        include_directories (${PROJ_API_PATH})
         add_definitions (-DHAVE_PROJ_API_H)
+    endif()
+    #include "jpeglib.h"
+    find_path(JPEGLIB_PATH jpeglib.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/jpeg
+        /usr/include
+        /usr/include/jpeg
+        /usr/local/include
+        /usr/local/include/jpeg)
+    if(JPEGLIB_PATH)
+        include_directories (${JPEGLIB_PATH})
         add_definitions (-DHAVE_JPEGLIB_H)
+    endif()
+    #include "tiff.h"
+    find_path(TIFF_PATH tiff.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/tiff
+        /usr/include
+        /usr/include/tiff
+        /usr/local/include
+        /usr/local/include/tiff)
+    if(TIFF_PATH)
+        include_directories (${TIFF_PATH})
         add_definitions (-DHAVE_TIFF_H)
+    endif()
+    #include "geotiff.h"
+    find_path(GEOTIFF_PATH geotiff.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/geotiff
+        /usr/include /usr/include/geotiff
+        /usr/local/include
+        /usr/local/include/geotiff)
+    if(GEOTIFF_PATH)
+        # cut geotiff
+        # string(REPLACE "geotiff" "" GEOTIFF_PATH ${GEOTIFF_PATH})
+        include_directories (${GEOTIFF_PATH})
         add_definitions (-DHAVE_GEOTIFF_H)
+    endif()
+    #include "png.h"
+    find_path(PNG_PATH png.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/libpng16
+        /usr/include
+        /usr/include/png
+        /usr/local/include
+        /usr/local/include/png)
+    if(PNG_PATH)
+        include_directories (${PNG_PATH})
         add_definitions (-DHAVE_PNG_H)
+    endif()
+    #include "expat.h"
+    find_path(EXPAT_PATH expat.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/expat
+        /usr/include
+        /usr/include/expat
+        /usr/local/include
+        /usr/local/include/expat)
+    if(EXPAT_PATH)
+        include_directories (${EXPAT_PATH})
         add_definitions (-DHAVE_EXPAT_H)
+    endif()
+    #include "iconv.h"
+    find_path(ICONV_PATH iconv.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/iconv
+        /usr/include
+        /usr/include/iconv/
+        /usr/local/include
+        /usr/local/include/iconv)
+    if(ICONV_PATH)
+        include_directories (${ICONV_PATH})
         add_definitions (-DHAVE_ICONV_H)
+    endif()
+    #include "zlib.h"
+    find_path(ZLIB_PATH zlib.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/zlib
+        /usr/include
+        /usr/include/zlib
+        /usr/local/include
+        /usr/local/include/zlib)
+    if(ZLIB_PATH)
+        include_directories (${ZLIB_PATH})
         add_definitions (-DHAVE_ZLIB_H)
+    endif()
+    #include "openssl/opensslv.h"
+    find_path(OPENSSL_PATH opensslv.h PATHS
+        ${CMAKE_BINARY_DIR}/third-party/include
+        ${CMAKE_BINARY_DIR}/third-party/include/openssl
+        /usr/include
+        /usr/include/openssl
+        /usr/local/include
+        /usr/local/include/openssl)
+    if(OPENSSL_PATH)
+        # cut openssl
+        string(REPLACE "openssl" "" OPENSSL_PATH ${OPENSSL_PATH})
+        include_directories (${OPENSSL_PATH})
         add_definitions (-DHAVE_OPENSSLV_H)
-    else()
-        #include <curl/curlver.h>
-        find_path(CURL_PATH curlver.h PATHS /usr/include /usr/include/curl /usr/local/include /usr/local/include/curl)
-        if(CURL_PATH)
-            # cut curl
-            string(REPLACE "curl" "" CURL_PATH ${CURL_PATH})
-            include_directories (${CURL_PATH})
-            add_definitions (-DHAVE_CURLVER_H)
-        endif()
-        #include "geos_c.h"
-        find_path(GEOS_PATH geos_c.h PATHS /usr/include /usr/include/geos /usr/local/include /usr/local/include/geos)
-        if(GEOS_PATH)
-            include_directories (${GEOS_PATH})
-            add_definitions (-DHAVE_GEOS_C_H)
-        endif()
-        #include "sqlite3.h"
-        find_path(SQLITE3_PATH sqlite3.h PATHS /usr/include /usr/include/sqlite3 /usr/local/include /usr/local/include/sqlite3)
-        if(SQLITE3_PATH)
-            include_directories (${SQLITE3_PATH})
-            add_definitions (-DHAVE_SQLITE3_H)
-        endif()
-        #include "json-c/json_c_version.h"
-        find_path(JSON_C_PATH json_c_version.h PATHS /usr/include /usr/include/json-c /usr/local/include /usr/local/include/json-c)
-        if(JSON_C_PATH)
-            include_directories (${JSON_C_PATH})
-            add_definitions (-DHAVE_JSON_C_VERSION_H)
-        endif()
-        #include "proj_api.h"
-        find_path(PROJ_API_PATH proj_api.h PATHS /usr/include /usr/include/proj4 /usr/local/include /usr/local/include/proj4)
-        if(PROJ_API_PATH)
-            include_directories (${PROJ_API_PATH})
-            add_definitions (-DHAVE_PROJ_API_H)
-        endif()
-        #include "jpeglib.h"
-        find_path(JPEGLIB_PATH jpeglib.h PATHS /usr/include /usr/include/jpeg /usr/local/include /usr/local/include/jpeg)
-        if(JPEGLIB_PATH)
-            include_directories (${JPEGLIB_PATH})
-            add_definitions (-DHAVE_JPEGLIB_H)
-        endif()
-        #include "tiff.h"
-        find_path(TIFF_PATH tiff.h PATHS /usr/include /usr/include/tiff /usr/local/include /usr/local/include/tiff)
-        if(TIFF_PATH)
-            include_directories (${TIFF_PATH})
-            add_definitions (-DHAVE_TIFF_H)
-        endif()
-        #include "geotiff.h"
-        find_path(GEOTIFF_PATH geotiff.h PATHS /usr/include /usr/include/geotiff /usr/local/include /usr/local/include/geotiff)
-        if(GEOTIFF_PATH)
-            # cut geotiff
-            # string(REPLACE "geotiff" "" GEOTIFF_PATH ${GEOTIFF_PATH})
-            include_directories (${GEOTIFF_PATH})
-            add_definitions (-DHAVE_GEOTIFF_H)
-        endif()
-        #include "png.h"
-        find_path(PNG_PATH png.h PATHS /usr/include /usr/include/png /usr/local/include /usr/local/include/png)
-        if(PNG_PATH)
-            include_directories (${PNG_PATH})
-            add_definitions (-DHAVE_PNG_H)
-        endif()
-        #include "expat.h"
-        find_path(EXPAT_PATH expat.h PATHS /usr/include /usr/include/expat /usr/local/include /usr/local/include/expat)
-        if(EXPAT_PATH)
-            include_directories (${EXPAT_PATH})
-            add_definitions (-DHAVE_EXPAT_H)
-        endif()
-        #include "iconv.h"
-        find_path(ICONV_PATH iconv.h PATHS /usr/include /usr/include/iconv/ /usr/local/include /usr/local/include/iconv)
-        if(ICONV_PATH)
-            include_directories (${ICONV_PATH})
-            add_definitions (-DHAVE_ICONV_H)
-        endif()
-        #include "zlib.h"
-        find_path(ZLIB_PATH zlib.h PATHS /usr/include /usr/include/zlib /usr/local/include /usr/local/include/zlib)
-        if(ZLIB_PATH)
-            include_directories (${ZLIB_PATH})
-            add_definitions (-DHAVE_ZLIB_H)
-        endif()
-        #include "openssl/opensslv.h"
-        find_path(OPENSSL_PATH opensslv.h PATHS /usr/include /usr/include/openssl /usr/local/include /usr/local/include/openssl)
-        if(OPENSSL_PATH)
-            # cut openssl
-            string(REPLACE "openssl" "" OPENSSL_PATH ${OPENSSL_PATH})
-            include_directories (${OPENSSL_PATH})
-            add_definitions (-DHAVE_OPENSSLV_H)
-        endif()
     endif()
 endif()
