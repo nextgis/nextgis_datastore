@@ -286,7 +286,7 @@ void GlView::setSize(int width, int height)
     ngsCheckGLEerror(glViewport ( 0, 0, m_displayWidth, m_displayHeight ));
 }
 
-bool GlView::isOk()
+bool GlView::isOk() const
 {
     return EGL_NO_SURFACE != m_eglSurface;
 }
@@ -301,8 +301,10 @@ void GlView::setBackgroundColor(const ngsRGBA &color)
                                   m_bkColor.a));
 }
 
-void GlView::fillBuffer(void *buffer)
+void GlView::fillBuffer(void *buffer) const
 {
+    if(nullptr == buffer)
+        return;
     ngsCheckEGLEerror(eglSwapBuffers(m_eglDisplay, m_eglSurface));
     ngsCheckGLEerror(glReadPixels(0, 0, m_displayWidth, m_displayHeight,
                                    GL_RGBA, GL_UNSIGNED_BYTE, buffer));
@@ -330,7 +332,7 @@ void GlView::prepare(const Matrix4 &mat)
 }
 
 // WARNING: this is for test
-void GlView::draw()
+void GlView::draw() const
 {
     GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
                            -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
@@ -344,7 +346,7 @@ void GlView::draw()
     ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
 }
 
-bool GlView::checkEGLError(const char *cmd) {
+bool GlView::checkEGLError(const char *cmd) const {
     EGLint err = eglGetError();
     if(err != EGL_SUCCESS){
         const char *error = nullptr;
@@ -398,7 +400,7 @@ bool GlView::checkEGLError(const char *cmd) {
     return false;
 }
 
-bool GlView::checkGLError(const char *cmd) {
+bool GlView::checkGLError(const char *cmd) const {
     const GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
         const char *error = nullptr;
@@ -439,16 +441,16 @@ bool GlView::checkGLError(const char *cmd) {
     return false;
 }
 
-void GlView::reportGlStatus(GLuint obj) {
+void GlView::reportGlStatus(GLuint obj) const {
     GLint length;
     ngsCheckGLEerror(glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &length));
-    GLchar *pLog = new GLchar[length];
-    ngsCheckGLEerror(glGetShaderInfoLog(obj, length, &length, pLog));
-    CPLError(CE_Failure, CPLE_AppDefined, "%s", pLog);
-    delete [] pLog;
+    GLchar *log = new GLchar[length];
+    ngsCheckGLEerror(glGetShaderInfoLog(obj, length, &length, log));
+    CPLError(CE_Failure, CPLE_AppDefined, "%s", log);
+    delete [] log;
 }
 
-bool GlView::checkShaderCompileStatus(GLuint obj) {
+bool GlView::checkShaderCompileStatus(GLuint obj) const {
     GLint status;
     glGetShaderiv(obj, GL_COMPILE_STATUS, &status);
     if(status == GL_FALSE) {
@@ -458,7 +460,7 @@ bool GlView::checkShaderCompileStatus(GLuint obj) {
     return true;
 }
 
-bool GlView::checkProgramLinkStatus(GLuint obj) {
+bool GlView::checkProgramLinkStatus(GLuint obj) const {
     GLint status;
     glGetProgramiv(obj, GL_LINK_STATUS, &status);
     if(status == GL_FALSE) {

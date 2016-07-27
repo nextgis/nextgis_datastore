@@ -19,8 +19,9 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "mapview.h"
-#include "api.h"
-#include "glview.h"
+#include "api_priv.h"
+#include "constants.h"
+#include "renderlayer.h"
 
 #include <iostream>
 
@@ -31,22 +32,22 @@ using namespace std;
 
 void ngs::RenderingThread(void * view)
 {
-    MapView* pMapView = static_cast<MapView*>(view);
+    MapView* mapView = static_cast<MapView*>(view);
     GlView glView;
     if (!glView.init ()) {
-        pMapView->setErrorCode(ngsErrorCodes::INIT_FAILED);
+        mapView->m_errorCode = ngsErrorCodes::INIT_FAILED;
         return;
     }    
 
-    pMapView->setErrorCode(ngsErrorCodes::SUCCESS);
-    pMapView->setDisplayInit (true);
+    mapView->m_errorCode = ngsErrorCodes::SUCCESS;
+    mapView->setDisplayInit (true);
 
     // start rendering loop here
-    while(!pMapView->m_cancel){
-        if(pMapView->m_sizeChanged){
-            glView.setSize (pMapView->getDisplayWidht (),
-                            pMapView->getDisplayHeight ())  ;
-            pMapView->m_sizeChanged = false;// >setSizeChanged (false);
+    while(!mapView->m_cancel){
+        if(mapView->m_sizeChanged){
+            glView.setSize (mapView->getDisplayWidht (),
+                            mapView->getDisplayHeight ())  ;
+            mapView->m_sizeChanged = false;// >setSizeChanged (false);
         }
 
         if(!glView.isOk ()){
@@ -58,40 +59,45 @@ void ngs::RenderingThread(void * view)
             continue;
         }
 
-        switch(pMapView->getDrawStage ()){
+        switch(mapView->getDrawStage ()){
         case MapView::DrawStage::Stop:
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Stop" << endl;
 #endif // _DEBUG
-            // stop extract data threads and start new one
-            pMapView->setDrawStage (MapView::DrawStage::Start);
+            // Stop extract data threads
+            mapView->cancelPrepareRender ();
+            // Put current drawn scene to buffer
+            glView.fillBuffer (mapView->getBufferData ());
+            // Notify drawing progress
+            mapView->notify (1.0, nullptr);
+            mapView->setDrawStage (MapView::DrawStage::Start);
             break;
         case MapView::DrawStage::Process:
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Process" << endl;
 #endif // _DEBUG
-            // TODO: get ready portion of geodata to draw
-            // fill buffer with pixels glReadPixels
-            // and notify listeners
-            glView.draw ();
 
-            // if no more geodata - finish
-            glView.fillBuffer (pMapView->getBufferData ());
-            pMapView->setDrawStage (MapView::DrawStage::Done);
-            // if notify return false - set stage to done
-            pMapView->notify (1.0, nullptr);
+            if(mapView->render (&glView)) {
+                // if no more geodata - finish
+                glView.fillBuffer (mapView->getBufferData ());
+                // if notify return false - set stage to done
+                mapView->notify (1.0, nullptr);
+                mapView->setDrawStage (MapView::DrawStage::Done);
+            }
             break;
         case MapView::DrawStage::Start:
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Start" << endl;
 #endif // _DEBUG
-            if(pMapView->isBackgroundChanged ()){
-                glView.setBackgroundColor (pMapView->getBackgroundColor ());
-                pMapView->setBackgroundChanged (false);
+            if(mapView->isBackgroundChanged ()){
+                glView.setBackgroundColor (mapView->getBackgroundColor ());
+                mapView->setBackgroundChanged (false);
             }
 
-            glView.prepare (pMapView->getSceneMatrix ());
-            pMapView->setDrawStage (MapView::DrawStage::Process);
+            glView.prepare (mapView->getSceneMatrix ());
+            // Start extract data for current extent
+            mapView->prepareRender ();
+            mapView->setDrawStage (MapView::DrawStage::Process);
             break;
 
         case MapView::DrawStage::Done:
@@ -104,7 +110,7 @@ void ngs::RenderingThread(void * view)
     cout << "Exit draw thread" << endl;
 #endif // _DEBUG
 
-    pMapView->setDisplayInit (false);
+    mapView->setDisplayInit (false);
 }
 
 MapView::MapView() : Map(), MapTransform(480, 640), m_displayInit(false),
@@ -146,11 +152,6 @@ int MapView::errorCode() const
     return m_errorCode;
 }
 
-void MapView::setErrorCode(int errorCode)
-{
-    m_errorCode = errorCode;
-}
-
 void MapView::setDisplayInit(bool displayInit)
 {
     m_displayInit = displayInit;
@@ -158,6 +159,8 @@ void MapView::setDisplayInit(bool displayInit)
 
 void *MapView::getBufferData() const
 {
+    if(m_sizeChanged)
+        return nullptr;
     return m_bufferData;
 }
 
@@ -182,17 +185,54 @@ int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
         m_drawStage = DrawStage::Start;
     }
 
-    // TODO: DRAW
-    // 1.   Finish drawing if any and put scene to buffer
-    // 1.1. Stop extract data threads
-    // 1.2. Put current drawn scene to buffer
-    // 1.3. Notify drawing progress
-    // 2.   Start new drawing
-    // 2.1. Start extract data for current extent
-    // 2.2. Put partially or full scene to buffer
-    // 2.3. Notify drawing progress
-
     return ngsErrorCodes::SUCCESS;
+}
+
+bool MapView::render(const GlView *glView)
+{
+    if(m_layers.empty())
+        return true;
+
+    double renderPercent = 0;
+
+    for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
+        LayerPtr layer = *it;
+        RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
+        renderPercent += renderLayer->render(glView);
+    }
+
+    //glView->draw();
+    // Notify drawing progress
+    renderPercent /= m_layers.size ();
+    if(m_renderPercent - renderPercent > NOTIFY_PERCENT) {
+        m_renderPercent = renderPercent;
+        if(renderPercent < 1) {
+            // Put partially or full scene to buffer
+            glView->fillBuffer (getBufferData ());
+            notify (renderPercent, "rendering...");
+        }
+    }
+    return isEqual(m_renderPercent, 1.0) ? true : false;
+}
+
+void MapView::prepareRender()
+{
+    // FIXME: need to limit prepare thread for CPU core count or some constant
+    // as they can produce lot of data and overload memory. See CPLWorkerThreadPool
+    m_renderPercent = 0;
+    for( size_t i = 0; i < m_layers.size (); ++i ) {
+        RenderLayer* renderLayer = static_cast<RenderLayer*>(m_layers[i].get());
+        renderLayer->prepareRender (getExtent (), getZoom(),
+                                    static_cast<float>(i * 10) );
+    }
+}
+
+void MapView::cancelPrepareRender()
+{
+    for(LayerPtr& layer : m_layers ) {
+        RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
+        renderLayer->cancelPrepareRender ();
+    }
 }
 
 int MapView::notify(double complete, const char *message)
@@ -213,5 +253,14 @@ void MapView::setDrawStage(const DrawStage &drawStage)
     m_drawStage = drawStage;
 }
 
+int ngs::MapView::createLayer(const CPLString &name, DatasetPtr dataset)
+{
+    LayerPtr layer (new RenderLayer(name, dataset));
+    m_layers.push_back (layer);
+    return ngsErrorCodes::SUCCESS;
+}
 
-
+LayerPtr ngs::MapView::createLayer()
+{
+    return LayerPtr(new RenderLayer);
+}

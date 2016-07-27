@@ -22,54 +22,8 @@
 #include "map.h"
 #include "mapstore.h"
 #include "constants.h"
-#include "api.h"
-#include "table.h"
 
 using namespace ngs;
-
-//------------------------------------------------------------------------------
-// Layer
-//------------------------------------------------------------------------------
-
-Layer::Layer()
-{
-
-}
-
-Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
-    m_dataset(dataset)
-{
-}
-
-int Layer::load(const JSONObject &store)
-{
-    m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
-    unsigned int type = static_cast<unsigned int>(store.getInteger (
-                                 LAYER_SOURCE_TYPE, ngsDatasetType (Undefined)));
-    if(type & ngsDatasetType (Store)) {
-        CPLString path = store.getString (LAYER_SOURCE, "");
-        CPLString datasetName = CPLGetBasename (path);
-        path = CPLGetDirname (path);
-        // load dataset by path and name
-        DataStorePtr dataStore = DataStore::open (path);
-        if(nullptr != dataStore) {
-            m_dataset = dataStore->getDataset (datasetName);
-        }
-    }
-    return ngsErrorCodes::SUCCESS;
-}
-
-JSONObject Layer::save() const
-{
-    JSONObject out;
-    out.add(LAYER_NAME, m_name);
-    if(nullptr != m_dataset) {
-        out.add(LAYER_SOURCE_TYPE, static_cast<int>(m_dataset->type ()));
-        out.add(LAYER_SOURCE, m_dataset->path ());
-    }
-    return out;
-}
-
 
 //------------------------------------------------------------------------------
 // Map
@@ -190,7 +144,7 @@ int Map::load(const char *path)
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
             // load layer
-            LayerPtr layer(new Layer);
+            LayerPtr layer = createLayer();
             if(layer->load(layers[i]) == ngsErrorCodes::SUCCESS)
                 m_layers.push_back (layer);
         }
@@ -281,4 +235,9 @@ size_t Map::layerCount() const
 void Map::setBackgroundChanged(bool bkChanged)
 {
     m_bkChanged = bkChanged;
+}
+
+LayerPtr Map::createLayer()
+{
+    return LayerPtr(new Layer);
 }

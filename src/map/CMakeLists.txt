@@ -34,6 +34,8 @@ set(HHEADER_PRIV
     mapview.h
     matrix.h
     glview.h
+    layer.h
+    renderlayer.h
 )
 
 set(CSOURCES
@@ -43,6 +45,8 @@ set(CSOURCES
     mapview.cpp
     matrix.cpp
     glview.cpp
+    layer.cpp
+    renderlayer.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})

@@ -21,44 +21,14 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include <string>
-#include <memory>
-#include <vector>
-
-#include "table.h"
-#include "api.h"
-#include "jsondocument.h"
+#include "layer.h"
+#include "api_priv.h"
 
 namespace ngs {
 
 using namespace std;
 
 class MapStore;
-
-class Layer
-{
-public:
-    enum class Type {
-        Group,
-        Vector,
-        Raster
-    };
-
-public:
-    Layer();
-    Layer(const CPLString& name, DatasetPtr dataset);
-    int load(const JSONObject& store);
-    JSONObject save() const;
-protected:
-    CPLString m_name;
-    enum Type m_type;
-    DatasetPtr m_dataset;
-
-    /*    Style m_style;
-*/
-};
-
-typedef shared_ptr<Layer> LayerPtr;
 
 class Map
 {
@@ -98,11 +68,12 @@ public:
     int setBackgroundColor(const ngsRGBA& color);
     bool isBackgroundChanged() const;
 
-    int createLayer(const CPLString &name, DatasetPtr dataset);
+    virtual int createLayer(const CPLString &name, DatasetPtr dataset);
     size_t layerCount() const;
 
 protected:
     void setBackgroundChanged(bool bkChanged);
+    virtual LayerPtr createLayer();
 
 protected:
     CPLString m_name;

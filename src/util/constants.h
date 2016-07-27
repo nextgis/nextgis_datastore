@@ -102,6 +102,9 @@
 #define HTTP_USE_GZIP "ON"
 #define CACHEMAX "24"
 
+// Draw
+#define NOTIFY_PERCENT 0.05
+
 // Common
 #define DELTA 0.00000001
 #define BIG_VALUE 10000000.0

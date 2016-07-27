@@ -153,7 +153,7 @@ TEST(MapTests, TestCreateLayer) {
     ngs::DataStorePtr storage = ngs::DataStore::create("./tmp/ngs.gpkg");
     ASSERT_NE(storage, nullptr);
     EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", false,
-                                    ngsFeatureLoadSkipType(None),
+                                    ngsFeatureLoadSkipType(NoSkip),
                                     ngsTestProgressFunc, nullptr),
               ngsErrorCodes::SUCCESS);
     CPLSleep(0.6);

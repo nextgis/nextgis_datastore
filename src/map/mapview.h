@@ -23,6 +23,7 @@
 
 #include "map.h"
 #include "maptransform.h"
+#include "glview.h"
 
 namespace ngs {
 
@@ -41,7 +42,8 @@ public:
 
 public:
     MapView();
-    MapView(const CPLString& name, const CPLString& description, unsigned short epsg,
+    MapView(const CPLString& name, const CPLString& description,
+            unsigned short epsg,
             double minX, double minY, double maxX, double maxY);
     virtual ~MapView();
     bool isDisplayInit() const;
@@ -52,8 +54,10 @@ public:
     DrawStage getDrawStage() const;
 
 protected:
+    bool render(const GlView* glView);
+    void prepareRender();
+    void cancelPrepareRender();
     void setDisplayInit(bool displayInit);
-    void setErrorCode(int errorCode);
     void setDrawStage(const DrawStage &drawStage);
     void *getBufferData() const;
     int notify(double complete, const char* message);
@@ -65,8 +69,16 @@ protected:
     bool m_cancel;
     void* m_bufferData;    
     ngsProgressFunc m_progressFunc;
-    void* m_progressArguments;
+    void* m_progressArguments;    
+    double m_renderPercent;
     enum DrawStage m_drawStage;
+
+    // Map interface
+public:
+    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
+
+protected:
+    virtual LayerPtr createLayer() override;
 };
 
 }

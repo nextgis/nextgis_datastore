@@ -97,7 +97,7 @@ TEST(StoreTests, TestLoad) {
     const OGRSpatialReference *spaRef = srcTable->getSpatialReference ();
     ASSERT_NE(spaRef, nullptr);
     EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", false,
-                                    ngsFeatureLoadSkipType(None),
+                                    ngsFeatureLoadSkipType(NoSkip),
                                     ngsTestProgressFunc, nullptr),
               ngsErrorCodes::SUCCESS);
     CPLSleep(0.6);

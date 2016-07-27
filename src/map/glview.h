@@ -21,7 +21,7 @@
 #ifndef GLVIEW_H
 #define GLVIEW_H
 
-#include "api.h"
+#include "api_priv.h"
 #include "matrix.h"
 
 #if __APPLE__
@@ -82,21 +82,21 @@ public:
     ~GlView();
     bool init();
     void setSize(int width, int height);
-    bool isOk();
+    bool isOk() const;
     void setBackgroundColor(const ngsRGBA &color);
-    void fillBuffer(void* buffer);
+    void fillBuffer(void* buffer) const;
     void clearBackground();
     void prepare(const Matrix4& mat);
-    void draw();
+    void draw() const;
 
 protected:
     GLuint prepareProgram();
-    bool checkProgramLinkStatus(GLuint obj);
-    bool checkShaderCompileStatus(GLuint obj);
-    void reportGlStatus(GLuint obj);    
-    bool checkGLError(const char *cmd);
+    bool checkProgramLinkStatus(GLuint obj) const;
+    bool checkShaderCompileStatus(GLuint obj) const;
+    void reportGlStatus(GLuint obj) const;
+    bool checkGLError(const char *cmd) const;
     GLuint loadShader(GLenum type, const char *shaderSrc);
-    bool checkEGLError(const char *cmd);
+    bool checkEGLError(const char *cmd) const;
     bool createFBO(int width, int height);
     void destroyFBO();
 
