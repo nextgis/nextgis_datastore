@@ -64,6 +64,7 @@ JSONObject Layer::save() const
     out.add(LAYER_TYPE, static_cast<int>(m_type));
     if(nullptr != m_dataset) {
         out.add(LAYER_SOURCE_TYPE, static_cast<int>(m_dataset->type ()));
+        // TODO: relative or absolute path
         out.add(LAYER_SOURCE, m_dataset->path ());
     }
     return out;

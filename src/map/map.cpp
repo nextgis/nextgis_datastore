@@ -140,6 +140,7 @@ int Map::load(const char *path)
         m_minY = root.getDouble (MAP_MIN_Y, DEFAULT_MIN_Y);
         m_maxX = root.getDouble (MAP_MAX_X, DEFAULT_MAX_X);
         m_maxY = root.getDouble (MAP_MAX_Y, DEFAULT_MAX_Y);
+        m_bkColor = ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR, ngsRGBA2HEX(m_bkColor)));
 
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
@@ -172,6 +173,7 @@ int Map::save(const char *path)
     root.add (MAP_MIN_Y, m_minY);
     root.add (MAP_MAX_X, m_maxX);
     root.add (MAP_MAX_Y, m_maxY);
+    root.add (MAP_BKCOLOR, ngsRGBA2HEX(m_bkColor));
 
     JSONArray layers;
     for(LayerPtr layer : m_layers) {
@@ -179,7 +181,7 @@ int Map::save(const char *path)
     }
     root.add ("layers", layers);
 
-    return doc.save (path);
+    return doc.save (CPLResetExtension (path, MAP_DOCUMENT_EXT));
 }
 
 int Map::destroy()
