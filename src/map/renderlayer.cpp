@@ -24,7 +24,7 @@
 
 #include <iostream>
 
-#define GL_MAX_VERTEX_COUNT 65535
+#define GL_MAX_VERTEX_COUNT 65532 //5
 #define LOCK_TIME 0.3
 
 using namespace ngs;
@@ -81,28 +81,32 @@ void RenderLayer::cancelPrepareRender()
 
 //------------------------------------------------------------------------------
 // FeatureRenderLayer
-//------------------------------------------------------------------------------
 
-
-FeatureRenderLayer::FeatureRenderLayer() : RenderLayer()
+FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(), m_hSpinLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
 }
 
 FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset) :
-    RenderLayer(name, dataset)
+    RenderLayer(name, dataset), m_hSpinLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
 }
 
 FeatureRenderLayer::~FeatureRenderLayer()
 {
+    if( m_hSpinLock )
+        CPLDestroyLock(m_hSpinLock);
 }
 
 void FeatureRenderLayer::fillRenderBuffers()
 {
+    CPLAcquireLock(m_hSpinLock);
     m_pointBucket.clear ();
     m_polygonBucket.clear ();
+    CPLReleaseLock(m_hSpinLock);
+    m_bucketFilled = false;
+
     FeatureDataset* featureDataset = dynamic_cast<FeatureDataset*>(m_dataset.get());
     // check geometry column
     CPLString geomFieldName;
@@ -183,7 +187,6 @@ void FeatureRenderLayer::fillRenderBuffers()
 
 void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
 {
-    m_bucketFilled = false;
     if( nullptr == geom )
         return;
 
@@ -213,6 +216,9 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
         OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
         // TODO: not only external ring must be extracted
         OGRLinearRing* ring = polygon->getExteriorRing ();
+        int numPoints = ring->getNumPoints () - 1;
+        if(numPoints < 3)
+            break;
 
         if(nullptr == m_currentPolygonBuffer) {
             m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
@@ -220,24 +226,30 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
             m_currentPolygonBuffer->m_indices.reserve (8196);
         }
         else if(m_currentPolygonBuffer->m_vertices.size () +
-                ring->getNumPoints () * 3 > GL_MAX_VERTEX_COUNT) {
+                numPoints * 3 > GL_MAX_VERTEX_COUNT) {
+            CPLLockHolderOptionalLockD(m_hSpinLock);
             m_polygonBucket.push_back (move(m_currentPolygonBuffer));
             m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
             m_currentPolygonBuffer->m_vertices.reserve (8196);
             m_currentPolygonBuffer->m_indices.reserve (8196);
         }
 
-        int startPolyIndex = m_currentPolygonBuffer->m_indices.size ();
-        for(int i = 0; i < ring->getNumPoints (); ++i) {
+        int startPolyIndex = m_currentPolygonBuffer->m_vertices.size () / 3;
+        for(int i = 0; i < numPoints; ++i) {
             OGRPoint pt;
             ring->getPoint (i, &pt);
+            // add point coordinates in float
             m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getX ()));
             m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getY ()));
             // TODO: add getZ + level
             m_currentPolygonBuffer->m_vertices.push_back (m_renderLevel);
-            m_currentPolygonBuffer->m_indices.push_back (startPolyIndex);
-            m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 1);
-            m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 2);
+
+            // add triangle indices unsigned short
+            if(i < numPoints - 2 ) {
+                m_currentPolygonBuffer->m_indices.push_back (startPolyIndex);
+                m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 1);
+                m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 2);
+            }
         }
     }
         break;
@@ -293,14 +305,19 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
 double FeatureRenderLayer::render(const GlView *glView)
 {
     // draw elements
+    CPLLockHolderOptionalLockD(m_hSpinLock);
     while (!m_polygonBucket.empty()) {
-        if(nullptr != m_polygonBucket.back ())
-            glView->drawPolygons (m_polygonBucket.back ()->m_vertices,
-                                  m_polygonBucket.back ()->m_indices);
+        ngsVertexBufferPtr buff(move(m_polygonBucket.back ()));
         m_polygonBucket.pop_back ();
-
-        if(m_bucketFilled)
-            m_renderPercent = 1;
+        if(nullptr != buff) {
+            cout << "vertices: " << buff->m_vertices.size () <<
+                    " indices: " << buff->m_indices.size() << endl;
+            glView->drawPolygons (buff->m_vertices, buff->m_indices);
+        }
+    }
+    if(m_bucketFilled) {
+        m_renderPercent = 1;
+        m_bucketFilled = false;
     }
 
     // report percent

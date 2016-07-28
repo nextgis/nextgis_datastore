@@ -90,6 +90,7 @@ protected:
     ngsVertexBufferPtr m_currentPointBuffer;
     ngsVertexBufferPtr m_currentPolygonBuffer;
     bool m_bucketFilled;
+    CPLLock *m_hSpinLock;
 };
 
 }

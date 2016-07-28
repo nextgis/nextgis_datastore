@@ -97,10 +97,12 @@ void ngs::RenderingThread(void * view)
 #endif // _DEBUG
 
             // one more notify
-            CPLSleep(THREAD_LOOP_SLEEP);
-            glView.fillBuffer (mapView->getBufferData ());
-            mapView->notify (1.0, nullptr);
+            //CPLSleep(THREAD_LOOP_SLEEP);
+            //glView.fillBuffer (mapView->getBufferData ());
+            //mapView->notify (1.0, nullptr);
             }
+
+            CPLSleep(THREAD_LOOP_SLEEP);
             break;
         case MapView::DrawStage::Start:
 #ifdef _DEBUG

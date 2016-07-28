@@ -349,6 +349,8 @@ void GlView::draw() const
 void GlView::drawPolygons(const vector<GLfloat> &vertices,
                           const vector<GLushort> &indices) const
 {
+    if(vertices.empty() || indices.empty ())
+        return;
     ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                             vertices.data ()));
@@ -363,7 +365,7 @@ void GlView::drawPolygons(const vector<GLfloat> &vertices,
     //glDrawElements(GL_TRIANGLES, indices.size (), GL_UNSIGNED_INT, 0); // this doesnt
 
 
-    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, /*indices.size ()*/100,
+    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, indices.size (),
                                     GL_UNSIGNED_SHORT, indices.data ()));
 }
 
