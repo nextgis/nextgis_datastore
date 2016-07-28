@@ -175,6 +175,7 @@ TEST(MapTests, TestLoadLayer) {
     EXPECT_NE (defMap->layerCount (), 0);
 }
 
+// TODO: add test create 2 maps and destroy them
 
 TEST(MapTests, TestDeleteMap) {
     ngs::MapStore mapStore;

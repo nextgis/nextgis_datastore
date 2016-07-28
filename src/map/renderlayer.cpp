@@ -126,7 +126,7 @@ void FeatureRenderLayer::fillRenderBuffers()
             }
         }
         if(zoom < 18) {
-            geomFieldName.Printf ("ngs_geom_%d", zoom);
+            geomFieldName.Printf ("ngs_geom_%d, %s", zoom, featureDataset->getGeometryColumn ().c_str ());
             originalGeom = false;
         }
         else {

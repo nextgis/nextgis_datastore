@@ -61,7 +61,7 @@ GlView::GlView() : m_eglDisplay(EGL_NO_DISPLAY), m_eglCtx(EGL_NO_CONTEXT),
 
 GlView::~GlView()
 {
-    // FIXME: egl display and config should be common for all maps
+    // NOTE: multiple call from different threads crash at this point
     //eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     if(m_programId)
         glDeleteProgram(m_programId);
