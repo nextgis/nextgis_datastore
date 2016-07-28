@@ -48,8 +48,8 @@ const int &FieldMapPtr::operator[](int key) const
 // FeaturePtr
 //------------------------------------------------------------------------------
 
-FeaturePtr::FeaturePtr(OGRFeature* pFeature) :
-    shared_ptr(pFeature, OGRFeature::DestroyFeature )
+FeaturePtr::FeaturePtr(OGRFeature* feature) :
+    shared_ptr(feature, OGRFeature::DestroyFeature )
 {
 
 }
@@ -60,8 +60,8 @@ FeaturePtr:: FeaturePtr() :
 
 }
 
-FeaturePtr& FeaturePtr::operator=(OGRFeature* pFeature) {
-    reset(pFeature);
+FeaturePtr& FeaturePtr::operator=(OGRFeature* feature) {
+    reset(feature);
     return *this;
 }
 

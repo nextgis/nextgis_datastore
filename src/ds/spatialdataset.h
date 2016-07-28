@@ -29,7 +29,7 @@ class SpatialDataset : public virtual Dataset
 {
 public:
     SpatialDataset();
-    virtual const OGRSpatialReference * getSpatialReference() const = 0;
+    virtual OGRSpatialReference * getSpatialReference() const = 0;
 
 };
 

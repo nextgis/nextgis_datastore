@@ -36,7 +36,7 @@ public:
 
     // SpatialDataset interface
 public:
-    virtual const OGRSpatialReference *getSpatialReference() const override;
+    virtual OGRSpatialReference *getSpatialReference() const override;
 };
 
 }

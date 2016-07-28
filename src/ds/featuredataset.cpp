@@ -29,13 +29,11 @@ using namespace ngs;
 //------------------------------------------------------------------------------
 
 CoordinateTransformationPtr::CoordinateTransformationPtr(
-        const OGRSpatialReference *srcSRS, const OGRSpatialReference *dstSRS)
+        OGRSpatialReference *srcSRS, OGRSpatialReference *dstSRS)
 {
     if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
         m_oCT = static_cast<OGRCoordinateTransformation*>(
-                                         OGRCreateCoordinateTransformation(
-                    const_cast<OGRSpatialReference *>(srcSRS),
-                    const_cast<OGRSpatialReference *>(dstSRS)));
+                              OGRCreateCoordinateTransformation(srcSRS, dstSRS));
     }
     else {
         m_oCT = nullptr;
@@ -64,7 +62,7 @@ FeatureDataset::FeatureDataset(OGRLayer * const layer) : Table(layer),
     m_type = ngsDatasetType(Featureset);
 }
 
-const OGRSpatialReference *FeatureDataset::getSpatialReference() const
+OGRSpatialReference *FeatureDataset::getSpatialReference() const
 {
     if(nullptr != m_layer)
         return m_layer->GetSpatialRef ();
@@ -90,8 +88,8 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                                     srcDataset->name ().c_str (), name().c_str ()),
                      progressArguments);
 
-    const OGRSpatialReference *srcSRS = srcDataset->getSpatialReference();
-    const OGRSpatialReference *dstSRS = getSpatialReference();
+    OGRSpatialReference *srcSRS = srcDataset->getSpatialReference();
+    OGRSpatialReference *dstSRS = getSpatialReference();
     CoordinateTransformationPtr CT (srcSRS, dstSRS);
     GIntBig featureCount = srcDataset->featureCount();
     OGRwkbGeometryType dstGeomType = getGeometryType();
@@ -157,6 +155,29 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
 bool FeatureDataset::setIgnoredFields(const char** fields)
 {
     return m_layer->SetIgnoredFields (fields) == OGRERR_NONE;
+}
+
+vector<CPLString> FeatureDataset::getGeometryColumns() const
+{
+    vector<CPLString> out;
+    OGRFeatureDefn *defn = m_layer->GetLayerDefn ();
+    for(int i = 0; i < defn->GetGeomFieldCount (); ++i) {
+        OGRGeomFieldDefn* geom = defn->GetGeomFieldDefn (i);
+        out.push_back (geom->GetNameRef ());
+    }
+    return out;
+}
+
+CPLString FeatureDataset::getGeometryColumn() const
+{
+    return m_layer->GetGeometryColumn ();
+}
+
+ResultSetPtr FeatureDataset::executeSQL(const CPLString &statement,
+                                        GeometryPtr spatialFilter,
+                                        const CPLString &dialect) const
+{
+    return ResultSetPtr(m_DS->ExecuteSQL (statement, spatialFilter.get (), dialect));
 }
 
 CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,

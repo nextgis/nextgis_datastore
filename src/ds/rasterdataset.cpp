@@ -28,7 +28,7 @@ RasterDataset::RasterDataset() : SpatialDataset()
 }
 
 
-const OGRSpatialReference *ngs::RasterDataset::getSpatialReference() const
+OGRSpatialReference *RasterDataset::getSpatialReference() const
 {
     return nullptr;
 }

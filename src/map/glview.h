@@ -52,6 +52,8 @@
 
 #include "EGL/egl.h"
 
+#include <vector>
+
 namespace ngs {
 
 using namespace std;
@@ -63,9 +65,9 @@ typedef struct _glrgb {
     float a;
 } GlColor;
 
-typedef int (*ngsBindVertexArray)(GLuint array);
+/*typedef int (*ngsBindVertexArray)(GLuint array);
 typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
-typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);
+typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*/
 
 #if defined(_DEBUG)
 #define ngsCheckGLEerror(cmd) {cmd; checkGLError(#cmd);}
@@ -87,8 +89,10 @@ public:
     void fillBuffer(void* buffer) const;
     void clearBackground();
     void prepare(const Matrix4& mat);
+    // Draw functions
     void draw() const;
-
+    void drawPolygons(const vector<GLfloat> &vertices,
+                      const vector<GLushort> &indices) const;
 protected:
     GLuint prepareProgram();
     bool checkProgramLinkStatus(GLuint obj) const;
@@ -112,9 +116,9 @@ protected:
 
     bool m_extensionLoad, m_programLoad;
 
-    ngsBindVertexArray bindVertexArrayFn;
+/*    ngsBindVertexArray bindVertexArrayFn;
     ngsDeleteVertexArrays deleteVertexArraysFn;
-    ngsGenVertexArrays genVertexArraysFn;
+    ngsGenVertexArrays genVertexArraysFn;*/
 
 // shaders
 protected:

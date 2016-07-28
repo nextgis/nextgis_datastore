@@ -143,10 +143,15 @@ int Map::load(const char *path)
 
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
+            JSONObject layerConfig = layers[i];
+            Layer::Type type = static_cast<Layer::Type>(layerConfig.getInteger (
+                                                            LAYER_TYPE, 0));
             // load layer
-            LayerPtr layer = createLayer();
-            if(layer->load(layers[i]) == ngsErrorCodes::SUCCESS)
-                m_layers.push_back (layer);
+            LayerPtr layer = createLayer(type);
+            if(nullptr != layer) {
+                if(layer->load(layers[i]) == ngsErrorCodes::SUCCESS)
+                    m_layers.push_back (layer);
+            }
         }
     }
 
@@ -237,7 +242,7 @@ void Map::setBackgroundChanged(bool bkChanged)
     m_bkChanged = bkChanged;
 }
 
-LayerPtr Map::createLayer()
+LayerPtr Map::createLayer(Layer::Type /*type*/)
 {
     return LayerPtr(new Layer);
 }

@@ -126,7 +126,7 @@ void JSONObject::add(const char *name, const JSONArray &val)
     json_object_object_add(m_jsonObject, name, val.m_jsonObject);
 }
 
-CPLString JSONObject::getString(const char *name, const CPLString& defaultVal) const
+CPLString JSONObject::getString(const char *name, const char* defaultVal) const
 {
     json_object* poVal = nullptr;
     if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {

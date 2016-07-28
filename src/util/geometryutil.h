@@ -22,6 +22,7 @@
 #define GEOMETRYUTIL_H
 
 #include "maputil.h"
+#include "featuredataset.h"
 
 #include <array>
 
@@ -48,6 +49,8 @@ OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);
 OGREnvelope setEnvelope(double minX, double maxX, double minY, double maxY);
 double getEnvelopeWidth(const OGREnvelope& env);
 double getEnvelopeHeight(const OGREnvelope& env);
+GeometryPtr envelopeToGeometry(const OGREnvelope& env,
+                                  OGRSpatialReference *spatialRef);
 
 }
 

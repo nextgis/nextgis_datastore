@@ -30,12 +30,13 @@ using namespace ngs;
 
 Layer::Layer()
 {
-
+    m_type = Layer::Type::Invalid;
 }
 
 Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
     m_dataset(dataset)
 {
+    m_type = Layer::Type::Invalid;
 }
 
 int Layer::load(const JSONObject &store)
@@ -60,6 +61,7 @@ JSONObject Layer::save() const
 {
     JSONObject out;
     out.add(LAYER_NAME, m_name);
+    out.add(LAYER_TYPE, static_cast<int>(m_type));
     if(nullptr != m_dataset) {
         out.add(LAYER_SOURCE_TYPE, static_cast<int>(m_dataset->type ()));
         out.add(LAYER_SOURCE, m_dataset->path ());

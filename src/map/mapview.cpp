@@ -24,11 +24,14 @@
 #include "renderlayer.h"
 
 #include <iostream>
+#ifdef _DEBUG
+#include <chrono>
+#endif //DEBUG
 
 using namespace ngs;
 using namespace std;
 
-#define THREAD_LOOP_SLEEP 0.1
+#define THREAD_LOOP_SLEEP 0.35
 
 void ngs::RenderingThread(void * view)
 {
@@ -41,6 +44,8 @@ void ngs::RenderingThread(void * view)
 
     mapView->m_errorCode = ngsErrorCodes::SUCCESS;
     mapView->setDisplayInit (true);
+
+    chrono::high_resolution_clock::time_point t1;
 
     // start rendering loop here
     while(!mapView->m_cancel){
@@ -66,28 +71,41 @@ void ngs::RenderingThread(void * view)
 #endif // _DEBUG
             // Stop extract data threads
             mapView->cancelPrepareRender ();
-            // Put current drawn scene to buffer
-            glView.fillBuffer (mapView->getBufferData ());
-            // Notify drawing progress
-            mapView->notify (1.0, nullptr);
             mapView->setDrawStage (MapView::DrawStage::Start);
             break;
         case MapView::DrawStage::Process:
-#ifdef _DEBUG
-            cout << "MapView::DrawStage::Process" << endl;
-#endif // _DEBUG
-
             if(mapView->render (&glView)) {
                 // if no more geodata - finish
                 glView.fillBuffer (mapView->getBufferData ());
                 // if notify return false - set stage to done
                 mapView->notify (1.0, nullptr);
                 mapView->setDrawStage (MapView::DrawStage::Done);
+
+#ifdef _DEBUG
+                // TODO: add benchmark from start to here
+                // QGIS benchmark on ov3 layer
+                // 2016-07-27T23:28:04	1	Canvas refresh: 2471 ms
+                // 2016-07-27T23:31:42	1	Canvas refresh: 2324 ms
+                // 2016-07-27T23:31:46	1	Canvas refresh: 2355 ms
+                // 2016-07-27T23:31:53	1	Canvas refresh: 2344 ms
+                // 2016-07-27T23:31:59	1	Canvas refresh: 2304 ms
+                // 2016-07-27T23:32:03	1	Canvas refresh: 2344 ms
+                // 2016-07-27T23:32:07	1	Canvas refresh: 2324 ms
+            auto duration = chrono::duration_cast<chrono::milliseconds>(
+                        chrono::high_resolution_clock::now() - t1 ).count();
+            cout << "GL Canvas refresh: " << duration << " ms" << endl;
+#endif // _DEBUG
+
+            // one more notify
+            CPLSleep(THREAD_LOOP_SLEEP);
+            glView.fillBuffer (mapView->getBufferData ());
+            mapView->notify (1.0, nullptr);
             }
             break;
         case MapView::DrawStage::Start:
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Start" << endl;
+            t1 = chrono::high_resolution_clock::now();
 #endif // _DEBUG
             if(mapView->isBackgroundChanged ()){
                 glView.setBackgroundColor (mapView->getBackgroundColor ());
@@ -204,14 +222,19 @@ bool MapView::render(const GlView *glView)
     //glView->draw();
     // Notify drawing progress
     renderPercent /= m_layers.size ();
-    if(m_renderPercent - renderPercent > NOTIFY_PERCENT) {
+    if( renderPercent - m_renderPercent > NOTIFY_PERCENT ) {
         m_renderPercent = renderPercent;
         if(renderPercent < 1) {
             // Put partially or full scene to buffer
-            glView->fillBuffer (getBufferData ());
-            notify (renderPercent, "rendering...");
+            // TODO: need lock to control if buffer and GL surface changed
+            if(!m_sizeChanged) {
+                glView->fillBuffer (getBufferData ());
+                notify (renderPercent, "rendering...");
+            }
         }
     }
+    else if(isEqual(renderPercent, 1.0))
+        return true;
     return isEqual(m_renderPercent, 1.0) ? true : false;
 }
 
@@ -255,12 +278,28 @@ void MapView::setDrawStage(const DrawStage &drawStage)
 
 int ngs::MapView::createLayer(const CPLString &name, DatasetPtr dataset)
 {
-    LayerPtr layer (new RenderLayer(name, dataset));
+    LayerPtr layer;
+    if(dataset->type () & ngsDatasetType(Featureset)) {
+        layer.reset (new FeatureRenderLayer(name, dataset));
+    }
+
+    if(nullptr == layer)
+        return ngsErrorCodes::UNSUPPORTED;
+
     m_layers.push_back (layer);
     return ngsErrorCodes::SUCCESS;
 }
 
-LayerPtr ngs::MapView::createLayer()
+LayerPtr ngs::MapView::createLayer(Layer::Type type)
 {
-    return LayerPtr(new RenderLayer);
+    switch (type) {
+    case Layer::Type::Invalid:
+        return LayerPtr();
+    case Layer::Type::Vector:
+        return LayerPtr(new FeatureRenderLayer);
+    case Layer::Type::Group:
+    case Layer::Type::Raster:
+        // TODO:
+        return Map::createLayer (type);
+    }
 }

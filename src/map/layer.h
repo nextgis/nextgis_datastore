@@ -35,6 +35,7 @@ class Layer
 {
 public:
     enum class Type {
+        Invalid = 0,
         Group,
         Vector,
         Raster

@@ -103,7 +103,7 @@
 #define CACHEMAX "24"
 
 // Draw
-#define NOTIFY_PERCENT 0.05
+#define NOTIFY_PERCENT 0.1
 
 // Common
 #define DELTA 0.00000001

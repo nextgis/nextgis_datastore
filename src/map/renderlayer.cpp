@@ -19,18 +19,41 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "renderlayer.h"
+#include "geometryutil.h"
+#include "featuredataset.h"
+
+#include <iostream>
+
+#define GL_MAX_VERTEX_COUNT 65535
+#define LOCK_TIME 0.3
 
 using namespace ngs;
 
-RenderLayer::RenderLayer() : Layer()
+void ngs::FillGLBufferThread(void * layer)
 {
+    RenderLayer* renderLayer = static_cast<RenderLayer*>(layer);
+    renderLayer->fillRenderBuffers ();
+    renderLayer->m_hPrepareThread = nullptr;
+}
 
+//------------------------------------------------------------------------------
+// RenderLayer
+//------------------------------------------------------------------------------
+
+RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr)
+{
+    m_type = Layer::Type::Invalid;
 }
 
 RenderLayer::RenderLayer(const CPLString &name, DatasetPtr dataset) :
-    Layer(name, dataset)
+    Layer(name, dataset), m_hPrepareThread(nullptr)
 {
+    m_type = Layer::Type::Invalid;
+}
 
+RenderLayer::~RenderLayer()
+{
+    cancelPrepareRender();
 }
 
 
@@ -39,11 +62,15 @@ void RenderLayer::prepareRender(OGREnvelope extent, double zoom, float level)
     // start bucket of buffers preparation
     m_cancelPrepare = false;
     m_renderPercent = 0;
+    m_renderExtent = extent;
+    m_renderZoom = zoom;
+    m_renderLevel = level;
+    m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
 }
 
 void RenderLayer::cancelPrepareRender()
 {
-    // TODO: cancel only local data extraction threads.
+    // TODO: cancel only local data extraction threads?
     // Extract from remote sources may block cancel thread for a long time
     if(m_hPrepareThread) {
         m_cancelPrepare = true;
@@ -52,7 +79,230 @@ void RenderLayer::cancelPrepareRender()
     }
 }
 
-double RenderLayer::render(const GlView *glView)
+//------------------------------------------------------------------------------
+// FeatureRenderLayer
+//------------------------------------------------------------------------------
+
+
+FeatureRenderLayer::FeatureRenderLayer() : RenderLayer()
 {
-    return 1;//m_renderPercent;
+    m_type = Layer::Type::Vector;
+}
+
+FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset) :
+    RenderLayer(name, dataset)
+{
+    m_type = Layer::Type::Vector;
+}
+
+FeatureRenderLayer::~FeatureRenderLayer()
+{
+}
+
+void FeatureRenderLayer::fillRenderBuffers()
+{
+    m_pointBucket.clear ();
+    m_polygonBucket.clear ();
+    FeatureDataset* featureDataset = dynamic_cast<FeatureDataset*>(m_dataset.get());
+    // check geometry column
+    CPLString geomFieldName;
+    bool originalGeom = true;
+    if(m_renderZoom > 15) {
+        geomFieldName = featureDataset->getGeometryColumn ();
+    }
+    else {
+        float diff = 18;
+        float currentDiff;
+        char zoom = 18;
+        for(auto sampleDist : sampleDists) {
+            currentDiff = sampleDist.second - m_renderZoom;
+            if(currentDiff > 0 && currentDiff < diff) {
+                diff = currentDiff;
+                zoom = sampleDist.second;
+            }
+        }
+        if(zoom < 18) {
+            geomFieldName.Printf ("ngs_geom_%d", zoom);
+            originalGeom = false;
+        }
+        else {
+            geomFieldName = featureDataset->getGeometryColumn ();
+        }
+    }
+
+    CPLString statement;
+    statement.Printf ("SELECT %s FROM %s", geomFieldName.c_str (),
+                         m_dataset->name ().c_str ());
+    GeometryPtr spatialFilter (envelopeToGeometry(m_renderExtent,
+                                        featureDataset->getSpatialReference ()));
+
+    ResultSetPtr features = featureDataset->executeSQL (statement, spatialFilter,
+                                                        "");
+    FeaturePtr feature;
+    OGRGeometry* geom;
+    int nBytes;
+    GByte *pabyWKB;
+    float counter = 0;
+    GIntBig totalCount = features->GetFeatureCount ();
+    while ((feature = features->GetNextFeature ()) != nullptr) {
+
+        if(m_cancelPrepare) {
+            break;
+        }
+
+        geom = nullptr;
+        if(originalGeom) {
+           geom =  feature->GetGeometryRef ();
+        }
+        else {
+            pabyWKB = feature->GetFieldAsBinary (0, &nBytes);
+            if(pabyWKB) {
+                if( OGRGeometryFactory::createFromWkb (pabyWKB,
+                        featureDataset->getSpatialReference (), &geom, nBytes)
+                            != OGRERR_NONE) {
+                    geom = nullptr;
+                }
+                // TODO: do we need it? CPLFree( pabyWKB );
+            }
+        }
+
+        // fill render buffers
+        fillRenderBuffers(geom);
+
+        // TODO: if 5-10-20% read notify what we have some data to render
+
+        m_renderPercent = counter / totalCount;
+        counter++;
+    }
+    if(m_currentPointBuffer)
+        m_pointBucket.push_back (move(m_currentPointBuffer));
+    if(m_currentPolygonBuffer)
+        m_polygonBucket.push_back (move(m_currentPolygonBuffer));
+    m_bucketFilled = true;
+}
+
+void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
+{
+    m_bucketFilled = false;
+    if( nullptr == geom )
+        return;
+
+    switch (OGR_GT_Flatten (geom->getGeometryType ())) {
+    case wkbPoint:
+    {
+        if(nullptr == m_currentPointBuffer)
+            m_currentPointBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
+        else if(m_currentPointBuffer->m_vertices.size () - 3 >
+                GL_MAX_VERTEX_COUNT) {
+            m_pointBucket.push_back (move(m_currentPointBuffer));
+            m_currentPointBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
+        }
+        OGRPoint *pt = static_cast<OGRPoint*>(geom);
+        m_currentPointBuffer->m_vertices.push_back (static_cast<float>(pt->getX ()));
+        m_currentPointBuffer->m_vertices.push_back (static_cast<float>(pt->getY ()));
+        // TODO: add getZ + level
+        m_currentPointBuffer->m_vertices.push_back (m_renderLevel);
+        m_currentPointBuffer->m_indices.push_back (
+                    m_currentPointBuffer->m_vertices.size () / 3 - 1);
+    }
+        break;
+    case wkbLineString:
+        break;
+    case wkbPolygon:
+    {
+        OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
+        // TODO: not only external ring must be extracted
+        OGRLinearRing* ring = polygon->getExteriorRing ();
+
+        if(nullptr == m_currentPolygonBuffer) {
+            m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
+            m_currentPolygonBuffer->m_vertices.reserve (8196);
+            m_currentPolygonBuffer->m_indices.reserve (8196);
+        }
+        else if(m_currentPolygonBuffer->m_vertices.size () +
+                ring->getNumPoints () * 3 > GL_MAX_VERTEX_COUNT) {
+            m_polygonBucket.push_back (move(m_currentPolygonBuffer));
+            m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
+            m_currentPolygonBuffer->m_vertices.reserve (8196);
+            m_currentPolygonBuffer->m_indices.reserve (8196);
+        }
+
+        int startPolyIndex = m_currentPolygonBuffer->m_indices.size ();
+        for(int i = 0; i < ring->getNumPoints (); ++i) {
+            OGRPoint pt;
+            ring->getPoint (i, &pt);
+            m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getX ()));
+            m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getY ()));
+            // TODO: add getZ + level
+            m_currentPolygonBuffer->m_vertices.push_back (m_renderLevel);
+            m_currentPolygonBuffer->m_indices.push_back (startPolyIndex);
+            m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 1);
+            m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 2);
+        }
+    }
+        break;
+    case wkbMultiPoint:
+    {
+        OGRMultiPoint* mpt = static_cast<OGRMultiPoint*>(geom);
+        for(int i = 0; i < mpt->getNumGeometries (); ++i) {
+            fillRenderBuffers (mpt->getGeometryRef (i));
+        }
+    }
+        break;
+    case wkbMultiLineString:
+    {
+        OGRMultiLineString* mln = static_cast<OGRMultiLineString*>(geom);
+        for(int i = 0; i < mln->getNumGeometries (); ++i) {
+            fillRenderBuffers (mln->getGeometryRef (i));
+        }
+    }
+        break;
+    case wkbMultiPolygon:
+    {
+        OGRMultiPolygon* mplg = static_cast<OGRMultiPolygon*>(geom);
+        for(int i = 0; i < mplg->getNumGeometries (); ++i) {
+            fillRenderBuffers (mplg->getGeometryRef (i));
+        }
+    }
+        break;
+    case wkbGeometryCollection:
+    {
+        OGRGeometryCollection* coll = static_cast<OGRGeometryCollection*>(geom);
+        for(int i = 0; i < coll->getNumGeometries (); ++i) {
+            fillRenderBuffers (coll->getGeometryRef (i));
+        }
+    }
+        break;
+    /* TODO: case wkbCircularString:
+        return "cir";
+    case wkbCompoundCurve:
+        return "ccrv";
+    case wkbCurvePolygon:
+        return "crvplg";
+    case wkbMultiCurve:
+        return "mcrv";
+    case wkbMultiSurface:
+        return "msurf";
+    case wkbCurve:
+        return "crv";
+    case wkbSurface:
+        return "surf";*/
+    }
+}
+
+double FeatureRenderLayer::render(const GlView *glView)
+{
+    // draw elements
+    while (!m_polygonBucket.empty()) {
+        if(nullptr != m_polygonBucket.back ())
+            glView->drawPolygons (m_polygonBucket.back ()->m_vertices,
+                                  m_polygonBucket.back ()->m_indices);
+        m_polygonBucket.pop_back ();
+
+        if(m_bucketFilled)
+            m_renderPercent = 1;
+    }
+
+    // report percent
+    return m_renderPercent;
 }

@@ -133,3 +133,26 @@ double ngs::getEnvelopeHeight(const OGREnvelope &env)
 {
     return env.MaxY - env.MinY;
 }
+
+ngs::GeometryPtr ngs::envelopeToGeometry(const OGREnvelope &env,
+                                            OGRSpatialReference *spatialRef)
+{
+    if(!env.IsInit())
+        return GeometryPtr();
+    OGRLinearRing ring;
+    ring.addPoint(env.MinX, env.MinY);
+    ring.addPoint(env.MinX, env.MaxY);
+    ring.addPoint(env.MaxX, env.MaxY);
+    ring.addPoint(env.MaxX, env.MinY);
+    ring.closeRings();
+
+    OGRPolygon* rgn = new OGRPolygon();
+    rgn->addRing(&ring);
+    rgn->flattenTo2D();
+    if(nullptr != spatialRef) {
+        spatialRef->Reference();
+        rgn->assignSpatialReference(spatialRef);
+    }
+    return GeometryPtr(static_cast<OGRGeometry*>(rgn));
+
+}

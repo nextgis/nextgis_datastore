@@ -73,7 +73,7 @@ public:
 
 protected:
     void setBackgroundChanged(bool bkChanged);
-    virtual LayerPtr createLayer();
+    virtual LayerPtr createLayer(enum Layer::Type type);
 
 protected:
     CPLString m_name;

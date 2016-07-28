@@ -213,5 +213,6 @@ Matrix4 MapTransform::getSceneMatrix() const
 }
 
 double MapTransform::getZoom() const {
-    return log(m_scale) / M_LN2;
+    double retVal = log(m_scale) / M_LN2;
+    return retVal < 0 ? 0 : retVal;
 }

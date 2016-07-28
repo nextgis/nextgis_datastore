@@ -30,11 +30,14 @@
 
 namespace ngs {
 
+typedef shared_ptr< OGRGeometry > GeometryPtr;
+typedef unique_ptr< OGRGeometry > GeometryUPtr;
+
 class CoordinateTransformationPtr
 {
 public:
-    CoordinateTransformationPtr(
-            const OGRSpatialReference *srcSRS, const OGRSpatialReference *dstSRS);
+    CoordinateTransformationPtr( OGRSpatialReference *srcSRS,
+                                 OGRSpatialReference *dstSRS);
     ~CoordinateTransformationPtr();
     bool transform(OGRGeometry *geom);
 protected:
@@ -61,7 +64,7 @@ public:
 
 public:
     FeatureDataset(OGRLayer * const layer);
-    virtual const OGRSpatialReference * getSpatialReference() const override;
+    virtual OGRSpatialReference *getSpatialReference() const override;
     OGRwkbGeometryType getGeometryType() const;
     virtual int copyFeatures(const FeatureDataset *srcDataset,
                              const FieldMapPtr fieldMap,
@@ -70,6 +73,12 @@ public:
                              ngsProgressFunc progressFunc,
                              void *progressArguments);
     bool setIgnoredFields(const char **fields);
+    vector<CPLString> getGeometryColumns() const;
+    CPLString getGeometryColumn() const;
+    ResultSetPtr executeSQL(const CPLString& statement,
+                            GeometryPtr spatialFilter,
+                            const CPLString& dialect = "") const;
+
     // static
     static CPLString getGeometryTypeName(OGRwkbGeometryType type,
                                          enum GeometryReportType reportType);

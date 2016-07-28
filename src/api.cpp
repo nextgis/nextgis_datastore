@@ -638,7 +638,8 @@ int ngsLoad(const char* name, const char *path, const char *subDatasetName,
 
 int ngsCreateLayer(unsigned int mapId, const char *name, const char *path)
 {
-    DatasetPtr dataset = gDataStore->getDataset (path);
+    ngsInitDataStore ( CPLGetDirname (path) );
+    DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
     initMapStore();
     MapPtr map = gMapStore->getMap (mapId);
     if(nullptr == map || nullptr == dataset)

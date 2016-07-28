@@ -25,20 +25,71 @@
 
 namespace ngs {
 
+void FillGLBufferThread(void * layer);
+
+typedef struct _buffer {
+    vector<GLfloat> m_vertices;
+    vector<GLushort> m_indices;
+} ngsVertexBuffer;
+
+typedef unique_ptr<ngsVertexBuffer> ngsVertexBufferPtr;
+
+/**
+ * @brief The RenderLayer class Base for renderable map layers
+ */
 class RenderLayer : public Layer
 {
+    friend void FillGLBufferThread(void * layer);
 public:
     RenderLayer();
     RenderLayer(const CPLString& name, DatasetPtr dataset);
+    virtual ~RenderLayer();
     void prepareRender(OGREnvelope extent, double zoom, float level);
     void cancelPrepareRender();
-    double render(const GlView* glView);
+    /**
+     * @brief render Render data to GL scene. Can be run only from GL rendering
+     * thread
+     * @param glView GL view pointer
+     * @return draw percent
+     */
+    virtual double render(const GlView* glView) = 0;
+protected:
+    virtual void fillRenderBuffers() = 0;
 protected:
     bool m_cancelPrepare;
     CPLJoinableThread* m_hPrepareThread;
     double m_renderPercent;
+    OGREnvelope m_renderExtent;
+    double m_renderZoom;
+    float m_renderLevel;
 
-    /*    Style m_style; */
+    // TODO: Style m_style;
+};
+
+class FeatureRenderLayer : public RenderLayer
+{
+public:
+    FeatureRenderLayer();
+    FeatureRenderLayer(const CPLString& name, DatasetPtr dataset);
+    virtual ~FeatureRenderLayer();
+
+protected:
+    void fillRenderBuffers(OGRGeometry *geom);
+
+    // RenderLayer interface
+protected:
+    virtual void fillRenderBuffers() override;
+
+    // RenderLayer interface
+public:
+    virtual double render(const GlView *glView) override;
+
+protected:
+    vector<ngsVertexBufferPtr> m_pointBucket;
+    vector<ngsVertexBufferPtr> m_polygonBucket;
+    ngsVertexBufferPtr m_currentPointBuffer;
+    ngsVertexBufferPtr m_currentPolygonBuffer;
+    bool m_bucketFilled;
 };
 
 }

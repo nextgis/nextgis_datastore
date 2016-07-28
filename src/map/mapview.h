@@ -78,7 +78,7 @@ public:
     virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
 
 protected:
-    virtual LayerPtr createLayer() override;
+    virtual LayerPtr createLayer(enum Layer::Type type) override;
 };
 
 }

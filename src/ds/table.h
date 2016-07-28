@@ -37,9 +37,9 @@ public:
 class FeaturePtr : public shared_ptr< OGRFeature >
 {
 public:
-    FeaturePtr(OGRFeature* pFeature);
+    FeaturePtr(OGRFeature* feature);
     FeaturePtr();
-    FeaturePtr& operator=(OGRFeature* pFeature);
+    FeaturePtr& operator=(OGRFeature* feature);
     operator OGRFeature*() const;
 };
 

@@ -52,7 +52,7 @@ void ngs::LoadingThread(void * store)
 {
     DatasetContainer* dstDataset = static_cast<DatasetContainer*>(store);
     while(!dstDataset->m_cancelLoad && !dstDataset->m_loadData.empty ()) {
-        LoadData data = dstDataset->m_loadData[dstDataset->m_loadData.size () - 1];
+        LoadData data = dstDataset->m_loadData.back ();
         dstDataset->m_loadData.pop_back ();
 
         if(data.progressFunc)

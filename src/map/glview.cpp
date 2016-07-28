@@ -229,7 +229,7 @@ void GlView::setSize(int width, int height)
             return;
         }
 
-        if(!m_extensionLoad){
+/*        if(!m_extensionLoad){
             const GLubyte *str = glGetString(GL_EXTENSIONS);
             if (str != nullptr) {
                 const char* pszList = reinterpret_cast<const char*>(str);
@@ -269,7 +269,7 @@ void GlView::setSize(int width, int height)
 
                 m_extensionLoad = true;
             }
-        }
+        }*/
 
         if(!m_programLoad) {
             // TODO: need special class to load/undload and manage shaders
@@ -344,6 +344,27 @@ void GlView::draw() const
     ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
 
     ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
+}
+
+void GlView::drawPolygons(const vector<GLfloat> &vertices,
+                          const vector<GLushort> &indices) const
+{
+    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
+                                            vertices.data ()));
+
+    // IBO
+    /*GLuint IBO;
+    glGenBuffers(1, &IBO );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size () * sizeof(GLushort), indices.data (), GL_STATIC_DRAW);*/
+
+    //glDrawArrays(GL_TRIANGLES, 0, 3); // this works
+    //glDrawElements(GL_TRIANGLES, indices.size (), GL_UNSIGNED_INT, 0); // this doesnt
+
+
+    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, /*indices.size ()*/100,
+                                    GL_UNSIGNED_SHORT, indices.data ()));
 }
 
 bool GlView::checkEGLError(const char *cmd) const {
