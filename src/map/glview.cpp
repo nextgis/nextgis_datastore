@@ -288,6 +288,7 @@ void GlView::setSize(int width, int height)
         return;
     }
 
+    ngsCheckGLEerror(glEnable(GL_DEPTH_TEST));
     ngsCheckGLEerror(glViewport ( 0, 0, m_displayWidth, m_displayHeight ));
 }
 
@@ -317,7 +318,7 @@ void GlView::fillBuffer(void *buffer) const
 
 void GlView::clearBackground()
 {    
-    ngsCheckGLEerror(glClear(GL_COLOR_BUFFER_BIT));
+    ngsCheckGLEerror(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
 void GlView::prepare(const Matrix4 &mat)
@@ -339,13 +340,30 @@ void GlView::prepare(const Matrix4 &mat)
 // WARNING: this is for test
 void GlView::draw() const
 {
+    int uColorLocation = glGetUniformLocation(m_programId, "u_Color");
+
     GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
                            -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
                             4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
                           };
 
+    glUniform4f(uColorLocation, 1.0f, 0.0f, 0.0f, 1.0f);
+
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                              vVertices ));
+    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+
+    ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
+
+    GLfloat vVertices2[] = {  1000000.0f,  -500000.0f, -0.5f,
+                           -2236992.0f, 3972353.0f, 0.5f,
+                            5187591.0f, 4509961.0f, 0.5f
+                          };
+
+    glUniform4f(uColorLocation, 0.0f, 0.0f, 1.0f, 1.0f);
+
+    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
+                                             vVertices2 ));
     ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
 
     ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
@@ -515,10 +533,11 @@ GLuint GlView::prepareProgram() {
         return 0;
 
     const GLchar * const fragmentShaderSourcePtr =
-            "precision mediump float;\n"
+            "precision mediump float;                     \n"
+            "uniform vec4 u_Color;                        \n"
             "void main()                                  \n"
             "{                                            \n"
-            "  gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );\n"
+            "  gl_FragColor = u_Color;                    \n"
             "}                                            \n";
 
     GLuint fragmentShaderId = loadShader(GL_FRAGMENT_SHADER, fragmentShaderSourcePtr);
