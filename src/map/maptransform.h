@@ -69,7 +69,6 @@ protected:
      * sceneMatrix transform from world coordinates to GL coordinates -1 x 1
      * viewMatrix transform from scene coordinates to display coordinates 640 x 480
      */
-public:
     Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
     Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
 };
