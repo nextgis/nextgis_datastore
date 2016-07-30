@@ -34,7 +34,7 @@ MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
 {
     setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
                           DEFAULT_MAX_Y));
-    setDisplaySize(width, height);
+    setDisplaySize(width, height, false);
 }
 
 MapTransform::~MapTransform()
@@ -91,11 +91,12 @@ OGRRawPoint MapTransform::displayToWorld(const OGRRawPoint &pt)
     return m_invWorldToDisplayMatrix.project (pt);
 }
 
-void MapTransform::setDisplaySize(int width, int height)
+void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
     m_sizeChanged = true;
     m_displayWidht = width;
     m_displayHeight = height;
+    m_isYAxisInverted = isYAxisInverted;
 
     double scaleX = fabs(double(m_displayWidht)) * .5;
     double scaleY = fabs(double(m_displayHeight)) * .5;
@@ -176,8 +177,14 @@ void MapTransform::initMatrices()
 {
     // world -> scene matrix
     m_sceneMatrix.clear ();
-    m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
-                         m_extent.MaxY, m_extent.MinY, -1, 1);
+
+    if (m_isYAxisInverted) {
+        m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
+                             m_extent.MaxY, m_extent.MinY, -1, 1);
+    } else {
+        m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
+                             m_extent.MinY, m_extent.MaxY, -1, 1);
+    }
 
     if(!isEqual(m_rotate, 0.0)){
         // TODO: rotate m_sceneMatrix
@@ -189,7 +196,7 @@ void MapTransform::initMatrices()
 
     // scene -> view inv matrix
     m_invViewMatrix.clear ();
-    m_invViewMatrix.ortho (0, m_displayWidht, m_displayHeight, 0, -1, 1);
+    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, -1, 1);
 
     // scene -> view matrix
     m_viewMatrix = m_invViewMatrix;
@@ -198,8 +205,8 @@ void MapTransform::initMatrices()
     m_worldToDisplayMatrix = m_viewMatrix;
     m_worldToDisplayMatrix.multiply (m_sceneMatrix);
 
-    m_invWorldToDisplayMatrix = m_invViewMatrix;
-    m_invWorldToDisplayMatrix.multiply (m_invSceneMatrix);
+    m_invWorldToDisplayMatrix = m_invSceneMatrix;
+    m_invWorldToDisplayMatrix.multiply (m_invViewMatrix);
 }
 
 double MapTransform::getScale() const

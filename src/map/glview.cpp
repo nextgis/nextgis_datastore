@@ -283,7 +283,11 @@ void GlView::setSize(int width, int height)
         }
         ngsCheckGLEerror(glClearColor(m_bkColor.r, m_bkColor.g, m_bkColor.b,
                                        m_bkColor.a));
+    } else {
+        CPLError(CE_Failure, CPLE_OpenFailed, "eglCreatePbufferSurface failed.");
+        return;
     }
+
     ngsCheckGLEerror(glViewport ( 0, 0, m_displayWidth, m_displayHeight ));
 }
 

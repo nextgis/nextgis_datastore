@@ -105,14 +105,14 @@ int MapStore::setMapBackgroundColor(unsigned int mapId, const ngsRGBA &color)
     return m_maps[mapId]->setBackgroundColor (color);
 }
 
-int MapStore::initMap(unsigned int mapId, void *buffer, int width, int height)
+int MapStore::initMap(unsigned int mapId, void *buffer, int width, int height, bool isYAxisInverted)
 {
     if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
         return ngsErrorCodes::INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
         return ngsErrorCodes::INVALID;
-    return pMapView->initBuffer (buffer, width, height);
+    return pMapView->initBuffer (buffer, width, height, isYAxisInverted);
 }
 
 int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,

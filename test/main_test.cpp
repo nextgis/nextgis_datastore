@@ -125,8 +125,8 @@ TEST(BasicTests, TestInitMap) {
                              DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
                              DEFAULT_MAX_Y);
     EXPECT_GE(mapId, 0);
-    EXPECT_NE(ngsInitMap (1, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsInitMap (mapId, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    EXPECT_NE(ngsInitMap (1, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInitMap (mapId, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
     counter = 0;
     EXPECT_EQ(ngsDrawMap(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
     CPLSleep(0.2);

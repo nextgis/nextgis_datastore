@@ -49,7 +49,7 @@ public:
     bool isDisplayInit() const;
     int initDisplay();
     int errorCode() const;
-    int initBuffer(void* buffer, int width, int height);
+    int initBuffer(void* buffer, int width, int height, bool isYAxisInverted);
     int draw(const ngsProgressFunc &progressFunc, void* progressArguments = nullptr);
     DrawStage getDrawStage() const;
 
@@ -69,7 +69,7 @@ protected:
     bool m_cancel;
     void* m_bufferData;    
     ngsProgressFunc m_progressFunc;
-    void* m_progressArguments;    
+    void* m_progressArguments;
     double m_renderPercent;
     enum DrawStage m_drawStage;
 

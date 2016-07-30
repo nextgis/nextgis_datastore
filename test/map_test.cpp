@@ -65,42 +65,183 @@ TEST(MapTests, TestInitMap) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     EXPECT_EQ(mapStore.mapCount(), 1);
-    EXPECT_NE(mapStore.initMap (1, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+    EXPECT_NE(mapStore.initMap (1, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
 }
 
 TEST(MapTests, TestProject) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640), ngsErrorCodes::SUCCESS);
     ngs::MapPtr defMap = mapStore.getMap (0);
     ASSERT_NE(defMap, nullptr);
+
+    // axis Y inverted
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     OGREnvelope env;
     OGRRawPoint pt;
+    OGRRawPoint wdPt;
+    OGRRawPoint dwPt;
+
+
+    // World is from (-1560, -1420) to (3560, 2420), 5120x3840
+    env.MinX = -1560; env.MinY = -1420;
+    env.MaxX = 3560; env.MaxY = 2420;
+    mapView->setExtent (env);
+    EXPECT_EQ(mapView->getScale (), 0.125);
+
+    pt.x = -1560;
+    pt.y = 2420;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 0);
+    pt.x = 0;
+    pt.y = 0;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, -1560);
+    EXPECT_EQ(dwPt.y, 2420);
+
+    pt.x = 3560;
+    pt.y = 2420;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 640);
+    EXPECT_EQ(wdPt.y, 0);
+    pt.x = 640;
+    pt.y = 0;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 3560);
+    EXPECT_EQ(dwPt.y, 2420);
+
+    pt.x = 3560;
+    pt.y = -1420;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 640);
+    EXPECT_EQ(wdPt.y, 480);
+    pt.x = 640;
+    pt.y = 480;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 3560);
+    EXPECT_EQ(dwPt.y, -1420);
+
+    pt.x = -1560;
+    pt.y = -1420;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 480);
+    pt.x = 0;
+    pt.y = 480;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, -1560);
+    EXPECT_EQ(dwPt.y, -1420);
+
+    pt.x = 0;
+    pt.y = 0;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 195);
+    EXPECT_EQ(wdPt.y, 302.5);
+    pt.x = 195;
+    pt.y = 302.5;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 0);
+    EXPECT_EQ(dwPt.y, 0);
+
+
+    // axis Y is normal
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, false), ngsErrorCodes::SUCCESS);
+
+    // World is from (1000, 500) to (3560, 2420), 2560x1920
+    env.MinX = 1000; env.MinY = 500;
+    env.MaxX = 3560; env.MaxY = 2420;
+    mapView->setExtent (env);
+    EXPECT_EQ(mapView->getScale (), 0.25);
+
+    pt.x = 1000;
+    pt.y = 2420;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 480);
+    pt.x = 0;
+    pt.y = 480;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 1000);
+    EXPECT_EQ(dwPt.y, 2420);
+
+    pt.x = 3560;
+    pt.y = 2420;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 640);
+    EXPECT_EQ(wdPt.y, 480);
+    pt.x = 640;
+    pt.y = 480;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 3560);
+    EXPECT_EQ(dwPt.y, 2420);
+
+    pt.x = 3560;
+    pt.y = 500;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 640);
+    EXPECT_EQ(wdPt.y, 0);
+    pt.x = 640;
+    pt.y = 0;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 3560);
+    EXPECT_DOUBLE_EQ(dwPt.y, 500);
+
+    pt.x = 1000;
+    pt.y = 500;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, 0);
+    EXPECT_EQ(wdPt.y, 0);
+    pt.x = 0;
+    pt.y = 0;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 1000);
+    EXPECT_DOUBLE_EQ(dwPt.y, 500);
+
+    pt.x = 0;
+    pt.y = 0;
+    wdPt = mapView->worldToDisplay (pt);
+    EXPECT_EQ(wdPt.x, -250);
+    EXPECT_EQ(wdPt.y, -125);
+    pt.x = -250;
+    pt.y = -125;
+    dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(dwPt.x, 0);
+    // EXPECT_EQ(dwPt.y, 0);  // dwPt.y == 2.2737367544323206e-13
+
+
+    // axis Y inverted
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640, true), ngsErrorCodes::SUCCESS);
+
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 480; env.MaxY = 640;
     mapView->setExtent (env);
     EXPECT_EQ(mapView->getScale (), 1);
+
     pt.x = 0;
     pt.y = 0;
-    OGRRawPoint wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay (pt);
     EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 0);
-    OGRRawPoint dwPt = mapView->displayToWorld (pt);
+    EXPECT_EQ(wdPt.y, 640);
+    dwPt = mapView->displayToWorld (pt);
     EXPECT_EQ(dwPt.x, 0);
-    EXPECT_EQ(dwPt.y, 0);
+    EXPECT_EQ(dwPt.y, 640);
 
     pt.x = 480;
     pt.y = 640;
     wdPt = mapView->worldToDisplay (pt);
     EXPECT_EQ(wdPt.x, 480);
-    EXPECT_EQ(wdPt.y, 640);
+    EXPECT_EQ(wdPt.y, 0);
     dwPt = mapView->displayToWorld (pt);
     EXPECT_EQ(dwPt.x, 480);
-    EXPECT_EQ(dwPt.y, 640);    
+    EXPECT_EQ(dwPt.y, 0);
 
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480), ngsErrorCodes::SUCCESS);
+
+    // axis Y inverted
+    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 5120; env.MaxY = 3840;
     mapView->setExtent (env);
@@ -108,7 +249,7 @@ TEST(MapTests, TestProject) {
     pt.y = 0;
     wdPt = mapView->worldToDisplay (pt);
     EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_EQ(wdPt.y, 480);
 
     env.MinX = -1560.0; env.MinY = -1420.0;
     env.MaxX = 3560.0; env.MaxY = 2420;
@@ -117,14 +258,14 @@ TEST(MapTests, TestProject) {
     pt.y = -1420.0;
     wdPt = mapView->worldToDisplay (pt);
     EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_EQ(wdPt.y, 480);
 }
 
 TEST(MapTests, TestDrawing) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     unsigned char buffer[480 * 640 * 4];
-    EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640, true), ngsErrorCodes::SUCCESS);
     ngs::MapPtr defMap = mapStore.getMap (0);
     ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
@@ -182,7 +323,7 @@ TEST(MapTests, TestDeleteMap) {
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
     ngs::MapPtr map = mapStore.getMap (0);
     ASSERT_NE(map, nullptr);
-    EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);    
+    EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     ASSERT_NE(storage, nullptr);

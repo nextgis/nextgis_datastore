@@ -43,7 +43,7 @@ public:
     OGRRawPoint getCenter() const;
     OGRRawPoint worldToDisplay(const OGRRawPoint &pt);
     OGRRawPoint displayToWorld(const OGRRawPoint &pt);
-    void setDisplaySize(int width, int height);
+    void setDisplaySize(int width, int height, bool isYAxisInverted);
     bool setScale(double scale);
     bool setCenter(double x, double y);
     bool setScaleAndCenter(double scale, double x, double y);
@@ -64,10 +64,12 @@ protected:
     double m_scale, m_scaleScene, m_scaleView;
     OGREnvelope m_extent;
     double m_ratio;
+    bool m_isYAxisInverted;
     /*
      * sceneMatrix transform from world coordinates to GL coordinates -1 x 1
-     * vewMatrix transform from scene coordinates to display coordinates 640 x 480
+     * viewMatrix transform from scene coordinates to display coordinates 640 x 480
      */
+public:
     Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
     Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
 };

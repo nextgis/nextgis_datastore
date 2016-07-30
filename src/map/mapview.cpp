@@ -40,7 +40,7 @@ void ngs::RenderingThread(void * view)
     if (!glView.init ()) {
         mapView->m_errorCode = ngsErrorCodes::INIT_FAILED;
         return;
-    }    
+    }
 
     mapView->m_errorCode = ngsErrorCodes::SUCCESS;
     mapView->setDisplayInit (true);
@@ -184,11 +184,11 @@ void *MapView::getBufferData() const
     return m_bufferData;
 }
 
-int MapView::initBuffer(void *buffer, int width, int height)
+int MapView::initBuffer(void *buffer, int width, int height, bool isYAxisInverted)
 {
     m_bufferData = buffer;
 
-    setDisplaySize (width, height);
+    setDisplaySize (width, height, isYAxisInverted);
 
     return ngsErrorCodes::SUCCESS;
 }

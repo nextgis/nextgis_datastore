@@ -134,7 +134,7 @@ NGS_EXTERNC int ngsCreateMap(const char* name, const char* description,
                              double maxX, double maxY);
 NGS_EXTERNC int ngsOpenMap(const char* path);
 NGS_EXTERNC int ngsSaveMap(unsigned int mapId, const char* path);
-NGS_EXTERNC int ngsInitMap(unsigned int mapId, void* buffer, int width, int height);
+NGS_EXTERNC int ngsInitMap(unsigned int mapId, void* buffer, int width, int height, int isYAxisInverted);
 NGS_EXTERNC int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
                            void* callbackData);
 NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,

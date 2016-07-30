@@ -490,10 +490,10 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
  * @param height Output image height
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInitMap(unsigned int mapId, void *buffer, int width, int height)
+int ngsInitMap(unsigned int mapId, void *buffer, int width, int height, int isYAxisInverted)
 {
     initMapStore();
-    return gMapStore->initMap (mapId, buffer, width, height);
+    return gMapStore->initMap (mapId, buffer, width, height, isYAxisInverted);
 }
 
 /**
@@ -551,7 +551,6 @@ ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId)
 {
     initMapStore();
     return gMapStore->getMapBackgroundColor (mapId);
-
 }
 
 /**
@@ -568,7 +567,6 @@ int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char 
 {
     initMapStore();
     return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
-
 }
 
 /**
