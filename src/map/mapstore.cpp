@@ -23,6 +23,7 @@
 #include "constants.h"
 #include "table.h"
 #include "mapview.h"
+#include "ogr_geometry.h"
 
 using namespace ngs;
 
@@ -125,6 +126,20 @@ int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
         return ngsErrorCodes::INVALID;
 
     return pMapView->draw (progressFunc, progressArguments);
+}
+
+bool MapStore::setMapCenter(unsigned int mapId, double x, double y)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    OGRRawPoint ptDisplay(x, y);
+    OGRRawPoint ptWorld = pMapView->displayToWorld(ptDisplay);
+
+    return pMapView->setCenter(ptWorld.x, ptWorld.y);
 }
 
 void MapStore::onLowMemory()

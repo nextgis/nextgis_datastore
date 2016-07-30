@@ -569,6 +569,13 @@ int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char 
     return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
 }
 
+
+int ngsSetMapCenter(unsigned int mapId, double x, double y)
+{
+    initMapStore();
+    return gMapStore->setMapCenter(mapId, x, y);
+}
+
 /**
  * @brief ngsCreateMap Create new empty map
  * @param name Map name

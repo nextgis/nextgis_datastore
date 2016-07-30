@@ -68,6 +68,7 @@ public:
     void unsetNotifyFunc();
     ngsRGBA getMapBackgroundColor(unsigned int mapId);
     int setMapBackgroundColor(unsigned int mapId, const ngsRGBA& color);
+    bool setMapCenter(unsigned int mapId, double x, double y);
 
 protected:
     vector<MapPtr> m_maps;

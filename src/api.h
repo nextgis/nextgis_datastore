@@ -143,5 +143,6 @@ NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
 NGS_EXTERNC int ngsCreateLayer(unsigned int mapId, const char* name,
                                const char* path);
+NGS_EXTERNC int ngsSetMapCenter(unsigned int mapId, double x, double y);
 
 #endif // API_H
