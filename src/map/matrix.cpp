@@ -104,47 +104,47 @@ bool Matrix4::invert()
 void Matrix4::ortho(double left, double right, double bottom, double top,
                     double near, double far)
 {
-    double lr = 1.0f / (left - right),
-          bt = 1.0f / (bottom - top),
-          nf = 1.0f / (near - far);
-    m_values[0] = -2.0f * lr;
-    m_values[1] = 0.0f;
-    m_values[2] = 0.0f;
-    m_values[3] = 0.0f;
-    m_values[4] = 0.0f;
-    m_values[5] = -2.0f * bt;
-    m_values[6] = 0.0f;
-    m_values[7] = 0.0f;
-    m_values[8] = 0.0f;
-    m_values[9] = 0.0f;
-    m_values[10] = 2.0f * nf;
-    m_values[11] = 0.0f;
+    double lr = 1.0 / (left - right),
+          bt = 1.0 / (bottom - top),
+          nf = 1.0 / (near - far);
+    m_values[0] = -2.0 * lr;
+    m_values[1] = 0.0;
+    m_values[2] = 0.0;
+    m_values[3] = 0.0;
+    m_values[4] = 0.0;
+    m_values[5] = -2.0 * bt;
+    m_values[6] = 0.0;
+    m_values[7] = 0.0;
+    m_values[8] = 0.0;
+    m_values[9] = 0.0;
+    m_values[10] = 2.0 * nf;
+    m_values[11] = 0.0;
     m_values[12] = (left + right) * lr;
     m_values[13] = (top + bottom) * bt;
     m_values[14] = (far + near) * nf;
-    m_values[15] = 1.0f;
+    m_values[15] = 1.0;
 }
 
 void Matrix4::perspective(double fovy, double aspect, double near, double far)
 {
-    double f = 1.0f / tan(fovy * 0.5f),
-        nf = 1.0f / (near - far);
+    double f = 1.0 / tan(fovy * 0.5),
+        nf = 1.0 / (near - far);
     m_values[0] = f / aspect;
-    m_values[1] = 0.0f;
-    m_values[2] = 0.0f;
-    m_values[3] = 0.0f;
-    m_values[4] = 0.0f;
+    m_values[1] = 0.0;
+    m_values[2] = 0.0;
+    m_values[3] = 0.0;
+    m_values[4] = 0.0;
     m_values[5] = f;
-    m_values[6] = 0.0f;
-    m_values[7] = 0.0f;
-    m_values[8] = 0.0f;
-    m_values[9] = 0.0f;
+    m_values[6] = 0.0;
+    m_values[7] = 0.0;
+    m_values[8] = 0.0;
+    m_values[9] = 0.0;
     m_values[10] = (far + near) * nf;
-    m_values[11] = -1.0f;
-    m_values[12] = 0.0f;
-    m_values[13] = 0.0f;
-    m_values[14] = (2.0f * far * near) * nf;
-    m_values[15] = 0.0f;
+    m_values[11] = -1.0;
+    m_values[12] = 0.0;
+    m_values[13] = 0.0;
+    m_values[14] = (2.0 * far * near) * nf;
+    m_values[15] = 0.0;
 }
 
 Matrix4 Matrix4::copy() const
@@ -154,22 +154,22 @@ Matrix4 Matrix4::copy() const
 
 void Matrix4::clear()
 {
-    m_values[0] = 1.0f;
-    m_values[1] = 0.0f;
-    m_values[2] = 0.0f;
-    m_values[3] = 0.0f;
-    m_values[4] = 0.0f;
-    m_values[5] = 1.0f;
-    m_values[6] = 0.0f;
-    m_values[7] = 0.0f;
-    m_values[8] = 0.0f;
-    m_values[9] = 0.0f;
-    m_values[10] = 1.0f;
-    m_values[11] = 0.0f;
-    m_values[12] = 0.0f;
-    m_values[13] = 0.0f;
-    m_values[14] = 0.0f;
-    m_values[15] = 1.0f;
+    m_values[0] = 1.0;
+    m_values[1] = 0.0;
+    m_values[2] = 0.0;
+    m_values[3] = 0.0;
+    m_values[4] = 0.0;
+    m_values[5] = 1.0;
+    m_values[6] = 0.0;
+    m_values[7] = 0.0;
+    m_values[8] = 0.0;
+    m_values[9] = 0.0;
+    m_values[10] = 1.0;
+    m_values[11] = 0.0;
+    m_values[12] = 0.0;
+    m_values[13] = 0.0;
+    m_values[14] = 0.0;
+    m_values[15] = 1.0;
 }
 
 void Matrix4::translate(double x, double y, double z)
