@@ -109,7 +109,9 @@
 // Common
 #define BIG_VALUE 10000000.0
 
-inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) < std::numeric_limits<double>::epsilon(); };
+// http://stackoverflow.com/a/15012792
+inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) <= std::numeric_limits<double>::epsilon(); };
+
 #define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
 #endif // CONSTANTS_H
