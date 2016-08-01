@@ -23,6 +23,7 @@
 #define CONSTANTS_H
 
 #include <cmath>
+#include <limits>
 
 #define NOT_FOUND -1
 
@@ -106,10 +107,9 @@
 #define NOTIFY_PERCENT 0.1
 
 // Common
-#define DELTA 0.00000001
 #define BIG_VALUE 10000000.0
 
-inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) < DELTA; };
+inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) < std::numeric_limits<double>::epsilon(); };
 #define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
 #endif // CONSTANTS_H
