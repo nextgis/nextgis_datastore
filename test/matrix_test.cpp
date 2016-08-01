@@ -202,3 +202,69 @@ TEST(MatrixTests, TestRotateByCenter) {
     EXPECT_DOUBLE_EQ(ppt.y, 320.0);
     */
 }
+
+TEST(MatrixTests, TestComplexProject) {
+
+    int display_sqw = 100;
+    double map_sqw = 1000000;
+
+    bool m_isYAxisInverted = false;
+    int m_displayWidht = display_sqw;
+    int m_displayHeight = display_sqw;
+
+    OGREnvelope m_extent;
+    m_extent.MinX = -map_sqw;
+    m_extent.MaxX = map_sqw;
+    m_extent.MinY = -map_sqw;
+    m_extent.MaxY = map_sqw;
+
+    ngs::Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
+    ngs::Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
+
+    OGRRawPoint pt(display_sqw, display_sqw);
+    OGRRawPoint ismPt;
+    OGRRawPoint ivmPt;
+    OGRRawPoint iwdPt;
+
+
+    // world -> scene matrix
+    m_sceneMatrix.clear ();
+
+    if (m_isYAxisInverted) {
+        m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
+                             m_extent.MaxY, m_extent.MinY, -1, 1);
+    } else {
+        m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
+                             m_extent.MinY, m_extent.MaxY, -1, 1);
+    }
+
+    // world -> scene inv matrix
+    m_invSceneMatrix = m_sceneMatrix;
+    m_invSceneMatrix.invert ();
+
+    // scene -> view inv matrix
+    m_invViewMatrix.clear ();
+    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, -1, 1);
+
+    // scene -> view matrix
+    m_viewMatrix = m_invViewMatrix;
+    m_viewMatrix.invert ();
+
+    m_worldToDisplayMatrix = m_viewMatrix;
+    m_worldToDisplayMatrix.multiply (m_sceneMatrix);
+
+    m_invWorldToDisplayMatrix = m_invSceneMatrix;
+    m_invWorldToDisplayMatrix.multiply (m_invViewMatrix);
+
+
+    ivmPt = m_invViewMatrix.project(pt);
+    ismPt = m_invSceneMatrix.project(ivmPt);
+    iwdPt = m_invWorldToDisplayMatrix.project(pt);
+
+    EXPECT_DOUBLE_EQ(ivmPt.x, 1.0);
+    EXPECT_DOUBLE_EQ(ivmPt.y, 1.0);
+    EXPECT_DOUBLE_EQ(ismPt.x, map_sqw);
+    EXPECT_DOUBLE_EQ(ismPt.y, map_sqw);
+    EXPECT_DOUBLE_EQ(iwdPt.x, map_sqw);
+    EXPECT_DOUBLE_EQ(iwdPt.y, map_sqw);
+}
