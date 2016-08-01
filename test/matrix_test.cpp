@@ -21,6 +21,7 @@
 
 #include "test.h"
 #include "matrix.h"
+#include "constants.h"
 
 #define DEG2RAD M_PI / 180.0
 
@@ -206,7 +207,8 @@ TEST(MatrixTests, TestRotateByCenter) {
 TEST(MatrixTests, TestComplexProject) {
 
     int display_sqw = 100;
-    double map_sqw = 1000000;
+    double map_sqw = DEFAULT_MAX_X;
+    //    double map_sqw = 67108863; // max value with std::numeric_limits<double>::epsilon() in isEqual()
 
     bool m_isYAxisInverted = false;
     int m_displayWidht = display_sqw;
