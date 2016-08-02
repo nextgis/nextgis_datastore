@@ -58,6 +58,11 @@ extern int ngsSetMapBackgroundColor(const char* name, unsigned char R,
                                     unsigned char B, unsigned char G,
                                     unsigned char A);
 extern ngsRGBA ngsGetMapBackgroundColor(const char* name);
+
+extern int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y);
+extern int ngsGetMapDisplayCenter(unsigned int mapId, int &x, int &y);
+extern int ngsSetMapScale(unsigned int mapId, double scale);
+extern int ngsGetMapScale(unsigned int mapId, double &scale);
 %}
 
 %clear const char *request, const char *name, const char* path,

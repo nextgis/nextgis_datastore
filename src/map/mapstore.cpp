@@ -25,6 +25,8 @@
 #include "mapview.h"
 #include "ogr_geometry.h"
 
+#include <cmath>
+
 using namespace ngs;
 
 //------------------------------------------------------------------------------
@@ -128,7 +130,7 @@ int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
     return pMapView->draw (progressFunc, progressArguments);
 }
 
-bool MapStore::setMapCenter(unsigned int mapId, double x, double y)
+int MapStore::setMapDisplayCenter(unsigned int mapId, int x, int y)
 {
     if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
         return ngsErrorCodes::INVALID;
@@ -140,6 +142,46 @@ bool MapStore::setMapCenter(unsigned int mapId, double x, double y)
     OGRRawPoint ptWorld = pMapView->displayToWorld(ptDisplay);
 
     return pMapView->setCenter(ptWorld.x, ptWorld.y);
+}
+
+int MapStore::getMapDisplayCenter(unsigned int mapId, int &x, int &y)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    OGRRawPoint ptWorld = pMapView->getCenter();
+    OGRRawPoint ptDisplay = pMapView->worldToDisplay(ptWorld);
+    x = static_cast<int>(std::lround(ptDisplay.x));
+    y = static_cast<int>(std::lround(ptDisplay.y));
+
+    return ngsErrorCodes::SUCCESS;
+}
+
+int MapStore::setMapScale(unsigned int mapId, double scale)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    return pMapView->setScale(scale);
+}
+
+int MapStore::getMapScale(unsigned int mapId, double &scale)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    scale = pMapView->getScale();
+
+    return ngsErrorCodes::SUCCESS;
 }
 
 void MapStore::onLowMemory()

@@ -76,6 +76,7 @@ void ngs::RenderingThread(void * view)
         case MapView::DrawStage::Process:
             if(mapView->render (&glView)) {
                 // if no more geodata - finish
+                //glView.draw ();
                 glView.fillBuffer (mapView->getBufferData ());
                 // if notify return false - set stage to done
                 mapView->notify (1.0, nullptr);
@@ -83,7 +84,7 @@ void ngs::RenderingThread(void * view)
 
 #ifdef _DEBUG
                 // TODO: add benchmark from start to here
-                // QGIS benchmark on ov3 layer
+                // QGIS benchmark on orbv3 layer
                 // 2016-07-27T23:28:04	1	Canvas refresh: 2471 ms
                 // 2016-07-27T23:31:42	1	Canvas refresh: 2324 ms
                 // 2016-07-27T23:31:46	1	Canvas refresh: 2355 ms
