@@ -50,9 +50,13 @@ void ngs::RenderingThread(void * view)
     // start rendering loop here
     while(!mapView->m_cancel){
         if(mapView->m_sizeChanged){
+            // Put partially or full scene to buffer
+            //glView.fillBuffer (mapView->getBufferData ());
+            //mapView->notify (1.0, nullptr);
+
             glView.setSize (mapView->getDisplayWidht (),
                             mapView->getDisplayHeight ())  ;
-            mapView->m_sizeChanged = false;// >setSizeChanged (false);
+            mapView->m_sizeChanged = false;
         }
 
         if(!glView.isOk ()){
@@ -83,15 +87,7 @@ void ngs::RenderingThread(void * view)
                 mapView->setDrawStage (MapView::DrawStage::Done);
 
 #ifdef _DEBUG
-                // TODO: add benchmark from start to here
-                // QGIS benchmark on orbv3 layer
-                // 2016-07-27T23:28:04	1	Canvas refresh: 2471 ms
-                // 2016-07-27T23:31:42	1	Canvas refresh: 2324 ms
-                // 2016-07-27T23:31:46	1	Canvas refresh: 2355 ms
-                // 2016-07-27T23:31:53	1	Canvas refresh: 2344 ms
-                // 2016-07-27T23:31:59	1	Canvas refresh: 2304 ms
-                // 2016-07-27T23:32:03	1	Canvas refresh: 2344 ms
-                // 2016-07-27T23:32:07	1	Canvas refresh: 2324 ms
+            // benchmark
             auto duration = chrono::duration_cast<chrono::milliseconds>(
                         chrono::high_resolution_clock::now() - t1 ).count();
             cout << "GL Canvas refresh: " << duration << " ms" << endl;
@@ -108,6 +104,7 @@ void ngs::RenderingThread(void * view)
         case MapView::DrawStage::Start:
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Start" << endl;
+            // benchmark
             t1 = chrono::high_resolution_clock::now();
 #endif // _DEBUG
             if(mapView->isBackgroundChanged ()){
@@ -227,14 +224,6 @@ bool MapView::render(const GlView *glView)
     renderPercent /= m_layers.size ();
     if( renderPercent - m_renderPercent > NOTIFY_PERCENT ) {
         m_renderPercent = renderPercent;
-        if(renderPercent < 1) {
-            // Put partially or full scene to buffer
-            // TODO: need lock to control if buffer and GL surface changed
-            if(!m_sizeChanged) {
-                glView->fillBuffer (getBufferData ());
-                notify (renderPercent, "rendering...");
-            }
-        }
     }
     else if(isEqual(renderPercent, 1.0))
         return true;
