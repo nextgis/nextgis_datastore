@@ -106,6 +106,13 @@ FeatureRenderLayer::~FeatureRenderLayer()
 
 void FeatureRenderLayer::fillRenderBuffers()
 {
+    // TODO:
+    // 1. divide current extent to virtual tiles
+    // 2. Fill bucket for each virtual tile
+    // 3. If curent feature belong to bucket of exists virtual tile - skip it
+    // 4. If exists virtual tiles out of the curent tile grid free them
+    // 5. If no buckets in virtual tile - create them
+
     CPLAcquireLock(m_hBucketLock);
     m_pointBucket.clear ();
     m_polygonBucket.clear ();
@@ -221,9 +228,10 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
     case wkbPolygon:
     {
         OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
+        OGRPoint pt;
         // TODO: not only external ring must be extracted
         OGRLinearRing* ring = polygon->getExteriorRing ();
-        int numPoints = ring->getNumPoints () - 1;
+        int numPoints = ring->getNumPoints ();
         if(numPoints < 3)
             break;
 
@@ -243,7 +251,6 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
 
         int startPolyIndex = m_currentPolygonBuffer->m_vertices.size () / 3;
         for(int i = 0; i < numPoints; ++i) {
-            OGRPoint pt;
             ring->getPoint (i, &pt);
             // add point coordinates in float
             m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getX ()));
