@@ -51,13 +51,13 @@ extern int ngsCreateMap(const char* name, const char* description,
 extern int ngsOpenMap(const char* path);
 extern int ngsSaveMap(unsigned int mapId, const char* path);
 extern int ngsInitMap(unsigned int mapId, void * nioBuffer, int width,
-                      int height);
+                      int height, int isYAxisInverted);
 extern int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
                       void* callbackData);
-extern int ngsSetMapBackgroundColor(const char* name, unsigned char R,
+extern int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
                                     unsigned char B, unsigned char G,
                                     unsigned char A);
-extern ngsRGBA ngsGetMapBackgroundColor(const char* name);
+extern ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
 
 extern int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y);
 extern int ngsGetMapDisplayCenter(unsigned int mapId, int &x, int &y);
