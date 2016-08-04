@@ -82,29 +82,41 @@ void RenderLayer::cancelPrepareRender()
 //------------------------------------------------------------------------------
 // FeatureRenderLayer
 
-FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(), m_hSpinLock(CPLCreateLock(LOCK_SPIN))
+FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(),
+    m_hBucketLock(CPLCreateLock(LOCK_SPIN)),
+    m_hCurrentBufferLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
 }
 
 FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset) :
-    RenderLayer(name, dataset), m_hSpinLock(CPLCreateLock(LOCK_SPIN))
+    RenderLayer(name, dataset), m_hBucketLock(CPLCreateLock(LOCK_SPIN)),
+    m_hCurrentBufferLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
 }
 
 FeatureRenderLayer::~FeatureRenderLayer()
 {
-    if( m_hSpinLock )
-        CPLDestroyLock(m_hSpinLock);
+    if( m_hBucketLock )
+        CPLDestroyLock(m_hBucketLock);
+    if( m_hCurrentBufferLock )
+        CPLDestroyLock(m_hCurrentBufferLock);
 }
 
 void FeatureRenderLayer::fillRenderBuffers()
 {
-    CPLAcquireLock(m_hSpinLock);
+    // TODO:
+    // 1. divide current extent to virtual tiles
+    // 2. Fill bucket for each virtual tile
+    // 3. If curent feature belong to bucket of exists virtual tile - skip it
+    // 4. If exists virtual tiles out of the curent tile grid free them
+    // 5. If no buckets in virtual tile - create them
+
+    CPLAcquireLock(m_hBucketLock);
     m_pointBucket.clear ();
     m_polygonBucket.clear ();
-    CPLReleaseLock(m_hSpinLock);
+    CPLReleaseLock(m_hBucketLock);
     m_bucketFilled = false;
 
     FeatureDataset* featureDataset = dynamic_cast<FeatureDataset*>(m_dataset.get());
@@ -172,12 +184,12 @@ void FeatureRenderLayer::fillRenderBuffers()
 
         // fill render buffers
         fillRenderBuffers(geom);
-
-        // TODO: if 5-10-20% read notify what we have some data to render
-
         m_renderPercent = counter / totalCount;
         counter++;
     }
+
+    CPLLockHolder buffHolder(m_hCurrentBufferLock);
+    CPLLockHolder bucketHolder(m_hBucketLock);
     if(m_currentPointBuffer)
         m_pointBucket.push_back (move(m_currentPointBuffer));
     if(m_currentPolygonBuffer)
@@ -190,6 +202,7 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
     if( nullptr == geom )
         return;
 
+    CPLLockHolder buffHolder(m_hCurrentBufferLock);
     switch (OGR_GT_Flatten (geom->getGeometryType ())) {
     case wkbPoint:
     {
@@ -197,6 +210,7 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
             m_currentPointBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
         else if(m_currentPointBuffer->m_vertices.size () - 3 >
                 GL_MAX_VERTEX_COUNT) {
+            CPLLockHolderOptionalLockD(m_hBucketLock);
             m_pointBucket.push_back (move(m_currentPointBuffer));
             m_currentPointBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
         }
@@ -214,9 +228,10 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
     case wkbPolygon:
     {
         OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
+        OGRPoint pt;
         // TODO: not only external ring must be extracted
         OGRLinearRing* ring = polygon->getExteriorRing ();
-        int numPoints = ring->getNumPoints () - 1;
+        int numPoints = ring->getNumPoints ();
         if(numPoints < 3)
             break;
 
@@ -227,7 +242,7 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
         }
         else if(m_currentPolygonBuffer->m_vertices.size () +
                 numPoints * 3 > GL_MAX_VERTEX_COUNT) {
-            CPLLockHolderOptionalLockD(m_hSpinLock);
+            CPLLockHolderOptionalLockD(m_hBucketLock);
             m_polygonBucket.push_back (move(m_currentPolygonBuffer));
             m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
             m_currentPolygonBuffer->m_vertices.reserve (8196);
@@ -236,7 +251,6 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
 
         int startPolyIndex = m_currentPolygonBuffer->m_vertices.size () / 3;
         for(int i = 0; i < numPoints; ++i) {
-            OGRPoint pt;
             ring->getPoint (i, &pt);
             // add point coordinates in float
             m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getX ()));
@@ -305,7 +319,7 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
 double FeatureRenderLayer::render(const GlView *glView)
 {
     // draw elements
-    CPLLockHolderOptionalLockD(m_hSpinLock);
+    CPLLockHolderOptionalLockD(m_hBucketLock);
     while (!m_polygonBucket.empty()) {
         ngsVertexBufferPtr buff(move(m_polygonBucket.back ()));
         m_polygonBucket.pop_back ();
