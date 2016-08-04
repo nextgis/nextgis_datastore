@@ -154,8 +154,8 @@ int MapStore::getMapDisplayCenter(unsigned int mapId, int &x, int &y)
 
     OGRRawPoint ptWorld = pMapView->getCenter();
     OGRRawPoint ptDisplay = pMapView->worldToDisplay(ptWorld);
-    x = static_cast<int>(std::lround(ptDisplay.x));
-    y = static_cast<int>(std::lround(ptDisplay.y));
+    x = static_cast<int>(lround(ptDisplay.x));
+    y = static_cast<int>(lround(ptDisplay.y));
 
     return ngsErrorCodes::SUCCESS;
 }

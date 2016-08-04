@@ -43,7 +43,7 @@ CoordinateTransformationPtr::CoordinateTransformationPtr(
 CoordinateTransformationPtr::~CoordinateTransformationPtr()
 {
     if(nullptr != m_oCT)
-        OCTDestroyCoordinateTransformation(m_oCT);
+        OCTDestroyCoordinateTransformation(reinterpret_cast<OGRCoordinateTransformationH>(m_oCT));
 }
 
 bool CoordinateTransformationPtr::transform(OGRGeometry* geom) {

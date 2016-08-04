@@ -85,7 +85,7 @@ DataStorePtr DataStore::create(const CPLString &path)
     }
 
     DS->Dereference ();
-    CPLAssert (DS->GetRefCount () == 1)
+    CPLAssert (DS->GetRefCount () == 1);
 
     // create folder for external images and other stuff if not exist
     // if db name is ngs.gpkg folder shoudl be names ngs.data
