@@ -45,7 +45,7 @@ void ngs::RenderingThread(void * view)
     mapView->m_errorCode = ngsErrorCodes::SUCCESS;
     mapView->setDisplayInit (true);
 
-//    chrono::high_resolution_clock::time_point t1;
+    chrono::high_resolution_clock::time_point t1;
 
     // start rendering loop here
     while(!mapView->m_cancel){
@@ -88,9 +88,9 @@ void ngs::RenderingThread(void * view)
 
 #ifdef _DEBUG
             // benchmark
-//            auto duration = chrono::duration_cast<chrono::milliseconds>(
-//                        chrono::high_resolution_clock::now() - t1 ).count();
-//            cout << "GL Canvas refresh: " << duration << " ms" << endl;
+            auto duration = chrono::duration_cast<chrono::milliseconds>(
+                        chrono::high_resolution_clock::now() - t1 ).count();
+            cout << "GL Canvas refresh: " << duration << " ms" << endl;
 #endif // _DEBUG
 
             // one more notify
@@ -105,7 +105,7 @@ void ngs::RenderingThread(void * view)
 #ifdef _DEBUG
             cout << "MapView::DrawStage::Start" << endl;
             // benchmark
-//            t1 = chrono::high_resolution_clock::now();
+            t1 = chrono::high_resolution_clock::now();
 #endif // _DEBUG
             if(mapView->isBackgroundChanged ()){
                 glView.setBackgroundColor (mapView->getBackgroundColor ());
