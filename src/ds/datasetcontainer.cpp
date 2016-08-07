@@ -392,7 +392,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             }
             OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
-            CPLAssert (srcDefinition->GetFieldCount() ==
+            CPLAssert (srcDefinition->GetFieldCount() !=
                        dstDefinition->GetFieldCount());
             // Create fields map. We expected equal count of fields
             FieldMapPtr fieldMap(static_cast<unsigned long>(

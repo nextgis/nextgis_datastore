@@ -592,7 +592,7 @@ void DataStore::enableJournal(bool enable)
         }
     }
     else {
-        CPLAssert (m_disableJournalCounter == 255); // only 255 layers can simultanious load geodata
+        CPLAssert (m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
             executeSQL ("PRAGMA synchronous=OFF");
