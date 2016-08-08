@@ -576,10 +576,10 @@ int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y)
     return gMapStore->setMapDisplayCenter(mapId, x, y);
 }
 
-int ngsGetMapDisplayCenter(unsigned int mapId, int &x, int &y)
+int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y)
 {
     initMapStore();
-    return gMapStore->getMapDisplayCenter(mapId, x, y);
+    return gMapStore->getMapDisplayCenter(mapId, *x, *y);
 }
 
 int ngsSetMapScale(unsigned int mapId, double scale)
@@ -588,10 +588,10 @@ int ngsSetMapScale(unsigned int mapId, double scale)
     return gMapStore->setMapScale(mapId, scale);
 }
 
-int ngsGetMapScale(unsigned int mapId, double &scale)
+int ngsGetMapScale(unsigned int mapId, double* scale)
 {
     initMapStore();
-    return gMapStore->getMapScale(mapId, scale);
+    return gMapStore->getMapScale(mapId, *scale);
 }
 
 /**
