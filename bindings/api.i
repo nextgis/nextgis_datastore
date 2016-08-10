@@ -28,8 +28,8 @@
 %{
 #include <cstdio> // needed for declarations in extend_java.i
 %}
-%include callback_typemap_java.i
 %include typemap_java.i
+%include callback_typemap_java.i
 #endif
 
 %{
@@ -39,8 +39,8 @@
 %include "../src/api.h"
 
 #ifdef SWIGJAVA
-%include callback_java.i
 %include extend_java.i
+%include callback_java.i
 #endif
 
 #ifdef SWIGPYTHON
