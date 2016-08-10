@@ -19,42 +19,24 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-
-%include "typemaps.i"
-%include "enumtypeunsafe.swg" // for use in cases
+ 
+%include "arrays_java.i";
 
 %module Api
 
-%javaconst(1);
-
-%rename (NgsErrorCodes) ngsErrorCodes;
-%rename (NgsSourceCodes) ngsSourceCodes;
-%rename (NgsChangeCodes) ngsChangeCodes;
-%rename (NgsColor) _ngsRGBA;
-
-// Typemaps for (void* imageBufferPointer)
-%typemap(in, numinputs=1) (void* imageBufferPointer)
-{
-    if ($input == 0)
-    {
-        SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "null array");
-        return $null;
-    }
-    $1 = jenv->GetDirectBufferAddress($input);
-    if ($1 == NULL)
-    {
-        SWIG_JavaThrowException(jenv, SWIG_JavaRuntimeException,
-                                "Unable to get address of direct buffer. Buffer must be allocated direct.");
-        return $null;
-    }
-}
-
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (void* imageBufferPointer)  "jobject"
-%typemap(jtype) (void* imageBufferPointer)  "java.nio.ByteBuffer"
-%typemap(jstype) (void* imageBufferPointer)  "java.nio.ByteBuffer"
-%typemap(javain) (void* imageBufferPointer)  "$javainput"
-%typemap(javaout) (void* imageBufferPointer) {
-    return $jnicall;
-  }
+// Do we need typemap to android or java.awt Color?
+%extend _ngsRGBA {
+   char *toString() {
+       static char tmp[1024];
+       sprintf(tmp,"RGBS (%g, %g, %g, %g)", self->R, self->G, self->B, self->A);
+       return tmp;
+   }
+   _ngsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+       ngsRGBA *rgba = (ngsRGBA *) malloc(sizeof(ngsRGBA));
+       rgba->R = r;
+       rgba->G = g;
+       rgba->B = b;
+       rgba->A = a;
+       return rgba;
+   }
+};

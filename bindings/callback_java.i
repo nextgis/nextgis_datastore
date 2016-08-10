@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
  *
@@ -18,41 +19,15 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
+
+%module Api
+
 %header %{
 typedef struct {
     JNIEnv *jenv;
     jobject pJavaCallback;
 } JavaProgressData;
 %}
-
-%include "enumtypeunsafe.swg" // for use in cases
-%javaconst(1);
-
-%rename (SourceCodes) ngsSourceCodes;
-
-enum ngsSourceCodes {
-    UNDEFINED = 0,
-    DATA_STORE,
-    MAP_STORE
-};
-
-%rename (ChangeCodes) ngsChangeCodes;
-
-enum ngsChangeCodes {
-    NOP = 0,
-    CREATE_RESOURCE,
-    DELETE_RESOURCE,
-    CHANGE_RESOURCE,
-    CREATE_FEATURE,
-    CHANGE_FEATURE,
-    DELETE_FEATURE,
-    DELETEALL_FEATURES,
-    CREATE_ATTACHMENT,
-    CHANGE_ATTACHMENT,
-    DELETE_ATTACHMENT,
-    DELETEALL_ATTACHMENTS
-};
 
 %inline %{
 class ProgressCallback
@@ -70,13 +45,13 @@ class NotificationCallback
 public:
     virtual ~NotificationCallback() {  }
     virtual void run(enum ngsSourceCodes src, const char* table, long row, enum ngsChangeCodes operation)
-    {       
+    {
     }
 };
 %}
 
 %{
-int 
+int
 JavaProgressProxy( double complete, const char *message, void *progressArguments )
 {
     JavaProgressData* psProgressInfo = (JavaProgressData*)progressArguments;
@@ -90,7 +65,7 @@ JavaProgressProxy( double complete, const char *message, void *progressArguments
     return ret;
 }
 
-void 
+void
 JavaNotificationProxy(enum ngsSourceCodes src, const char* table, long row, enum ngsChangeCodes operation, void *progressArguments)
 {
     JavaProgressData* psProgressInfo = (JavaProgressData*)progressArguments;
@@ -103,69 +78,3 @@ JavaNotificationProxy(enum ngsSourceCodes src, const char* table, long row, enum
     jenv->DeleteLocalRef(tempString);
 }
 %}
-
-  
-%typemap(arginit, noblock=1) ( ngsProgressFunc callback = NULL, void* callbackData = NULL)
-{
-    JavaProgressData sProgressInfo;
-    sProgressInfo.jenv = jenv;
-    sProgressInfo.pJavaCallback = NULL;
-
-}
-
-%typemap(in) ( ngsProgressFunc callback = NULL, void* callbackData = NULL)
-{
-    if ( $input != 0 ) {
-        sProgressInfo.pJavaCallback = $input;
-        $1 = JavaProgressProxy;
-        $2 = &sProgressInfo;
-    }
-    else
-    {
-        $1 = NULL;
-        $2 = NULL;
-    }
-}
-
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "jobject"
-%typemap(jtype) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "ProgressCallback"
-%typemap(jstype) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "ProgressCallback"
-%typemap(javain) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "$javainput"
-%typemap(javaout) (ngsProgressFunc callback = NULL, void* callbackData = NULL) {
-    return $jnicall;
-  }  
-  
-  
-%typemap(arginit, noblock=1) ( ngsNotifyFunc callback = NULL, void* callbackData = NULL)
-{
-    JavaProgressData sProgressInfo;
-    sProgressInfo.jenv = jenv;
-    sProgressInfo.pJavaCallback = NULL;
-
-}
-
-%typemap(in) ( ngsNotifyFunc callback = NULL, void* callbackData = NULL)
-{
-    if ( $input != 0 ) {
-        sProgressInfo.pJavaCallback = $input;
-        $1 = JavaNotificationProxy;
-        $2 = &sProgressInfo;
-    }
-    else
-    {
-        $1 = NULL;
-        $2 = NULL;
-    }
-}
-
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (ngsNotifyFunc callback = NULL)  "jobject"
-%typemap(jtype) (ngsNotifyFunc callback = NULL)  "NotificationCallback"
-%typemap(jstype) (ngsNotifyFunc callback = NULL)  "NotificationCallback"
-%typemap(javain) (ngsNotifyFunc callback = NULL)  "$javainput"
-%typemap(javaout) (ngsNotifyFunc callback = NULL) {
-    return $jnicall;
-  }    

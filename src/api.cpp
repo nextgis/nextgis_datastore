@@ -485,15 +485,15 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
 /**
  * @brief Inititialise map with buffer and it size in pixels
  * @param mapId Map id received from create or open map functions
- * @param buffer Pointer to buffer. Size should be enouth to store image data width x height
+ * @param imageBufferPointer Pointer to buffer. Size should be enouth to store image data width x height
  * @param width Output image width
  * @param height Output image height
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInitMap(unsigned int mapId, void *buffer, int width, int height, int isYAxisInverted)
+int ngsInitMap(unsigned int mapId, void* imageBufferPointer, int width, int height, int isYAxisInverted)
 {
     initMapStore();
-    return gMapStore->initMap (mapId, buffer, width, height, isYAxisInverted);
+    return gMapStore->initMap (mapId, imageBufferPointer, width, height, isYAxisInverted);
 }
 
 /**

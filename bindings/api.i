@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
  *
@@ -22,48 +23,29 @@
 /* File : api.i */
 
 %module Api
+
+#ifdef SWIGJAVA
+%{
+#include <cstdio> // needed for declarations in extend_java.i
+%}
+%include callback_typemap_java.i
+%include typemap_java.i
+#endif
+
 %{
 #include "api.h"
 %}
+%include "../src/common.h"
+%include "../src/api.h"
 
 #ifdef SWIGJAVA
-%include typemap_java.i
 %include callback_java.i
+%include extend_java.i
 #endif
 
 #ifdef SWIGPYTHON
 
 #endif
-
-%inline %{
-extern int ngsGetVersion(const char* request);
-extern const char* ngsGetVersionString(const char* request);
-extern int ngsInit(const char* dataPath, const char* cachePath);
-extern void ngsUninit();
-extern void ngsOnLowMemory();
-extern void ngsOnPause();
-extern void ngsSetNotifyFunction(ngsNotifyFunc callback);
-extern int ngsInitDataStore(const char* path);
-extern int ngsDestroyDataStore(const char* path, const char* cachePath);
-extern int ngsCreateMap(const char* name, const char* description,
-                             unsigned short epsg, double minX, double minY,
-                             double maxX, double maxY);
-extern int ngsOpenMap(const char* path);
-extern int ngsSaveMap(unsigned int mapId, const char* path);
-extern int ngsInitMap(unsigned int mapId, void * nioBuffer, int width,
-                      int height, int isYAxisInverted);
-extern int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
-                      void* callbackData);
-extern int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
-                                    unsigned char B, unsigned char G,
-                                    unsigned char A);
-extern ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
-
-extern int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y);
-extern int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y);
-extern int ngsSetMapScale(unsigned int mapId, double scale);
-extern int ngsGetMapScale(unsigned int mapId, double* scale);
-%}
 
 %clear const char *request, const char *name, const char* path,
 const char* cachePath, const char* dataPath, const char* description;
@@ -93,14 +75,14 @@ const char* cachePath, const char* dataPath, const char* description;
 %}
 
 // exampe of adding fuction to Api class
-%pragma(java) modulecode=%{
-  public static int ngsInitMap2(String name, java.nio.ByteBuffer nioBuffer, int width, int height) {
-    if(null == nioBuffer)
-       throw new NullPointerException("Needed not null buffer");
-    if(width * height > nioBuffer.capacity())
-        throw new IllegalArgumentException("Output buffer too small. Should be greater than width * height");
-    return ngsInitMap(name, nioBuffer, width, height);
-  }
-%}
+//%pragma(java) modulecode=%{
+//  public static int ngsInitMap2(String name, java.nio.ByteBuffer nioBuffer, int width, int height) {
+//    if(null == nioBuffer)
+//       throw new NullPointerException("Needed not null buffer");
+//    if(width * height > nioBuffer.capacity())
+//        throw new IllegalArgumentException("Output buffer too small. Should be greater than width * height");
+//    return ngsInitMap(name, nioBuffer, width, height);
+//  }
+//%}
 
 #endif
