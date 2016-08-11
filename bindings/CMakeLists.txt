@@ -47,11 +47,12 @@ if(BUILD_BINDINGS)
             set(JAVA_CODE
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
-                ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
+                ${CMAKE_CURRENT_BINARY_DIR}/NgsChangeCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/NgsColor.java
+                ${CMAKE_CURRENT_BINARY_DIR}/NgsErrorCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/NgsSourceCodes.java
                 ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java
-                ${CMAKE_CURRENT_BINARY_DIR}/SourceCodes.java
-                ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
-                ${CMAKE_CURRENT_BINARY_DIR}/Color.java
+                ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
             )
 
             install(FILES ${CPP_CODE} DESTINATION src)
