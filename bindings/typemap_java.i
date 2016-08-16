@@ -57,4 +57,4 @@
 %typemap(javain) (void* imageBufferPointer)  "$javainput"
 %typemap(javaout) (void* imageBufferPointer) {
     return $jnicall;
-  }
+}

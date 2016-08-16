@@ -20,22 +20,16 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-%module Api
+%module(directors="1") Api
 
-%typemap(arginit, noblock=1) ( ngsProgressFunc callback = NULL, void* callbackData = NULL)
-{
-    JavaProgressData sProgressInfo;
-    sProgressInfo.jenv = jenv;
-    sProgressInfo.pJavaCallback = NULL;
-
-}
+%feature("director") ProgressCallback;
+%feature("director") NotificationCallback;
 
 %typemap(in) ( ngsProgressFunc callback = NULL, void* callbackData = NULL)
 {
     if ( $input != 0 ) {
-        sProgressInfo.pJavaCallback = $input;
         $1 = JavaProgressProxy;
-        $2 = &sProgressInfo;
+        $2 = (void *) $input;
     }
     else
     {
@@ -44,45 +38,48 @@
     }
 }
 
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "jobject"
-%typemap(jtype) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "ProgressCallback"
+%typemap(jni) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "jlong"
+%typemap(jtype) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "long"
 %typemap(jstype) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "ProgressCallback"
-%typemap(javain) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "$javainput"
-%typemap(javaout) (ngsProgressFunc callback = NULL, void* callbackData = NULL) {
-    return $jnicall;
-  }
-
-
-%typemap(arginit, noblock=1) ( ngsNotifyFunc callback = NULL, void* callbackData = NULL)
+%typemap(javain) (ngsProgressFunc callback = NULL, void* callbackData = NULL)  "ProgressCallback.getCPtr($javainput)"
+%typemap(javaout) (ngsProgressFunc callback = NULL, void* callbackData = NULL)
 {
-    JavaProgressData sProgressInfo;
-    sProgressInfo.jenv = jenv;
-    sProgressInfo.pJavaCallback = NULL;
-
+    return $jnicall;
 }
 
-%typemap(in) ( ngsNotifyFunc callback = NULL, void* callbackData = NULL)
+// test with java directors
+//%typemap(javadirectorin) (double complete) "$jniinput"
+//%typemap(javadirectorout) (int) {
+//    return $javacall;
+//}
+//%typemap(directorin,descriptor="Lcom/nextgis/store/ProgressCallback;") (double complete) {
+//    $input = (jobject) $2;
+//}
+//%typemap(directorout) (int) {
+//    $result = (int)$input;
+//}
+
+
+%typemap(in) ( ngsNotifyFunc callback = NULL )
 {
     if ( $input != 0 ) {
-        sProgressInfo.pJavaCallback = $input;
-        $1 = JavaNotificationProxy;
-        $2 = &sProgressInfo;
+// TODO
+//        $1 = JavaNotificationProxy;
+//        $2 = (void *) $input;
     }
     else
     {
-        $1 = NULL;
-        $2 = NULL;
+// TODO
+//        $1 = NULL;
+//        $2 = NULL;
     }
 }
 
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (ngsNotifyFunc callback = NULL)  "jobject"
-%typemap(jtype) (ngsNotifyFunc callback = NULL)  "NotificationCallback"
+%typemap(jni) (ngsNotifyFunc callback = NULL)  "jlong"
+%typemap(jtype) (ngsNotifyFunc callback = NULL)  "long"
 %typemap(jstype) (ngsNotifyFunc callback = NULL)  "NotificationCallback"
-%typemap(javain) (ngsNotifyFunc callback = NULL)  "$javainput"
-%typemap(javaout) (ngsNotifyFunc callback = NULL) {
+%typemap(javain) (ngsNotifyFunc callback = NULL)  "NotificationCallback.getCPtr($javainput)"
+%typemap(javaout) (ngsNotifyFunc callback = NULL)
+{
     return $jnicall;
-  }
+}

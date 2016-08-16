@@ -22,13 +22,6 @@
 
 %module Api
 
-%header %{
-typedef struct {
-    JNIEnv *jenv;
-    jobject pJavaCallback;
-} JavaProgressData;
-%}
-
 %inline %{
 class ProgressCallback
 {
@@ -39,7 +32,19 @@ public:
         return 1;
     }
 };
+%}
 
+%{
+int
+JavaProgressProxy( double complete, const char *message, void *progressArguments )
+{
+    ProgressCallback* psProgressCallback = (ProgressCallback*) progressArguments;
+    return psProgressCallback->run(complete, message);
+}
+%}
+
+
+%inline %{
 class NotificationCallback
 {
 public:
@@ -51,30 +56,10 @@ public:
 %}
 
 %{
-int
-JavaProgressProxy( double complete, const char *message, void *progressArguments )
-{
-    JavaProgressData* psProgressInfo = (JavaProgressData*)progressArguments;
-    JNIEnv *jenv = psProgressInfo->jenv;
-    int ret;
-    const jclass progressCallbackClass = jenv->FindClass("com/nextgis/store/ProgressCallback");
-    const jmethodID runMethod = jenv->GetMethodID(progressCallbackClass, "run", "(DLjava/lang/String;)I");
-    jstring tempString = jenv->NewStringUTF(message);
-    ret = jenv->CallIntMethod(psProgressInfo->pJavaCallback, runMethod, complete, tempString);
-    jenv->DeleteLocalRef(tempString);
-    return ret;
-}
-
 void
 JavaNotificationProxy(enum ngsSourceCodes src, const char* table, long row, enum ngsChangeCodes operation, void *progressArguments)
 {
-    JavaProgressData* psProgressInfo = (JavaProgressData*)progressArguments;
-    JNIEnv *jenv = psProgressInfo->jenv;
-    int ret;
-    const jclass notificationCallbackClass = jenv->FindClass("com/nextgis/store/NotificationCallback");
-    const jmethodID runMethod = jenv->GetMethodID(notificationCallbackClass, "run", "(DLjava/lang/String;)I");
-    jstring tempString = jenv->NewStringUTF(table);
-    jenv->CallVoidMethod(psProgressInfo->pJavaCallback, runMethod, src, tempString, row, operation);
-    jenv->DeleteLocalRef(tempString);
+    NotificationCallback* psNotificationCallback = (NotificationCallback*) progressArguments;
+    return psNotificationCallback->run(src, table, row, operation);
 }
 %}
