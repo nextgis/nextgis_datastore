@@ -24,6 +24,7 @@
 
 if(BUILD_BINDINGS)
     find_host_package(SWIG REQUIRED)
+    #find_package(SWIG REQUIRED) // for debug
     include(${SWIG_USE_FILE})
     include_directories(${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/src/ds
@@ -47,10 +48,10 @@ if(BUILD_BINDINGS)
             set(JAVA_CODE
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
-                ${CMAKE_CURRENT_BINARY_DIR}/NgsChangeCodes.java
-                ${CMAKE_CURRENT_BINARY_DIR}/NgsColor.java
-                ${CMAKE_CURRENT_BINARY_DIR}/NgsErrorCodes.java
-                ${CMAKE_CURRENT_BINARY_DIR}/NgsSourceCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/Colour.java
+                ${CMAKE_CURRENT_BINARY_DIR}/ErrorCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/SourceCodes.java
                 ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
             )

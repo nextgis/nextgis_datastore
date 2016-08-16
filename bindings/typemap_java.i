@@ -27,10 +27,10 @@
 
 %javaconst(1);
 
-%rename (NgsErrorCodes) ngsErrorCodes;
-%rename (NgsSourceCodes) ngsSourceCodes;
-%rename (NgsChangeCodes) ngsChangeCodes;
-%rename (NgsColor) _ngsRGBA;
+%rename (ErrorCodes) ngsErrorCodes;
+%rename (SourceCodes) ngsSourceCodes;
+%rename (ChangeCodes) ngsChangeCodes;
+%rename (Colour) _ngsRGBA;
 
 // Typemaps for (void* imageBufferPointer)
 %typemap(in, numinputs=1) (void* imageBufferPointer)
