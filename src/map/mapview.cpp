@@ -45,7 +45,9 @@ void ngs::RenderingThread(void * view)
     mapView->m_errorCode = ngsErrorCodes::SUCCESS;
     mapView->setDisplayInit (true);
 
+#ifdef _DEBUG
     chrono::high_resolution_clock::time_point t1;
+#endif //_DEBUG
 
     // start rendering loop here
     while(!mapView->m_cancel){

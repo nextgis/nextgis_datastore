@@ -61,7 +61,7 @@ protected:
     bool m_sizeChanged;
     OGRRawPoint m_center;
     double m_rotate;
-    double m_scale, m_scaleScene, m_scaleView;
+    double m_scale, m_scaleScene, m_scaleView, m_scaleWorld;
     OGREnvelope m_extent;
     double m_ratio;
     bool m_isYAxisInverted;

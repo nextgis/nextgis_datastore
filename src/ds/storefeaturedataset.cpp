@@ -95,7 +95,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             // create geometries for zoom levels
             if(OGR_GT_Flatten(newGeom->getGeometryType ()) != wkbPoint &&
                OGR_GT_Flatten(newGeom->getGeometryType ()) != wkbMultiPoint) {
-                for(auto sampleDist : sampleDists) {
+                for(auto sampleDist : gSampleDists) {
                     GeometryUPtr simpleGeom(simplifyGeometry (newGeom,
                                                                 sampleDist.first));
                     if(nullptr != simpleGeom) {

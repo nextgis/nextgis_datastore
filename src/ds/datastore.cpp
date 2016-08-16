@@ -342,7 +342,7 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     // create additional geometry fields for zoom levels: 6 9 12 15 only for
     // dstLayer
     if(type != OGR_GT_Flatten(wkbPoint)) {
-        for(auto sampleDist : sampleDists) {
+        for(auto sampleDist : gSampleDists) {
             OGRFieldDefn dstField(CPLSPrintf ("ngs_geom_%d", sampleDist.second),
                                   OFTBinary);
             if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {

@@ -28,13 +28,13 @@
 
 #include "ogrsf_frmts.h"
 
-#define SAMPLE_DISTANCE_PX 5
+#define SAMPLE_DISTANCE_PX 1.0
 
 namespace ngs {
 
 using namespace std;
 
-const static array<pair<double, char>, 4> sampleDists = {
+const static array<pair<double, char>, 4> gSampleDists = {
 {{ getPixelSize(6)  * SAMPLE_DISTANCE_PX, 6 },
  { getPixelSize(9)  * SAMPLE_DISTANCE_PX, 9 },
  { getPixelSize(12) * SAMPLE_DISTANCE_PX, 12 },

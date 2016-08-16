@@ -35,8 +35,9 @@
 %{
 #include "api.h"
 %}
-%include "../src/common.h"
-%include "../src/api.h"
+
+//%include "../src/common.h"
+//%include "../src/api.h"
 
 #ifdef SWIGJAVA
 %include extend_java.i
@@ -47,8 +48,39 @@
 
 #endif
 
-%clear const char *request, const char *name, const char* path,
-const char* cachePath, const char* dataPath, const char* description;
+%inline %{
+extern int ngsGetVersion(const char* request);
+extern const char* ngsGetVersionString(const char* request);
+extern int ngsInit(const char* dataPath, const char* cachePath);
+extern void ngsUninit();
+extern void ngsOnLowMemory();
+extern void ngsOnPause();
+extern void ngsSetNotifyFunction(ngsNotifyFunc callback);
+extern int ngsInitDataStore(const char* path);
+extern int ngsDestroyDataStore(const char* path, const char* cachePath);
+extern int ngsCreateMap(const char* name, const char* description,
+                             unsigned short epsg, double minX, double minY,
+                             double maxX, double maxY);
+extern int ngsOpenMap(const char* path);
+extern int ngsSaveMap(unsigned int mapId, const char* path);
+extern int ngsInitMap(unsigned int mapId, void * nioBuffer, int width,
+                      int height, int isYAxisInverted);
+extern int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
+                      void* callbackData);
+extern int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
+                                    unsigned char B, unsigned char G,
+                                    unsigned char A);
+extern ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
+
+extern int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y);
+extern int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y);
+extern int ngsSetMapScale(unsigned int mapId, double scale);
+extern int ngsGetMapScale(unsigned int mapId, double* scale);
+extern int ngsGetMapDisplayCenter(unsigned int mapId, int* OUTPUT, int* OUTPUT);
+extern int ngsGetMapScale(unsigned int mapId, double* OUTPUT);
+%}
+//%clear const char *request, const char *name, const char* path,
+//const char* cachePath, const char* dataPath, const char* description;
 
 #ifdef SWIGJAVA
 

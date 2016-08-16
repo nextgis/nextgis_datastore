@@ -130,7 +130,7 @@ void FeatureRenderLayer::fillRenderBuffers()
         float diff = 18;
         float currentDiff;
         char zoom = 18;
-        for(auto sampleDist : sampleDists) {
+        for(auto sampleDist : gSampleDists) {
             currentDiff = sampleDist.second - m_renderZoom;
             if(currentDiff > 0 && currentDiff < diff) {
                 diff = currentDiff;

@@ -147,6 +147,10 @@ bool MapTransform::setExtent(const OGREnvelope &env)
         m_extent = rotateEnvelope (m_extent, m_rotate);
     }
 
+    scaleX = w / (DEFAULT_MAX_X + DEFAULT_MAX_X);
+    scaleY = h / (DEFAULT_MAX_Y + DEFAULT_MAX_Y);
+    m_scaleWorld = 1 / min(scaleX, scaleY);
+
     initMatrices();
     return true; // return false if extent modified to fit limits
 }
@@ -168,6 +172,10 @@ bool MapTransform::updateExtent()
     if(!isEqual(m_rotate, 0.0)){
         m_extent = rotateEnvelope (m_extent, m_rotate);
     }
+
+    scaleX = halfWidth / DEFAULT_MAX_X;
+    scaleY = halfHeight / DEFAULT_MAX_Y;
+    m_scaleWorld = 1 / min(scaleX, scaleY);
 
     initMatrices();
     return true;  // return false if extent modified to fit limits
@@ -220,6 +228,6 @@ Matrix4 MapTransform::getSceneMatrix() const
 }
 
 double MapTransform::getZoom() const {
-    double retVal = log(m_scale) / M_LN2;
+    double retVal = log(m_scaleWorld) / M_LN2;
     return retVal < 0 ? 0 : retVal;
 }

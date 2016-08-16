@@ -27,13 +27,13 @@ OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
     geometry->getEnvelope (&env);
     double envH = getEnvelopeHeight (env);
     double envW = getEnvelopeWidth (env);
+    double tripleDist = distance / 3;
 
-    if(envH < distance && envW < distance) {
+    if(envH < tripleDist || envW < tripleDist) {
         return new OGRPoint(env.MinX + envW * .5, env.MinY + envH * .5);
     }
 
-    double tripleDist = distance * 3;
-    if(envH < tripleDist && envW < tripleDist) {
+    if(envH < distance || envW < distance) {
         OGRLineString *out = new OGRLineString;
         out->addPoint(env.MinX, env.MinY);
         out->addPoint(env.MaxX, env.MaxY);
@@ -42,7 +42,7 @@ OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
 
     // TODO: do we need this?
     // geometry->SimplifyPreserveTopology
-    return geometry->Simplify (distance);
+    return geometry->Simplify (distance * 3);
 }
 
 
