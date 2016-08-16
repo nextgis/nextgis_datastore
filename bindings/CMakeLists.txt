@@ -24,7 +24,7 @@
 
 if(BUILD_BINDINGS)
     find_host_package(SWIG REQUIRED)
-    #find_package(SWIG REQUIRED) // for debug
+#    find_package(SWIG REQUIRED) # for debug
     include(${SWIG_USE_FILE})
     include_directories(${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/src/ds
