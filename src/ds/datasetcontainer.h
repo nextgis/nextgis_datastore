@@ -96,6 +96,10 @@ protected:
     CPLJoinableThread* m_hLoadThread;
     bool m_cancelLoad;
     vector<LoadData> m_loadData;
+
+    // Dataset interface
+public:
+    virtual int destroy(ngsProgressFunc progressFunc, void *progressArguments) override;
 };
 
 }

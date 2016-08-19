@@ -492,3 +492,11 @@ DatasetPtr DatasetContainer::createDataset(const CPLString &name,
 
     return out;
 }
+
+
+int ngs::DatasetContainer::destroy(ngsProgressFunc progressFunc,
+                                   void *progressArguments)
+{
+    m_datasets.clear ();
+    return Dataset::destroy (progressFunc, progressArguments);
+}

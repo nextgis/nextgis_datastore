@@ -84,9 +84,6 @@ DataStorePtr DataStore::create(const CPLString &path)
         return out;
     }
 
-    DS->Dereference ();
-    CPLAssert (DS->GetRefCount () == 1);
-
     // create folder for external images and other stuff if not exist
     // if db name is ngs.gpkg folder shoudl be names ngs.data
     CPLString baseName = CPLGetBasename (absPath);
@@ -412,8 +409,8 @@ while( (feature = pRasterLayer->GetNextFeature()) != nullptr ) {
     }
 }*/
 
-int DataStore::destroy(ngsProgressFunc /*progressFunc*/,
-                             void* /*progressArguments*/)
+int DataStore::destroy(ngsProgressFunc progressFunc,
+                             void* progressArguments)
 {
     setDataPath ();
     // Unlink some folders with external rasters adn etc.
@@ -422,7 +419,7 @@ int DataStore::destroy(ngsProgressFunc /*progressFunc*/,
             return ngsErrorCodes::DELETE_FAILED;
         }
     }
-    return DatasetContainer::destroy ();
+    return DatasetContainer::destroy (progressFunc, progressArguments);
 }
 
 int DataStore::createMetadataTable(GDALDatasetPtr DS)

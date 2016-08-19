@@ -35,7 +35,6 @@ using namespace ngs;
 GDALDatasetPtr::GDALDatasetPtr(GDALDataset* ds) :
     shared_ptr(ds, GDALClose )
 {
-    ds->Reference ();
 }
 
 GDALDatasetPtr::GDALDatasetPtr() :
@@ -46,12 +45,15 @@ GDALDatasetPtr::GDALDatasetPtr() :
 
 GDALDatasetPtr::GDALDatasetPtr(const GDALDatasetPtr &ds) : shared_ptr(ds)
 {
-    ds->Reference ();
+}
+
+GDALDatasetPtr::~GDALDatasetPtr()
+{
+
 }
 
 GDALDatasetPtr& GDALDatasetPtr::operator=(GDALDataset* ds) {
     reset(ds);
-    ds->Reference ();
     return *this;
 }
 

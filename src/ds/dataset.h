@@ -44,6 +44,7 @@ public:
     GDALDatasetPtr(GDALDataset* ds);
     GDALDatasetPtr();
     GDALDatasetPtr(const GDALDatasetPtr& ds);
+    virtual ~GDALDatasetPtr();
     GDALDatasetPtr& operator=(GDALDataset* ds);
     operator GDALDataset*() const;
 };
