@@ -670,3 +670,14 @@ int ngsMapCreateLayer(unsigned int mapId, const char *name, const char *path)
     return map->createLayer (name, dataset);
 
 }
+
+/**
+ * @brief ngsMapClose Close map and free resources
+ * @param mapId Map id to close
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsMapClose(unsigned int mapId)
+{
+    initMapStore();
+    return gMapStore->closeMap (mapId);
+}

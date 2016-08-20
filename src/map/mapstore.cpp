@@ -99,6 +99,13 @@ int MapStore::saveMap(unsigned int mapId, const char *path)
     return m_maps[mapId]->save (path);
 }
 
+int MapStore::closeMap(unsigned int mapId)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::CLOSE_FAILED;
+    return m_maps[mapId]->close ();
+}
+
 MapPtr MapStore::getMap(unsigned int mapId)
 {
     MapPtr map;

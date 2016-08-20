@@ -84,6 +84,10 @@ public:
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type) override;
+
+    // Map interface
+public:
+    virtual int close() override;
 };
 
 }

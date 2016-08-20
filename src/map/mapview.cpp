@@ -168,9 +168,7 @@ MapView::MapView(const CPLString &name, const CPLString &description,
 
 MapView::~MapView()
 {
-    m_cancel = true;
-    // wait thread exit
-    CPLJoinThread(m_hThread);
+    close ();
 }
 
 bool MapView::isDisplayInit() const
@@ -238,7 +236,9 @@ bool MapView::render(const GlView *glView)
         renderPercent += renderLayer->render(glView);
     }
 
-    //glView->draw();
+/*    glView->draw();
+    renderPercent = 1;*/
+
     // Notify drawing progress
     renderPercent /= m_layers.size ();
     if( renderPercent - m_renderPercent > NOTIFY_PERCENT ) {
@@ -287,7 +287,7 @@ void MapView::setDrawStage(const DrawStage &drawStage)
     m_drawStage = drawStage;
 }
 
-int ngs::MapView::createLayer(const CPLString &name, DatasetPtr dataset)
+int MapView::createLayer(const CPLString &name, DatasetPtr dataset)
 {
     LayerPtr layer;
     if(dataset->type () & ngsDatasetType(Featureset)) {
@@ -301,7 +301,7 @@ int ngs::MapView::createLayer(const CPLString &name, DatasetPtr dataset)
     return ngsErrorCodes::SUCCESS;
 }
 
-LayerPtr ngs::MapView::createLayer(Layer::Type type)
+LayerPtr MapView::createLayer(Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Invalid:
@@ -313,4 +313,17 @@ LayerPtr ngs::MapView::createLayer(Layer::Type type)
         // TODO:
         return Map::createLayer (type);
     }
+}
+
+
+int MapView::close()
+{
+    m_cancel = true;
+    // wait thread exit
+    if(m_hThread) {
+        CPLJoinThread(m_hThread);
+        m_hThread = nullptr;
+    }
+
+    Map::close ();
 }

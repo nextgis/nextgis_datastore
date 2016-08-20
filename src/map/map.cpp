@@ -63,7 +63,7 @@ Map::Map(const CPLString &name, const CPLString &description,
 
 Map::~Map()
 {
-
+    close();
 }
 
 CPLString Map::name() const
@@ -160,6 +160,7 @@ int Map::open(const char *path)
         m_maxX = root.getDouble (MAP_MAX_X, DEFAULT_MAX_X);
         m_maxY = root.getDouble (MAP_MAX_Y, DEFAULT_MAX_Y);
         m_bkColor = ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR, ngsRGBA2HEX(m_bkColor)));
+        m_bkChanged = true;
 
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
@@ -221,10 +222,15 @@ int Map::destroy()
     int nRet = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
                                              ngsErrorCodes::DELETE_FAILED;
     if(nRet == ngsErrorCodes::SUCCESS) {
-        m_layers.clear ();
-        m_deleted = true;
+        close();
     }
     return nRet;
+}
+
+int Map::close()
+{
+    m_layers.clear ();
+    m_deleted = true;
 }
 
 bool Map::isDeleted() const

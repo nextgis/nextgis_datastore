@@ -41,7 +41,8 @@ enum ngsErrorCodes {
     UPDATE_FAILED,      /**< update feature failed */
     INIT_FAILED,        /**< Initialise failed */
     COPY_FAILED,        /**< Copy failed */
-    MOVE_FAILED         /**< Move failed */
+    MOVE_FAILED,        /**< Move failed */
+    CLOSE_FAILED,       /**< Close failed */
 };
 
 /**
@@ -134,7 +135,9 @@ NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
                              double maxX, double maxY);
 NGS_EXTERNC int ngsMapOpen(const char* path);
 NGS_EXTERNC int ngsMapSave(unsigned int mapId, const char* path);
-NGS_EXTERNC int ngsMapInit(unsigned int mapId, void* imageBufferPointer, int width, int height, int isYAxisInverted);
+NGS_EXTERNC int ngsMapClose(unsigned int mapId);
+NGS_EXTERNC int ngsMapInit(unsigned int mapId, void* imageBufferPointer,
+                           int width, int height, int isYAxisInverted);
 NGS_EXTERNC int ngsMapDraw(unsigned int mapId, ngsProgressFunc callback,
                            void* callbackData);
 NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned int mapId, unsigned char R,

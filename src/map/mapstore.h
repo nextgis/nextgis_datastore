@@ -63,6 +63,7 @@ public:
     virtual int openMap(const char* path);
     virtual int openMap(const char* path, DataStorePtr dataStore);
     virtual int saveMap(unsigned int mapId, const char* path);
+    virtual int closeMap(unsigned int mapId);
     virtual MapPtr getMap(unsigned int mapId);
     int initMap(unsigned int mapId, void *buffer, int width, int height, bool isYAxisInverted);
     int drawMap(unsigned int mapId, ngsProgressFunc progressFunc,

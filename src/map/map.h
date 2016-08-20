@@ -63,9 +63,10 @@ public:
     double maxY() const;
     void setMaxY(double maxY);
 
-    int open(const char* path);
-    int save(const char* path);
-    int destroy();
+    virtual int open(const char* path);
+    virtual int save(const char* path);
+    virtual int destroy();
+    virtual int close();
 
     bool isDeleted() const;
 
