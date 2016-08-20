@@ -130,6 +130,32 @@ int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
     return pMapView->draw (progressFunc, progressArguments);
 }
 
+int MapStore::setMapCenter(unsigned int mapId, double x, double y)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    return pMapView->setCenter(x, y);
+}
+
+int MapStore::getMapCenter(unsigned int mapId, double &x, double &y)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    OGRRawPoint ptWorld = pMapView->getCenter();
+    x = static_cast<int>(lround(ptWorld.x));
+    y = static_cast<int>(lround(ptWorld.y));
+
+    return ngsErrorCodes::SUCCESS;
+}
+
 int MapStore::setMapDisplayCenter(unsigned int mapId, int x, int y)
 {
     if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())

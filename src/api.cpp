@@ -570,6 +570,18 @@ int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char 
 }
 
 
+int ngsSetMapCenter(unsigned int mapId, double x, double y)
+{
+    initMapStore();
+    return gMapStore->setMapCenter(mapId, x, y);
+}
+
+int ngsGetMapCenter(unsigned int mapId, double* x, double* y)
+{
+    initMapStore();
+    return gMapStore->getMapCenter(mapId, *x, *y);
+}
+
 int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y)
 {
     initMapStore();
