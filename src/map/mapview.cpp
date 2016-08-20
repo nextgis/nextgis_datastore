@@ -149,6 +149,23 @@ MapView::MapView(const CPLString &name, const CPLString &description,
     initDisplay();
 }
 
+MapView::MapView(DataStorePtr dataSource) : Map(dataSource),
+    MapTransform(480, 640), m_displayInit(false),
+    m_cancel(false), m_bufferData(nullptr), m_progressFunc(nullptr)
+{
+    initDisplay();
+}
+
+MapView::MapView(const CPLString &name, const CPLString &description,
+                 unsigned short epsg, double minX, double minY, double maxX,
+                 double maxY, DataStorePtr dataSource) : Map(name, description,
+                    epsg, minX, minY, maxX, maxY, dataSource),
+    MapTransform(480, 640), m_displayInit(false), m_cancel(false),
+    m_bufferData(nullptr), m_progressFunc(nullptr)
+{
+    initDisplay();
+}
+
 MapView::~MapView()
 {
     m_cancel = true;

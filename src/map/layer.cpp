@@ -39,7 +39,7 @@ Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
     m_type = Layer::Type::Invalid;
 }
 
-int Layer::load(const JSONObject &store)
+int Layer::load(const JSONObject &store, DataStorePtr dataStore)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
     unsigned int type = static_cast<unsigned int>(store.getInteger (
@@ -47,11 +47,16 @@ int Layer::load(const JSONObject &store)
     if(type & ngsDatasetType (Store)) {
         CPLString path = store.getString (LAYER_SOURCE, "");
         CPLString datasetName = CPLGetBasename (path);
-        path = CPLGetDirname (path);
-        // load dataset by path and name
-        DataStorePtr dataStore = DataStore::open (path);
-        if(nullptr != dataStore) {
+        if(dataStore) {
             m_dataset = dataStore->getDataset (datasetName);
+        }
+        else {
+            path = CPLGetDirname (path);
+            // load dataset by path and name
+            dataStore = DataStore::open (path);
+            if(nullptr != dataStore) {
+                m_dataset = dataStore->getDataset (datasetName);
+            }
         }
     }
     return ngsErrorCodes::SUCCESS;

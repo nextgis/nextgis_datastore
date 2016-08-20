@@ -121,11 +121,6 @@ DataStorePtr DataStore::create(const CPLString &path)
 
 DataStorePtr DataStore::open(const CPLString &path)
 {
-    // NOTE: Only make sence in one store several maps mode (mobile or etc.)
-    DataStorePtr currentDS = ngsGetCurrentDataStore();
-    if(currentDS && currentDS->path().compare (path) == 0)
-        return currentDS;
-
     CPLErrorReset();
     DataStorePtr out;
     if(path.empty()) {
@@ -183,9 +178,6 @@ DataStorePtr DataStore::open(const CPLString &path)
     outDS->m_opened = true;
     outDS->setDataPath ();
     out.reset (outDS);
-
-    if(nullptr == currentDS)
-        ngsSetCurrentDataStore (out);
 
     return out;
 }

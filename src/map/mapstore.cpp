@@ -53,6 +53,17 @@ int MapStore::createMap(const CPLString &name, const CPLString &description,
     return static_cast<int>(m_maps.size () - 1);
 }
 
+int MapStore::createMap(const CPLString &name, const CPLString &description,
+                        unsigned short epsg, double minX, double minY,
+                        double maxX, double maxY, DataStorePtr dataStore)
+{
+    MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY,
+                              dataStore));
+    m_maps.push_back (newMap);
+
+    return static_cast<int>(m_maps.size () - 1);
+}
+
 unsigned int MapStore::mapCount() const
 {    
     return static_cast<unsigned int>(m_maps.size ());
@@ -61,12 +72,24 @@ unsigned int MapStore::mapCount() const
 int MapStore::openMap(const char *path)
 {
     MapPtr newMap(new MapView());
-    int nRes = newMap->load (path);
+    int nRes = newMap->open (path);
     if(nRes != ngsErrorCodes::SUCCESS)
         return NOT_FOUND;
 
     m_maps.push_back (newMap);
     return static_cast<int>(m_maps.size () - 1);
+}
+
+int MapStore::openMap(const char *path, DataStorePtr dataStore)
+{
+    MapPtr newMap(new MapView(dataStore));
+    int nRes = newMap->open (path);
+    if(nRes != ngsErrorCodes::SUCCESS)
+        return NOT_FOUND;
+
+    m_maps.push_back (newMap);
+    return static_cast<int>(m_maps.size () - 1);
+
 }
 
 int MapStore::saveMap(unsigned int mapId, const char *path)

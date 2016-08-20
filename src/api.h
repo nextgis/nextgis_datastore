@@ -113,13 +113,13 @@ NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 /**
  * Storage functions
  */
-NGS_EXTERNC int ngsInitDataStore(const char* path);
-NGS_EXTERNC int ngsDestroyDataStore(const char* path, const char* cachePath);
+NGS_EXTERNC int ngsDataStoreInit(const char* path);
+NGS_EXTERNC int ngsDataStoreDestroy(const char* path, const char* cachePath);
 NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          const char* alias, const char* copyright,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
-NGS_EXTERNC int ngsLoad(const char* name, const char* path,
+NGS_EXTERNC int ngsDataStoreLoad(const char* name, const char* path,
                         const char *subDatasetName, bool move,
                         unsigned int skipFlags, ngsProgressFunc callback,
                         void* callbackData);
@@ -129,23 +129,23 @@ NGS_EXTERNC int ngsLoad(const char* name, const char* path,
  *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
  *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
-NGS_EXTERNC int ngsCreateMap(const char* name, const char* description,
+NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);
-NGS_EXTERNC int ngsOpenMap(const char* path);
-NGS_EXTERNC int ngsSaveMap(unsigned int mapId, const char* path);
-NGS_EXTERNC int ngsInitMap(unsigned int mapId, void* imageBufferPointer, int width, int height, int isYAxisInverted);
-NGS_EXTERNC int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback,
+NGS_EXTERNC int ngsMapOpen(const char* path);
+NGS_EXTERNC int ngsMapSave(unsigned int mapId, const char* path);
+NGS_EXTERNC int ngsMapInit(unsigned int mapId, void* imageBufferPointer, int width, int height, int isYAxisInverted);
+NGS_EXTERNC int ngsMapDraw(unsigned int mapId, ngsProgressFunc callback,
                            void* callbackData);
-NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
+NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned int mapId, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);
-NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
-NGS_EXTERNC int ngsCreateLayer(unsigned int mapId, const char* name,
+NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned int mapId);
+NGS_EXTERNC int ngsMapCreateLayer(unsigned int mapId, const char* name,
                                const char* path);
-NGS_EXTERNC int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y);
-NGS_EXTERNC int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y);
-NGS_EXTERNC int ngsSetMapScale(unsigned int mapId, double scale);
-NGS_EXTERNC int ngsGetMapScale(unsigned int mapId, double* scale);
+NGS_EXTERNC int ngsMapSetDisplayCenter(unsigned int mapId, int x, int y);
+NGS_EXTERNC int ngsMapGetDisplayCenter(unsigned int mapId, int* x, int* y);
+NGS_EXTERNC int ngsMapSetScale(unsigned int mapId, double scale);
+NGS_EXTERNC int ngsMapGetScale(unsigned int mapId, double* scale);
 
 #endif // API_H

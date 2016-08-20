@@ -45,6 +45,11 @@ public:
     MapView(const CPLString& name, const CPLString& description,
             unsigned short epsg,
             double minX, double minY, double maxX, double maxY);
+    MapView(DataStorePtr dataSource);
+    MapView(const CPLString& name, const CPLString& description,
+            unsigned short epsg,
+            double minX, double minY, double maxX, double maxY,
+            DataStorePtr dataSource);
     virtual ~MapView();
     bool isDisplayInit() const;
     int initDisplay();

@@ -99,7 +99,7 @@ static string gFormats;
  * @param path Path to create datastore (geopackage database name)
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInitDataStore(const char *path)
+int ngsDataStoreInit(const char *path)
 {
     if(gDataStore && gDataStore->path().compare (path) == 0)
         return ngsErrorCodes::SUCCESS;
@@ -114,16 +114,6 @@ void initMapStore()
     if(nullptr == gMapStore){
         gMapStore.reset (new MapStore());
     }
-}
-
-DataStorePtr ngsGetCurrentDataStore()
-{
-    return gDataStore;
-}
-
-void ngsSetCurrentDataStore(ngs::DataStorePtr ds)
-{
-    gDataStore = ds;
 }
 
 /* special hook for find EPSG files
@@ -442,7 +432,7 @@ void ngsUninit()
  * @param cachePath Path to cache (may be NULL)
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDestroyDataStore(const char *path, const char *cachePath)
+int ngsDataStoreDestroy(const char *path, const char *cachePath)
 {
     if(nullptr == path)
         return ngsErrorCodes::INVALID;
@@ -452,7 +442,7 @@ int ngsDestroyDataStore(const char *path, const char *cachePath)
             return ngsErrorCodes::DELETE_FAILED;
         }
     }
-    ngsInitDataStore(path);
+    ngsDataStoreInit(path);
     return gDataStore->destroy ();
 }
 
@@ -485,15 +475,18 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
 /**
  * @brief Inititialise map with buffer and it size in pixels
  * @param mapId Map id received from create or open map functions
- * @param imageBufferPointer Pointer to buffer. Size should be enouth to store image data width x height
+ * @param imageBufferPointer Pointer to buffer. Size should be enouth to store
+ * image data width x height
  * @param width Output image width
  * @param height Output image height
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInitMap(unsigned int mapId, void* imageBufferPointer, int width, int height, int isYAxisInverted)
+int ngsMapInit(unsigned int mapId, void* imageBufferPointer, int width,
+               int height, int isYAxisInverted)
 {
     initMapStore();
-    return gMapStore->initMap (mapId, imageBufferPointer, width, height, isYAxisInverted);
+    return gMapStore->initMap (mapId, imageBufferPointer, width, height,
+                               isYAxisInverted);
 }
 
 /**
@@ -536,7 +529,7 @@ void ngsOnPause()
  * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback, void* callbackData)
+int ngsMapDraw(unsigned int mapId, ngsProgressFunc callback, void* callbackData)
 {
     initMapStore();
     return gMapStore->drawMap (mapId, callback, callbackData);
@@ -547,7 +540,7 @@ int ngsDrawMap(unsigned int mapId, ngsProgressFunc callback, void* callbackData)
  * @param mapId Map id received from create or open map functions
  * @return map background color struct
  */
-ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId)
+ngsRGBA ngsMapGetBackgroundColor(unsigned int mapId)
 {
     initMapStore();
     return gMapStore->getMapBackgroundColor (mapId);
@@ -562,7 +555,7 @@ ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId)
  * @param A alpha
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char G,
+int ngsMapSetBackgroundColor(unsigned int mapId, unsigned char R, unsigned char G,
                              unsigned char B, unsigned char A)
 {
     initMapStore();
@@ -570,25 +563,25 @@ int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char 
 }
 
 
-int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y)
+int ngsMapSetDisplayCenter(unsigned int mapId, int x, int y)
 {
     initMapStore();
     return gMapStore->setMapDisplayCenter(mapId, x, y);
 }
 
-int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y)
+int ngsMapGetDisplayCenter(unsigned int mapId, int* x, int* y)
 {
     initMapStore();
     return gMapStore->getMapDisplayCenter(mapId, *x, *y);
 }
 
-int ngsSetMapScale(unsigned int mapId, double scale)
+int ngsMapSetScale(unsigned int mapId, double scale)
 {
     initMapStore();
     return gMapStore->setMapScale(mapId, scale);
 }
 
-int ngsGetMapScale(unsigned int mapId, double* scale)
+int ngsMapGetScale(unsigned int mapId, double* scale)
 {
     initMapStore();
     return gMapStore->getMapScale(mapId, *scale);
@@ -605,12 +598,16 @@ int ngsGetMapScale(unsigned int mapId, double* scale)
  * @param maxY maximum Y coordinate
  * @return -1 if create failed or map id.
  */
-int ngsCreateMap(const char* name, const char* description,
+int ngsMapCreate(const char* name, const char* description,
                  unsigned short epsg, double minX, double minY,
                  double maxX, double maxY)
 {
+    // for this API before work with map datastore must be open
+    if(nullptr == gDataStore)
+        return ngsErrorCodes::CREATE_FAILED;
     initMapStore();
-    return gMapStore->createMap (name, description, epsg, minX, minY, maxX, maxY);
+    return gMapStore->createMap (name, description, epsg,
+                                 minX, minY, maxX, maxY, gDataStore);
 }
 
 /**
@@ -618,10 +615,13 @@ int ngsCreateMap(const char* name, const char* description,
  * @param path Path to map file
  * @return -1 if open failed or map id.
  */
-int ngsOpenMap(const char *path)
+int ngsMapOpen(const char *path)
 {
+    // for this API before work with map datastore must be open
+    if(nullptr == gDataStore)
+        return ngsErrorCodes::OPEN_FAILED;
     initMapStore();
-    return gMapStore->openMap (path);
+    return gMapStore->openMap (path, gDataStore);
 }
 
 /**
@@ -630,7 +630,7 @@ int ngsOpenMap(const char *path)
  * @param path Path to store map data
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsSaveMap(unsigned int mapId, const char *path)
+int ngsMapSave(unsigned int mapId, const char *path)
 {
     initMapStore();
     return gMapStore->saveMap (mapId, path);
@@ -649,7 +649,7 @@ int ngsSaveMap(unsigned int mapId, const char *path)
  * @param callbackData Progress function arguments
  * @return  ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsLoad(const char* name, const char *path, const char *subDatasetName,
+int ngsDataStoreLoad(const char* name, const char *path, const char *subDatasetName,
             bool move, unsigned int skipFlags, ngsProgressFunc callback,
             void *callbackData)
 {
@@ -659,9 +659,9 @@ int ngsLoad(const char* name, const char *path, const char *subDatasetName,
     return ngsErrorCodes::INSERT_FAILED;
 }
 
-int ngsCreateLayer(unsigned int mapId, const char *name, const char *path)
+int ngsMapCreateLayer(unsigned int mapId, const char *name, const char *path)
 {
-    ngsInitDataStore ( CPLGetDirname (path) );
+    ngsDataStoreInit ( CPLGetDirname (path) );
     DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
     initMapStore();
     MapPtr map = gMapStore->getMap (mapId);

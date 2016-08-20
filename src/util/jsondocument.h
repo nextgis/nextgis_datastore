@@ -51,9 +51,11 @@ public:
     void add(const char* name, double val);
     void add(const char* name, int val);
     void add(const char* name, const JSONArray& val);
+    void add(const char* name, bool val);
     CPLString getString(const char* name, const char *defaultVal) const;
     double getDouble(const char* name, double defaultVal) const;
     int getInteger(const char* name, int defaultVal) const;
+    bool getBool(const char* name, bool defaultVal) const;
     JSONArray getArray(const char* name) const;
     enum Type getType() const;
 protected:

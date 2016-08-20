@@ -52,12 +52,16 @@ public:
     virtual int createMap(const CPLString& name, const CPLString& description,
                           unsigned short epsg, double minX, double minY,
                           double maxX, double maxY);
+    virtual int createMap(const CPLString& name, const CPLString& description,
+                          unsigned short epsg, double minX, double minY,
+                          double maxX, double maxY, DataStorePtr dataStore);
     /**
      * @brief map count in storage
      * @return map count
      */
     virtual unsigned int mapCount() const;
     virtual int openMap(const char* path);
+    virtual int openMap(const char* path, DataStorePtr dataStore);
     virtual int saveMap(unsigned int mapId, const char* path);
     virtual MapPtr getMap(unsigned int mapId);
     int initMap(unsigned int mapId, void *buffer, int width, int height, bool isYAxisInverted);

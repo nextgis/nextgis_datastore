@@ -126,6 +126,12 @@ void JSONObject::add(const char *name, const JSONArray &val)
     json_object_object_add(m_jsonObject, name, val.m_jsonObject);
 }
 
+void JSONObject::add(const char *name, bool val)
+{
+    json_object *poVal = json_object_new_boolean (val);
+    json_object_object_add(m_jsonObject, name, poVal);
+}
+
 CPLString JSONObject::getString(const char *name, const char* defaultVal) const
 {
     json_object* poVal = nullptr;
@@ -152,6 +158,16 @@ int JSONObject::getInteger(const char *name, int defaultVal) const
     if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
     if( poVal && json_object_get_type(poVal) == json_type_int )
         return json_object_get_int (poVal);
+    }
+    return defaultVal;
+}
+
+bool JSONObject::getBool(const char *name, bool defaultVal) const
+{
+    json_object* poVal = nullptr;
+    if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
+    if( poVal && json_object_get_type(poVal) == json_type_boolean )
+        return json_object_get_boolean (poVal);
     }
     return defaultVal;
 }

@@ -73,6 +73,7 @@
 #define MAP_MAX_X "max_x"
 #define MAP_MAX_Y "max_y"
 #define MAP_BKCOLOR "bk_color"
+#define MAP_SINGLESOURCE "single_src"
 #define DEFAULT_MAP_NAME "default"
 #define DEFAULT_EPSG 3857
 #define DEFAULT_MAX_X 20037508.34 // 180.0

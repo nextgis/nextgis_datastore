@@ -99,15 +99,15 @@ TEST(BasicTests, TestInlines) {
 
 TEST(BasicTests, TestCreate) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsInitDataStore("./tmp/ngs.gpkg"), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::SUCCESS);
     ngsUninit();
 }
 
 
 TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsInitDataStore(""), ngsErrorCodes::OPEN_FAILED);
-    EXPECT_EQ(ngsInitDataStore("./tmp/ngs.gpkg"), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsDataStoreInit(""), ngsErrorCodes::OPEN_FAILED);
+    EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::SUCCESS);
     ngsSetNotifyFunction (ngsTestNotifyFunc);
 }
 
@@ -121,27 +121,27 @@ TEST(BasicTests, TestCreateTMS) {
 }
 
 TEST(BasicTests, TestInitMap) {
-    int mapId = ngsCreateMap(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
+    int mapId = ngsMapCreate(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
                              DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
                              DEFAULT_MAX_Y);
     EXPECT_GE(mapId, 0);
-    EXPECT_NE(ngsInitMap (1, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsInitMap (mapId, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_NE(ngsMapInit (1, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsMapInit (mapId, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
     counter = 0;
-    EXPECT_EQ(ngsDrawMap(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsMapDraw(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
     CPLSleep(0.2);
     EXPECT_GE(counter, 1);
 }
 
 TEST(BasicTests, TestLoad) {
     counter = 0;
-    EXPECT_EQ(ngsLoad("test" ,"./data/bld.shp", "", false, 0, ngsTestProgressFunc,
+    EXPECT_EQ(ngsDataStoreLoad("test" ,"./data/bld.shp", "", false, 0, ngsTestProgressFunc,
                       nullptr), ngsErrorCodes::SUCCESS);
     CPLSleep(0.6);
     EXPECT_GE(counter, 1);
 }
 
 TEST(BasicTests, TestDelete) {
-    EXPECT_EQ(ngsDestroyDataStore ("./tmp/ngs.gpkg", nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsDataStoreDestroy ("./tmp/ngs.gpkg", nullptr), ngsErrorCodes::SUCCESS);
     ngsUninit();
 }

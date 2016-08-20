@@ -23,6 +23,7 @@
 
 #include "layer.h"
 #include "api_priv.h"
+#include "datastore.h"
 
 namespace ngs {
 
@@ -36,6 +37,10 @@ public:
     Map();
     Map(const CPLString& name, const CPLString& description, unsigned short epsg,
         double minX, double minY, double maxX, double maxY);
+    Map(DataStorePtr dataStore);
+    Map(const CPLString& name, const CPLString& description, unsigned short epsg,
+        double minX, double minY, double maxX, double maxY,
+        DataStorePtr dataStore);
     virtual ~Map();
     CPLString name() const;
     void setName(const CPLString &name);
@@ -58,7 +63,7 @@ public:
     double maxY() const;
     void setMaxY(double maxY);
 
-    int load(const char* path);
+    int open(const char* path);
     int save(const char* path);
     int destroy();
 
@@ -85,6 +90,7 @@ protected:
     vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
     bool m_bkChanged;
+    DataStorePtr m_DataStore;
 };
 
 typedef shared_ptr<Map> MapPtr;

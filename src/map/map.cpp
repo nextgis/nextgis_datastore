@@ -46,6 +46,21 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
     m_bkColor = {210, 245, 255, 255};
 }
 
+Map::Map(DataStorePtr dataStore) : m_DataStore(dataStore)
+{
+    m_bkColor = {210, 245, 255, 255};
+}
+
+Map::Map(const CPLString &name, const CPLString &description,
+         unsigned short epsg, double minX, double minY, double maxX, double maxY,
+         DataStorePtr dataStore) :
+    m_name(name), m_description(description), m_epsg(epsg),
+    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_deleted(false),
+    m_bkChanged(true), m_DataStore(dataStore)
+{
+    m_bkColor = {210, 245, 255, 255};
+}
+
 Map::~Map()
 {
 
@@ -121,7 +136,7 @@ void Map::setMaxY(double maxY)
     m_maxY = maxY;
 }
 
-int Map::load(const char *path)
+int Map::open(const char *path)
 {
     // TODO: need to switch to SAX json reader/writer, need abstract json class
     // for both json-c and new json support.
@@ -132,6 +147,10 @@ int Map::load(const char *path)
         return ngsErrorCodes::OPEN_FAILED;
     JSONObject root = doc.getRoot ();
     if(root.getType () == JSONObject::Type::Object) {
+
+        if(root.getBool (MAP_SINGLESOURCE, false) && !m_DataStore)
+            return ngsErrorCodes::OPEN_FAILED;
+
         m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
         m_description = root.getString (MAP_DESCRIPTION, "");
         m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,
@@ -150,7 +169,7 @@ int Map::load(const char *path)
             // load layer
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
-                if(layer->load(layers[i]) == ngsErrorCodes::SUCCESS)
+                if(layer->load(layerConfig, m_DataStore) == ngsErrorCodes::SUCCESS)
                     m_layers.push_back (layer);
             }
         }
@@ -166,6 +185,9 @@ int Map::save(const char *path)
 
     JSONDocument doc;
     JSONObject root = doc.getRoot ();
+
+    if(m_DataStore)
+        root.add (MAP_SINGLESOURCE, true);
     root.add (MAP_NAME, m_name);
     root.add (MAP_DESCRIPTION, m_description);
     root.add (MAP_EPSG, m_epsg);
@@ -192,7 +214,7 @@ int Map::destroy()
 
     if(m_path.empty ()) {
         m_deleted = true;
-        return ngsErrorCodes::SUCCESS;
+        return ngsErrorCodes::SUCCESS;    m_bkColor = {210, 245, 255, 255};
     }
 
 

@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "jsondocument.h"
-#include "dataset.h"
+#include "datastore.h"
 
 namespace ngs {
 
@@ -44,7 +44,7 @@ public:
 public:
     Layer();
     Layer(const CPLString& name, DatasetPtr dataset);
-    int load(const JSONObject& store);
+    int load(const JSONObject& store, DataStorePtr dataStore = DataStorePtr());
     JSONObject save() const;
 protected:
     CPLString m_name;

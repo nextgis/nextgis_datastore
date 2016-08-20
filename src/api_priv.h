@@ -27,13 +27,6 @@
 
 using namespace std;
 
-namespace ngs {
-    class DataStore;
-    typedef shared_ptr<DataStore> DataStorePtr;
-}
-
-ngs::DataStorePtr ngsGetCurrentDataStore();
-void ngsSetCurrentDataStore(ngs::DataStorePtr ds);
 /**
   * useful functions
   */
