@@ -82,7 +82,7 @@ void ngs::RenderingThread(void * view)
         case MapView::DrawStage::Process:
             if(mapView->render (&glView)) {
                 // if no more geodata - finish
-                //glView.draw ();
+//                glView.draw ();
                 glView.fillBuffer (mapView->getBufferData ());
                 // if notify return false - set stage to done
                 mapView->notify (1.0, nullptr);
@@ -134,7 +134,8 @@ void ngs::RenderingThread(void * view)
 }
 
 MapView::MapView() : Map(), MapTransform(480, 640), m_displayInit(false),
-    m_cancel(false), m_bufferData(nullptr), m_progressFunc(nullptr)
+    m_cancel(false), m_bufferData(nullptr), m_progressFunc(nullptr),
+    m_drawStage(MapView::DrawStage::Done)
 {
     initDisplay();
 }
@@ -144,7 +145,7 @@ MapView::MapView(const CPLString &name, const CPLString &description,
                  double maxY) : Map(name, description, epsg, minX, minY, maxX,
                                     maxY), MapTransform(480, 640),
     m_displayInit(false), m_cancel(false), m_bufferData(nullptr),
-    m_progressFunc(nullptr)
+    m_progressFunc(nullptr), m_drawStage(MapView::DrawStage::Done)
 {
     initDisplay();
 }
