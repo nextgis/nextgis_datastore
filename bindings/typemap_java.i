@@ -34,6 +34,8 @@
 %rename (RawPoint) _ngsRawPoint;
 %rename (RawEnvelope) _ngsRawEnvelope;
 
+%apply double* OUTPUT { double* scale };
+
 // Typemaps for (void* imageBufferPointer)
 %typemap(in, numinputs=1) (void* imageBufferPointer)
 {

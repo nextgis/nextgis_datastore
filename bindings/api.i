@@ -36,9 +36,6 @@
 #include "api.h"
 %}
 
-%apply double *OUTPUT { double* scale };
-%apply int* OUTPUT {int* x, int* y};
-
 %include "../src/common.h"
 %include "../src/api.h"
 

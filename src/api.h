@@ -168,6 +168,6 @@ NGS_EXTERNC int ngsSetMapExtent(unsigned int mapId, const ngsRawEnvelope env);
 NGS_EXTERNC int ngsGetMapExtent(unsigned int mapId, ngsRawEnvelope* env);
 
 NGS_EXTERNC int ngsSetMapScale(unsigned int mapId, double scale);
-//NGS_EXTERNC int ngsGetMapScale(unsigned int mapId, double* scale);
+NGS_EXTERNC int ngsGetMapScale(unsigned int mapId, double* scale);
 
 #endif // API_H
