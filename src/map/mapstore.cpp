@@ -186,6 +186,30 @@ int MapStore::getMapDisplayCenter(unsigned int mapId, int &x, int &y)
     return ngsErrorCodes::SUCCESS;
 }
 
+int MapStore::setMapExtent(unsigned int mapId, const OGREnvelope& env)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    return pMapView->setExtent(env);
+}
+
+int MapStore::getMapExtent(unsigned int mapId, OGREnvelope& env)
+{
+    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+
+    env = pMapView->getExtent();
+
+    return ngsErrorCodes::SUCCESS;
+}
+
 int MapStore::setMapScale(unsigned int mapId, double scale)
 {
     if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())

@@ -93,12 +93,27 @@ typedef int (*ngsProgressFunc)(double complete, const char* message,
 typedef void (*ngsNotifyFunc)(enum ngsSourceCodes src, const char* table, long row,
                               enum ngsChangeCodes operation);
 
-typedef struct _ngsRGBA {
+typedef struct _ngsRGBA
+{
     unsigned char R;
     unsigned char G;
     unsigned char B;
     unsigned char A;
 } ngsRGBA;
+
+typedef struct _ngsRawPoint
+{
+    double x;
+    double y;
+} ngsRawPoint;
+
+typedef struct _ngsRawEnvelope
+{
+    double MinX;
+    double MaxX;
+    double MinY;
+    double MaxY;
+} ngsRawEnvelope;
 
 /**
  * Common functions
@@ -143,11 +158,16 @@ NGS_EXTERNC int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R,
 NGS_EXTERNC ngsRGBA ngsGetMapBackgroundColor(unsigned int mapId);
 NGS_EXTERNC int ngsCreateLayer(unsigned int mapId, const char* name,
                                const char* path);
-NGS_EXTERNC int ngsSetMapCenter(unsigned int mapId, double x, double y);
-NGS_EXTERNC int ngsGetMapCenter(unsigned int mapId, double* x, double* y);
-NGS_EXTERNC int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y);
-NGS_EXTERNC int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y);
+
+NGS_EXTERNC int ngsSetMapCenter(unsigned int mapId, const ngsRawPoint pt);
+NGS_EXTERNC int ngsGetMapCenter(unsigned int mapId, ngsRawPoint* pt);
+NGS_EXTERNC int ngsSetMapDisplayCenter(unsigned int mapId, const ngsRawPoint pt);
+NGS_EXTERNC int ngsGetMapDisplayCenter(unsigned int mapId, ngsRawPoint* pt);
+
+NGS_EXTERNC int ngsSetMapExtent(unsigned int mapId, const ngsRawEnvelope env);
+NGS_EXTERNC int ngsGetMapExtent(unsigned int mapId, ngsRawEnvelope* env);
+
 NGS_EXTERNC int ngsSetMapScale(unsigned int mapId, double scale);
-NGS_EXTERNC int ngsGetMapScale(unsigned int mapId, double* scale);
+//NGS_EXTERNC int ngsGetMapScale(unsigned int mapId, double* scale);
 
 #endif // API_H

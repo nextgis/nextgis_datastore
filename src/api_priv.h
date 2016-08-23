@@ -22,8 +22,10 @@
 #define API_PRIV_H
 
 #include "api.h"
+#include "ogr_geometry.h"
 
 #include <memory>
+
 
 using namespace std;
 
@@ -48,6 +50,38 @@ inline ngsRGBA ngsHEX2RGBA(int color) {
     out.G = (color >> 16) & 0xff;
     out.B = (color >> 8) & 0xff;
     out.A = (color) & 0xff;
+    return out;
+}
+
+inline OGRRawPoint ngsPointToOGRRawPoint(ngsRawPoint pt) {
+    OGRRawPoint out;
+    out.x = pt.x;
+    out.x = pt.y;
+    return out;
+}
+
+inline ngsRawPoint ogrRawPointToNgsPoint(OGRRawPoint pt) {
+    ngsRawPoint out;
+    out.x = pt.x;
+    out.x = pt.y;
+    return out;
+}
+
+inline OGREnvelope ngsEnvelopeToOGREnvelope(ngsRawEnvelope env) {
+    OGREnvelope out;
+    out.MinX = env.MinX;
+    out.MaxX = env.MaxX;
+    out.MinY = env.MinY;
+    out.MaxY = env.MaxY;
+    return out;
+}
+
+inline ngsRawEnvelope ogrEnvelopeToNgsEnvelope(OGREnvelope env) {
+    ngsRawEnvelope out;
+    out.MinX = env.MinX;
+    out.MaxX = env.MaxX;
+    out.MinY = env.MinY;
+    out.MaxY = env.MaxY;
     return out;
 }
 

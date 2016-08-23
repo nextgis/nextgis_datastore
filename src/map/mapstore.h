@@ -72,6 +72,8 @@ public:
     int getMapCenter(unsigned int mapId, double &x, double &y);
     int setMapDisplayCenter(unsigned int mapId, int x, int y);
     int getMapDisplayCenter(unsigned int mapId, int &x, int &y);
+    int setMapExtent(unsigned int mapId, const OGREnvelope& env);
+    int getMapExtent(unsigned int mapId, OGREnvelope& env);
     int setMapScale(unsigned int mapId, double scale);
     int getMapScale(unsigned int mapId, double &scale);
 

@@ -31,6 +31,8 @@
 %rename (SourceCodes) ngsSourceCodes;
 %rename (ChangeCodes) ngsChangeCodes;
 %rename (Colour) _ngsRGBA;
+%rename (RawPoint) _ngsRawPoint;
+%rename (RawEnvelope) _ngsRawEnvelope;
 
 // Typemaps for (void* imageBufferPointer)
 %typemap(in, numinputs=1) (void* imageBufferPointer)

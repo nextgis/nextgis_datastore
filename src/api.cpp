@@ -85,6 +85,7 @@
 
 #include <memory>
 #include <iostream>
+#include <cmath>
 
 using namespace ngs;
 using namespace std;
@@ -570,28 +571,49 @@ int ngsSetMapBackgroundColor(unsigned int mapId, unsigned char R, unsigned char 
 }
 
 
-int ngsSetMapCenter(unsigned int mapId, double x, double y)
+int ngsSetMapCenter(unsigned int mapId, const ngsRawPoint pt)
 {
     initMapStore();
-    return gMapStore->setMapCenter(mapId, x, y);
+    return gMapStore->setMapCenter(mapId, pt.x, pt.y);
 }
 
-int ngsGetMapCenter(unsigned int mapId, double* x, double* y)
+int ngsGetMapCenter(unsigned int mapId, ngsRawPoint* pt)
 {
     initMapStore();
-    return gMapStore->getMapCenter(mapId, *x, *y);
+    return gMapStore->getMapCenter(mapId, pt->x, pt->y);
 }
 
-int ngsSetMapDisplayCenter(unsigned int mapId, int x, int y)
+int ngsSetMapDisplayCenter(unsigned int mapId, const ngsRawPoint pt)
 {
     initMapStore();
+    int x = static_cast<int>(lround(pt.x));
+    int y = static_cast<int>(lround(pt.y));
     return gMapStore->setMapDisplayCenter(mapId, x, y);
 }
 
-int ngsGetMapDisplayCenter(unsigned int mapId, int* x, int* y)
+int ngsGetMapDisplayCenter(unsigned int mapId, ngsRawPoint* pt)
 {
     initMapStore();
-    return gMapStore->getMapDisplayCenter(mapId, *x, *y);
+    int x, y;
+    int res = gMapStore->getMapDisplayCenter(mapId, x, y);
+    pt->x = x;
+    pt->y = y;
+    return res;
+}
+
+int ngsSetMapExtent(unsigned int mapId, const ngsRawEnvelope env)
+{
+    initMapStore();
+    return gMapStore->setMapExtent(mapId, ngsEnvelopeToOGREnvelope(env));
+}
+
+int ngsGetMapExtent(unsigned int mapId, ngsRawEnvelope* env)
+{
+    initMapStore();
+    OGREnvelope ogrEnv;
+    int ret = gMapStore->getMapExtent(mapId, ogrEnv);
+    *env = ogrEnvelopeToNgsEnvelope(ogrEnv);
+    return ret;
 }
 
 int ngsSetMapScale(unsigned int mapId, double scale)
