@@ -29,7 +29,7 @@ set(CMAKE_COLOR_MAKEFILE ON)
 # set path to additional CMake modules
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-set(PACKAGE_ID "com.nextgis.store")
+set(PACKAGE_ID "com.nextgis.store.bindings")
 
 set(BUILD_TARGET_PLATFORM "Desktop" CACHE STRING "Select build target platform")
 set_property(CACHE BUILD_TARGET_PLATFORM PROPERTY STRINGS "ANDROID" "IOS" "Desktop")
