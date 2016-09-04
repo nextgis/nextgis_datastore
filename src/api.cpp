@@ -473,20 +473,16 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
 }
 
 /**
- * @brief Inititialise map with buffer and it size in pixels
+ * @brief Sete map size in pixels
  * @param mapId Map id received from create or open map functions
- * @param imageBufferPointer Pointer to buffer. Size should be enouth to store
- * image data width x height
  * @param width Output image width
  * @param height Output image height
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapInit(unsigned int mapId, void* imageBufferPointer, int width,
-               int height, int isYAxisInverted)
+int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
 {
     initMapStore();
-    return gMapStore->initMap (mapId, imageBufferPointer, width, height,
-                               isYAxisInverted);
+    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
 }
 
 /**
@@ -529,7 +525,7 @@ void ngsOnPause()
  * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapDraw(unsigned int mapId, ngsProgressFunc callback, void* callbackData)
+int ngsMapDraw(unsigned char mapId, ngsProgressFunc callback, void* callbackData)
 {
     initMapStore();
     return gMapStore->drawMap (mapId, callback, callbackData);
@@ -540,7 +536,7 @@ int ngsMapDraw(unsigned int mapId, ngsProgressFunc callback, void* callbackData)
  * @param mapId Map id received from create or open map functions
  * @return map background color struct
  */
-ngsRGBA ngsMapGetBackgroundColor(unsigned int mapId)
+ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
 {
     initMapStore();
     return gMapStore->getMapBackgroundColor (mapId);
@@ -555,36 +551,58 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned int mapId)
  * @param A alpha
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSetBackgroundColor(unsigned int mapId, unsigned char R, unsigned char G,
+int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char G,
                              unsigned char B, unsigned char A)
 {
     initMapStore();
     return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
 }
 
-
-int ngsMapSetDisplayCenter(unsigned int mapId, int x, int y)
+/**
+ * @brief ngsMapSetCenter Set new map center coordinates
+ * @param mapId Map id
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsMapSetCenter(unsigned char mapId, double x, double y)
 {
     initMapStore();
-    return gMapStore->setMapDisplayCenter(mapId, x, y);
+    return gMapStore->setMapCenter(mapId, x, y);
 }
 
-int ngsMapGetDisplayCenter(unsigned int mapId, int* x, int* y)
+/**
+ * @brief ngsMapGetCenter Get map center for current view (extent)
+ * @param mapId Map id
+ * @return Coordintate structure. If error occured all coordinates set to 0.0
+ */
+ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 {
     initMapStore();
-    return gMapStore->getMapDisplayCenter(mapId, *x, *y);
+    return gMapStore->getMapCenter(mapId);
 }
 
-int ngsMapSetScale(unsigned int mapId, double scale)
+/**
+ * @brief ngsMapSetScale Set current map scale
+ * @param mapId Map id
+ * @param scale value to set
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsMapSetScale(unsigned char mapId, double scale)
 {
     initMapStore();
     return gMapStore->setMapScale(mapId, scale);
 }
 
-int ngsMapGetScale(unsigned int mapId, double* scale)
+/**
+ * @brief ngsMapGetScale Return current map scale
+ * @param mapId Map id
+ * @return Current map scale or 1
+ */
+double ngsMapGetScale(unsigned char mapId)
 {
     initMapStore();
-    return gMapStore->getMapScale(mapId, *scale);
+    return gMapStore->getMapScale(mapId);
 }
 
 /**
@@ -596,9 +614,9 @@ int ngsMapGetScale(unsigned int mapId, double* scale)
  * @param minY minimum Y coordinate
  * @param maxX maximum X coordinate
  * @param maxY maximum Y coordinate
- * @return -1 if create failed or map id.
+ * @return 0 if create failed or map id.
  */
-int ngsMapCreate(const char* name, const char* description,
+unsigned char ngsMapCreate(const char* name, const char* description,
                  unsigned short epsg, double minX, double minY,
                  double maxX, double maxY)
 {
@@ -613,9 +631,9 @@ int ngsMapCreate(const char* name, const char* description,
 /**
  * @brief ngsOpenMap Open existing map from file
  * @param path Path to map file
- * @return -1 if open failed or map id.
+ * @return 0 if open failed or map id.
  */
-int ngsMapOpen(const char *path)
+unsigned char ngsMapOpen(const char *path)
 {
     // for this API before work with map datastore must be open
     if(nullptr == gDataStore)
@@ -630,7 +648,7 @@ int ngsMapOpen(const char *path)
  * @param path Path to store map data
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSave(unsigned int mapId, const char *path)
+int ngsMapSave(unsigned char mapId, const char *path)
 {
     initMapStore();
     return gMapStore->saveMap (mapId, path);
@@ -659,7 +677,7 @@ int ngsDataStoreLoad(const char* name, const char *path, const char *subDatasetN
     return ngsErrorCodes::INSERT_FAILED;
 }
 
-int ngsMapCreateLayer(unsigned int mapId, const char *name, const char *path)
+int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
 {
     ngsDataStoreInit ( CPLGetDirname (path) );
     DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
@@ -676,8 +694,82 @@ int ngsMapCreateLayer(unsigned int mapId, const char *name, const char *path)
  * @param mapId Map id to close
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapClose(unsigned int mapId)
+int ngsMapClose(unsigned char mapId)
 {
     initMapStore();
     return gMapStore->closeMap (mapId);
+}
+
+/**
+ * @brief ngsMapInit Initialize map. It depends on map what to initialize.
+ * @param mapId Map id
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsMapInit(unsigned char mapId)
+{
+    initMapStore();
+    return gMapStore->initMap (mapId);
+}
+
+/**
+ * @brief ngsMapSetRotate Set map rotate
+ * @param mapId Map id
+ * @param dir Rotate direction. May be X, Y or Z
+ * @param rotate value to set
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
+{
+    initMapStore();
+    return gMapStore->setMapRotate (mapId, dir, rotate);
+}
+
+/**
+ * @brief ngsMapGetRotate Return map rotate value
+ * @param mapId Map id
+ * @param dir Rotate direction. May be X, Y or Z
+ * @return rotate value or 0 if error occured
+ */
+double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
+{
+    initMapStore();
+    return gMapStore->getMapRotate (mapId, dir);
+}
+
+/**
+ * @brief ngsMapGetCoordinate Georpaphic coordinates for display positon
+ * @param mapId Map id
+ * @param x X position
+ * @param y Y position
+ * @return Georpaphic coordinates
+ */
+ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, int x, int y)
+{
+    initMapStore();
+    return gMapStore->getMapCoordinate (mapId, x, y);
+}
+
+/**
+ * @brief ngsMapGetPosition Display position for geographic coordinates
+ * @param mapId Map id
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @return Display position
+ */
+ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
+{
+    initMapStore();
+    return gMapStore->getDisplayPosition (mapId, x, y);
+}
+
+ngsCoordinate ngsMapGetDistance(unsigned char mapId, int w, int h)
+{
+    initMapStore();
+    return gMapStore->getMapDistance (mapId, w, h);
+}
+
+ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
+{
+    initMapStore();
+    return gMapStore->getDisplayLength (mapId, w, h);
 }

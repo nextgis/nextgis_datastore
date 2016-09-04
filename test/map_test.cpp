@@ -43,7 +43,7 @@ TEST(MapTests, TestCreate) {
                                  DEFAULT_MAX_Y), 0);
     EXPECT_EQ(mapStore.mapCount(), 1);
 
-    ngs::MapPtr defMap = mapStore.getMap (0);
+    ngs::MapPtr defMap = mapStore.getMap (1);
     ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     ngsRGBA color = mapView->getBackgroundColor ();
@@ -57,26 +57,27 @@ TEST(MapTests, TestCreate) {
 
 TEST(MapTests, TestOpenMap) {
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
     EXPECT_EQ(mapStore.mapCount(), 1);
 }
 
 TEST(MapTests, TestInitMap) {
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
     EXPECT_EQ(mapStore.mapCount(), 1);
-    EXPECT_NE(mapStore.initMap (1, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_NE(mapStore.initMap (2), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::SUCCESS);
 }
 
 TEST(MapTests, TestProject) {
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    ngs::MapPtr defMap = mapStore.getMap (0);
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
+    ngs::MapPtr defMap = mapStore.getMap (1);
     ASSERT_NE(defMap, nullptr);
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::SUCCESS);
 
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     OGREnvelope env;
@@ -148,7 +149,7 @@ TEST(MapTests, TestProject) {
 
 
     // axis Y is normal
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, false), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, false), ngsErrorCodes::SUCCESS);
 
     // World is from (1000, 500) to (3560, 2420), 2560x1920
     env.MinX = 1000; env.MinY = 500;
@@ -213,7 +214,7 @@ TEST(MapTests, TestProject) {
 
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 480, 640, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::SUCCESS);
 
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 480; env.MaxY = 640;
@@ -238,10 +239,6 @@ TEST(MapTests, TestProject) {
     EXPECT_EQ(dwPt.x, 480);
     EXPECT_EQ(dwPt.y, 0);
 
-
-    // axis Y inverted
-    EXPECT_EQ(mapStore.initMap (0, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
-
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 5120; env.MaxY = 3840;
     mapView->setExtent (env);
@@ -263,20 +260,21 @@ TEST(MapTests, TestProject) {
 
 TEST(MapTests, TestDrawing) {
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    unsigned char buffer[480 * 640 * 4];
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
+    /*unsigned char buffer[480 * 640 * 4];
     EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640, true), ngsErrorCodes::SUCCESS);
-    ngs::MapPtr defMap = mapStore.getMap (0);
+    */
+    ngs::MapPtr defMap = mapStore.getMap (1);
     ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     mapView->setBackgroundColor ({255, 0, 0, 255}); // RED color
-    counter = 0;
+    /*counter = 0;
     mapView->draw(ngsTestProgressFunc, nullptr);
     CPLSleep(0.3);
     EXPECT_EQ(buffer[0], 255);
     EXPECT_EQ(buffer[1], 0);
     EXPECT_EQ(buffer[2], 0);
-    EXPECT_GE(counter, 1);
+    EXPECT_GE(counter, 1);*/
     ngsRGBA color = mapView->getBackgroundColor ();
     EXPECT_EQ(color.R, 255);
     EXPECT_EQ(color.G, 0);
@@ -287,8 +285,8 @@ TEST(MapTests, TestCreateLayer) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
 
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    ngs::MapPtr defMap = mapStore.getMap (0);
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
+    ngs::MapPtr defMap = mapStore.getMap (1);
     ASSERT_NE(defMap, nullptr);
 
     ngs::DataStorePtr storage = ngs::DataStore::create("./tmp/ngs.gpkg");
@@ -310,8 +308,8 @@ TEST(MapTests, TestCreateLayer) {
 
 TEST(MapTests, TestLoadLayer) {
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    ngs::MapPtr defMap = mapStore.getMap (0);
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
+    ngs::MapPtr defMap = mapStore.getMap (1);
     ASSERT_NE(defMap, nullptr);
     EXPECT_NE (defMap->layerCount (), 0);
 }
@@ -320,8 +318,8 @@ TEST(MapTests, TestLoadLayer) {
 
 TEST(MapTests, TestDeleteMap) {
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 0);
-    ngs::MapPtr map = mapStore.getMap (0);
+    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
+    ngs::MapPtr map = mapStore.getMap (1);
     ASSERT_NE(map, nullptr);
     EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);

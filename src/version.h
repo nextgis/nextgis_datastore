@@ -22,10 +22,10 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define NGS_VERSION    "0.1.0"
+#define NGS_VERSION    "0.1.1"
 #define NGS_VERSION_MAJOR 0
 #define NGS_VERSION_MINOR 1
-#define NGS_VERSION_REV   0
+#define NGS_VERSION_REV   1
 
 #ifndef NGS_ABI
 #define NGS_ABI "Unknown"

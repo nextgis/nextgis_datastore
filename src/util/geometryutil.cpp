@@ -23,7 +23,7 @@
 
 OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
 {
-    OGREnvelope env;
+/*    OGREnvelope env;
     geometry->getEnvelope (&env);
     double envH = getEnvelopeHeight (env);
     double envW = getEnvelopeWidth (env);
@@ -39,7 +39,7 @@ OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
         out->addPoint(env.MaxX, env.MaxY);
         return out;
     }
-
+*/
     // TODO: do we need this?
     // geometry->SimplifyPreserveTopology
     return geometry->Simplify (distance * 3);

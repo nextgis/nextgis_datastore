@@ -24,7 +24,7 @@
 
 #include <iostream>
 
-#define GL_MAX_VERTEX_COUNT 65532 //5
+#define GL_MAX_VERTEX_COUNT 65532
 #define LOCK_TIME 0.3
 
 using namespace ngs;
@@ -65,6 +65,11 @@ void RenderLayer::prepareRender(OGREnvelope extent, double zoom, float level)
     m_renderExtent = extent;
     m_renderZoom = zoom;
     m_renderLevel = level;
+
+    // create or refill virtual tiles for current extent and zooms
+
+    if(m_hPrepareThread)
+        cancelPrepareRender ();
     m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
 }
 
@@ -76,7 +81,23 @@ void RenderLayer::cancelPrepareRender()
         m_cancelPrepare = true;
         // wait thread exit
         CPLJoinThread(m_hPrepareThread);
+        m_hPrepareThread = nullptr;
     }
+}
+
+char RenderLayer::getCloseOvr()
+{
+    float diff = 18;
+    float currentDiff;
+    char zoom = 18;
+    for(auto sampleDist : gSampleDists) {
+        currentDiff = sampleDist.second - m_renderZoom;
+        if(currentDiff > 0 && currentDiff < diff) {
+            diff = currentDiff;
+            zoom = sampleDist.second;
+        }
+    }
+    return zoom;
 }
 
 //------------------------------------------------------------------------------
@@ -127,18 +148,10 @@ void FeatureRenderLayer::fillRenderBuffers()
         geomFieldName = featureDataset->getGeometryColumn ();
     }
     else {
-        float diff = 18;
-        float currentDiff;
-        char zoom = 18;
-        for(auto sampleDist : gSampleDists) {
-            currentDiff = sampleDist.second - m_renderZoom;
-            if(currentDiff > 0 && currentDiff < diff) {
-                diff = currentDiff;
-                zoom = sampleDist.second;
-            }
-        }
+        char zoom = getCloseOvr();
         if(zoom < 18) {
-            geomFieldName.Printf ("ngs_geom_%d, %s", zoom, featureDataset->getGeometryColumn ().c_str ());
+            geomFieldName.Printf ("ngs_geom_%d, %s", zoom,
+                                  featureDataset->getGeometryColumn ().c_str ());
             originalGeom = false;
         }
         else {

@@ -21,36 +21,8 @@
 #ifndef GLVIEW_H
 #define GLVIEW_H
 
-#include "api_priv.h"
+#include "gldisplay.h"
 #include "matrix.h"
-
-#if __APPLE__
-    #include "TargetConditionals.h"
-    #if TARGET_OS_IPHONE
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
-    #elif TARGET_IPHONE_SIMULATOR
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
-    #elif TARGET_OS_MAC
-        #include <OpenGL/OpenGL.h>
-        #include <OpenGL/gl.h>
-    #else
-        #error Unsupported Apple platform
-    #endif
-#elif __ANDROID__
-    #define GL_GLEXT_PROTOTYPES
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
-#else
-    #define GL_GLEXT_PROTOTYPES
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
-//    #include <GL/gl.h>
-//    #include <GL/glext.h>
-#endif
-
-#include "EGL/egl.h"
 
 #include <vector>
 
@@ -69,19 +41,11 @@ typedef struct _glrgb {
 typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
 typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*/
 
-#if defined(_DEBUG)
-#define ngsCheckGLEerror(cmd) {cmd; checkGLError(#cmd);}
-#define ngsCheckEGLEerror(cmd) {cmd; checkEGLError(#cmd);}
-#else
-#define ngsCheckGLEerror(cmd) (cmd)
-#define ngsCheckEGLEerror(cmd) (cmd)
-#endif
-
 class GlView
 {
 public:
     GlView();
-    ~GlView();
+    virtual ~GlView();
     bool init();
     void setSize(int width, int height);
     bool isOk() const;
@@ -94,22 +58,18 @@ public:
     void drawPolygons(const vector<GLfloat> &vertices,
                       const vector<GLushort> &indices) const;
 protected:
-    GLuint prepareProgram();
+    virtual void loadProgram();
+    virtual GLuint prepareProgram();
     bool checkProgramLinkStatus(GLuint obj) const;
     bool checkShaderCompileStatus(GLuint obj) const;
-    void reportGlStatus(GLuint obj) const;
-    bool checkGLError(const char *cmd) const;
     GLuint loadShader(GLenum type, const char *shaderSrc);
-    bool checkEGLError(const char *cmd) const;
-    bool createFBO(int width, int height);
-    void destroyFBO();
+    virtual void loadExtensions();
+    virtual bool createSurface() = 0;
 
 protected:
-
-    EGLDisplay m_eglDisplay;
+    GlDisplayPtr m_glDisplay;
     EGLContext m_eglCtx;
     EGLSurface m_eglSurface;
-    EGLConfig m_eglConf;
 
     GlColor m_bkColor;
     int m_displayWidth, m_displayHeight;
@@ -124,12 +84,56 @@ protected:
 protected:
     GLuint m_programId;
 
+
+};
+
+class GlOffScreenView : public GlView
+{
+public:
+    GlOffScreenView();
+    virtual ~GlOffScreenView();
+
+protected:
+    virtual bool createSurface() override;
+    bool createFBO(int width, int height);
+    void destroyFBO();
 //FBO
 protected:
     GLuint m_defaultFramebuffer;
     GLuint m_renderbuffers[2];
 };
 
+class GlFuctions
+{
+public:
+    GlFuctions();
+    bool init();
+    bool isOk() const;
+    void setBackgroundColor(const ngsRGBA &color);
+    void clearBackground();
+    void prepare(const Matrix4& mat);
+
+    // Draw functions
+    void testDraw() const;
+    void testDrawPreserved() const;
+    void drawPolygons(const vector<GLfloat> &vertices,
+                      const vector<GLushort> &indices) const;
+protected:
+    virtual bool loadProgram();
+    virtual GLuint prepareProgram();
+    bool checkProgramLinkStatus(GLuint obj) const;
+    bool checkShaderCompileStatus(GLuint obj) const;
+    GLuint loadShader(GLenum type, const char *shaderSrc);
+    virtual bool loadExtensions();
+
+// shaders
+protected:
+    GLuint m_programId;
+    GlColor m_bkColor;
+    bool m_extensionLoad, m_programLoad, m_pBkChanged;
+};
+
 }
+
 
 #endif // GLVIEW_H

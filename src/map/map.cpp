@@ -31,8 +31,7 @@ using namespace ngs;
 
 Map::Map() : m_name(DEFAULT_MAP_NAME),
     m_epsg(DEFAULT_EPSG), m_minX(DEFAULT_MIN_X), m_minY(DEFAULT_MIN_Y),
-    m_maxX(DEFAULT_MAX_X), m_maxY(DEFAULT_MAX_Y), m_deleted(false),
-    m_bkChanged(true)
+    m_maxX(DEFAULT_MAX_X), m_maxY(DEFAULT_MAX_Y)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -40,8 +39,7 @@ Map::Map() : m_name(DEFAULT_MAP_NAME),
 Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
          double minX, double minY, double maxX, double maxY) :
     m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_deleted(false),
-    m_bkChanged(true)
+    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -55,8 +53,7 @@ Map::Map(const CPLString &name, const CPLString &description,
          unsigned short epsg, double minX, double minY, double maxX, double maxY,
          DataStorePtr dataStore) :
     m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_deleted(false),
-    m_bkChanged(true), m_DataStore(dataStore)
+    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_DataStore(dataStore)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -159,8 +156,8 @@ int Map::open(const char *path)
         m_minY = root.getDouble (MAP_MIN_Y, DEFAULT_MIN_Y);
         m_maxX = root.getDouble (MAP_MAX_X, DEFAULT_MAX_X);
         m_maxY = root.getDouble (MAP_MAX_Y, DEFAULT_MAX_Y);
-        m_bkColor = ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR, ngsRGBA2HEX(m_bkColor)));
-        m_bkChanged = true;
+        m_bkColor = ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR,
+                                                 ngsRGBA2HEX(m_bkColor)));
 
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
@@ -181,9 +178,6 @@ int Map::open(const char *path)
 
 int Map::save(const char *path)
 {
-    if(m_deleted)
-        return ngsErrorCodes::SAVE_FAILED;
-
     JSONDocument doc;
     JSONObject root = doc.getRoot ();
 
@@ -209,13 +203,8 @@ int Map::save(const char *path)
 
 int Map::destroy()
 {
-    if(m_deleted) {
-        return ngsErrorCodes::DELETE_FAILED;
-    }
-
     if(m_path.empty ()) {
-        m_deleted = true;
-        return ngsErrorCodes::SUCCESS;    m_bkColor = {210, 245, 255, 255};
+        return ngsErrorCodes::SUCCESS;
     }
 
 
@@ -230,12 +219,7 @@ int Map::destroy()
 int Map::close()
 {
     m_layers.clear ();
-    m_deleted = true;
-}
-
-bool Map::isDeleted() const
-{
-    return m_deleted;
+    return ngsErrorCodes::SUCCESS;
 }
 
 ngsRGBA Map::getBackgroundColor() const
@@ -246,13 +230,7 @@ ngsRGBA Map::getBackgroundColor() const
 int Map::setBackgroundColor(const ngsRGBA &color)
 {
     m_bkColor = color;
-    m_bkChanged = true;
     return ngsErrorCodes::SUCCESS;
-}
-
-bool Map::isBackgroundChanged() const
-{
-    return m_bkChanged;
 }
 
 int Map::createLayer(const CPLString &name, DatasetPtr dataset)
@@ -265,11 +243,6 @@ int Map::createLayer(const CPLString &name, DatasetPtr dataset)
 size_t Map::layerCount() const
 {
     return m_layers.size();
-}
-
-void Map::setBackgroundChanged(bool bkChanged)
-{
-    m_bkChanged = bkChanged;
 }
 
 LayerPtr Map::createLayer(Layer::Type /*type*/)

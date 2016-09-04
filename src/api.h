@@ -28,17 +28,18 @@
  * @brief The NextGIS store and visualisation library error codes enum
  */
 enum ngsErrorCodes {
-    SUCCESS = 0,        /**< success */
-    UNEXPECTED_ERROR,   /**< unexpected error */
-    PATH_NOT_SPECIFIED, /**< path is not specified */
-    INVALID,            /**< path, map, structure, etc. is invalid */
-    UNSUPPORTED,        /**< the feature is unsupported */
+    SUCCESS = 0,        /**< Success */
+    UNEXPECTED_ERROR,   /**< Unexpected error */
+    PATH_NOT_SPECIFIED, /**< Path is not specified */
+    INVALID,            /**< Path, map, structure, etc. is invalid */
+    UNSUPPORTED,        /**< The feature is unsupported */
     CREATE_FAILED,      /**< Create failed */
-    DELETE_FAILED,      /**< Faild to delete file, folder or something else */
-    SAVE_FAILED,        /**< Faild to save file, folder or something else */
-    OPEN_FAILED,        /**< Faild to open file, folder or something else */
-    INSERT_FAILED,      /**< insert new feature failed */
-    UPDATE_FAILED,      /**< update feature failed */
+    DELETE_FAILED,      /**< Failed to delete file, folder or something else */
+    SAVE_FAILED,        /**< Failed to save file, folder or something else */
+    SET_FAILED,         /**< Failed to set value */
+    OPEN_FAILED,        /**< Failed to open file, folder or something else */
+    INSERT_FAILED,      /**< Insert new feature failed */
+    UPDATE_FAILED,      /**< Update feature failed */
     INIT_FAILED,        /**< Initialise failed */
     COPY_FAILED,        /**< Copy failed */
     MOVE_FAILED,        /**< Move failed */
@@ -101,6 +102,23 @@ typedef struct _ngsRGBA {
     unsigned char A;
 } ngsRGBA;
 
+typedef struct _ngsCoordinate {
+    double X;
+    double Y;
+    double Z;
+} ngsCoordinate;
+
+typedef struct _ngsPosition {
+    int X;
+    int Y;
+} ngsPosition;
+
+enum ngsDirection {
+    X = 0,
+    Y,
+    Z
+};
+
 /**
  * Common functions
  */
@@ -130,25 +148,33 @@ NGS_EXTERNC int ngsDataStoreLoad(const char* name, const char* path,
  *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
  *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
-NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
+NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);
-NGS_EXTERNC int ngsMapOpen(const char* path);
-NGS_EXTERNC int ngsMapSave(unsigned int mapId, const char* path);
-NGS_EXTERNC int ngsMapClose(unsigned int mapId);
-NGS_EXTERNC int ngsMapInit(unsigned int mapId, void* imageBufferPointer,
-                           int width, int height, int isYAxisInverted);
-NGS_EXTERNC int ngsMapDraw(unsigned int mapId, ngsProgressFunc callback,
+NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
+NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
+NGS_EXTERNC int ngsMapClose(unsigned char mapId);
+NGS_EXTERNC int ngsMapInit(unsigned char mapId);
+NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
+                           int isYAxisInverted);
+NGS_EXTERNC int ngsMapDraw(unsigned char mapId, ngsProgressFunc callback,
                            void* callbackData);
-NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned int mapId, unsigned char R,
+NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);
-NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned int mapId);
-NGS_EXTERNC int ngsMapCreateLayer(unsigned int mapId, const char* name,
+NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
+NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
                                const char* path);
-NGS_EXTERNC int ngsMapSetDisplayCenter(unsigned int mapId, int x, int y);
-NGS_EXTERNC int ngsMapGetDisplayCenter(unsigned int mapId, int* x, int* y);
-NGS_EXTERNC int ngsMapSetScale(unsigned int mapId, double scale);
-NGS_EXTERNC int ngsMapGetScale(unsigned int mapId, double* scale);
+NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
+NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
+NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
+NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
+NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
+                                double rotate);
+NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
+NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, int x, int y);
+NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, int w, int h);
+NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
+NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 
 #endif // API_H

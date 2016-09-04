@@ -24,6 +24,7 @@
 #include "ogr_core.h"
 
 #include "matrix.h"
+#include "api.h"
 
 namespace ngs {
 
@@ -35,9 +36,8 @@ public:
 
     int getDisplayWidht() const;
     int getDisplayHeight() const;
-    bool isSizeChanged() const;
-    double getRotate() const;
-    void setRotate(double rotate);
+    double getRotate(enum ngsDirection dir) const;
+    bool setRotate(enum ngsDirection dir, double rotate);
 
     OGREnvelope getExtent() const;
     OGRRawPoint getCenter() const;
@@ -53,19 +53,17 @@ public:
     Matrix4 getSceneMatrix() const;
 
 protected:
-    void setSizeChanged(bool sizeChanged);
     bool updateExtent();
     void initMatrices();
 protected:
     int m_displayWidht, m_displayHeight;
-    bool m_sizeChanged;
     OGRRawPoint m_center;
-    double m_rotate;
+    double m_rotate[3];
     double m_scale, m_scaleScene, m_scaleView, m_scaleWorld;
-    OGREnvelope m_extent;
+    OGREnvelope m_extent, m_rotateExtent;
     double m_ratio;
     bool m_isYAxisInverted;
-    /*
+    /* NOTE:
      * sceneMatrix transform from world coordinates to GL coordinates -1 x 1
      * viewMatrix transform from scene coordinates to display coordinates 640 x 480
      */

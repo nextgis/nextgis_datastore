@@ -55,6 +55,8 @@ public:
     virtual double render(const GlView* glView) = 0;
 protected:
     virtual void fillRenderBuffers() = 0;
+    char getCloseOvr();
+
 protected:
     bool m_cancelPrepare;
     CPLJoinableThread* m_hPrepareThread;

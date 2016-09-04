@@ -49,37 +49,44 @@ public:
      * @param maxY maximum y
      * @return -1 if some error occures or map Id
      */
-    virtual int createMap(const CPLString& name, const CPLString& description,
+    virtual unsigned char createMap(const CPLString& name, const CPLString& description,
                           unsigned short epsg, double minX, double minY,
                           double maxX, double maxY);
-    virtual int createMap(const CPLString& name, const CPLString& description,
+    virtual unsigned char createMap(const CPLString& name, const CPLString& description,
                           unsigned short epsg, double minX, double minY,
                           double maxX, double maxY, DataStorePtr dataStore);
     /**
      * @brief map count in storage
      * @return map count
      */
-    virtual unsigned int mapCount() const;
-    virtual int openMap(const char* path);
-    virtual int openMap(const char* path, DataStorePtr dataStore);
-    virtual int saveMap(unsigned int mapId, const char* path);
-    virtual int closeMap(unsigned int mapId);
-    virtual MapPtr getMap(unsigned int mapId);
-    int initMap(unsigned int mapId, void *buffer, int width, int height, bool isYAxisInverted);
-    int drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
+    virtual unsigned char mapCount() const;
+    virtual unsigned char openMap(const char* path);
+    virtual unsigned char openMap(const char* path, DataStorePtr dataStore);
+    virtual int saveMap(unsigned char mapId, const char* path);
+    virtual int closeMap(unsigned char mapId);
+    virtual MapPtr getMap(unsigned char mapId);
+    int initMap(unsigned char mapId);
+    int setMapSize(unsigned char mapId, int width, int height, bool isYAxisInverted);
+    int drawMap(unsigned char mapId, ngsProgressFunc progressFunc,
                 void* progressArguments = nullptr);
     void onLowMemory();
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
-    ngsRGBA getMapBackgroundColor(unsigned int mapId);
-    int setMapBackgroundColor(unsigned int mapId, const ngsRGBA& color);
-    int setMapDisplayCenter(unsigned int mapId, int x, int y);
-    int getMapDisplayCenter(unsigned int mapId, int &x, int &y);
-    int setMapScale(unsigned int mapId, double scale);
-    int getMapScale(unsigned int mapId, double &scale);
-
+    ngsRGBA getMapBackgroundColor(unsigned char mapId);
+    int setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
+    int setMapCenter(unsigned char mapId, double x, double y);
+    ngsCoordinate getMapCenter(unsigned char mapId);
+    int setMapScale(unsigned char mapId, double scale);
+    double getMapScale(unsigned char mapId);
+    int setMapRotate(unsigned char mapId, enum ngsDirection dir, double rotate);
+    double getMapRotate(unsigned char mapId, enum ngsDirection dir);
+    ngsCoordinate getMapCoordinate(unsigned char mapId, int x, int y);
+    ngsPosition getDisplayPosition(unsigned char mapId, double x, double y);
+    ngsCoordinate getMapDistance(unsigned char mapId, int w, int h);
+    ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
 protected:
-    vector<MapPtr> m_maps;
+    unsigned char m_mapCounter;
+    map<unsigned char, MapPtr> m_maps; // max 255 maps can be simultaneously opened
     ngsNotifyFunc m_notifyFunc;
 };
 

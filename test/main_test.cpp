@@ -121,12 +121,12 @@ TEST(BasicTests, TestCreateTMS) {
 }
 
 TEST(BasicTests, TestInitMap) {
-    int mapId = ngsMapCreate(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
+    unsigned char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
                              DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
                              DEFAULT_MAX_Y);
-    EXPECT_GE(mapId, 0);
-    EXPECT_NE(ngsMapInit (1, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(ngsMapInit (mapId, nullptr, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_GE(mapId, 1);
+    EXPECT_NE(ngsMapInit (2), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsMapInit (mapId), ngsErrorCodes::SUCCESS);
     counter = 0;
     EXPECT_EQ(ngsMapDraw(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
     CPLSleep(0.2);

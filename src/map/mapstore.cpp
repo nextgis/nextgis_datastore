@@ -29,11 +29,13 @@
 
 using namespace ngs;
 
+#define INVALID_MAPID 0
+
 //------------------------------------------------------------------------------
 // MapStore
 //------------------------------------------------------------------------------
 
-MapStore::MapStore() : m_notifyFunc(nullptr)
+MapStore::MapStore() : m_mapCounter(0), m_notifyFunc(nullptr)
 {
 
 }
@@ -43,74 +45,71 @@ MapStore::~MapStore()
 
 }
 
-int MapStore::createMap(const CPLString &name, const CPLString &description,
+unsigned char MapStore::createMap(const CPLString &name, const CPLString &description,
                         unsigned short epsg, double minX, double minY,
                         double maxX, double maxY)
 {
     MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY));
-    m_maps.push_back (newMap);
-
-    return static_cast<int>(m_maps.size () - 1);
+    m_maps[++m_mapCounter] = newMap;
+    return m_mapCounter;
 }
 
-int MapStore::createMap(const CPLString &name, const CPLString &description,
+unsigned char MapStore::createMap(const CPLString &name, const CPLString &description,
                         unsigned short epsg, double minX, double minY,
                         double maxX, double maxY, DataStorePtr dataStore)
 {
     MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY,
                               dataStore));
-    m_maps.push_back (newMap);
-
-    return static_cast<int>(m_maps.size () - 1);
+    m_maps[++m_mapCounter] = newMap;
+    return m_mapCounter;
 }
 
-unsigned int MapStore::mapCount() const
+unsigned char MapStore::mapCount() const
 {    
-    return static_cast<unsigned int>(m_maps.size ());
+    return static_cast<unsigned char>(m_maps.size ());
 }
 
-int MapStore::openMap(const char *path)
+unsigned char MapStore::openMap(const char *path)
 {
     MapPtr newMap(new MapView());
     int nRes = newMap->open (path);
     if(nRes != ngsErrorCodes::SUCCESS)
-        return NOT_FOUND;
+        return INVALID_MAPID;
 
-    m_maps.push_back (newMap);
-    return static_cast<int>(m_maps.size () - 1);
+    m_maps[++m_mapCounter] = newMap;
+    return m_mapCounter;
 }
 
-int MapStore::openMap(const char *path, DataStorePtr dataStore)
+unsigned char MapStore::openMap(const char *path, DataStorePtr dataStore)
 {
     MapPtr newMap(new MapView(dataStore));
     int nRes = newMap->open (path);
     if(nRes != ngsErrorCodes::SUCCESS)
-        return NOT_FOUND;
+        return INVALID_MAPID;
 
-    m_maps.push_back (newMap);
-    return static_cast<int>(m_maps.size () - 1);
-
+    m_maps[++m_mapCounter] = newMap;
+    return m_mapCounter;
 }
 
-int MapStore::saveMap(unsigned int mapId, const char *path)
+int MapStore::saveMap(unsigned char mapId, const char *path)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::SAVE_FAILED;
     return m_maps[mapId]->save (path);
 }
 
-int MapStore::closeMap(unsigned int mapId)
+int MapStore::closeMap(unsigned char mapId)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::CLOSE_FAILED;
-    return m_maps[mapId]->close ();
+    int nRes = m_maps[mapId]->close ();
+    if(nRes == ngsErrorCodes::SUCCESS)
+        m_maps[mapId].reset ();
+    return nRes;
 }
 
-MapPtr MapStore::getMap(unsigned int mapId)
+MapPtr MapStore::getMap(unsigned char mapId)
 {
-    MapPtr map;
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
-        return map;
     return m_maps[mapId];
 }
 
@@ -124,34 +123,47 @@ void MapStore::unsetNotifyFunc()
     m_notifyFunc = nullptr;
 }
 
-ngsRGBA MapStore::getMapBackgroundColor(unsigned int mapId)
+ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return {0,0,0,0};
     return m_maps[mapId]->getBackgroundColor ();
 }
 
-int MapStore::setMapBackgroundColor(unsigned int mapId, const ngsRGBA &color)
+int MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::INVALID;
     return m_maps[mapId]->setBackgroundColor (color);
 }
 
-int MapStore::initMap(unsigned int mapId, void *buffer, int width, int height, bool isYAxisInverted)
+int MapStore::setMapSize(unsigned char mapId, int width, int height,
+                      bool isYAxisInverted)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
         return ngsErrorCodes::INVALID;
-    return pMapView->initBuffer (buffer, width, height, isYAxisInverted);
+    pMapView->setDisplaySize (width, height, isYAxisInverted);
+    return ngsErrorCodes::SUCCESS;
 }
 
-int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
+
+int MapStore::initMap(unsigned char mapId)
+{
+    if(!m_maps[mapId])
+        return ngsErrorCodes::INVALID;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return ngsErrorCodes::INVALID;
+    return pMapView->initDisplay ();
+}
+
+int MapStore::drawMap(unsigned char mapId, ngsProgressFunc progressFunc,
                       void *progressArguments)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
@@ -160,58 +172,142 @@ int MapStore::drawMap(unsigned int mapId, ngsProgressFunc progressFunc,
     return pMapView->draw (progressFunc, progressArguments);
 }
 
-int MapStore::setMapDisplayCenter(unsigned int mapId, int x, int y)
+int MapStore::setMapCenter(unsigned char mapId, double x, double y)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
         return ngsErrorCodes::INVALID;
 
-    OGRRawPoint ptDisplay(x, y);
-    OGRRawPoint ptWorld = pMapView->displayToWorld(ptDisplay);
-
-    return pMapView->setCenter(ptWorld.x, ptWorld.y);
+    return pMapView->setCenter(x, y) ? ngsErrorCodes::SUCCESS :
+                                       ngsErrorCodes::SET_FAILED;
 }
 
-int MapStore::getMapDisplayCenter(unsigned int mapId, int &x, int &y)
+ngsCoordinate MapStore::getMapCenter(unsigned char mapId)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
-        return ngsErrorCodes::INVALID;
+    ngsCoordinate out = {0.0, 0.0, 0.0};
+    if(!m_maps[mapId])
+        return out;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return out;
 
     OGRRawPoint ptWorld = pMapView->getCenter();
-    OGRRawPoint ptDisplay = pMapView->worldToDisplay(ptWorld);
-    x = static_cast<int>(lround(ptDisplay.x));
-    y = static_cast<int>(lround(ptDisplay.y));
+    out.X = ptWorld.x;
+    out.Y = ptWorld.y;
 
-    return ngsErrorCodes::SUCCESS;
+    return out;
 }
 
-int MapStore::setMapScale(unsigned int mapId, double scale)
+int MapStore::setMapScale(unsigned char mapId, double scale)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
         return ngsErrorCodes::INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
         return ngsErrorCodes::INVALID;
 
-    return pMapView->setScale(scale);
+    return pMapView->setScale(scale) ? ngsErrorCodes::SUCCESS :
+                                       ngsErrorCodes::SET_FAILED;
 }
 
-int MapStore::getMapScale(unsigned int mapId, double &scale)
+double MapStore::getMapScale(unsigned char mapId)
 {
-    if(mapId >= mapCount () || m_maps[mapId]->isDeleted ())
+    if(!m_maps[mapId])
+        return 1.0;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return 1.0;
+
+    return pMapView->getScale();
+}
+
+int MapStore::setMapRotate(unsigned char mapId, ngsDirection dir, double rotate)
+{
+    if(!m_maps[mapId])
         return ngsErrorCodes::INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
         return ngsErrorCodes::INVALID;
 
-    scale = pMapView->getScale();
+    return pMapView->setRotate(dir, rotate) ? ngsErrorCodes::SUCCESS :
+                                         ngsErrorCodes::SET_FAILED;
 
-    return ngsErrorCodes::SUCCESS;
+}
+
+double MapStore::getMapRotate(unsigned char mapId, ngsDirection dir)
+{
+    if(!m_maps[mapId])
+        return 0.0;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return 0.0;
+
+    return pMapView->getRotate (dir);
+}
+
+ngsCoordinate MapStore::getMapCoordinate(unsigned char mapId, int x, int y)
+{
+    ngsCoordinate out = { 0.0, 0.0, 0.0 };
+    if(!m_maps[mapId])
+        return out;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return out;
+
+    OGRRawPoint pt = pMapView->displayToWorld (OGRRawPoint(x, y));
+    out.X = pt.x;
+    out.Y = pt.y;
+    return out;
+}
+
+ngsPosition MapStore::getDisplayPosition(unsigned char mapId, double x, double y)
+{
+    ngsPosition out = {0, 0};
+    if(!m_maps[mapId])
+        return out;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return out;
+
+    OGRRawPoint pt = pMapView->worldToDisplay (OGRRawPoint(x, y));
+    out.X = static_cast<int>(pt.x);
+    out.Y = static_cast<int>(pt.y);
+    return out;
+}
+
+ngsCoordinate MapStore::getMapDistance(unsigned char mapId, int w, int h)
+{
+    ngsCoordinate out = { 0.0, 0.0, 0.0 };
+    if(!m_maps[mapId])
+        return out;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return out;
+
+    OGRRawPoint beg = pMapView->displayToWorld (OGRRawPoint(0, 0));
+    OGRRawPoint end = pMapView->displayToWorld (OGRRawPoint(w, h));
+
+    out.X = end.x - beg.x;
+    out.Y = end.y - beg.y;
+    return out;
+}
+
+ngsPosition MapStore::getDisplayLength(unsigned char mapId, double w, double h)
+{
+    ngsPosition out = {0, 0};
+    if(!m_maps[mapId])
+        return out;
+    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    if(nullptr == pMapView)
+        return out;
+
+    OGRRawPoint beg = pMapView->worldToDisplay (OGRRawPoint(0, 0));
+    OGRRawPoint end = pMapView->worldToDisplay (OGRRawPoint(w, h));
+    out.X = static_cast<int>(end.x - beg.x);
+    out.Y = static_cast<int>(end.y - beg.y);
+    return out;
 }
 
 void MapStore::onLowMemory()

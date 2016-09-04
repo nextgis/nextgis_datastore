@@ -27,11 +27,8 @@
 
 namespace ngs {
 
-void RenderingThread(void * view);
-
 class MapView : public Map, public MapTransform
 {
-    friend void RenderingThread(void * view);
 public:
     enum class DrawStage {
         Start = 1,
@@ -53,30 +50,24 @@ public:
     virtual ~MapView();
     bool isDisplayInit() const;
     int initDisplay();
-    int errorCode() const;
-    int initBuffer(void* buffer, int width, int height, bool isYAxisInverted);
+//    int initBuffer(void* buffer, int width, int height, bool isYAxisInverted);
     int draw(const ngsProgressFunc &progressFunc, void* progressArguments = nullptr);
     DrawStage getDrawStage() const;
 
 protected:
-    bool render(const GlView* glView);
+//    bool render(const GlView* glView);
     void prepareRender();
     void cancelPrepareRender();
-    void setDisplayInit(bool displayInit);
     void setDrawStage(const DrawStage &drawStage);
-    void *getBufferData() const;
     int notify(double complete, const char* message);
 
 protected:
     bool m_displayInit;
-    int m_errorCode;
-    CPLJoinableThread* m_hThread;
-    bool m_cancel;
-    void* m_bufferData;    
     ngsProgressFunc m_progressFunc;
     void* m_progressArguments;
     double m_renderPercent;
     enum DrawStage m_drawStage;
+    GlFuctions m_glFunctions;
 
     // Map interface
 public:
@@ -87,7 +78,7 @@ protected:
 
     // Map interface
 public:
-    virtual int close() override;
+    virtual int setBackgroundColor(const ngsRGBA &color) override;
 };
 
 }

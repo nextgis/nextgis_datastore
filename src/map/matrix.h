@@ -46,9 +46,11 @@ public:
     void rotateY(double rad);
     void rotateZ(double rad);
     void scale(double x, double y, double z);
+    void rotate(double x, double y, double z);
     void multiply(const Matrix4& other);
     OGRRawPoint project(const OGRRawPoint &pt) const;
     array<float, 16> dataF() const;
+
 private:
     array<double, 16> m_values;
 };

@@ -265,6 +265,35 @@ void Matrix4::scale(double x, double y, double z)
     m_values[11] *= z;
 }
 
+void Matrix4::rotate(double x, double y, double z)
+{
+    double A       = cos(x);
+    double B       = sin(x);
+    double C       = cos(y);
+    double D       = sin(y);
+    double E       = cos(z);
+    double F       = sin(z);
+
+    double AD      =   A * D;
+    double BD      =   B * D;
+
+    Matrix4 mat;
+    mat.m_values[0]  =   C * E;
+    mat.m_values[1]  =  -C * F;
+    mat.m_values[2]  =  -D;
+    mat.m_values[4]  = -BD * E + A * F;
+    mat.m_values[5]  =  BD * F + A * E;
+    mat.m_values[6]  =  -B * C;
+    mat.m_values[8]  =  AD * E + B * F;
+    mat.m_values[9]  = -AD * F + B * E;
+    mat.m_values[10] =   A * C;
+
+    mat.m_values[3]  =  mat.m_values[7] = mat.m_values[11] = mat.m_values[12] = mat.m_values[13] = mat.m_values[14] = 0;
+    mat.m_values[15] =  1;
+
+    multiply (mat);
+}
+
 void Matrix4::multiply(const Matrix4 &other)
 {
     double a00 = m_values[0],

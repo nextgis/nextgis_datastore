@@ -29,7 +29,7 @@ using namespace std;
 using namespace ngs;
 
 MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
-    m_displayHeight(height), m_sizeChanged(true), m_rotate(0),
+    m_displayHeight(height), m_rotate{0},
     m_ratio(DEFAULT_RATIO)
 {
     setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
@@ -51,24 +51,15 @@ int MapTransform::getDisplayWidht() const
     return m_displayWidht;
 }
 
-bool MapTransform::isSizeChanged() const
+double MapTransform::getRotate(enum ngsDirection dir) const
 {
-    return m_sizeChanged;
+    return m_rotate[dir];
 }
 
-void MapTransform::setSizeChanged(bool sizeChanged)
+bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
 {
-    m_sizeChanged = sizeChanged;
-}
-
-double MapTransform::getRotate() const
-{
-    return m_rotate;
-}
-
-void MapTransform::setRotate(double rotate)
-{
-    m_rotate = rotate;
+    m_rotate[dir] = rotate;
+    return updateExtent();
 }
 
 OGREnvelope MapTransform::getExtent() const
@@ -93,7 +84,6 @@ OGRRawPoint MapTransform::displayToWorld(const OGRRawPoint &pt)
 
 void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
-    m_sizeChanged = true;
     m_displayWidht = width;
     m_displayHeight = height;
     m_isYAxisInverted = isYAxisInverted;
@@ -143,8 +133,8 @@ bool MapTransform::setExtent(const OGREnvelope &env)
     scaleY = 1.0 / h;
     m_scaleScene = min(scaleX, scaleY);
 
-    if(!isEqual(m_rotate, 0.0)){
-        m_extent = rotateEnvelope (m_extent, m_rotate);
+    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+        m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
     }
 
     scaleX = w / (DEFAULT_MAX_X + DEFAULT_MAX_X);
@@ -169,8 +159,8 @@ bool MapTransform::updateExtent()
     double scaleY = 1.0 / (halfHeight + halfHeight);
     m_scaleScene = min(scaleX, scaleY);
 
-    if(!isEqual(m_rotate, 0.0)){
-        m_extent = rotateEnvelope (m_extent, m_rotate);
+    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+        m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
     }
 
     scaleX = halfWidth / DEFAULT_MAX_X;
@@ -194,9 +184,30 @@ void MapTransform::initMatrices()
                              m_extent.MinY, m_extent.MaxY, -1, 1);
     }
 
-    if(!isEqual(m_rotate, 0.0)){
-        // TODO: rotate m_sceneMatrix
+    /*m_sceneMatrix. rotate (-m_rotate[ngsDirection::X], -m_rotate[ngsDirection::Y], -m_rotate[ngsDirection::Z]);*/
+
+    /*
+
+    if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
+        m_sceneMatrix.rotateX (m_rotate[ngsDirection::X]);
     }
+
+    if(!isEqual(m_rotate[ngsDirection::Y], 0.0)){
+        m_sceneMatrix.rotateY (m_rotate[ngsDirection::Y]);
+    }
+    */
+
+    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+        m_sceneMatrix.rotateZ (m_rotate[ngsDirection::Z]);
+    }
+
+    if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
+        Matrix4 per;
+        per.perspective (0.785398163, m_ratio, -1, 1);
+        m_sceneMatrix.multiply (per);
+    }
+
+    //m_sceneMatrix.rotateX (10 * M_PI / 180);
 
     // world -> scene inv matrix
     m_invSceneMatrix = m_sceneMatrix;

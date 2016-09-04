@@ -34,6 +34,7 @@ set(HHEADER_PRIV
     mapview.h
     matrix.h
     glview.h
+    gldisplay.h
     layer.h
     renderlayer.h
 )
@@ -45,6 +46,7 @@ set(CSOURCES
     mapview.cpp
     matrix.cpp
     glview.cpp
+    gldisplay.cpp
     layer.cpp
     renderlayer.cpp
 )

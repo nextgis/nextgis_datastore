@@ -31,139 +31,29 @@
 using namespace ngs;
 using namespace std;
 
-#define THREAD_LOOP_SLEEP 0.35
-
-void ngs::RenderingThread(void * view)
+MapView::MapView() : Map(), MapTransform(480, 640), m_displayInit(false)
 {
-    MapView* mapView = static_cast<MapView*>(view);
-    GlView glView;
-    if (!glView.init ()) {
-        mapView->m_errorCode = ngsErrorCodes::INIT_FAILED;
-        return;
-    }
-
-    mapView->m_errorCode = ngsErrorCodes::SUCCESS;
-    mapView->setDisplayInit (true);
-
-#ifdef _DEBUG
-    chrono::high_resolution_clock::time_point t1;
-#endif //_DEBUG
-
-    // start rendering loop here
-    while(!mapView->m_cancel){
-        if(mapView->m_sizeChanged){
-            // Put partially or full scene to buffer
-            //glView.fillBuffer (mapView->getBufferData ());
-            //mapView->notify (1.0, nullptr);
-
-            glView.setSize (mapView->getDisplayWidht (),
-                            mapView->getDisplayHeight ())  ;
-            mapView->m_sizeChanged = false;
-        }
-
-        if(!glView.isOk ()){
-#ifdef _DEBUG
-            cerr << "No surface to draw" << endl;
-#endif //_DEBUG
-            CPLError(CE_Failure, CPLE_OpenFailed, "Get GL version failed.");
-            CPLSleep(THREAD_LOOP_SLEEP);
-            continue;
-        }
-
-        switch(mapView->getDrawStage ()){
-        case MapView::DrawStage::Stop:
-#ifdef _DEBUG
-            cout << "MapView::DrawStage::Stop" << endl;
-#endif // _DEBUG
-            // Stop extract data threads
-            mapView->cancelPrepareRender ();
-            mapView->setDrawStage (MapView::DrawStage::Start);
-            break;
-        case MapView::DrawStage::Process:
-            if(mapView->render (&glView)) {
-                // if no more geodata - finish
-                //glView.draw ();
-                glView.fillBuffer (mapView->getBufferData ());
-                // if notify return false - set stage to done
-                mapView->notify (1.0, nullptr);
-                mapView->setDrawStage (MapView::DrawStage::Done);
-
-#ifdef _DEBUG
-            // benchmark
-            auto duration = chrono::duration_cast<chrono::milliseconds>(
-                        chrono::high_resolution_clock::now() - t1 ).count();
-            cout << "GL Canvas refresh: " << duration << " ms" << endl;
-#endif // _DEBUG
-
-            // one more notify
-            //CPLSleep(THREAD_LOOP_SLEEP);
-            //glView.fillBuffer (mapView->getBufferData ());
-            //mapView->notify (1.0, nullptr);
-            }
-
-            CPLSleep(THREAD_LOOP_SLEEP);
-            break;
-        case MapView::DrawStage::Start:
-#ifdef _DEBUG
-            cout << "MapView::DrawStage::Start" << endl;
-            // benchmark
-            t1 = chrono::high_resolution_clock::now();
-#endif // _DEBUG
-            if(mapView->isBackgroundChanged ()){
-                glView.setBackgroundColor (mapView->getBackgroundColor ());
-                mapView->setBackgroundChanged (false);
-            }
-
-            glView.prepare (mapView->getSceneMatrix ());
-            // Start extract data for current extent
-            mapView->prepareRender ();
-            mapView->setDrawStage (MapView::DrawStage::Process);
-            break;
-
-        case MapView::DrawStage::Done:
-            // if not tasks sleep 100ms
-            CPLSleep(THREAD_LOOP_SLEEP);
-        }
-    }
-
-#ifdef _DEBUG
-    cout << "Exit draw thread" << endl;
-#endif // _DEBUG
-
-    mapView->setDisplayInit (false);
-}
-
-MapView::MapView() : Map(), MapTransform(480, 640), m_displayInit(false),
-    m_cancel(false), m_bufferData(nullptr), m_progressFunc(nullptr)
-{
-    initDisplay();
 }
 
 MapView::MapView(const CPLString &name, const CPLString &description,
                  unsigned short epsg, double minX, double minY, double maxX,
                  double maxY) : Map(name, description, epsg, minX, minY, maxX,
                                     maxY), MapTransform(480, 640),
-    m_displayInit(false), m_cancel(false), m_bufferData(nullptr),
-    m_progressFunc(nullptr)
+    m_displayInit(false), m_progressFunc(nullptr)
 {
-    initDisplay();
 }
 
 MapView::MapView(DataStorePtr dataSource) : Map(dataSource),
-    MapTransform(480, 640), m_displayInit(false),
-    m_cancel(false), m_bufferData(nullptr), m_progressFunc(nullptr)
+    MapTransform(480, 640), m_displayInit(false), m_progressFunc(nullptr)
 {
-    initDisplay();
 }
 
 MapView::MapView(const CPLString &name, const CPLString &description,
                  unsigned short epsg, double minX, double minY, double maxX,
                  double maxY, DataStorePtr dataSource) : Map(name, description,
                     epsg, minX, minY, maxX, maxY, dataSource),
-    MapTransform(480, 640), m_displayInit(false), m_cancel(false),
-    m_bufferData(nullptr), m_progressFunc(nullptr)
+    MapTransform(480, 640), m_displayInit(false), m_progressFunc(nullptr)
 {
-    initDisplay();
 }
 
 MapView::~MapView()
@@ -178,39 +68,17 @@ bool MapView::isDisplayInit() const
 
 int MapView::initDisplay()
 {
-    m_hThread = CPLCreateJoinableThread(RenderingThread, this);
-    return m_errorCode;
-}
+    if(m_glFunctions.init ()) {
+        m_displayInit = true;
+        return ngsErrorCodes::SUCCESS;
+    }
 
-int MapView::errorCode() const
-{
-    return m_errorCode;
-}
-
-void MapView::setDisplayInit(bool displayInit)
-{
-    m_displayInit = displayInit;
-}
-
-void *MapView::getBufferData() const
-{
-    if(m_sizeChanged)
-        return nullptr;
-    return m_bufferData;
-}
-
-int MapView::initBuffer(void *buffer, int width, int height, bool isYAxisInverted)
-{
-    m_bufferData = buffer;
-
-    setDisplaySize (width, height, isYAxisInverted);
-
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::INIT_FAILED;
 }
 
 int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
 {
-    m_progressFunc = progressFunc;
+/*    m_progressFunc = progressFunc;
     m_progressArguments = progressArguments;
 
     if(m_drawStage == DrawStage::Process){
@@ -218,11 +86,15 @@ int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
     }
     else {
         m_drawStage = DrawStage::Start;
-    }
+    }*/
+
+    m_glFunctions.clearBackground ();
+    m_glFunctions.prepare (getSceneMatrix());
+    m_glFunctions.testDrawPreserved (); //.testDraw ();
 
     return ngsErrorCodes::SUCCESS;
 }
-
+/*
 bool MapView::render(const GlView *glView)
 {
     if(m_layers.empty())
@@ -237,7 +109,7 @@ bool MapView::render(const GlView *glView)
     }
 
 /*    glView->draw();
-    renderPercent = 1;*/
+    renderPercent = 1;*//*
 
     // Notify drawing progress
     renderPercent /= m_layers.size ();
@@ -248,6 +120,7 @@ bool MapView::render(const GlView *glView)
         return true;
     return isEqual(m_renderPercent, 1.0) ? true : false;
 }
+*/
 
 void MapView::prepareRender()
 {
@@ -316,14 +189,8 @@ LayerPtr MapView::createLayer(Layer::Type type)
 }
 
 
-int MapView::close()
+int ngs::MapView::setBackgroundColor(const ngsRGBA &color)
 {
-    m_cancel = true;
-    // wait thread exit
-    if(m_hThread) {
-        CPLJoinThread(m_hThread);
-        m_hThread = nullptr;
-    }
-
-    Map::close ();
+    m_glFunctions.setBackgroundColor(color);
+    return Map::setBackgroundColor (color);
 }

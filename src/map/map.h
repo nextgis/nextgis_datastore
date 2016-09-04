@@ -68,17 +68,13 @@ public:
     virtual int destroy();
     virtual int close();
 
-    bool isDeleted() const;
-
     ngsRGBA getBackgroundColor() const;
-    int setBackgroundColor(const ngsRGBA& color);
-    bool isBackgroundChanged() const;
+    virtual int setBackgroundColor(const ngsRGBA& color);
 
     virtual int createLayer(const CPLString &name, DatasetPtr dataset);
     size_t layerCount() const;
 
 protected:
-    void setBackgroundChanged(bool bkChanged);
     virtual LayerPtr createLayer(enum Layer::Type type);
 
 protected:
@@ -87,10 +83,8 @@ protected:
     CPLString m_path;
     unsigned short m_epsg;
     double m_minX, m_minY, m_maxX, m_maxY;
-    bool m_deleted;
     vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
-    bool m_bkChanged;
     DataStorePtr m_DataStore;
 };
 
