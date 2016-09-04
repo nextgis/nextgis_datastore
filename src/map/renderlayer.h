@@ -52,7 +52,7 @@ public:
      * @param glView GL view pointer
      * @return draw percent
      */
-    virtual double render(const GlView* glView) = 0;
+    //virtual double render(const GlView* glView) = 0;
 protected:
     virtual void fillRenderBuffers() = 0;
     char getCloseOvr();
@@ -84,7 +84,7 @@ protected:
 
     // RenderLayer interface
 public:
-    virtual double render(const GlView *glView) override;
+    //virtual double render(const GlView *glView) override;
 
 protected:
     vector<ngsVertexBufferPtr> m_pointBucket;

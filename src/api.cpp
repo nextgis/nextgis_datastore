@@ -750,7 +750,7 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, int x, int y)
 }
 
 /**
- * @brief ngsMapGetPosition Display position for geographic coordinates
+ * @brief ngsDisplayGetPosition Display position for geographic coordinates
  * @param mapId Map id
  * @param x X coordinate
  * @param y Y coordinate
@@ -762,12 +762,26 @@ ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
     return gMapStore->getDisplayPosition (mapId, x, y);
 }
 
+/**
+ * @brief ngsMapGetDistance Map distance from display length
+ * @param mapId Map id
+ * @param w Width
+ * @param h Height
+ * @return ngsCoordinate where X distance along x axis and Y along y axis
+ */
 ngsCoordinate ngsMapGetDistance(unsigned char mapId, int w, int h)
 {
     initMapStore();
     return gMapStore->getMapDistance (mapId, w, h);
 }
 
+/**
+ * @brief ngsDisplayGetLength Display length from map distance
+ * @param mapId Map id
+ * @param w Width
+ * @param h Height
+ * @return ngsPosition where X length along x axis and Y along y axis
+ */
 ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
 {
     initMapStore();

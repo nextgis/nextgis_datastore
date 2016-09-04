@@ -173,43 +173,46 @@ TEST(MatrixTests, TestRotate) {
 }
 
 TEST(MatrixTests, TestRotateByCenter) {
-    ngs::Matrix4 matWld2Scn = createMatix();
-    double rad = -90.0 * DEG2RAD;
-    matWld2Scn.invert ();
-    /* TODO: double aspectRatio;
-    double cosA = cos(rad);
-    double sinA = sin(rad);
-    double w = 480 * cosA + 640 * -sinA;
-    double h = 480 * sinA + 640 * cosA;
-    aspectRatio = h / w;
-    matWld2Scn.scale (aspectRatio, -aspectRatio, 1);*/
-    matWld2Scn.rotateZ (rad);
-    matWld2Scn.invert ();
-    ngs::Matrix4 matScn2Wld = createMatix();
-    matScn2Wld.invert ();
     OGRRawPoint pt, ppt;
     pt.x = 240.0;
     pt.y = 320.0;
+
+    ngs::Matrix4 matWld2Scn = createMatix();
+    ppt = matWld2Scn.project (pt);
+    // center not moved
+    EXPECT_DOUBLE_EQ(ppt.x, 0.0);
+    EXPECT_DOUBLE_EQ(ppt.y, 0.0);
+
+    double rad = 90.0 * DEG2RAD;
+    matWld2Scn.rotateZ (rad);
+
+    ppt = matWld2Scn.project (pt);
+    // center not moved
+    EXPECT_NE(ppt.x, 0.0);
+    EXPECT_NE(ppt.y, 0.0);
+
+    ngs::Matrix4 matScn2Wld = createMatix();
+    matScn2Wld.rotateZ (-rad);
+    matScn2Wld.invert ();
+
     matScn2Wld.multiply (matWld2Scn);
+
     ppt = matScn2Wld.project (pt);
     // center not moved
-    EXPECT_DOUBLE_EQ(ppt.x, 240.0);
-    EXPECT_DOUBLE_EQ(ppt.y, 320.0);
+    EXPECT_DOUBLE_EQ(ppt.x, -240.0);
+    EXPECT_DOUBLE_EQ(ppt.y, -320.0);
     // 1 unit shift
-    /* TODO: pt.x = 240.0;
-    pt.y = 321.0;
+    pt.x = 241.0;
+    pt.y = 320.0;
     ppt = matScn2Wld.project (pt);
-    EXPECT_DOUBLE_EQ(ppt.x, 241.0);
-    EXPECT_DOUBLE_EQ(ppt.y, 320.0);
-    */
+    EXPECT_DOUBLE_EQ(ppt.x, -241.0);
+    EXPECT_DOUBLE_EQ(ppt.y, -320.0);
 }
 
 TEST(MatrixTests, TestComplexProject) {
 
     int display_sqw = 100;
     double map_sqw = DEFAULT_MAX_X;
-    //    double map_sqw = 67108863; // max value with std::numeric_limits<double>::epsilon() in isEqual()
-
     bool m_isYAxisInverted = false;
     int m_displayWidht = display_sqw;
     int m_displayHeight = display_sqw;

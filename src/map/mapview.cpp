@@ -88,6 +88,13 @@ int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
         m_drawStage = DrawStage::Start;
     }*/
 
+    // just clear background
+    /*if(m_layers.empty()) {
+        m_glFunctions.clearBackground ();
+        return ngsErrorCodes::SUCCESS;
+    }*/
+
+
     m_glFunctions.clearBackground ();
     m_glFunctions.prepare (getSceneMatrix());
     m_glFunctions.testDrawPreserved (); //.testDraw ();

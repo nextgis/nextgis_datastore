@@ -329,6 +329,7 @@ void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
     }
 }
 
+/*
 double FeatureRenderLayer::render(const GlView *glView)
 {
     // draw elements
@@ -350,3 +351,4 @@ double FeatureRenderLayer::render(const GlView *glView)
     // report percent
     return m_renderPercent;
 }
+*/

@@ -214,7 +214,7 @@ TEST(MapTests, TestProject) {
 
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 480, 640, true), ngsErrorCodes::SUCCESS);
 
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 480; env.MaxY = 640;
@@ -239,6 +239,7 @@ TEST(MapTests, TestProject) {
     EXPECT_EQ(dwPt.x, 480);
     EXPECT_EQ(dwPt.y, 0);
 
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::SUCCESS);
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 5120; env.MaxY = 3840;
     mapView->setExtent (env);

@@ -23,8 +23,10 @@
 #include "glview.h"
 
 TEST(GlTests, TestCreate) {
+#ifdef OFFSCREEN_GL
     ngs::GlOffScreenView view;
     EXPECT_EQ(view.init (), true);
     view.setSize (640, 480);
     EXPECT_EQ(view.isOk (), true);
+#endif // OFFSCREEN_GL
 }

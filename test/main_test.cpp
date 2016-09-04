@@ -128,7 +128,7 @@ TEST(BasicTests, TestInitMap) {
     EXPECT_NE(ngsMapInit (2), ngsErrorCodes::SUCCESS);
     EXPECT_EQ(ngsMapInit (mapId), ngsErrorCodes::SUCCESS);
     counter = 0;
-    EXPECT_EQ(ngsMapDraw(0, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsMapDraw(1, ngsTestProgressFunc, nullptr), ngsErrorCodes::SUCCESS);
     CPLSleep(0.2);
     EXPECT_GE(counter, 1);
 }

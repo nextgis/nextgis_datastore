@@ -184,10 +184,7 @@ void MapTransform::initMatrices()
                              m_extent.MinY, m_extent.MaxY, -1, 1);
     }
 
-    /*m_sceneMatrix. rotate (-m_rotate[ngsDirection::X], -m_rotate[ngsDirection::Y], -m_rotate[ngsDirection::Z]);*/
-
     /*
-
     if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
         m_sceneMatrix.rotateX (m_rotate[ngsDirection::X]);
     }
@@ -201,14 +198,6 @@ void MapTransform::initMatrices()
         m_sceneMatrix.rotateZ (m_rotate[ngsDirection::Z]);
     }
 
-    if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
-        Matrix4 per;
-        per.perspective (0.785398163, m_ratio, -1, 1);
-        m_sceneMatrix.multiply (per);
-    }
-
-    //m_sceneMatrix.rotateX (10 * M_PI / 180);
-
     // world -> scene inv matrix
     m_invSceneMatrix = m_sceneMatrix;
     m_invSceneMatrix.invert ();
@@ -216,6 +205,9 @@ void MapTransform::initMatrices()
     // scene -> view inv matrix
     m_invViewMatrix.clear ();
     m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, -1, 1);
+    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+        m_invViewMatrix.rotateZ (-m_rotate[ngsDirection::Z]);
+    }
 
     // scene -> view matrix
     m_viewMatrix = m_invViewMatrix;

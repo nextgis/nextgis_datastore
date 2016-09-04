@@ -21,14 +21,51 @@
 #ifndef GLVIEW_H
 #define GLVIEW_H
 
-#include "gldisplay.h"
+
+#include "api_priv.h"
 #include "matrix.h"
 
 #include <vector>
 
-namespace ngs {
+#if __APPLE__
+    #include "TargetConditionals.h"
+    #if TARGET_OS_IPHONE
+        #include <OpenGLES/ES2/gl.h>
+        #include <OpenGLES/ES2/glext.h>
+    #elif TARGET_IPHONE_SIMULATOR
+        #include <OpenGLES/ES2/gl.h>
+        #include <OpenGLES/ES2/glext.h>
+    #elif TARGET_OS_MAC
+        #include <OpenGL/OpenGL.h>
+        #include <OpenGL/gl.h>
+    #else
+        #error Unsupported Apple platform
+    #endif
+#elif __ANDROID__
+    #define GL_GLEXT_PROTOTYPES
+    #include <GLES2/gl2.h>
+    #include <GLES2/gl2ext.h>
+#else
+    #define GL_GLEXT_PROTOTYPES
+    #include <GLES2/gl2.h>
+    #include <GLES2/gl2ext.h>
+//    #include <GL/gl.h>
+//    #include <GL/glext.h>
+#endif
 
-using namespace std;
+#if defined(_DEBUG)
+#define ngsCheckGLEerror(cmd) {cmd; checkGLError(#cmd);}
+#define ngsCheckEGLEerror(cmd) {cmd; checkEGLError(#cmd);}
+#else
+#define ngsCheckGLEerror(cmd) (cmd)
+#define ngsCheckEGLEerror(cmd) (cmd)
+#endif
+
+#ifdef OFFSCREEN_GL // need for headless desktop drawing (i.e. some preview gerneartion)
+#include "EGL/egl.h"
+#endif // OFFSCREEN_GL
+
+namespace ngs {
 
 typedef struct _glrgb {
     float r;
@@ -37,9 +74,36 @@ typedef struct _glrgb {
     float a;
 } GlColor;
 
+bool checkGLError(const char *cmd);
+void reportGlStatus(GLuint obj);
+
+
 /*typedef int (*ngsBindVertexArray)(GLuint array);
 typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
 typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*/
+
+#ifdef OFFSCREEN_GL
+
+bool checkEGLError(const char *cmd);
+using namespace std;
+class GlDisplay
+{
+public:
+    GlDisplay();
+    ~GlDisplay();
+    bool init();
+    EGLDisplay eglDisplay() const;
+
+    EGLConfig eglConf() const;
+
+protected:
+
+    EGLDisplay m_eglDisplay;
+    EGLConfig m_eglConf;
+};
+
+typedef shared_ptr<GlDisplay> GlDisplayPtr;
+GlDisplayPtr getGlDisplay();
 
 class GlView
 {
@@ -102,6 +166,8 @@ protected:
     GLuint m_defaultFramebuffer;
     GLuint m_renderbuffers[2];
 };
+
+#endif // OFFSCREEN_GL
 
 class GlFuctions
 {
