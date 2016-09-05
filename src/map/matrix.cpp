@@ -76,7 +76,7 @@ bool Matrix4::invert()
         // Calculate the determinant
         det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
-    if (isEqual(det, 0.0)) {
+    if (det == 0.0) {
         return true;
     }
     det = 1.0 / det;
@@ -353,10 +353,10 @@ void Matrix4::multiply(const Matrix4 &other)
 
 OGRRawPoint Matrix4::project(const OGRRawPoint &pt) const
 {
-    double v0 = m_values[0] * pt.x + m_values[4] * pt.y + m_values[8]  * 0 + m_values[12] * 1;
-    double v1 = m_values[1] * pt.x + m_values[5] * pt.y + m_values[9]  * 0 + m_values[13] * 1;
-    //double v2 = m_values[2] * pt.x + m_values[6] * pt.y + m_values[10] * 0 + m_values[14] * 1;
-    double v3 = m_values[3] * pt.x + m_values[7] * pt.y + m_values[11] * 0 + m_values[15] * 1;
+    double v0 = m_values[0] * pt.x + m_values[4] * pt.y + /*m_values[8]  * 0 +*/ m_values[12] * 1;
+    double v1 = m_values[1] * pt.x + m_values[5] * pt.y + /*m_values[9]  * 0 +*/ m_values[13] * 1;
+    //double v2 = m_values[2] * pt.x + m_values[6] * pt.y + /*m_values[10] * 0 +*/ m_values[14] * 1;
+    double v3 = m_values[3] * pt.x + m_values[7] * pt.y + /*m_values[11] * 0 +*/ m_values[15] * 1;
 
     OGRRawPoint outPt;
     outPt.x = v0 / v3;

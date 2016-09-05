@@ -178,17 +178,17 @@ void MapTransform::initMatrices()
 
     if (m_isYAxisInverted) {
         m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
-                             m_extent.MaxY, m_extent.MinY, -1, 1);
+                             m_extent.MaxY, m_extent.MinY, DEFAULT_MIN_X, DEFAULT_MAX_X);//-1, 1);//
     } else {
         m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
-                             m_extent.MinY, m_extent.MaxY, -1, 1);
+                             m_extent.MinY, m_extent.MaxY, DEFAULT_MIN_X, DEFAULT_MAX_X);//-1, 1);//
     }
 
-    /*
     if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
         m_sceneMatrix.rotateX (m_rotate[ngsDirection::X]);
     }
 
+    /*
     if(!isEqual(m_rotate[ngsDirection::Y], 0.0)){
         m_sceneMatrix.rotateY (m_rotate[ngsDirection::Y]);
     }
@@ -204,7 +204,15 @@ void MapTransform::initMatrices()
 
     // scene -> view inv matrix
     m_invViewMatrix.clear ();
-    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, -1, 1);
+
+    double maxDeep = max(m_displayWidht, m_displayHeight);
+
+    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);//-1, 1);//
+
+    if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
+        m_invViewMatrix.rotateX (-m_rotate[ngsDirection::X]);
+    }
+
     if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
         m_invViewMatrix.rotateZ (-m_rotate[ngsDirection::Z]);
     }
