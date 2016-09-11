@@ -309,6 +309,8 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
         return out;
     }
 
+    // TODO: create ovr layer
+
     // create history layer
     CPLString historyLayerName = name + HISTORY_APPEND;
     OGRLayer *dstHistoryLayer = m_DS->CreateLayer(historyLayerName,
@@ -329,9 +331,8 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
         }
     }
 
-    // create additional geometry fields for zoom levels: 6 9 12 15 only for
-    // dstLayer
-    if(type != OGR_GT_Flatten(wkbPoint)) {
+    // TODO: create additional geometry fields for zoom levels: 6 9 12 15 only for dstLayer?
+    /*if(type != OGR_GT_Flatten(wkbPoint)) {
         for(auto sampleDist : gSampleDists) {
             OGRFieldDefn dstField(CPLSPrintf ("ngs_geom_%d", sampleDist.second),
                                   OFTBinary);
@@ -339,11 +340,11 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
                 return out;
             }
         }
-    }
+    }*/
 
     Dataset* dstDataset = nullptr;
     if( type == wkbNone) {
-        // TODO: StoreTable
+        // TODO: create special class StoreTable instead of table with hostory etc.
         dstDataset = new Table(dstLayer);
     }
     else {

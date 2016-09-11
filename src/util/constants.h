@@ -64,6 +64,7 @@
 #define MAP_NAME "name"
 #define MAP_DESCRIPTION "descript"
 #define MAP_LAYERS "layers"
+#define MAP_RELATIVEPATHS "relative_paths"
 #define MAP_EPSG "epsg"
 #define MAP_MIN_X "min_x"
 #define MAP_MIN_Y "min_y"

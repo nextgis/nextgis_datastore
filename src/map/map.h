@@ -77,6 +77,9 @@ public:
     unsigned char getId() const;
     void setId(unsigned char id);
 
+    bool getRelativePaths() const;
+    void setRelativePaths(bool relativePaths);
+
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);
 
@@ -90,6 +93,7 @@ protected:
     ngsRGBA m_bkColor;
     DataStorePtr m_DataStore;
     unsigned char m_id;
+    bool m_relativePaths;
 };
 
 typedef shared_ptr<Map> MapPtr;

@@ -31,7 +31,7 @@ using namespace ngs;
 
 Map::Map() : m_name(DEFAULT_MAP_NAME),
     m_epsg(DEFAULT_EPSG), m_minX(DEFAULT_MIN_X), m_minY(DEFAULT_MIN_Y),
-    m_maxX(DEFAULT_MAX_X), m_maxY(DEFAULT_MAX_Y)
+    m_maxX(DEFAULT_MAX_X), m_maxY(DEFAULT_MAX_Y), m_relativePaths(true)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -39,12 +39,12 @@ Map::Map() : m_name(DEFAULT_MAP_NAME),
 Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
          double minX, double minY, double maxX, double maxY) :
     m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY)
+    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_relativePaths(true)
 {
     m_bkColor = {210, 245, 255, 255};
 }
 
-Map::Map(DataStorePtr dataStore) : m_DataStore(dataStore)
+Map::Map(DataStorePtr dataStore) : m_DataStore(dataStore), m_relativePaths(true)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -53,7 +53,8 @@ Map::Map(const CPLString &name, const CPLString &description,
          unsigned short epsg, double minX, double minY, double maxX, double maxY,
          DataStorePtr dataStore) :
     m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_DataStore(dataStore)
+    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY),
+    m_DataStore(dataStore), m_relativePaths(true)
 {
     m_bkColor = {210, 245, 255, 255};
 }
@@ -150,6 +151,7 @@ int Map::open(const char *path)
 
         m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
         m_description = root.getString (MAP_DESCRIPTION, "");
+        m_relativePaths = root.getBool (MAP_RELATIVEPATHS, true);
         m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,
                                                               DEFAULT_EPSG));
         m_minX = root.getDouble (MAP_MIN_X, DEFAULT_MIN_X);
@@ -167,7 +169,8 @@ int Map::open(const char *path)
             // load layer
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
-                if(layer->load(layerConfig, m_DataStore) == ngsErrorCodes::EC_SUCCESS)
+                if(layer->load(layerConfig, m_DataStore, m_relativePaths ?
+                           CPLGetPath(m_path) : "") == ngsErrorCodes::EC_SUCCESS)
                     m_layers.push_back (layer);
             }
         }
@@ -185,6 +188,7 @@ int Map::save(const char *path)
         root.add (MAP_SINGLESOURCE, true);
     root.add (MAP_NAME, m_name);
     root.add (MAP_DESCRIPTION, m_description);
+    root.add (MAP_RELATIVEPATHS, m_relativePaths);
     root.add (MAP_EPSG, m_epsg);
     root.add (MAP_MIN_X, m_minX);
     root.add (MAP_MIN_Y, m_minY);
@@ -194,7 +198,8 @@ int Map::save(const char *path)
 
     JSONArray layers;
     for(LayerPtr layer : m_layers) {
-        layers.add(layer->save());
+        layers.add(layer->save(m_relativePaths ?
+                                   CPLGetPath(m_path) : ""));
     }
     root.add ("layers", layers);
 
@@ -248,6 +253,16 @@ size_t Map::layerCount() const
 LayerPtr Map::createLayer(Layer::Type /*type*/)
 {
     return LayerPtr(new Layer);
+}
+
+bool Map::getRelativePaths() const
+{
+    return m_relativePaths;
+}
+
+void Map::setRelativePaths(bool relativePaths)
+{
+    m_relativePaths = relativePaths;
 }
 
 unsigned char Map::getId() const

@@ -93,7 +93,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
         FeaturePtr dstFeature = createFeature ();
         if(nullptr != newGeom) {
             dstFeature->SetGeometryDirectly (newGeom);
-
+/* TODO: Create tiled geometries in separate ogrlayer
             // create geometries for zoom levels
             if(OGR_GT_Flatten(newGeom->getGeometryType ()) != wkbPoint &&
                OGR_GT_Flatten(newGeom->getGeometryType ()) != wkbMultiPoint) {
@@ -112,6 +112,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                     }
                 }
             }
+*/
         }
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 

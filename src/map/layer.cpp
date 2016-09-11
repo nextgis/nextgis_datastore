@@ -39,7 +39,8 @@ Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
     m_type = Layer::Type::Invalid;
 }
 
-int Layer::load(const JSONObject &store, DataStorePtr dataStore)
+int Layer::load(const JSONObject &store, DataStorePtr dataStore,
+                const CPLString &mapPath)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
     unsigned int type = static_cast<unsigned int>(store.getInteger (
@@ -55,22 +56,33 @@ int Layer::load(const JSONObject &store, DataStorePtr dataStore)
             // load dataset by path and name
             dataStore = DataStore::open (path);
             if(nullptr != dataStore) {
-                m_dataset = dataStore->getDataset (datasetName);
+                if(mapPath.empty ())
+                    m_dataset = dataStore->getDataset (datasetName);
+                else
+                    m_dataset = dataStore->getDataset (CPLFormFilename(mapPath,
+                                                           datasetName, NULL));
             }
         }
     }
     return ngsErrorCodes::EC_SUCCESS;
 }
 
-JSONObject Layer::save() const
+JSONObject Layer::save(const CPLString &mapPath) const
 {
     JSONObject out;
     out.add(LAYER_NAME, m_name);
     out.add(LAYER_TYPE, static_cast<int>(m_type));
     if(nullptr != m_dataset) {
         out.add(LAYER_SOURCE_TYPE, static_cast<int>(m_dataset->type ()));
-        // TODO: relative or absolute path
-        out.add(LAYER_SOURCE, m_dataset->path ());
+        // relative or absolute path
+        if(mapPath.empty ()) {
+            out.add(LAYER_SOURCE, m_dataset->path ());
+        }
+        else {
+            const char* relPath = CPLExtractRelativePath(mapPath,
+                                                       m_dataset->path (), NULL);
+            out.add(LAYER_SOURCE, relPath);
+        }
     }
     return out;
 }
