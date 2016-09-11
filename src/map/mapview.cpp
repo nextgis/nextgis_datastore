@@ -68,103 +68,57 @@ bool MapView::isDisplayInit() const
 
 int MapView::initDisplay()
 {
+    if(m_displayInit)
+        return ngsErrorCodes::EC_SUCCESS;
     if(m_glFunctions.init ()) {
         m_displayInit = true;
-        return ngsErrorCodes::SUCCESS;
+        return ngsErrorCodes::EC_SUCCESS;
     }
 
-    return ngsErrorCodes::INIT_FAILED;
+    return ngsErrorCodes::EC_INIT_FAILED;
 }
 
-int MapView::draw(const ngsProgressFunc &progressFunc, void* progressArguments)
+int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
+                  void* progressArguments)
 {
-/*    m_progressFunc = progressFunc;
-    m_progressArguments = progressArguments;
-
-    if(m_drawStage == DrawStage::Process){
-        m_drawStage = DrawStage::Stop;
-    }
-    else {
-        m_drawStage = DrawStage::Start;
-    }*/
-
     // just clear background
-    /*if(m_layers.empty()) {
+    if(m_layers.empty()) {
         m_glFunctions.clearBackground ();
-        return ngsErrorCodes::SUCCESS;
-    }*/
+        return ngsErrorCodes::EC_SUCCESS;
+    }
 
+    m_progressFunc = progressFunc;
+    m_progressArguments = progressArguments;
 
     m_glFunctions.clearBackground ();
     m_glFunctions.prepare (getSceneMatrix());
-    m_glFunctions.testDrawPreserved (); //.testDraw ();
 
-    return ngsErrorCodes::SUCCESS;
-}
-/*
-bool MapView::render(const GlView *glView)
-{
-    if(m_layers.empty())
-        return true;
-
-    double renderPercent = 0;
-
+    float level = 0;
     for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
         LayerPtr layer = *it;
         RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
-        renderPercent += renderLayer->render(glView);
+        renderLayer->draw(state, getExtent (), getZoom (), level++);
     }
 
-/*    glView->draw();
-    renderPercent = 1;*//*
+    //m_glFunctions.testDrawPreserved (); //.testDraw ();
 
-    // Notify drawing progress
-    renderPercent /= m_layers.size ();
-    if( renderPercent - m_renderPercent > NOTIFY_PERCENT ) {
-        m_renderPercent = renderPercent;
-    }
-    else if(isEqual(renderPercent, 1.0))
-        return true;
-    return isEqual(m_renderPercent, 1.0) ? true : false;
-}
-*/
-
-void MapView::prepareRender()
-{
-    // FIXME: need to limit prepare thread for CPU core count or some constant
-    // as they can produce lot of data and overload memory. See CPLWorkerThreadPool
-    m_renderPercent = 0;
-    for( size_t i = 0; i < m_layers.size (); ++i ) {
-        RenderLayer* renderLayer = static_cast<RenderLayer*>(m_layers[i].get());
-        renderLayer->prepareRender (getExtent (), getZoom(),
-                                    static_cast<float>(i * 10) );
-    }
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
-void MapView::cancelPrepareRender()
-{
-    for(LayerPtr& layer : m_layers ) {
-        RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
-        renderLayer->cancelPrepareRender ();
-    }
-}
-
-int MapView::notify(double complete, const char *message)
+int MapView::notify()
 {
     if(nullptr != m_progressFunc) {
-        return m_progressFunc(complete, message, m_progressArguments);
+        float fullComplete = 0;
+        for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
+            LayerPtr layer = *it;
+            RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
+            fullComplete += renderLayer->getComplete ();
+        }
+        fullComplete /= m_layers.size ();
+        return m_progressFunc(getId(), static_cast<double>(fullComplete), NULL,
+                              m_progressArguments);
     }
     return TRUE;
-}
-
-enum MapView::DrawStage MapView::getDrawStage() const
-{
-    return m_drawStage;
-}
-
-void MapView::setDrawStage(const DrawStage &drawStage)
-{
-    m_drawStage = drawStage;
 }
 
 int MapView::createLayer(const CPLString &name, DatasetPtr dataset)
@@ -175,10 +129,10 @@ int MapView::createLayer(const CPLString &name, DatasetPtr dataset)
     }
 
     if(nullptr == layer)
-        return ngsErrorCodes::UNSUPPORTED;
+        return ngsErrorCodes::EC_UNSUPPORTED;
 
     m_layers.push_back (layer);
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 LayerPtr MapView::createLayer(Layer::Type type)

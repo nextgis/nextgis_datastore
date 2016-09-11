@@ -35,7 +35,7 @@ public:
     Matrix4();
     Matrix4(const Matrix4& other);
     Matrix4& operator=(const Matrix4& other);
-    bool invert();
+    int invert();
     void ortho(double left, double right, double bottom, double top, double near,
                double far);
     void perspective(double fovy, double aspect, double near, double far);

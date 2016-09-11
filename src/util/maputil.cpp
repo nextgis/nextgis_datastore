@@ -20,6 +20,8 @@
 #include "maputil.h"
 #include "constants.h"
 
+#define MAX_TILES_COUNT 4096 // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
+
 double ngs::getZoomForScale(double scale, double currentZoom)
 {
     double zoom = currentZoom;
@@ -33,7 +35,86 @@ double ngs::getZoomForScale(double scale, double currentZoom)
 
 double ngs::getPixelSize(int zoom)
 {
-    int tilesInMapOneDimension = 1 << zoom;
-    long sizeOneDimensionPixels = tilesInMapOneDimension * DEFAULT_TILE_SIZE;
-    return DEFAULT_MAX_Y * 2.0 / sizeOneDimensionPixels;
+    int tilesInMapOneDim = 1 << zoom;
+    long sizeOneDimPixels = tilesInMapOneDim * DEFAULT_TILE_SIZE;
+    return DEFAULT_MAX_X * 2.0 / sizeOneDimPixels;
+}
+
+vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
+                                             unsigned char zoom, bool reverseY)
+{
+    int tilesInMapOneDim = 1 << zoom;
+    double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
+    double tilesSizeOneDim = DEFAULT_MAX_X / halfTilesInMapOneDim;
+    int begX = static_cast<int>( floor(extent.MinX / tilesSizeOneDim +
+                                       halfTilesInMapOneDim) );
+    int begY = static_cast<int>( floor(extent.MinY / tilesSizeOneDim +
+                                       halfTilesInMapOneDim) );
+    int endX = static_cast<int>( ceil(extent.MaxX / tilesSizeOneDim +
+                                      halfTilesInMapOneDim) );
+    int endY = static_cast<int>( ceil(extent.MaxY / tilesSizeOneDim +
+                                      halfTilesInMapOneDim) );
+    if(begY == endY)
+        endY++;
+    if(begX == endX)
+        endX++;
+
+    if (begY < 0) {
+        begY = 0;
+    }
+    if (endY > tilesInMapOneDim) {
+        endY = tilesInMapOneDim;
+    }
+    /* this block unlimited X scroll of the map
+    if (begX < 0) {
+        begX = 0;
+    }
+    if (endX > tilesInMapOneDimension) {
+        endX = tilesInMapOneDimension;
+    }
+    */
+
+    // TODO: fill by spiral
+
+    // normal fill from left bottom corner
+
+    int realX, realY;
+    vector<ngs::TileItem> result;
+    result.reserve ( (endX - begX) * (endY - begY) );
+    double fullBoundsMinX = DEFAULT_MIN_X;
+    double fullBoundsMinY = DEFAULT_MIN_Y;
+    for (int x = begX; x < endX; x++) {
+        for (int y = begY; y < endY; y++) {
+            realX = x;
+            if (realX < 0) {
+                realX += tilesInMapOneDim;
+            } else if (realX >= tilesInMapOneDim) {
+                realX -= tilesInMapOneDim;
+            }
+
+            realY = y;
+            if (reverseY) {
+                realY = tilesInMapOneDim - y - 1;
+            }
+
+            if (realY < 0 || realY >= tilesInMapOneDim) {
+                continue;
+            }
+
+            double minX = fullBoundsMinX + x * tilesSizeOneDim;
+            double minY = fullBoundsMinY + y * tilesSizeOneDim;
+            OGREnvelope env;
+            env.MinX = minX;
+            env.MaxX = minX + tilesSizeOneDim;
+            env.MinY = minY;
+            env.MaxY = minY + tilesSizeOneDim;
+            TileItem item = { realX, realY, zoom, env };
+            result.push_back (item);
+
+            if(result.size() > MAX_TILES_COUNT) // some limits for tiles array size
+                return result;
+        }
+    }
+
+    return result;
 }

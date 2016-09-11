@@ -70,14 +70,17 @@ public:
                              const FieldMapPtr fieldMap,
                              OGRwkbGeometryType filterGeomType,
                              unsigned int skipGeometryFlags,
-                             ngsProgressFunc progressFunc,
-                             void *progressArguments);
+                             unsigned int taskId = 0,
+                             ngsProgressFunc progressFunc = nullptr,
+                             void *progressArguments = nullptr);
     bool setIgnoredFields(const char **fields);
     vector<CPLString> getGeometryColumns() const;
     CPLString getGeometryColumn() const;
     ResultSetPtr executeSQL(const CPLString& statement,
                             GeometryPtr spatialFilter,
                             const CPLString& dialect = "") const;
+    ResultSetPtr getGeometries(unsigned char zoom,
+                            GeometryPtr spatialFilter) const;
 
     // static
     static CPLString getGeometryTypeName(OGRwkbGeometryType type,

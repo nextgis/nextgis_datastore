@@ -98,13 +98,13 @@ DataStorePtr DataStore::create(const CPLString &path)
     // create system tables
     int nResult;
     nResult = createMetadataTable (DS);
-    if(nResult != ngsErrorCodes::SUCCESS)
+    if(nResult != ngsErrorCodes::EC_SUCCESS)
         return out;
     nResult = createRastersTable (DS);
-    if(nResult != ngsErrorCodes::SUCCESS)
+    if(nResult != ngsErrorCodes::EC_SUCCESS)
         return out;
     nResult = createAttachmentsTable (DS);
-    if(nResult != ngsErrorCodes::SUCCESS)
+    if(nResult != ngsErrorCodes::EC_SUCCESS)
         return out;
 
     DataStore *outDS = new DataStore();
@@ -156,7 +156,7 @@ DataStorePtr DataStore::open(const CPLString &path)
             int nVersion = atoi(feature->GetFieldAsString(META_VALUE));
             if(nVersion < NGS_VERSION_NUM) {
                 int nResult = upgrade (nVersion, DS);
-                if(nResult != ngsErrorCodes::SUCCESS) {
+                if(nResult != ngsErrorCodes::EC_SUCCESS) {
                     CPLError(CE_Failure, CPLE_AppDefined, "Upgrade DB failed.");
                     return out;
                 }
@@ -188,7 +188,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
                                      bool y_origin_top)
 {
     if(!isNameValid(name))
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
 
     OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
     FeaturePtr feature( OGRFeature::CreateFeature(
@@ -207,14 +207,14 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
     feature->SetField (LAYER_YORIG_TOP, y_origin_top);
 
     if(pRasterLayer->CreateFeature(feature) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
     // notify listeners
     if(nullptr != m_notifyFunc)
-        m_notifyFunc(ngsSourceCodes::DATA_STORE, RASTERS_TABLE_NAME,
-                     NOT_FOUND, ngsChangeCodes::CREATE_RESOURCE);
-    return ngsErrorCodes::SUCCESS;
+        m_notifyFunc(ngsSourceCodes::SC_DATA_STORE, RASTERS_TABLE_NAME,
+                     NOT_FOUND, ngsChangeCodes::CC_CREATE_RESOURCE);
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int DataStore::datasetCount() const
@@ -296,11 +296,12 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
                                      const OGRSpatialReference */*spatialRef*/,
                                      OGRwkbGeometryType type, char **options,
+                                     unsigned int taskId,
                                      ngsProgressFunc progressFunc,
                                      void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
+        progressFunc(taskId, 0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
                      progressArguments);
     DatasetPtr out;
     OGRLayer *dstLayer = m_DS->CreateLayer(name, &m_storeSpatialRef, type, options);
@@ -362,14 +363,14 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     return out;
 }
 
-int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
-                           unsigned int skipGeometryFlags,
+int DataStore::copyDataset(DatasetPtr srcDataset, CPLString &dstName,
+                           unsigned int skipGeometryFlags, unsigned int taskId,
                            ngsProgressFunc progressFunc, void *progressArguments)
 {
     // disable journal
     enableJournal(false);
     int nRet = DatasetContainer::copyDataset (srcDataset, dstName,
-                                              skipGeometryFlags,
+                                              skipGeometryFlags, taskId,
                                               progressFunc, progressArguments);
     // enable journal
     enableJournal(true);
@@ -408,7 +409,7 @@ int DataStore::destroy(ngsProgressFunc progressFunc,
     // Unlink some folders with external rasters adn etc.
     if(!m_dataPath.empty()) {
         if(CPLUnlinkTree(m_dataPath) != 0){
-            return ngsErrorCodes::DELETE_FAILED;
+            return ngsErrorCodes::EC_DELETE_FAILED;
         }
     }
     return DatasetContainer::destroy (progressFunc, progressArguments);
@@ -419,7 +420,7 @@ int DataStore::createMetadataTable(GDALDatasetPtr DS)
     OGRLayer* pMetadataLayer = DS->CreateLayer(METHADATA_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pMetadataLayer) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
     OGRFieldDefn oFieldKey(META_KEY, OFTString);
@@ -429,7 +430,7 @@ int DataStore::createMetadataTable(GDALDatasetPtr DS)
 
     if(pMetadataLayer->CreateField(&oFieldKey) != OGRERR_NONE ||
        pMetadataLayer->CreateField(&oFieldValue) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
     FeaturePtr feature( OGRFeature::CreateFeature(
@@ -439,9 +440,9 @@ int DataStore::createMetadataTable(GDALDatasetPtr DS)
     feature->SetField(META_KEY, NGS_VERSION_KEY);
     feature->SetField(META_VALUE, NGS_VERSION_NUM);
     if(pMetadataLayer->CreateFeature(feature) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int DataStore::createRastersTable(GDALDatasetPtr DS)
@@ -449,7 +450,7 @@ int DataStore::createRastersTable(GDALDatasetPtr DS)
     OGRLayer* pRasterLayer = DS->CreateLayer(RASTERS_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pRasterLayer) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
     OGRFieldDefn oUrl(LAYER_URL, OFTString);
@@ -484,10 +485,10 @@ int DataStore::createRastersTable(GDALDatasetPtr DS)
        pRasterLayer->CreateField(&oZMax) != OGRERR_NONE ||
        pRasterLayer->CreateField(&oYOrigTop) != OGRERR_NONE ||
        pRasterLayer->CreateField(&oAccount) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int DataStore::createAttachmentsTable(GDALDatasetPtr DS)
@@ -495,7 +496,7 @@ int DataStore::createAttachmentsTable(GDALDatasetPtr DS)
     OGRLayer* pAttachmentsLayer = DS->CreateLayer(ATTACHEMENTS_TABLE_NAME, NULL,
                                                    wkbNone, NULL);
     if (NULL == pAttachmentsLayer) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
     OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
@@ -522,16 +523,16 @@ int DataStore::createAttachmentsTable(GDALDatasetPtr DS)
        pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
        pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
        pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     }
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int DataStore::upgrade(int /* oldVersion */, GDALDatasetPtr /*ds*/)
 {
     // no structure changes for version 1
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 void DataStore::setDataPath()

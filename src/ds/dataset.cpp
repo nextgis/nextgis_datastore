@@ -100,9 +100,9 @@ CPLString Dataset::name() const
 int Dataset::destroy(ngsProgressFunc /*progressFunc*/, void* /*progressArguments*/)
 {
     m_DS.reset ();
-    int nRes = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
-                                             ngsErrorCodes::DELETE_FAILED;
-    if(nRes == ngsErrorCodes::SUCCESS)
+    int nRes = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::EC_SUCCESS :
+                                             ngsErrorCodes::EC_DELETE_FAILED;
+    if(nRes == ngsErrorCodes::EC_SUCCESS)
         m_deleted = true;
     return nRes;
 }
@@ -233,7 +233,7 @@ void Dataset::notifyDatasetChanged(enum ChangeType changeType,
 {
     // notify listeners
     if(nullptr != m_notifyFunc) {
-        m_notifyFunc(ngsSourceCodes::DATASET, name,
+        m_notifyFunc(ngsSourceCodes::SC_DATASET, name,
                      id, static_cast<ngsChangeCodes>(changeType));
     }
 }

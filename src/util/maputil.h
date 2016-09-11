@@ -21,13 +21,26 @@
 #define MAPUTIL_H
 
 #include <cmath>
+#include <vector>
+#include "ogr_core.h"
 
+#define LOG2 0.30102999566 //log(2.0)
+
+using namespace std;
 namespace ngs {
 
-inline static double lg(double x) {return log(x) / log(2.0);};
+typedef struct _tile {
+    int x,y;
+    unsigned char z;
+    OGREnvelope env;
+
+} TileItem;
+
+inline static double lg(double x) {return log(x) / LOG2;};
 double getZoomForScale(double scale, double currentZoom);
 double getPixelSize(int zoom);
-
+vector<TileItem> getTilesForExtent(const OGREnvelope& extent,
+                                   unsigned char zoom, bool reverseY);
 }
 
 #endif // MAPUTIL_H

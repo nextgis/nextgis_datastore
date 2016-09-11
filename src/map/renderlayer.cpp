@@ -21,11 +21,10 @@
 #include "renderlayer.h"
 #include "geometryutil.h"
 #include "featuredataset.h"
+#include "constants.h"
 
 #include <iostream>
-
-#define GL_MAX_VERTEX_COUNT 65532
-#define LOCK_TIME 0.3
+#include <algorithm>
 
 using namespace ngs;
 
@@ -40,43 +39,40 @@ void ngs::FillGLBufferThread(void * layer)
 // RenderLayer
 //------------------------------------------------------------------------------
 
-RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr)
+RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr), m_mapView(nullptr)
 {
     m_type = Layer::Type::Invalid;
 }
 
 RenderLayer::RenderLayer(const CPLString &name, DatasetPtr dataset) :
-    Layer(name, dataset), m_hPrepareThread(nullptr)
+    Layer(name, dataset), m_hPrepareThread(nullptr), m_mapView(nullptr)
 {
     m_type = Layer::Type::Invalid;
 }
 
 RenderLayer::~RenderLayer()
 {
-    cancelPrepareRender();
+    cancelFillThread();
 }
 
 
-void RenderLayer::prepareRender(OGREnvelope extent, double zoom, float level)
+void RenderLayer::prepareFillThread(OGREnvelope extent, double zoom, float level)
 {
     // start bucket of buffers preparation
     m_cancelPrepare = false;
-    m_renderPercent = 0;
+    //m_renderPercent = 0;
     m_renderExtent = extent;
-    m_renderZoom = zoom;
+    m_renderZoom = static_cast<unsigned char>(zoom);
     m_renderLevel = level;
 
     // create or refill virtual tiles for current extent and zooms
 
-    if(m_hPrepareThread)
-        cancelPrepareRender ();
-    m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
+    if(!m_hPrepareThread)
+        m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
 }
 
-void RenderLayer::cancelPrepareRender()
+void RenderLayer::cancelFillThread()
 {
-    // TODO: cancel only local data extraction threads?
-    // Extract from remote sources may block cancel thread for a long time
     if(m_hPrepareThread) {
         m_cancelPrepare = true;
         // wait thread exit
@@ -85,270 +81,160 @@ void RenderLayer::cancelPrepareRender()
     }
 }
 
-char RenderLayer::getCloseOvr()
+void RenderLayer::draw(ngsDrawState state, OGREnvelope extent, double zoom,
+                         float level)
 {
-    float diff = 18;
-    float currentDiff;
-    char zoom = 18;
-    for(auto sampleDist : gSampleDists) {
-        currentDiff = sampleDist.second - m_renderZoom;
-        if(currentDiff > 0 && currentDiff < diff) {
-            diff = currentDiff;
-            zoom = sampleDist.second;
-        }
+    switch (state) {
+    case DS_REDRAW:
+        // clear cache
+        clearTiles();
+    case DS_NORMAL:
+        // start extract data thread
+        prepareFillThread(extent, zoom, level);
+    case DS_PRESERVED:
+        // draw cached data
+        drawTiles ();
+        break;
     }
-    return zoom;
+}
+
+float RenderLayer::getComplete() const
+{
+    return m_complete;
 }
 
 //------------------------------------------------------------------------------
 // FeatureRenderLayer
+//------------------------------------------------------------------------------
 
 FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(),
-    m_hBucketLock(CPLCreateLock(LOCK_SPIN)),
-    m_hCurrentBufferLock(CPLCreateLock(LOCK_SPIN))
+    m_hTilesLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
 }
 
 FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset) :
-    RenderLayer(name, dataset), m_hBucketLock(CPLCreateLock(LOCK_SPIN)),
-    m_hCurrentBufferLock(CPLCreateLock(LOCK_SPIN))
+    RenderLayer(name, dataset), m_hTilesLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
 }
 
 FeatureRenderLayer::~FeatureRenderLayer()
 {
-    if( m_hBucketLock )
-        CPLDestroyLock(m_hBucketLock);
-    if( m_hCurrentBufferLock )
-        CPLDestroyLock(m_hCurrentBufferLock);
 }
 
 void FeatureRenderLayer::fillRenderBuffers()
 {
-    // TODO:
-    // 1. divide current extent to virtual tiles
-    // 2. Fill bucket for each virtual tile
-    // 3. If curent feature belong to bucket of exists virtual tile - skip it
-    // 4. If exists virtual tiles out of the curent tile grid free them
-    // 5. If no buckets in virtual tile - create them
-
-    CPLAcquireLock(m_hBucketLock);
-    m_pointBucket.clear ();
-    m_polygonBucket.clear ();
-    CPLReleaseLock(m_hBucketLock);
-    m_bucketFilled = false;
-
-    FeatureDataset* featureDataset = dynamic_cast<FeatureDataset*>(m_dataset.get());
-    // check geometry column
-    CPLString geomFieldName;
-    bool originalGeom = true;
-    if(m_renderZoom > 15) {
-        geomFieldName = featureDataset->getGeometryColumn ();
-    }
-    else {
-        char zoom = getCloseOvr();
-        if(zoom < 18) {
-            geomFieldName.Printf ("ngs_geom_%d, %s", zoom,
-                                  featureDataset->getGeometryColumn ().c_str ());
-            originalGeom = false;
-        }
-        else {
-            geomFieldName = featureDataset->getGeometryColumn ();
-        }
-    }
-
-    CPLString statement;
-    statement.Printf ("SELECT %s FROM %s", geomFieldName.c_str (),
-                         m_dataset->name ().c_str ());
-    GeometryPtr spatialFilter (envelopeToGeometry(m_renderExtent,
-                                        featureDataset->getSpatialReference ()));
-
-    ResultSetPtr features = featureDataset->executeSQL (statement, spatialFilter,
-                                                        "");
-    FeaturePtr feature;
-    OGRGeometry* geom;
-    int nBytes;
-    GByte *pabyWKB;
+    refreshTiles();
+    m_complete = 0;
     float counter = 0;
-    GIntBig totalCount = features->GetFeatureCount ();
-    while ((feature = features->GetNextFeature ()) != nullptr) {
+    OGREnvelope renderExtent = m_renderExtent;
+    for(GlBufferBucket& tile : m_tiles) {
+        if(m_cancelPrepare)
+            return;
 
-        if(m_cancelPrepare) {
-            break;
+        if(! (isEqual(renderExtent.MaxX, m_renderExtent.MaxX) &&
+              isEqual(renderExtent.MaxY, m_renderExtent.MaxY) &&
+              isEqual(renderExtent.MinX, m_renderExtent.MinX) &&
+              isEqual(renderExtent.MinY, m_renderExtent.MinY))) {
+            // if extent changed - refresh tiles
+            return fillRenderBuffers();
         }
 
-        geom = nullptr;
-        if(originalGeom) {
-           geom =  feature->GetGeometryRef ();
-        }
-        else {
-            pabyWKB = feature->GetFieldAsBinary (0, &nBytes);
-            if(pabyWKB) {
-                if( OGRGeometryFactory::createFromWkb (pabyWKB,
-                        featureDataset->getSpatialReference (), &geom, nBytes)
-                            != OGRERR_NONE) {
-                    geom = nullptr;
+
+        if(!tile.filled()) {
+            FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset,
+                                                            m_dataset);
+            GeometryPtr spatialFilter (envelopeToGeometry(tile.extent (),
+                                        featureDataset->getSpatialReference ()));
+            ResultSetPtr resSet = featureDataset->getGeometries (tile.zoom (),
+                                                                 spatialFilter);
+            FeaturePtr feature;
+            OGRGeometry* geom;
+            while ((feature = resSet->GetNextFeature ()) != nullptr) {
+                if(m_cancelPrepare) {
+                    tile.free();
+                    return;
                 }
-                // TODO: do we need it? CPLFree( pabyWKB );
+
+                geom = feature->GetGeometryRef ();
+                if(nullptr == geom)
+                    continue;
+
+                // cut geometry by tile border
+                GeometryUPtr fillGeom(geom->Intersection (spatialFilter.get()));
+                // TODO: draw filled polygones with border
+                tile.fill(fillGeom.get (), m_renderLevel);
+            }
+
+            tile.setFilled(true);
+            // notify that the tile is ready to draw
+            if(m_mapView) {
+                if(!m_mapView->notify()) {
+                    m_cancelPrepare = false;
+                    return;
+                }
             }
         }
-
-        // fill render buffers
-        fillRenderBuffers(geom);
-        m_renderPercent = counter / totalCount;
         counter++;
+        m_complete = counter / m_tiles.size ();
     }
-
-    CPLLockHolder buffHolder(m_hCurrentBufferLock);
-    CPLLockHolder bucketHolder(m_hBucketLock);
-    if(m_currentPointBuffer)
-        m_pointBucket.push_back (move(m_currentPointBuffer));
-    if(m_currentPolygonBuffer)
-        m_polygonBucket.push_back (move(m_currentPolygonBuffer));
-    m_bucketFilled = true;
 }
 
-void FeatureRenderLayer::fillRenderBuffers(OGRGeometry* geom)
+void ngs::FeatureRenderLayer::clearTiles()
 {
-    if( nullptr == geom )
-        return;
-
-    CPLLockHolder buffHolder(m_hCurrentBufferLock);
-    switch (OGR_GT_Flatten (geom->getGeometryType ())) {
-    case wkbPoint:
-    {
-        if(nullptr == m_currentPointBuffer)
-            m_currentPointBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
-        else if(m_currentPointBuffer->m_vertices.size () - 3 >
-                GL_MAX_VERTEX_COUNT) {
-            CPLLockHolderOptionalLockD(m_hBucketLock);
-            m_pointBucket.push_back (move(m_currentPointBuffer));
-            m_currentPointBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
-        }
-        OGRPoint *pt = static_cast<OGRPoint*>(geom);
-        m_currentPointBuffer->m_vertices.push_back (static_cast<float>(pt->getX ()));
-        m_currentPointBuffer->m_vertices.push_back (static_cast<float>(pt->getY ()));
-        // TODO: add getZ + level
-        m_currentPointBuffer->m_vertices.push_back (m_renderLevel);
-        m_currentPointBuffer->m_indices.push_back (
-                    m_currentPointBuffer->m_vertices.size () / 3 - 1);
-    }
-        break;
-    case wkbLineString:
-        break;
-    case wkbPolygon:
-    {
-        OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
-        OGRPoint pt;
-        // TODO: not only external ring must be extracted
-        OGRLinearRing* ring = polygon->getExteriorRing ();
-        int numPoints = ring->getNumPoints ();
-        if(numPoints < 3)
-            break;
-
-        if(nullptr == m_currentPolygonBuffer) {
-            m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
-            m_currentPolygonBuffer->m_vertices.reserve (8196);
-            m_currentPolygonBuffer->m_indices.reserve (8196);
-        }
-        else if(m_currentPolygonBuffer->m_vertices.size () +
-                numPoints * 3 > GL_MAX_VERTEX_COUNT) {
-            CPLLockHolderOptionalLockD(m_hBucketLock);
-            m_polygonBucket.push_back (move(m_currentPolygonBuffer));
-            m_currentPolygonBuffer = ngsVertexBufferPtr(new ngsVertexBuffer);
-            m_currentPolygonBuffer->m_vertices.reserve (8196);
-            m_currentPolygonBuffer->m_indices.reserve (8196);
-        }
-
-        int startPolyIndex = m_currentPolygonBuffer->m_vertices.size () / 3;
-        for(int i = 0; i < numPoints; ++i) {
-            ring->getPoint (i, &pt);
-            // add point coordinates in float
-            m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getX ()));
-            m_currentPolygonBuffer->m_vertices.push_back (static_cast<float>(pt.getY ()));
-            // TODO: add getZ + level
-            m_currentPolygonBuffer->m_vertices.push_back (m_renderLevel);
-
-            // add triangle indices unsigned short
-            if(i < numPoints - 2 ) {
-                m_currentPolygonBuffer->m_indices.push_back (startPolyIndex);
-                m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 1);
-                m_currentPolygonBuffer->m_indices.push_back (startPolyIndex + i + 2);
-            }
-        }
-    }
-        break;
-    case wkbMultiPoint:
-    {
-        OGRMultiPoint* mpt = static_cast<OGRMultiPoint*>(geom);
-        for(int i = 0; i < mpt->getNumGeometries (); ++i) {
-            fillRenderBuffers (mpt->getGeometryRef (i));
-        }
-    }
-        break;
-    case wkbMultiLineString:
-    {
-        OGRMultiLineString* mln = static_cast<OGRMultiLineString*>(geom);
-        for(int i = 0; i < mln->getNumGeometries (); ++i) {
-            fillRenderBuffers (mln->getGeometryRef (i));
-        }
-    }
-        break;
-    case wkbMultiPolygon:
-    {
-        OGRMultiPolygon* mplg = static_cast<OGRMultiPolygon*>(geom);
-        for(int i = 0; i < mplg->getNumGeometries (); ++i) {
-            fillRenderBuffers (mplg->getGeometryRef (i));
-        }
-    }
-        break;
-    case wkbGeometryCollection:
-    {
-        OGRGeometryCollection* coll = static_cast<OGRGeometryCollection*>(geom);
-        for(int i = 0; i < coll->getNumGeometries (); ++i) {
-            fillRenderBuffers (coll->getGeometryRef (i));
-        }
-    }
-        break;
-    /* TODO: case wkbCircularString:
-        return "cir";
-    case wkbCompoundCurve:
-        return "ccrv";
-    case wkbCurvePolygon:
-        return "crvplg";
-    case wkbMultiCurve:
-        return "mcrv";
-    case wkbMultiSurface:
-        return "msurf";
-    case wkbCurve:
-        return "crv";
-    case wkbSurface:
-        return "surf";*/
-    }
+    CPLLockHolder tilesHolder(m_hTilesLock);
+    m_tiles.clear ();
 }
 
-/*
-double FeatureRenderLayer::render(const GlView *glView)
+void ngs::FeatureRenderLayer::drawTiles()
 {
-    // draw elements
-    CPLLockHolderOptionalLockD(m_hBucketLock);
-    while (!m_polygonBucket.empty()) {
-        ngsVertexBufferPtr buff(move(m_polygonBucket.back ()));
-        m_polygonBucket.pop_back ();
-        if(nullptr != buff) {
-            cout << "vertices: " << buff->m_vertices.size () <<
-                    " indices: " << buff->m_indices.size() << endl;
-            glView->drawPolygons (buff->m_vertices, buff->m_indices);
+    CPLLockHolder tilesHolder(m_hTilesLock);
+    for(GlBufferBucket& tile : m_tiles) {
+        if(tile.filled()) {
+            tile.draw ();
         }
     }
-    if(m_bucketFilled) {
-        m_renderPercent = 1;
-        m_bucketFilled = false;
+}
+
+struct tileIs {
+    tileIs( const GlBufferBucket &item ) {
+        toFind.x = item.X();
+        toFind.y = item.Y();
+        toFind.z = item.zoom ();
+    }
+    bool operator() (const TileItem &item) {
+        return item.x == toFind.x &&
+               item.y == toFind.y &&
+               item.z == toFind.z;
+    }
+    TileItem toFind;
+};
+
+void FeatureRenderLayer::refreshTiles()
+{
+    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom, true);
+
+    // remove exist items in m_tiles from tiles
+    // remove non exist items in tiles from m_tiles
+    CPLLockHolder tilesHolder(m_hTilesLock);
+    auto iter = m_tiles.begin ();
+    while (iter != m_tiles.end())
+    {
+        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
+        if(pos == tiles.end ())
+        {
+            // erase returns the new iterator
+            iter = m_tiles.erase(iter);
+        }
+        else
+        {
+            tiles.erase (pos);
+            ++iter;
+        }
     }
 
-    // report percent
-    return m_renderPercent;
+    for(const TileItem& tile : tiles) {
+        m_tiles.push_back (GlBufferBucket(tile.x, tile.y, tile.z, tile.env));
+    }
 }
-*/

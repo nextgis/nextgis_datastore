@@ -67,8 +67,8 @@ public:
     virtual MapPtr getMap(unsigned char mapId);
     int initMap(unsigned char mapId);
     int setMapSize(unsigned char mapId, int width, int height, bool isYAxisInverted);
-    int drawMap(unsigned char mapId, ngsProgressFunc progressFunc,
-                void* progressArguments = nullptr);
+    int drawMap(unsigned char mapId, enum ngsDrawState state,
+                ngsProgressFunc progressFunc, void* progressArguments = nullptr);
     void onLowMemory();
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();

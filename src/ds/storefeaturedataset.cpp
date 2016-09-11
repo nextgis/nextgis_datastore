@@ -33,11 +33,12 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                                       const FieldMapPtr fieldMap,
                                       OGRwkbGeometryType filterGeomType,
                                       unsigned int skipGeometryFlags,
+                                      unsigned int taskId,
                                       ngsProgressFunc progressFunc,
                                       void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Start copy features from '%s' to '%s'",
+        progressFunc(taskId, 0, CPLSPrintf ("Start copy features from '%s' to '%s'",
                                     srcDataset->name ().c_str (), name().c_str ()),
                      progressArguments);
 
@@ -52,7 +53,8 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
 
     while((feature = srcDataset->nextFeature ()) != nullptr) {
         if(progressFunc)
-            progressFunc(counter / featureCount, "copying...", progressArguments);
+            progressFunc(taskId, counter / featureCount, "copying...",
+                         progressArguments);
 
         OGRGeometry * geom = feature->GetGeometryRef ();
         OGRGeometry *newGeom = nullptr;
@@ -113,17 +115,17 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
         }
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
-        if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {
+        if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
             CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
                      "Source feature FID:%lld", feature->GetFID ());
         }
         counter++;
     }
     if(progressFunc)
-        progressFunc(1.0, CPLSPrintf ("Done. Copied %d features", int(counter)),
-                     progressArguments);
+        progressFunc(taskId, 1.0, CPLSPrintf ("Done. Copied %d features",
+                                              int(counter)), progressArguments);
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 /* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function

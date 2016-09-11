@@ -31,10 +31,12 @@ typedef struct _loadData {
     CPLString path;
     CPLString srcSubDatasetName;
     CPLString dstDatasetName;
+    CPLString dstDatasetNewName;
     bool move;
     unsigned int skipType;
     ngsProgressFunc progressFunc;
     void *progressArguments;
+    enum ngsErrorCodes status;
 } LoadData;
 
 class DatasetContainer : public Dataset
@@ -48,7 +50,7 @@ public:
     virtual DatasetPtr getDataset(const CPLString& name);
     virtual DatasetPtr getDataset(int index);
     // TODO: getRaster
-    int loadDataset(const CPLString& name, const CPLString& path,
+    unsigned int loadDataset(const CPLString& name, const CPLString& path,
                     const CPLString& subDatasetName, bool move,
                     unsigned int skipType, ngsProgressFunc progressFunc,
                     void* progressArguments = nullptr);
@@ -62,17 +64,19 @@ public:
     int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
              void* progressArguments = nullptr);
     */
-    virtual int copyDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
-                            unsigned int skipGeometryFlags,
+    virtual int copyDataset(DatasetPtr srcDataset, CPLString &dstDatasetName,
+                            unsigned int skipGeometryFlags, unsigned int taskId,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
-    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
+    virtual int moveDataset(DatasetPtr srcDataset, CPLString& dstDatasetName,
                             unsigned int skipGeometryFlags,
+                            unsigned int taskId = 0,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,
                                      OGRFeatureDefn* const definition,
                                      char** options = nullptr,
+                                     unsigned int taskId = 0,
                                      ngsProgressFunc progressFunc = nullptr,
                                      void* progressArguments = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,
@@ -80,8 +84,10 @@ public:
                                      const OGRSpatialReference *spatialRef,
                                      OGRwkbGeometryType type = wkbUnknown,
                                      char** options = nullptr,
+                                     unsigned int taskId = 0,
                                      ngsProgressFunc progressFunc = nullptr,
                                      void* progressArguments = nullptr);
+    ngsLoadTaskInfo getLoadTaskInfo (unsigned int taskId) const;
     // TODO: createRaster()
 protected:
     virtual bool isNameValid(const CPLString& name) const;

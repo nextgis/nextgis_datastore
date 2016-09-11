@@ -24,6 +24,8 @@
 #include "api.h"
 
 #include <memory>
+#include <cmath>
+#include <limits>
 
 using namespace std;
 
@@ -45,6 +47,13 @@ inline ngsRGBA ngsHEX2RGBA(int color) {
 }
 
 #define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
+#define ngsStaticCast(type, shared) static_cast<type*>(shared.get ())
+
+// http://stackoverflow.com/a/15012792
+inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) <=
+            numeric_limits<double>::epsilon(); };
+
+#define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
 // TODO: use gettext or something same to translate messages
 

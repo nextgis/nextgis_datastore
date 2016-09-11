@@ -28,61 +28,75 @@
  * @brief The NextGIS store and visualisation library error codes enum
  */
 enum ngsErrorCodes {
-    SUCCESS = 0,        /**< Success */
-    UNEXPECTED_ERROR,   /**< Unexpected error */
-    PATH_NOT_SPECIFIED, /**< Path is not specified */
-    INVALID,            /**< Path, map, structure, etc. is invalid */
-    UNSUPPORTED,        /**< The feature is unsupported */
-    CREATE_FAILED,      /**< Create failed */
-    DELETE_FAILED,      /**< Failed to delete file, folder or something else */
-    SAVE_FAILED,        /**< Failed to save file, folder or something else */
-    SET_FAILED,         /**< Failed to set value */
-    OPEN_FAILED,        /**< Failed to open file, folder or something else */
-    INSERT_FAILED,      /**< Insert new feature failed */
-    UPDATE_FAILED,      /**< Update feature failed */
-    INIT_FAILED,        /**< Initialise failed */
-    COPY_FAILED,        /**< Copy failed */
-    MOVE_FAILED,        /**< Move failed */
-    CLOSE_FAILED,       /**< Close failed */
+    EC_SUCCESS = 0,        /**< Success */
+    EC_IN_PROCESS,         /**< In process */
+    EC_PENDING,            /**< Pending */
+    EC_CANCELED,           /**< Canceled */
+    EC_UNEXPECTED_ERROR,   /**< Unexpected error */
+    EC_PATH_NOT_SPECIFIED, /**< Path is not specified */
+    EC_INVALID,            /**< Path, map, structure, etc. is invalid */
+    EC_UNSUPPORTED,        /**< The feature is unsupported */
+    EC_CREATE_FAILED,      /**< Create failed */
+    EC_DELETE_FAILED,      /**< Failed to delete file, folder or something else */
+    EC_SAVE_FAILED,        /**< Failed to save file, folder or something else */
+    EC_SET_FAILED,         /**< Failed to set value */
+    EC_OPEN_FAILED,        /**< Failed to open file, folder or something else */
+    EC_INSERT_FAILED,      /**< Insert new feature failed */
+    EC_UPDATE_FAILED,      /**< Update feature failed */
+    EC_INIT_FAILED,        /**< Initialise failed */
+    EC_COPY_FAILED,        /**< Copy failed */
+    EC_MOVE_FAILED,        /**< Move failed */
+    EC_CLOSE_FAILED,       /**< Close failed */
 };
 
 /**
  * @brief The table, datsource, map and etc. change codes enum
  */
 enum ngsChangeCodes {
-    NOP = 0,
-    CREATE_RESOURCE,
-    DELETE_RESOURCE,
-    CHANGE_RESOURCE,
-    CREATE_FEATURE,
-    CHANGE_FEATURE,
-    DELETE_FEATURE,
-    DELETEALL_FEATURES,
-    CREATE_ATTACHMENT,
-    CHANGE_ATTACHMENT,
-    DELETE_ATTACHMENT,
-    DELETEALL_ATTACHMENTS
+    CC_NOP = 0,
+    CC_CREATE_RESOURCE,
+    CC_DELETE_RESOURCE,
+    CC_CHANGE_RESOURCE,
+    CC_CREATE_FEATURE,
+    CC_CHANGE_FEATURE,
+    CC_DELETE_FEATURE,
+    CC_DELETEALL_FEATURES,
+    CC_CREATE_ATTACHMENT,
+    CC_CHANGE_ATTACHMENT,
+    CC_DELETE_ATTACHMENT,
+    CC_DELETEALL_ATTACHMENTS
 };
 
 /**
  * @brief The notification source code enum
  */
 enum ngsSourceCodes {
-    UNDEFINED = 0,
-    DATA_STORE,
-    MAP_STORE,
-    DATASET
+    SC_UNDEFINED = 0,
+    SC_DATA_STORE,
+    SC_MAP_STORE,
+    SC_DATASET
+};
+
+/**
+ * @brief The draw state enum
+ */
+enum ngsDrawState {
+    DS_NORMAL = 1,  /**< normal draw */
+    DS_REDRAW,      /**< free all caches and draw from the scratch */
+    DS_PRESERVED    /**< draw from caches */
 };
 
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
+ * @param id Process task id
  * @param complete Progress percent from 0 to 1
  * @param message Some user friendly message from process
  * @param progressArguments Data from user
- * @return 1 to continue execute process or any other value - to cancel
+ * @return 1 to continue execute process or 0 - to cancel
  */
-typedef int (*ngsProgressFunc)(double complete, const char* message,
+typedef int (*ngsProgressFunc)(unsigned int id, double complete,
+                               const char* message,
                                void* progressArguments);
 /**
  * @brief Prototype of function, which executed usually then some data changed
@@ -113,6 +127,12 @@ typedef struct _ngsPosition {
     int Y;
 } ngsPosition;
 
+typedef struct _ngsLoadTaskInfo {
+    const char* name;
+    const char* newName;
+    enum ngsErrorCodes status;
+} ngsLoadTaskInfo;
+
 enum ngsDirection {
     X = 0,
     Y,
@@ -138,10 +158,12 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          const char* alias, const char* copyright,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
-NGS_EXTERNC int ngsDataStoreLoad(const char* name, const char* path,
+NGS_EXTERNC unsigned int ngsDataStoreLoad(const char* name, const char* path,
                         const char *subDatasetName, bool move,
                         unsigned int skipFlags, ngsProgressFunc callback,
                         void* callbackData);
+NGS_EXTERNC ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId);
+
 /**
  * Map functions
  *
@@ -157,8 +179,8 @@ NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 NGS_EXTERNC int ngsMapInit(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
                            int isYAxisInverted);
-NGS_EXTERNC int ngsMapDraw(unsigned char mapId, ngsProgressFunc callback,
-                           void* callbackData);
+NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+                           ngsProgressFunc callback, void* callbackData);
 NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R,
                                     unsigned char G, unsigned char B,
                                     unsigned char A);

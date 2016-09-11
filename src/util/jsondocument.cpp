@@ -45,7 +45,7 @@ int JSONDocument::save(const char *path)
 {
     VSILFILE* fp = VSIFOpenL(path, "wt");
     if( nullptr == fp )
-        return ngsErrorCodes::SAVE_FAILED;
+        return ngsErrorCodes::EC_SAVE_FAILED;
 
     const char* data = json_object_to_json_string_ext(m_rootJsonObject,
                                                       JSON_C_TO_STRING_PRETTY);
@@ -53,7 +53,7 @@ int JSONDocument::save(const char *path)
 
     VSIFCloseL(fp);
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 JSONObject JSONDocument::getRoot()
@@ -67,11 +67,11 @@ int JSONDocument::load(const char *path)
 {
     VSILFILE* fp = VSIFOpenL(path, "rt");
     if( fp == nullptr )
-        return ngsErrorCodes::OPEN_FAILED;
+        return ngsErrorCodes::EC_OPEN_FAILED;
 
     GByte* pabyOut = nullptr;
     if( !VSIIngestFile( fp, path, &pabyOut, nullptr, -1) ) {
-        return ngsErrorCodes::OPEN_FAILED;
+        return ngsErrorCodes::EC_OPEN_FAILED;
     }
 
     VSIFCloseL(fp);
@@ -84,9 +84,9 @@ int JSONDocument::load(const char *path)
         CPLError( CE_Failure, CPLE_AppDefined,
                   "JSON parsing error: %s (at offset %d)",
                   json_tokener_error_desc(jstok->err), jstok->char_offset);
-        return ngsErrorCodes::OPEN_FAILED;
+        return ngsErrorCodes::EC_OPEN_FAILED;
     }
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

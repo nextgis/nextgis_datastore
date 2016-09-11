@@ -102,11 +102,11 @@ static string gFormats;
 int ngsDataStoreInit(const char *path)
 {
     if(gDataStore && gDataStore->path().compare (path) == 0)
-        return ngsErrorCodes::SUCCESS;
+        return ngsErrorCodes::EC_SUCCESS;
     gDataStore = DataStore::openOrCreate(path);
     if(nullptr == gDataStore)
-        return ngsErrorCodes::OPEN_FAILED;
-    return ngsErrorCodes::SUCCESS;
+        return ngsErrorCodes::EC_OPEN_FAILED;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 void initMapStore()
@@ -412,7 +412,7 @@ int ngsInit(const char* dataPath, const char* cachePath)
 
     initGDAL(dataPath, cachePath);
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 /**
@@ -435,11 +435,11 @@ void ngsUninit()
 int ngsDataStoreDestroy(const char *path, const char *cachePath)
 {
     if(nullptr == path)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     gMapStore.reset ();
     if(cachePath){
         if(CPLUnlinkTree(cachePath) != 0){
-            return ngsErrorCodes::DELETE_FAILED;
+            return ngsErrorCodes::EC_DELETE_FAILED;
         }
     }
     ngsDataStoreInit(path);
@@ -469,7 +469,7 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
         return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
                                             epsg, z_min, z_max, y_origin_top);
 
-    return ngsErrorCodes::CREATE_FAILED;
+    return ngsErrorCodes::EC_CREATE_FAILED;
 }
 
 /**
@@ -521,14 +521,16 @@ void ngsOnPause()
 /**
  * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
  * @param mapId Map id received from create or open map functions
+ * @param state Draw state (NORMAL, PRESERVED, REDRAW)
  * @param callback Progress function
  * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapDraw(unsigned char mapId, ngsProgressFunc callback, void* callbackData)
+int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+               ngsProgressFunc callback, void* callbackData)
 {
     initMapStore();
-    return gMapStore->drawMap (mapId, callback, callbackData);
+    return gMapStore->drawMap (mapId, state, callback, callbackData);
 }
 
 /**
@@ -622,7 +624,7 @@ unsigned char ngsMapCreate(const char* name, const char* description,
 {
     // for this API before work with map datastore must be open
     if(nullptr == gDataStore)
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     initMapStore();
     return gMapStore->createMap (name, description, epsg,
                                  minX, minY, maxX, maxY, gDataStore);
@@ -637,7 +639,7 @@ unsigned char ngsMapOpen(const char *path)
 {
     // for this API before work with map datastore must be open
     if(nullptr == gDataStore)
-        return ngsErrorCodes::OPEN_FAILED;
+        return ngsErrorCodes::EC_OPEN_FAILED;
     initMapStore();
     return gMapStore->openMap (path, gDataStore);
 }
@@ -665,16 +667,17 @@ int ngsMapSave(unsigned char mapId, const char *path)
  * NONE(0) - to load everything
  * @param callback Progress function
  * @param callbackData Progress function arguments
- * @return  ngsErrorCodes value - SUCCES if everything is OK
+ * @return  Load task id or 0 if error occured. This id can be used to get some
+ * additional information about the task.
  */
-int ngsDataStoreLoad(const char* name, const char *path, const char *subDatasetName,
+unsigned int ngsDataStoreLoad(const char* name, const char *path, const char *subDatasetName,
             bool move, unsigned int skipFlags, ngsProgressFunc callback,
             void *callbackData)
 {
     if(nullptr != gDataStore)
-        return gDataStore->loadDataset (name, path, subDatasetName, move,
-                                        skipFlags, callback, callbackData);
-    return ngsErrorCodes::INSERT_FAILED;
+        return gDataStore->loadDataset (name, path,
+                       subDatasetName, move, skipFlags, callback, callbackData);
+    return 0;
 }
 
 int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
@@ -684,7 +687,7 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
     initMapStore();
     MapPtr map = gMapStore->getMap (mapId);
     if(nullptr == map || nullptr == dataset)
-        return ngsErrorCodes::CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED;
     return map->createLayer (name, dataset);
 
 }
@@ -786,4 +789,12 @@ ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
 {
     initMapStore();
     return gMapStore->getDisplayLength (mapId, w, h);
+}
+
+ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId)
+{
+    if(nullptr != gDataStore)
+        return gDataStore->getLoadTaskInfo (taskId);
+    return {nullptr, nullptr, ngsErrorCodes::EC_INVALID};
+
 }

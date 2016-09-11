@@ -52,10 +52,12 @@ public:
                                      const OGRSpatialReference *,
                                      OGRwkbGeometryType type = wkbUnknown,
                                      char** options = nullptr,
+                                     unsigned int taskId = 0,
                                      ngsProgressFunc progressFunc = nullptr,
                                      void* progressArguments = nullptr) override;
-    virtual int copyDataset(DatasetPtr srcDataset, const CPLString& dstName,
+    virtual int copyDataset(DatasetPtr srcDataset, CPLString& dstName,
                             unsigned int skipGeometryFlags,
+                            unsigned int taskId = 0,
                             ngsProgressFunc progressFunc = nullptr,
                             void* progressArguments = nullptr) override;
 

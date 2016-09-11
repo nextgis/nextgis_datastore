@@ -22,9 +22,6 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#include <cmath>
-#include <limits>
-
 #define NOT_FOUND -1
 
 // Structure
@@ -80,7 +77,7 @@
 #define DEFAULT_MAX_Y 20037508.34 // 90.0
 #define DEFAULT_MIN_X -DEFAULT_MAX_X
 #define DEFAULT_MIN_Y -DEFAULT_MAX_Y
-#define DEFAULT_RATIO DEFAULT_MAX_X / DEFAULT_MAX_Y
+#define DEFAULT_RATIO 1
 #define MAP_DOCUMENT_EXT "ngmd"
 #define DEFAULT_TILE_SIZE 256
 
@@ -109,10 +106,5 @@
 
 // Common
 #define BIG_VALUE 10000000.0
-
-// http://stackoverflow.com/a/15012792
-inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) <= std::numeric_limits<double>::epsilon(); };
-
-#define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
 #endif // CONSTANTS_H

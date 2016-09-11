@@ -75,14 +75,14 @@ public:
     };
 
     enum class ChangeType {
-        AddFeature = ngsChangeCodes::CREATE_FEATURE,
-        ChangeFeature = ngsChangeCodes::CHANGE_FEATURE,
-        DeleteFeature = ngsChangeCodes::DELETE_FEATURE,
-        DeleteAllFeatures = ngsChangeCodes::DELETEALL_FEATURES,
-        AddAttachment = ngsChangeCodes::CREATE_ATTACHMENT,
-        ChangeAttachment = ngsChangeCodes::CHANGE_ATTACHMENT,
-        DeleteAttachment = ngsChangeCodes::DELETE_ATTACHMENT,
-        DeleteAllAttachments = ngsChangeCodes::DELETEALL_ATTACHMENTS,
+        AddFeature = ngsChangeCodes::CC_CREATE_FEATURE,
+        ChangeFeature = ngsChangeCodes::CC_CHANGE_FEATURE,
+        DeleteFeature = ngsChangeCodes::CC_DELETE_FEATURE,
+        DeleteAllFeatures = ngsChangeCodes::CC_DELETEALL_FEATURES,
+        AddAttachment = ngsChangeCodes::CC_CREATE_ATTACHMENT,
+        ChangeAttachment = ngsChangeCodes::CC_CHANGE_ATTACHMENT,
+        DeleteAttachment = ngsChangeCodes::CC_DELETE_ATTACHMENT,
+        DeleteAllAttachments = ngsChangeCodes::CC_DELETEALL_ATTACHMENTS,
         AddDataset,
         ChangeDataset,
         DeleteDataset

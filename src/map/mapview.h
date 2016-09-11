@@ -30,14 +30,6 @@ namespace ngs {
 class MapView : public Map, public MapTransform
 {
 public:
-    enum class DrawStage {
-        Start = 1,
-        Stop,
-        Done,
-        Process
-    };
-
-public:
     MapView();
     MapView(const CPLString& name, const CPLString& description,
             unsigned short epsg,
@@ -50,23 +42,14 @@ public:
     virtual ~MapView();
     bool isDisplayInit() const;
     int initDisplay();
-//    int initBuffer(void* buffer, int width, int height, bool isYAxisInverted);
-    int draw(const ngsProgressFunc &progressFunc, void* progressArguments = nullptr);
-    DrawStage getDrawStage() const;
-
-protected:
-//    bool render(const GlView* glView);
-    void prepareRender();
-    void cancelPrepareRender();
-    void setDrawStage(const DrawStage &drawStage);
-    int notify(double complete, const char* message);
+    int draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
+             void* progressArguments = nullptr);
+    int notify();
 
 protected:
     bool m_displayInit;
     ngsProgressFunc m_progressFunc;
     void* m_progressArguments;
-    double m_renderPercent;
-    enum DrawStage m_drawStage;
     GlFuctions m_glFunctions;
 
     // Map interface

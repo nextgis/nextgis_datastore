@@ -57,9 +57,11 @@ public:
     FeaturePtr nextFeature() const;
     ResultSetPtr executeSQL(const CPLString& statement,
                             const CPLString& dialect = "") const;
-    virtual int destroy(ngsProgressFunc progressFunc = nullptr,
-                void* progressArguments = nullptr);
+    virtual int destroy(unsigned int taskId = 0,
+                        ngsProgressFunc progressFunc = nullptr,
+                        void* progressArguments = nullptr);
     virtual int copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
+                         unsigned int taskId = 0,
                          ngsProgressFunc progressFunc = nullptr,
                          void* progressArguments = nullptr);
     OGRFeatureDefn* getDefinition() const;

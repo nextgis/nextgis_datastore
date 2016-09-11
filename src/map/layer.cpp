@@ -59,7 +59,7 @@ int Layer::load(const JSONObject &store, DataStorePtr dataStore)
             }
         }
     }
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 JSONObject Layer::save() const

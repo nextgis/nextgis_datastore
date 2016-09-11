@@ -111,13 +111,13 @@ FeaturePtr Table::getFeature(GIntBig id) const
 int Table::insertFeature(const FeaturePtr &feature)
 {
    if(m_deleted)
-        return ngsErrorCodes::INSERT_FAILED;
+        return ngsErrorCodes::EC_INSERT_FAILED;
 
     int nReturnCode = m_layer->CreateFeature(feature) == OGRERR_NONE ?
-                ngsErrorCodes::SUCCESS : ngsErrorCodes::INSERT_FAILED;
+                ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_INSERT_FAILED;
 
     // notify datasource changed
-    if(nReturnCode == ngsErrorCodes::SUCCESS)
+    if(nReturnCode == ngsErrorCodes::EC_SUCCESS)
         notifyDatasetChanged(Dataset::ChangeType::AddFeature, name(), feature->GetFID());
 
     return nReturnCode;
@@ -126,13 +126,13 @@ int Table::insertFeature(const FeaturePtr &feature)
 int Table::updateFeature(const FeaturePtr &feature)
 {
     if(m_deleted)
-        return ngsErrorCodes::UPDATE_FAILED;
+        return ngsErrorCodes::EC_UPDATE_FAILED;
 
     int nReturnCode = m_layer->SetFeature(feature) == OGRERR_NONE ?
-                ngsErrorCodes::SUCCESS : ngsErrorCodes::UPDATE_FAILED;
+                ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_UPDATE_FAILED;
 
     // notify datasource changed
-    if(nReturnCode == ngsErrorCodes::SUCCESS)
+    if(nReturnCode == ngsErrorCodes::EC_SUCCESS)
         notifyDatasetChanged(Dataset::ChangeType::ChangeFeature, name(), feature->GetFID());
 
     return nReturnCode;
@@ -141,12 +141,12 @@ int Table::updateFeature(const FeaturePtr &feature)
 int Table::deleteFeature(GIntBig id)
 {
     if(m_deleted)
-        return ngsErrorCodes::DELETE_FAILED;
+        return ngsErrorCodes::EC_DELETE_FAILED;
 
     int nReturnCode = m_layer->DeleteFeature (id) == OGRERR_NONE ?
-                ngsErrorCodes::SUCCESS : ngsErrorCodes::DELETE_FAILED;
+                ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_DELETE_FAILED;
     // notify datasource changed
-    if(nReturnCode == ngsErrorCodes::SUCCESS)
+    if(nReturnCode == ngsErrorCodes::EC_SUCCESS)
         notifyDatasetChanged(Dataset::ChangeType::DeleteFeature, name(), id);
 
     return nReturnCode;
@@ -179,30 +179,31 @@ ResultSetPtr Table::executeSQL(const CPLString &statement,
     return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, dialect ));
 }
 
-int Table::destroy(ngsProgressFunc progressFunc, void *progressArguments)
+int Table::destroy(unsigned int taskId, ngsProgressFunc progressFunc, void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Deleting %s", name().c_str ()),
+        progressFunc(taskId, 0, CPLSPrintf ("Deleting %s", name().c_str ()),
                      progressArguments);
     for(int i = 0; i < m_DS->GetLayerCount (); ++i){
         if(m_DS->GetLayer (i) == m_layer) {
             m_DS->DeleteLayer (i);
             m_deleted = true;
             if(progressFunc)
-                progressFunc(1, CPLSPrintf ("Deleted %s", name().c_str ()),
+                progressFunc(taskId, 1.0, CPLSPrintf ("Deleted %s", name().c_str ()),
                              progressArguments);
 
-            return ngsErrorCodes::SUCCESS;
+            return ngsErrorCodes::EC_SUCCESS;
         }
     }
-    return ngsErrorCodes::DELETE_FAILED;
+    return ngsErrorCodes::EC_DELETE_FAILED;
 }
 
 int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
+                    unsigned int taskId,
                     ngsProgressFunc progressFunc, void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Start copy records from '%s' to '%s'",
+        progressFunc(taskId, 0, CPLSPrintf ("Start copy records from '%s' to '%s'",
                                     pSrcTable->name ().c_str (), name().c_str ()),
                      progressArguments);
 
@@ -212,22 +213,23 @@ int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
     FeaturePtr feature;
     while((feature = pSrcTable->nextFeature ()) != nullptr) {
         if(progressFunc)
-            progressFunc(counter / featureCount, "copying...", progressArguments);
+            progressFunc(taskId, counter / featureCount, "copying...",
+                         progressArguments);
 
         FeaturePtr dstFeature = createFeature ();
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
-        if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {
+        if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
             CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
                      "Source feature FID:%lld", feature->GetFID ());
         }
         counter++;
     }
     if(progressFunc)
-        progressFunc(1.0, CPLSPrintf ("Done. Copied %d rows", int(counter)),
+        progressFunc(taskId, 1.0, CPLSPrintf ("Done. Copied %d rows", int(counter)),
                      progressArguments);
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 OGRFeatureDefn *Table::getDefinition() const

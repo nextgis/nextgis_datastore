@@ -61,6 +61,7 @@ unsigned char MapStore::createMap(const CPLString &name, const CPLString &descri
     MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY,
                               dataStore));
     m_maps[++m_mapCounter] = newMap;
+    newMap->setId (m_mapCounter);
     return m_mapCounter;
 }
 
@@ -73,10 +74,11 @@ unsigned char MapStore::openMap(const char *path)
 {
     MapPtr newMap(new MapView());
     int nRes = newMap->open (path);
-    if(nRes != ngsErrorCodes::SUCCESS)
+    if(nRes != ngsErrorCodes::EC_SUCCESS)
         return INVALID_MAPID;
 
     m_maps[++m_mapCounter] = newMap;
+    newMap->setId (m_mapCounter);
     return m_mapCounter;
 }
 
@@ -84,26 +86,27 @@ unsigned char MapStore::openMap(const char *path, DataStorePtr dataStore)
 {
     MapPtr newMap(new MapView(dataStore));
     int nRes = newMap->open (path);
-    if(nRes != ngsErrorCodes::SUCCESS)
+    if(nRes != ngsErrorCodes::EC_SUCCESS)
         return INVALID_MAPID;
 
     m_maps[++m_mapCounter] = newMap;
+    newMap->setId (m_mapCounter);
     return m_mapCounter;
 }
 
 int MapStore::saveMap(unsigned char mapId, const char *path)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::SAVE_FAILED;
+        return ngsErrorCodes::EC_SAVE_FAILED;
     return m_maps[mapId]->save (path);
 }
 
 int MapStore::closeMap(unsigned char mapId)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::CLOSE_FAILED;
+        return ngsErrorCodes::EC_CLOSE_FAILED;
     int nRes = m_maps[mapId]->close ();
-    if(nRes == ngsErrorCodes::SUCCESS)
+    if(nRes == ngsErrorCodes::EC_SUCCESS)
         m_maps[mapId].reset ();
     return nRes;
 }
@@ -133,7 +136,7 @@ ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId)
 int MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     return m_maps[mapId]->setBackgroundColor (color);
 }
 
@@ -141,47 +144,47 @@ int MapStore::setMapSize(unsigned char mapId, int width, int height,
                       bool isYAxisInverted)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     pMapView->setDisplaySize (width, height, isYAxisInverted);
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 
 int MapStore::initMap(unsigned char mapId)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     return pMapView->initDisplay ();
 }
 
-int MapStore::drawMap(unsigned char mapId, ngsProgressFunc progressFunc,
+int MapStore::drawMap(unsigned char mapId, ngsDrawState state, ngsProgressFunc progressFunc,
                       void *progressArguments)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
 
-    return pMapView->draw (progressFunc, progressArguments);
+    return pMapView->draw (state, progressFunc, progressArguments);
 }
 
 int MapStore::setMapCenter(unsigned char mapId, double x, double y)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
 
-    return pMapView->setCenter(x, y) ? ngsErrorCodes::SUCCESS :
-                                       ngsErrorCodes::SET_FAILED;
+    return pMapView->setCenter(x, y) ? ngsErrorCodes::EC_SUCCESS :
+                                       ngsErrorCodes::EC_SET_FAILED;
 }
 
 ngsCoordinate MapStore::getMapCenter(unsigned char mapId)
@@ -203,13 +206,13 @@ ngsCoordinate MapStore::getMapCenter(unsigned char mapId)
 int MapStore::setMapScale(unsigned char mapId, double scale)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
 
-    return pMapView->setScale(scale) ? ngsErrorCodes::SUCCESS :
-                                       ngsErrorCodes::SET_FAILED;
+    return pMapView->setScale(scale) ? ngsErrorCodes::EC_SUCCESS :
+                                       ngsErrorCodes::EC_SET_FAILED;
 }
 
 double MapStore::getMapScale(unsigned char mapId)
@@ -226,13 +229,13 @@ double MapStore::getMapScale(unsigned char mapId)
 int MapStore::setMapRotate(unsigned char mapId, ngsDirection dir, double rotate)
 {
     if(!m_maps[mapId])
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
     MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::INVALID;
+        return ngsErrorCodes::EC_INVALID;
 
-    return pMapView->setRotate(dir, rotate) ? ngsErrorCodes::SUCCESS :
-                                         ngsErrorCodes::SET_FAILED;
+    return pMapView->setRotate(dir, rotate) ? ngsErrorCodes::EC_SUCCESS :
+                                         ngsErrorCodes::EC_SET_FAILED;
 
 }
 

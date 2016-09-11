@@ -51,23 +51,32 @@ const static array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTION"
 void ngs::LoadingThread(void * store)
 {
     DatasetContainer* dstDataset = static_cast<DatasetContainer*>(store);
-    while(!dstDataset->m_cancelLoad && !dstDataset->m_loadData.empty ()) {
-        LoadData data = dstDataset->m_loadData.back ();
-        dstDataset->m_loadData.pop_back ();
 
-        if(data.progressFunc)
-            if(data.progressFunc(0, CPLSPrintf ("Start loading '%s'",
-                    CPLGetFilename(data.path)), data.progressArguments) == FALSE)
+    unsigned int counter = 0;
+    for(LoadData &data : dstDataset->m_loadData) {
+
+        counter++;
+        if(dstDataset->m_cancelLoad)
+            break;
+        if(data.status != ngsErrorCodes::EC_PENDING) // all new tasks have pending state
+            continue;
+
+        data.status = ngsErrorCodes::EC_IN_PROCESS;
+        if(data.progressFunc) {
+            if(data.progressFunc(counter, 0, CPLSPrintf ("Start loading '%s'",
+                    CPLGetFilename(data.path)), data.progressArguments) == FALSE) {
+                data.status = ngsErrorCodes::EC_CANCELED;
                 continue;
+            }
+        }
 
-
-
-        // 1. Open
-        DatasetPtr srcDataset = Dataset::open (data.path, GDAL_OF_SHARED|GDAL_OF_READONLY,
-                                       nullptr);
+        // 1. Open datasource
+        DatasetPtr srcDataset = Dataset::open (data.path,
+                                        GDAL_OF_SHARED|GDAL_OF_READONLY, nullptr);
         if(nullptr == srcDataset) {
             CPLError(CE_Failure, CPLE_AppDefined, "Dataset '%s' open failed.",
                      CPLGetFilename(data.path));
+            data.status = ngsErrorCodes::EC_OPEN_FAILED;
             continue;
         }
 
@@ -77,17 +86,19 @@ void ngs::LoadingThread(void * store)
             srcDataset = pDatasetContainer->getDataset (data.srcSubDatasetName);
         }
 
-        // 2. Move or cope ds to container
+        // 2. Move or copy datasource to container
+        int res;
         if(data.move && srcDataset->canDelete ()) {
-            dstDataset->moveDataset(srcDataset, data.dstDatasetName,
-                                    data.skipType, data.progressFunc,
+            res = dstDataset->moveDataset(srcDataset, data.dstDatasetNewName,
+                                    data.skipType, counter, data.progressFunc,
                                     data.progressArguments);
         }
         else {
-            dstDataset->copyDataset(srcDataset, data.dstDatasetName,
-                                    data.skipType, data.progressFunc,
+            res = dstDataset->copyDataset(srcDataset, data.dstDatasetNewName,
+                                    data.skipType, counter, data.progressFunc,
                                     data.progressArguments);
         }
+        data.status = static_cast<ngsErrorCodes>(res);
     }
 
     dstDataset->m_hLoadThread = nullptr;
@@ -282,23 +293,25 @@ vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcData
     return out;
 }
 
-int DatasetContainer::loadDataset(const CPLString &name, const CPLString& path, const
+unsigned int DatasetContainer::loadDataset(const CPLString &name, const CPLString& path, const
                                   CPLString& subDatasetName, bool move,
                                   unsigned int skipType,
                                   ngsProgressFunc progressFunc,
                                   void* progressArguments)
 {
-    m_loadData.push_back ({path, subDatasetName, name, move, skipType,
-                           progressFunc, progressArguments});
+    m_loadData.push_back ({path, subDatasetName, name, name, move, skipType,
+                           progressFunc, progressArguments,
+                           ngsErrorCodes::EC_PENDING});
     if(nullptr == m_hLoadThread) {
         m_hLoadThread = CPLCreateJoinableThread(LoadingThread, this);
     }
-    return ngsErrorCodes::SUCCESS;
+    return static_cast<unsigned int>(m_loadData.size ());
 }
 
 int DatasetContainer::copyDataset(DatasetPtr srcDataset,
-                                  const CPLString &dstDatasetName,
+                                  CPLString &dstDatasetName,
                                   unsigned int skipGeometryFlags,
+                                  unsigned int taskId,
                                   ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
@@ -311,16 +324,18 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
     if(name.empty ())
         name = "new_dataset";
     CPLString newName = name;
-    int counter = 0;
+    int nameCounter = 0;
     while(!isNameValid (newName)) {
-        newName = name + "_" + CPLSPrintf ("%d", ++counter);
-        if(counter == 10000)
-            return ngsErrorCodes::UNEXPECTED_ERROR;
+        newName = name + "_" + CPLSPrintf ("%d", ++nameCounter);
+        if(nameCounter == 10000)
+            return ngsErrorCodes::EC_UNEXPECTED_ERROR;
     }
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Copy dataset '%s' to '%s'",
+        progressFunc(taskId, 0, CPLSPrintf ("Copy dataset '%s' to '%s'",
                         name.c_str (), m_name.c_str ()),
                      progressArguments);
+
+    dstDatasetName.assign (newName);
 
     if(srcDataset->type () & ngsDatasetType(Table)) {
         Table* const srcTable = ngsDynamicCast(Table, srcDataset);
@@ -328,17 +343,17 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             CPLError(CE_Failure, CPLE_AppDefined,
                      "Source dataset '%s' report type TABLE, but it is not a table.",
                      srcDataset->name ().c_str ());
-            return ngsErrorCodes::COPY_FAILED;
+            return ngsErrorCodes::EC_COPY_FAILED;
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
         DatasetPtr dstDataset = createDataset(newName, srcDefinition, nullptr,
-                                           progressFunc, progressArguments);
+                                        taskId, progressFunc, progressArguments);
         Table* const dstTable = ngsDynamicCast(Table, dstDataset);
         if(nullptr == dstTable) {
             CPLError(CE_Failure, CPLE_AppDefined,
                      "Destination dataset '%s' report type TABLE, but it is not a table.",
                      srcDataset->name ().c_str ());
-            return ngsErrorCodes::COPY_FAILED;
+            return ngsErrorCodes::EC_COPY_FAILED;
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
@@ -355,7 +370,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             fieldMap[i] = i;
         }
 
-        return dstTable->copyRows(srcTable, fieldMap,
+        return dstTable->copyRows(srcTable, fieldMap, taskId,
                                    progressFunc, progressArguments);
     }
     else if(srcDataset->type () & ngsDatasetType(Featureset)) {
@@ -366,7 +381,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                      "feature class.",
                      srcDataset->name ().c_str ());
 
-            return ngsErrorCodes::COPY_FAILED;
+            return ngsErrorCodes::EC_COPY_FAILED;
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
 
@@ -385,7 +400,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             }
             DatasetPtr dstDataset = createDataset(newName, srcDefinition,
                                           srcTable->getSpatialReference (),
-                                          geometryType, nullptr,
+                                          geometryType, nullptr, taskId,
                                           progressFunc, progressArguments);
             FeatureDataset* const dstTable = ngsDynamicCast(FeatureDataset, dstDataset);
             if(nullptr == dstTable) {
@@ -393,7 +408,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                          "Source dataset '%s' report type FEATURESET, but it is not a "
                          "feature class.",
                          srcDataset->name ().c_str ());
-                return ngsErrorCodes::COPY_FAILED;
+                return ngsErrorCodes::EC_COPY_FAILED;
             }
             OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
@@ -407,9 +422,9 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             }
 
             int nRes = dstTable->copyFeatures (srcTable, fieldMap, filterGeomType,
-                                              skipGeometryFlags, progressFunc,
-                                              progressArguments);
-            if(nRes != ngsErrorCodes::SUCCESS)
+                                              skipGeometryFlags, taskId,
+                                               progressFunc, progressArguments);
+            if(nRes != ngsErrorCodes::EC_SUCCESS)
                 return nRes;
         }
     }
@@ -417,25 +432,26 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
 
         CPLError(CE_Failure, CPLE_AppDefined, "Dataset '%s' unsupported",
                             srcDataset->name ().c_str ());
-        return ngsErrorCodes::UNSUPPORTED;
+        return ngsErrorCodes::EC_UNSUPPORTED;
     }
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int DatasetContainer::moveDataset(DatasetPtr srcDataset,
-                                  const CPLString &dstDatasetName,
+                                  CPLString &dstDatasetName,
                                   unsigned int skipGeometryFlags,
+                                  unsigned int taskId,
                                   ngsProgressFunc progressFunc,
                                   void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Move dataset '%s' to '%s'",
+        progressFunc(taskId, 0, CPLSPrintf ("Move dataset '%s' to '%s'",
                         srcDataset->name().c_str (), m_name.c_str ()),
                      progressArguments);
 
     int nResult = copyDataset (srcDataset, dstDatasetName, skipGeometryFlags,
-                               progressFunc, progressArguments);
-    if(nResult != ngsErrorCodes::SUCCESS)
+                               taskId, progressFunc, progressArguments);
+    if(nResult != ngsErrorCodes::EC_SUCCESS)
         return nResult;
     return srcDataset->destroy (progressFunc, progressArguments);
 }
@@ -443,10 +459,11 @@ int DatasetContainer::moveDataset(DatasetPtr srcDataset,
 DatasetPtr DatasetContainer::createDataset(const CPLString& name,
                                             OGRFeatureDefn* const definition,
                                             char **options,
+                                            unsigned int taskId,
                                             ngsProgressFunc progressFunc,
                                             void* progressArguments)
 {
-    return createDataset (name, definition, nullptr, wkbNone, options,
+    return createDataset (name, definition, nullptr, wkbNone, options, taskId,
                           progressFunc, progressArguments);
 }
 
@@ -455,11 +472,12 @@ DatasetPtr DatasetContainer::createDataset(const CPLString &name,
                                             const OGRSpatialReference *spatialRef,
                                             OGRwkbGeometryType type,
                                             char **options,
+                                            unsigned int taskId,
                                             ngsProgressFunc progressFunc,
                                             void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
+        progressFunc(taskId, 0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
                      progressArguments);
     DatasetPtr out;
     OGRLayer *dstLayer = m_DS->CreateLayer(name,
@@ -496,6 +514,17 @@ DatasetPtr DatasetContainer::createDataset(const CPLString &name,
         m_datasets[out->name ()] = out;
 
     return out;
+}
+
+ngsLoadTaskInfo DatasetContainer::getLoadTaskInfo(unsigned int taskId) const
+{
+    if(m_loadData.size () > taskId) {
+        return {NULL, NULL, ngsErrorCodes::EC_INVALID};
+    }
+    unsigned int pos = taskId - 1;
+    return {m_loadData[pos].dstDatasetName.c_str (),
+            m_loadData[pos].dstDatasetNewName.c_str (),
+            m_loadData[pos].status};
 }
 
 

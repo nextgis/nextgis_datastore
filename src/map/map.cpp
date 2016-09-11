@@ -140,13 +140,13 @@ int Map::open(const char *path)
     m_path = path;
 
     JSONDocument doc;
-    if(doc.load (path) != ngsErrorCodes::SUCCESS)
-        return ngsErrorCodes::OPEN_FAILED;
+    if(doc.load (path) != ngsErrorCodes::EC_SUCCESS)
+        return ngsErrorCodes::EC_OPEN_FAILED;
     JSONObject root = doc.getRoot ();
     if(root.getType () == JSONObject::Type::Object) {
 
         if(root.getBool (MAP_SINGLESOURCE, false) && !m_DataStore)
-            return ngsErrorCodes::OPEN_FAILED;
+            return ngsErrorCodes::EC_OPEN_FAILED;
 
         m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
         m_description = root.getString (MAP_DESCRIPTION, "");
@@ -167,13 +167,13 @@ int Map::open(const char *path)
             // load layer
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
-                if(layer->load(layerConfig, m_DataStore) == ngsErrorCodes::SUCCESS)
+                if(layer->load(layerConfig, m_DataStore) == ngsErrorCodes::EC_SUCCESS)
                     m_layers.push_back (layer);
             }
         }
     }
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int Map::save(const char *path)
@@ -204,13 +204,13 @@ int Map::save(const char *path)
 int Map::destroy()
 {
     if(m_path.empty ()) {
-        return ngsErrorCodes::SUCCESS;
+        return ngsErrorCodes::EC_SUCCESS;
     }
 
 
-    int nRet = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::SUCCESS :
-                                             ngsErrorCodes::DELETE_FAILED;
-    if(nRet == ngsErrorCodes::SUCCESS) {
+    int nRet = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::EC_SUCCESS :
+                                             ngsErrorCodes::EC_DELETE_FAILED;
+    if(nRet == ngsErrorCodes::EC_SUCCESS) {
         close();
     }
     return nRet;
@@ -219,7 +219,7 @@ int Map::destroy()
 int Map::close()
 {
     m_layers.clear ();
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 ngsRGBA Map::getBackgroundColor() const
@@ -230,14 +230,14 @@ ngsRGBA Map::getBackgroundColor() const
 int Map::setBackgroundColor(const ngsRGBA &color)
 {
     m_bkColor = color;
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 int Map::createLayer(const CPLString &name, DatasetPtr dataset)
 {
     LayerPtr layer (new Layer(name, dataset));
     m_layers.push_back (layer);
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 size_t Map::layerCount() const
@@ -248,4 +248,14 @@ size_t Map::layerCount() const
 LayerPtr Map::createLayer(Layer::Type /*type*/)
 {
     return LayerPtr(new Layer);
+}
+
+unsigned char Map::getId() const
+{
+    return m_id;
+}
+
+void Map::setId(unsigned char id)
+{
+    m_id = id;
 }

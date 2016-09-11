@@ -27,13 +27,6 @@ namespace ngs {
 
 void FillGLBufferThread(void * layer);
 
-typedef struct _buffer {
-    vector<GLfloat> m_vertices;
-    vector<GLushort> m_indices;
-} ngsVertexBuffer;
-
-typedef unique_ptr<ngsVertexBuffer> ngsVertexBufferPtr;
-
 /**
  * @brief The RenderLayer class Base for renderable map layers
  */
@@ -44,28 +37,25 @@ public:
     RenderLayer();
     RenderLayer(const CPLString& name, DatasetPtr dataset);
     virtual ~RenderLayer();
-    void prepareRender(OGREnvelope extent, double zoom, float level);
-    void cancelPrepareRender();
-    /**
-     * @brief render Render data to GL scene. Can be run only from GL rendering
-     * thread
-     * @param glView GL view pointer
-     * @return draw percent
-     */
-    //virtual double render(const GlView* glView) = 0;
+    void prepareFillThread(OGREnvelope extent, double zoom, float level);
+    void cancelFillThread();
+
+    virtual void draw(enum ngsDrawState state, OGREnvelope extent, double zoom,
+                        float level);
+    virtual float getComplete() const;
 protected:
+    virtual void clearTiles() = 0;
+    virtual void drawTiles() = 0;
     virtual void fillRenderBuffers() = 0;
-    char getCloseOvr();
 
 protected:
     bool m_cancelPrepare;
     CPLJoinableThread* m_hPrepareThread;
-    double m_renderPercent;
     OGREnvelope m_renderExtent;
-    double m_renderZoom;
+    unsigned char m_renderZoom;
     float m_renderLevel;
-
-    // TODO: Style m_style;
+    float m_complete;
+    MapView* m_mapView;
 };
 
 class FeatureRenderLayer : public RenderLayer
@@ -81,18 +71,13 @@ protected:
     // RenderLayer interface
 protected:
     virtual void fillRenderBuffers() override;
-
-    // RenderLayer interface
-public:
-    //virtual double render(const GlView *glView) override;
+    virtual void clearTiles() override;
+    virtual void drawTiles() override;
+    void refreshTiles();
 
 protected:
-    vector<ngsVertexBufferPtr> m_pointBucket;
-    vector<ngsVertexBufferPtr> m_polygonBucket;
-    ngsVertexBufferPtr m_currentPointBuffer;
-    ngsVertexBufferPtr m_currentPolygonBuffer;
-    bool m_bucketFilled;
-    CPLLock *m_hBucketLock, *m_hCurrentBufferLock;
+    CPLLock *m_hTilesLock;
+    vector<GlBufferBucket> m_tiles;
 };
 
 }

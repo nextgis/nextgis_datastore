@@ -39,8 +39,9 @@ public:
                              const FieldMapPtr fieldMap,
                              OGRwkbGeometryType filterGeomType,
                              unsigned int skipGeometryFlags,
-                             ngsProgressFunc progressFunc,
-                             void *progressArguments) override;
+                             unsigned int taskId = 0,
+                             ngsProgressFunc progressFunc = nullptr,
+                             void *progressArguments = nullptr) override;
 
 protected:
     StoreFeatureDatasetPtr m_history;

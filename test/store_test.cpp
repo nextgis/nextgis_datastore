@@ -33,14 +33,14 @@ void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long 
     counter++;
 }
 
-int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
-                        void* /*progressArguments*/) {
+int ngsTestProgressFunc(unsigned int /*taskId*/, double /*complete*/,
+                        const char* /*message*/, void* /*progressArguments*/) {
     counter++;
     return TRUE;
 }
 
 TEST(StoreTests, TestCreate) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
     const char* epsgPath = CPLFindFile ("gdal", "gcs.csv");
     EXPECT_NE(epsgPath, nullptr);
 
@@ -99,7 +99,7 @@ TEST(StoreTests, TestLoad) {
     EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", false,
                                     ngsFeatureLoadSkipType(NoSkip),
                                     ngsTestProgressFunc, nullptr),
-              ngsErrorCodes::SUCCESS);
+              ngsErrorCodes::EC_SUCCESS);
     CPLSleep(0.6);
     EXPECT_GE(storage->datasetCount (), 0);
     EXPECT_GE(counter, 1);
@@ -114,7 +114,7 @@ TEST(StoreTests, TestLoad) {
 TEST(StoreTests, TestDelete) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     ASSERT_NE(storage, nullptr);
-    EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage->destroy (), ngsErrorCodes::EC_SUCCESS);
     EXPECT_EQ(CSLCount(CPLReadDir("./tmp")), 2); // . and ..
     ngsUninit();
 }

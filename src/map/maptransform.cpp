@@ -64,7 +64,7 @@ bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
 
 OGREnvelope MapTransform::getExtent() const
 {
-    return m_extent;
+    return m_rotateExtent;
 }
 
 OGRRawPoint MapTransform::getCenter() const
@@ -133,7 +133,10 @@ bool MapTransform::setExtent(const OGREnvelope &env)
     scaleY = 1.0 / h;
     m_scaleScene = min(scaleX, scaleY);
 
-    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+    if(isEqual(m_rotate[ngsDirection::Z], 0.0)) {
+        m_rotateExtent = m_extent;
+    }
+    else {
         m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
     }
 
@@ -159,7 +162,10 @@ bool MapTransform::updateExtent()
     double scaleY = 1.0 / (halfHeight + halfHeight);
     m_scaleScene = min(scaleX, scaleY);
 
-    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+    if(isEqual(m_rotate[ngsDirection::Z], 0.0)){
+        m_rotateExtent = m_extent;
+    }
+    else {
         m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
     }
 
@@ -189,7 +195,7 @@ void MapTransform::initMatrices()
         m_sceneMatrix.rotateX (m_rotate[ngsDirection::X]);
     }
 
-    /*
+    /* TODO: no idea about Y axis rotation
     if(!isEqual(m_rotate[ngsDirection::Y], 0.0)){
         m_sceneMatrix.rotateY (m_rotate[ngsDirection::Y]);
     }

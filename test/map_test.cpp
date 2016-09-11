@@ -30,8 +30,8 @@
 
 static int counter = 0;
 
-int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
-                        void* /*progressArguments*/) {
+int ngsTestProgressFunc(unsigned int/* taskId*/, double /*complete*/,
+                        const char* /*message*/, void* /*progressArguments*/) {
     counter++;
     return TRUE;
 }
@@ -52,7 +52,7 @@ TEST(MapTests, TestCreate) {
     EXPECT_EQ(color.B, 255);
 
     // ngmd - NextGIS map document
-    EXPECT_EQ (mapView->save ("default.ngmd"), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ (mapView->save ("default.ngmd"), ngsErrorCodes::EC_SUCCESS);
 }
 
 TEST(MapTests, TestOpenMap) {
@@ -65,8 +65,8 @@ TEST(MapTests, TestInitMap) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
     EXPECT_EQ(mapStore.mapCount(), 1);
-    EXPECT_NE(mapStore.initMap (2), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::SUCCESS);
+    EXPECT_NE(mapStore.initMap (2), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::EC_SUCCESS);
 }
 
 TEST(MapTests, TestProject) {
@@ -76,8 +76,8 @@ TEST(MapTests, TestProject) {
     ASSERT_NE(defMap, nullptr);
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::SUCCESS);
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::EC_SUCCESS);
 
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     OGREnvelope env;
@@ -149,7 +149,7 @@ TEST(MapTests, TestProject) {
 
 
     // axis Y is normal
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, false), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, false), ngsErrorCodes::EC_SUCCESS);
 
     // World is from (1000, 500) to (3560, 2420), 2560x1920
     env.MinX = 1000; env.MinY = 500;
@@ -214,7 +214,7 @@ TEST(MapTests, TestProject) {
 
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.setMapSize (1, 480, 640, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 480, 640, true), ngsErrorCodes::EC_SUCCESS);
 
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 480; env.MaxY = 640;
@@ -239,7 +239,7 @@ TEST(MapTests, TestProject) {
     EXPECT_EQ(dwPt.x, 480);
     EXPECT_EQ(dwPt.y, 0);
 
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::EC_SUCCESS);
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 5120; env.MaxY = 3840;
     mapView->setExtent (env);
@@ -283,7 +283,7 @@ TEST(MapTests, TestDrawing) {
 }
 
 TEST(MapTests, TestCreateLayer) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
 
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
@@ -295,7 +295,7 @@ TEST(MapTests, TestCreateLayer) {
     EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", false,
                                     ngsFeatureLoadSkipType(NoSkip),
                                     ngsTestProgressFunc, nullptr),
-              ngsErrorCodes::SUCCESS);
+              ngsErrorCodes::EC_SUCCESS);
     CPLSleep(0.6);
     EXPECT_GE(storage->datasetCount (), 0);
     EXPECT_GE(counter, 1);
@@ -304,7 +304,7 @@ TEST(MapTests, TestCreateLayer) {
     bool isFeatureSet = data->type () & ngsDatasetType(Featureset);
     EXPECT_EQ(isFeatureSet, true);
     defMap->createLayer ("test_layer", data);
-    EXPECT_EQ(defMap->save ("default.ngmd"), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(defMap->save ("default.ngmd"), ngsErrorCodes::EC_SUCCESS);
 }
 
 TEST(MapTests, TestLoadLayer) {
@@ -322,11 +322,11 @@ TEST(MapTests, TestDeleteMap) {
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
     ngs::MapPtr map = mapStore.getMap (1);
     ASSERT_NE(map, nullptr);
-    EXPECT_EQ(map->destroy (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(map->destroy (), ngsErrorCodes::EC_SUCCESS);
     EXPECT_EQ(CPLCheckForFile ((char*)"default.ngmd", nullptr), 0);
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     ASSERT_NE(storage, nullptr);
-    EXPECT_EQ(storage->destroy (), ngsErrorCodes::SUCCESS);
+    EXPECT_EQ(storage->destroy (), ngsErrorCodes::EC_SUCCESS);
     ngsUninit();
 }
 

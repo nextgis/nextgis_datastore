@@ -49,6 +49,9 @@
 //https://github.com/afiskon/cpp-opengl-vbo-vao-shaders/blob/master/main.cpp
 */
 
+#define GL_MAX_VERTEX_COUNT 65532
+#define VAO_RESERVE 16383
+
 using namespace ngs;
 
 //------------------------------------------------------------------------------
@@ -759,9 +762,14 @@ bool GlOffScreenView::createFBO(int width, int height)
 // GlFuctions
 //------------------------------------------------------------------------------
 
-GlFuctions::GlFuctions() : m_programId(0), m_extensionLoad(false),
-    m_programLoad(false), m_pBkChanged(true)
+GlFuctions::GlFuctions() : m_programId(0), m_matrixId(-1), m_colorId(-1),
+    m_extensionLoad(false), m_programLoad(false), m_pBkChanged(true)
 {
+}
+
+GlFuctions::~GlFuctions()
+{
+
 }
 
 bool GlFuctions::init()
@@ -807,22 +815,23 @@ void GlFuctions::prepare(const Matrix4 &mat)
     glGetProgramiv(m_programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
     cout << "Number active uniforms: " << numActiveUniforms << endl;
 #endif //_DEBUG
-    GLint location = glGetUniformLocation(m_programId, "mvMatrix");
+    if(m_matrixId == -1)
+        m_matrixId = glGetUniformLocation(m_programId, "mvMatrix");
+    if(m_colorId == -1)
+        m_colorId = glGetUniformLocation(m_programId, "u_Color");
 
     array<GLfloat, 16> mat4f = mat.dataF ();
 
-    ngsCheckGLEerror(glUniformMatrix4fv(location, 1, GL_FALSE, mat4f.data()));
-
+    ngsCheckGLEerror(glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, mat4f.data()));
+    ngsCheckGLEerror(glUniform4f(m_colorId, 1.0f, 0.0f, 0.0f, 1.0f));
 }
 
 void GlFuctions::testDrawPreserved() const
 {
     static bool isBuffersFilled = false;
     static GLuint    buffers[2];
-    static GLint uColorLocation = -1;
     if(!isBuffersFilled) {
         isBuffersFilled = true;
-        uColorLocation = glGetUniformLocation(m_programId, "u_Color");
         ngsCheckGLEerror(glGenBuffers(2, buffers)); // TODO: glDeleteBuffers
 
         ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
@@ -846,7 +855,7 @@ void GlFuctions::testDrawPreserved() const
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
 
-    ngsCheckGLEerror(glUniform4f(uColorLocation, 1.0f, 0.0f, 0.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(m_colorId, 1.0f, 0.0f, 0.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
 
@@ -856,7 +865,7 @@ void GlFuctions::testDrawPreserved() const
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[1]));
 
-    ngsCheckGLEerror(glUniform4f(uColorLocation, 0.0f, 0.0f, 1.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(m_colorId, 0.0f, 0.0f, 1.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
 
@@ -868,14 +877,12 @@ void GlFuctions::testDrawPreserved() const
 
 void GlFuctions::testDraw() const
 {
-    int uColorLocation = glGetUniformLocation(m_programId, "u_Color");
-
     GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
                            -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
                             4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
                           };
 
-    ngsCheckGLEerror(glUniform4f(uColorLocation, 1.0f, 0.0f, 0.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(m_colorId, 1.0f, 0.0f, 0.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                              vVertices ));
@@ -888,7 +895,7 @@ void GlFuctions::testDraw() const
                             5187591.0f, 4509961.0f, 0.5f
                           };
 
-    ngsCheckGLEerror(glUniform4f(uColorLocation, 0.0f, 0.0f, 1.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(m_colorId, 0.0f, 0.0f, 1.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                              vVertices2 ));
@@ -1025,4 +1032,249 @@ bool GlFuctions::loadExtensions()
 {
     m_extensionLoad = true;
     return true;
+}
+
+//------------------------------------------------------------------------------
+// GlBuffer
+//------------------------------------------------------------------------------
+
+GlBuffer::GlBuffer() : m_binded(false)
+{
+    m_vertices.reserve (VAO_RESERVE);
+    m_indices.reserve (VAO_RESERVE);
+}
+
+GlBuffer::~GlBuffer()
+{
+    if(m_binded) {
+        glDeleteBuffers(2, m_buffers);
+    }
+}
+
+void GlBuffer::bind()
+{
+    if(m_binded)
+        return;
+    m_binded = true;    
+
+    ngsCheckGLEerror(glGenBuffers(2, m_buffers));
+
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
+    ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) *
+                                  m_vertices.size (), m_vertices.data (),
+                                  GL_STATIC_DRAW));
+
+    m_vertices.clear ();
+
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
+    ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) *
+                                  m_indices.size (), m_indices.data (),
+                                  GL_STATIC_DRAW));
+    m_indices.clear ();
+}
+
+bool GlBuffer::binded() const
+{
+    return m_binded;
+}
+
+bool GlBuffer::canStore(size_t numItems) const
+{
+    return m_vertices.size () + numItems > GL_MAX_VERTEX_COUNT;
+}
+
+size_t GlBuffer::getVerticesCount() const
+{
+    return m_vertices.size ();
+}
+
+void GlBuffer::addVertex(float x, float y, float z)
+{
+    m_vertices.push_back (x);
+    m_vertices.push_back (y);
+    m_vertices.push_back (z);
+}
+
+void GlBuffer::addIndex(unsigned short one, unsigned short two,
+                        unsigned short three)
+{
+    m_indices.push_back (one);
+    m_indices.push_back (two);
+    m_indices.push_back (three);
+}
+
+void GlBuffer::draw() const
+{
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
+    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
+    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+
+    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, m_indices.size (),
+                                    GL_UNSIGNED_SHORT, NULL));
+}
+
+//------------------------------------------------------------------------------
+// GlBufferBucket
+//------------------------------------------------------------------------------
+
+GlBufferBucket::GlBufferBucket(int x, int y, unsigned char z,
+                               const OGREnvelope &env) : m_currentBuffer(0),
+    m_X(x), m_Y(y), m_zoom(z), m_extent(env), m_filled(false)
+{
+    m_buffers.push_back (GlBuffer());
+}
+
+void GlBufferBucket::bind()
+{
+    for(GlBuffer& buff : m_buffers) {
+        buff.bind ();
+    }
+}
+
+bool GlBufferBucket::binded() const
+{
+    for(const GlBuffer& buff : m_buffers) {
+        if(!buff.binded ())
+            return false;
+    }
+    return true;
+}
+
+bool GlBufferBucket::filled() const
+{
+    return m_filled;
+}
+
+void GlBufferBucket::setFilled(bool filled)
+{
+    m_filled = filled;
+}
+
+void GlBufferBucket::fill(OGRGeometry* geom, float level)
+{
+    if( nullptr == geom )
+        return;
+
+    switch (OGR_GT_Flatten (geom->getGeometryType ())) {
+        case wkbPoint:
+            break;
+        case wkbLineString:
+            break;
+        case wkbPolygon:
+        {
+            OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
+            OGRPoint pt;
+            // TODO: not only external ring must be extracted
+            OGRLinearRing* ring = polygon->getExteriorRing ();
+            int numPoints = ring->getNumPoints ();
+            if(numPoints < 3)
+                return;
+
+            if(!m_buffers[m_currentBuffer].canStore (numPoints * 3)) {
+                m_buffers.push_back (GlBuffer());
+                m_currentBuffer++;
+                return fill(geom, level);
+            }
+
+            unsigned short startPolyIndex = m_buffers[m_currentBuffer].
+                    getVerticesCount () / 3;
+            for(int i = 0; i < numPoints; ++i) {
+                ring->getPoint (i, &pt);
+                // add point coordinates in float
+                // TODO: add getZ + level
+                m_buffers[m_currentBuffer].addVertex (static_cast<float>(pt.getX ()),
+                                                      static_cast<float>(pt.getY ()),
+                                                      level);
+
+                // add triangle indices unsigned short
+                if(i < numPoints - 2 ) {
+                    m_buffers[m_currentBuffer].addIndex (startPolyIndex,
+                            startPolyIndex + i + 1, startPolyIndex + i + 2);
+                }
+            }
+        }
+            break;
+        case wkbMultiPoint:
+        {
+            OGRMultiPoint* mpt = static_cast<OGRMultiPoint*>(geom);
+            for(int i = 0; i < mpt->getNumGeometries (); ++i) {
+                fill (mpt->getGeometryRef (i), level);
+            }
+        }
+            break;
+        case wkbMultiLineString:
+        {
+            OGRMultiLineString* mln = static_cast<OGRMultiLineString*>(geom);
+            for(int i = 0; i < mln->getNumGeometries (); ++i) {
+                fill (mln->getGeometryRef (i), level);
+            }
+        }
+            break;
+        case wkbMultiPolygon:
+        {
+            OGRMultiPolygon* mplg = static_cast<OGRMultiPolygon*>(geom);
+            for(int i = 0; i < mplg->getNumGeometries (); ++i) {
+                fill (mplg->getGeometryRef (i), level);
+            }
+        }
+            break;
+        case wkbGeometryCollection:
+        {
+            OGRGeometryCollection* coll = static_cast<OGRGeometryCollection*>(geom);
+            for(int i = 0; i < coll->getNumGeometries (); ++i) {
+                fill (coll->getGeometryRef (i), level);
+            }
+        }
+            break;
+        /* TODO: case wkbCircularString:
+            return "cir";
+        case wkbCompoundCurve:
+            return "ccrv";
+        case wkbCurvePolygon:
+            return "crvplg";
+        case wkbMultiCurve:
+            return "mcrv";
+        case wkbMultiSurface:
+            return "msurf";
+        case wkbCurve:
+            return "crv";
+        case wkbSurface:
+            return "surf";*/
+    }
+}
+
+void GlBufferBucket::draw()
+{
+    for(GlBuffer& buff : m_buffers) {
+        if(!buff.binded ())
+            buff.bind();
+        buff.draw ();
+    }
+}
+
+int GlBufferBucket::X() const
+{
+    return m_X;
+}
+
+int GlBufferBucket::Y() const
+{
+    return m_Y;
+}
+
+unsigned char GlBufferBucket::zoom() const
+{
+    return m_zoom;
+}
+
+void GlBufferBucket::free()
+{
+    m_buffers.clear ();
+    m_buffers.push_back (GlBuffer());
+}
+
+OGREnvelope GlBufferBucket::extent() const
+{
+    return m_extent;
 }

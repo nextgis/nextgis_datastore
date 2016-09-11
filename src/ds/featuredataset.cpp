@@ -80,11 +80,12 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                                  const FieldMapPtr fieldMap,
                                  OGRwkbGeometryType filterGeomType,
                                  unsigned int skipGeometryFlags,
+                                 unsigned int taskId,
                                  ngsProgressFunc progressFunc,
                                  void *progressArguments)
 {
     if(progressFunc)
-        progressFunc(0, CPLSPrintf ("Start copy features from '%s' to '%s'",
+        progressFunc(taskId, 0, CPLSPrintf ("Start copy features from '%s' to '%s'",
                                     srcDataset->name ().c_str (), name().c_str ()),
                      progressArguments);
 
@@ -98,7 +99,8 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
     FeaturePtr feature;
     while((feature = srcDataset->nextFeature ()) != nullptr) {
         if(progressFunc)
-            progressFunc(counter / featureCount, "copying...", progressArguments);
+            progressFunc(taskId, counter / featureCount, "copying...",
+                         progressArguments);
 
         OGRGeometry * geom = feature->GetGeometryRef ();
         OGRGeometry *newGeom = nullptr;
@@ -139,17 +141,17 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             dstFeature->SetGeometryDirectly (newGeom);
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
-        if(insertFeature(dstFeature) != ngsErrorCodes::SUCCESS) {
+        if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
             CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
                      "Source feature FID:%lld", feature->GetFID ());
         }
         counter++;
     }
     if(progressFunc)
-        progressFunc(1.0, CPLSPrintf ("Done. Copied %d features", int(counter)),
-                     progressArguments);
+        progressFunc(taskId, 1.0, CPLSPrintf ("Done. Copied %d features",
+                                              int(counter)), progressArguments);
 
-    return ngsErrorCodes::SUCCESS;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 bool FeatureDataset::setIgnoredFields(const char** fields)
@@ -178,6 +180,51 @@ ResultSetPtr FeatureDataset::executeSQL(const CPLString &statement,
                                         const CPLString &dialect) const
 {
     return ResultSetPtr(m_DS->ExecuteSQL (statement, spatialFilter.get (), dialect));
+}
+
+/*
+char RenderLayer::getCloseOvr()
+{
+    float diff = 18;
+    float currentDiff;
+    char zoom = 18;
+    for(auto sampleDist : gSampleDists) {
+        currentDiff = sampleDist.second - m_renderZoom;
+        if(currentDiff > 0 && currentDiff < diff) {
+            diff = currentDiff;
+            zoom = sampleDist.second;
+        }
+    }
+    return zoom;
+}
+*/
+
+ResultSetPtr FeatureDataset::getGeometries(unsigned char /*zoom*/,
+                                           GeometryPtr spatialFilter) const
+{
+    // check geometry column
+    CPLString geomFieldName;
+    //bool originalGeom = true;
+    //if(m_renderZoom > 15) {
+        geomFieldName = getGeometryColumn ();
+    /*}
+    else {
+        char zoom = getCloseOvr();
+        if(zoom < 18) {
+            geomFieldName.Printf ("ngs_geom_%d, %s", zoom,
+                                  featureDataset->getGeometryColumn ().c_str ());
+            originalGeom = false;
+        }
+        else {
+            geomFieldName = featureDataset->getGeometryColumn ();
+        }
+    }*/
+
+    CPLString statement;
+    statement.Printf ("SELECT %s FROM %s", geomFieldName.c_str (),
+                      name ().c_str ());
+
+    return executeSQL (statement, spatialFilter, "");
 }
 
 CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,

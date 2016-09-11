@@ -169,10 +169,61 @@ protected:
 
 #endif // OFFSCREEN_GL
 
+class GlBuffer
+{
+public:
+    GlBuffer();
+    ~GlBuffer();
+
+    void bind();
+    bool binded() const;
+
+    bool canStore(size_t numItems) const;
+    size_t getVerticesCount() const;
+    void addVertex(float x, float y, float z);
+    void addIndex(unsigned short one, unsigned short two, unsigned short three);
+    void draw() const;
+protected:
+    bool m_binded;
+    vector<GLfloat> m_vertices;
+    vector<GLushort> m_indices;
+    GLuint    m_buffers[2];
+
+};
+
+class GlBufferBucket
+{
+public:
+    GlBufferBucket(int x, int y, unsigned char z, const OGREnvelope& env);
+
+    void bind();
+    bool filled() const;
+    void setFilled(bool filled);
+    bool binded() const;
+    void fill(OGRGeometry* geom, float level);
+    void draw();
+    int X() const;
+    int Y() const;
+    unsigned char zoom() const;
+    void free();
+
+    OGREnvelope extent() const;
+
+protected:
+    vector<GlBuffer> m_buffers;
+    size_t m_currentBuffer;
+    int m_X, m_Y;
+    unsigned char m_zoom;
+    OGREnvelope m_extent;
+    bool m_filled;
+};
+
 class GlFuctions
 {
 public:
     GlFuctions();
+    virtual ~GlFuctions();
+
     bool init();
     bool isOk() const;
     void setBackgroundColor(const ngsRGBA &color);
@@ -195,6 +246,7 @@ protected:
 // shaders
 protected:
     GLuint m_programId;
+    GLint m_matrixId, m_colorId;
     GlColor m_bkColor;
     bool m_extensionLoad, m_programLoad, m_pBkChanged;
 };

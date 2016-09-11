@@ -20,8 +20,10 @@
  ****************************************************************************/
 #include "matrix.h"
 #include "constants.h"
+#include "api.h"
 
 #include <cmath>
+
 
 using namespace ngs;
 
@@ -41,7 +43,7 @@ Matrix4 &Matrix4::operator=(const Matrix4 &other)
     return *this;
 }
 
-bool Matrix4::invert()
+int Matrix4::invert()
 {
     double a00 = m_values[0],
         a01 = m_values[1],
@@ -77,7 +79,7 @@ bool Matrix4::invert()
         det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
     if (det == 0.0) {
-        return true;
+        return ngsErrorCodes::EC_UNSUPPORTED;
     }
     det = 1.0 / det;
 
@@ -98,7 +100,7 @@ bool Matrix4::invert()
     m_values[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
     m_values[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
 
-    return false;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 void Matrix4::ortho(double left, double right, double bottom, double top,

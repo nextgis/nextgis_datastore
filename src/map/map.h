@@ -74,6 +74,9 @@ public:
     virtual int createLayer(const CPLString &name, DatasetPtr dataset);
     size_t layerCount() const;
 
+    unsigned char getId() const;
+    void setId(unsigned char id);
+
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);
 
@@ -86,6 +89,7 @@ protected:
     vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
     DataStorePtr m_DataStore;
+    unsigned char m_id;
 };
 
 typedef shared_ptr<Map> MapPtr;
