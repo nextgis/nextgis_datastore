@@ -170,7 +170,7 @@ int Map::open(const char *path)
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
                 if(layer->load(layerConfig, m_DataStore, m_relativePaths ?
-                           CPLGetPath(m_path) : "") == ngsErrorCodes::EC_SUCCESS)
+                           CPLGetPath(path) : "") == ngsErrorCodes::EC_SUCCESS)
                     m_layers.push_back (layer);
             }
         }
@@ -199,7 +199,7 @@ int Map::save(const char *path)
     JSONArray layers;
     for(LayerPtr layer : m_layers) {
         layers.add(layer->save(m_relativePaths ?
-                                   CPLGetPath(m_path) : ""));
+                                   CPLGetPath(path) : ""));
     }
     root.add ("layers", layers);
 

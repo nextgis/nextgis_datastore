@@ -79,8 +79,10 @@ JSONObject Layer::save(const CPLString &mapPath) const
             out.add(LAYER_SOURCE, m_dataset->path ());
         }
         else {
-            const char* relPath = CPLExtractRelativePath(mapPath,
+            CPLString relPath = CPLExtractRelativePath(mapPath,
                                                        m_dataset->path (), NULL);
+            if(relPath.empty ())
+                relPath = m_dataset->path ();
             out.add(LAYER_SOURCE, relPath);
         }
     }

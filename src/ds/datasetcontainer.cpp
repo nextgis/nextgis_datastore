@@ -74,8 +74,12 @@ void ngs::LoadingThread(void * store)
         DatasetPtr srcDataset = Dataset::open (data.path,
                                         GDAL_OF_SHARED|GDAL_OF_READONLY, nullptr);
         if(nullptr == srcDataset) {
-            CPLError(CE_Failure, CPLE_AppDefined, "Dataset '%s' open failed.",
-                     CPLGetFilename(data.path));
+            CPLString errorMsg;
+            errorMsg.Printf ("Dataset '%s' open failed.",
+                             CPLGetFilename(data.path));
+            CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
+            if(data.progressFunc)
+                data.progressFunc(counter, 1, errorMsg, data.progressArguments);
             data.status = ngsErrorCodes::EC_OPEN_FAILED;
             continue;
         }
@@ -99,6 +103,10 @@ void ngs::LoadingThread(void * store)
                                     data.progressArguments);
         }
         data.status = static_cast<ngsErrorCodes>(res);
+        if(data.progressFunc) {
+            data.progressFunc(counter, 2, CPLSPrintf ("Loading '%s' finished",
+                    CPLGetFilename(data.path)), data.progressArguments);
+        }
     }
 
     dstDataset->m_hLoadThread = nullptr;
@@ -412,7 +420,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             }
             OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
-            CPLAssert (srcDefinition->GetFieldCount() !=
+            CPLAssert (srcDefinition->GetFieldCount() ==
                        dstDefinition->GetFieldCount());
             // Create fields map. We expected equal count of fields
             FieldMapPtr fieldMap(static_cast<unsigned long>(
@@ -519,11 +527,12 @@ DatasetPtr DatasetContainer::createDataset(const CPLString &name,
 ngsLoadTaskInfo DatasetContainer::getLoadTaskInfo(unsigned int taskId) const
 {
     if(m_loadData.size () > taskId) {
-        return {NULL, NULL, ngsErrorCodes::EC_INVALID};
+        return {NULL, NULL, NULL, ngsErrorCodes::EC_INVALID};
     }
     unsigned int pos = taskId - 1;
     return {m_loadData[pos].dstDatasetName.c_str (),
             m_loadData[pos].dstDatasetNewName.c_str (),
+            m_path.c_str (),
             m_loadData[pos].status};
 }
 

@@ -130,6 +130,7 @@ typedef struct _ngsPosition {
 typedef struct _ngsLoadTaskInfo {
     const char* name;
     const char* newName;
+    const char* dstPath;
     enum ngsErrorCodes status;
 } ngsLoadTaskInfo;
 

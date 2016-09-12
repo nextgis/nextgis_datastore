@@ -683,6 +683,8 @@ unsigned int ngsDataStoreLoad(const char* name, const char *path, const char *su
 int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
 {
     ngsDataStoreInit ( CPLGetDirname (path) );
+    if(nullptr == gDataStore)
+        return ngsErrorCodes::EC_CREATE_FAILED;
     DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
     initMapStore();
     MapPtr map = gMapStore->getMap (mapId);
@@ -795,6 +797,6 @@ ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId)
 {
     if(nullptr != gDataStore)
         return gDataStore->getLoadTaskInfo (taskId);
-    return {nullptr, nullptr, ngsErrorCodes::EC_INVALID};
+    return {nullptr, nullptr, nullptr, ngsErrorCodes::EC_INVALID};
 
 }
