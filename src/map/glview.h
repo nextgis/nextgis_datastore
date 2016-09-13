@@ -26,6 +26,7 @@
 #include "matrix.h"
 
 #include <vector>
+#include <set>
 
 #if __APPLE__
     #include "TargetConditionals.h"
@@ -188,7 +189,7 @@ protected:
     vector<GLfloat> m_vertices;
     vector<GLushort> m_indices;
     GLuint    m_buffers[2];
-
+    GLsizei   m_indicesCount;
 };
 
 class GlBufferBucket
@@ -200,17 +201,23 @@ public:
     bool filled() const;
     void setFilled(bool filled);
     bool binded() const;
-    void fill(OGRGeometry* geom, float level);
+    void fill(GIntBig fid, OGRGeometry* geom, float level);
     void draw();
     int X() const;
     int Y() const;
     unsigned char zoom() const;
     void free();
+    bool hasFid(GIntBig fid) const;
 
     OGREnvelope extent() const;
 
 protected:
+    void fill(OGRGeometry* geom, float level);
+
+
+protected:
     vector<GlBuffer> m_buffers;
+    set<GIntBig> m_fids;
     size_t m_currentBuffer;
     int m_X, m_Y;
     unsigned char m_zoom;

@@ -81,6 +81,7 @@ int MapView::initDisplay()
 int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
                   void* progressArguments)
 {
+
     // just clear background
     if(m_layers.empty()) {
         m_glFunctions.clearBackground ();
@@ -96,12 +97,15 @@ int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
     float level = 0;
     for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
         LayerPtr layer = *it;
-        RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
+        RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
         renderLayer->draw(state, getExtent (), getZoom (), level++);
     }
 
-    //m_glFunctions.testDrawPreserved (); //.testDraw ();
-
+    /*
+    m_glFunctions.clearBackground ();
+    m_glFunctions.prepare (getSceneMatrix());
+    m_glFunctions.testDrawPreserved (); //.testDraw ();
+*/
     return ngsErrorCodes::EC_SUCCESS;
 }
 
@@ -111,7 +115,7 @@ int MapView::notify()
         float fullComplete = 0;
         for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
             LayerPtr layer = *it;
-            RenderLayer* renderLayer = static_cast<RenderLayer*>(layer.get());
+            RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             fullComplete += renderLayer->getComplete ();
         }
         fullComplete /= m_layers.size ();
@@ -131,6 +135,9 @@ int MapView::createLayer(const CPLString &name, DatasetPtr dataset)
     if(nullptr == layer)
         return ngsErrorCodes::EC_UNSUPPORTED;
 
+    RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
+    if(renderLayer)
+        renderLayer->m_mapView = this;
     m_layers.push_back (layer);
     return ngsErrorCodes::EC_SUCCESS;
 }
@@ -141,7 +148,11 @@ LayerPtr MapView::createLayer(Layer::Type type)
     case Layer::Type::Invalid:
         return LayerPtr();
     case Layer::Type::Vector:
-        return LayerPtr(new FeatureRenderLayer);
+    {
+        RenderLayer* renderLayer = new FeatureRenderLayer;
+        renderLayer->m_mapView = this;
+        return LayerPtr(renderLayer);
+    }
     case Layer::Type::Group:
     case Layer::Type::Raster:
         // TODO:

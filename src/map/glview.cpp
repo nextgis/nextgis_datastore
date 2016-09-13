@@ -769,14 +769,16 @@ GlFuctions::GlFuctions() : m_programId(0), m_matrixId(-1), m_colorId(-1),
 
 GlFuctions::~GlFuctions()
 {
-
+    if(0 != m_programId)
+        glDeleteProgram(m_programId);
+    // TODO: unload extensions
 }
 
 bool GlFuctions::init()
 {
     if(!loadExtensions ())
         return false;
-    if(loadProgram ())
+    if(!loadProgram ())
         return false;
 
     return true;
@@ -920,7 +922,7 @@ bool GlFuctions::loadProgram()
 {
     if(!m_programLoad) {
         m_programId = prepareProgram();
-        if(!m_programId) {
+        if(0 == m_programId) {
             CPLError(CE_Failure, CPLE_OpenFailed, "Prepare program (shaders) failed.");
             return false;
         }
@@ -1053,9 +1055,8 @@ GlBuffer::~GlBuffer()
 
 void GlBuffer::bind()
 {
-    if(m_binded)
+    if(m_binded || m_vertices.empty () || m_indices.empty ())
         return;
-    m_binded = true;    
 
     ngsCheckGLEerror(glGenBuffers(2, m_buffers));
 
@@ -1066,11 +1067,13 @@ void GlBuffer::bind()
 
     m_vertices.clear ();
 
+    m_indicesCount = m_indices.size ();
     ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
     ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) *
-                                  m_indices.size (), m_indices.data (),
+                                  m_indicesCount, m_indices.data (),
                                   GL_STATIC_DRAW));
     m_indices.clear ();
+    m_binded = true;
 }
 
 bool GlBuffer::binded() const
@@ -1080,7 +1083,7 @@ bool GlBuffer::binded() const
 
 bool GlBuffer::canStore(size_t numItems) const
 {
-    return m_vertices.size () + numItems > GL_MAX_VERTEX_COUNT;
+    return m_vertices.size () + numItems < GL_MAX_VERTEX_COUNT;
 }
 
 size_t GlBuffer::getVerticesCount() const
@@ -1105,12 +1108,15 @@ void GlBuffer::addIndex(unsigned short one, unsigned short two,
 
 void GlBuffer::draw() const
 {
+    if(!m_binded)
+        return;
+
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
     ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
     ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
 
-    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, m_indices.size (),
+    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, m_indicesCount,
                                     GL_UNSIGNED_SHORT, NULL));
 }
 
@@ -1151,11 +1157,16 @@ void GlBufferBucket::setFilled(bool filled)
     m_filled = filled;
 }
 
-void GlBufferBucket::fill(OGRGeometry* geom, float level)
+void GlBufferBucket::fill(GIntBig fid, OGRGeometry* geom, float level)
 {
     if( nullptr == geom )
         return;
+    m_fids.insert (fid);
+    fill(geom, level);
+}
 
+void GlBufferBucket::fill(OGRGeometry* geom, float level)
+{
     switch (OGR_GT_Flatten (geom->getGeometryType ())) {
         case wkbPoint:
             break;
@@ -1170,6 +1181,12 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
             int numPoints = ring->getNumPoints ();
             if(numPoints < 3)
                 return;
+
+            // TODO: cut ring by x or y direction or tesselate to fill into array max size
+            if(numPoints > 21000) {
+                CPLDebug ("GlBufferBucket", "Too many points - %d, need to divide", numPoints);
+                return;
+            }
 
             if(!m_buffers[m_currentBuffer].canStore (numPoints * 3)) {
                 m_buffers.push_back (GlBuffer());
@@ -1246,10 +1263,19 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
 
 void GlBufferBucket::draw()
 {
-    for(GlBuffer& buff : m_buffers) {
-        if(!buff.binded ())
-            buff.bind();
-        buff.draw ();
+    if(m_filled) {
+        for(GlBuffer& buff : m_buffers) {
+            if(!buff.binded ())
+                buff.bind();
+            buff.draw ();
+        }
+    }
+    else {
+        for (size_t i = 0; i < m_currentBuffer; ++i) {
+            if(!m_buffers[i].binded ())
+                m_buffers[i].bind();
+            m_buffers[i].draw ();
+        }
     }
 }
 
@@ -1272,6 +1298,11 @@ void GlBufferBucket::free()
 {
     m_buffers.clear ();
     m_buffers.push_back (GlBuffer());
+}
+
+bool GlBufferBucket::hasFid(GIntBig fid) const
+{
+    return m_fids.find(fid) != m_fids.end();
 }
 
 OGREnvelope GlBufferBucket::extent() const

@@ -63,8 +63,7 @@ protected:
     OGREnvelope m_extent, m_rotateExtent;
     double m_ratio;
     bool m_isYAxisInverted;
-    /* NOTE:
-     * sceneMatrix transform from world coordinates to GL coordinates -1 x 1
+    /* NOTE: sceneMatrix transform from world coordinates to GL coordinates -1 x 1
      * viewMatrix transform from scene coordinates to display coordinates 640 x 480
      */
     Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;

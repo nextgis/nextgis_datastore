@@ -46,22 +46,19 @@ public:
              void* progressArguments = nullptr);
     int notify();
 
+    // Map interface
+public:
+    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
+    virtual int setBackgroundColor(const ngsRGBA &color) override;
+
 protected:
     bool m_displayInit;
     ngsProgressFunc m_progressFunc;
     void* m_progressArguments;
     GlFuctions m_glFunctions;
 
-    // Map interface
-public:
-    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
-
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type) override;
-
-    // Map interface
-public:
-    virtual int setBackgroundColor(const ngsRGBA &color) override;
 };
 
 }

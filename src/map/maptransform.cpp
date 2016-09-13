@@ -233,8 +233,8 @@ void MapTransform::initMatrices()
         m_sceneMatrix.rotateZ (m_rotate[ngsDirection::Z]);
         m_sceneMatrix.translate (-center.x, -center.y, 0);
 
-        m_worldToDisplayMatrix.rotateZ (m_rotate[ngsDirection::Z]);
-        m_invWorldToDisplayMatrix.rotateZ (-m_rotate[ngsDirection::Z]);
+        m_worldToDisplayMatrix.rotateZ (-m_rotate[ngsDirection::Z]);
+        m_invWorldToDisplayMatrix.rotateZ (m_rotate[ngsDirection::Z]);
     }
 }
 

@@ -32,6 +32,7 @@ void FillGLBufferThread(void * layer);
  */
 class RenderLayer : public Layer
 {
+    friend class MapView;
     friend void FillGLBufferThread(void * layer);
 public:
     RenderLayer();
@@ -47,6 +48,7 @@ protected:
     virtual void clearTiles() = 0;
     virtual void drawTiles() = 0;
     virtual void fillRenderBuffers() = 0;
+    virtual void finishFillThread();
 
 protected:
     bool m_cancelPrepare;
@@ -56,6 +58,7 @@ protected:
     float m_renderLevel;
     float m_complete;
     MapView* m_mapView;
+    CPLLock *m_hThreadLock;
 };
 
 class FeatureRenderLayer : public RenderLayer

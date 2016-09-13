@@ -25,34 +25,51 @@
 
 #include <iostream>
 #include <algorithm>
+#ifdef _DEBUG
+#  include <chrono>
+#endif //DEBUG
 
 using namespace ngs;
 
 void ngs::FillGLBufferThread(void * layer)
 {
     RenderLayer* renderLayer = static_cast<RenderLayer*>(layer);
+
+#ifdef _DEBUG
+    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+     cout << "Start FillGLBufferThread" << endl;
+#endif //DEBUG
     renderLayer->fillRenderBuffers ();
-    renderLayer->m_hPrepareThread = nullptr;
+
+#ifdef _DEBUG
+    auto duration = chrono::duration_cast<chrono::milliseconds>(
+                            chrono::high_resolution_clock::now() - t1 ).count();
+    cout << "Finish FillGLBufferThread at " << duration << " ms" << endl;
+#endif //DEBUG
+    renderLayer->finishFillThread();
 }
 
 //------------------------------------------------------------------------------
 // RenderLayer
 //------------------------------------------------------------------------------
 
-RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr), m_mapView(nullptr)
+RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr), m_mapView(nullptr),
+    m_hThreadLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Invalid;
 }
 
 RenderLayer::RenderLayer(const CPLString &name, DatasetPtr dataset) :
-    Layer(name, dataset), m_hPrepareThread(nullptr), m_mapView(nullptr)
+    Layer(name, dataset), m_hPrepareThread(nullptr), m_mapView(nullptr),
+    m_hThreadLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Invalid;
 }
 
 RenderLayer::~RenderLayer()
 {
-    cancelFillThread();
+    cancelFillThread();    
+    CPLDestroyLock(m_hThreadLock);
 }
 
 
@@ -67,12 +84,14 @@ void RenderLayer::prepareFillThread(OGREnvelope extent, double zoom, float level
 
     // create or refill virtual tiles for current extent and zooms
 
-    if(!m_hPrepareThread)
+    CPLLockHolder tilesHolder(m_hThreadLock);
+    if(nullptr == m_hPrepareThread)
         m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
 }
 
 void RenderLayer::cancelFillThread()
 {
+    CPLLockHolder tilesHolder(m_hThreadLock);
     if(m_hPrepareThread) {
         m_cancelPrepare = true;
         // wait thread exit
@@ -103,6 +122,12 @@ float RenderLayer::getComplete() const
     return m_complete;
 }
 
+void RenderLayer::finishFillThread()
+{
+    CPLLockHolder tilesHolder(m_hThreadLock);
+    m_hPrepareThread = nullptr;
+}
+
 //------------------------------------------------------------------------------
 // FeatureRenderLayer
 //------------------------------------------------------------------------------
@@ -121,6 +146,7 @@ FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset
 
 FeatureRenderLayer::~FeatureRenderLayer()
 {
+    CPLDestroyLock(m_hTilesLock);
 }
 
 void FeatureRenderLayer::fillRenderBuffers()
@@ -129,6 +155,13 @@ void FeatureRenderLayer::fillRenderBuffers()
     m_complete = 0;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
+    FeaturePtr feature;
+    OGRGeometry* geom;
+    FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset, m_dataset);
+    bool fidExists;
+    size_t extraSize = m_tiles.size () * 5;
+    short extraCounter;
+
     for(GlBufferBucket& tile : m_tiles) {
         if(m_cancelPrepare)
             return;
@@ -141,43 +174,64 @@ void FeatureRenderLayer::fillRenderBuffers()
             return fillRenderBuffers();
         }
 
-
         if(!tile.filled()) {
-            FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset,
-                                                            m_dataset);
             GeometryPtr spatialFilter (envelopeToGeometry(tile.extent (),
                                         featureDataset->getSpatialReference ()));
             ResultSetPtr resSet = featureDataset->getGeometries (tile.zoom (),
                                                                  spatialFilter);
-            FeaturePtr feature;
-            OGRGeometry* geom;
+            extraCounter = 0;
             while ((feature = resSet->GetNextFeature ()) != nullptr) {
                 if(m_cancelPrepare) {
                     tile.free();
                     return;
                 }
 
+                fidExists = false;
+                for(GlBufferBucket& tile1 : m_tiles) {
+                    if(tile1.hasFid (feature->GetFID ())) {
+                        fidExists = true;
+                        break;
+                    }
+                }
+
+                if(fidExists)
+                    continue;
+
                 geom = feature->GetGeometryRef ();
                 if(nullptr == geom)
                     continue;
 
-                // cut geometry by tile border
-                GeometryUPtr fillGeom(geom->Intersection (spatialFilter.get()));
                 // TODO: draw filled polygones with border
-                tile.fill(fillGeom.get (), m_renderLevel);
+                tile.fill(feature->GetFID (), geom, m_renderLevel);
+
+                // addtional 4 update mape during loading
+                extraCounter++;
+                if(extraCounter > 1999 && extraCounter < 8001) {
+                    if(m_mapView && extraCounter % 2000 == 0) {
+                        counter++;
+                        m_complete = counter / extraSize;
+                        m_mapView->notify();
+                    }
+                }
             }
 
             tile.setFilled(true);
             // notify that the tile is ready to draw
+
+            if(extraCounter < 4)
+                counter+= extraCounter - 4;
+
             if(m_mapView) {
-                if(!m_mapView->notify()) {
-                    m_cancelPrepare = false;
-                    return;
-                }
+                m_mapView->notify();
             }
         }
         counter++;
-        m_complete = counter / m_tiles.size ();
+        m_complete = counter / extraSize;
+    }
+
+    m_complete = 1;
+    if(m_mapView) {
+        m_mapView->notify();
     }
 }
 
@@ -191,9 +245,7 @@ void ngs::FeatureRenderLayer::drawTiles()
 {
     CPLLockHolder tilesHolder(m_hTilesLock);
     for(GlBufferBucket& tile : m_tiles) {
-        if(tile.filled()) {
-            tile.draw ();
-        }
+        tile.draw ();
     }
 }
 
