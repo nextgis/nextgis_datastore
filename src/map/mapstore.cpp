@@ -30,10 +30,10 @@
 using namespace ngs;
 
 #define INVALID_MAPID 0
-
 //------------------------------------------------------------------------------
 // MapStore
 //------------------------------------------------------------------------------
+
 
 MapStore::MapStore() : m_mapCounter(0), m_notifyFunc(nullptr)
 {

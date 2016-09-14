@@ -33,7 +33,7 @@ using namespace std;
 
 MapView::MapView() : Map(), MapTransform(480, 640), m_displayInit(false)
 {
-}
+    }
 
 MapView::MapView(const CPLString &name, const CPLString &description,
                  unsigned short epsg, double minX, double minY, double maxX,
@@ -41,7 +41,7 @@ MapView::MapView(const CPLString &name, const CPLString &description,
                                     maxY), MapTransform(480, 640),
     m_displayInit(false), m_progressFunc(nullptr)
 {
-}
+        }
 
 MapView::MapView(DataStorePtr dataSource) : Map(dataSource),
     MapTransform(480, 640), m_displayInit(false), m_progressFunc(nullptr)
@@ -73,7 +73,7 @@ int MapView::initDisplay()
     if(m_glFunctions.init ()) {
         m_displayInit = true;
         return ngsErrorCodes::EC_SUCCESS;
-    }
+}
 
     return ngsErrorCodes::EC_INIT_FAILED;
 }
@@ -82,11 +82,11 @@ int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
                   void* progressArguments)
 {
 
-    // just clear background
+
     if(m_layers.empty()) {
         m_glFunctions.clearBackground ();
         return ngsErrorCodes::EC_SUCCESS;
-    }
+}
 
     m_progressFunc = progressFunc;
     m_progressArguments = progressArguments;
@@ -117,7 +117,7 @@ int MapView::notify()
             LayerPtr layer = *it;
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             fullComplete += renderLayer->getComplete ();
-        }
+    }
         fullComplete /= m_layers.size ();
         return m_progressFunc(getId(), static_cast<double>(fullComplete), NULL,
                               m_progressArguments);

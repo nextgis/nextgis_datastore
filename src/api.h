@@ -116,12 +116,14 @@ typedef struct _ngsRGBA {
     unsigned char A;
 } ngsRGBA;
 
+/* Spatial coordinates */
 typedef struct _ngsCoordinate {
     double X;
     double Y;
     double Z;
 } ngsCoordinate;
 
+/* Display coordinates */
 typedef struct _ngsPosition {
     int X;
     int Y;

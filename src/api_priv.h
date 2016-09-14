@@ -22,10 +22,12 @@
 #define API_PRIV_H
 
 #include "api.h"
+#include "ogr_geometry.h"
 
 #include <memory>
 #include <cmath>
 #include <limits>
+
 
 using namespace std;
 

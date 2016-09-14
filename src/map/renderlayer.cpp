@@ -206,7 +206,7 @@ void FeatureRenderLayer::fillRenderBuffers()
 
                 // addtional 4 update mape during loading
                 extraCounter++;
-                if(extraCounter > 1999 && extraCounter < 8001) {
+                if(extraCounter > 3999 && extraCounter < 10001) {
                     if(m_mapView && extraCounter % 2000 == 0) {
                         counter++;
                         m_complete = counter / extraSize;
