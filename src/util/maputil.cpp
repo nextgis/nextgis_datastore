@@ -51,9 +51,9 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
     int begY = static_cast<int>( floor(extent.MinY / tilesSizeOneDim +
                                        halfTilesInMapOneDim) );
     int endX = static_cast<int>( ceil(extent.MaxX / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) );
+                                      halfTilesInMapOneDim) ) + 1;
     int endY = static_cast<int>( ceil(extent.MaxY / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) );
+                                      halfTilesInMapOneDim) ) + 1;
     if(begY == endY)
         endY++;
     if(begX == endX)

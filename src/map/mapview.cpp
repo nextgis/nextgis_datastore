@@ -101,7 +101,7 @@ int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
         renderLayer->draw(state, getExtent (), getZoom (), level++);
     }
 
-    /*
+    /* debug
     m_glFunctions.clearBackground ();
     m_glFunctions.prepare (getSceneMatrix());
     m_glFunctions.testDrawPreserved (); //.testDraw ();

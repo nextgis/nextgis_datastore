@@ -238,3 +238,8 @@ OGRFeatureDefn *Table::getDefinition() const
         return m_layer->GetLayerDefn ();
     return nullptr;
 }
+
+CPLString Table::getFIDColumn() const
+{
+    return m_layer->GetFIDColumn ();
+}

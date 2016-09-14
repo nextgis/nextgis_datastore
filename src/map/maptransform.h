@@ -55,6 +55,7 @@ public:
 protected:
     bool updateExtent();
     void initMatrices();
+    void setRotateExtent();
 protected:
     int m_displayWidht, m_displayHeight;
     OGRRawPoint m_center;

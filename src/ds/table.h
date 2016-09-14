@@ -65,6 +65,7 @@ public:
                          ngsProgressFunc progressFunc = nullptr,
                          void* progressArguments = nullptr);
     OGRFeatureDefn* getDefinition() const;
+    CPLString getFIDColumn() const;
 protected:
     OGRLayer * const m_layer;
 };

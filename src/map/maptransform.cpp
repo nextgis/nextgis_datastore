@@ -133,18 +133,20 @@ bool MapTransform::setExtent(const OGREnvelope &env)
     scaleY = 1.0 / h;
     m_scaleScene = min(scaleX, scaleY);
 
-    if(isEqual(m_rotate[ngsDirection::Z], 0.0)) {
-        m_rotateExtent = m_extent;
-    }
-    else {
-        m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
-    }
-
     scaleX = w / (DEFAULT_MAX_X + DEFAULT_MAX_X);
     scaleY = h / (DEFAULT_MAX_Y + DEFAULT_MAX_Y);
     m_scaleWorld = 1 / min(scaleX, scaleY);
 
     initMatrices();
+
+    if(isEqual(m_rotate[ngsDirection::Z], 0.0)) {
+        m_rotateExtent = m_extent;
+    }
+    else {
+        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
+        setRotateExtent();
+    }
+
     return true; // return false if extent modified to fit limits
 }
 
@@ -162,18 +164,20 @@ bool MapTransform::updateExtent()
     double scaleY = 1.0 / (halfHeight + halfHeight);
     m_scaleScene = min(scaleX, scaleY);
 
-    if(isEqual(m_rotate[ngsDirection::Z], 0.0)){
-        m_rotateExtent = m_extent;
-    }
-    else {
-        m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
-    }
-
     scaleX = halfWidth / DEFAULT_MAX_X;
     scaleY = halfHeight / DEFAULT_MAX_Y;
     m_scaleWorld = 1 / min(scaleX, scaleY);
 
     initMatrices();
+
+    if(isEqual(m_rotate[ngsDirection::Z], 0.0)){
+        m_rotateExtent = m_extent;
+    }
+    else {
+        // m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
+        setRotateExtent();
+    }
+
     return true;  // return false if extent modified to fit limits
 }
 
@@ -235,6 +239,35 @@ void MapTransform::initMatrices()
 
         m_worldToDisplayMatrix.rotateZ (-m_rotate[ngsDirection::Z]);
         m_invWorldToDisplayMatrix.rotateZ (m_rotate[ngsDirection::Z]);
+    }
+}
+
+void MapTransform::setRotateExtent()
+{
+
+    OGRRawPoint pt, inPt[4];
+    inPt[0] = OGRRawPoint(0, 0);
+    inPt[1] = OGRRawPoint(0, m_displayHeight);
+    inPt[2] = OGRRawPoint(m_displayWidht, m_displayHeight);
+    inPt[3] = OGRRawPoint(m_displayWidht, 0);
+
+    pt = m_invWorldToDisplayMatrix.project (inPt[0]);
+    m_rotateExtent.MinX = pt.x;
+    m_rotateExtent.MaxX = pt.x;
+    m_rotateExtent.MinY = pt.y;
+    m_rotateExtent.MaxY = pt.y;
+
+
+    for(unsigned char i = 1; i < 4; ++i) {
+        pt = m_invWorldToDisplayMatrix.project (inPt[i]);
+        if(pt.x > m_rotateExtent.MaxX)
+            m_rotateExtent.MaxX = pt.x;
+        if(pt.x < m_rotateExtent.MinX)
+            m_rotateExtent.MinX = pt.x;
+        if(pt.y > m_rotateExtent.MaxY)
+            m_rotateExtent.MaxY = pt.y;
+        if(pt.y < m_rotateExtent.MinY)
+            m_rotateExtent.MinY = pt.y;
     }
 }
 

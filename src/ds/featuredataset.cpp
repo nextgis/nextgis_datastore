@@ -221,7 +221,7 @@ ResultSetPtr FeatureDataset::getGeometries(unsigned char /*zoom*/,
     }*/
 
     CPLString statement;
-    statement.Printf ("SELECT %s FROM %s", geomFieldName.c_str (),
+    statement.Printf ("SELECT %s,%s FROM %s", getFIDColumn().c_str(), geomFieldName.c_str (),
                       name ().c_str ());
 
     return executeSQL (statement, spatialFilter, "");

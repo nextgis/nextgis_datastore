@@ -219,14 +219,15 @@ void FeatureRenderLayer::fillRenderBuffers()
             // notify that the tile is ready to draw
 
             if(extraCounter < 4)
-                counter+= extraCounter - 4;
+                counter+= 4 - extraCounter;
 
-            if(m_mapView) {
-                m_mapView->notify();
-            }
         }
         counter++;
+
         m_complete = counter / extraSize;
+        if(m_mapView) {
+            m_mapView->notify();
+        }
     }
 
     m_complete = 1;
@@ -265,7 +266,7 @@ struct tileIs {
 
 void FeatureRenderLayer::refreshTiles()
 {
-    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom, true);
+    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom, false);
 
     // remove exist items in m_tiles from tiles
     // remove non exist items in tiles from m_tiles
@@ -273,6 +274,8 @@ void FeatureRenderLayer::refreshTiles()
     auto iter = m_tiles.begin ();
     while (iter != m_tiles.end())
     {
+        if(tiles.empty ())
+            break;
         auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
         if(pos == tiles.end ())
         {
