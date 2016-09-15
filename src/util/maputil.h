@@ -33,14 +33,15 @@ typedef struct _tile {
     int x,y;
     unsigned char z;
     OGREnvelope env;
-
+    bool crossExtent;
 } TileItem;
 
 inline static double lg(double x) {return log(x) / LOG2;};
 double getZoomForScale(double scale, double currentZoom);
 double getPixelSize(int zoom);
 vector<TileItem> getTilesForExtent(const OGREnvelope& extent,
-                                   unsigned char zoom, bool reverseY);
+                                   unsigned char zoom, bool reverseY,
+                                   bool unlimitX);
 }
 
 #endif // MAPUTIL_H

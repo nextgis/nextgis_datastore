@@ -52,6 +52,8 @@ public:
     double getScale() const;
     Matrix4 getSceneMatrix() const;
 
+    bool getXAxisLooped() const;
+
 protected:
     bool updateExtent();
     void initMatrices();
@@ -63,7 +65,7 @@ protected:
     double m_scale, m_scaleScene, m_scaleView, m_scaleWorld;
     OGREnvelope m_extent, m_rotateExtent;
     double m_ratio;
-    bool m_isYAxisInverted;
+    bool m_YAxisInverted, m_XAxisLooped;
     /* NOTE: sceneMatrix transform from world coordinates to GL coordinates -1 x 1
      * viewMatrix transform from GL coordinates to display coordinates 640 x 480
      */

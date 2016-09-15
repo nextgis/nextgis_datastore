@@ -28,9 +28,11 @@
 using namespace std;
 using namespace ngs;
 
+// TODO: DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y, DEFAULT_MAX_Y - special struct not definition
+
 MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
     m_displayHeight(height), m_rotate{0},
-    m_ratio(DEFAULT_RATIO)
+    m_ratio(DEFAULT_RATIO), m_XAxisLooped(true)
 {
     setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
                           DEFAULT_MAX_Y));
@@ -86,7 +88,7 @@ void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
     m_displayWidht = width;
     m_displayHeight = height;
-    m_isYAxisInverted = isYAxisInverted;
+    m_YAxisInverted = isYAxisInverted;
 
     double scaleX = fabs(double(m_displayWidht)) * .5;
     double scaleY = fabs(double(m_displayHeight)) * .5;
@@ -123,6 +125,18 @@ bool MapTransform::setExtent(const OGREnvelope &env)
 {
     m_center = getEnvelopeCenter (env);
     m_extent = setEnvelopeRatio(env, m_ratio);
+
+    if(m_XAxisLooped) {
+        while (m_extent.MinX > DEFAULT_MAX_X) {
+            m_extent.MinX -= DEFAULT_MAX_X2;
+            m_extent.MaxX -= DEFAULT_MAX_X2;
+        }
+        while (m_extent.MaxX < 0) {
+            m_extent.MinX += DEFAULT_MAX_X2;
+            m_extent.MaxX += DEFAULT_MAX_X2;
+        }
+    }
+
     double w = getEnvelopeWidth (env);
     double h = getEnvelopeHeight (env);
     double scaleX = fabs(double(m_displayWidht) / w);
@@ -133,8 +147,8 @@ bool MapTransform::setExtent(const OGREnvelope &env)
     scaleY = 1.0 / h;
     m_scaleScene = min(scaleX, scaleY);
 
-    scaleX = w / (DEFAULT_MAX_X + DEFAULT_MAX_X);
-    scaleY = h / (DEFAULT_MAX_Y + DEFAULT_MAX_Y);
+    scaleX = w / DEFAULT_MAX_X2;
+    scaleY = h / DEFAULT_MAX_Y2;
     m_scaleWorld = 1 / min(scaleX, scaleY);
 
     initMatrices();
@@ -168,6 +182,17 @@ bool MapTransform::updateExtent()
     scaleY = halfHeight / DEFAULT_MAX_Y;
     m_scaleWorld = 1 / min(scaleX, scaleY);
 
+    if(m_XAxisLooped) {
+        while (m_extent.MinX > DEFAULT_MAX_X) {
+            m_extent.MinX -= DEFAULT_MAX_X2;
+            m_extent.MaxX -= DEFAULT_MAX_X2;
+        }
+        while (m_extent.MaxX < 0) {
+            m_extent.MinX += DEFAULT_MAX_X2;
+            m_extent.MaxX += DEFAULT_MAX_X2;
+        }
+    }
+
     initMatrices();
 
     if(isEqual(m_rotate[ngsDirection::Z], 0.0)){
@@ -186,7 +211,7 @@ void MapTransform::initMatrices()
     // world -> scene matrix
     m_sceneMatrix.clear ();
 
-    if (m_isYAxisInverted) {
+    if (m_YAxisInverted) {
         m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
                              m_extent.MaxY, m_extent.MinY, DEFAULT_MIN_X, DEFAULT_MAX_X);
     } else {
@@ -269,6 +294,11 @@ void MapTransform::setRotateExtent()
         if(pt.y < m_rotateExtent.MinY)
             m_rotateExtent.MinY = pt.y;
     }
+}
+
+bool MapTransform::getXAxisLooped() const
+{
+    return m_XAxisLooped;
 }
 
 double MapTransform::getScale() const

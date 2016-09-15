@@ -1125,8 +1125,9 @@ void GlBuffer::draw() const
 //------------------------------------------------------------------------------
 
 GlBufferBucket::GlBufferBucket(int x, int y, unsigned char z,
-                               const OGREnvelope &env) : m_currentBuffer(0),
-    m_X(x), m_Y(y), m_zoom(z), m_extent(env), m_filled(false)
+                               const OGREnvelope &env, bool crossExtent) :
+    m_currentBuffer(0), m_X(x), m_Y(y), m_zoom(z), m_extent(env),
+    m_filled(false), m_crossExtent(crossExtent)
 {
     m_buffers.push_back (GlBuffer());
 }
@@ -1200,9 +1201,11 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 ring->getPoint (i, &pt);
                 // add point coordinates in float
                 // TODO: add getZ + level
-                m_buffers[m_currentBuffer].addVertex (static_cast<float>(pt.getX ()),
-                                                      static_cast<float>(pt.getY ()),
-                                                      level);
+                m_buffers[m_currentBuffer].addVertex (
+                    static_cast<float>(pt.getX () +
+                                       (m_crossExtent ? DEFAULT_MAX_X2 : 0)),
+                    static_cast<float>(pt.getY ()),
+                    level);
 
                 // add triangle indices unsigned short
                 if(i < numPoints - 2 ) {
@@ -1259,6 +1262,11 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
         case wkbSurface:
             return "surf";*/
     }
+}
+
+bool GlBufferBucket::crossExtent() const
+{
+    return m_crossExtent;
 }
 
 void GlBufferBucket::draw()

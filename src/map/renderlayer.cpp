@@ -137,11 +137,13 @@ struct tileIs {
         toFind.x = item.X();
         toFind.y = item.Y();
         toFind.z = item.zoom ();
+        toFind.crossExtent = item.crossExtent();
     }
     bool operator() (const TileItem &item) {
         return item.x == toFind.x &&
                item.y == toFind.y &&
-               item.z == toFind.z;
+               item.z == toFind.z &&
+               item.crossExtent == toFind.crossExtent;
     }
     TileItem toFind;
 };
@@ -173,8 +175,9 @@ void FeatureRenderLayer::fillRenderBuffers()
     FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset, m_dataset);
     bool fidExists;
 
+    // TODO: test unlimit
     vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom,
-                                               false);
+                                            false, m_mapView->getXAxisLooped ());
     // remove already exist tiles
     auto iter = m_tiles.begin ();
     while (iter != m_tiles.end()) {
@@ -186,7 +189,8 @@ void FeatureRenderLayer::fillRenderBuffers()
     }
 
     for(TileItem &tileItem : tiles) {
-        GlBufferBucket tile(tileItem.x, tileItem.y, tileItem.z, tileItem.env);
+        GlBufferBucket tile(tileItem.x, tileItem.y, tileItem.z, tileItem.env,
+                            tileItem.crossExtent);
         if(m_cancelPrepare)
             return;
 
@@ -209,8 +213,9 @@ void FeatureRenderLayer::fillRenderBuffers()
 
             fidExists = false;
             for(GlBufferBucket& tile1 : m_tiles) {
-                if(tile1.hasFid (feature->GetFID ()) &&
-                        tile1.zoom () == m_renderZoom) {
+                if( tile1.zoom () == m_renderZoom &&
+                    tile1.crossExtent () == tile.crossExtent () &&
+                    tile1.hasFid (feature->GetFID ()) ) {
                     fidExists = true;
                     break;
                 }
@@ -239,18 +244,11 @@ void FeatureRenderLayer::fillRenderBuffers()
     }
 
 
+    // free memory remove not visible tiles
 
     iter = m_tiles.begin ();
     OGREnvelope testExt = resizeEnvelope (m_renderExtent, 2);
     while (iter != m_tiles.end()) {
-        /*if(tiles.empty ())
-            break;
-        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
-        if(pos == tiles.end ()) {
-            CPLLockHolder tilesHolder(m_hTilesLock);
-            iter = m_tiles.erase(iter);
-        }
-        */
         const GlBufferBucket &currentTile = *iter;
         if (currentTile.zoom () != m_renderZoom ||
                 !currentTile.intersects (testExt)) {
@@ -284,7 +282,8 @@ void ngs::FeatureRenderLayer::drawTiles()
 
 void FeatureRenderLayer::refreshTiles()
 {
-    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom, false);
+    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom,
+                                            false, m_mapView->getXAxisLooped ());
 
     // remove exist items in m_tiles from tiles
     // remove non exist items in tiles from m_tiles
@@ -308,6 +307,7 @@ void FeatureRenderLayer::refreshTiles()
     }
 
     for(const TileItem& tile : tiles) {
-        m_tiles.push_back (GlBufferBucket(tile.x, tile.y, tile.z, tile.env));
+        m_tiles.push_back (GlBufferBucket(tile.x, tile.y, tile.z, tile.env,
+                                          tile.crossExtent));
     }
 }

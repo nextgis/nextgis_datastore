@@ -41,7 +41,8 @@ double ngs::getPixelSize(int zoom)
 }
 
 vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
-                                             unsigned char zoom, bool reverseY)
+                                             unsigned char zoom, bool reverseY,
+                                             bool unlimitX)
 {
     OGREnvelope env;
     vector<ngs::TileItem> result;
@@ -77,28 +78,33 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
         endY = tilesInMapOneDim;
     }
     /* this block unlimited X scroll of the map*/
-    if (begX < 0) {
-        begX = 0;
+    if(!unlimitX) {
+        if (begX < 0) {
+            begX = 0;
+        }
+        if (endX > tilesInMapOneDim) {
+            endX = tilesInMapOneDim;
+        }
     }
-    if (endX > tilesInMapOneDim) {
-        endX = tilesInMapOneDim;
-    }
-
 
     // TODO: fill by spiral
 
     // normal fill from left bottom corner
 
     int realX, realY;
+    bool crossExt;
     result.reserve ( (endX - begX) * (endY - begY) );
     double fullBoundsMinX = DEFAULT_MIN_X;
     double fullBoundsMinY = DEFAULT_MIN_Y;
     for (int x = begX; x < endX; x++) {
         for (int y = begY; y < endY; y++) {
-            realX = x;
+            realX = x;            
+            crossExt = false;
             if (realX < 0) {
+                crossExt = true;
                 realX += tilesInMapOneDim;
             } else if (realX >= tilesInMapOneDim) {
+                crossExt = true;
                 realX -= tilesInMapOneDim;
             }
 
@@ -111,13 +117,13 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
                 continue;
             }
 
-            double minX = fullBoundsMinX + x * tilesSizeOneDim;
-            double minY = fullBoundsMinY + y * tilesSizeOneDim;
+            double minX = fullBoundsMinX + realX * tilesSizeOneDim;
+            double minY = fullBoundsMinY + realY * tilesSizeOneDim;
             env.MinX = minX;
             env.MaxX = minX + tilesSizeOneDim;
             env.MinY = minY;
             env.MaxY = minY + tilesSizeOneDim;
-            TileItem item = { realX, realY, zoom, env };
+            TileItem item = { realX, realY, zoom, env, crossExt };
             result.push_back (item);
 
             if(result.size() > MAX_TILES_COUNT) // some limits for tiles array size

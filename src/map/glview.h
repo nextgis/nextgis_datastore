@@ -195,7 +195,7 @@ protected:
 class GlBufferBucket
 {
 public:
-    GlBufferBucket(int x, int y, unsigned char z, const OGREnvelope& env);
+    GlBufferBucket(int x, int y, unsigned char z, const OGREnvelope& env, bool crossExtent);
 
     void bind();
     bool filled() const;
@@ -212,6 +212,8 @@ public:
     OGREnvelope extent() const;
     bool intersects(const GlBufferBucket& other) const;
     bool intersects(const OGREnvelope &ext) const;
+    bool crossExtent() const;
+
 protected:
     void fill(OGRGeometry* geom, float level);
 
@@ -223,7 +225,7 @@ protected:
     int m_X, m_Y;
     unsigned char m_zoom;
     OGREnvelope m_extent;
-    bool m_filled;
+    bool m_filled, m_crossExtent;
 };
 
 class GlFuctions
