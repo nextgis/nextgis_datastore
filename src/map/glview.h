@@ -210,7 +210,8 @@ public:
     bool hasFid(GIntBig fid) const;
 
     OGREnvelope extent() const;
-
+    bool intersects(const GlBufferBucket& other) const;
+    bool intersects(const OGREnvelope &ext) const;
 protected:
     void fill(OGRGeometry* geom, float level);
 

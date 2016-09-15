@@ -132,6 +132,20 @@ void RenderLayer::finishFillThread()
 // FeatureRenderLayer
 //------------------------------------------------------------------------------
 
+struct tileIs {
+    tileIs( const GlBufferBucket &item ) {
+        toFind.x = item.X();
+        toFind.y = item.Y();
+        toFind.z = item.zoom ();
+    }
+    bool operator() (const TileItem &item) {
+        return item.x == toFind.x &&
+               item.y == toFind.y &&
+               item.z == toFind.z;
+    }
+    TileItem toFind;
+};
+
 FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(),
     m_hTilesLock(CPLCreateLock(LOCK_SPIN))
 {
@@ -151,7 +165,6 @@ FeatureRenderLayer::~FeatureRenderLayer()
 
 void FeatureRenderLayer::fillRenderBuffers()
 {
-    refreshTiles();
     m_complete = 0;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
@@ -159,10 +172,21 @@ void FeatureRenderLayer::fillRenderBuffers()
     OGRGeometry* geom;
     FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset, m_dataset);
     bool fidExists;
-    size_t extraSize = m_tiles.size () * 5;
-    short extraCounter;
 
-    for(GlBufferBucket& tile : m_tiles) {
+    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom,
+                                               false);
+    // remove already exist tiles
+    auto iter = m_tiles.begin ();
+    while (iter != m_tiles.end()) {
+        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
+        if(pos != tiles.end ()) {
+            tiles.erase (pos);
+        }
+        ++iter;
+    }
+
+    for(TileItem &tileItem : tiles) {
+        GlBufferBucket tile(tileItem.x, tileItem.y, tileItem.z, tileItem.env);
         if(m_cancelPrepare)
             return;
 
@@ -174,59 +198,56 @@ void FeatureRenderLayer::fillRenderBuffers()
             return fillRenderBuffers();
         }
 
-        if(!tile.filled()) {
-            GeometryPtr spatialFilter (envelopeToGeometry(tile.extent (),
-                                        featureDataset->getSpatialReference ()));
-            ResultSetPtr resSet = featureDataset->getGeometries (tile.zoom (),
-                                                                 spatialFilter);
-            extraCounter = 0;
-            while ((feature = resSet->GetNextFeature ()) != nullptr) {
-                if(m_cancelPrepare) {
-                    tile.free();
-                    return;
-                }
+        GeometryPtr spatialFilter (envelopeToGeometry(tile.extent (),
+                                    featureDataset->getSpatialReference ()));
+        ResultSetPtr resSet = featureDataset->getGeometries (tile.zoom (),
+                                                             spatialFilter);
+        while ((feature = resSet->GetNextFeature ()) != nullptr) {
+            if(m_cancelPrepare) {
+                return;
+            }
 
-                fidExists = false;
-                for(GlBufferBucket& tile1 : m_tiles) {
-                    if(tile1.hasFid (feature->GetFID ())) {
-                        fidExists = true;
-                        break;
-                    }
-                }
-
-                if(fidExists)
-                    continue;
-
-                geom = feature->GetGeometryRef ();
-                if(nullptr == geom)
-                    continue;
-
-                // TODO: draw filled polygones with border
-                tile.fill(feature->GetFID (), geom, m_renderLevel);
-
-                // addtional 4 update mape during loading
-                extraCounter++;
-                if(extraCounter > 3999 && extraCounter < 10001) {
-                    if(m_mapView && extraCounter % 2000 == 0) {
-                        counter++;
-                        m_complete = counter / extraSize;
-                        m_mapView->notify();
-                    }
+            fidExists = false;
+            for(GlBufferBucket& tile1 : m_tiles) {
+                if(tile1.hasFid (feature->GetFID ()) &&
+                        tile1.zoom () == m_renderZoom) {
+                    fidExists = true;
+                    break;
                 }
             }
 
-            tile.setFilled(true);
-            // notify that the tile is ready to draw
+            if(fidExists)
+                continue;
 
-            if(extraCounter < 4)
-                counter+= 4 - extraCounter;
+            geom = feature->GetGeometryRef ();
+            if(nullptr == geom)
+                continue;
 
+            // TODO: draw filled polygones with border
+            tile.fill(feature->GetFID (), geom, m_renderLevel);
         }
-        counter++;
 
-        m_complete = counter / extraSize;
+        tile.setFilled(true);
+
+        m_tiles.push_back (tile);
+
+        counter++;
+        m_complete = counter / tiles.size ();
         if(m_mapView) {
             m_mapView->notify();
+        }
+    }
+
+    iter = m_tiles.begin ();
+    while (iter != m_tiles.end()) {
+        const GlBufferBucket &currentTile = *iter;
+        if (currentTile.zoom () != m_renderZoom ||
+                !currentTile.intersects (m_renderExtent)) {
+            CPLLockHolder tilesHolder(m_hTilesLock);
+            iter = m_tiles.erase(iter);
+        }
+        else {
+            ++iter;
         }
     }
 
@@ -249,20 +270,6 @@ void ngs::FeatureRenderLayer::drawTiles()
         tile.draw ();
     }
 }
-
-struct tileIs {
-    tileIs( const GlBufferBucket &item ) {
-        toFind.x = item.X();
-        toFind.y = item.Y();
-        toFind.z = item.zoom ();
-    }
-    bool operator() (const TileItem &item) {
-        return item.x == toFind.x &&
-               item.y == toFind.y &&
-               item.z == toFind.z;
-    }
-    TileItem toFind;
-};
 
 void FeatureRenderLayer::refreshTiles()
 {

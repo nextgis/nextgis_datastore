@@ -47,6 +47,7 @@ OGRRawPoint getEnvelopeCenter(const OGREnvelope& env);
 OGREnvelope rotateEnvelope(const OGREnvelope& env, double angle);
 OGREnvelope setEnvelopeRatio(const OGREnvelope& env, double ratio);
 OGREnvelope setEnvelope(double minX, double maxX, double minY, double maxY);
+OGREnvelope resizeEnvelope(const OGREnvelope &env, double value);
 double getEnvelopeWidth(const OGREnvelope& env);
 double getEnvelopeHeight(const OGREnvelope& env);
 GeometryPtr envelopeToGeometry(const OGREnvelope& env,

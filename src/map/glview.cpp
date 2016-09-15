@@ -1309,3 +1309,13 @@ OGREnvelope GlBufferBucket::extent() const
 {
     return m_extent;
 }
+
+bool GlBufferBucket::intersects(const GlBufferBucket &other) const
+{
+    return m_extent.Intersects (other.m_extent) == TRUE;
+}
+
+bool GlBufferBucket::intersects(const OGREnvelope &ext) const
+{
+    return m_extent.Intersects (ext) == TRUE;
+}

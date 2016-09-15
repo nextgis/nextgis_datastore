@@ -124,6 +124,24 @@ OGREnvelope ngs::setEnvelope(double minX, double maxX, double minY,
     return env;
 }
 
+OGREnvelope ngs::resizeEnvelope(const OGREnvelope &env, double value)
+{
+    double w = getEnvelopeWidth(env) * .5;
+    double h = getEnvelopeHeight(env) * .5;
+    double x = env.MinX + w;
+    double y = env.MinY + h;
+
+    w *= value;
+    h *= value;
+
+    OGREnvelope out;
+    out.MinX = x - w;
+    out.MaxX = x + w;
+    out.MinY = y - h;
+    out.MaxY = y + h;
+    return out;
+}
+
 double ngs::getEnvelopeWidth(const OGREnvelope &env)
 {
     return env.MaxX - env.MinX;
