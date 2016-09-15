@@ -43,6 +43,17 @@ double ngs::getPixelSize(int zoom)
 vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
                                              unsigned char zoom, bool reverseY)
 {
+    OGREnvelope env;
+    vector<ngs::TileItem> result;
+    if(zoom == 0) {
+        env.MinX = DEFAULT_MIN_X;
+        env.MaxX = DEFAULT_MAX_X;
+        env.MinY = DEFAULT_MIN_Y;
+        env.MaxY = DEFAULT_MAX_Y;
+        TileItem item = { 0, 0, zoom, env };
+        result.push_back (item);
+        return result;
+    }
     int tilesInMapOneDim = 1 << zoom;
     double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
     double tilesSizeOneDim = DEFAULT_MAX_X / halfTilesInMapOneDim;
@@ -65,21 +76,20 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
     if (endY > tilesInMapOneDim) {
         endY = tilesInMapOneDim;
     }
-    /* this block unlimited X scroll of the map
+    /* this block unlimited X scroll of the map*/
     if (begX < 0) {
         begX = 0;
     }
-    if (endX > tilesInMapOneDimension) {
-        endX = tilesInMapOneDimension;
+    if (endX > tilesInMapOneDim) {
+        endX = tilesInMapOneDim;
     }
-    */
+
 
     // TODO: fill by spiral
 
     // normal fill from left bottom corner
 
     int realX, realY;
-    vector<ngs::TileItem> result;
     result.reserve ( (endX - begX) * (endY - begY) );
     double fullBoundsMinX = DEFAULT_MIN_X;
     double fullBoundsMinY = DEFAULT_MIN_Y;
@@ -103,7 +113,6 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
 
             double minX = fullBoundsMinX + x * tilesSizeOneDim;
             double minY = fullBoundsMinY + y * tilesSizeOneDim;
-            OGREnvelope env;
             env.MinX = minX;
             env.MaxX = minX + tilesSizeOneDim;
             env.MinY = minY;

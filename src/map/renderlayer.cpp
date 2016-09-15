@@ -238,11 +238,22 @@ void FeatureRenderLayer::fillRenderBuffers()
         }
     }
 
+
+
     iter = m_tiles.begin ();
+    OGREnvelope testExt = resizeEnvelope (m_renderExtent, 2);
     while (iter != m_tiles.end()) {
+        /*if(tiles.empty ())
+            break;
+        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
+        if(pos == tiles.end ()) {
+            CPLLockHolder tilesHolder(m_hTilesLock);
+            iter = m_tiles.erase(iter);
+        }
+        */
         const GlBufferBucket &currentTile = *iter;
         if (currentTile.zoom () != m_renderZoom ||
-                !currentTile.intersects (m_renderExtent)) {
+                !currentTile.intersects (testExt)) {
             CPLLockHolder tilesHolder(m_hTilesLock);
             iter = m_tiles.erase(iter);
         }

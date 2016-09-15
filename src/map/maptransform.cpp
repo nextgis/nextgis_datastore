@@ -143,8 +143,8 @@ bool MapTransform::setExtent(const OGREnvelope &env)
         m_rotateExtent = m_extent;
     }
     else {
-        m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
-        //setRotateExtent();
+        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
+        setRotateExtent();
     }
 
     return true; // return false if extent modified to fit limits
@@ -174,8 +174,8 @@ bool MapTransform::updateExtent()
         m_rotateExtent = m_extent;
     }
     else {
-        m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
-        //setRotateExtent();
+        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
+        setRotateExtent();
     }
 
     return true;  // return false if extent modified to fit limits
