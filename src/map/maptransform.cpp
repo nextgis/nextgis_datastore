@@ -131,7 +131,7 @@ bool MapTransform::setExtent(const OGREnvelope &env)
             m_extent.MinX -= DEFAULT_MAX_X2;
             m_extent.MaxX -= DEFAULT_MAX_X2;
         }
-        while (m_extent.MaxX < 0) {
+        while (m_extent.MaxX < DEFAULT_MIN_X) {
             m_extent.MinX += DEFAULT_MAX_X2;
             m_extent.MaxX += DEFAULT_MAX_X2;
         }
@@ -187,7 +187,7 @@ bool MapTransform::updateExtent()
             m_extent.MinX -= DEFAULT_MAX_X2;
             m_extent.MaxX -= DEFAULT_MAX_X2;
         }
-        while (m_extent.MaxX < 0) {
+        while (m_extent.MaxX < DEFAULT_MIN_X) {
             m_extent.MinX += DEFAULT_MAX_X2;
             m_extent.MaxX += DEFAULT_MAX_X2;
         }

@@ -33,7 +33,7 @@ typedef struct _tile {
     int x,y;
     unsigned char z;
     OGREnvelope env;
-    bool crossExtent;
+    char crossExtent;
 } TileItem;
 
 inline static double lg(double x) {return log(x) / LOG2;};

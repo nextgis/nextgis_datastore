@@ -51,7 +51,7 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
         env.MaxX = DEFAULT_MAX_X;
         env.MinY = DEFAULT_MIN_Y;
         env.MaxY = DEFAULT_MAX_Y;
-        TileItem item = { 0, 0, zoom, env };
+        TileItem item = { 0, 0, zoom, env, 0 };
         result.push_back (item);
         return result;
     }
@@ -92,19 +92,19 @@ vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
     // normal fill from left bottom corner
 
     int realX, realY;
-    bool crossExt;
+    char crossExt;
     result.reserve ( (endX - begX) * (endY - begY) );
     double fullBoundsMinX = DEFAULT_MIN_X;
     double fullBoundsMinY = DEFAULT_MIN_Y;
     for (int x = begX; x < endX; x++) {
         for (int y = begY; y < endY; y++) {
             realX = x;            
-            crossExt = false;
+            crossExt = 0;
             if (realX < 0) {
-                crossExt = true;
+                crossExt = -1;
                 realX += tilesInMapOneDim;
             } else if (realX >= tilesInMapOneDim) {
-                crossExt = true;
+                crossExt = 1;
                 realX -= tilesInMapOneDim;
             }
 

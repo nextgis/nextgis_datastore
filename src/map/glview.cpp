@@ -1125,7 +1125,7 @@ void GlBuffer::draw() const
 //------------------------------------------------------------------------------
 
 GlBufferBucket::GlBufferBucket(int x, int y, unsigned char z,
-                               const OGREnvelope &env, bool crossExtent) :
+                               const OGREnvelope &env, char crossExtent) :
     m_currentBuffer(0), m_X(x), m_Y(y), m_zoom(z), m_extent(env),
     m_filled(false), m_crossExtent(crossExtent)
 {
@@ -1202,8 +1202,7 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 // add point coordinates in float
                 // TODO: add getZ + level
                 m_buffers[m_currentBuffer].addVertex (
-                    static_cast<float>(pt.getX () +
-                                       (m_crossExtent ? DEFAULT_MAX_X2 : 0)),
+                    static_cast<float>(pt.getX () + m_crossExtent * DEFAULT_MAX_X2),
                     static_cast<float>(pt.getY ()),
                     level);
 
@@ -1264,7 +1263,7 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
     }
 }
 
-bool GlBufferBucket::crossExtent() const
+char GlBufferBucket::crossExtent() const
 {
     return m_crossExtent;
 }

@@ -250,8 +250,10 @@ void FeatureRenderLayer::fillRenderBuffers()
     OGREnvelope testExt = resizeEnvelope (m_renderExtent, 2);
     while (iter != m_tiles.end()) {
         const GlBufferBucket &currentTile = *iter;
-        if (currentTile.zoom () != m_renderZoom ||
-                !currentTile.intersects (testExt)) {
+
+        if (currentTile.crossExtent () == 0 &&
+                (currentTile.zoom () != m_renderZoom ||
+                !currentTile.intersects (testExt))) {
             CPLLockHolder tilesHolder(m_hTilesLock);
             iter = m_tiles.erase(iter);
         }
