@@ -759,18 +759,154 @@ bool GlOffScreenView::createFBO(int width, int height)
 #endif // OFFSCREEN_GL
 
 //------------------------------------------------------------------------------
+// GlProgram
+//------------------------------------------------------------------------------
+
+GlProgram::GlProgram() : m_programId(0), m_matrixId(-1), m_colorId(-1),
+    m_load(false)
+{
+}
+
+GlProgram::~GlProgram()
+{
+    if(0 != m_programId)
+        glDeleteProgram(m_programId);
+}
+
+bool GlProgram::load(const GLchar * const vertexShader,
+                     const GLchar * const fragmentShader)
+{
+    if (m_load)
+        return true;
+
+    GLuint vertexShaderId = loadShader(GL_VERTEX_SHADER, vertexShader);
+    if( !vertexShaderId ) {
+        CPLError(CE_Failure, CPLE_OpenFailed, "Load vertex shader failed.");
+        return false;
+    }
+
+    GLuint fragmentShaderId = loadShader(GL_FRAGMENT_SHADER, fragmentShader);
+    if( !fragmentShaderId ) {
+        CPLError(CE_Failure, CPLE_OpenFailed, "Load fragment shader failed.");
+        return false;
+    }
+
+    GLuint programId = glCreateProgram();
+    if ( !programId ) {
+        CPLError(CE_Failure, CPLE_OpenFailed, "Create program failed.");
+        return false;
+    }
+
+    glAttachShader(programId, vertexShaderId);
+    glAttachShader(programId, fragmentShaderId);
+
+    glBindAttribLocation ( programId, 0, "vPosition" );
+    glLinkProgram(programId);
+
+    if( !checkLinkStatus(programId) ){
+        CPLError(CE_Failure, CPLE_OpenFailed, "Link program failed.");
+        return false;
+    }
+
+    glDeleteShader(vertexShaderId);
+    glDeleteShader(fragmentShaderId);
+
+    m_programId = programId;
+    m_load = true;
+
+    return true;
+}
+
+void GlProgram::prepare(const Matrix4& mat)
+{
+    ngsCheckGLEerror(glUseProgram(m_programId));
+
+#ifdef _DEBUG
+    GLint numActiveUniforms = 0;
+    glGetProgramiv(m_programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
+    cout << "Number active uniforms: " << numActiveUniforms << endl;
+#endif //_DEBUG
+
+    if(m_matrixId == -1)
+        m_matrixId = glGetUniformLocation(m_programId, "mvMatrix");
+    if(m_colorId == -1)
+        m_colorId = glGetUniformLocation(m_programId, "u_Color");
+
+    array<GLfloat, 16> mat4f = mat.dataF ();
+
+    ngsCheckGLEerror(glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, mat4f.data()));
+    ngsCheckGLEerror(glUniform4f(m_colorId, m_color.r, m_color.g, m_color.b,
+                                 m_color.a));
+}
+
+bool GlProgram::checkLinkStatus(GLuint obj) const
+{
+    GLint status;
+    glGetProgramiv(obj, GL_LINK_STATUS, &status);
+    if(status == GL_FALSE) {
+        reportGlStatus(obj);
+        return false;
+    }
+    return true;
+}
+
+bool GlProgram::checkShaderCompileStatus(GLuint obj) const
+{
+    GLint status;
+    glGetShaderiv(obj, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE) {
+        reportGlStatus(obj);
+        return false;
+    }
+    return true;
+}
+
+GLuint GlProgram::loadShader(GLenum type, const char *shaderSrc)
+{
+    GLuint shader;
+    GLint compiled;
+
+    // Create the shader object
+    shader = glCreateShader ( type );
+
+    if ( !shader )
+     return 0;
+
+    // Load the shader source
+    glShaderSource ( shader, 1, &shaderSrc, nullptr );
+
+    // Compile the shader
+    glCompileShader ( shader );
+
+    // Check the compile status
+    glGetShaderiv ( shader, GL_COMPILE_STATUS, &compiled );
+
+    if (!checkShaderCompileStatus(shader) ) {
+       glDeleteShader ( shader );
+       return 0;
+    }
+
+    return shader;
+}
+
+void GlProgram::setColor(const ngsRGBA &color)
+{
+    m_color.r = float(color.R) / 255;
+    m_color.g = float(color.G) / 255;
+    m_color.b = float(color.B) / 255;
+    m_color.a = float(color.A) / 255;
+}
+
+//------------------------------------------------------------------------------
 // GlFuctions
 //------------------------------------------------------------------------------
 
-GlFuctions::GlFuctions() : m_programId(0), m_matrixId(-1), m_colorId(-1),
-    m_extensionLoad(false), m_programLoad(false), m_pBkChanged(true)
+GlFuctions::GlFuctions() : m_extensionLoad(false), m_pBkChanged(true)
 {
 }
 
 GlFuctions::~GlFuctions()
 {
-    if(0 != m_programId)
-        glDeleteProgram(m_programId);
     // TODO: unload extensions
 }
 
@@ -778,15 +914,12 @@ bool GlFuctions::init()
 {
     if(!loadExtensions ())
         return false;
-    if(!loadProgram ())
-        return false;
-
     return true;
 }
 
 bool GlFuctions::isOk() const
 {
-    return m_programLoad && m_extensionLoad;
+    return m_extensionLoad;
 }
 
 void GlFuctions::setBackgroundColor(const ngsRGBA &color)
@@ -810,25 +943,7 @@ void GlFuctions::clearBackground()
     ngsCheckGLEerror(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-void GlFuctions::prepare(const Matrix4 &mat)
-{
-#ifdef _DEBUG
-    GLint numActiveUniforms = 0;
-    glGetProgramiv(m_programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
-    cout << "Number active uniforms: " << numActiveUniforms << endl;
-#endif //_DEBUG
-    if(m_matrixId == -1)
-        m_matrixId = glGetUniformLocation(m_programId, "mvMatrix");
-    if(m_colorId == -1)
-        m_colorId = glGetUniformLocation(m_programId, "u_Color");
-
-    array<GLfloat, 16> mat4f = mat.dataF ();
-
-    ngsCheckGLEerror(glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, mat4f.data()));
-    ngsCheckGLEerror(glUniform4f(m_colorId, 1.0f, 0.0f, 0.0f, 1.0f));
-}
-
-void GlFuctions::testDrawPreserved() const
+void GlFuctions::testDrawPreserved(int colorId) const
 {
     static bool isBuffersFilled = false;
     static GLuint    buffers[2];
@@ -857,7 +972,7 @@ void GlFuctions::testDrawPreserved() const
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
 
-    ngsCheckGLEerror(glUniform4f(m_colorId, 1.0f, 0.0f, 0.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(colorId, 1.0f, 0.0f, 0.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
 
@@ -867,7 +982,7 @@ void GlFuctions::testDrawPreserved() const
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[1]));
 
-    ngsCheckGLEerror(glUniform4f(m_colorId, 0.0f, 0.0f, 1.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(colorId, 0.0f, 0.0f, 1.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
 
@@ -877,14 +992,14 @@ void GlFuctions::testDrawPreserved() const
 
 }
 
-void GlFuctions::testDraw() const
+void GlFuctions::testDraw(int colorId) const
 {
     GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
                            -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
                             4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
                           };
 
-    ngsCheckGLEerror(glUniform4f(m_colorId, 1.0f, 0.0f, 0.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(colorId, 1.0f, 0.0f, 0.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                              vVertices ));
@@ -897,7 +1012,7 @@ void GlFuctions::testDraw() const
                             5187591.0f, 4509961.0f, 0.5f
                           };
 
-    ngsCheckGLEerror(glUniform4f(m_colorId, 0.0f, 0.0f, 1.0f, 1.0f));
+    ngsCheckGLEerror(glUniform4f(colorId, 0.0f, 0.0f, 1.0f, 1.0f));
 
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
                                              vVertices2 ));
@@ -916,118 +1031,6 @@ void GlFuctions::drawPolygons(const vector<GLfloat> &vertices,
                                             vertices.data ()));
     ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, indices.size (),
                                     GL_UNSIGNED_SHORT, indices.data ()));
-}
-
-bool GlFuctions::loadProgram()
-{
-    if(!m_programLoad) {
-        m_programId = prepareProgram();
-        if(0 == m_programId) {
-            CPLError(CE_Failure, CPLE_OpenFailed, "Prepare program (shaders) failed.");
-            return false;
-        }
-        m_programLoad = true;
-        ngsCheckGLEerror(glUseProgram(m_programId));
-    }
-
-    return true;
-}
-
-GLuint GlFuctions::prepareProgram()
-{
-    // WARNING: this is only for testing!
-    const GLchar * const vertexShaderSourcePtr =
-            "attribute vec4 vPosition;    \n"
-            "uniform mat4 mvMatrix;       \n"
-            "void main()                  \n"
-            "{                            \n"
-            "   gl_Position = mvMatrix * vPosition;  \n"
-            "}                            \n";
-
-    GLuint vertexShaderId = loadShader(GL_VERTEX_SHADER, vertexShaderSourcePtr);
-
-    if( !vertexShaderId )
-        return 0;
-
-    const GLchar * const fragmentShaderSourcePtr =
-            "precision mediump float;                     \n"
-            "uniform vec4 u_Color;                        \n"
-            "void main()                                  \n"
-            "{                                            \n"
-            "  gl_FragColor = u_Color;                    \n"
-            "}                                            \n";
-
-    GLuint fragmentShaderId = loadShader(GL_FRAGMENT_SHADER, fragmentShaderSourcePtr);
-    if( !fragmentShaderId )
-        return 0;
-
-    GLuint programId = glCreateProgram();
-    if ( !programId )
-       return 0;
-
-    glAttachShader(programId, vertexShaderId);
-    glAttachShader(programId, fragmentShaderId);
-
-    glBindAttribLocation ( programId, 0, "vPosition" );
-    glLinkProgram(programId);
-
-    if( !checkProgramLinkStatus(programId) )
-        return 0;
-
-    glDeleteShader(vertexShaderId);
-    glDeleteShader(fragmentShaderId);
-
-    return programId;
-}
-
-bool GlFuctions::checkProgramLinkStatus(GLuint obj) const
-{
-    GLint status;
-    glGetProgramiv(obj, GL_LINK_STATUS, &status);
-    if(status == GL_FALSE) {
-        reportGlStatus(obj);
-        return false;
-    }
-    return true;
-}
-
-bool GlFuctions::checkShaderCompileStatus(GLuint obj) const
-{
-    GLint status;
-    glGetShaderiv(obj, GL_COMPILE_STATUS, &status);
-    if(status == GL_FALSE) {
-        reportGlStatus(obj);
-        return false;
-    }
-    return true;
-}
-
-GLuint GlFuctions::loadShader(GLenum type, const char *shaderSrc)
-{
-    GLuint shader;
-    GLint compiled;
-
-    // Create the shader object
-    shader = glCreateShader ( type );
-
-    if ( !shader )
-     return 0;
-
-    // Load the shader source
-    glShaderSource ( shader, 1, &shaderSrc, nullptr );
-
-    // Compile the shader
-    glCompileShader ( shader );
-
-    // Check the compile status
-    glGetShaderiv ( shader, GL_COMPILE_STATUS, &compiled );
-
-    if (!checkShaderCompileStatus(shader) ) {
-       glDeleteShader ( shader );
-       return 0;
-    }
-
-    return shader;
 }
 
 bool GlFuctions::loadExtensions()

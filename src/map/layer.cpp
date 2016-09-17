@@ -39,7 +39,12 @@ Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
     m_type = Layer::Type::Invalid;
 }
 
-int Layer::load(const JSONObject &store, DataStorePtr dataStore,
+Layer::~Layer()
+{
+
+}
+
+int Layer::load(const JSONObject &store, DatasetContainerPtr dataStore,
                 const CPLString &mapPath)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);

@@ -108,6 +108,7 @@ public:
     virtual int destroy(ngsProgressFunc progressFunc, void *progressArguments) override;
 };
 
+typedef shared_ptr<DatasetContainer> DatasetContainerPtr;
 }
 
 #endif // DATASETCONTAINER_H

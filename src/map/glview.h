@@ -229,11 +229,32 @@ protected:
     char m_crossExtent;
 };
 
+class GlProgram
+{
+public:
+    GlProgram();
+    ~GlProgram();
+    bool load(const GLchar * const vertexShader,
+              const GLchar * const fragmentShader);
+    void prepare(const Matrix4& mat);
+    void setColor(const ngsRGBA &color);
+
+protected:
+    bool checkLinkStatus(GLuint obj) const;
+    bool checkShaderCompileStatus(GLuint obj) const;
+    GLuint loadShader(GLenum type, const char *shaderSrc);
+protected:
+    GLuint m_programId;
+    GLint m_matrixId, m_colorId;
+    bool m_load;
+    GlColor m_color;
+};
+
 class GlFuctions
 {
 public:
     GlFuctions();
-    virtual ~GlFuctions();
+    ~GlFuctions();
 
     bool init();
     bool isOk() const;
@@ -242,24 +263,16 @@ public:
     void prepare(const Matrix4& mat);
 
     // Draw functions
-    void testDraw() const;
-    void testDrawPreserved() const;
+    void testDraw(int colorId) const;
+    void testDrawPreserved(int colorId) const;
     void drawPolygons(const vector<GLfloat> &vertices,
                       const vector<GLushort> &indices) const;
 protected:
-    virtual bool loadProgram();
-    virtual GLuint prepareProgram();
-    bool checkProgramLinkStatus(GLuint obj) const;
-    bool checkShaderCompileStatus(GLuint obj) const;
-    GLuint loadShader(GLenum type, const char *shaderSrc);
-    virtual bool loadExtensions();
+    bool loadExtensions();
 
-// shaders
 protected:
-    GLuint m_programId;
-    GLint m_matrixId, m_colorId;
     GlColor m_bkColor;
-    bool m_extensionLoad, m_programLoad, m_pBkChanged;
+    bool m_extensionLoad, m_pBkChanged;
 };
 
 }

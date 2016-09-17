@@ -27,6 +27,8 @@ namespace ngs {
 
 void FillGLBufferThread(void * layer);
 
+typedef unique_ptr<GlProgram> GlProgramUPtr;
+
 /**
  * @brief The RenderLayer class Base for renderable map layers
  */
@@ -59,6 +61,7 @@ protected:
     float m_complete;
     MapView* m_mapView;
     CPLLock *m_hThreadLock;
+    GlProgramUPtr m_program;
 };
 
 class FeatureRenderLayer : public RenderLayer
@@ -70,6 +73,7 @@ public:
 
 protected:
     void fillRenderBuffers(OGRGeometry *geom);
+    void initStyle();
 
     // RenderLayer interface
 protected:
@@ -78,9 +82,30 @@ protected:
     virtual void drawTiles() override;
     void refreshTiles();
 
+    // Layer interface
+public:
+    virtual int load(const JSONObject &store, DatasetContainerPtr dataStore,
+                     const CPLString &mapPath) override;
 protected:
     CPLLock *m_hTilesLock;
     vector<GlBufferBucket> m_tiles;
+
+    // TODO: move shaders and color to Style
+    const GLchar * const m_vertexShaderSourcePtr =
+            "attribute vec4 vPosition;    \n"
+            "uniform mat4 mvMatrix;       \n"
+            "void main()                  \n"
+            "{                            \n"
+            "   gl_Position = mvMatrix * vPosition;  \n"
+            "}                            \n";
+
+    const GLchar * const m_fragmentShaderSourcePtr =
+            "precision mediump float;                     \n"
+            "uniform vec4 u_Color;                        \n"
+            "void main()                                  \n"
+            "{                                            \n"
+            "  gl_FragColor = u_Color;                    \n"
+            "}                                            \n";
 };
 
 }

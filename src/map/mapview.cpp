@@ -73,26 +73,23 @@ int MapView::initDisplay()
     if(m_glFunctions.init ()) {
         m_displayInit = true;
         return ngsErrorCodes::EC_SUCCESS;
-}
-
+    }
     return ngsErrorCodes::EC_INIT_FAILED;
 }
 
 int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
                   void* progressArguments)
 {
-
-
     if(m_layers.empty()) {
         m_glFunctions.clearBackground ();
         return ngsErrorCodes::EC_SUCCESS;
-}
+    }
 
     m_progressFunc = progressFunc;
     m_progressArguments = progressArguments;
 
     m_glFunctions.clearBackground ();
-    m_glFunctions.prepare (getSceneMatrix());
+    //m_glFunctions.prepare (getSceneMatrix());
 
     float level = 0;
     for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
@@ -155,11 +152,10 @@ LayerPtr MapView::createLayer(Layer::Type type)
     }
     case Layer::Type::Group:
     case Layer::Type::Raster:
-        // TODO:
+        // TODO: add raster and group layers create
         return Map::createLayer (type);
     }
 }
-
 
 int ngs::MapView::setBackgroundColor(const ngsRGBA &color)
 {

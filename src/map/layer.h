@@ -44,8 +44,11 @@ public:
 public:
     Layer();
     Layer(const CPLString& name, DatasetPtr dataset);
-    int load(const JSONObject& store, DataStorePtr dataStore = DataStorePtr(),
-             const CPLString& mapPath = "");
+    virtual ~Layer();
+    virtual int load(const JSONObject& store,
+                     DatasetContainerPtr dataStore = DatasetContainerPtr(),
+                     const CPLString& mapPath = "");
+    // TODO: virtual int load(const JSONObject& store, const CPLString& mapPath = "");
     JSONObject save(const CPLString& mapPath) const;
 protected:
     CPLString m_name;
