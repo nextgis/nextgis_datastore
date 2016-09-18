@@ -36,6 +36,7 @@ set(HHEADER_PRIV
     glview.h
     layer.h
     renderlayer.h
+    style.h
 )
 
 set(CSOURCES
@@ -47,6 +48,7 @@ set(CSOURCES
     glview.cpp
     layer.cpp
     renderlayer.cpp
+    style.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})

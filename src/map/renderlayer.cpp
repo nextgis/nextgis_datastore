@@ -152,16 +152,12 @@ FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(),
     m_hTilesLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
-    m_program = GlProgramUPtr(new GlProgram);
-    // set default style
-    m_program->setColor ({255, 0, 0, 255});
 }
 
 FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset) :
     RenderLayer(name, dataset), m_hTilesLock(CPLCreateLock(LOCK_SPIN))
 {
     m_type = Layer::Type::Vector;
-    m_program = GlProgramUPtr(new GlProgram);
     initStyle();
 }
 
@@ -177,15 +173,17 @@ void FeatureRenderLayer::initStyle()
     switch(OGR_GT_Flatten(geomType)) {
     case wkbMultiPoint:
     case wkbPoint:
-        m_program->setColor ({0, 255, 0, 255});
+        m_style.reset(new SimpleFillStyle());
+        m_style->setColor ({0, 255, 0, 255});
         break;
     case wkbMultiLineString:
     case wkbLineString:
-        m_program->setColor ({0, 0, 255, 255});
+        //->setColor ({0, 0, 255, 255});
         break;
     case wkbMultiPolygon:
     case wkbPolygon:
-        m_program->setColor ({255, 0, 0, 255});
+        m_style.reset(new SimpleFillStyle());
+        m_style->setColor ({255, 0, 0, 255});
         break;
     default:
         break;
@@ -303,12 +301,10 @@ void ngs::FeatureRenderLayer::clearTiles()
 void ngs::FeatureRenderLayer::drawTiles()
 {
     // load program if already not, set matrix and fill color in prepare
-    if(m_program->load (m_vertexShaderSourcePtr, m_fragmentShaderSourcePtr)) {
-        m_program->prepare (m_mapView->getSceneMatrix ());
-    }
+    m_style->prepare (m_mapView->getSceneMatrix ());
     CPLLockHolder tilesHolder(m_hTilesLock);
     for(GlBufferBucket& tile : m_tiles) {
-        tile.draw ();
+        tile.draw (); // TODO: draw tile in style
     }
 }
 

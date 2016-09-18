@@ -762,23 +762,19 @@ bool GlOffScreenView::createFBO(int width, int height)
 // GlProgram
 //------------------------------------------------------------------------------
 
-GlProgram::GlProgram() : m_programId(0), m_matrixId(-1), m_colorId(-1),
-    m_load(false)
+GlProgram::GlProgram() : m_id(0)
 {
 }
 
 GlProgram::~GlProgram()
 {
-    if(0 != m_programId)
-        glDeleteProgram(m_programId);
+    if(0 != m_id)
+        glDeleteProgram(m_id);
 }
 
 bool GlProgram::load(const GLchar * const vertexShader,
                      const GLchar * const fragmentShader)
 {
-    if (m_load)
-        return true;
-
     GLuint vertexShaderId = loadShader(GL_VERTEX_SHADER, vertexShader);
     if( !vertexShaderId ) {
         CPLError(CE_Failure, CPLE_OpenFailed, "Load vertex shader failed.");
@@ -811,32 +807,9 @@ bool GlProgram::load(const GLchar * const vertexShader,
     glDeleteShader(vertexShaderId);
     glDeleteShader(fragmentShaderId);
 
-    m_programId = programId;
-    m_load = true;
+    m_id = programId;
 
     return true;
-}
-
-void GlProgram::prepare(const Matrix4& mat)
-{
-    ngsCheckGLEerror(glUseProgram(m_programId));
-
-#ifdef _DEBUG
-    GLint numActiveUniforms = 0;
-    glGetProgramiv(m_programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
-    cout << "Number active uniforms: " << numActiveUniforms << endl;
-#endif //_DEBUG
-
-    if(m_matrixId == -1)
-        m_matrixId = glGetUniformLocation(m_programId, "mvMatrix");
-    if(m_colorId == -1)
-        m_colorId = glGetUniformLocation(m_programId, "u_Color");
-
-    array<GLfloat, 16> mat4f = mat.dataF ();
-
-    ngsCheckGLEerror(glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, mat4f.data()));
-    ngsCheckGLEerror(glUniform4f(m_colorId, m_color.r, m_color.g, m_color.b,
-                                 m_color.a));
 }
 
 bool GlProgram::checkLinkStatus(GLuint obj) const
@@ -889,12 +862,14 @@ GLuint GlProgram::loadShader(GLenum type, const char *shaderSrc)
     return shader;
 }
 
-void GlProgram::setColor(const ngsRGBA &color)
+GLuint GlProgram::id() const
 {
-    m_color.r = float(color.R) / 255;
-    m_color.g = float(color.G) / 255;
-    m_color.b = float(color.B) / 255;
-    m_color.a = float(color.A) / 255;
+    return m_id;
+}
+
+void GlProgram::use() const
+{
+    ngsCheckGLEerror(glUseProgram(m_id));
 }
 
 //------------------------------------------------------------------------------
@@ -1114,6 +1089,7 @@ void GlBuffer::draw() const
     if(!m_binded)
         return;
 
+    // TODO: move to style
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
     ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));

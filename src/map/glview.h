@@ -23,7 +23,6 @@
 
 
 #include "api_priv.h"
-#include "matrix.h"
 
 #include <vector>
 #include <set>
@@ -236,19 +235,19 @@ public:
     ~GlProgram();
     bool load(const GLchar * const vertexShader,
               const GLchar * const fragmentShader);
-    void prepare(const Matrix4& mat);
-    void setColor(const ngsRGBA &color);
+
+    GLuint id() const;
+    void use() const;
 
 protected:
     bool checkLinkStatus(GLuint obj) const;
     bool checkShaderCompileStatus(GLuint obj) const;
     GLuint loadShader(GLenum type, const char *shaderSrc);
 protected:
-    GLuint m_programId;
-    GLint m_matrixId, m_colorId;
-    bool m_load;
-    GlColor m_color;
+    GLuint m_id;
 };
+
+typedef unique_ptr<GlProgram> GlProgramUPtr;
 
 class GlFuctions
 {
@@ -260,7 +259,6 @@ public:
     bool isOk() const;
     void setBackgroundColor(const ngsRGBA &color);
     void clearBackground();
-    void prepare(const Matrix4& mat);
 
     // Draw functions
     void testDraw(int colorId) const;
