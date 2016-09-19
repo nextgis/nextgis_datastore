@@ -41,7 +41,7 @@ Style::~Style()
 
 }
 
-void Style::prepare(const Matrix4 &mat)
+bool Style::prepare(const Matrix4 &mat)
 {
     if(!m_load) {
         m_load = m_program->load(getShaderSource(SH_VERTEX),
@@ -49,7 +49,7 @@ void Style::prepare(const Matrix4 &mat)
     }
 
     if(!m_load)
-        return;
+        return false;
 
     m_program->use();
 
@@ -69,6 +69,8 @@ void Style::prepare(const Matrix4 &mat)
     ngsCheckGLEerror(glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, mat4f.data()));
     ngsCheckGLEerror(glUniform4f(m_colorId, m_color.r, m_color.g, m_color.b,
                                  m_color.a));
+
+    return true;
 }
 
 void Style::setColor(const ngsRGBA &color)
@@ -95,7 +97,7 @@ SimpleFillStyle::~SimpleFillStyle()
 }
 
 
-const GLchar *ngs::SimpleFillStyle::getShaderSource(enum ngsShaderType type)
+const GLchar *SimpleFillStyle::getShaderSource(enum ngsShaderType type)
 {
     switch (type) {
     case SH_VERTEX:
@@ -106,7 +108,7 @@ const GLchar *ngs::SimpleFillStyle::getShaderSource(enum ngsShaderType type)
 }
 
 
-void ngs::SimpleFillStyle::draw(const GlBuffer &buffer) const
+void SimpleFillStyle::draw(const GlBuffer &buffer) const
 {
     if(!buffer.binded ())
         return;
@@ -120,4 +122,70 @@ void ngs::SimpleFillStyle::draw(const GlBuffer &buffer) const
 
     ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, buffer.getFinalIndicesCount (),
                                     GL_UNSIGNED_SHORT, NULL));
+}
+
+//------------------------------------------------------------------------------
+// SimplePointStyle
+//------------------------------------------------------------------------------
+
+
+SimplePointStyle::SimplePointStyle() : Style(), m_radius(6), m_radiusId(-1)
+{
+
+}
+
+SimplePointStyle::~SimplePointStyle()
+{
+
+}
+
+
+const GLchar *SimplePointStyle::getShaderSource(enum ngsShaderType type)
+{
+    switch (type) {
+    case SH_VERTEX:
+        return m_vertexShaderSourcePtr;
+    case SH_FRAGMENT:
+        return m_fragmentShaderSourcePtr;
+    }
+}
+
+
+void SimplePointStyle::draw(const GlBuffer &buffer) const
+{
+    if(!buffer.binded ())
+        return;
+
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER,
+                                  buffer.getBuffer (SH_VERTEX)));
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
+                                  buffer.getBuffer (SH_FRAGMENT)));
+    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
+    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+
+    //ngsCheckGLEerror(glDrawArrays(GL_POINTS, 0, buffer.getFinalIndicesCount ()));
+    ngsCheckGLEerror(glDrawElements(GL_POINTS, buffer.getFinalIndicesCount (),
+                                    GL_UNSIGNED_SHORT, NULL));
+}
+
+float SimplePointStyle::getRadius() const
+{
+    return m_radius;
+}
+
+void SimplePointStyle::setRadius(float radius)
+{
+    m_radius = radius;
+}
+
+
+bool SimplePointStyle::prepare(const Matrix4 &mat)
+{
+    if(!Style::prepare (mat))
+        return false;
+    if(m_radiusId == -1) {
+        m_radiusId = glGetUniformLocation(m_program->id(), "fRadius");
+    }
+    ngsCheckGLEerror(glUniform1f(m_radiusId, m_radius));
+    return true;
 }

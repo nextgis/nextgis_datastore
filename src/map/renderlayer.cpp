@@ -173,12 +173,16 @@ void FeatureRenderLayer::initStyle()
     switch(OGR_GT_Flatten(geomType)) {
     case wkbMultiPoint:
     case wkbPoint:
-        m_style.reset(new SimpleFillStyle());
-        m_style->setColor ({0, 255, 0, 255});
+    {
+        SimplePointStyle* style = new SimplePointStyle();
+        m_style.reset(style);
+        m_style->setColor ({0, 0, 255, 255});
+        style->setRadius (9.0f);
+    }
         break;
     case wkbMultiLineString:
     case wkbLineString:
-        //->setColor ({0, 0, 255, 255});
+        //->setColor ({0, 255, 255, 255});
         break;
     case wkbMultiPolygon:
     case wkbPolygon:
@@ -289,6 +293,14 @@ void FeatureRenderLayer::fillRenderBuffers()
     m_complete = 1;
     if(m_mapView) {
         m_mapView->notify();
+    }
+
+    if(! (isEqual(renderExtent.MaxX, m_renderExtent.MaxX) &&
+          isEqual(renderExtent.MaxY, m_renderExtent.MaxY) &&
+          isEqual(renderExtent.MinX, m_renderExtent.MinX) &&
+          isEqual(renderExtent.MinY, m_renderExtent.MinY))) {
+        // if extent changed - refresh tiles
+        return fillRenderBuffers();
     }
 }
 

@@ -31,7 +31,7 @@ class Style
 public:
     Style();
     virtual ~Style();
-    virtual void prepare(const Matrix4 & mat);
+    virtual bool prepare(const Matrix4 & mat);
     virtual void setColor(const ngsRGBA &color);
     virtual void draw(const GlBuffer& buffer) const = 0;
 protected:
@@ -72,6 +72,51 @@ protected:
             "{                            \n"
             "  gl_FragColor = u_Color;    \n"
             "}                            \n";
+
+};
+
+class SimplePointStyle : public Style
+{
+public:
+    SimplePointStyle();
+    virtual ~SimplePointStyle();
+    float getRadius() const;
+    void setRadius(float radius);
+
+    // Style interface
+public:
+    virtual bool prepare(const Matrix4 &mat) override;
+
+    // Style interface
+protected:
+    virtual const GLchar *getShaderSource(enum ngsShaderType type) override;
+    virtual void draw(const GlBuffer &buffer) const override;
+
+protected:
+    const GLchar * const m_vertexShaderSourcePtr =
+            "attribute vec4 vPosition;    \n"
+            "uniform mat4 mvMatrix;       \n"
+            "uniform float fRadius;       \n"
+            "void main()                  \n"
+            "{                            \n"
+            "   gl_Position = mvMatrix * vPosition;\n"
+            "   gl_PointSize = fRadius;   \n"
+            "}                            \n";
+
+    const GLchar * const m_fragmentShaderSourcePtr =
+            "precision mediump float;     \n"
+            "uniform vec4 u_Color;        \n"
+            "void main()                  \n"
+            "{                            \n"
+            "   vec2 coord = gl_PointCoord - vec2(0.5);\n"
+            "   if(length(coord) > 0.5) { \n"
+            "       discard;              \n"
+            "   } else {                  \n"
+            "       gl_FragColor = u_Color;\n"
+            "   }                         \n"
+            "}                            \n";
+    float m_radius;
+    GLint m_radiusId;
 
 };
 
