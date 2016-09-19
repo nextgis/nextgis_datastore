@@ -304,7 +304,7 @@ void ngs::FeatureRenderLayer::drawTiles()
     m_style->prepare (m_mapView->getSceneMatrix ());
     CPLLockHolder tilesHolder(m_hTilesLock);
     for(GlBufferBucket& tile : m_tiles) {
-        tile.draw (); // TODO: draw tile in style
+        tile.draw (*m_style.get ());
     }
 }
 

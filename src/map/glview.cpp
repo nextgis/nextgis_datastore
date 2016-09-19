@@ -18,6 +18,7 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 #include "glview.h"
+#include "style.h"
 #include "constants.h"
 
 #include <iostream>
@@ -1069,6 +1070,11 @@ size_t GlBuffer::getVerticesCount() const
     return m_vertices.size ();
 }
 
+size_t GlBuffer::getIndicesCount() const
+{
+    return m_indices.size ();
+}
+
 void GlBuffer::addVertex(float x, float y, float z)
 {
     m_vertices.push_back (x);
@@ -1084,19 +1090,24 @@ void GlBuffer::addIndex(unsigned short one, unsigned short two,
     m_indices.push_back (three);
 }
 
-void GlBuffer::draw() const
+void GlBuffer::addIndex(unsigned short index)
 {
-    if(!m_binded)
-        return;
+    m_indices.push_back (index);
+}
 
-    // TODO: move to style
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+GLsizei GlBuffer::getFinalIndicesCount() const
+{
+    return m_indicesCount;
+}
 
-    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, m_indicesCount,
-                                    GL_UNSIGNED_SHORT, NULL));
+GLuint GlBuffer::getBuffer(ngsShaderType type) const
+{
+    switch (type) {
+    case SH_VERTEX:
+        return m_buffers[0];
+    case SH_FRAGMENT:
+        return m_buffers[1];
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -1145,10 +1156,29 @@ void GlBufferBucket::fill(GIntBig fid, OGRGeometry* geom, float level)
     fill(geom, level);
 }
 
+// TODO: add flags to specify how to fill buffer
 void GlBufferBucket::fill(OGRGeometry* geom, float level)
 {
     switch (OGR_GT_Flatten (geom->getGeometryType ())) {
         case wkbPoint:
+        {
+            OGRPoint* pt = static_cast<OGRPoint*>(geom);
+            if(!m_buffers[m_currentBuffer].canStore (3)) {
+                m_buffers.push_back (GlBuffer());
+                m_currentBuffer++;
+                return fill(geom, level);
+            }
+
+            unsigned short startIndex = m_buffers[m_currentBuffer].
+                    getIndicesCount ();
+            // TODO: add getZ + level
+            m_buffers[m_currentBuffer].addVertex (
+                static_cast<float>(pt->getX () + m_crossExtent * DEFAULT_MAX_X2),
+                static_cast<float>(pt->getY ()), level);
+
+            m_buffers[m_currentBuffer].addIndex (startIndex);
+
+        }
             break;
         case wkbLineString:
             break;
@@ -1247,20 +1277,20 @@ char GlBufferBucket::crossExtent() const
     return m_crossExtent;
 }
 
-void GlBufferBucket::draw()
+void GlBufferBucket::draw(const Style& style)
 {
     if(m_filled) {
         for(GlBuffer& buff : m_buffers) {
             if(!buff.binded ())
                 buff.bind();
-            buff.draw ();
+            style.draw (buff);
         }
     }
     else {
         for (size_t i = 0; i < m_currentBuffer; ++i) {
             if(!m_buffers[i].binded ())
                 m_buffers[i].bind();
-            m_buffers[i].draw ();
+            style.draw (m_buffers[i]);
         }
     }
 }

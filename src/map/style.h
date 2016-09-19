@@ -29,18 +29,13 @@ namespace ngs {
 class Style
 {
 public:
-    enum ShaderType {
-        VERTEX,
-        FRAGMENT
-    };
-
-public:
     Style();
     virtual ~Style();
     virtual void prepare(const Matrix4 & mat);
     virtual void setColor(const ngsRGBA &color);
+    virtual void draw(const GlBuffer& buffer) const = 0;
 protected:
-    virtual const GLchar * getShaderSource(enum ShaderType type) = 0;
+    virtual const GLchar * getShaderSource(enum ngsShaderType type) = 0;
 protected:
     GlProgramUPtr m_program;
     GLint m_matrixId, m_colorId;
@@ -58,7 +53,8 @@ public:
 
     // Style interface
 protected:
-    virtual const GLchar *getShaderSource(ShaderType type) override;
+    virtual const GLchar *getShaderSource(enum ngsShaderType type) override;
+    virtual void draw(const GlBuffer &buffer) const override;
 
 protected:
     const GLchar * const m_vertexShaderSourcePtr =
