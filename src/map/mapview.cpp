@@ -89,7 +89,6 @@ int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
     m_progressArguments = progressArguments;
 
     m_glFunctions.clearBackground ();
-    //m_glFunctions.prepare (getSceneMatrix());
 
     float level = 0;
     for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {

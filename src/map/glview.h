@@ -67,6 +67,8 @@
 
 namespace ngs {
 
+class Style;
+
 typedef struct _glrgb {
     float r;
     float g;
@@ -169,6 +171,11 @@ protected:
 
 #endif // OFFSCREEN_GL
 
+enum ngsShaderType {
+    SH_VERTEX,
+    SH_FRAGMENT
+};
+
 class GlBuffer
 {
 public:
@@ -180,9 +187,12 @@ public:
 
     bool canStore(size_t numItems) const;
     size_t getVerticesCount() const;
+    size_t getIndicesCount() const;
     void addVertex(float x, float y, float z);
     void addIndex(unsigned short one, unsigned short two, unsigned short three);
-    void draw() const;
+    void addIndex(unsigned short index);
+    GLsizei getFinalIndicesCount() const;
+    GLuint getBuffer(enum ngsShaderType type) const;
 protected:
     bool m_binded;
     vector<GLfloat> m_vertices;
@@ -194,14 +204,15 @@ protected:
 class GlBufferBucket
 {
 public:
-    GlBufferBucket(int x, int y, unsigned char z, const OGREnvelope& env, char crossExtent);
+    GlBufferBucket(int x, int y, unsigned char z, const OGREnvelope& env,
+                   char crossExtent);
 
     void bind();
     bool filled() const;
     void setFilled(bool filled);
     bool binded() const;
     void fill(GIntBig fid, OGRGeometry* geom, float level);
-    void draw();
+    void draw(const Style& style);
     int X() const;
     int Y() const;
     unsigned char zoom() const;
