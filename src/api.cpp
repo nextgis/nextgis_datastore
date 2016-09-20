@@ -407,7 +407,7 @@ int ngsInit(const char* dataPath, const char* cachePath)
 {
 #ifdef NGS_MOBILE
     if(nullptr == dataPath)
-        return ngsErrorCodes::PATH_NOT_SPECIFIED;
+        return ngsErrorCodes::EC_PATH_NOT_SPECIFIED;
 #endif
 
     initGDAL(dataPath, cachePath);
