@@ -75,9 +75,10 @@ void ngs::LoadingThread(void * store)
                                         GDAL_OF_SHARED|GDAL_OF_READONLY, nullptr);
         if(nullptr == srcDataset) {
             CPLString errorMsg;
-            errorMsg.Printf ("Dataset '%s' open failed.",
+            errorMsg = errorMsg.Printf ("Dataset '%s' open failed.",
                              CPLGetFilename(data.path));
-            CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
+            // with "%s" is suppressed error: format not a string literal and no format arguments [-Werror=format-security]
+            CPLError(CE_Failure, CPLE_AppDefined, "%s", errorMsg.c_str());
             if(data.progressFunc)
                 data.progressFunc(counter, 1, errorMsg, data.progressArguments);
             data.status = ngsErrorCodes::EC_OPEN_FAILED;
