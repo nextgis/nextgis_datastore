@@ -23,8 +23,13 @@
 ################################################################################
 
 if(BUILD_BINDINGS)
-    find_host_package(SWIG REQUIRED)
-#    find_package(SWIG REQUIRED) # for debug
+
+    if(ANDROID_STUDIO_CMAKE)
+        find_package(SWIG REQUIRED)
+    else()
+        find_host_package(SWIG REQUIRED)
+    endif()
+
     include(${SWIG_USE_FILE})
     include_directories(${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/src/ds
@@ -50,11 +55,14 @@ if(BUILD_BINDINGS)
                 ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java
                 ${CMAKE_CURRENT_BINARY_DIR}/Colour.java
+                ${CMAKE_CURRENT_BINARY_DIR}/Coordinate.java
+                ${CMAKE_CURRENT_BINARY_DIR}/Direction.java
+                ${CMAKE_CURRENT_BINARY_DIR}/DrawState.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ErrorCodes.java
+                ${CMAKE_CURRENT_BINARY_DIR}/LoadTaskInfo.java
                 ${CMAKE_CURRENT_BINARY_DIR}/NotificationCallback.java
+                ${CMAKE_CURRENT_BINARY_DIR}/Position.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ProgressCallback.java
-                ${CMAKE_CURRENT_BINARY_DIR}/RawEnvelope.java
-                ${CMAKE_CURRENT_BINARY_DIR}/RawPoint.java
                 ${CMAKE_CURRENT_BINARY_DIR}/SourceCodes.java
             )
 
