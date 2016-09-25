@@ -179,19 +179,21 @@ ResultSetPtr Table::executeSQL(const CPLString &statement,
     return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, dialect ));
 }
 
-int Table::destroy(unsigned int taskId, ngsProgressFunc progressFunc, void *progressArguments)
+int Table::destroy(ProgressInfo *processInfo)
 {
-    if(progressFunc)
-        progressFunc(taskId, 0, CPLSPrintf ("Deleting %s", name().c_str ()),
-                     progressArguments);
+    if(processInfo) {
+        processInfo->onProgress (0, CPLSPrintf ("Deleting %s", name().c_str ()));
+        processInfo->setStatus (ngsErrorCodes::EC_DELETE_FAILED);
+    }
     for(int i = 0; i < m_DS->GetLayerCount (); ++i){
         if(m_DS->GetLayer (i) == m_layer) {
             m_DS->DeleteLayer (i);
             m_deleted = true;
-            if(progressFunc)
-                progressFunc(taskId, 1.0, CPLSPrintf ("Deleted %s", name().c_str ()),
-                             progressArguments);
-
+            if(processInfo) {
+                processInfo->onProgress (1.0, CPLSPrintf ("Deleted %s",
+                                                          name().c_str ()));
+                processInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
+            }
             return ngsErrorCodes::EC_SUCCESS;
         }
     }
@@ -199,35 +201,36 @@ int Table::destroy(unsigned int taskId, ngsProgressFunc progressFunc, void *prog
 }
 
 int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
-                    unsigned int taskId,
-                    ngsProgressFunc progressFunc, void *progressArguments)
+                    ProgressInfo *processInfo)
 {
-    if(progressFunc)
-        progressFunc(taskId, 0, CPLSPrintf ("Start copy records from '%s' to '%s'",
-                                    pSrcTable->name ().c_str (), name().c_str ()),
-                     progressArguments);
-
+    if(processInfo) {
+        processInfo->onProgress (0, CPLSPrintf ("Start copy records from '%s' to '%s'",
+                                    pSrcTable->name ().c_str (), name().c_str ()));
+    }
     GIntBig featureCount = pSrcTable->featureCount();
     double counter = 0;
     pSrcTable->reset ();
     FeaturePtr feature;
     while((feature = pSrcTable->nextFeature ()) != nullptr) {
-        if(progressFunc)
-            progressFunc(taskId, counter / featureCount, "copying...",
-                         progressArguments);
+        if(processInfo)
+            processInfo->onProgress ( counter / featureCount, "copying...");
 
         FeaturePtr dstFeature = createFeature ();
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
         if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
-            CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
-                     "Source feature FID:%lld", feature->GetFID ());
+            CPLString errorMsg;
+            errorMsg.Printf ("Create feature failed. Source feature FID:%lld",
+                             feature->GetFID ());
+            CPLError(CE_Warning, CPLE_AppDefined, errorMsg);
+            if(processInfo)
+                processInfo->onProgress ( counter / featureCount, errorMsg);
         }
         counter++;
     }
-    if(progressFunc)
-        progressFunc(taskId, 1.0, CPLSPrintf ("Done. Copied %d rows", int(counter)),
-                     progressArguments);
+    if(processInfo)
+        processInfo->onProgress (1.0,
+                                 CPLSPrintf ("Done. Copied %d rows", int(counter)));
 
     return ngsErrorCodes::EC_SUCCESS;
 }

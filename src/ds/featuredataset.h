@@ -69,10 +69,7 @@ public:
     virtual int copyFeatures(const FeatureDataset *srcDataset,
                              const FieldMapPtr fieldMap,
                              OGRwkbGeometryType filterGeomType,
-                             unsigned int skipGeometryFlags,
-                             unsigned int taskId = 0,
-                             ngsProgressFunc progressFunc = nullptr,
-                             void *progressArguments = nullptr);
+                             ProgressInfo* progressInfo);
     bool setIgnoredFields(const char **fields);
     vector<CPLString> getGeometryColumns() const;
     CPLString getGeometryColumn() const;

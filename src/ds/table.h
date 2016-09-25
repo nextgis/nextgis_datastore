@@ -57,13 +57,9 @@ public:
     FeaturePtr nextFeature() const;
     ResultSetPtr executeSQL(const CPLString& statement,
                             const CPLString& dialect = "") const;
-    virtual int destroy(unsigned int taskId = 0,
-                        ngsProgressFunc progressFunc = nullptr,
-                        void* progressArguments = nullptr);
+    virtual int destroy(ProgressInfo *processInfo = nullptr) override;
     virtual int copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
-                         unsigned int taskId = 0,
-                         ngsProgressFunc progressFunc = nullptr,
-                         void* progressArguments = nullptr);
+                         ProgressInfo *processInfo = nullptr);
     OGRFeatureDefn* getDefinition() const;
     CPLString getFIDColumn() const;
 protected:

@@ -27,17 +27,29 @@ namespace ngs {
 
 void LoadingThread(void * store);
 
-typedef struct _loadData {
-    CPLString path;
-    CPLString srcSubDatasetName;
-    CPLString dstDatasetName;
-    CPLString dstDatasetNewName;
-    bool move;
-    unsigned int skipType;
-    ngsProgressFunc progressFunc;
-    void *progressArguments;
-    enum ngsErrorCodes status;
-} LoadData;
+class LoadData : public ProgressInfo
+{
+public:
+    LoadData(unsigned int id, const CPLString& path,
+             const CPLString& srcSubDatasetName,
+             const CPLString& dstDatasetName,
+             char** options = nullptr, ngsProgressFunc onProgress = nullptr,
+             void *progressArguments = nullptr);
+    ~LoadData();
+    LoadData(const LoadData& data);
+    LoadData& operator=(const LoadData& data);
+    CPLString dstDatasetName() const;
+    CPLString path() const;
+    CPLString srcSubDatasetName() const;
+    void addNewName(const CPLString& name);
+    const char* getNewNames() const;
+private:
+    CPLString m_path;
+    CPLString m_srcSubDatasetName;
+    CPLString m_dstDatasetName;
+    vector<CPLString> m_dstDatasetNewNames;
+    CPLString m_newNames;
+};
 
 class DatasetContainer : public Dataset
 {
@@ -51,9 +63,9 @@ public:
     virtual DatasetPtr getDataset(int index);
     // TODO: getRaster
     unsigned int loadDataset(const CPLString& name, const CPLString& path,
-                    const CPLString& subDatasetName, bool move,
-                    unsigned int skipType, ngsProgressFunc progressFunc,
-                    void* progressArguments = nullptr);
+                             const CPLString& subDatasetName, char** options,
+                             ngsProgressFunc progressFunc,
+                             void* progressArguments = nullptr);
     /* TODO: does this need here?
     bool canCopy(const CPLString &destPath);
     bool canMove(const CPLString &destPath);
@@ -64,33 +76,24 @@ public:
     int copy(const CPLString &destPath, ngsProgressFunc progressFunc = nullptr,
              void* progressArguments = nullptr);
     */
-    virtual int copyDataset(DatasetPtr srcDataset, CPLString &dstDatasetName,
-                            unsigned int skipGeometryFlags, unsigned int taskId,
-                            ngsProgressFunc progressFunc = nullptr,
-                            void* progressArguments = nullptr);
-    virtual int moveDataset(DatasetPtr srcDataset, CPLString& dstDatasetName,
-                            unsigned int skipGeometryFlags,
-                            unsigned int taskId = 0,
-                            ngsProgressFunc progressFunc = nullptr,
-                            void* progressArguments = nullptr);
+    // TODO: create layer options, copy options
+    virtual int copyDataset(DatasetPtr srcDataset, const CPLString &dstDatasetName,
+                            LoadData *loadData = nullptr);
+    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
+                            LoadData *loadData = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,
                                      OGRFeatureDefn* const definition,
-                                     char** options = nullptr,
-                                     unsigned int taskId = 0,
-                                     ngsProgressFunc progressFunc = nullptr,
-                                     void* progressArguments = nullptr);
+                                     ProgressInfo *progressInfo = nullptr);
     virtual DatasetPtr createDataset(const CPLString &name,
                                      OGRFeatureDefn* const definition,
                                      const OGRSpatialReference *spatialRef,
-                                     OGRwkbGeometryType type = wkbUnknown,
-                                     char** options = nullptr,
-                                     unsigned int taskId = 0,
-                                     ngsProgressFunc progressFunc = nullptr,
-                                     void* progressArguments = nullptr);
+                                     OGRwkbGeometryType type,
+                                     ProgressInfo *progressInfo = nullptr);
     ngsLoadTaskInfo getLoadTaskInfo (unsigned int taskId) const;
-    // TODO: createRaster()
+    virtual const char* getOptions(ngsDataStoreOptionsTypes optionType) const;
 protected:
     virtual bool isNameValid(const CPLString& name) const;
+    virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     bool isDatabase() const;
     vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDataset);
@@ -102,10 +105,11 @@ protected:
     CPLJoinableThread* m_hLoadThread;
     bool m_cancelLoad;
     vector<LoadData> m_loadData;
+    unsigned int m_newTaskId;
 
     // Dataset interface
 public:
-    virtual int destroy(ngsProgressFunc progressFunc, void *progressArguments) override;
+    virtual int destroy(ProgressInfo *processInfo) override;
 };
 
 typedef shared_ptr<DatasetContainer> DatasetContainerPtr;

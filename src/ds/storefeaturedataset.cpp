@@ -32,15 +32,22 @@ StoreFeatureDataset::StoreFeatureDataset(OGRLayer * const layer) :
 int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                                       const FieldMapPtr fieldMap,
                                       OGRwkbGeometryType filterGeomType,
-                                      unsigned int skipGeometryFlags,
-                                      unsigned int taskId,
-                                      ngsProgressFunc progressFunc,
-                                      void *progressArguments)
+                                      ProgressInfo *progressInfo)
 {
-    if(progressFunc)
-        progressFunc(taskId, 0, CPLSPrintf ("Start copy features from '%s' to '%s'",
-                                    srcDataset->name ().c_str (), name().c_str ()),
-                     progressArguments);
+    unsigned int flags = 0;
+    if(progressInfo) {
+        progressInfo->onProgress (0, CPLSPrintf ("Start copy features from '%s' to '%s'",
+                                    srcDataset->name ().c_str (), name().c_str ()));
+        char** val = CSLFetchNameValueMultiple(progressInfo->options(),
+                                               "FEATURES_SKIP");
+        for( int i = 0; val != NULL && val[i] != NULL; ++i ) {
+            if(EQUAL(val[i], "EMPTY_GEOMETRY"))
+                flags |= ngsFeatureLoadSkipType(EmptyGeometry);
+            if(EQUAL(val[i], "INVALID_GEOMETRY"))
+                flags |= ngsFeatureLoadSkipType(InvalidGeometry);
+        }
+        progressInfo->setStatus (ngsErrorCodes::EC_COPY_FAILED);
+    }
 
     OGRSpatialReference *srcSRS = srcDataset->getSpatialReference();
     OGRSpatialReference *dstSRS = getSpatialReference();
@@ -52,9 +59,8 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
     FeaturePtr feature;
 
     while((feature = srcDataset->nextFeature ()) != nullptr) {
-        if(progressFunc)
-            progressFunc(taskId, counter / featureCount, "copying...",
-                         progressArguments);
+        if(progressInfo)
+            progressInfo->onProgress (counter / featureCount, "copying...");
 
         OGRGeometry * geom = feature->GetGeometryRef ();
         OGRGeometry *newGeom = nullptr;
@@ -62,10 +68,10 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             continue;
 
         if(nullptr != geom) {
-            if((skipGeometryFlags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
+            if((flags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
                     geom->IsEmpty ())
                 continue;
-            if((skipGeometryFlags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
+            if((flags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
                     !geom->IsValid())
                 continue;
 
@@ -86,7 +92,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             else {
                 newGeom = geom->clone ();
             }
-
+progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
             CT.transform(newGeom);
         }
 
@@ -117,15 +123,20 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
         if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
-            CPLError(CE_Warning, CPLE_AppDefined, "Create feature failed. "
-                     "Source feature FID:%lld", feature->GetFID ());
+            CPLString errorMsg;
+            errorMsg.Printf ("Create feature failed. "
+                             "Source feature FID:%lld", feature->GetFID ());
+            CPLError(CE_Warning, CPLE_AppDefined, errorMsg);
+            if(progressInfo)
+                progressInfo->onProgress (counter / featureCount, errorMsg);
         }
         counter++;
     }
-    if(progressFunc)
-        progressFunc(taskId, 1.0, CPLSPrintf ("Done. Copied %d features",
-                                              int(counter)), progressArguments);
-
+    if(progressInfo) {
+        progressInfo->onProgress (1.0, CPLSPrintf ("Done. Copied %d features",
+                                              int(counter)));
+        progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
+    }
     return ngsErrorCodes::EC_SUCCESS;
 }
 

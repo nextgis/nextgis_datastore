@@ -54,6 +54,27 @@ typedef shared_ptr<Dataset> DatasetPtr;
 // typedef weak_ptr<Dataset> DatasetWPtr;
 #define ngsDatasetType(x) static_cast<unsigned int>( ngs::Dataset::Type::x )
 
+class ProgressInfo
+{
+public:
+    ProgressInfo(unsigned int id, char** options = nullptr,
+                 ngsProgressFunc progressFunc = nullptr,
+                 void *progressArguments = nullptr);
+    virtual ~ProgressInfo();
+    ProgressInfo(const ProgressInfo& data);
+    ProgressInfo& operator=(const ProgressInfo& data);
+    unsigned int id() const;
+    char **options() const;
+    bool onProgress(double complete, const char* message) const;
+    ngsErrorCodes status() const;
+    void setStatus(const ngsErrorCodes &status);
+protected:
+    unsigned int m_id;
+    char** m_options;
+    ngsProgressFunc m_progressFunc;
+    void *m_progressArguments;
+    enum ngsErrorCodes m_status;
+};
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
@@ -109,8 +130,7 @@ public:
     bool canRename(void);
 
     // base operations
-    virtual int destroy(ngsProgressFunc progressFunc = nullptr,
-                void* progressArguments = nullptr);
+    virtual int destroy(ProgressInfo *processInfo = nullptr);
     /* TODO: release this
     int rename(const CPLString &newName, ngsProgressFunc progressFunc = nullptr,
                void* progressArguments = nullptr);

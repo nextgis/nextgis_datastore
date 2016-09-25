@@ -103,6 +103,11 @@ protected:
             "   gl_PointSize = fRadius;   \n"
             "}                            \n";
 
+    // TODO: quad and triangle symbol. Sphere symbol (http://stackoverflow.com/a/25783231/2901140)
+    // https://www.raywenderlich.com/37600/opengl-es-particle-system-tutorial-part-1
+    // http://stackoverflow.com/a/10506172/2901140
+    // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
+    // http://stackoverflow.com/q/18659332/2901140
     const GLchar * const m_fragmentShaderSourcePtr =
             "precision mediump float;     \n"
             "uniform vec4 u_Color;        \n"
@@ -118,6 +123,13 @@ protected:
     float m_radius;
     GLint m_radiusId;
 
+};
+
+class SimpleRasterStyle : public Style
+{
+public:
+    SimpleRasterStyle();
+    virtual ~SimpleRasterStyle();
 };
 
 }

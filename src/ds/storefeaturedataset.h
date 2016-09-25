@@ -38,10 +38,7 @@ public:
     virtual int copyFeatures(const FeatureDataset *srcDataset,
                              const FieldMapPtr fieldMap,
                              OGRwkbGeometryType filterGeomType,
-                             unsigned int skipGeometryFlags,
-                             unsigned int taskId = 0,
-                             ngsProgressFunc progressFunc = nullptr,
-                             void *progressArguments = nullptr) override;
+                             ProgressInfo *progressInfo = nullptr) override;
 
 protected:
     StoreFeatureDatasetPtr m_history;

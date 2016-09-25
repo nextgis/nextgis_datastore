@@ -41,8 +41,7 @@ public:
     virtual ~DataStore();
 
     // overrides
-    virtual int destroy(ngsProgressFunc progressFunc = nullptr,
-                        void* progressArguments = nullptr) override;
+    virtual int destroy(ProgressInfo* progressInfo = nullptr) override;
     virtual int datasetCount() const override;
     virtual int rasterCount() const override;
     virtual DatasetPtr getDataset(const CPLString& name) override;
@@ -51,15 +50,9 @@ public:
                                      OGRFeatureDefn* const definition,
                                      const OGRSpatialReference *,
                                      OGRwkbGeometryType type = wkbUnknown,
-                                     char** options = nullptr,
-                                     unsigned int taskId = 0,
-                                     ngsProgressFunc progressFunc = nullptr,
-                                     void* progressArguments = nullptr) override;
-    virtual int copyDataset(DatasetPtr srcDataset, CPLString& dstName,
-                            unsigned int skipGeometryFlags,
-                            unsigned int taskId = 0,
-                            ngsProgressFunc progressFunc = nullptr,
-                            void* progressArguments = nullptr) override;
+                                     ProgressInfo *progressInfo = nullptr) override;
+    virtual int copyDataset(DatasetPtr srcDataset, const CPLString& dstName,
+                            LoadData *loadData = nullptr) override;
 
     // static
     static DataStorePtr openOrCreate(const CPLString& path);
@@ -75,6 +68,10 @@ public:
     ResultSetPtr executeSQL(const CPLString& statement) const;
     void onLowMemory();
 
+    // DatasetContainer interface
+public:
+    virtual const char *getOptions(ngsDataStoreOptionsTypes optionType) const override;
+
 protected:
     // TODO: create changes layer CPLString changesLayerName = name + "_changes";
     static int createMetadataTable(GDALDatasetPtr ds);
@@ -89,6 +86,7 @@ protected:
     CPLString m_dataPath;
     unsigned char m_disableJournalCounter;
     OGRSpatialReference m_storeSpatialRef;
+
 };
 
 }

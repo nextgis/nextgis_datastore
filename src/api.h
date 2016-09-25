@@ -86,6 +86,13 @@ enum ngsDrawState {
     DS_PRESERVED    /**< draw from caches */
 };
 
+enum ngsDataStoreOptionsTypes {
+    OT_CREATE_DATASOUCE,
+    OT_CREATE_DATASET,
+    OT_OPEN,
+    OT_LOAD
+};
+
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
@@ -162,10 +169,10 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
 NGS_EXTERNC unsigned int ngsDataStoreLoad(const char* name, const char* path,
-                        const char *subDatasetName, bool move,
-                        unsigned int skipFlags, ngsProgressFunc callback,
-                        void* callbackData);
+                        const char *subDatasetName, char** options,
+                        ngsProgressFunc callback, void* callbackData);
 NGS_EXTERNC ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId);
+NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**
  * Map functions

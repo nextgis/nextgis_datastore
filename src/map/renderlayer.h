@@ -90,5 +90,22 @@ protected:
     vector<GlBufferBucket> m_tiles;
 };
 
+//https://www.khronos.org/files/opengles20-reference-card.pdf
+//https://www.raywenderlich.com/4404/opengl-es-2-0-for-iphone-tutorial-part-2-textures
+//https://library.vuforia.com/articles/Solution/How-To-Draw-a-2D-image-on-top-of-a-target-using-OpenGL-ES
+//http://stackoverflow.com/questions/4036737/how-to-draw-a-texture-as-a-2d-background-in-opengl-es-2-0
+//https://www.jayway.com/2010/12/30/opengl-es-tutorial-for-android-part-vi-textures/
+//http://edndoc.esri.com/arcobjects/9.2/net/45c93c25-2ddb-4e1b-9bef-37c40b931597.htm
+//http://androidblog.reindustries.com/a-real-opengl-es-2-0-2d-tutorial-part-2/
+//http://obviam.net/index.php/texture-mapping-opengl-android-displaying-images-using-opengl-and-squares/
+
+class RasterRenderLayer : public RenderLayer
+{
+public:
+    RasterRenderLayer();
+    RasterRenderLayer(const CPLString& name, DatasetPtr dataset);
+    virtual ~RasterRenderLayer();
+};
+
 }
 #endif // RENDERLAYER_H

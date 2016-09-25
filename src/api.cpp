@@ -661,22 +661,20 @@ int ngsMapSave(unsigned char mapId, const char *path)
  * @param name Destination dataset name
  * @param path Path to file in OS
  * @param subDatasetName Layer name, if datasource on path has several layers
- * @param move Move data to storage or copy
- * @param skipFlags combination of EMPTY_GEOMETRY(1) - to skip empty geometry
- * features to load, INVALID_GEOMETRY(2) - to skip invalid geometry or
- * NONE(0) - to load everything
+ * @param options various options dependent on destionation datasource and other
+ * things. Options can be get by executing @ngsDataStoreGetOptions function.
  * @param callback Progress function
  * @param callbackData Progress function arguments
  * @return  Load task id or 0 if error occured. This id can be used to get some
  * additional information about the task.
  */
-unsigned int ngsDataStoreLoad(const char* name, const char *path, const char *subDatasetName,
-            bool move, unsigned int skipFlags, ngsProgressFunc callback,
-            void *callbackData)
+unsigned int ngsDataStoreLoad(const char* name, const char *path,
+                              const char *subDatasetName, char** options,
+                              ngsProgressFunc callback, void *callbackData)
 {
     if(nullptr != gDataStore)
-        return gDataStore->loadDataset (name, path,
-                       subDatasetName, move, skipFlags, callback, callbackData);
+        return gDataStore->loadDataset (name, path, subDatasetName, options,
+                                        callback, callbackData);
     return 0;
 }
 
@@ -793,10 +791,26 @@ ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
     return gMapStore->getDisplayLength (mapId, w, h);
 }
 
+/**
+ * @brief ngsDataStoreGetLoadTaskInfo Report loading task status
+ * @param taskId Task id
+ * @return ngsLoadTaskInfo structure
+ */
 ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId)
 {
     if(nullptr != gDataStore)
         return gDataStore->getLoadTaskInfo (taskId);
     return {nullptr, nullptr, nullptr, ngsErrorCodes::EC_INVALID};
+}
 
+/**
+ * @brief ngsDataStoreGetOptions Report supported options in xml string
+ * @param optionType Option to report
+ * @return xml string or nullptr
+ */
+const char *ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType)
+{
+    if(nullptr != gDataStore)
+        return gDataStore->getOptions (optionType);
+    return nullptr;
 }

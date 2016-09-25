@@ -31,6 +31,8 @@
 
 #include <iostream>
 
+#define NGS_DATA_FOLDER "data"
+
 using namespace ngs;
 
 //------------------------------------------------------------------------------
@@ -87,7 +89,7 @@ DataStorePtr DataStore::create(const CPLString &path)
     // create folder for external images and other stuff if not exist
     // if db name is ngs.gpkg folder shoudl be names ngs.data
     CPLString baseName = CPLGetBasename (absPath);
-    CPLString dataPath = CPLFormFilename(dir, baseName, "data");
+    CPLString dataPath = CPLFormFilename(dir, baseName, NGS_DATA_FOLDER);
     if( CPLCheckForFile (const_cast<char*>(dataPath.c_str ()), nullptr) == FALSE) {
         if( VSIMkdir( dataPath.c_str (), 0755 ) != 0 ) {
             CPLError(CE_Failure, CPLE_AppDefined, "Create datafolder failed.");
@@ -197,7 +199,7 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
     feature->SetField (LAYER_URL, url);
     feature->SetField (LAYER_NAME, name);
     // FIXME: do we need this field?
-    feature->SetField (LAYER_TYPE, (int)Type::Raster);
+    feature->SetField (LAYER_TYPE, static_cast<int>(ngsDatasetType (Raster)));
     // FIXME: do we need this field?
     feature->SetField (LAYER_ALIAS, alias);
     feature->SetField (LAYER_COPYING, copyright); // show on map copyright string
@@ -295,14 +297,15 @@ DatasetPtr DataStore::getDataset(int index)
 DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
                                      const OGRSpatialReference */*spatialRef*/,
-                                     OGRwkbGeometryType type, char **options,
-                                     unsigned int taskId,
-                                     ngsProgressFunc progressFunc,
-                                     void *progressArguments)
+                                     OGRwkbGeometryType type,
+                                    ProgressInfo *progressInfo)
 {
-    if(progressFunc)
-        progressFunc(taskId, 0, CPLSPrintf ("Create dataset '%s'", name.c_str ()),
-                     progressArguments);
+    char** options = nullptr;
+    if(progressInfo) {
+        progressInfo->onProgress (0, CPLSPrintf ("Create dataset '%s'",
+                                                 name.c_str ()));
+        options = progressInfo->options ();
+    }
     DatasetPtr out;
     OGRLayer *dstLayer = m_DS->CreateLayer(name, &m_storeSpatialRef, type, options);
     if(dstLayer == nullptr) {
@@ -364,17 +367,30 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     return out;
 }
 
-int DataStore::copyDataset(DatasetPtr srcDataset, CPLString &dstName,
-                           unsigned int skipGeometryFlags, unsigned int taskId,
-                           ngsProgressFunc progressFunc, void *progressArguments)
+int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
+                           LoadData *loadData)
 {
-    // disable journal
-    enableJournal(false);
-    int nRet = DatasetContainer::copyDataset (srcDataset, dstName,
-                                              skipGeometryFlags, taskId,
-                                              progressFunc, progressArguments);
-    // enable journal
-    enableJournal(true);
+    int nRet = ngsErrorCodes::EC_COPY_FAILED;
+    if(srcDataset->type () & ngsDatasetType (Table) ||
+       srcDataset->type () & ngsDatasetType (Featureset)) {
+        // disable journal
+        enableJournal(false);
+        nRet = DatasetContainer::copyDataset (srcDataset, dstName,
+                                              loadData);
+        // enable journal
+        enableJournal(true);
+    }
+    else if (srcDataset->type () & ngsDatasetType (Raster)) {
+        // TODO: raster. Create raster in DB? Copy/move raster into the folder and store info in DB? Reproject? Band selection?
+
+    }
+    else {
+        CPLError (CE_Warning, CPLE_NotSupported, "Unsupported dataset");
+        if(loadData) {
+            loadData->onProgress (0, "Unsupported dataset");
+            loadData->setStatus (ngsErrorCodes::EC_COPY_FAILED);
+        }
+    }
     return nRet;
 }
 
@@ -403,17 +419,18 @@ while( (feature = pRasterLayer->GetNextFeature()) != nullptr ) {
     }
 }*/
 
-int DataStore::destroy(ngsProgressFunc progressFunc,
-                             void* progressArguments)
+int DataStore::destroy(ProgressInfo *progressInfo)
 {
     setDataPath ();
     // Unlink some folders with external rasters adn etc.
     if(!m_dataPath.empty()) {
         if(CPLUnlinkTree(m_dataPath) != 0){
+            if(progressInfo)
+                progressInfo->setStatus (ngsErrorCodes::EC_DELETE_FAILED);
             return ngsErrorCodes::EC_DELETE_FAILED;
         }
     }
-    return DatasetContainer::destroy (progressFunc, progressArguments);
+    return DatasetContainer::destroy (progressInfo);
 }
 
 int DataStore::createMetadataTable(GDALDatasetPtr DS)
@@ -613,4 +630,27 @@ DataStorePtr DataStore::openOrCreate(const CPLString& path)
     if( nullptr == out)
         return create(path);
     return out;
+}
+
+
+const char *DataStore::getOptions(ngsDataStoreOptionsTypes optionType) const
+{
+    switch (optionType) {
+    case OT_CREATE_DATASOUCE:
+    case OT_OPEN:
+    case OT_CREATE_DATASET:
+        return DatasetContainer::getOptions (optionType);
+    case OT_LOAD:
+        return "<LoadOptionList>"
+               "  <Option name='LOAD_OP' type='string-select' description='select load operation' default='COPY'>"
+               "    <Value>COPY</Value>"
+               "    <Value>MOVE</Value>"
+               "  </Option>"
+               "  <Option name='FEATURES_SKIP' type='string-select' description='skip features during loading' default='NO'>"
+               "    <Value>NO</Value>"
+               "    <Value>EMPTY_GEOMETRY</Value>"
+               "    <Value>INVALID_GEOMETRY</Value>"
+               "  </Option>"
+               "</LoadOptionList>";
+    }
 }

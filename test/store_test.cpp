@@ -96,8 +96,7 @@ TEST(StoreTests, TestLoad) {
     ngs::FeatureDataset* const srcTable = ngsDynamicCast(ngs::FeatureDataset, shapeF);
     const OGRSpatialReference *spaRef = srcTable->getSpatialReference ();
     ASSERT_NE(spaRef, nullptr);
-    EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", false,
-                                    ngsFeatureLoadSkipType(NoSkip),
+    EXPECT_EQ(storage->loadDataset ("test", "./data/bld.shp", "", nullptr,
                                     ngsTestProgressFunc, nullptr),
               ngsErrorCodes::EC_SUCCESS);
     CPLSleep(0.6);

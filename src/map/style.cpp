@@ -163,7 +163,6 @@ void SimplePointStyle::draw(const GlBuffer &buffer) const
     ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
     ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
 
-    //ngsCheckGLEerror(glDrawArrays(GL_POINTS, 0, buffer.getFinalIndicesCount ()));
     ngsCheckGLEerror(glDrawElements(GL_POINTS, buffer.getFinalIndicesCount (),
                                     GL_UNSIGNED_SHORT, NULL));
 }

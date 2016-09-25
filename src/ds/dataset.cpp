@@ -63,6 +63,69 @@ GDALDatasetPtr::operator GDALDataset *() const
 }
 
 //------------------------------------------------------------------------------
+// ProgressInfo
+//------------------------------------------------------------------------------
+ProgressInfo::ProgressInfo(unsigned int id, char **options,
+                           ngsProgressFunc progressFunc, void *progressArguments) :
+    m_id(id), m_options(CSLDuplicate (options)), m_progressFunc(progressFunc),
+    m_progressArguments(progressArguments),
+    m_status(ngsErrorCodes::EC_PENDING)
+{
+
+}
+
+ProgressInfo::~ProgressInfo()
+{
+    CSLDestroy (m_options);
+}
+
+ProgressInfo::ProgressInfo(const ProgressInfo &data)
+{
+    m_options = CSLDuplicate (data.m_options);
+    m_progressFunc = data.m_progressFunc;
+    m_progressArguments = data.m_progressArguments;
+    m_status = data.m_status;
+}
+
+ProgressInfo &ProgressInfo::operator=(const ProgressInfo &data)
+{
+    m_id = data.m_id;
+    m_options = CSLDuplicate (data.m_options);
+    m_progressFunc = data.m_progressFunc;
+    m_progressArguments = data.m_progressArguments;
+    m_status = data.m_status;
+    return *this;
+}
+
+ngsErrorCodes ProgressInfo::status() const
+{
+    return m_status;
+}
+
+void ProgressInfo::setStatus(const ngsErrorCodes &status)
+{
+    m_status = status;
+}
+
+bool ProgressInfo::onProgress(double complete, const char *message) const
+{
+    if(nullptr == m_progressFunc)
+        return true; // no cancel from user
+    return m_progressFunc(m_id, complete, message, m_progressArguments) == TRUE;
+}
+
+
+char **ProgressInfo::options() const
+{
+    return m_options;
+}
+
+unsigned int ProgressInfo::id() const
+{
+    return m_id;
+}
+
+//------------------------------------------------------------------------------
 // Dataset
 //------------------------------------------------------------------------------
 
@@ -97,13 +160,15 @@ CPLString Dataset::name() const
     return m_name;
 }
 
-int Dataset::destroy(ngsProgressFunc /*progressFunc*/, void* /*progressArguments*/)
+int Dataset::destroy(ProgressInfo *processInfo)
 {
     m_DS.reset ();
     int nRes = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::EC_SUCCESS :
                                              ngsErrorCodes::EC_DELETE_FAILED;
     if(nRes == ngsErrorCodes::EC_SUCCESS)
         m_deleted = true;
+    if(processInfo)
+        processInfo->setStatus(static_cast<ngsErrorCodes>(nRes));
     return nRes;
 }
 
