@@ -56,15 +56,18 @@ void ngs::LoadingThread(void * store)
     DatasetContainer* dstDataset = static_cast<DatasetContainer*>(store);
 
     for(LoadData &data : dstDataset->m_loadData) {
-
         if(dstDataset->m_cancelLoad)
             break;
+
+
         if(data.status() != ngsErrorCodes::EC_PENDING) // all new tasks have pending state
             continue;
 
-        const char* srcName = CPLGetFilename( data.path() );
+        CPLString srcName(CPLGetFilename( data.path() ));
         data.setStatus( ngsErrorCodes::EC_IN_PROCESS );
-        if(!data.onProgress(0, CPLSPrintf ("Start loading '%s'", srcName))) {
+
+
+        if(!data.onProgress(0, CPLSPrintf ("Start loading '%s'", srcName.c_str ()))) {
             data.setStatus( ngsErrorCodes::EC_CANCELED );
                 continue;
         }
@@ -74,10 +77,10 @@ void ngs::LoadingThread(void * store)
                                         GDAL_OF_SHARED|GDAL_OF_READONLY, nullptr);
         if(nullptr == srcDataset) {
             CPLString errorMsg;
-            errorMsg.Printf ("Dataset '%s' open failed.", srcName);
+            errorMsg.Printf ("Dataset '%s' open failed.", srcName.c_str ());
             CPLErrorSetState(CE_Failure, CPLE_AppDefined, errorMsg);
-            data.onProgress (1, errorMsg);
             data.setStatus (ngsErrorCodes::EC_OPEN_FAILED);
+            data.onProgress (2, errorMsg);
             continue;
         }
 
@@ -85,6 +88,15 @@ void ngs::LoadingThread(void * store)
             DatasetContainer* pDatasetContainer = static_cast<
                     DatasetContainer*>(srcDataset.get ());
             srcDataset = pDatasetContainer->getDataset (data.srcSubDatasetName());
+
+            if(nullptr == srcDataset) {
+                CPLString errorMsg;
+                errorMsg.Printf ("Dataset '%s' open failed.", srcName.c_str ());
+                CPLErrorSetState(CE_Failure, CPLE_AppDefined, errorMsg);
+                data.setStatus (ngsErrorCodes::EC_OPEN_FAILED);
+                data.onProgress (2, errorMsg);
+                continue;
+            }
         }
 
         // 2. Move or copy datasource to container
@@ -92,15 +104,15 @@ void ngs::LoadingThread(void * store)
         bool move = EQUAL(CSLFetchNameValueDef(data.options(), "LOAD_OP", "COPY"),
                           "MOVE");
         if(move && srcDataset->canDelete ()) {
-            res = dstDataset->moveDataset(srcDataset, data.dstDatasetName (),
+            res = dstDataset->moveDataset(srcDataset, data.getDestinationName (),
                                     &data);
         }
         else {
-            res = dstDataset->copyDataset(srcDataset, data.dstDatasetName (),
+            res = dstDataset->copyDataset(srcDataset, data.getDestinationName (),
                                     &data);
         }
         data.setStatus (static_cast<ngsErrorCodes>(res));
-        data.onProgress(2, CPLSPrintf ("Loading '%s' finished", srcName));
+        data.onProgress(2, CPLSPrintf ("Loading '%s' finished", srcName.c_str ()));
     }
 
     dstDataset->m_hLoadThread = nullptr;
@@ -129,7 +141,7 @@ LoadData::LoadData(const LoadData &data) : ProgressInfo(data)
     m_path = data.m_path;
     m_srcSubDatasetName = data.m_srcSubDatasetName;
     m_dstDatasetName = data.m_dstDatasetName;
-    m_dstDatasetNewNames = data.m_dstDatasetNewNames;
+    m_newNames = data.m_newNames;
 }
 
 LoadData &LoadData::operator=(const LoadData &data)
@@ -138,7 +150,7 @@ LoadData &LoadData::operator=(const LoadData &data)
     m_path = data.m_path;
     m_srcSubDatasetName = data.m_srcSubDatasetName;
     m_dstDatasetName = data.m_dstDatasetName;
-    m_dstDatasetNewNames = data.m_dstDatasetNewNames;
+    m_newNames = data.m_newNames;
     m_options = CSLDuplicate (data.m_options);
     m_progressFunc = data.m_progressFunc;
     m_progressArguments = data.m_progressArguments;
@@ -146,12 +158,7 @@ LoadData &LoadData::operator=(const LoadData &data)
     return *this;
 }
 
-CPLString LoadData::dstDatasetName() const
-{
-    return m_dstDatasetName;
-}
-
-CPLString LoadData::path() const
+const char *LoadData::path() const
 {
     return m_path;
 }
@@ -163,7 +170,6 @@ CPLString LoadData::srcSubDatasetName() const
 
 void LoadData::addNewName(const CPLString &name)
 {
-    m_dstDatasetNewNames.push_back (name); // TODO: do we need this?
     if(m_newNames.empty ())
         m_newNames += name;
     else
@@ -173,6 +179,11 @@ void LoadData::addNewName(const CPLString &name)
 const char *LoadData::getNewNames() const
 {
     return m_newNames;
+}
+
+const char *LoadData::getDestinationName() const
+{
+    return m_dstDatasetName;
 }
 
 //------------------------------------------------------------------------------
@@ -598,13 +609,12 @@ ngsLoadTaskInfo DatasetContainer::getLoadTaskInfo(unsigned int taskId) const
 {
     for(const LoadData& data : m_loadData) {
         if(data.id () == taskId) {
-            return {data.dstDatasetName().c_str (),
+            return {data.getDestinationName (),
                     data.getNewNames(),
-            m_path.c_str (),
-                        data.status()};
+                    m_path.c_str (),
+                    data.status()};
         }
-}
-
+    }
     return {NULL, NULL, NULL, ngsErrorCodes::EC_INVALID};
 }
 

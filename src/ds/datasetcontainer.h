@@ -38,16 +38,15 @@ public:
     ~LoadData();
     LoadData(const LoadData& data);
     LoadData& operator=(const LoadData& data);
-    CPLString dstDatasetName() const;
-    CPLString path() const;
     CPLString srcSubDatasetName() const;
     void addNewName(const CPLString& name);
+    const char* path() const;
     const char* getNewNames() const;
+    const char* getDestinationName() const;
 private:
     CPLString m_path;
     CPLString m_srcSubDatasetName;
     CPLString m_dstDatasetName;
-    vector<CPLString> m_dstDatasetNewNames;
     CPLString m_newNames;
 };
 

@@ -138,7 +138,7 @@ typedef struct _ngsPosition {
 
 typedef struct _ngsLoadTaskInfo {
     const char* name;
-    const char* newName;
+    const char* newNames;
     const char* dstPath;
     enum ngsErrorCodes status;
 } ngsLoadTaskInfo;
@@ -154,7 +154,9 @@ enum ngsDriverType {
     DT_RASTER   = 1 << 2,
     DT_SERVICE  = 1 << 3,
     DT_NETWORK  = 1 << 4,
-    DT_GNM      = 1 << 5
+    DT_GNM      = 1 << 5,
+    DT_VECTOR_ALL = 1 << 6,
+    DT_RASTER_ALL = 1 << 7
 };
 
 enum ngsFileMode {

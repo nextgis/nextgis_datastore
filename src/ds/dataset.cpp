@@ -82,6 +82,7 @@ ProgressInfo::~ProgressInfo()
 
 ProgressInfo::ProgressInfo(const ProgressInfo &data)
 {
+    m_id = data.m_id;
     m_options = CSLDuplicate (data.m_options);
     m_progressFunc = data.m_progressFunc;
     m_progressArguments = data.m_progressArguments;
@@ -230,9 +231,11 @@ DatasetPtr Dataset::create(const CPLString& path, const CPLString& driver,
 DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
 {
     GDALDriver* driver = ds->GetDriver ();
+
     DatasetPtr out;
     Dataset* outDS = nullptr;
-    if(testBoolean(driver->GetMetadataItem (GDAL_DMD_SUBDATASETS), false) ||
+    if((testBoolean(driver->GetMetadataItem (GDAL_DMD_SUBDATASETS), false) &&
+       !testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false) ) ||
             ds->GetLayerCount () > 1) {
         outDS = new DatasetContainer();
     }
