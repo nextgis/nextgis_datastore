@@ -399,7 +399,7 @@ unsigned int DatasetContainer::loadDataset(const CPLString &name,
                          m_loadData.end()).swap(m_loadData);
     }
 
-    unsigned int id = m_newTaskId++;
+    unsigned int id = ++m_newTaskId;
     m_loadData.push_back ( LoadData(id, path, subDatasetName, name, options,
                            progressFunc, progressArguments) );
     if(nullptr == m_hLoadThread) {
