@@ -269,7 +269,8 @@ TEST(MapTests, TestDrawing) {
     ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     mapView->setBackgroundColor ({255, 0, 0, 255}); // RED color
-    /*counter = 0;
+    /* no drawing executed as we need to prepare GL surface and make it current
+    counter = 0;
     mapView->draw(ngsTestProgressFunc, nullptr);
     CPLSleep(0.3);
     EXPECT_EQ(buffer[0], 255);
