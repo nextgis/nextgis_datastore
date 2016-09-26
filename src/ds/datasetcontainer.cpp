@@ -111,7 +111,7 @@ void ngs::LoadingThread(void * store)
 //------------------------------------------------------------------------------
 LoadData::LoadData(unsigned int id, const CPLString &path,
                    const CPLString &srcSubDatasetName,
-                   const CPLString &dstDatasetName, char **options,
+                   const CPLString &dstDatasetName, const char **options,
                    ngsProgressFunc progressFunc, void *progressArguments) :
     ProgressInfo(id, options, progressFunc, progressArguments), m_path(path),
     m_srcSubDatasetName(srcSubDatasetName),
@@ -390,7 +390,7 @@ vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcData
 
 unsigned int DatasetContainer::loadDataset(const CPLString &name,
                                            const CPLString& path, const
-                                  CPLString& subDatasetName, char **options,
+                                  CPLString& subDatasetName, const char **options,
                                   ngsProgressFunc progressFunc,
                                   void* progressArguments)
 {

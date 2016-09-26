@@ -65,9 +65,10 @@ GDALDatasetPtr::operator GDALDataset *() const
 //------------------------------------------------------------------------------
 // ProgressInfo
 //------------------------------------------------------------------------------
-ProgressInfo::ProgressInfo(unsigned int id, char **options,
+ProgressInfo::ProgressInfo(unsigned int id, const char **options,
                            ngsProgressFunc progressFunc, void *progressArguments) :
-    m_id(id), m_options(CSLDuplicate (options)), m_progressFunc(progressFunc),
+    m_id(id), m_options(CSLDuplicate (const_cast<char**>(options))),
+    m_progressFunc(progressFunc),
     m_progressArguments(progressArguments),
     m_status(ngsErrorCodes::EC_PENDING)
 {

@@ -92,6 +92,7 @@ using namespace std;
 static DataStorePtr gDataStore;
 static MapStorePtr gMapStore;
 static string gFormats;
+static CPLString gFilters;
 
 /**
  * @brief ngsInitDataStore Open or create data store. All datastore functgions
@@ -669,7 +670,7 @@ int ngsMapSave(unsigned char mapId, const char *path)
  * additional information about the task.
  */
 unsigned int ngsDataStoreLoad(const char* name, const char *path,
-                              const char *subDatasetName, char** options,
+                              const char *subDatasetName, const char** options,
                               ngsProgressFunc callback, void *callbackData)
 {
     if(nullptr != gDataStore)
@@ -813,4 +814,53 @@ const char *ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType)
     if(nullptr != gDataStore)
         return gDataStore->getOptions (optionType);
     return nullptr;
+}
+
+const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator)
+{
+    gFilters.Clear ();
+    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ )
+    {
+        GDALDriverH hDriver = GDALGetDriver(iDr);
+
+        char** papszMD = GDALGetMetadata( hDriver, NULL );
+
+        if( (flags & DT_RASTER &&
+            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) ) &&
+            (flags & DT_VECTOR &&
+            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) ) &&
+            (flags & DT_GNM &&
+            !CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) ) )
+            continue;
+
+        if( mode & FM_WRITE &&
+            (!CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) ||
+             !CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE )) )
+            continue;
+
+        if( flags & DT_SERVICE &&
+                EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
+                                           ""), "") )
+            continue;
+
+        if(! (flags & DT_SERVICE) &&
+                !EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
+                                           ""), "") )
+            continue;
+
+        const char* longName = CSLFetchNameValue(papszMD, GDAL_DMD_LONGNAME);
+        const char* ext = CSLFetchNameValue(papszMD, GDAL_DMD_EXTENSION);
+
+        if(nullptr != longName && nullptr != ext && !EQUAL(longName, "") &&
+                !EQUAL(ext, ""))
+        {
+            if(gFilters.empty ())
+                gFilters += CPLString(longName) + " (*." + CPLString(ext) + ")";
+            else
+                gFilters += separator + CPLString(longName) + " (*." + CPLString(ext) + ")";
+        }
+    }
+
+
+    return gFilters;
 }

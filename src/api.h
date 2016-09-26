@@ -149,12 +149,26 @@ enum ngsDirection {
     Z
 };
 
+enum ngsDriverType {
+    DT_VECTOR   = 1 << 1,
+    DT_RASTER   = 1 << 2,
+    DT_SERVICE  = 1 << 3,
+    DT_NETWORK  = 1 << 4,
+    DT_GNM      = 1 << 5
+};
+
+enum ngsFileMode {
+    FM_READ   = 1 << 1,
+    FM_WRITE   = 1 << 2
+};
+
 /**
  * Common functions
  */
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
 NGS_EXTERNC int ngsInit(const char* dataPath, const char* cachePath);
+NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
 NGS_EXTERNC void ngsUninit();
 NGS_EXTERNC void ngsOnLowMemory();
 NGS_EXTERNC void ngsOnPause();
@@ -169,7 +183,7 @@ NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
                                          int epsg, int z_min, int z_max,
                                          bool y_origin_top);
 NGS_EXTERNC unsigned int ngsDataStoreLoad(const char* name, const char* path,
-                        const char *subDatasetName, char** options,
+                        const char *subDatasetName, const char** options,
                         ngsProgressFunc callback, void* callbackData);
 NGS_EXTERNC ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId);
 NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);

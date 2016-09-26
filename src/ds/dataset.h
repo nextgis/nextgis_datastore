@@ -57,7 +57,7 @@ typedef shared_ptr<Dataset> DatasetPtr;
 class ProgressInfo
 {
 public:
-    ProgressInfo(unsigned int id, char** options = nullptr,
+    ProgressInfo(unsigned int id, const char **options = nullptr,
                  ngsProgressFunc progressFunc = nullptr,
                  void *progressArguments = nullptr);
     virtual ~ProgressInfo();

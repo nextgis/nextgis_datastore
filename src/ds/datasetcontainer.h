@@ -33,7 +33,7 @@ public:
     LoadData(unsigned int id, const CPLString& path,
              const CPLString& srcSubDatasetName,
              const CPLString& dstDatasetName,
-             char** options = nullptr, ngsProgressFunc onProgress = nullptr,
+             const char** options = nullptr, ngsProgressFunc onProgress = nullptr,
              void *progressArguments = nullptr);
     ~LoadData();
     LoadData(const LoadData& data);
@@ -63,7 +63,7 @@ public:
     virtual DatasetPtr getDataset(int index);
     // TODO: getRaster
     unsigned int loadDataset(const CPLString& name, const CPLString& path,
-                             const CPLString& subDatasetName, char** options,
+                             const CPLString& subDatasetName, const char **options,
                              ngsProgressFunc progressFunc,
                              void* progressArguments = nullptr);
     /* TODO: does this need here?
