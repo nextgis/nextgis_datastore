@@ -122,13 +122,12 @@ progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
         }
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
-        if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
+        int nRes = insertFeature(dstFeature);
+        if(nRes != ngsErrorCodes::EC_SUCCESS) {
             CPLString errorMsg;
             errorMsg.Printf ("Create feature failed. "
                              "Source feature FID:%lld", feature->GetFID ());
-            CPLError(CE_Warning, CPLE_AppDefined, errorMsg);
-            if(progressInfo)
-                progressInfo->onProgress (counter / featureCount, errorMsg);
+            reportError (nRes, counter / featureCount, errorMsg, progressInfo);
         }
         counter++;
     }

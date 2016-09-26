@@ -75,7 +75,7 @@ void ngs::LoadingThread(void * store)
         if(nullptr == srcDataset) {
             CPLString errorMsg;
             errorMsg.Printf ("Dataset '%s' open failed.", srcName);
-            CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
+            CPLErrorSetState(CE_Failure, CPLE_AppDefined, errorMsg);
             data.onProgress (1, errorMsg);
             data.setStatus (ngsErrorCodes::EC_OPEN_FAILED);
             continue;
@@ -433,13 +433,9 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         if(nullptr == srcTable) {
             CPLString errorMsg;
             errorMsg.Printf ("Source dataset '%s' report type TABLE, but it is not a table.",
-                             srcDataset->name ().c_str ());
-            CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
-            if(loadData) {
-                loadData->setStatus (ngsErrorCodes::EC_COPY_FAILED);
-                loadData->onProgress (0, errorMsg);
-            }
-            return ngsErrorCodes::EC_COPY_FAILED;
+                             srcDataset->name ().c_str ());            
+            return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
+                                loadData);
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
         DatasetPtr dstDataset = createDataset(name, srcDefinition, loadData);
@@ -448,12 +444,8 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             CPLString errorMsg;
             errorMsg.Printf ("Destination dataset '%s' report type TABLE, but it is not a table.",
                              srcDataset->name ().c_str ());
-            CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
-            if(loadData) {
-                loadData->setStatus (ngsErrorCodes::EC_COPY_FAILED);
-                loadData->onProgress (0, errorMsg);
-            }
-            return ngsErrorCodes::EC_COPY_FAILED;
+            return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
+                                loadData);
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
@@ -474,12 +466,8 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             CPLString errorMsg;
             errorMsg.Printf ("Source dataset '%s' report type FEATURESET, but it is not a feature class.",
                              srcDataset->name ().c_str ());
-            CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
-            if(loadData) {
-                loadData->setStatus (ngsErrorCodes::EC_COPY_FAILED);
-                loadData->onProgress (0, errorMsg);
-            }
-            return ngsErrorCodes::EC_COPY_FAILED;
+            return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
+                                loadData);
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
 
@@ -508,12 +496,8 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                 CPLString errorMsg;
                 errorMsg.Printf ("Source dataset '%s' report type FEATURESET, but it is not a feature class.",
                                  srcDataset->name ().c_str ());
-                CPLError(CE_Failure, CPLE_AppDefined, errorMsg);
-                if(loadData) {
-                    loadData->setStatus (ngsErrorCodes::EC_COPY_FAILED);
-                    loadData->onProgress (0, errorMsg);
-                }
-                return ngsErrorCodes::EC_COPY_FAILED;
+                return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
+                                    loadData);
             }
             OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
@@ -533,10 +517,11 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         }
     }
     else { // TODO: raster and container support
-
-        CPLError(CE_Failure, CPLE_AppDefined, "Dataset '%s' unsupported",
-                            srcDataset->name ().c_str ());
-        return ngsErrorCodes::EC_UNSUPPORTED;
+        CPLString errorMsg;
+        errorMsg.Printf ("Dataset '%s' unsupported",
+                         srcDataset->name ().c_str ());
+        return reportError (ngsErrorCodes::EC_UNSUPPORTED, 0, errorMsg,
+                            loadData);
     }
     return ngsErrorCodes::EC_SUCCESS;
 }

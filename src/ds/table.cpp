@@ -218,13 +218,12 @@ int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
         FeaturePtr dstFeature = createFeature ();
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
-        if(insertFeature(dstFeature) != ngsErrorCodes::EC_SUCCESS) {
+        int nRes = insertFeature(dstFeature);
+        if(nRes != ngsErrorCodes::EC_SUCCESS) {
             CPLString errorMsg;
             errorMsg.Printf ("Create feature failed. Source feature FID:%lld",
                              feature->GetFID ());
-            CPLError(CE_Warning, CPLE_AppDefined, errorMsg);
-            if(processInfo)
-                processInfo->onProgress ( counter / featureCount, errorMsg);
+            reportError (nRes, counter / featureCount, errorMsg, processInfo);
         }
         counter++;
     }

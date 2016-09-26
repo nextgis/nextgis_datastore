@@ -385,11 +385,8 @@ int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
 
     }
     else {
-        CPLError (CE_Warning, CPLE_NotSupported, "Unsupported dataset");
-        if(loadData) {
-            loadData->onProgress (0, "Unsupported dataset");
-            loadData->setStatus (ngsErrorCodes::EC_COPY_FAILED);
-        }
+        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
+                            "Unsupported dataset", loadData);
     }
     return nRet;
 }

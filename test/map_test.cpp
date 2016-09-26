@@ -95,57 +95,57 @@ TEST(MapTests, TestProject) {
     pt.x = -1560;
     pt.y = 2420;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 0;
     pt.y = 0;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, -1560);
-    EXPECT_EQ(dwPt.y, 2420);
+    EXPECT_DOUBLE_EQ(dwPt.x, -1560);
+    EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = 2420;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 640);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_DOUBLE_EQ(wdPt.x, 640);
+    EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 640;
     pt.y = 0;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 3560);
-    EXPECT_EQ(dwPt.y, 2420);
+    EXPECT_DOUBLE_EQ(dwPt.x, 3560);
+    EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = -1420;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 640);
-    EXPECT_EQ(wdPt.y, 480);
+    EXPECT_DOUBLE_EQ(wdPt.x, 640);
+    EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 640;
     pt.y = 480;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 3560);
-    EXPECT_EQ(dwPt.y, -1420);
+    EXPECT_DOUBLE_EQ(dwPt.x, 3560);
+    EXPECT_DOUBLE_EQ(dwPt.y, -1420);
 
     pt.x = -1560;
     pt.y = -1420;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 480);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 0;
     pt.y = 480;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, -1560);
-    EXPECT_EQ(dwPt.y, -1420);
+    EXPECT_DOUBLE_EQ(dwPt.x, -1560);
+    EXPECT_DOUBLE_EQ(dwPt.y, -1420);
 
     pt.x = 0;
     pt.y = 0;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 195);
-    EXPECT_EQ(wdPt.y, 302.5);
+    EXPECT_DOUBLE_EQ(wdPt.x, 195);
+    EXPECT_DOUBLE_EQ(wdPt.y, 302.5);
     pt.x = 195;
     pt.y = 302.5;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 0);
-    EXPECT_EQ(dwPt.y, 0);
+    EXPECT_NEAR(dwPt.x, 0, 0.00000001);
+    EXPECT_NEAR(dwPt.y, 0, 0.00000001);
 
 
     // axis Y is normal
@@ -155,62 +155,62 @@ TEST(MapTests, TestProject) {
     env.MinX = 1000; env.MinY = 500;
     env.MaxX = 3560; env.MaxY = 2420;
     mapView->setExtent (env);
-    EXPECT_EQ(mapView->getScale (), 0.25);
+    EXPECT_DOUBLE_EQ(mapView->getScale (), 0.25);
 
     pt.x = 1000;
     pt.y = 2420;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 480);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 0;
     pt.y = 480;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 1000);
-    EXPECT_EQ(dwPt.y, 2420);
+    EXPECT_DOUBLE_EQ(dwPt.x, 1000);
+    EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = 2420;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 640);
-    EXPECT_EQ(wdPt.y, 480);
+    EXPECT_DOUBLE_EQ(wdPt.x, 640);
+    EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 640;
     pt.y = 480;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 3560);
-    EXPECT_EQ(dwPt.y, 2420);
+    EXPECT_DOUBLE_EQ(dwPt.x, 3560);
+    EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = 500;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 640);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_DOUBLE_EQ(wdPt.x, 640);
+    EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 640;
     pt.y = 0;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 3560);
+    EXPECT_DOUBLE_EQ(dwPt.x, 3560);
     EXPECT_DOUBLE_EQ(dwPt.y, 500);
 
     pt.x = 1000;
     pt.y = 500;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 0;
     pt.y = 0;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 1000);
+    EXPECT_DOUBLE_EQ(dwPt.x, 1000);
     EXPECT_DOUBLE_EQ(dwPt.y, 500);
 
     pt.x = 0;
     pt.y = 0;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, -250);
-    EXPECT_EQ(wdPt.y, -125);
+    EXPECT_DOUBLE_EQ(wdPt.x, -250);
+    EXPECT_DOUBLE_EQ(wdPt.y, -125);
     pt.x = -250;
     pt.y = -125;
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 0);
-    // EXPECT_EQ(dwPt.y, 0);  // dwPt.y == 2.2737367544323206e-13
+    EXPECT_NEAR(dwPt.x, 0, 0.00000001);
+    EXPECT_NEAR(dwPt.y, 0, 0.00000001);
 
 
     // axis Y inverted
@@ -219,25 +219,25 @@ TEST(MapTests, TestProject) {
     env.MinX = 0; env.MinY = 0;
     env.MaxX = 480; env.MaxY = 640;
     mapView->setExtent (env);
-    EXPECT_EQ(mapView->getScale (), 1);
+    EXPECT_DOUBLE_EQ(mapView->getScale (), 1);
 
     pt.x = 0;
     pt.y = 0;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 640);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 640);
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 0);
-    EXPECT_EQ(dwPt.y, 640);
+    EXPECT_DOUBLE_EQ(dwPt.x, 0);
+    EXPECT_DOUBLE_EQ(dwPt.y, 640);
 
     pt.x = 480;
     pt.y = 640;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 480);
-    EXPECT_EQ(wdPt.y, 0);
+    EXPECT_DOUBLE_EQ(wdPt.x, 480);
+    EXPECT_DOUBLE_EQ(wdPt.y, 0);
     dwPt = mapView->displayToWorld (pt);
-    EXPECT_EQ(dwPt.x, 480);
-    EXPECT_EQ(dwPt.y, 0);
+    EXPECT_DOUBLE_EQ(dwPt.x, 480);
+    EXPECT_DOUBLE_EQ(dwPt.y, 0);
 
     EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::EC_SUCCESS);
     env.MinX = 0; env.MinY = 0;
@@ -246,8 +246,8 @@ TEST(MapTests, TestProject) {
     pt.x = 0;
     pt.y = 0;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 480);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 480);
 
     env.MinX = -1560.0; env.MinY = -1420.0;
     env.MaxX = 3560.0; env.MaxY = 2420;
@@ -255,8 +255,8 @@ TEST(MapTests, TestProject) {
     pt.x = -1560.0;
     pt.y = -1420.0;
     wdPt = mapView->worldToDisplay (pt);
-    EXPECT_EQ(wdPt.x, 0);
-    EXPECT_EQ(wdPt.y, 480);
+    EXPECT_DOUBLE_EQ(wdPt.x, 0);
+    EXPECT_DOUBLE_EQ(wdPt.y, 480);
 }
 
 TEST(MapTests, TestDrawing) {

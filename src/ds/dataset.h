@@ -149,6 +149,16 @@ protected:
     void notifyDatasetChanged(enum ChangeType changeType,
                               const CPLString &name, long id);
     static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
+    inline int reportError(int code, double percent,
+                           const char* message, ProgressInfo *processInfo = nullptr) {
+        //CPLError(CE_Failure, CPLE_AppDefined, message);
+        CPLErrorSetState(CE_Failure, CPLE_AppDefined, message);
+        if(processInfo) {
+            processInfo->setStatus (static_cast<ngsErrorCodes>(code));
+            processInfo->onProgress (percent, message);
+        }
+        return code;
+    }
 
 protected:
     unsigned int m_type;
