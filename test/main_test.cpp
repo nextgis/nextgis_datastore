@@ -137,7 +137,7 @@ TEST(BasicTests, TestInitMap) {
 TEST(BasicTests, TestLoad) {
     counter = 0;
     EXPECT_EQ(ngsDataStoreLoad("test" ,"./data/bld.shp", "", nullptr, ngsTestProgressFunc,
-                      nullptr), ngsErrorCodes::EC_SUCCESS);
+                      nullptr), 1);
     CPLSleep(0.6);
     EXPECT_GE(counter, 1);
 }

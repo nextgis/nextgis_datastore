@@ -28,37 +28,13 @@
 %javaconst(1);
 
 %rename (ErrorCodes) ngsErrorCodes;
-%rename (SourceCodes) ngsSourceCodes;
 %rename (ChangeCodes) ngsChangeCodes;
+%rename (SourceCodes) ngsSourceCodes;
+%rename (DrawState) ngsDrawState;
+
 %rename (Colour) _ngsRGBA;
-%rename (RawPoint) _ngsRawPoint;
-%rename (RawEnvelope) _ngsRawEnvelope;
+%rename (Coordinate) _ngsCoordinate;
+%rename (Position) _ngsPosition;
+%rename (LoadTaskInfo) _ngsLoadTaskInfo;
 
-%apply double* OUTPUT { double* scale };
-
-// Typemaps for (void* imageBufferPointer)
-%typemap(in, numinputs=1) (void* imageBufferPointer)
-{
-    if ($input == 0)
-    {
-        SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "null array");
-        return $null;
-    }
-    $1 = jenv->GetDirectBufferAddress($input);
-    if ($1 == NULL)
-    {
-        SWIG_JavaThrowException(jenv, SWIG_JavaRuntimeException,
-                                "Unable to get address of direct buffer. Buffer must be allocated direct.");
-        return $null;
-    }
-}
-
-
-/* These 3 typemaps tell SWIG what JNI and Java types to use */
-%typemap(jni) (void* imageBufferPointer)  "jobject"
-%typemap(jtype) (void* imageBufferPointer)  "java.nio.ByteBuffer"
-%typemap(jstype) (void* imageBufferPointer)  "java.nio.ByteBuffer"
-%typemap(javain) (void* imageBufferPointer)  "$javainput"
-%typemap(javaout) (void* imageBufferPointer) {
-    return $jnicall;
-}
+%rename (Direction) ngsDirection;

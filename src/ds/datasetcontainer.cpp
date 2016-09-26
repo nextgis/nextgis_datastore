@@ -66,7 +66,7 @@ void ngs::LoadingThread(void * store)
         data.setStatus( ngsErrorCodes::EC_IN_PROCESS );
         if(!data.onProgress(0, CPLSPrintf ("Start loading '%s'", srcName))) {
             data.setStatus( ngsErrorCodes::EC_CANCELED );
-            continue;
+                continue;
         }
 
         // 1. Open datasource
@@ -87,7 +87,7 @@ void ngs::LoadingThread(void * store)
             srcDataset = pDatasetContainer->getDataset (data.srcSubDatasetName());
         }
 
-        //2. Move or copy datasource to container
+        // 2. Move or copy datasource to container
         int res;
         bool move = EQUAL(CSLFetchNameValueDef(data.options(), "LOAD_OP", "COPY"),
                           "MOVE");
@@ -412,7 +412,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                                   const CPLString &dstDatasetName,
                                   LoadData *loadData)
 {
-    // create unique name
+    // create uniq name
     CPLString name;
     if(dstDatasetName.empty ())
         name = normalizeDatasetName(srcDataset->name ());
@@ -420,7 +420,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         name = normalizeDatasetName(dstDatasetName);
 
     if(name.empty ())
-        return ngsErrorCodes::EC_UNEXPECTED_ERROR;
+            return ngsErrorCodes::EC_UNEXPECTED_ERROR;
 
     if(loadData)
         loadData->onProgress (0, CPLSPrintf ("Copy dataset '%s' to '%s'",
@@ -433,7 +433,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         if(nullptr == srcTable) {
             CPLString errorMsg;
             errorMsg.Printf ("Source dataset '%s' report type TABLE, but it is not a table.",
-                             srcDataset->name ().c_str ());            
+                     srcDataset->name ().c_str ());
             return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
                                 loadData);
         }
@@ -443,14 +443,14 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         if(nullptr == dstTable) {
             CPLString errorMsg;
             errorMsg.Printf ("Destination dataset '%s' report type TABLE, but it is not a table.",
-                             srcDataset->name ().c_str ());
+                     srcDataset->name ().c_str ());
             return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
                                 loadData);
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
 
         CPLAssert (srcDefinition->GetFieldCount() ==
-                   dstDefinition->GetFieldCount());
+                  dstDefinition->GetFieldCount());
         // Create fields map. We expected equal count of fields
         FieldMapPtr fieldMap(static_cast<unsigned long>(
                                  dstDefinition->GetFieldCount()));
@@ -465,7 +465,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         if(nullptr == srcTable) {
             CPLString errorMsg;
             errorMsg.Printf ("Source dataset '%s' report type FEATURESET, but it is not a feature class.",
-                             srcDataset->name ().c_str ());
+                     srcDataset->name ().c_str ());
             return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
                                 loadData);
         }
@@ -483,7 +483,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
                     OGR_GT_Flatten(geometryType) < wkbGeometryCollection) {
                    filterGeomType = static_cast<OGRwkbGeometryType>(
                                geometryType - 3);
-               }               
+               }
             }
 
             if(loadData)
@@ -495,7 +495,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
             if(nullptr == dstTable) {
                 CPLString errorMsg;
                 errorMsg.Printf ("Source dataset '%s' report type FEATURESET, but it is not a feature class.",
-                                 srcDataset->name ().c_str ());
+                         srcDataset->name ().c_str ());
                 return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
                                     loadData);
             }
@@ -519,7 +519,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
     else { // TODO: raster and container support
         CPLString errorMsg;
         errorMsg.Printf ("Dataset '%s' unsupported",
-                         srcDataset->name ().c_str ());
+                            srcDataset->name ().c_str ());
         return reportError (ngsErrorCodes::EC_UNSUPPORTED, 0, errorMsg,
                             loadData);
     }
@@ -600,10 +600,10 @@ ngsLoadTaskInfo DatasetContainer::getLoadTaskInfo(unsigned int taskId) const
         if(data.id () == taskId) {
             return {data.dstDatasetName().c_str (),
                     data.getNewNames(),
-                    m_path.c_str (),
+            m_path.c_str (),
                         data.status()};
         }
-    }
+}
 
     return {NULL, NULL, NULL, ngsErrorCodes::EC_INVALID};
 }

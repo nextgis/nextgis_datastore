@@ -27,7 +27,7 @@ class ProgressCallback
 {
 public:
     virtual ~ProgressCallback() {  }
-    virtual int run(double complete, const char* message)
+    virtual int run(int taskId, double complete, const char* message)
     {
         return 1;
     }
@@ -36,10 +36,10 @@ public:
 
 %{
 int
-JavaProgressProxy( double complete, const char *message, void *progressArguments )
+JavaProgressProxy( unsigned int taskId, double complete, const char *message, void *progressArguments )
 {
     ProgressCallback* psProgressCallback = (ProgressCallback*) progressArguments;
-    return psProgressCallback->run(complete, message);
+    return psProgressCallback->run(taskId, complete, message);
 }
 %}
 
