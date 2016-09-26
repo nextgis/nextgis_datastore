@@ -30,6 +30,7 @@ namespace ngs {
  */
 class RasterDataset : public SpatialDataset
 {
+    friend class Dataset;
 public:
     RasterDataset();
 
@@ -37,6 +38,9 @@ public:
     // SpatialDataset interface
 public:
     virtual OGRSpatialReference *getSpatialReference() const override;
+
+protected:
+    OGRSpatialReference m_spatialReference;
 };
 
 }

@@ -24,11 +24,10 @@ using namespace ngs;
 
 RasterDataset::RasterDataset() : SpatialDataset()
 {
-
 }
 
 
 OGRSpatialReference *RasterDataset::getSpatialReference() const
 {
-    return nullptr;
+    return const_cast<OGRSpatialReference *>(&m_spatialReference);
 }

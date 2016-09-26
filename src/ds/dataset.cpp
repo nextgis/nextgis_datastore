@@ -240,9 +240,11 @@ DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
         outDS = new DatasetContainer();
     }
     else if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false)) {
-        outDS = new RasterDataset();
+        RasterDataset* raster = new RasterDataset();
+        raster->m_spatialReference.SetFromUserInput (ds->GetProjectionRef ());
+        outDS = raster;
     }
-    else {
+    else { //if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_VECTOR), false))
         OGRLayer* layer = ds->GetLayer (0);
         if(nullptr != layer){
             OGRFeatureDefn* defn = layer->GetLayerDefn ();
@@ -251,9 +253,7 @@ DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
             }
             else {
                 outDS = new FeatureDataset(layer);
-            }
-
-        //if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_VECTOR), false))
+            }       
         }
     }
 
