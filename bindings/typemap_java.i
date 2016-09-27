@@ -30,6 +30,7 @@
 %rename (ErrorCodes) ngsErrorCodes;
 %rename (ChangeCodes) ngsChangeCodes;
 %rename (SourceCodes) ngsSourceCodes;
+%rename (DataStoreOptionsTypes) ngsDataStoreOptionsTypes;
 %rename (DrawState) ngsDrawState;
 
 %rename (Colour) _ngsRGBA;
@@ -38,3 +39,5 @@
 %rename (LoadTaskInfo) _ngsLoadTaskInfo;
 
 %rename (Direction) ngsDirection;
+
+%include typemap_string_array.i
