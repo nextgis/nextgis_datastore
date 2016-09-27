@@ -382,7 +382,7 @@ int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
     }
     else if (srcDataset->type () & ngsDatasetType (Raster)) {
         // TODO: raster. Create raster in DB? Copy/move raster into the folder and store info in DB? Reproject? Band selection?
-
+        // TODO: reproject/or copy and result register in sorage, some checks (SRS, bands, etc.)
         return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
                             "Unsupported dataset", loadData);
     }

@@ -24,8 +24,8 @@
 #include "api_priv.h"
 
 #include "cpl_string.h"
-#include "ogrsf_frmts.h"
 #include "gdal_frmts.h"
+#include "ogrsf_frmts.h"
 
 #include <memory>
 
