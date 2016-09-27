@@ -625,7 +625,7 @@ unsigned char ngsMapCreate(const char* name, const char* description,
 {
     // for this API before work with map datastore must be open
     if(nullptr == gDataStore)
-        return ngsErrorCodes::EC_CREATE_FAILED;
+        return ngsErrorCodes::EC_CREATE_FAILED; // FIXME: must return 0
     initMapStore();
     return gMapStore->createMap (name, description, epsg,
                                  minX, minY, maxX, maxY, gDataStore);

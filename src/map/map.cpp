@@ -170,7 +170,7 @@ int Map::open(const char *path)
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
                 if(layer->load(layerConfig, m_DataStore, m_relativePaths ?
-                           CPLGetPath(path) : "") == ngsErrorCodes::EC_SUCCESS)
+                           CPLGetPath(path) : "") == ngsErrorCodes::EC_SUCCESS) // FIXME: is it must be (... CPLGetPath(path) : path)  ?
                     m_layers.push_back (layer);
             }
         }
