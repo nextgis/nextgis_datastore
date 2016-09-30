@@ -32,6 +32,8 @@
 %rename (SourceCodes) ngsSourceCodes;
 %rename (DataStoreOptionsTypes) ngsDataStoreOptionsTypes;
 %rename (DrawState) ngsDrawState;
+%rename (DriverType) ngsDriverType;
+%rename (FileMode) ngsFileMode;
 
 %rename (Colour) _ngsRGBA;
 %rename (Coordinate) _ngsCoordinate;
