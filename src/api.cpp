@@ -133,6 +133,7 @@ void initGDAL(const char* dataPath, const char* cachePath)
     CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGS_USERAGENT);
     CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
     CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
+    CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk");
     if(cachePath)
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
 
