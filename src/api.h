@@ -132,8 +132,8 @@ typedef struct _ngsCoordinate {
 
 /* Display coordinates */
 typedef struct _ngsPosition {
-    int X;
-    int Y;
+    double X;
+    double Y;
 } ngsPosition;
 
 typedef struct _ngsLoadTaskInfo {
@@ -220,8 +220,8 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
                                 double rotate);
 NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
-NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, int x, int y);
-NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, int w, int h);
+NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y);
+NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h);
 NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 

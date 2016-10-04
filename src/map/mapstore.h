@@ -80,9 +80,9 @@ public:
     double getMapScale(unsigned char mapId);
     int setMapRotate(unsigned char mapId, enum ngsDirection dir, double rotate);
     double getMapRotate(unsigned char mapId, enum ngsDirection dir);
-    ngsCoordinate getMapCoordinate(unsigned char mapId, int x, int y);
+    ngsCoordinate getMapCoordinate(unsigned char mapId, double x, double y);
     ngsPosition getDisplayPosition(unsigned char mapId, double x, double y);
-    ngsCoordinate getMapDistance(unsigned char mapId, int w, int h);
+    ngsCoordinate getMapDistance(unsigned char mapId, double w, double h);
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
 protected:
     unsigned char m_mapCounter;

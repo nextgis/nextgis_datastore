@@ -748,7 +748,7 @@ double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
  * @param y Y position
  * @return Georpaphic coordinates
  */
-ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, int x, int y)
+ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
 {
     initMapStore();
     return gMapStore->getMapCoordinate (mapId, x, y);
@@ -774,7 +774,7 @@ ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
  * @param h Height
  * @return ngsCoordinate where X distance along x axis and Y along y axis
  */
-ngsCoordinate ngsMapGetDistance(unsigned char mapId, int w, int h)
+ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
 {
     initMapStore();
     return gMapStore->getMapDistance (mapId, w, h);

@@ -250,7 +250,7 @@ double MapStore::getMapRotate(unsigned char mapId, ngsDirection dir)
     return pMapView->getRotate (dir);
 }
 
-ngsCoordinate MapStore::getMapCoordinate(unsigned char mapId, int x, int y)
+ngsCoordinate MapStore::getMapCoordinate(unsigned char mapId, double x, double y)
 {
     ngsCoordinate out = { 0.0, 0.0, 0.0 };
     if(!m_maps[mapId])
@@ -275,12 +275,12 @@ ngsPosition MapStore::getDisplayPosition(unsigned char mapId, double x, double y
         return out;
 
     OGRRawPoint pt = pMapView->worldToDisplay (OGRRawPoint(x, y));
-    out.X = static_cast<int>(pt.x);
-    out.Y = static_cast<int>(pt.y);
+    out.X = pt.x;
+    out.Y = pt.y;
     return out;
 }
 
-ngsCoordinate MapStore::getMapDistance(unsigned char mapId, int w, int h)
+ngsCoordinate MapStore::getMapDistance(unsigned char mapId, double w, double h)
 {
     ngsCoordinate out = { 0.0, 0.0, 0.0 };
     if(!m_maps[mapId])
@@ -308,8 +308,8 @@ ngsPosition MapStore::getDisplayLength(unsigned char mapId, double w, double h)
 
     OGRRawPoint beg = pMapView->worldToDisplay (OGRRawPoint(0, 0));
     OGRRawPoint end = pMapView->worldToDisplay (OGRRawPoint(w, h));
-    out.X = static_cast<int>(end.x - beg.x);
-    out.Y = static_cast<int>(end.y - beg.y);
+    out.X = (end.x - beg.x);
+    out.Y = (end.y - beg.y);
     return out;
 }
 
