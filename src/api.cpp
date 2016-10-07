@@ -91,6 +91,7 @@ using namespace std;
 
 static DataStorePtr gDataStore;
 static MapStorePtr gMapStore;
+static ngsOptions gOptions = OPT_NONE;
 static string gFormats;
 static CPLString gFilters;
 
@@ -518,6 +519,16 @@ void ngsOnPause()
     // just free maps
     if(nullptr != gMapStore)
         gMapStore->onLowMemory ();
+}
+
+void ngsSetOptions(ngsOptions options)
+{
+    gOptions = options;
+}
+
+ngsOptions ngsGetOptions()
+{
+    return gOptions;
 }
 
 /**

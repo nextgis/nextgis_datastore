@@ -45,6 +45,7 @@ public:
     virtual void draw(enum ngsDrawState state, OGREnvelope extent, double zoom,
                         float level);
     virtual float getComplete() const;
+    virtual GLsizei getFinalIndicesCount() const;
 protected:
     virtual void clearTiles() = 0;
     virtual void drawTiles() = 0;
@@ -58,6 +59,7 @@ protected:
     unsigned char m_renderZoom;
     float m_renderLevel;
     float m_complete;
+    GLsizei m_finalIndicesCount;
     MapView* m_mapView;
     CPLLock *m_hThreadLock;
     StyleUPtr m_style;

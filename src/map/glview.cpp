@@ -1335,3 +1335,12 @@ bool GlBufferBucket::intersects(const OGREnvelope &ext) const
 {
     return m_extent.Intersects (ext) == TRUE;
 }
+
+GLsizei GlBufferBucket::getFinalIndicesCount() const
+{
+    GLsizei finalIndicesCount = 0;
+    for(const GlBuffer& buff : m_buffers) {
+        finalIndicesCount += buff.getFinalIndicesCount();
+    }
+    return finalIndicesCount;
+}

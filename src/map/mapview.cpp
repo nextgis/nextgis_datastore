@@ -109,14 +109,24 @@ int MapView::notify()
 {
     if(nullptr != m_progressFunc) {
         float fullComplete = 0;
+        GLsizei finalIndicesCount = 0;
         for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
             LayerPtr layer = *it;
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             fullComplete += renderLayer->getComplete ();
-    }
+            if(ngsGetOptions() & OPT_DEBUGMODE) {
+                finalIndicesCount += renderLayer->getFinalIndicesCount();
+            }
+        }
         fullComplete /= m_layers.size ();
-        return m_progressFunc(getId(), static_cast<double>(fullComplete), NULL,
-                              m_progressArguments);
+
+        const char* message = nullptr;
+        if(ngsGetOptions() & OPT_DEBUGMODE) {
+            message = std::to_string(finalIndicesCount).c_str();
+        }
+
+        return m_progressFunc(
+                getId(), static_cast<double>(fullComplete), message, m_progressArguments);
     }
     return TRUE;
 }

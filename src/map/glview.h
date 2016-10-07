@@ -223,6 +223,7 @@ public:
     bool intersects(const GlBufferBucket& other) const;
     bool intersects(const OGREnvelope &ext) const;
     char crossExtent() const;
+    GLsizei getFinalIndicesCount() const;
 
 protected:
     void fill(OGRGeometry* geom, float level);

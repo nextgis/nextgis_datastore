@@ -30,6 +30,7 @@
 %rename (ErrorCodes) ngsErrorCodes;
 %rename (ChangeCodes) ngsChangeCodes;
 %rename (SourceCodes) ngsSourceCodes;
+%rename (Options) ngsOptions;
 %rename (DataStoreOptionsTypes) ngsDataStoreOptionsTypes;
 %rename (DrawState) ngsDrawState;
 %rename (DriverType) ngsDriverType;

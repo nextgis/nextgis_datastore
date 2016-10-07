@@ -164,17 +164,24 @@ enum ngsFileMode {
     FM_WRITE   = 1 << 2
 };
 
+enum ngsOptions {
+    OPT_NONE = 0,
+    OPT_DEBUGMODE = 1 << 1
+};
+
 /**
  * Common functions
  */
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
 NGS_EXTERNC int ngsInit(const char* dataPath, const char* cachePath);
-NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
 NGS_EXTERNC void ngsUninit();
-NGS_EXTERNC void ngsOnLowMemory();
 NGS_EXTERNC void ngsOnPause();
+NGS_EXTERNC void ngsOnLowMemory();
+NGS_EXTERNC void ngsSetOptions(ngsOptions options);
+NGS_EXTERNC ngsOptions ngsGetOptions();
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
+NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
 /**
  * Storage functions
  */
@@ -196,13 +203,13 @@ NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionTy
  *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
  *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
+NGS_EXTERNC int ngsMapInit(unsigned char mapId);
 NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);
 NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
 NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
 NGS_EXTERNC int ngsMapClose(unsigned char mapId);
-NGS_EXTERNC int ngsMapInit(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
                            int isYAxisInverted);
 NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,

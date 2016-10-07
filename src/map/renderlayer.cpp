@@ -122,6 +122,11 @@ float RenderLayer::getComplete() const
     return m_complete;
 }
 
+GLsizei RenderLayer::getFinalIndicesCount() const
+{
+    return m_finalIndicesCount;
+}
+
 void RenderLayer::finishFillThread()
 {
     CPLLockHolder tilesHolder(m_hThreadLock);
@@ -197,6 +202,7 @@ void FeatureRenderLayer::initStyle()
 void FeatureRenderLayer::fillRenderBuffers()
 {
     m_complete = 0;
+    m_finalIndicesCount = 0;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
     FeaturePtr feature;
@@ -264,8 +270,13 @@ void FeatureRenderLayer::fillRenderBuffers()
 
         m_tiles.push_back (tile);
 
-        counter++;
+        ++counter;
         m_complete = counter / tiles.size ();
+
+        if(ngsGetOptions() & OPT_DEBUGMODE) {
+            m_finalIndicesCount += tile.getFinalIndicesCount();
+        }
+
         if(m_mapView) {
             m_mapView->notify();
         }
