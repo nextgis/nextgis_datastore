@@ -1019,7 +1019,7 @@ bool GlFuctions::loadExtensions()
 // GlBuffer
 //------------------------------------------------------------------------------
 
-GlBuffer::GlBuffer() : m_binded(false)
+GlBuffer::GlBuffer() : m_binded(false), m_indicesCount(0)
 {
     m_vertices.reserve (VAO_RESERVE);
     m_indices.reserve (VAO_RESERVE);
@@ -1095,7 +1095,7 @@ void GlBuffer::addIndex(unsigned short index)
     m_indices.push_back (index);
 }
 
-GLsizei GlBuffer::getFinalIndicesCount() const
+size_t GlBuffer::getFinalIndicesCount() const
 {
     return m_indicesCount;
 }
@@ -1165,7 +1165,7 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
             OGRPoint* pt = static_cast<OGRPoint*>(geom);
             if(!m_buffers[m_currentBuffer].canStore (3)) {
                 m_buffers.push_back (GlBuffer());
-                m_currentBuffer++;
+                ++m_currentBuffer;
                 return fill(geom, level);
             }
 
@@ -1200,7 +1200,7 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
 
             if(!m_buffers[m_currentBuffer].canStore (numPoints * 3)) {
                 m_buffers.push_back (GlBuffer());
-                m_currentBuffer++;
+                ++m_currentBuffer;
                 return fill(geom, level);
             }
 
@@ -1336,9 +1336,9 @@ bool GlBufferBucket::intersects(const OGREnvelope &ext) const
     return m_extent.Intersects (ext) == TRUE;
 }
 
-GLsizei GlBufferBucket::getFinalIndicesCount() const
+size_t GlBufferBucket::getFinalIndicesCount() const
 {
-    GLsizei finalIndicesCount = 0;
+    size_t finalIndicesCount = 0;
     for(const GlBuffer& buff : m_buffers) {
         finalIndicesCount += buff.getFinalIndicesCount();
     }

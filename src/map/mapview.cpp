@@ -111,7 +111,7 @@ int MapView::notify()
 
     if(nullptr != m_progressFunc) {
         float fullComplete = 0;
-        GLsizei finalIndicesCount = 0;
+        size_t finalIndicesCount = 0;
         for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
             LayerPtr layer = *it;
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);

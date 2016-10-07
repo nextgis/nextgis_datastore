@@ -191,14 +191,14 @@ public:
     void addVertex(float x, float y, float z);
     void addIndex(unsigned short one, unsigned short two, unsigned short three);
     void addIndex(unsigned short index);
-    GLsizei getFinalIndicesCount() const;
+    size_t getFinalIndicesCount() const;
     GLuint getBuffer(enum ngsShaderType type) const;
 protected:
     bool m_binded;
     vector<GLfloat> m_vertices;
     vector<GLushort> m_indices;
     GLuint    m_buffers[2];
-    GLsizei   m_indicesCount;
+    size_t   m_indicesCount;
 };
 
 class GlBufferBucket
@@ -223,7 +223,7 @@ public:
     bool intersects(const GlBufferBucket& other) const;
     bool intersects(const OGREnvelope &ext) const;
     char crossExtent() const;
-    GLsizei getFinalIndicesCount() const;
+    size_t getFinalIndicesCount() const;
 
 protected:
     void fill(OGRGeometry* geom, float level);

@@ -54,7 +54,7 @@ void ngs::FillGLBufferThread(void * layer)
 //------------------------------------------------------------------------------
 
 RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr), m_mapView(nullptr),
-    m_hThreadLock(CPLCreateLock(LOCK_SPIN))
+    m_hThreadLock(CPLCreateLock(LOCK_SPIN)), m_finalIndicesCount(0)
 {
     m_type = Layer::Type::Invalid;
 }
@@ -122,7 +122,7 @@ float RenderLayer::getComplete() const
     return m_complete;
 }
 
-GLsizei RenderLayer::getFinalIndicesCount() const
+size_t RenderLayer::getFinalIndicesCount() const
 {
     return m_finalIndicesCount;
 }
