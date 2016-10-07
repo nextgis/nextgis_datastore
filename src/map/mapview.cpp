@@ -107,6 +107,8 @@ int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
 
 int MapView::notify()
 {
+    bool debugMode = ngsGetOptions() & OPT_DEBUGMODE;
+
     if(nullptr != m_progressFunc) {
         float fullComplete = 0;
         GLsizei finalIndicesCount = 0;
@@ -114,19 +116,21 @@ int MapView::notify()
             LayerPtr layer = *it;
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             fullComplete += renderLayer->getComplete ();
-            if(ngsGetOptions() & OPT_DEBUGMODE) {
+            if(debugMode) {
                 finalIndicesCount += renderLayer->getFinalIndicesCount();
             }
         }
         fullComplete /= m_layers.size ();
 
-        const char* message = nullptr;
-        if(ngsGetOptions() & OPT_DEBUGMODE) {
-            message = std::to_string(finalIndicesCount).c_str();
+        std::string message;
+        if(debugMode) {
+            message = std::to_string(finalIndicesCount);
+            cout << "finalIndicesCount: " << finalIndicesCount << " message: " << message << endl;
         }
 
         return m_progressFunc(
-                getId(), static_cast<double>(fullComplete), message, m_progressArguments);
+                getId(), static_cast<double>(fullComplete), debugMode ? message.c_str() : nullptr,
+                m_progressArguments);
     }
     return TRUE;
 }
