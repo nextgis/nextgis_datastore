@@ -124,7 +124,7 @@ int MapView::notify()
 
         std::string message;
         if(debugMode) {
-            message = std::to_string(finalIndicesCount);
+            message = std::to_string(finalIndicesCount / 3);
             cout << "finalIndicesCount: " << finalIndicesCount << " message: " << message << endl;
         }
 
