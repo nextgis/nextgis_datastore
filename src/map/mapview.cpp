@@ -122,9 +122,9 @@ int MapView::notify()
         }
         fullComplete /= m_layers.size ();
 
-        std::string message;
+        CPLString message;
         if(debugMode) {
-            message = std::to_string(finalIndicesCount / 3);
+            message = to_string(finalIndicesCount / 3);
             cout << "finalIndicesCount: " << finalIndicesCount << " message: " << message << endl;
         }
 
