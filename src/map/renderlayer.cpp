@@ -202,7 +202,6 @@ void FeatureRenderLayer::initStyle()
 void FeatureRenderLayer::fillRenderBuffers()
 {
     m_complete = 0;
-    m_finalIndicesCount = 0;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
     FeaturePtr feature;
@@ -273,10 +272,6 @@ void FeatureRenderLayer::fillRenderBuffers()
         ++counter;
         m_complete = counter / tiles.size ();
 
-        if(ngsGetOptions() & OPT_DEBUGMODE) {
-            m_finalIndicesCount += tile.getFinalIndicesCount();
-        }
-
         if(m_mapView) {
             m_mapView->notify();
         }
@@ -326,8 +321,13 @@ void ngs::FeatureRenderLayer::drawTiles()
     // load program if already not, set matrix and fill color in prepare
     m_style->prepare (m_mapView->getSceneMatrix ());
     CPLLockHolder tilesHolder(m_hTilesLock);
+
+    m_finalIndicesCount = 0;
     for(GlBufferBucket& tile : m_tiles) {
         tile.draw (*m_style.get ());
+        if(ngsGetOptions() & OPT_DEBUGMODE) {
+            m_finalIndicesCount += tile.getFinalIndicesCount();
+        }
     }
 }
 
