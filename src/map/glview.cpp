@@ -1177,7 +1177,6 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 static_cast<float>(pt->getY ()), level);
 
             m_buffers[m_currentBuffer].addIndex (startIndex);
-
         }
             break;
         case wkbLineString:
@@ -1279,19 +1278,11 @@ char GlBufferBucket::crossExtent() const
 
 void GlBufferBucket::draw(const Style& style)
 {
-    if(m_filled) {
-        for(GlBuffer& buff : m_buffers) {
-            if(!buff.binded ())
-                buff.bind();
-            style.draw (buff);
-        }
-    }
-    else {
-        for (size_t i = 0; i < m_currentBuffer; ++i) {
-            if(!m_buffers[i].binded ())
-                m_buffers[i].bind();
-            style.draw (m_buffers[i]);
-        }
+    size_t limit = m_filled ? m_buffers.size() : m_currentBuffer;
+    for (size_t i = 0; i < limit; ++i) {
+        if(!m_buffers[i].binded ())
+            m_buffers[i].bind();
+        style.draw (m_buffers[i]);
     }
 }
 
