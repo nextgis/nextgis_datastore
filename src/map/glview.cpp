@@ -1312,6 +1312,11 @@ bool GlBufferBucket::hasFid(GIntBig fid) const
     return m_fids.find(fid) != m_fids.end();
 }
 
+int GlBufferBucket::getFidCount() const
+{
+    return m_fids.size();
+}
+
 OGREnvelope GlBufferBucket::extent() const
 {
     return m_extent;

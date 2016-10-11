@@ -218,6 +218,7 @@ public:
     unsigned char zoom() const;
     void free();
     bool hasFid(GIntBig fid) const;
+    int getFidCount() const;
 
     OGREnvelope extent() const;
     bool intersects(const GlBufferBucket& other) const;

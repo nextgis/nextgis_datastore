@@ -111,21 +111,21 @@ int MapView::notify()
 
     if(nullptr != m_progressFunc) {
         float fullComplete = 0;
-        size_t finalIndicesCount = 0;
+        size_t featureCount = 0;
         for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
             LayerPtr layer = *it;
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             fullComplete += renderLayer->getComplete ();
             if(debugMode) {
-                finalIndicesCount += renderLayer->getFinalIndicesCount();
+                featureCount += renderLayer->getFeatureCount();
             }
         }
         fullComplete /= m_layers.size ();
 
         CPLString message;
         if(debugMode) {
-            message = to_string(finalIndicesCount / 3);
-            cout << "finalIndicesCount: " << finalIndicesCount << " message: " << message << endl;
+            message = to_string(featureCount);
+            cout << "featureCount: " << featureCount << " message: " << message << endl;
         }
 
         return m_progressFunc(

@@ -54,7 +54,7 @@ void ngs::FillGLBufferThread(void * layer)
 //------------------------------------------------------------------------------
 
 RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr), m_mapView(nullptr),
-    m_hThreadLock(CPLCreateLock(LOCK_SPIN)), m_finalIndicesCount(0)
+    m_hThreadLock(CPLCreateLock(LOCK_SPIN)), m_featureCount(0)
 {
     m_type = Layer::Type::Invalid;
 }
@@ -122,9 +122,9 @@ float RenderLayer::getComplete() const
     return m_complete;
 }
 
-size_t RenderLayer::getFinalIndicesCount() const
+size_t RenderLayer::getFeatureCount() const
 {
-    return m_finalIndicesCount;
+    return m_featureCount;
 }
 
 void RenderLayer::finishFillThread()
@@ -202,6 +202,7 @@ void FeatureRenderLayer::initStyle()
 void FeatureRenderLayer::fillRenderBuffers()
 {
     m_complete = 0;
+    m_featureCount = 0;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
     FeaturePtr feature;
@@ -261,7 +262,7 @@ void FeatureRenderLayer::fillRenderBuffers()
             if(nullptr == geom)
                 continue;
 
-            // TODO: draw filled polygones with border
+            // TODO: draw filled polygons with border
             tile.fill(feature->GetFID (), geom, m_renderLevel);
         }
 
@@ -292,6 +293,7 @@ void FeatureRenderLayer::fillRenderBuffers()
             iter = m_tiles.erase(iter);
         }
         else {
+            m_featureCount += currentTile.getFidCount();
             ++iter;
         }
     }
@@ -322,12 +324,8 @@ void ngs::FeatureRenderLayer::drawTiles()
     m_style->prepare (m_mapView->getSceneMatrix ());
     CPLLockHolder tilesHolder(m_hTilesLock);
 
-    m_finalIndicesCount = 0;
     for(GlBufferBucket& tile : m_tiles) {
         tile.draw (*m_style.get ());
-        if(ngsGetOptions() & OPT_DEBUGMODE) {
-            m_finalIndicesCount += tile.getFinalIndicesCount();
-        }
     }
 }
 
