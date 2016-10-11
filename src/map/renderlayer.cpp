@@ -122,7 +122,7 @@ float RenderLayer::getComplete() const
     return m_complete;
 }
 
-size_t RenderLayer::getFeatureCount() const
+int RenderLayer::getFeatureCount() const
 {
     return m_featureCount;
 }
@@ -202,7 +202,7 @@ void FeatureRenderLayer::initStyle()
 void FeatureRenderLayer::fillRenderBuffers()
 {
     m_complete = 0;
-    m_featureCount = 0;
+    m_featureCount = -1;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
     FeaturePtr feature;
@@ -286,13 +286,15 @@ void FeatureRenderLayer::fillRenderBuffers()
     while (iter != m_tiles.end()) {
         const GlBufferBucket &currentTile = *iter;
 
-        if (currentTile.crossExtent () == 0 &&
-                (currentTile.zoom () != m_renderZoom ||
-                !currentTile.intersects (testExt))) {
+        if (currentTile.zoom() != m_renderZoom
+                || currentTile.crossExtent() == 0 && !currentTile.intersects(testExt)) {
             CPLLockHolder tilesHolder(m_hTilesLock);
             iter = m_tiles.erase(iter);
         }
         else {
+            if (-1 == m_featureCount) {
+                m_featureCount = 0;
+            }
             m_featureCount += currentTile.getFidCount();
             ++iter;
         }

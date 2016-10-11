@@ -111,13 +111,19 @@ int MapView::notify()
 
     if(nullptr != m_progressFunc) {
         float fullComplete = 0;
-        size_t featureCount = 0;
+        int featureCount = -1;
         for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
             LayerPtr layer = *it;
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             fullComplete += renderLayer->getComplete ();
             if(debugMode) {
-                featureCount += renderLayer->getFeatureCount();
+                int count = renderLayer->getFeatureCount();
+                if (count > -1) {
+                    if (-1 == featureCount) {
+                        featureCount = 0;
+                    }
+                    featureCount += count;
+                }
             }
         }
         fullComplete /= m_layers.size ();
