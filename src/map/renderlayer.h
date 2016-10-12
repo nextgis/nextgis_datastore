@@ -45,6 +45,7 @@ public:
     virtual void draw(enum ngsDrawState state, OGREnvelope extent, double zoom,
                         float level);
     virtual float getComplete() const;
+    virtual bool isComplete() const;
     virtual int getFeatureCount() const;
 protected:
     virtual void clearTiles() = 0;
@@ -59,6 +60,7 @@ protected:
     unsigned char m_renderZoom;
     float m_renderLevel;
     float m_complete;
+    bool m_isComplete;
     int m_featureCount;
     MapView* m_mapView;
     CPLLock *m_hThreadLock;

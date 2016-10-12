@@ -97,7 +97,9 @@ enum ngsDataStoreOptionsTypes {
  * @brief Prototype of function, which executed periodically during some long
  * process.
  * @param id Process task id
- * @param complete Progress percent from 0 to 1
+ * @param complete If complete <= 1 then it means progress percent from 0 to 1,
+ * long process is not complete.
+ * If complete > 1 then long process is complete, progress percent equals (complete - 1)
  * @param message Some user friendly message from process
  * @param progressArguments Data from user
  * @return 1 to continue execute process or 0 - to cancel

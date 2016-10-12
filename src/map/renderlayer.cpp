@@ -122,6 +122,11 @@ float RenderLayer::getComplete() const
     return m_complete;
 }
 
+bool RenderLayer::isComplete() const
+{
+    return m_isComplete;
+}
+
 int RenderLayer::getFeatureCount() const
 {
     return m_featureCount;
@@ -202,6 +207,7 @@ void FeatureRenderLayer::initStyle()
 void FeatureRenderLayer::fillRenderBuffers()
 {
     m_complete = 0;
+    m_isComplete = false;
     m_featureCount = -1;
     float counter = 0;
     OGREnvelope renderExtent = m_renderExtent;
@@ -301,6 +307,7 @@ void FeatureRenderLayer::fillRenderBuffers()
     }
 
     m_complete = 1;
+    m_isComplete = true;
     if(m_mapView) {
         m_mapView->notify();
     }
