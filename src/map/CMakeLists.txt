@@ -37,6 +37,7 @@ set(HHEADER_PRIV
     layer.h
     renderlayer.h
     style.h
+    vector.h
 )
 
 set(CSOURCES

@@ -2,6 +2,7 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
 *  Copyright (C) 2016 NextGIS, <info@nextgis.com>
 *
@@ -20,6 +21,7 @@
 #include "glview.h"
 #include "style.h"
 #include "constants.h"
+#include "vector.h"
 
 #include <iostream>
 #include "cpl_error.h"
@@ -797,7 +799,6 @@ bool GlProgram::load(const GLchar * const vertexShader,
     glAttachShader(programId, vertexShaderId);
     glAttachShader(programId, fragmentShaderId);
 
-    glBindAttribLocation ( programId, 0, "vPosition" );
     glLinkProgram(programId);
 
     if( !checkLinkStatus(programId) ){
@@ -1082,6 +1083,12 @@ void GlBuffer::addVertex(float x, float y, float z)
     m_vertices.push_back (z);
 }
 
+void GlBuffer::addNormal(float x, float y)
+{
+    m_vertices.push_back (x);
+    m_vertices.push_back (y);
+}
+
 void GlBuffer::addIndex(unsigned short one, unsigned short two,
                         unsigned short three)
 {
@@ -1184,7 +1191,6 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
         case wkbPolygon:
         {
             OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
-            OGRPoint pt;
             // TODO: not only external ring must be extracted
             OGRLinearRing* ring = polygon->getExteriorRing ();
             int numPoints = ring->getNumPoints ();
@@ -1197,28 +1203,63 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 return;
             }
 
-            if(!m_buffers[m_currentBuffer].canStore (numPoints * 3)) {
+            if(!m_buffers[m_currentBuffer].canStore (numPoints * 5 * 4)) {
                 m_buffers.push_back (GlBuffer());
                 ++m_currentBuffer;
                 return fill(geom, level);
             }
 
-            unsigned short startPolyIndex = m_buffers[m_currentBuffer].
-                    getVerticesCount () / 3;
-            for(int i = 0; i < numPoints; ++i) {
-                ring->getPoint (i, &pt);
+            int ptIndex = m_buffers[m_currentBuffer].getVerticesCount() / 5;
+            Vector2 currPt, nextPt;
+            ring->getPoint(0, &currPt);
+
+            // last point == first point, see
+            // https://en.wikipedia.org/wiki/Well-known_text
+            for (int i = 1; i < numPoints; ++i) {
+                ring->getPoint(i, &nextPt);
+
                 // add point coordinates in float
                 // TODO: add getZ + level
-                m_buffers[m_currentBuffer].addVertex (
-                    static_cast<float>(pt.getX () + m_crossExtent * DEFAULT_MAX_X2),
-                    static_cast<float>(pt.getY ()),
-                    level);
+
+                Vector2 normal = currPt.normal(nextPt);
+                Vector2 invNormal = normal * -1;
+
+                float cptx = static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+                float cpty = static_cast<float>(currPt.getY());
+                float cptz = level;
+
+                float nptx = static_cast<float>(nextPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+                float npty = static_cast<float>(nextPt.getY());
+                float nptz = level;
+
+                float nx = static_cast<float>(normal.getX());
+                float ny = static_cast<float>(normal.getY());
+
+                float inx = static_cast<float>(invNormal.getX());
+                float iny = static_cast<float>(invNormal.getY());
+
+                // v(i), n
+                m_buffers[m_currentBuffer].addVertex(cptx, cpty, cptz);
+                m_buffers[m_currentBuffer].addNormal(nx, ny);
+
+                // v(i+1), -n
+                m_buffers[m_currentBuffer].addVertex(cptx, cpty, cptz);
+                m_buffers[m_currentBuffer].addNormal(inx, iny);
+
+                // v(i+2), n
+                m_buffers[m_currentBuffer].addVertex(nptx, npty, nptz);
+                m_buffers[m_currentBuffer].addNormal(nx, ny);
+
+                // v(i+3), -n
+                m_buffers[m_currentBuffer].addVertex(nptx, npty, nptz);
+                m_buffers[m_currentBuffer].addNormal(inx, iny);
 
                 // add triangle indices unsigned short
-                if(i < numPoints - 2 ) {
-                    m_buffers[m_currentBuffer].addIndex (startPolyIndex,
-                            startPolyIndex + i + 1, startPolyIndex + i + 2);
-                }
+                int index = ptIndex + i * 4;
+                m_buffers[m_currentBuffer].addIndex(index, index + 2, index + 3);
+                m_buffers[m_currentBuffer].addIndex(index, index + 3, index + 1);
+
+                currPt = nextPt;
             }
         }
             break;

@@ -2,6 +2,7 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
 *  Copyright (C) 2016 NextGIS, <info@nextgis.com>
 *
@@ -189,6 +190,7 @@ public:
     size_t getVerticesCount() const;
     size_t getIndicesCount() const;
     void addVertex(float x, float y, float z);
+    void addNormal(float x, float y);
     void addIndex(unsigned short one, unsigned short two, unsigned short three);
     void addIndex(unsigned short index);
     size_t getFinalIndicesCount() const;

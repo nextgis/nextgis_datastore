@@ -311,6 +311,11 @@ Matrix4 MapTransform::getSceneMatrix() const
     return m_sceneMatrix;
 }
 
+Matrix4 MapTransform::getInvViewMatrix() const
+{
+    return m_invViewMatrix;
+}
+
 double MapTransform::getZoom() const {
     double retVal = log(m_scaleWorld) / M_LN2;
     return retVal < 0 ? 0 : retVal;

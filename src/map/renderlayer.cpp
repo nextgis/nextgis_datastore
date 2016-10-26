@@ -330,7 +330,7 @@ void ngs::FeatureRenderLayer::clearTiles()
 void ngs::FeatureRenderLayer::drawTiles()
 {
     // load program if already not, set matrix and fill color in prepare
-    m_style->prepare (m_mapView->getSceneMatrix ());
+    m_style->prepare(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
     CPLLockHolder tilesHolder(m_hTilesLock);
 
     for(GlBufferBucket& tile : m_tiles) {

@@ -51,6 +51,7 @@ public:
     double getZoom() const;
     double getScale() const;
     Matrix4 getSceneMatrix() const;
+    Matrix4 getInvViewMatrix() const;
 
     bool getXAxisLooped() const;
 

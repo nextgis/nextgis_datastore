@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
  *
@@ -30,10 +31,16 @@ using namespace ngs;
 // Style
 //------------------------------------------------------------------------------
 
-Style::Style() : m_program(new GlProgram ()), m_matrixId(-1), m_colorId(-1),
-    m_load(false)
+Style::Style()
+        : m_program(new GlProgram())
+        , m_mPositionId(-1)
+        , m_NormalId(-1)
+        , m_vLineWidthId(-1)
+        , m_msMatrixId(-1)
+        , m_vsMatrixId(-1)
+        , m_colorId(-1)
+        , m_load(false)
 {
-
 }
 
 Style::~Style()
@@ -41,7 +48,7 @@ Style::~Style()
 
 }
 
-bool Style::prepare(const Matrix4 &mat)
+bool Style::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
 {
     if(!m_load) {
         m_load = m_program->load(getShaderSource(SH_VERTEX),
@@ -59,16 +66,31 @@ bool Style::prepare(const Matrix4 &mat)
     cout << "Number active uniforms: " << numActiveUniforms << endl;
 #endif //_DEBUG
 
-    if(m_matrixId == -1)
-        m_matrixId = glGetUniformLocation(m_program->id(), "mvMatrix");
+    if(m_mPositionId == -1)
+        m_mPositionId = glGetAttribLocation(m_program->id(), "a_mPosition");
+    if(m_NormalId == -1)
+        m_NormalId = glGetAttribLocation(m_program->id(), "a_Normal");
+
+    if(m_vLineWidthId == -1)
+        m_vLineWidthId = glGetUniformLocation(m_program->id(), "u_vLineWidth");
+    if(m_msMatrixId == -1)
+        m_msMatrixId = glGetUniformLocation(m_program->id(), "u_msMatrix");
+    if(m_vsMatrixId == -1)
+        m_vsMatrixId = glGetUniformLocation(m_program->id(), "u_vsMatrix");
+
     if(m_colorId == -1)
         m_colorId = glGetUniformLocation(m_program->id(), "u_Color");
 
-    array<GLfloat, 16> mat4f = mat.dataF ();
+    const float lineWidth = 2.0;
+    ngsCheckGLEerror(glUniform1f(m_vLineWidthId, lineWidth));
 
-    ngsCheckGLEerror(glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, mat4f.data()));
-    ngsCheckGLEerror(glUniform4f(m_colorId, m_color.r, m_color.g, m_color.b,
-                                 m_color.a));
+    array<GLfloat, 16> msMat4f = msMatrix.dataF ();
+    ngsCheckGLEerror(glUniformMatrix4fv(m_msMatrixId, 1, GL_FALSE, msMat4f.data()));
+
+    array<GLfloat, 16> vsMat4f = vsMatrix.dataF ();
+    ngsCheckGLEerror(glUniformMatrix4fv(m_vsMatrixId, 1, GL_FALSE, vsMat4f.data()));
+
+    ngsCheckGLEerror(glUniform4f(m_colorId, m_color.r, m_color.g, m_color.b, m_color.a));
 
     return true;
 }
@@ -113,15 +135,20 @@ void SimpleFillStyle::draw(const GlBuffer &buffer) const
     if(!buffer.binded ())
         return;
 
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER,
-                                  buffer.getBuffer (SH_VERTEX)));
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                  buffer.getBuffer (SH_FRAGMENT)));
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(SH_VERTEX)));
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(SH_FRAGMENT)));
 
-    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, buffer.getFinalIndicesCount (),
-                                    GL_UNSIGNED_SHORT, NULL));
+    ngsCheckGLEerror(glEnableVertexAttribArray(m_mPositionId));
+    ngsCheckGLEerror(
+            glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0));
+
+    ngsCheckGLEerror(glEnableVertexAttribArray(m_NormalId));
+    ngsCheckGLEerror(glVertexAttribPointer(
+            m_NormalId, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+            reinterpret_cast<const GLvoid*>(3 * sizeof(float))));
+
+    ngsCheckGLEerror(glDrawElements(
+            GL_TRIANGLES, buffer.getFinalIndicesCount(), GL_UNSIGNED_SHORT, NULL));
 }
 
 //------------------------------------------------------------------------------
@@ -160,8 +187,9 @@ void SimplePointStyle::draw(const GlBuffer &buffer) const
                                   buffer.getBuffer (SH_VERTEX)));
     ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
                                   buffer.getBuffer (SH_FRAGMENT)));
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
+
+    ngsCheckGLEerror(glEnableVertexAttribArray(m_mPositionId));
+    ngsCheckGLEerror(glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
     ngsCheckGLEerror(glDrawElements(GL_POINTS, buffer.getFinalIndicesCount (),
                                     GL_UNSIGNED_SHORT, NULL));
@@ -178,9 +206,9 @@ void SimplePointStyle::setRadius(float radius)
 }
 
 
-bool SimplePointStyle::prepare(const Matrix4 &mat)
+bool SimplePointStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
 {
-    if(!Style::prepare (mat))
+    if (!Style::prepare(msMatrix, vsMatrix))
         return false;
     if(m_radiusId == -1) {
         m_radiusId = glGetUniformLocation(m_program->id(), "fRadius");
