@@ -1044,7 +1044,6 @@ void GlBuffer::bind()
     ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) *
                                   m_vertices.size (), m_vertices.data (),
                                   GL_STATIC_DRAW));
-
     m_vertices.clear ();
 
     m_indicesCount = m_indices.size ();
@@ -1053,6 +1052,7 @@ void GlBuffer::bind()
                                   m_indicesCount, m_indices.data (),
                                   GL_STATIC_DRAW));
     m_indices.clear ();
+
     m_binded = true;
 }
 
@@ -1215,8 +1215,9 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
 
             // last point == first point, see
             // https://en.wikipedia.org/wiki/Well-known_text
-            for (int i = 1; i < numPoints; ++i) {
-                ring->getPoint(i, &nextPt);
+            --numPoints;
+            for (int i = 0; i < numPoints; ++i) {
+                ring->getPoint(i + 1, &nextPt);
 
                 // add point coordinates in float
                 // TODO: add getZ + level
@@ -1254,7 +1255,7 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 m_buffers[m_currentBuffer].addVertex(nptx, npty, nptz);
                 m_buffers[m_currentBuffer].addNormal(inx, iny);
 
-                // add triangle indices unsigned short
+                // add triangle indexes unsigned short
                 int index = ptIndex + i * 4;
                 m_buffers[m_currentBuffer].addIndex(index, index + 2, index + 3);
                 m_buffers[m_currentBuffer].addIndex(index, index + 3, index + 1);
