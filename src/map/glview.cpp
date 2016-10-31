@@ -1020,7 +1020,7 @@ bool GlFuctions::loadExtensions()
 // GlBuffer
 //------------------------------------------------------------------------------
 
-GlBuffer::GlBuffer() : m_binded(false), m_indicesCount(0)
+GlBuffer::GlBuffer() : m_binded(false), m_finalVerticesCount(0), m_finalIndicesCount(0)
 {
     m_vertices.reserve (VAO_RESERVE);
     m_indices.reserve (VAO_RESERVE);
@@ -1040,23 +1040,24 @@ void GlBuffer::bind()
 
     ngsCheckGLEerror(glGenBuffers(2, m_buffers));
 
+    m_finalVerticesCount = m_vertices.size();
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
-    ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) *
-                                  m_vertices.size (), m_vertices.data (),
-                                  GL_STATIC_DRAW));
+    ngsCheckGLEerror(glBufferData(
+            GL_ARRAY_BUFFER, sizeof(GLfloat) * m_finalVerticesCount, m_vertices.data(),
+            GL_STATIC_DRAW));
     m_vertices.clear ();
 
-    m_indicesCount = m_indices.size ();
+    m_finalIndicesCount = m_indices.size ();
     ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
-    ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) *
-                                  m_indicesCount, m_indices.data (),
-                                  GL_STATIC_DRAW));
+    ngsCheckGLEerror(glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * m_finalIndicesCount, m_indices.data(),
+            GL_STATIC_DRAW));
     m_indices.clear ();
 
     m_binded = true;
 }
 
-bool GlBuffer::binded() const
+bool GlBuffer::bound() const
 {
     return m_binded;
 }
@@ -1102,9 +1103,14 @@ void GlBuffer::addIndex(unsigned short index)
     m_indices.push_back (index);
 }
 
+size_t GlBuffer::getFinalVerticesCount() const
+{
+    return m_finalVerticesCount;
+}
+
 size_t GlBuffer::getFinalIndicesCount() const
 {
-    return m_indicesCount;
+    return m_finalIndicesCount;
 }
 
 GLuint GlBuffer::getBuffer(ngsShaderType type) const
@@ -1136,10 +1142,10 @@ void GlBufferBucket::bind()
     }
 }
 
-bool GlBufferBucket::binded() const
+bool GlBufferBucket::bound() const
 {
     for(const GlBuffer& buff : m_buffers) {
-        if(!buff.binded ())
+        if(!buff.bound())
             return false;
     }
     return true;
@@ -1173,7 +1179,6 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
             if(!m_buffers[m_currentBuffer].canStore (3)) {
                 m_buffers.push_back (GlBuffer());
                 ++m_currentBuffer;
-                return fill(geom, level);
             }
 
             unsigned short startIndex = m_buffers[m_currentBuffer].
@@ -1206,7 +1211,6 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
             if(!m_buffers[m_currentBuffer].canStore (numPoints * 5 * 4)) {
                 m_buffers.push_back (GlBuffer());
                 ++m_currentBuffer;
-                return fill(geom, level);
             }
 
             int ptIndex = m_buffers[m_currentBuffer].getVerticesCount() / 5;
@@ -1322,7 +1326,7 @@ void GlBufferBucket::draw(const Style& style)
 {
     size_t limit = m_filled ? m_buffers.size() : m_currentBuffer;
     for (size_t i = 0; i < limit; ++i) {
-        if(!m_buffers[i].binded ())
+        if(!m_buffers[i].bound())
             m_buffers[i].bind();
         style.draw (m_buffers[i]);
     }
@@ -1372,6 +1376,15 @@ bool GlBufferBucket::intersects(const GlBufferBucket &other) const
 bool GlBufferBucket::intersects(const OGREnvelope &ext) const
 {
     return m_extent.Intersects (ext) == TRUE;
+}
+
+size_t GlBufferBucket::getFinalVerticesCount() const
+{
+    size_t finalVerticesCount = 0;
+    for(const GlBuffer& buff : m_buffers) {
+        finalVerticesCount += buff.getFinalVerticesCount();
+    }
+    return finalVerticesCount;
 }
 
 size_t GlBufferBucket::getFinalIndicesCount() const

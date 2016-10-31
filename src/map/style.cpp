@@ -132,7 +132,7 @@ const GLchar *SimpleFillStyle::getShaderSource(enum ngsShaderType type)
 
 void SimpleFillStyle::draw(const GlBuffer &buffer) const
 {
-    if(!buffer.binded ())
+    if(!buffer.bound())
         return;
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(SH_VERTEX)));
@@ -180,7 +180,7 @@ const GLchar *SimplePointStyle::getShaderSource(enum ngsShaderType type)
 
 void SimplePointStyle::draw(const GlBuffer &buffer) const
 {
-    if(!buffer.binded ())
+    if(!buffer.bound())
         return;
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER,

@@ -184,7 +184,7 @@ public:
     ~GlBuffer();
 
     void bind();
-    bool binded() const;
+    bool bound() const;
 
     bool canStore(size_t numItems) const;
     size_t getVerticesCount() const;
@@ -193,14 +193,15 @@ public:
     void addNormal(float x, float y);
     void addIndex(unsigned short one, unsigned short two, unsigned short three);
     void addIndex(unsigned short index);
+    size_t getFinalVerticesCount() const;
     size_t getFinalIndicesCount() const;
     GLuint getBuffer(enum ngsShaderType type) const;
 protected:
     bool m_binded;
     vector<GLfloat> m_vertices;
     vector<GLushort> m_indices;
-    GLuint    m_buffers[2];
-    size_t   m_indicesCount;
+    GLuint m_buffers[2];
+    size_t m_finalVerticesCount, m_finalIndicesCount;
 };
 
 class GlBufferBucket
@@ -212,7 +213,7 @@ public:
     void bind();
     bool filled() const;
     void setFilled(bool filled);
-    bool binded() const;
+    bool bound() const;
     void fill(GIntBig fid, OGRGeometry* geom, float level);
     void draw(const Style& style);
     int X() const;
@@ -226,6 +227,7 @@ public:
     bool intersects(const GlBufferBucket& other) const;
     bool intersects(const OGREnvelope &ext) const;
     char crossExtent() const;
+    size_t getFinalVerticesCount() const;
     size_t getFinalIndicesCount() const;
 
 protected:

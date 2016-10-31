@@ -31,6 +31,8 @@
 
 using namespace ngs;
 
+const int MAX_FID_COUNT = 500000;
+
 void ngs::FillGLBufferThread(void * layer)
 {
     RenderLayer* renderLayer = static_cast<RenderLayer*>(layer);
@@ -228,7 +230,12 @@ void FeatureRenderLayer::fillRenderBuffers()
         ++iter;
     }
 
+    int fidCount = getFidCount();
     for(TileItem &tileItem : tiles) {
+        if (fidCount > MAX_FID_COUNT) {
+            break;
+        }
+
         GlBufferBucket tile(tileItem.x, tileItem.y, tileItem.z, tileItem.env,
                             tileItem.crossExtent);
         if(m_cancelPrepare)
@@ -270,6 +277,11 @@ void FeatureRenderLayer::fillRenderBuffers()
 
             // TODO: draw filled polygons with border
             tile.fill(feature->GetFID (), geom, m_renderLevel);
+
+            ++fidCount;
+            if (fidCount > MAX_FID_COUNT) {
+                break;
+            }
         }
 
         tile.setFilled(true);
@@ -333,9 +345,16 @@ void ngs::FeatureRenderLayer::drawTiles()
     m_style->prepare(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
     CPLLockHolder tilesHolder(m_hTilesLock);
 
+    int vertexCount = 0;
+    int indexCount = 0;
     for(GlBufferBucket& tile : m_tiles) {
         tile.draw (*m_style.get ());
+        vertexCount += tile.getFinalVerticesCount();
+        indexCount += tile.getFinalIndicesCount();
     }
+
+    cout << "drawTiles(), vertexCount == " << vertexCount << endl;
+    cout << "drawTiles(), indexCount == " << indexCount << endl;
 }
 
 void FeatureRenderLayer::refreshTiles()
@@ -380,4 +399,13 @@ int FeatureRenderLayer::load(const JSONObject &store,
         return nRet;
     initStyle();
     return nRet;
+}
+
+int FeatureRenderLayer::getFidCount() const
+{
+    int fidCount = 0;
+    for(const GlBufferBucket& tile : m_tiles) {
+        fidCount += tile.getFidCount();
+    }
+    return fidCount;
 }

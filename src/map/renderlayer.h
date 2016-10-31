@@ -84,6 +84,7 @@ protected:
     virtual void clearTiles() override;
     virtual void drawTiles() override;
     void refreshTiles();
+    int getFidCount() const;
 
     // Layer interface
 public:
