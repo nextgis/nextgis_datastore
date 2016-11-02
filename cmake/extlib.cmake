@@ -202,10 +202,13 @@ find_anyproject(GDAL REQUIRED VERSION 2.0 SHARED OFF CMAKE_ARGS
 
 if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     # this only need for API report version
+
+    set(THIRD_PARTY_INCLUDE_PATH ${CMAKE_BINARY_DIR}/third-party/install/include)
+
     #include <curl/curlver.h>
     find_path(CURL_PATH curlver.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/curl
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/curl
         /usr/include
         /usr/include/curl
         /usr/local/include
@@ -216,10 +219,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${CURL_PATH})
         add_definitions (-DHAVE_CURLVER_H)
     endif()
+
     #include "geos_c.h"
     find_path(GEOS_PATH geos_c.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/geos
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/geos
         /usr/include
         /usr/include/geos
         /usr/local/include
@@ -228,10 +232,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${GEOS_PATH})
         add_definitions (-DHAVE_GEOS_C_H)
     endif()
+
     #include "sqlite3.h"
     find_path(SQLITE3_PATH sqlite3.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/sqlite3
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/sqlite3
         /usr/include
         /usr/include/sqlite3
         /usr/local/include
@@ -240,10 +245,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${SQLITE3_PATH})
         add_definitions (-DHAVE_SQLITE3_H)
     endif()
+
     #[[include "json-c/json_c_version.h"
     find_path(JSON_C_PATH json_c_version.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/json-c
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/json-c
         /usr/include
         /usr/include/json-c
         /usr/local/include
@@ -253,10 +259,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         add_definitions (-DHAVE_JSON_C_VERSION_H)
     endif()
     ]]
+
     #include "proj_api.h"
     find_path(PROJ_API_PATH proj_api.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/proj4
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/proj4
         /usr/include
         /usr/include/proj4
         /usr/local/include
@@ -265,10 +272,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${PROJ_API_PATH})
         add_definitions (-DHAVE_PROJ_API_H)
     endif()
+
     #include "jpeglib.h"
     find_path(JPEGLIB_PATH jpeglib.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/jpeg
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/jpeg
         /usr/include
         /usr/include/jpeg
         /usr/local/include
@@ -277,10 +285,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${JPEGLIB_PATH})
         add_definitions (-DHAVE_JPEGLIB_H)
     endif()
+
     #include "tiff.h"
     find_path(TIFF_PATH tiff.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/tiff
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/tiff
         /usr/include
         /usr/include/tiff
         /usr/local/include
@@ -289,10 +298,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${TIFF_PATH})
         add_definitions (-DHAVE_TIFF_H)
     endif()
+
     #include "geotiff.h"
     find_path(GEOTIFF_PATH geotiff.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/geotiff
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/geotiff
         /usr/include /usr/include/geotiff
         /usr/local/include
         /usr/local/include/geotiff)
@@ -302,10 +312,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${GEOTIFF_PATH})
         add_definitions (-DHAVE_GEOTIFF_H)
     endif()
+
     #include "png.h"
     find_path(PNG_PATH png.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/libpng16
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/libpng16
         /usr/include
         /usr/include/png
         /usr/local/include
@@ -314,10 +325,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${PNG_PATH})
         add_definitions (-DHAVE_PNG_H)
     endif()
+
     #include "expat.h"
     find_path(EXPAT_PATH expat.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/expat
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/expat
         /usr/include
         /usr/include/expat
         /usr/local/include
@@ -326,10 +338,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${EXPAT_PATH})
         add_definitions (-DHAVE_EXPAT_H)
     endif()
+
     #include "iconv.h"
     find_path(ICONV_PATH iconv.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/iconv
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/iconv
         /usr/include
         /usr/include/iconv/
         /usr/local/include
@@ -338,10 +351,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${ICONV_PATH})
         add_definitions (-DHAVE_ICONV_H)
     endif()
+
     #include "zlib.h"
     find_path(ZLIB_PATH zlib.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/zlib
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/zlib
         /usr/include
         /usr/include/zlib
         /usr/local/include
@@ -350,10 +364,11 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${ZLIB_PATH})
         add_definitions (-DHAVE_ZLIB_H)
     endif()
+
     #include "openssl/opensslv.h"
     find_path(OPENSSL_PATH opensslv.h PATHS
-        ${CMAKE_BINARY_DIR}/third-party/include
-        ${CMAKE_BINARY_DIR}/third-party/include/openssl
+        ${THIRD_PARTY_INCLUDE_PATH}
+        ${THIRD_PARTY_INCLUDE_PATH}/openssl
         /usr/include
         /usr/include/openssl
         /usr/local/include
@@ -364,4 +379,5 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         include_directories (${OPENSSL_PATH})
         add_definitions (-DHAVE_OPENSSLV_H)
     endif()
+
 endif()
