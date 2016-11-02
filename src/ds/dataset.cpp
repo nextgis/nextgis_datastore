@@ -257,6 +257,10 @@ DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
         }
     }
 
+    if (!outDS) {
+        return nullptr;
+    }
+
     outDS->m_DS = ds;
     outDS->m_path = path;
     outDS->m_opened = true;

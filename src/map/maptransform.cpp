@@ -32,7 +32,7 @@ using namespace ngs;
 
 MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
     m_displayHeight(height), m_rotate{0},
-    m_ratio(DEFAULT_RATIO), m_XAxisLooped(true)
+    m_ratio(DEFAULT_RATIO), m_XAxisLooped(true), m_YAxisInverted(false)
 {
     setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
                           DEFAULT_MAX_Y));

@@ -92,7 +92,8 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
             else {
                 newGeom = geom->clone ();
             }
-progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
+            if(progressInfo)
+                progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
             CT.transform(newGeom);
         }
 
