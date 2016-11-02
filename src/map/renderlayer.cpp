@@ -285,10 +285,10 @@ void FeatureRenderLayer::fillRenderBuffers()
         }
 
         tile.setFilled(true);
-
-        CPLLockHolder tilesHolder(m_hTilesLock);
-        m_tiles.push_back (tile);
-
+        {
+            CPLLockHolder tilesHolder(m_hTilesLock);
+            m_tiles.push_back (tile);
+        }
         ++counter;
         m_complete = counter / tiles.size ();
 
