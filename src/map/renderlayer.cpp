@@ -48,7 +48,6 @@ void ngs::FillGLBufferThread(void * layer)
                             chrono::high_resolution_clock::now() - t1 ).count();
     cout << "Finish FillGLBufferThread at " << duration << " ms" << endl;
 #endif //DEBUG
-    renderLayer->finishFillThread();
 }
 
 //------------------------------------------------------------------------------
@@ -77,6 +76,8 @@ RenderLayer::~RenderLayer()
 
 void RenderLayer::prepareFillThread(OGREnvelope extent, double zoom, float level)
 {
+    cancelFillThread();
+
     // start bucket of buffers preparation
     m_cancelPrepare = false;
     //m_renderPercent = 0;
@@ -85,10 +86,8 @@ void RenderLayer::prepareFillThread(OGREnvelope extent, double zoom, float level
     m_renderLevel = level;
 
     // create or refill virtual tiles for current extent and zooms
-
     CPLLockHolder tilesHolder(m_hThreadLock);
-    if(nullptr == m_hPrepareThread)
-        m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
+    m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
 }
 
 void RenderLayer::cancelFillThread()
@@ -100,6 +99,13 @@ void RenderLayer::cancelFillThread()
         CPLJoinThread(m_hPrepareThread);
         m_hPrepareThread = nullptr;
     }
+}
+
+void RenderLayer::finishFillThread()
+{
+    CPLLockHolder tilesHolder(m_hThreadLock);
+    CPLJoinThread(m_hPrepareThread);
+    m_hPrepareThread = nullptr;
 }
 
 void RenderLayer::draw(ngsDrawState state, OGREnvelope extent, double zoom,
@@ -132,12 +138,6 @@ bool RenderLayer::isComplete() const
 int RenderLayer::getFeatureCount() const
 {
     return m_featureCount;
-}
-
-void RenderLayer::finishFillThread()
-{
-    CPLLockHolder tilesHolder(m_hThreadLock);
-    m_hPrepareThread = nullptr;
 }
 
 //------------------------------------------------------------------------------

@@ -1208,7 +1208,7 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 return;
             }
 
-            if(!m_buffers[m_currentBuffer].canStore (numPoints * 5 * 4)) {
+            if(!m_buffers[m_currentBuffer].canStore (numPoints * 20)) { // 5 floats * 4 vertexes
                 m_buffers.push_back (GlBuffer());
                 ++m_currentBuffer;
             }
