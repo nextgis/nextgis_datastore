@@ -237,7 +237,6 @@ protected:
 protected:
     vector<GlBuffer> m_buffers;
     set<GIntBig> m_fids;
-    size_t m_currentBuffer;
     int m_X, m_Y;
     unsigned char m_zoom;
     OGREnvelope m_extent;

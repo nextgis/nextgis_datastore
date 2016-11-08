@@ -188,7 +188,11 @@ ResultSetPtr FeatureDataset::executeSQL(const CPLString &statement,
                                         GeometryPtr spatialFilter,
                                         const CPLString &dialect) const
 {
-    return ResultSetPtr(m_DS->ExecuteSQL (statement, spatialFilter.get (), dialect));
+    return ResultSetPtr(m_DS->ExecuteSQL(statement, spatialFilter.get (), dialect),
+                                     [=](OGRLayer* layer)
+    {
+        m_DS->ReleaseResultSet(layer);
+    });
 }
 
 /*

@@ -176,7 +176,11 @@ FeaturePtr Table::nextFeature() const
 ResultSetPtr Table::executeSQL(const CPLString &statement,
                                const CPLString &dialect) const
 {
-    return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, dialect ));
+    return ResultSetPtr(m_DS->ExecuteSQL(statement, nullptr, dialect),
+                                     [=](OGRLayer* layer)
+    {
+        m_DS->ReleaseResultSet(layer);
+    });
 }
 
 int Table::destroy(ProgressInfo *processInfo)

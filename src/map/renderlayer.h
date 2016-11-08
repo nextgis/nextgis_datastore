@@ -47,6 +47,7 @@ public:
     virtual float getComplete() const;
     virtual bool isComplete() const;
     virtual int getFeatureCount() const;
+
 protected:
     virtual void clearTiles() = 0;
     virtual void drawTiles() = 0;

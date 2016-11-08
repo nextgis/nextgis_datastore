@@ -613,7 +613,11 @@ void DataStore::enableJournal(bool enable)
 
 ResultSetPtr DataStore::executeSQL(const CPLString &statement) const
 {
-    return ResultSetPtr(m_DS->ExecuteSQL ( statement, nullptr, "SQLITE" ));
+    return ResultSetPtr(m_DS->ExecuteSQL(statement, nullptr, "SQLITE"),
+                                     [=](OGRLayer* layer)
+    {
+        m_DS->ReleaseResultSet(layer);
+    });
 }
 
 void DataStore::onLowMemory()

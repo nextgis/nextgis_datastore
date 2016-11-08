@@ -188,6 +188,7 @@ void FeatureRenderLayer::initStyle()
     {
         SimplePointStyle* style = new SimplePointStyle();
         m_style.reset(style);
+        m_style->prepareProgram();
         m_style->setColor ({0, 0, 255, 255});
         style->setRadius (9.0f);
     }
@@ -199,6 +200,7 @@ void FeatureRenderLayer::initStyle()
     case wkbMultiPolygon:
     case wkbPolygon:
         m_style.reset(new SimpleFillStyle());
+        m_style->prepareProgram();
         m_style->setColor ({255, 0, 0, 255});
         break;
     default:
@@ -232,14 +234,15 @@ void FeatureRenderLayer::fillRenderBuffers()
 
     int fidCount = getFidCount();
     for(TileItem &tileItem : tiles) {
+        if(m_cancelPrepare) {
+            return;
+        }
         if (fidCount > MAX_FID_COUNT) {
             break;
         }
 
         GlBufferBucket tile(tileItem.x, tileItem.y, tileItem.z, tileItem.env,
                             tileItem.crossExtent);
-        if(m_cancelPrepare)
-            return;
 
         if(! (isEqual(renderExtent.MaxX, m_renderExtent.MaxX) &&
               isEqual(renderExtent.MaxY, m_renderExtent.MaxY) &&
@@ -249,8 +252,8 @@ void FeatureRenderLayer::fillRenderBuffers()
             return fillRenderBuffers();
         }
 
-        GeometryPtr spatialFilter (envelopeToGeometry(tile.extent (),
-                                    featureDataset->getSpatialReference ()));
+        GeometryPtr spatialFilter = envelopeToGeometry(tile.extent (),
+                                    featureDataset->getSpatialReference ());
         ResultSetPtr resSet = featureDataset->getGeometries (tile.zoom (),
                                                              spatialFilter);
         while ((feature = resSet->GetNextFeature ()) != nullptr) {
@@ -303,7 +306,7 @@ void FeatureRenderLayer::fillRenderBuffers()
     iter = m_tiles.begin ();
     OGREnvelope testExt = resizeEnvelope (m_renderExtent, 2);
     while (iter != m_tiles.end()) {
-        const GlBufferBucket &currentTile = *iter;
+        const GlBufferBucket& currentTile = *iter;
 
         if (currentTile.zoom() != m_renderZoom
                 || currentTile.crossExtent() == 0 && !currentTile.intersects(testExt)) {
@@ -332,6 +335,8 @@ void FeatureRenderLayer::fillRenderBuffers()
         // if extent changed - refresh tiles
         return fillRenderBuffers();
     }
+
+    cout << "m_renderZoom " << ((int) m_renderZoom) << "\n";
 }
 
 void ngs::FeatureRenderLayer::clearTiles()
@@ -342,9 +347,10 @@ void ngs::FeatureRenderLayer::clearTiles()
 
 void ngs::FeatureRenderLayer::drawTiles()
 {
-    // load program if already not, set matrix and fill color in prepare
-    m_style->prepare(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
     CPLLockHolder tilesHolder(m_hTilesLock);
+
+    // load program if already not, set matrix and fill color in prepare
+    m_style->prepareData(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
 
     int vertexCount = 0;
     int indexCount = 0;

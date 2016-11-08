@@ -48,7 +48,7 @@ Style::~Style()
 
 }
 
-bool Style::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
+bool Style::prepareProgram()
 {
     if(!m_load) {
         m_load = m_program->load(getShaderSource(SH_VERTEX),
@@ -65,6 +65,14 @@ bool Style::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
     glGetProgramiv(m_program->id(), GL_ACTIVE_UNIFORMS, &numActiveUniforms);
     cout << "Number active uniforms: " << numActiveUniforms << endl;
 #endif //_DEBUG
+
+    return true;
+}
+
+bool Style::prepareData(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
+{
+    if(!m_load)
+        return false;
 
     if(m_mPositionId == -1)
         m_mPositionId = glGetAttribLocation(m_program->id(), "a_mPosition");
@@ -206,9 +214,9 @@ void SimplePointStyle::setRadius(float radius)
 }
 
 
-bool SimplePointStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
+bool SimplePointStyle::prepareData(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
 {
-    if (!Style::prepare(msMatrix, vsMatrix))
+    if (!Style::prepareData(msMatrix, vsMatrix))
         return false;
     if(m_radiusId == -1) {
         m_radiusId = glGetUniformLocation(m_program->id(), "fRadius");

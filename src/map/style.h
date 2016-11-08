@@ -32,7 +32,8 @@ class Style
 public:
     Style();
     virtual ~Style();
-    virtual bool prepare(const Matrix4 & msMatrix, const Matrix4 &vsMatrix);
+    virtual bool prepareProgram();
+    virtual bool prepareData(const Matrix4 & msMatrix, const Matrix4 &vsMatrix);
     virtual void setColor(const ngsRGBA &color);
     virtual void draw(const GlBuffer& buffer) const = 0;
 protected:
@@ -95,7 +96,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 & msMatrix, const Matrix4 &vsMatrix) override;
+    virtual bool prepareData(const Matrix4 & msMatrix, const Matrix4 &vsMatrix) override;
 
     // Style interface
 protected:

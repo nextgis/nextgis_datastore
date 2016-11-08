@@ -1129,7 +1129,7 @@ GLuint GlBuffer::getBuffer(ngsShaderType type) const
 
 GlBufferBucket::GlBufferBucket(int x, int y, unsigned char z,
                                const OGREnvelope &env, char crossExtent) :
-    m_currentBuffer(0), m_X(x), m_Y(y), m_zoom(z), m_extent(env),
+    m_X(x), m_Y(y), m_zoom(z), m_extent(env),
     m_filled(false), m_crossExtent(crossExtent)
 {
     m_buffers.push_back (GlBuffer());
@@ -1176,19 +1176,18 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
         case wkbPoint:
         {
             OGRPoint* pt = static_cast<OGRPoint*>(geom);
-            if(!m_buffers[m_currentBuffer].canStore (3)) {
-                m_buffers.push_back (GlBuffer());
-                ++m_currentBuffer;
+            if(!m_buffers.back().canStore(3)) {
+                m_buffers.push_back(GlBuffer());
             }
 
-            unsigned short startIndex = m_buffers[m_currentBuffer].
-                    getIndicesCount ();
+            GlBuffer& currBuffer = m_buffers.back();
+            unsigned short startIndex = currBuffer.getIndicesCount();
             // TODO: add getZ + level
-            m_buffers[m_currentBuffer].addVertex (
-                static_cast<float>(pt->getX () + m_crossExtent * DEFAULT_MAX_X2),
-                static_cast<float>(pt->getY ()), level);
+            currBuffer.addVertex(
+                static_cast<float>(pt->getX() + m_crossExtent * DEFAULT_MAX_X2),
+                static_cast<float>(pt->getY()), level);
 
-            m_buffers[m_currentBuffer].addIndex (startIndex);
+            currBuffer.addIndex(startIndex);
         }
             break;
         case wkbLineString:
@@ -1208,12 +1207,12 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 return;
             }
 
-            if(!m_buffers[m_currentBuffer].canStore (numPoints * 20)) { // 5 floats * 4 vertexes
-                m_buffers.push_back (GlBuffer());
-                ++m_currentBuffer;
+            if(!m_buffers.back().canStore(numPoints * 20)) { // 5 floats * 4 vertexes
+                m_buffers.push_back(GlBuffer());
             }
 
-            int ptIndex = m_buffers[m_currentBuffer].getVerticesCount() / 5;
+            GlBuffer& currBuffer = m_buffers.back();
+            int ptIndex = currBuffer.getVerticesCount() / 5;
             Vector2 currPt, nextPt;
             ring->getPoint(0, &currPt);
 
@@ -1244,25 +1243,25 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 float iny = static_cast<float>(invNormal.getY());
 
                 // v(i), n
-                m_buffers[m_currentBuffer].addVertex(cptx, cpty, cptz);
-                m_buffers[m_currentBuffer].addNormal(nx, ny);
+                currBuffer.addVertex(cptx, cpty, cptz);
+                currBuffer.addNormal(nx, ny);
 
                 // v(i+1), -n
-                m_buffers[m_currentBuffer].addVertex(cptx, cpty, cptz);
-                m_buffers[m_currentBuffer].addNormal(inx, iny);
+                currBuffer.addVertex(cptx, cpty, cptz);
+                currBuffer.addNormal(inx, iny);
 
                 // v(i+2), n
-                m_buffers[m_currentBuffer].addVertex(nptx, npty, nptz);
-                m_buffers[m_currentBuffer].addNormal(nx, ny);
+                currBuffer.addVertex(nptx, npty, nptz);
+                currBuffer.addNormal(nx, ny);
 
                 // v(i+3), -n
-                m_buffers[m_currentBuffer].addVertex(nptx, npty, nptz);
-                m_buffers[m_currentBuffer].addNormal(inx, iny);
+                currBuffer.addVertex(nptx, npty, nptz);
+                currBuffer.addNormal(inx, iny);
 
                 // add triangle indexes unsigned short
                 int index = ptIndex + i * 4;
-                m_buffers[m_currentBuffer].addIndex(index, index + 2, index + 3);
-                m_buffers[m_currentBuffer].addIndex(index, index + 3, index + 1);
+                currBuffer.addIndex(index, index + 2, index + 3);
+                currBuffer.addIndex(index, index + 3, index + 1);
 
                 currPt = nextPt;
             }
@@ -1324,11 +1323,10 @@ char GlBufferBucket::crossExtent() const
 
 void GlBufferBucket::draw(const Style& style)
 {
-    size_t limit = m_filled ? m_buffers.size() : m_currentBuffer;
-    for (size_t i = 0; i < limit; ++i) {
-        if(!m_buffers[i].bound())
-            m_buffers[i].bind();
-        style.draw (m_buffers[i]);
+    for (GlBuffer& buffer : m_buffers) {
+        if(!buffer.bound())
+            buffer.bind();
+        style.draw(buffer);
     }
 }
 
