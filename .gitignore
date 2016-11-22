@@ -36,3 +36,12 @@ inst
 *.user
 *~
 *.autosave
+
+# Eclipse
+.externalToolBuilders/
+.settings/
+.cproject
+.project
+
+build/
+/desktop_gl_viewer/
