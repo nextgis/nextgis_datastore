@@ -25,8 +25,10 @@
 
 #include "api_priv.h"
 
-#include <vector>
+#include <atomic>
+#include <memory>
 #include <set>
+#include <vector>
 
 #if __APPLE__
     #include "TargetConditionals.h"
@@ -172,6 +174,8 @@ protected:
 
 #endif // OFFSCREEN_GL
 
+#define GL_BUFFER_UNKNOWN 0
+
 enum ngsShaderType {
     SH_VERTEX,
     SH_FRAGMENT
@@ -180,35 +184,79 @@ enum ngsShaderType {
 class GlBuffer
 {
 public:
-    GlBuffer();
+    explicit GlBuffer();
+    explicit GlBuffer(const GlBuffer& other) = delete;
+    explicit GlBuffer(GlBuffer&& otherr);
     ~GlBuffer();
+
+    GlBuffer& operator=(const GlBuffer& other) = delete;
+    GlBuffer& operator=(GlBuffer&& other);
 
     void bind();
     bool bound() const;
 
-    bool canStore(size_t numItems) const;
-    size_t getVerticesCount() const;
-    size_t getIndicesCount() const;
+    bool canStoreVertexes(size_t amount) const;
+    bool canStoreVertexesWithNormals(size_t amount) const;
+    bool canStoreIndexes(size_t amount) const;
+
+    static bool canGlobalStoreVertexes(size_t amount);
+    static bool canGlobalStoreVertexesWithNormals(size_t amount);
+    static bool canGlobalStoreIndexes(size_t amount);
+
     void addVertex(float x, float y, float z);
-    void addNormal(float x, float y);
-    void addIndex(unsigned short one, unsigned short two, unsigned short three);
+    void addVertexWithNoraml(float vX, float vY, float vZ, float nX, float nY);
     void addIndex(unsigned short index);
-    size_t getFinalVerticesCount() const;
-    size_t getFinalIndicesCount() const;
+    void addTriangleIndexes(
+            unsigned short one, unsigned short two, unsigned short three);
+
+    size_t getVertexBufferSize() const;
+    size_t getIndexBufferSize() const;
+    size_t getFinalVertexBufferSize() const;
+    size_t getFinalIndexBufferSize() const;
+
+    static std::int_fast32_t getGlobalVertexBufferSize();
+    static std::int_fast32_t getGlobalIndexBufferSize();
+    static std::int_fast32_t getGlobalHardBuffersCount();
+
     GLuint getBuffer(enum ngsShaderType type) const;
+
 protected:
-    bool m_binded;
+    bool m_bound;
+    size_t m_finalVertexBufferSize;
+    size_t m_finalIndexBufferSize;
+
     vector<GLfloat> m_vertices;
     vector<GLushort> m_indices;
-    GLuint m_buffers[2];
-    size_t m_finalVerticesCount, m_finalIndicesCount;
+    GLuint m_glHardBuffers[2];
+
+    static std::atomic_int_fast32_t m_globalVertexBufferSize;
+    static std::atomic_int_fast32_t m_globalIndexBufferSize;
+    static std::atomic_int_fast32_t m_globalHardBuffersCount;
 };
+
+// http://stackoverflow.com/a/13196986
+using GlBufferSharedPtr = std::shared_ptr<GlBuffer>;
+
+template <typename... Args>
+GlBufferSharedPtr makeSharedGlBuffer(Args&&... args)
+{
+    return std::make_shared<GlBuffer>(std::forward<Args>(args)...);
+}
 
 class GlBufferBucket
 {
 public:
-    GlBufferBucket(int x, int y, unsigned char z, const OGREnvelope& env,
-                   char crossExtent);
+    explicit GlBufferBucket(int x,
+            int y,
+            unsigned char z,
+            const OGREnvelope& env,
+            char crossExtent);
+    explicit GlBufferBucket(const GlBufferBucket& bucket) = delete;
+    explicit GlBufferBucket(GlBufferBucket&& bucket);
+    ~GlBufferBucket();
+
+    GlBufferBucket& operator=(const GlBufferBucket& bucket) = delete;
+    GlBufferBucket& operator=(GlBufferBucket&& bucket);
 
     void bind();
     bool filled() const;
@@ -225,24 +273,33 @@ public:
 
     OGREnvelope extent() const;
     bool intersects(const GlBufferBucket& other) const;
-    bool intersects(const OGREnvelope &ext) const;
+    bool intersects(const OGREnvelope& ext) const;
     char crossExtent() const;
-    size_t getFinalVerticesCount() const;
-    size_t getFinalIndicesCount() const;
+
+    size_t getFinalVertexBufferSize() const;
+    size_t getFinalIndexBufferSize() const;
 
 protected:
     void fill(OGRGeometry* geom, float level);
 
-
 protected:
-    vector<GlBuffer> m_buffers;
+    vector<GlBufferSharedPtr> m_buffers;
     set<GIntBig> m_fids;
-    int m_X, m_Y;
+    int m_X;
+    int m_Y;
     unsigned char m_zoom;
     OGREnvelope m_extent;
     bool m_filled;
     char m_crossExtent;
 };
+
+using GlBufferBucketSharedPtr = std::shared_ptr<GlBufferBucket>;
+
+template <typename... Args>
+GlBufferBucketSharedPtr makeSharedGlBufferBucket(Args&&... args)
+{
+    return std::make_shared<GlBufferBucket>(std::forward<Args>(args)...);
+}
 
 class GlProgram
 {

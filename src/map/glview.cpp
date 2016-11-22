@@ -52,8 +52,10 @@
 //https://github.com/afiskon/cpp-opengl-vbo-vao-shaders/blob/master/main.cpp
 */
 
-#define GL_MAX_VERTEX_COUNT 65532
-#define VAO_RESERVE 16383
+#define MAX_VERTEX_BUFFER_SIZE 16383
+#define MAX_INDEX_BUFFER_SIZE 16383
+#define MAX_GLOBAL_VERTEX_BUFFER_SIZE 327180000
+#define MAX_GLOBAL_INDEX_BUFFER_SIZE 327180000
 
 using namespace ngs;
 
@@ -1020,132 +1022,317 @@ bool GlFuctions::loadExtensions()
 // GlBuffer
 //------------------------------------------------------------------------------
 
-GlBuffer::GlBuffer() : m_binded(false), m_finalVerticesCount(0), m_finalIndicesCount(0)
+// static
+std::atomic_int_fast32_t GlBuffer::m_globalVertexBufferSize;
+// static
+std::atomic_int_fast32_t GlBuffer::m_globalIndexBufferSize;
+// static
+std::atomic_int_fast32_t GlBuffer::m_globalHardBuffersCount;
+
+GlBuffer::GlBuffer()
+        : m_bound(false)
+        , m_finalVertexBufferSize(0)
+        , m_finalIndexBufferSize(0)
+        , m_glHardBuffers{GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN}
 {
-    m_vertices.reserve (VAO_RESERVE);
-    m_indices.reserve (VAO_RESERVE);
+    m_vertices.reserve(MAX_VERTEX_BUFFER_SIZE);
+    m_indices.reserve(MAX_INDEX_BUFFER_SIZE);
+}
+
+GlBuffer::GlBuffer(GlBuffer&& other)
+{
+    *this = std::move(other);
 }
 
 GlBuffer::~GlBuffer()
 {
-    if(m_binded) {
-        glDeleteBuffers(2, m_buffers);
+    m_globalVertexBufferSize.fetch_sub(getVertexBufferSize());
+    m_globalIndexBufferSize.fetch_sub(getIndexBufferSize());
+
+    if (m_bound) {
+        glDeleteBuffers(2, m_glHardBuffers);
+        m_globalHardBuffersCount.fetch_sub(2);
     }
+}
+
+GlBuffer& GlBuffer::operator=(GlBuffer&& other)
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    m_globalVertexBufferSize.fetch_add(other.getVertexBufferSize());
+    m_globalIndexBufferSize.fetch_add(other.getIndexBufferSize());
+
+    m_bound = other.m_bound;
+    m_finalVertexBufferSize = other.m_finalVertexBufferSize;
+    m_finalIndexBufferSize = other.m_finalIndexBufferSize;
+    m_glHardBuffers[0] = other.m_glHardBuffers[0];
+    m_glHardBuffers[1] = other.m_glHardBuffers[1];
+
+    other.m_bound = false;
+    other.m_finalVertexBufferSize = 0;
+    other.m_finalIndexBufferSize = 0;
+    other.m_glHardBuffers[0] = GL_BUFFER_UNKNOWN;
+    other.m_glHardBuffers[1] = GL_BUFFER_UNKNOWN;
+
+    m_vertices.clear();
+    m_vertices.shrink_to_fit();
+    m_vertices = other.m_vertices;
+    other.m_vertices.clear();
+    other.m_vertices.shrink_to_fit();
+
+    m_indices.clear();
+    m_indices.shrink_to_fit();
+    m_indices = other.m_indices;
+    other.m_indices.clear();
+    other.m_indices.shrink_to_fit();
+
+    return *this;
 }
 
 void GlBuffer::bind()
 {
-    if(m_binded || m_vertices.empty () || m_indices.empty ())
+    if (m_bound || m_vertices.empty() || m_indices.empty())
         return;
 
-    ngsCheckGLEerror(glGenBuffers(2, m_buffers));
+    m_globalHardBuffersCount.fetch_add(2);
+    ngsCheckGLEerror(glGenBuffers(2, m_glHardBuffers));
 
-    m_finalVerticesCount = m_vertices.size();
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]));
-    ngsCheckGLEerror(glBufferData(
-            GL_ARRAY_BUFFER, sizeof(GLfloat) * m_finalVerticesCount, m_vertices.data(),
+    m_finalVertexBufferSize = m_vertices.size();
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_glHardBuffers[0]));
+    ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER,
+            sizeof(GLfloat) * m_finalVertexBufferSize, m_vertices.data(),
             GL_STATIC_DRAW));
-    m_vertices.clear ();
+    m_vertices.clear();
 
-    m_finalIndicesCount = m_indices.size ();
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[1]));
-    ngsCheckGLEerror(glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * m_finalIndicesCount, m_indices.data(),
+    m_finalIndexBufferSize = m_indices.size();
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glHardBuffers[1]));
+    ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+            sizeof(GLushort) * m_finalIndexBufferSize, m_indices.data(),
             GL_STATIC_DRAW));
-    m_indices.clear ();
+    m_indices.clear();
 
-    m_binded = true;
+    m_bound = true;
 }
 
 bool GlBuffer::bound() const
 {
-    return m_binded;
+    return m_bound;
 }
 
-bool GlBuffer::canStore(size_t numItems) const
+// static
+bool GlBuffer::canGlobalStoreVertexes(size_t amount)
 {
-    return m_vertices.size () + numItems < GL_MAX_VERTEX_COUNT;
+    return (m_globalVertexBufferSize.load() + amount * 3)
+            < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
-size_t GlBuffer::getVerticesCount() const
+// static
+bool GlBuffer::canGlobalStoreVertexesWithNormals(size_t amount)
 {
-    return m_vertices.size ();
+    // 5 = 3 for vertex + 2 for normal
+    return (m_globalVertexBufferSize.load() + amount * 5)
+            < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
-size_t GlBuffer::getIndicesCount() const
+// static
+bool GlBuffer::canGlobalStoreIndexes(size_t amount)
 {
-    return m_indices.size ();
+    return (m_globalIndexBufferSize.load() + amount)
+            < MAX_GLOBAL_INDEX_BUFFER_SIZE;
+}
+
+bool GlBuffer::canStoreVertexes(size_t amount) const
+{
+    return (m_vertices.size() + amount * 3) < MAX_VERTEX_BUFFER_SIZE
+            && canGlobalStoreVertexes(amount);
+}
+
+bool GlBuffer::canStoreVertexesWithNormals(size_t amount) const
+{
+    // 5 = 3 for vertex + 2 for normal
+    return (m_vertices.size() + amount * 5) < MAX_VERTEX_BUFFER_SIZE
+            && canGlobalStoreVertexes(amount);
+}
+
+bool GlBuffer::canStoreIndexes(size_t amount) const
+{
+    return (m_indices.size() + amount) < MAX_INDEX_BUFFER_SIZE
+            && canGlobalStoreIndexes(amount);
 }
 
 void GlBuffer::addVertex(float x, float y, float z)
 {
-    m_vertices.push_back (x);
-    m_vertices.push_back (y);
-    m_vertices.push_back (z);
+    if (!canStoreVertexes(1)) {
+        return;
+    }
+    m_vertices.push_back(x);
+    m_vertices.push_back(y);
+    m_vertices.push_back(z);
+
+    m_globalVertexBufferSize.fetch_add(3);
 }
 
-void GlBuffer::addNormal(float x, float y)
+void GlBuffer::addVertexWithNoraml(
+        float vX, float vY, float vZ, float nX, float nY)
 {
-    m_vertices.push_back (x);
-    m_vertices.push_back (y);
-}
+    if (!canStoreVertexesWithNormals(1)) {
+        return;
+    }
+    m_vertices.push_back(vX);
+    m_vertices.push_back(vY);
+    m_vertices.push_back(vZ);
+    m_vertices.push_back(nX);
+    m_vertices.push_back(nY);
 
-void GlBuffer::addIndex(unsigned short one, unsigned short two,
-                        unsigned short three)
-{
-    m_indices.push_back (one);
-    m_indices.push_back (two);
-    m_indices.push_back (three);
+    m_globalVertexBufferSize.fetch_add(5);
 }
 
 void GlBuffer::addIndex(unsigned short index)
 {
-    m_indices.push_back (index);
+    if (!canStoreIndexes(1)) {
+        return;
+    }
+    m_indices.push_back(index);
+
+    m_globalIndexBufferSize.fetch_add(1);
 }
 
-size_t GlBuffer::getFinalVerticesCount() const
+void GlBuffer::addTriangleIndexes(
+        unsigned short one, unsigned short two, unsigned short three)
 {
-    return m_finalVerticesCount;
+    if (!canStoreIndexes(3)) {
+        return;
+    }
+    m_indices.push_back(one);
+    m_indices.push_back(two);
+    m_indices.push_back(three);
+
+    m_globalIndexBufferSize.fetch_add(3);
 }
 
-size_t GlBuffer::getFinalIndicesCount() const
+size_t GlBuffer::getVertexBufferSize() const
 {
-    return m_finalIndicesCount;
+    return m_bound ? m_finalVertexBufferSize : m_vertices.size();
+}
+
+size_t GlBuffer::getIndexBufferSize() const
+{
+    return m_bound ? m_finalIndexBufferSize : m_indices.size();
+}
+
+size_t GlBuffer::getFinalVertexBufferSize() const
+{
+    return m_finalVertexBufferSize;
+}
+
+size_t GlBuffer::getFinalIndexBufferSize() const
+{
+    return m_finalIndexBufferSize;
+}
+
+//static
+std::int_fast32_t GlBuffer::getGlobalVertexBufferSize()
+{
+    return m_globalVertexBufferSize.load();
+}
+
+//static
+std::int_fast32_t GlBuffer::getGlobalIndexBufferSize()
+{
+    return m_globalIndexBufferSize.load();
+}
+
+//static
+std::int_fast32_t GlBuffer::getGlobalHardBuffersCount()
+{
+    return m_globalHardBuffersCount.load();
 }
 
 GLuint GlBuffer::getBuffer(ngsShaderType type) const
 {
     switch (type) {
-    case SH_VERTEX:
-        return m_buffers[0];
-    case SH_FRAGMENT:
-        return m_buffers[1];
+        case SH_VERTEX:
+            return m_glHardBuffers[0];
+        case SH_FRAGMENT:
+            return m_glHardBuffers[1];
     }
+    return GL_BUFFER_UNKNOWN;
 }
 
 //------------------------------------------------------------------------------
 // GlBufferBucket
 //------------------------------------------------------------------------------
 
-GlBufferBucket::GlBufferBucket(int x, int y, unsigned char z,
-                               const OGREnvelope &env, char crossExtent) :
-    m_X(x), m_Y(y), m_zoom(z), m_extent(env),
-    m_filled(false), m_crossExtent(crossExtent)
+GlBufferBucket::GlBufferBucket(int x,
+        int y,
+        unsigned char z,
+        const OGREnvelope& env,
+        char crossExtent)
+        : m_X(x)
+        , m_Y(y)
+        , m_zoom(z)
+        , m_extent(env)
+        , m_filled(false)
+        , m_crossExtent(crossExtent)
 {
-    m_buffers.push_back (GlBuffer());
+    m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
+}
+
+GlBufferBucket::GlBufferBucket(GlBufferBucket&& other)
+{
+    *this = std::move(other);
+}
+
+GlBufferBucket::~GlBufferBucket()
+{
+    m_buffers.clear();
+    m_buffers.shrink_to_fit();
+}
+
+GlBufferBucket& GlBufferBucket::operator=(GlBufferBucket&& other)
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    m_X = other.m_X;
+    m_Y = other.m_Y;
+    m_zoom = other.m_zoom;
+    m_extent = other.m_extent;
+    m_filled = other.m_filled;
+    m_crossExtent = other.m_crossExtent;
+
+    other.m_X = 0;
+    other.m_Y = 0;
+    other.m_zoom = 0;
+    other.m_extent = OGREnvelope();
+    other.m_filled = false;
+    other.m_crossExtent = 0;
+
+    m_buffers.clear();
+    m_buffers.shrink_to_fit();
+    m_buffers = std::move(other.m_buffers);
+
+    m_fids.clear();
+    m_fids = other.m_fids;
+    other.m_fids.clear();
+
+    return *this;
 }
 
 void GlBufferBucket::bind()
 {
-    for(GlBuffer& buff : m_buffers) {
-        buff.bind ();
+    for (const GlBufferSharedPtr& buff : m_buffers) {
+        buff->bind();
     }
 }
 
 bool GlBufferBucket::bound() const
 {
-    for(const GlBuffer& buff : m_buffers) {
-        if(!buff.bound())
+    for (const GlBufferSharedPtr& buff : m_buffers) {
+        if (!buff->bound())
             return false;
     }
     return true;
@@ -1165,8 +1352,11 @@ void GlBufferBucket::fill(GIntBig fid, OGRGeometry* geom, float level)
 {
     if( nullptr == geom )
         return;
-    m_fids.insert (fid);
+    std::int_fast32_t size = GlBuffer::getGlobalVertexBufferSize();
     fill(geom, level);
+    if (0 < GlBuffer::getGlobalVertexBufferSize() - size) {
+        m_fids.insert (fid);
+    }
 }
 
 // TODO: add flags to specify how to fill buffer
@@ -1176,18 +1366,24 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
         case wkbPoint:
         {
             OGRPoint* pt = static_cast<OGRPoint*>(geom);
-            if(!m_buffers.back().canStore(3)) {
-                m_buffers.push_back(GlBuffer());
+
+            if (!m_buffers.back()->canStoreVertexes(1)
+                    || !m_buffers.back()->canStoreIndexes(1)) {
+                if (!GlBuffer::canGlobalStoreVertexes(1)
+                        || !GlBuffer::canGlobalStoreIndexes(1)) {
+                    return;
+                }
+                m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
             }
 
-            GlBuffer& currBuffer = m_buffers.back();
-            unsigned short startIndex = currBuffer.getIndicesCount();
+            GlBufferSharedPtr currBuffer = m_buffers.back();
+            unsigned short startIndex = currBuffer->getIndexBufferSize();
             // TODO: add getZ + level
-            currBuffer.addVertex(
+            currBuffer->addVertex(
                 static_cast<float>(pt->getX() + m_crossExtent * DEFAULT_MAX_X2),
                 static_cast<float>(pt->getY()), level);
 
-            currBuffer.addIndex(startIndex);
+            currBuffer->addIndex(startIndex);
         }
             break;
         case wkbLineString:
@@ -1207,18 +1403,24 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 return;
             }
 
-            if(!m_buffers.back().canStore(numPoints * 20)) { // 5 floats * 4 vertexes
-                m_buffers.push_back(GlBuffer());
-            }
-
-            GlBuffer& currBuffer = m_buffers.back();
-            int ptIndex = currBuffer.getVerticesCount() / 5;
-            Vector2 currPt, nextPt;
-            ring->getPoint(0, &currPt);
-
             // last point == first point, see
             // https://en.wikipedia.org/wiki/Well-known_text
             --numPoints;
+
+            if (!m_buffers.back()->canStoreVertexesWithNormals(4 * numPoints)
+                    || !m_buffers.back()->canStoreIndexes(6 * numPoints)) {
+                if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
+                        || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
+                    return;
+                }
+                m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
+            }
+
+            GlBufferSharedPtr currBuffer = m_buffers.back();
+            int ptIndex = currBuffer->getVertexBufferSize() / 5;
+            Vector2 currPt, nextPt;
+            ring->getPoint(0, &currPt);
+
             for (int i = 0; i < numPoints; ++i) {
                 ring->getPoint(i + 1, &nextPt);
 
@@ -1243,25 +1445,21 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
                 float iny = static_cast<float>(invNormal.getY());
 
                 // v(i), n
-                currBuffer.addVertex(cptx, cpty, cptz);
-                currBuffer.addNormal(nx, ny);
+                currBuffer->addVertexWithNoraml(cptx, cpty, cptz, nx, ny);
 
                 // v(i+1), -n
-                currBuffer.addVertex(cptx, cpty, cptz);
-                currBuffer.addNormal(inx, iny);
+                currBuffer->addVertexWithNoraml(cptx, cpty, cptz, inx, iny);
 
                 // v(i+2), n
-                currBuffer.addVertex(nptx, npty, nptz);
-                currBuffer.addNormal(nx, ny);
+                currBuffer->addVertexWithNoraml(nptx, npty, nptz, nx, ny);
 
                 // v(i+3), -n
-                currBuffer.addVertex(nptx, npty, nptz);
-                currBuffer.addNormal(inx, iny);
+                currBuffer->addVertexWithNoraml(nptx, npty, nptz, inx, iny);
 
                 // add triangle indexes unsigned short
                 int index = ptIndex + i * 4;
-                currBuffer.addIndex(index, index + 2, index + 3);
-                currBuffer.addIndex(index, index + 3, index + 1);
+                currBuffer->addTriangleIndexes(index, index + 2, index + 3);
+                currBuffer->addTriangleIndexes(index, index + 3, index + 1);
 
                 currPt = nextPt;
             }
@@ -1323,10 +1521,10 @@ char GlBufferBucket::crossExtent() const
 
 void GlBufferBucket::draw(const Style& style)
 {
-    for (GlBuffer& buffer : m_buffers) {
-        if(!buffer.bound())
-            buffer.bind();
-        style.draw(buffer);
+    for (const GlBufferSharedPtr& buffer : m_buffers) {
+        if(!buffer->bound())
+            buffer->bind();
+        style.draw(*buffer);
     }
 }
 
@@ -1348,7 +1546,7 @@ unsigned char GlBufferBucket::zoom() const
 void GlBufferBucket::free()
 {
     m_buffers.clear ();
-    m_buffers.push_back (GlBuffer());
+    m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
 }
 
 bool GlBufferBucket::hasFid(GIntBig fid) const
@@ -1376,20 +1574,20 @@ bool GlBufferBucket::intersects(const OGREnvelope &ext) const
     return m_extent.Intersects (ext) == TRUE;
 }
 
-size_t GlBufferBucket::getFinalVerticesCount() const
+size_t GlBufferBucket::getFinalVertexBufferSize() const
 {
-    size_t finalVerticesCount = 0;
-    for(const GlBuffer& buff : m_buffers) {
-        finalVerticesCount += buff.getFinalVerticesCount();
+    size_t count = 0;
+    for(const GlBufferSharedPtr& buff : m_buffers) {
+        count += buff->getFinalVertexBufferSize();
     }
-    return finalVerticesCount;
+    return count;
 }
 
-size_t GlBufferBucket::getFinalIndicesCount() const
+size_t GlBufferBucket::getFinalIndexBufferSize() const
 {
-    size_t finalIndicesCount = 0;
-    for(const GlBuffer& buff : m_buffers) {
-        finalIndicesCount += buff.getFinalIndicesCount();
+    size_t count = 0;
+    for(const GlBufferSharedPtr& buff : m_buffers) {
+        count += buff->getFinalIndexBufferSize();
     }
-    return finalIndicesCount;
+    return count;
 }

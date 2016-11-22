@@ -93,7 +93,7 @@ public:
                      const CPLString &mapPath) override;
 protected:
     CPLLock *m_hTilesLock;
-    vector<GlBufferBucket> m_tiles;
+    vector<GlBufferBucketSharedPtr> m_tiles;
 };
 
 //https://www.khronos.org/files/opengles20-reference-card.pdf

@@ -144,19 +144,18 @@ void SimpleFillStyle::draw(const GlBuffer &buffer) const
         return;
 
     ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(SH_VERTEX)));
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(SH_FRAGMENT)));
-
     ngsCheckGLEerror(glEnableVertexAttribArray(m_mPositionId));
     ngsCheckGLEerror(
             glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0));
 
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(SH_FRAGMENT)));
     ngsCheckGLEerror(glEnableVertexAttribArray(m_NormalId));
     ngsCheckGLEerror(glVertexAttribPointer(
             m_NormalId, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
             reinterpret_cast<const GLvoid*>(3 * sizeof(float))));
 
     ngsCheckGLEerror(glDrawElements(
-            GL_TRIANGLES, buffer.getFinalIndicesCount(), GL_UNSIGNED_SHORT, NULL));
+            GL_TRIANGLES, buffer.getFinalIndexBufferSize(), GL_UNSIGNED_SHORT, NULL));
 }
 
 //------------------------------------------------------------------------------
@@ -191,16 +190,17 @@ void SimplePointStyle::draw(const GlBuffer &buffer) const
     if(!buffer.bound())
         return;
 
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER,
-                                  buffer.getBuffer (SH_VERTEX)));
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                  buffer.getBuffer (SH_FRAGMENT)));
+    ngsCheckGLEerror(
+            glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(SH_VERTEX)));
+    ngsCheckGLEerror(glBindBuffer(
+            GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(SH_FRAGMENT)));
 
     ngsCheckGLEerror(glEnableVertexAttribArray(m_mPositionId));
-    ngsCheckGLEerror(glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 0, 0));
+    ngsCheckGLEerror(
+            glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
-    ngsCheckGLEerror(glDrawElements(GL_POINTS, buffer.getFinalIndicesCount (),
-                                    GL_UNSIGNED_SHORT, NULL));
+    ngsCheckGLEerror(glDrawElements(GL_POINTS,
+            buffer.getFinalIndexBufferSize(), GL_UNSIGNED_SHORT, NULL));
 }
 
 float SimplePointStyle::getRadius() const

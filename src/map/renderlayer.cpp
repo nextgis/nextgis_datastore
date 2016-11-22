@@ -210,6 +210,11 @@ void FeatureRenderLayer::initStyle()
 
 void FeatureRenderLayer::fillRenderBuffers()
 {
+    cout << "GlBuffer::getHardBuffersCount() before fillRenderBuffers: "
+         << GlBuffer::getGlobalHardBuffersCount() << "\n";
+
+    CPLLockHolder tilesHolder(m_hTilesLock); // FIXME:
+
     m_complete = 0;
     m_isComplete = false;
     m_featureCount = -1;
@@ -225,7 +230,7 @@ void FeatureRenderLayer::fillRenderBuffers()
     // remove already exist tiles
     auto iter = m_tiles.begin ();
     while (iter != m_tiles.end()) {
-        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
+        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(**iter) );
         if(pos != tiles.end ()) {
             tiles.erase (pos);
         }
@@ -237,12 +242,6 @@ void FeatureRenderLayer::fillRenderBuffers()
         if(m_cancelPrepare) {
             return;
         }
-        if (fidCount > MAX_FID_COUNT) {
-            break;
-        }
-
-        GlBufferBucket tile(tileItem.x, tileItem.y, tileItem.z, tileItem.env,
-                            tileItem.crossExtent);
 
         if(! (isEqual(renderExtent.MaxX, m_renderExtent.MaxX) &&
               isEqual(renderExtent.MaxY, m_renderExtent.MaxY) &&
@@ -252,20 +251,42 @@ void FeatureRenderLayer::fillRenderBuffers()
             return fillRenderBuffers();
         }
 
-        GeometryPtr spatialFilter = envelopeToGeometry(tile.extent (),
-                                    featureDataset->getSpatialReference ());
-        ResultSetPtr resSet = featureDataset->getGeometries (tile.zoom (),
-                                                             spatialFilter);
+        if (fidCount > MAX_FID_COUNT) {
+            break;
+        }
+
+        int numPoints = 4;
+        if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
+                || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
+            cout << "can not store, m_renderZoom " << ((int) m_renderZoom)
+                 << "\n";
+            cout << "GlBuffer::getGlobalVertexBufferSize() "
+                 << GlBuffer::getGlobalVertexBufferSize() << "\n";
+            cout << "GlBuffer::getGlobalIndexBufferSize() "
+                 << GlBuffer::getGlobalIndexBufferSize() << "\n";
+            cout << "GlBuffer::getHardBuffersCount() after fillRenderBuffers: "
+                 << GlBuffer::getGlobalHardBuffersCount() << "\n";
+            return;
+        }
+
+        GlBufferBucketSharedPtr tile =
+                makeSharedGlBufferBucket(GlBufferBucket(tileItem.x, tileItem.y,
+                        tileItem.z, tileItem.env, tileItem.crossExtent));
+        GeometryPtr spatialFilter = envelopeToGeometry(
+                tile->extent(), featureDataset->getSpatialReference());
+        ResultSetPtr resSet =
+                featureDataset->getGeometries(tile->zoom(), spatialFilter);
+
         while ((feature = resSet->GetNextFeature ()) != nullptr) {
             if(m_cancelPrepare) {
                 return;
             }
 
             fidExists = false;
-            for(GlBufferBucket& tile1 : m_tiles) {
-                if( tile1.zoom () == m_renderZoom &&
-                    tile1.crossExtent () == tile.crossExtent () &&
-                    tile1.hasFid (feature->GetFID ()) ) {
+            for (const GlBufferBucketSharedPtr& tile1 : m_tiles) {
+                if (tile1->zoom() == m_renderZoom
+                        && tile1->crossExtent() == tile->crossExtent()
+                        && tile1->hasFid(feature->GetFID())) {
                     fidExists = true;
                     break;
                 }
@@ -279,7 +300,7 @@ void FeatureRenderLayer::fillRenderBuffers()
                 continue;
 
             // TODO: draw filled polygons with border
-            tile.fill(feature->GetFID (), geom, m_renderLevel);
+            tile->fill(feature->GetFID (), geom, m_renderLevel);
 
             ++fidCount;
             if (fidCount > MAX_FID_COUNT) {
@@ -287,10 +308,10 @@ void FeatureRenderLayer::fillRenderBuffers()
             }
         }
 
-        tile.setFilled(true);
+        tile->setFilled(true);
         {
-            CPLLockHolder tilesHolder(m_hTilesLock);
-            m_tiles.push_back (tile);
+//            CPLLockHolder tilesHolder(m_hTilesLock); // FIXME:
+            m_tiles.emplace_back(std::move(tile));
         }
         ++counter;
         m_complete = counter / tiles.size ();
@@ -302,22 +323,21 @@ void FeatureRenderLayer::fillRenderBuffers()
 
 
     // free memory remove not visible tiles
-
-    iter = m_tiles.begin ();
-    OGREnvelope testExt = resizeEnvelope (m_renderExtent, 2);
+    OGREnvelope testExt = resizeEnvelope(m_renderExtent, 2);
+    iter = m_tiles.begin();
     while (iter != m_tiles.end()) {
-        const GlBufferBucket& currentTile = *iter;
+        const GlBufferBucketSharedPtr currentTile = *iter;
 
-        if (currentTile.zoom() != m_renderZoom
-                || currentTile.crossExtent() == 0 && !currentTile.intersects(testExt)) {
-            CPLLockHolder tilesHolder(m_hTilesLock);
+        if (currentTile->zoom() != m_renderZoom
+                || (currentTile->crossExtent() == 0
+                           && !currentTile->intersects(testExt))) {
+//                CPLLockHolder tilesHolder(m_hTilesLock); // FIXME:
             iter = m_tiles.erase(iter);
-        }
-        else {
+        } else {
             if (-1 == m_featureCount) {
                 m_featureCount = 0;
             }
-            m_featureCount += currentTile.getFidCount();
+            m_featureCount += currentTile->getFidCount();
             ++iter;
         }
     }
@@ -337,6 +357,12 @@ void FeatureRenderLayer::fillRenderBuffers()
     }
 
     cout << "m_renderZoom " << ((int) m_renderZoom) << "\n";
+    cout << "GlBuffer::getGlobalVertexBufferSize() "
+         << GlBuffer::getGlobalVertexBufferSize() << "\n";
+    cout << "GlBuffer::getGlobalIndexBufferSize() "
+         << GlBuffer::getGlobalIndexBufferSize() << "\n";
+    cout << "GlBuffer::getHardBuffersCount() after fillRenderBuffers: "
+         << GlBuffer::getGlobalHardBuffersCount() << "\n";
 }
 
 void ngs::FeatureRenderLayer::clearTiles()
@@ -347,21 +373,28 @@ void ngs::FeatureRenderLayer::clearTiles()
 
 void ngs::FeatureRenderLayer::drawTiles()
 {
+    cout << "GlBuffer::getHardBuffersCount() before draw: "
+         << GlBuffer::getGlobalHardBuffersCount() << "\n";
+
     CPLLockHolder tilesHolder(m_hTilesLock);
 
     // load program if already not, set matrix and fill color in prepare
     m_style->prepareData(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
 
-    int vertexCount = 0;
-    int indexCount = 0;
-    for(GlBufferBucket& tile : m_tiles) {
-        tile.draw (*m_style.get ());
-        vertexCount += tile.getFinalVerticesCount();
-        indexCount += tile.getFinalIndicesCount();
+    int finalVertexBufferSize = 0;
+    int finalIndexBufferSize = 0;
+    for (const GlBufferBucketSharedPtr& tile : m_tiles) {
+        tile->draw(*m_style.get());
+        finalVertexBufferSize += tile->getFinalVertexBufferSize();
+        finalIndexBufferSize += tile->getFinalIndexBufferSize();
     }
 
-    cout << "drawTiles(), vertexCount == " << vertexCount << endl;
-    cout << "drawTiles(), indexCount == " << indexCount << endl;
+    cout << "drawTiles(), finalVertexBufferSize == " << finalVertexBufferSize
+         << endl;
+    cout << "drawTiles(), finalIndexBufferSize == " << finalIndexBufferSize
+         << endl;
+    cout << "GlBuffer::getHardBuffersCount() after  draw: "
+         << GlBuffer::getGlobalHardBuffersCount() << "\n";
 }
 
 void FeatureRenderLayer::refreshTiles()
@@ -372,27 +405,23 @@ void FeatureRenderLayer::refreshTiles()
     // remove exist items in m_tiles from tiles
     // remove non exist items in tiles from m_tiles
     CPLLockHolder tilesHolder(m_hTilesLock);
-    auto iter = m_tiles.begin ();
-    while (iter != m_tiles.end())
-    {
-        if(tiles.empty ())
+    auto iter = m_tiles.begin();
+    while (iter != m_tiles.end()) {
+        if (tiles.empty())
             break;
-        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(*iter) );
-        if(pos == tiles.end ())
-        {
+        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(**iter));
+        if (pos == tiles.end()) {
             // erase returns the new iterator
             iter = m_tiles.erase(iter);
-        }
-        else
-        {
-            tiles.erase (pos);
+        } else {
+            tiles.erase(pos);
             ++iter;
         }
     }
 
-    for(const TileItem& tile : tiles) {
-        m_tiles.push_back (GlBufferBucket(tile.x, tile.y, tile.z, tile.env,
-                                          tile.crossExtent));
+    for (const TileItem& tile : tiles) {
+        m_tiles.emplace_back(makeSharedGlBufferBucket(GlBufferBucket(
+                tile.x, tile.y, tile.z, tile.env, tile.crossExtent)));
     }
 }
 
@@ -411,8 +440,8 @@ int FeatureRenderLayer::load(const JSONObject &store,
 int FeatureRenderLayer::getFidCount() const
 {
     int fidCount = 0;
-    for(const GlBufferBucket& tile : m_tiles) {
-        fidCount += tile.getFidCount();
+    for (const GlBufferBucketSharedPtr& tile : m_tiles) {
+        fidCount += tile->getFidCount();
     }
     return fidCount;
 }
