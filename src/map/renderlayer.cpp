@@ -188,7 +188,6 @@ void FeatureRenderLayer::initStyle()
     {
         SimplePointStyle* style = new SimplePointStyle();
         m_style.reset(style);
-        m_style->prepareProgram();
         m_style->setColor ({0, 0, 255, 255});
         style->setRadius (9.0f);
     }
@@ -200,7 +199,6 @@ void FeatureRenderLayer::initStyle()
     case wkbMultiPolygon:
     case wkbPolygon:
         m_style.reset(new SimpleFillStyle());
-        m_style->prepareProgram();
         m_style->setColor ({255, 0, 0, 255});
         break;
     default:
@@ -379,6 +377,7 @@ void ngs::FeatureRenderLayer::drawTiles()
     CPLLockHolder tilesHolder(m_hTilesLock);
 
     // load program if already not, set matrix and fill color in prepare
+    m_style->prepareProgram();
     m_style->prepareData(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
 
     int finalVertexBufferSize = 0;
