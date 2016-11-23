@@ -211,8 +211,6 @@ void FeatureRenderLayer::fillRenderBuffers()
     cout << "GlBuffer::getHardBuffersCount() before fillRenderBuffers: "
          << GlBuffer::getGlobalHardBuffersCount() << "\n";
 
-    CPLLockHolder tilesHolder(m_hTilesLock); // FIXME:
-
     m_complete = 0;
     m_isComplete = false;
     m_featureCount = -1;
@@ -308,7 +306,7 @@ void FeatureRenderLayer::fillRenderBuffers()
 
         tile->setFilled(true);
         {
-//            CPLLockHolder tilesHolder(m_hTilesLock); // FIXME:
+            CPLLockHolder tilesHolder(m_hTilesLock);
             m_tiles.emplace_back(std::move(tile));
         }
         ++counter;
@@ -329,7 +327,7 @@ void FeatureRenderLayer::fillRenderBuffers()
         if (currentTile->zoom() != m_renderZoom
                 || (currentTile->crossExtent() == 0
                            && !currentTile->intersects(testExt))) {
-//                CPLLockHolder tilesHolder(m_hTilesLock); // FIXME:
+                CPLLockHolder tilesHolder(m_hTilesLock);
             iter = m_tiles.erase(iter);
         } else {
             if (-1 == m_featureCount) {
