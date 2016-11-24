@@ -19,33 +19,41 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+
 #ifndef STYLE_H
 #define STYLE_H
 
 #include "glview.h"
 #include "matrix.h"
 
-namespace ngs {
-
+namespace ngs
+{
 class Style
 {
 public:
     Style();
     virtual ~Style();
     virtual bool prepareProgram();
-    virtual bool prepareData(const Matrix4 & msMatrix, const Matrix4 &vsMatrix);
-    virtual void setColor(const ngsRGBA &color);
+    virtual bool prepareData(const Matrix4& msMatrix, const Matrix4& vsMatrix);
+    virtual void setColor(const ngsRGBA& color);
     virtual void draw(const GlBuffer& buffer) const = 0;
+
 protected:
-    virtual const GLchar * getShaderSource(enum ngsShaderType type) = 0;
+    virtual const GLchar* getShaderSource(enum ngsShaderType type) = 0;
+
 protected:
     GlProgramUPtr m_program;
-    GLint m_mPositionId, m_NormalId, m_vLineWidthId, m_msMatrixId, m_vsMatrixId, m_colorId;
+    GLint m_mPositionId;
+    GLint m_NormalId;
+    GLint m_vLineWidthId;
+    GLint m_msMatrixId;
+    GLint m_vsMatrixId;
+    GLint m_colorId;
     GlColor m_color;
     bool m_load;
 };
 
-typedef unique_ptr<Style> StyleUPtr;
+using StyleUPtr = std::unique_ptr<Style>;
 
 class SimpleFillStyle : public Style
 {
@@ -55,8 +63,8 @@ public:
 
     // Style interface
 protected:
-    virtual const GLchar *getShaderSource(enum ngsShaderType type) override;
-    virtual void draw(const GlBuffer &buffer) const override;
+    virtual const GLchar* getShaderSource(enum ngsShaderType type) override;
+    virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
     const GLchar* const m_vertexShaderSourcePtr = R"(
@@ -96,12 +104,13 @@ public:
 
     // Style interface
 public:
-    virtual bool prepareData(const Matrix4 & msMatrix, const Matrix4 &vsMatrix) override;
+    virtual bool prepareData(
+            const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
 
     // Style interface
 protected:
-    virtual const GLchar *getShaderSource(enum ngsShaderType type) override;
-    virtual void draw(const GlBuffer &buffer) const override;
+    virtual const GLchar* getShaderSource(enum ngsShaderType type) override;
+    virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
     const GLchar* const m_vertexShaderSourcePtr = R"(
@@ -144,7 +153,6 @@ public:
     SimpleRasterStyle();
     virtual ~SimpleRasterStyle();
 };
+}    // namespace ngs
 
-}
-
-#endif // STYLE_H
+#endif    // STYLE_H
