@@ -685,9 +685,13 @@ unsigned int ngsDataStoreLoad(const char* name, const char *path,
                               const char *subDatasetName, const char** options,
                               ngsProgressFunc callback, void *callbackData)
 {
-    if(nullptr != gDataStore)
-        return gDataStore->loadDataset (name, path, subDatasetName, options,
-                                        callback, callbackData);
+    if(nullptr != gDataStore) {
+        CPLString sName(name);
+        CPLString sPath(path);
+        CPLString sSubDatasetName(subDatasetName);
+        return gDataStore->loadDataset(
+                sName, sPath, sSubDatasetName, options, callback, callbackData);
+    }
     return 0;
 }
 
