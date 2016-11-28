@@ -130,17 +130,17 @@ protected:
     // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
     // http://stackoverflow.com/q/18659332/2901140
     const GLchar* const m_fragmentShaderSourcePtr = R"(
-            precision mediump float;
-            uniform vec4 u_Color;
-            void main()
-            {
-               vec2 coord = gl_PointCoord - vec2(0.5);
-               if(length(coord) > 0.5) {
-                   discard;
-               } else {
-                   gl_FragColor = u_Color;
-               }
-            }
+        precision mediump float;
+        uniform vec4 u_Color;
+        void main()
+        {
+           vec2 coord = gl_PointCoord - vec2(0.5);
+           if(length(coord) > 0.5) {
+               discard;
+           } else {
+               gl_FragColor = u_Color;
+           }
+        }
     )";
 
     float m_radius;

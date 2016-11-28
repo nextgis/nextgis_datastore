@@ -280,7 +280,9 @@ public:
     size_t getFinalIndexBufferSize() const;
 
 protected:
-    void fill(OGRGeometry* geom, float level);
+    void fill(const OGRGeometry* geom, float level);
+    void fillPoint(const OGRPoint* point, float level);
+    void fillPolygon(const OGRPolygon* polygon, float level);
 
 protected:
     vector<GlBufferSharedPtr> m_buffers;

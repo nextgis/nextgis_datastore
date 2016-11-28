@@ -1350,154 +1350,57 @@ void GlBufferBucket::setFilled(bool filled)
 
 void GlBufferBucket::fill(GIntBig fid, OGRGeometry* geom, float level)
 {
-    if( nullptr == geom )
+    if (nullptr == geom)
         return;
     std::int_fast32_t size = GlBuffer::getGlobalVertexBufferSize();
     fill(geom, level);
     if (0 < GlBuffer::getGlobalVertexBufferSize() - size) {
-        m_fids.insert (fid);
+        m_fids.insert(fid);
     }
 }
 
 // TODO: add flags to specify how to fill buffer
-void GlBufferBucket::fill(OGRGeometry* geom, float level)
+void GlBufferBucket::fill(const OGRGeometry* geom, float level)
 {
-    switch (OGR_GT_Flatten (geom->getGeometryType ())) {
-        case wkbPoint:
-        {
+    switch (OGR_GT_Flatten(geom->getGeometryType())) {
+        case wkbPoint: {
             OGRPoint* pt = static_cast<OGRPoint*>(geom);
-
-            if (!m_buffers.back()->canStoreVertexes(1)
-                    || !m_buffers.back()->canStoreIndexes(1)) {
-                if (!GlBuffer::canGlobalStoreVertexes(1)
-                        || !GlBuffer::canGlobalStoreIndexes(1)) {
-                    return;
-                }
-                m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
-            }
-
-            GlBufferSharedPtr currBuffer = m_buffers.back();
-            unsigned short startIndex = currBuffer->getIndexBufferSize();
-            // TODO: add getZ + level
-            currBuffer->addVertex(
-                static_cast<float>(pt->getX() + m_crossExtent * DEFAULT_MAX_X2),
-                static_cast<float>(pt->getY()), level);
-
-            currBuffer->addIndex(startIndex);
-        }
-            break;
+            fillPoint(pt, level);
+        } break;
         case wkbLineString:
             break;
-        case wkbPolygon:
-        {
+        case wkbPolygon: {
             OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
-            // TODO: not only external ring must be extracted
-            OGRLinearRing* ring = polygon->getExteriorRing ();
-            int numPoints = ring->getNumPoints ();
-            if(numPoints < 3)
-                return;
-
-            // TODO: cut ring by x or y direction or tesselate to fill into array max size
-            if(numPoints > 21000) {
-                CPLDebug ("GlBufferBucket", "Too many points - %d, need to divide", numPoints);
-                return;
-            }
-
-            // last point == first point, see
-            // https://en.wikipedia.org/wiki/Well-known_text
-            --numPoints;
-
-            if (!m_buffers.back()->canStoreVertexesWithNormals(4 * numPoints)
-                    || !m_buffers.back()->canStoreIndexes(6 * numPoints)) {
-                if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
-                        || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
-                    return;
-                }
-                m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
-            }
-
-            GlBufferSharedPtr currBuffer = m_buffers.back();
-            int ptIndex = currBuffer->getVertexBufferSize() / 5;
-            Vector2 currPt, nextPt;
-            ring->getPoint(0, &currPt);
-
-            for (int i = 0; i < numPoints; ++i) {
-                ring->getPoint(i + 1, &nextPt);
-
-                // add point coordinates in float
-                // TODO: add getZ + level
-
-                Vector2 normal = currPt.normal(nextPt);
-                Vector2 invNormal = normal * -1;
-
-                float cptx = static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-                float cpty = static_cast<float>(currPt.getY());
-                float cptz = level;
-
-                float nptx = static_cast<float>(nextPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-                float npty = static_cast<float>(nextPt.getY());
-                float nptz = level;
-
-                float nx = static_cast<float>(normal.getX());
-                float ny = static_cast<float>(normal.getY());
-
-                float inx = static_cast<float>(invNormal.getX());
-                float iny = static_cast<float>(invNormal.getY());
-
-                // v(i), n
-                currBuffer->addVertexWithNoraml(cptx, cpty, cptz, nx, ny);
-
-                // v(i+1), -n
-                currBuffer->addVertexWithNoraml(cptx, cpty, cptz, inx, iny);
-
-                // v(i+2), n
-                currBuffer->addVertexWithNoraml(nptx, npty, nptz, nx, ny);
-
-                // v(i+3), -n
-                currBuffer->addVertexWithNoraml(nptx, npty, nptz, inx, iny);
-
-                // add triangle indexes unsigned short
-                int index = ptIndex + i * 4;
-                currBuffer->addTriangleIndexes(index, index + 2, index + 3);
-                currBuffer->addTriangleIndexes(index, index + 3, index + 1);
-
-                currPt = nextPt;
-            }
-        }
-            break;
-        case wkbMultiPoint:
-        {
+            fillPolygon(polygon, level);
+        } break;
+        case wkbMultiPoint: {
             OGRMultiPoint* mpt = static_cast<OGRMultiPoint*>(geom);
-            for(int i = 0; i < mpt->getNumGeometries (); ++i) {
-                fill (mpt->getGeometryRef (i), level);
+            for (int i = 0; i < mpt->getNumGeometries(); ++i) {
+                fill(mpt->getGeometryRef(i), level);
             }
-        }
-            break;
-        case wkbMultiLineString:
-        {
+        } break;
+        case wkbMultiLineString: {
             OGRMultiLineString* mln = static_cast<OGRMultiLineString*>(geom);
-            for(int i = 0; i < mln->getNumGeometries (); ++i) {
-                fill (mln->getGeometryRef (i), level);
+            for (int i = 0; i < mln->getNumGeometries(); ++i) {
+                fill(mln->getGeometryRef(i), level);
             }
-        }
-            break;
-        case wkbMultiPolygon:
-        {
+        } break;
+        case wkbMultiPolygon: {
             OGRMultiPolygon* mplg = static_cast<OGRMultiPolygon*>(geom);
-            for(int i = 0; i < mplg->getNumGeometries (); ++i) {
-                fill (mplg->getGeometryRef (i), level);
+            for (int i = 0; i < mplg->getNumGeometries(); ++i) {
+                OGRPolygon* polygon =
+                        static_cast<OGRPolygon*>(mplg->getGeometryRef(i));
+                fillPolygon(polygon, level);
             }
-        }
-            break;
-        case wkbGeometryCollection:
-        {
-            OGRGeometryCollection* coll = static_cast<OGRGeometryCollection*>(geom);
-            for(int i = 0; i < coll->getNumGeometries (); ++i) {
-                fill (coll->getGeometryRef (i), level);
+        } break;
+        case wkbGeometryCollection: {
+            OGRGeometryCollection* coll =
+                    static_cast<OGRGeometryCollection*>(geom);
+            for (int i = 0; i < coll->getNumGeometries(); ++i) {
+                fill(coll->getGeometryRef(i), level);
             }
-        }
-            break;
-        /* TODO: case wkbCircularString:
+        } break;
+            /* TODO: case wkbCircularString:
             return "cir";
         case wkbCompoundCurve:
             return "ccrv";
@@ -1511,6 +1414,107 @@ void GlBufferBucket::fill(OGRGeometry* geom, float level)
             return "crv";
         case wkbSurface:
             return "surf";*/
+    }
+}
+
+void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
+{
+    if (!m_buffers.back()->canStoreVertexes(1)
+            || !m_buffers.back()->canStoreIndexes(1)) {
+        if (!GlBuffer::canGlobalStoreVertexes(1)
+                || !GlBuffer::canGlobalStoreIndexes(1)) {
+            return;
+        }
+        m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
+    }
+
+    GlBufferSharedPtr currBuffer = m_buffers.back();
+    unsigned short startIndex = currBuffer->getIndexBufferSize();
+    // TODO: add getZ + level
+    currBuffer->addVertex(
+            static_cast<float>(point->getX() + m_crossExtent * DEFAULT_MAX_X2),
+            static_cast<float>(point->getY()), level);
+
+    currBuffer->addIndex(startIndex);
+}
+
+void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
+{
+    // TODO: not only external ring must be extracted
+    OGRLinearRing* ring = polygon->getExteriorRing();
+    int numPoints = ring->getNumPoints();
+    if (numPoints < 3)
+        return;
+
+    // TODO: cut ring by x or y direction or
+    // tesselate to fill into array max size
+    if (numPoints > 21000) {
+        CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
+                numPoints);
+        return;
+    }
+
+    // last point == first point, see
+    // https://en.wikipedia.org/wiki/Well-known_text
+    --numPoints;
+
+    if (!m_buffers.back()->canStoreVertexesWithNormals(4 * numPoints)
+            || !m_buffers.back()->canStoreIndexes(6 * numPoints)) {
+        if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
+                || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
+            return;
+        }
+        m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
+    }
+
+    GlBufferSharedPtr currBuffer = m_buffers.back();
+    int ptIndex = currBuffer->getVertexBufferSize() / 5;
+    Vector2 currPt, nextPt;
+    ring->getPoint(0, &currPt);
+
+    for (int i = 0; i < numPoints; ++i) {
+        ring->getPoint(i + 1, &nextPt);
+
+        // add point coordinates in float
+        // TODO: add getZ + level
+
+        Vector2 normal = currPt.normal(nextPt);
+        Vector2 invNormal = normal * -1;
+
+        float cptx = static_cast<float>(
+                currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+        float cpty = static_cast<float>(currPt.getY());
+        float cptz = level;
+
+        float nptx = static_cast<float>(
+                nextPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+        float npty = static_cast<float>(nextPt.getY());
+        float nptz = level;
+
+        float nx = static_cast<float>(normal.getX());
+        float ny = static_cast<float>(normal.getY());
+
+        float inx = static_cast<float>(invNormal.getX());
+        float iny = static_cast<float>(invNormal.getY());
+
+        // v(i), n
+        currBuffer->addVertexWithNoraml(cptx, cpty, cptz, nx, ny);
+
+        // v(i+1), -n
+        currBuffer->addVertexWithNoraml(cptx, cpty, cptz, inx, iny);
+
+        // v(i+2), n
+        currBuffer->addVertexWithNoraml(nptx, npty, nptz, nx, ny);
+
+        // v(i+3), -n
+        currBuffer->addVertexWithNoraml(nptx, npty, nptz, inx, iny);
+
+        // add triangle indexes unsigned short
+        int index = ptIndex + i * 4;
+        currBuffer->addTriangleIndexes(index, index + 2, index + 3);
+        currBuffer->addTriangleIndexes(index, index + 3, index + 1);
+
+        currPt = nextPt;
     }
 }
 
