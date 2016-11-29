@@ -1364,38 +1364,40 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
 {
     switch (OGR_GT_Flatten(geom->getGeometryType())) {
         case wkbPoint: {
-            OGRPoint* pt = static_cast<OGRPoint*>(geom);
+            const OGRPoint*  pt = static_cast<const OGRPoint*>(geom);
             fillPoint(pt, level);
         } break;
         case wkbLineString:
             break;
         case wkbPolygon: {
-            OGRPolygon* polygon = static_cast<OGRPolygon*>(geom);
+            const OGRPolygon* polygon = static_cast<const OGRPolygon*>(geom);
             fillPolygon(polygon, level);
         } break;
         case wkbMultiPoint: {
-            OGRMultiPoint* mpt = static_cast<OGRMultiPoint*>(geom);
+            const OGRMultiPoint* mpt = static_cast<const OGRMultiPoint*>(geom);
             for (int i = 0; i < mpt->getNumGeometries(); ++i) {
                 fill(mpt->getGeometryRef(i), level);
             }
         } break;
         case wkbMultiLineString: {
-            OGRMultiLineString* mln = static_cast<OGRMultiLineString*>(geom);
+            const OGRMultiLineString* mln =
+                    static_cast<const OGRMultiLineString*>(geom);
             for (int i = 0; i < mln->getNumGeometries(); ++i) {
                 fill(mln->getGeometryRef(i), level);
             }
         } break;
         case wkbMultiPolygon: {
-            OGRMultiPolygon* mplg = static_cast<OGRMultiPolygon*>(geom);
+            const OGRMultiPolygon* mplg =
+                    static_cast<const OGRMultiPolygon*>(geom);
             for (int i = 0; i < mplg->getNumGeometries(); ++i) {
-                OGRPolygon* polygon =
-                        static_cast<OGRPolygon*>(mplg->getGeometryRef(i));
+                const OGRPolygon* polygon =
+                        static_cast<const OGRPolygon*>(mplg->getGeometryRef(i));
                 fillPolygon(polygon, level);
             }
         } break;
         case wkbGeometryCollection: {
-            OGRGeometryCollection* coll =
-                    static_cast<OGRGeometryCollection*>(geom);
+            const OGRGeometryCollection* coll =
+                    static_cast<const OGRGeometryCollection*>(geom);
             for (int i = 0; i < coll->getNumGeometries(); ++i) {
                 fill(coll->getGeometryRef(i), level);
             }
@@ -1441,7 +1443,7 @@ void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
 void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 {
     // TODO: not only external ring must be extracted
-    OGRLinearRing* ring = polygon->getExteriorRing();
+    const OGRLinearRing* ring = polygon->getExteriorRing();
     int numPoints = ring->getNumPoints();
     if (numPoints < 3)
         return;
