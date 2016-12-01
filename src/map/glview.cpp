@@ -19,11 +19,13 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 #include "glview.h"
-#include "style.h"
+
 #include "constants.h"
+#include "style.h"
 #include "vector.h"
 
 #include <iostream>
+
 #include "cpl_error.h"
 #include "cpl_string.h"
 
@@ -1167,9 +1169,9 @@ void GlBuffer::addVertex(float x, float y, float z)
     if (!canStoreVertexes(1)) {
         return;
     }
-    m_vertices.push_back(x);
-    m_vertices.push_back(y);
-    m_vertices.push_back(z);
+    m_vertices.emplace_back(x);
+    m_vertices.emplace_back(y);
+    m_vertices.emplace_back(z);
 
     m_globalVertexBufferSize.fetch_add(3);
 }
@@ -1180,11 +1182,11 @@ void GlBuffer::addVertexWithNoraml(
     if (!canStoreVertexesWithNormals(1)) {
         return;
     }
-    m_vertices.push_back(vX);
-    m_vertices.push_back(vY);
-    m_vertices.push_back(vZ);
-    m_vertices.push_back(nX);
-    m_vertices.push_back(nY);
+    m_vertices.emplace_back(vX);
+    m_vertices.emplace_back(vY);
+    m_vertices.emplace_back(vZ);
+    m_vertices.emplace_back(nX);
+    m_vertices.emplace_back(nY);
 
     m_globalVertexBufferSize.fetch_add(5);
 }
@@ -1194,7 +1196,7 @@ void GlBuffer::addIndex(unsigned short index)
     if (!canStoreIndexes(1)) {
         return;
     }
-    m_indices.push_back(index);
+    m_indices.emplace_back(index);
 
     m_globalIndexBufferSize.fetch_add(1);
 }
@@ -1205,9 +1207,9 @@ void GlBuffer::addTriangleIndexes(
     if (!canStoreIndexes(3)) {
         return;
     }
-    m_indices.push_back(one);
-    m_indices.push_back(two);
-    m_indices.push_back(three);
+    m_indices.emplace_back(one);
+    m_indices.emplace_back(two);
+    m_indices.emplace_back(three);
 
     m_globalIndexBufferSize.fetch_add(3);
 }
@@ -1442,6 +1444,9 @@ void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
 
 void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 {
+    // Based on the maxbox's LineBucket::addGeometry() from
+    // https://github.com/mapbox/mapbox-gl-native
+
     // TODO: not only external ring must be extracted
     const OGRLinearRing* ring = polygon->getExteriorRing();
     int numPoints = ring->getNumPoints();
@@ -1456,67 +1461,151 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
         return;
     }
 
-    // last point == first point, see
-    // https://en.wikipedia.org/wiki/Well-known_text
-    --numPoints;
-
-    if (!m_buffers.back()->canStoreVertexesWithNormals(4 * numPoints)
+    if (!m_buffers.back()->canStoreVertexesWithNormals(2 * numPoints)
             || !m_buffers.back()->canStoreIndexes(6 * numPoints)) {
-        if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
+        if (!GlBuffer::canGlobalStoreVertexesWithNormals(2 * numPoints)
                 || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
             return;
         }
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
     }
 
+    // TODO: extract all the code for the lines
+
     GlBufferSharedPtr currBuffer = m_buffers.back();
-    int ptIndex = currBuffer->getVertexBufferSize() / 5;
-    Vector2 currPt, nextPt;
-    ring->getPoint(0, &currPt);
+    size_t startIndex = currBuffer->getVertexBufferSize() / 5;
+
+    // last point == first point, see
+    // https://en.wikipedia.org/wiki/Well-known_text
+    const Vector2 firstPt;
+    const Vector2 lastPt;
+    ring->getPoint(0, const_cast<Vector2*>(&firstPt));
+    ring->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
+
+    const bool closed = (firstPt == lastPt);
+    bool startOfLine = true;
+
+    Vector2 currPt;
+    Vector2 prevPt;
+    Vector2 nextPt;
+    Vector2 prevNormal;
+    Vector2 nextNormal;
+
+    int e1 = -1;
+    int e2 = -1;
+    int e3 = -1;
+
+    if (closed) {
+        ring->getPoint(numPoints - 2, &currPt);
+        nextNormal = firstPt.normal(currPt);
+    }
 
     for (int i = 0; i < numPoints; ++i) {
-        ring->getPoint(i + 1, &nextPt);
-
-        // add point coordinates in float
         // TODO: add getZ + level
 
-        Vector2 normal = currPt.normal(nextPt);
-        Vector2 invNormal = normal * -1;
+        if (closed && i == numPoints - 1) {
+            // if the line is closed, we treat the last vertex like the first
+            ring->getPoint(1, &nextPt);
+        } else if (i + 1 < numPoints) {
+            // just the next vertex
+            ring->getPoint(i + 1, &nextPt);
+        } else {
+            // there is no next vertex
+            nextPt.empty();
+        }
 
-        float cptx = static_cast<float>(
+        // if two consecutive vertices exist, skip the current one
+        //if (nextPt && coordinates[i] == nextPt) {
+        //    continue;
+        //}
+
+        if (nextNormal) {
+            prevNormal = nextNormal;
+        }
+        if (currPt) {
+            prevPt = currPt;
+        }
+
+        ring->getPoint(i, &currPt);
+
+        // Calculate the normal towards the next vertex in this line. In case
+        // there is no next vertex, pretend that the line is continuing
+        // straight, meaning that we are just using the previous normal.
+        nextNormal = nextPt ? nextPt.normal(currPt) : prevNormal;
+
+        // If we still don't have a previous normal, this is the beginning of a
+        // non-closed line, so we're doing a straight "join".
+        if (!prevNormal) {
+            prevNormal = nextNormal;
+        }
+
+        // Determine the normal of the join extrusion. It is the angle bisector
+        // of the segments between the previous line and the next line.
+        Vector2 joinNormal = (prevNormal + nextNormal).unit();
+
+        /*  joinNormal     prevNormal
+         *             ↖      ↑
+         *                .________. prevVertex
+         *                |
+         * nextNormal  ←  |  currentVertex
+         *                |
+         *     nextVertex !
+         *
+         */
+
+        // Calculate the length of the extrude.
+        // Find the cosine of the angle between the next and join normals.
+        // The inverse of that is the extrude length.
+        const double cosHalfAngle = joinNormal.getX() * nextNormal.getX()
+                + joinNormal.getY() * nextNormal.getY();
+        const double extrudeLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : 1;
+
+        Vector2 extrude = joinNormal * extrudeLength;
+
+        //const bool isSharpCorner =
+        //        cosHalfAngle < COS_HALF_SHARP_CORNER && prevPt && nextPt;
+
+        //if (isSharpCorner && i > 0) {
+        //}
+
+        // The join if a middle vertex, otherwise the cap
+        //const bool middleVertex = prevPt && nextPt;
+
+        // Add point coordinates as float.
+        // Add triangle indexes as unsigned short.
+
+        Vector2 invExtrude = extrude * -1;
+
+        float ptx = static_cast<float>(
                 currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-        float cpty = static_cast<float>(currPt.getY());
-        float cptz = level;
+        float pty = static_cast<float>(currPt.getY());
+        float ptz = level;
+        float ex = static_cast<float>(extrude.getX());
+        float ey = static_cast<float>(extrude.getY());
+        float iex = static_cast<float>(invExtrude.getX());
+        float iey = static_cast<float>(invExtrude.getY());
 
-        float nptx = static_cast<float>(
-                nextPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-        float npty = static_cast<float>(nextPt.getY());
-        float nptz = level;
+        // v(i), extrude
+        currBuffer->addVertexWithNoraml(ptx, pty, ptz, ex, ey);
 
-        float nx = static_cast<float>(normal.getX());
-        float ny = static_cast<float>(normal.getY());
+        e3 = currBuffer->getVertexBufferSize() / 5 - 1 - startIndex;
+        if (e1 >= 0 && e2 >= 0) {
+            currBuffer->addTriangleIndexes(e1, e2, e3);
+        }
+        e1 = e2;
+        e2 = e3;
 
-        float inx = static_cast<float>(invNormal.getX());
-        float iny = static_cast<float>(invNormal.getY());
+        // v(i+1), -extrude
+        currBuffer->addVertexWithNoraml(ptx, pty, ptz, iex, iey);
 
-        // v(i), n
-        currBuffer->addVertexWithNoraml(cptx, cpty, cptz, nx, ny);
+        e3 = currBuffer->getVertexBufferSize() / 5 - 1 - startIndex;
+        if (e1 >= 0 && e2 >= 0) {
+            currBuffer->addTriangleIndexes(e1, e2, e3);
+        }
+        e1 = e2;
+        e2 = e3;
 
-        // v(i+1), -n
-        currBuffer->addVertexWithNoraml(cptx, cpty, cptz, inx, iny);
-
-        // v(i+2), n
-        currBuffer->addVertexWithNoraml(nptx, npty, nptz, nx, ny);
-
-        // v(i+3), -n
-        currBuffer->addVertexWithNoraml(nptx, npty, nptz, inx, iny);
-
-        // add triangle indexes unsigned short
-        int index = ptIndex + i * 4;
-        currBuffer->addTriangleIndexes(index, index + 2, index + 3);
-        currBuffer->addTriangleIndexes(index, index + 3, index + 1);
-
-        currPt = nextPt;
+        startOfLine = false;
     }
 }
 

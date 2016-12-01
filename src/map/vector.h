@@ -32,83 +32,76 @@ class Vector2
         : public OGRPoint
 {
 public:
+    using OGRPoint::OGRPoint;
+    using OGRPoint::operator=;
 
-    inline Vector2()
-            : OGRPoint(0, 0)
-    { }
-
-    inline Vector2(
-            double x,
-            double y)
-            : OGRPoint(x, y)
-    { }
-
-    inline Vector2(const OGRPoint& c)
-            : OGRPoint(c.getX(), c.getY())
-    { }
-
-    inline bool operator==(const OGRPoint& rhs) const
+    bool operator==(const OGRPoint& rhs) const
     {
-        return getX() == rhs.getX() && getY() == rhs.getX();
+        return Equals(const_cast<OGRPoint*>(&rhs));
+    }
+
+    explicit operator bool() const
+    {
+        return !IsEmpty();
     }
 
     template <typename C>
-    inline typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
+    typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
     operator*(C c) const
     {
         return {getX() * c, getY() * c};
     }
 
-    inline void operator*=(double c)
+    void operator*=(double c)
     {
         setX(getX() * c);
         setY(getY() * c);
     }
 
     template <typename C>
-    inline typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
+    typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
     operator/(C c) const
     {
         return {getX() / c, getY() / c};
     }
 
-    inline void operator/=(double c)
+    void operator/=(double c)
     {
         setX(getX() / c);
         setY(getY() / c);
     }
 
     template <typename C>
-    inline typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
+    typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
     operator-(C c) const
     {
         return {getX() - c, getY() - c};
     }
 
-    inline Vector2 operator-(const OGRPoint& c) const
+    Vector2 operator-(const OGRPoint& c) const
     {
         return {getX() - c.getX(), getY() - c.getY()};
     }
 
     template <typename C>
-    inline typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
+    typename std::enable_if <std::is_arithmetic <C>::value, Vector2>::type
     operator+(C c) const
     {
         return {getX() + c, getY() + c};
     }
 
-    inline Vector2 operator+(const OGRPoint& c) const
+    Vector2 operator+(const OGRPoint& c) const
     {
         return {getX() + c.getX(), getY() + c.getY()};
     }
 
     // returns the magnitude (length) of the vector
-    inline double magnitude()
+    double magnitude() const
     {
         return std::sqrt(getX() * getX() + getY() * getY());
     }
 
-    inline Vector2 unit()
+    Vector2 unit() const
     {
         auto magn = magnitude();
         if (magn == 0) {
@@ -118,16 +111,24 @@ public:
     }
 
     // returns k X v (cross product). this is a vector perpendicular to v
-    inline Vector2 cross()
+    Vector2 cross() const
     {
         return {-getY(), getX()};
     }
 
     // returns the unit normal to a line between this point and the point b
-    inline Vector2 normal(const OGRPoint& b)
+    Vector2 normal(const OGRPoint& b) const
     {
         return ((*this) - b).unit().cross();
     }
 };
+
+using Vector2SharedPtr = std::shared_ptr<Vector2>;
+
+template <typename... Args>
+Vector2SharedPtr makeSharedVector2(Args&&... args)
+{
+    return std::make_shared<Vector2>(std::forward<Args>(args)...);
+}
 
 #endif //VECTOR_H
