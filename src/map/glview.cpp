@@ -1462,9 +1462,9 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
     }
 
     if (!m_buffers.back()->canStoreVertexesWithNormals(2 * numPoints)
-            || !m_buffers.back()->canStoreIndexes(6 * numPoints)) {
+            || !m_buffers.back()->canStoreIndexes(6 * (numPoints - 1))) {
         if (!GlBuffer::canGlobalStoreVertexesWithNormals(2 * numPoints)
-                || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
+                || !GlBuffer::canGlobalStoreIndexes(6 * (numPoints - 1))) {
             return;
         }
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
@@ -1473,7 +1473,6 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
     // TODO: extract all the code for the lines
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
-    size_t startIndex = currBuffer->getVertexBufferSize() / 5;
 
     // last point == first point, see
     // https://en.wikipedia.org/wiki/Well-known_text
@@ -1485,12 +1484,15 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
     const bool closed = (firstPt == lastPt);
     bool startOfLine = true;
 
+    // all is empty
     Vector2 currPt;
     Vector2 prevPt;
     Vector2 nextPt;
     Vector2 prevNormal;
     Vector2 nextNormal;
 
+    constexpr size_t vertexSize = 5; // 3 for vertex + 2 for normal
+    size_t startIndex = currBuffer->getVertexBufferSize() / vertexSize;
     int e1 = -1;
     int e2 = -1;
     int e3 = -1;
@@ -1561,6 +1563,7 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
         const double extrudeLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : 1;
 
         Vector2 extrude = joinNormal * extrudeLength;
+        Vector2 invExtrude = extrude * -1;
 
         //const bool isSharpCorner =
         //        cosHalfAngle < COS_HALF_SHARP_CORNER && prevPt && nextPt;
@@ -1574,8 +1577,6 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
         // Add point coordinates as float.
         // Add triangle indexes as unsigned short.
 
-        Vector2 invExtrude = extrude * -1;
-
         float ptx = static_cast<float>(
                 currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
         float pty = static_cast<float>(currPt.getY());
@@ -1585,27 +1586,29 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
         float iex = static_cast<float>(invExtrude.getX());
         float iey = static_cast<float>(invExtrude.getY());
 
-        // v(i), extrude
+        // v(i*2), extrude
         currBuffer->addVertexWithNoraml(ptx, pty, ptz, ex, ey);
 
-        e3 = currBuffer->getVertexBufferSize() / 5 - 1 - startIndex;
+        e3 = startIndex + i * 2;
         if (e1 >= 0 && e2 >= 0) {
             currBuffer->addTriangleIndexes(e1, e2, e3);
         }
         e1 = e2;
         e2 = e3;
 
-        // v(i+1), -extrude
+        // v(i*2+1), -extrude
         currBuffer->addVertexWithNoraml(ptx, pty, ptz, iex, iey);
 
-        e3 = currBuffer->getVertexBufferSize() / 5 - 1 - startIndex;
+        e3 = startIndex + i * 2 + 1;
         if (e1 >= 0 && e2 >= 0) {
             currBuffer->addTriangleIndexes(e1, e2, e3);
         }
         e1 = e2;
         e2 = e3;
 
-        startOfLine = false;
+        if (startOfLine) {
+            startOfLine = false;
+        }
     }
 }
 
