@@ -1476,8 +1476,8 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 
     // last point == first point, see
     // https://en.wikipedia.org/wiki/Well-known_text
-    const Vector2 firstPt;
-    const Vector2 lastPt;
+    const Vector2 firstPt{};
+    const Vector2 lastPt{};
     ring->getPoint(0, const_cast<Vector2*>(&firstPt));
     ring->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
 
