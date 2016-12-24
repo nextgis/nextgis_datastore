@@ -20,10 +20,12 @@
  ****************************************************************************/
  
 #include "api_priv.h"
-#include "datastore.h"
-#include "version.h"
-#include "mapstore.h"
+
 #include "constants.h"
+#include "directorycontainer.h"
+#include "datastore.h"
+#include "mapstore.h"
+#include "version.h"
 
 // GDAL
 #include "gdal.h"
@@ -905,4 +907,32 @@ const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *sep
     }
 
     return gFilters;
+}
+
+char* ngsGetDirectoryContainerPath(ngsDirectoryContainer* container)
+{
+    return DirectoryContainer::getPath(container);
+}
+
+void ngsDestroyDirectoryContainerPath(char* path)
+{
+    DirectoryContainer::freePath(path);
+}
+
+char* ngsGetDirectoryEntryPath(ngsDirectoryContainer* container, int entryIndex)
+{
+    return DirectoryContainer::getEntryPath(container, entryIndex);
+}
+
+void ngsDestroyDirectoryEntryPath(char* path)
+{
+    DirectoryContainer::freeEntryPath(path);
+}
+
+void ngsDirectoryContainerLoad(const char* path,
+        ngsDirectoryContainerLoadCallback callback,
+        void* callbackArguments)
+{
+    DirectoryContainer::loadDirectoryContainer(
+            path, callback, callbackArguments);
 }

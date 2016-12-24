@@ -51,6 +51,10 @@ if(BUILD_BINDINGS)
             )
 
             set(JAVA_CODE
+                ${CMAKE_CURRENT_SOURCE_DIR}/java/DirectoryContainer.java
+                ${CMAKE_CURRENT_SOURCE_DIR}/java/DirectoryEntry.java
+
+                # generated java sources
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ApiJNI.java
                 ${CMAKE_CURRENT_BINARY_DIR}/ChangeCodes.java

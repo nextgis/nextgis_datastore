@@ -52,7 +52,7 @@
 //%typemap(javadirectorout) (int) {
 //    return $javacall;
 //}
-//%typemap(directorin,descriptor="Lcom/nextgis/store/ProgressCallback;") (double complete) {
+//%typemap(directorin,descriptor="Lcom/nextgis/store/bindings/ProgressCallback;") (double complete) {
 //    $input = (jobject) $2;
 //}
 //%typemap(directorout) (int) {
