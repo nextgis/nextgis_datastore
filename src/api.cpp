@@ -21,8 +21,8 @@
  
 #include "api_priv.h"
 
+#include "catalogobjectcontainer.h"
 #include "constants.h"
-#include "directorycontainer.h"
 #include "datastore.h"
 #include "mapstore.h"
 #include "version.h"
@@ -909,30 +909,30 @@ const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *sep
     return gFilters;
 }
 
-char* ngsGetDirectoryContainerPath(ngsDirectoryContainer* container)
+char* ngsGetDirectoryContainerPath(ngsCatalogObjectContainer* container)
 {
-    return DirectoryContainer::getPath(container);
+    return CatalogObjectContainer::getPath(container);
 }
 
 void ngsDestroyDirectoryContainerPath(char* path)
 {
-    DirectoryContainer::freePath(path);
+    CatalogObjectContainer::freePath(path);
 }
 
-char* ngsGetDirectoryEntryPath(ngsDirectoryContainer* container, int entryIndex)
+char* ngsGetDirectoryEntryPath(ngsCatalogObjectContainer* container, int entryIndex)
 {
-    return DirectoryContainer::getEntryPath(container, entryIndex);
+    return CatalogObjectContainer::getEntryPath(container, entryIndex);
 }
 
 void ngsDestroyDirectoryEntryPath(char* path)
 {
-    DirectoryContainer::freeEntryPath(path);
+    CatalogObjectContainer::freeEntryPath(path);
 }
 
 void ngsDirectoryContainerLoad(const char* path,
         ngsDirectoryContainerLoadCallback callback,
         void* callbackArguments)
 {
-    DirectoryContainer::loadDirectoryContainer(
+    CatalogObjectContainer::loadDirectoryContainer(
             path, callback, callbackArguments);
 }
