@@ -59,6 +59,9 @@
 #define MAX_GLOBAL_VERTEX_BUFFER_SIZE 327180000
 #define MAX_GLOBAL_INDEX_BUFFER_SIZE 327180000
 
+#define VERTEX_SIZE 3
+#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
+
 using namespace ngs;
 
 //------------------------------------------------------------------------------
@@ -1126,15 +1129,14 @@ bool GlBuffer::bound() const
 // static
 bool GlBuffer::canGlobalStoreVertexes(size_t amount)
 {
-    return (m_globalVertexBufferSize.load() + amount * 3)
+    return (m_globalVertexBufferSize.load() + amount * VERTEX_SIZE)
             < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
 // static
 bool GlBuffer::canGlobalStoreVertexesWithNormals(size_t amount)
 {
-    // 5 = 3 for vertex + 2 for normal
-    return (m_globalVertexBufferSize.load() + amount * 5)
+    return (m_globalVertexBufferSize.load() + amount * VERTEX_WITH_NORMAL_SIZE)
             < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
@@ -1147,14 +1149,14 @@ bool GlBuffer::canGlobalStoreIndexes(size_t amount)
 
 bool GlBuffer::canStoreVertexes(size_t amount) const
 {
-    return (m_vertices.size() + amount * 3) < MAX_VERTEX_BUFFER_SIZE
+    return (m_vertices.size() + amount * VERTEX_SIZE) < MAX_VERTEX_BUFFER_SIZE
             && canGlobalStoreVertexes(amount);
 }
 
 bool GlBuffer::canStoreVertexesWithNormals(size_t amount) const
 {
-    // 5 = 3 for vertex + 2 for normal
-    return (m_vertices.size() + amount * 5) < MAX_VERTEX_BUFFER_SIZE
+    return (m_vertices.size() + amount * VERTEX_WITH_NORMAL_SIZE)
+            < MAX_VERTEX_BUFFER_SIZE
             && canGlobalStoreVertexes(amount);
 }
 
@@ -1173,7 +1175,7 @@ void GlBuffer::addVertex(float x, float y, float z)
     m_vertices.emplace_back(y);
     m_vertices.emplace_back(z);
 
-    m_globalVertexBufferSize.fetch_add(3);
+    m_globalVertexBufferSize.fetch_add(VERTEX_SIZE);
 }
 
 void GlBuffer::addVertexWithNoraml(
@@ -1188,7 +1190,7 @@ void GlBuffer::addVertexWithNoraml(
     m_vertices.emplace_back(nX);
     m_vertices.emplace_back(nY);
 
-    m_globalVertexBufferSize.fetch_add(5);
+    m_globalVertexBufferSize.fetch_add(VERTEX_WITH_NORMAL_SIZE);
 }
 
 void GlBuffer::addIndex(unsigned short index)
@@ -1366,11 +1368,13 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
 {
     switch (OGR_GT_Flatten(geom->getGeometryType())) {
         case wkbPoint: {
-            const OGRPoint*  pt = static_cast<const OGRPoint*>(geom);
+            const OGRPoint* pt = static_cast<const OGRPoint*>(geom);
             fillPoint(pt, level);
         } break;
-        case wkbLineString:
-            break;
+        case wkbLineString: {
+            const OGRLineString* line = static_cast<const OGRLineString*>(geom);
+            fillLineString(line, level);
+        } break;
         case wkbPolygon: {
             const OGRPolygon* polygon = static_cast<const OGRPolygon*>(geom);
             fillPolygon(polygon, level);
@@ -1378,14 +1382,18 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
         case wkbMultiPoint: {
             const OGRMultiPoint* mpt = static_cast<const OGRMultiPoint*>(geom);
             for (int i = 0; i < mpt->getNumGeometries(); ++i) {
-                fill(mpt->getGeometryRef(i), level);
+                const OGRPoint* pt =
+                        static_cast<const OGRPoint*>(mpt->getGeometryRef(i));
+                fillPoint(pt, level);
             }
         } break;
         case wkbMultiLineString: {
             const OGRMultiLineString* mln =
                     static_cast<const OGRMultiLineString*>(geom);
             for (int i = 0; i < mln->getNumGeometries(); ++i) {
-                fill(mln->getGeometryRef(i), level);
+                const OGRLineString* line = static_cast<const OGRLineString*>(
+                        mln->getGeometryRef(i));
+                fillLineString(line, level);
             }
         } break;
         case wkbMultiPolygon: {
@@ -1404,7 +1412,8 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
                 fill(coll->getGeometryRef(i), level);
             }
         } break;
-            /* TODO: case wkbCircularString:
+            /* TODO:
+        case wkbCircularString:
             return "cir";
         case wkbCompoundCurve:
             return "ccrv";
@@ -1442,18 +1451,16 @@ void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
     currBuffer->addIndex(startIndex);
 }
 
-void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
+void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 {
     // Based on the maxbox's LineBucket::addGeometry() from
     // https://github.com/mapbox/mapbox-gl-native
 
-    // TODO: not only external ring must be extracted
-    const OGRLinearRing* ring = polygon->getExteriorRing();
-    int numPoints = ring->getNumPoints();
-    if (numPoints < 3)
+    int numPoints = line->getNumPoints();
+    if (numPoints < 2)
         return;
 
-    // TODO: cut ring by x or y direction or
+    // TODO: cut line by x or y direction or
     // tesselate to fill into array max size
     if (numPoints > 21000) {
         CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
@@ -1470,35 +1477,33 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
     }
 
-    // TODO: extract all the code for the lines
-
     GlBufferSharedPtr currBuffer = m_buffers.back();
 
-    // last point == first point, see
-    // https://en.wikipedia.org/wiki/Well-known_text
-    const Vector2 firstPt{};
-    const Vector2 lastPt{};
-    ring->getPoint(0, const_cast<Vector2*>(&firstPt));
-    ring->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
+    const Vector2 firstPt;
+    const Vector2 lastPt;
+    line->getPoint(0, const_cast<Vector2*>(&firstPt));
+    line->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
 
+    // For closed line string last point == first point, see
+    // https://en.wikipedia.org/wiki/Well-known_text
     const bool closed = (firstPt == lastPt);
     bool startOfLine = true;
 
-    // all is empty
+    // all new vectors/points is empty, IsEmpty() == true
     Vector2 currPt;
     Vector2 prevPt;
     Vector2 nextPt;
     Vector2 prevNormal;
     Vector2 nextNormal;
 
-    constexpr size_t vertexSize = 5; // 3 for vertex + 2 for normal
-    size_t startIndex = currBuffer->getVertexBufferSize() / vertexSize;
+    size_t startIndex =
+            currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE;
     int e1 = -1;
     int e2 = -1;
     int e3 = -1;
 
     if (closed) {
-        ring->getPoint(numPoints - 2, &currPt);
+        line->getPoint(numPoints - 2, &currPt);
         nextNormal = firstPt.normal(currPt);
     }
 
@@ -1507,10 +1512,10 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 
         if (closed && i == numPoints - 1) {
             // if the line is closed, we treat the last vertex like the first
-            ring->getPoint(1, &nextPt);
+            line->getPoint(1, &nextPt);
         } else if (i + 1 < numPoints) {
             // just the next vertex
-            ring->getPoint(i + 1, &nextPt);
+            line->getPoint(i + 1, &nextPt);
         } else {
             // there is no next vertex
             nextPt.empty();
@@ -1528,7 +1533,7 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
             prevPt = currPt;
         }
 
-        ring->getPoint(i, &currPt);
+        line->getPoint(i, &currPt);
 
         // Calculate the normal towards the next vertex in this line. In case
         // there is no next vertex, pretend that the line is continuing
@@ -1555,14 +1560,14 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
          *
          */
 
-        // Calculate the length of the extrude.
+        // Calculate the length of the miter.
         // Find the cosine of the angle between the next and join normals.
-        // The inverse of that is the extrude length.
+        // The inverse of that is the miter length.
         const double cosHalfAngle = joinNormal.getX() * nextNormal.getX()
                 + joinNormal.getY() * nextNormal.getY();
-        const double extrudeLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : 1;
+        const double miterLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : 1;
 
-        Vector2 extrude = joinNormal * extrudeLength;
+        Vector2 extrude = joinNormal * miterLength;
         Vector2 invExtrude = extrude * -1;
 
         //const bool isSharpCorner =
@@ -1610,6 +1615,34 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
             startOfLine = false;
         }
     }
+}
+
+void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
+{
+    // TODO: not only external ring must be extracted
+    const OGRLinearRing* ring = polygon->getExteriorRing();
+
+    if (ring->getNumPoints() < 3)
+        return;
+
+    fillLineString(ring, level);
+
+//    unsigned short startPolyIndex =
+//            m_buffers[m_currentBuffer].getVerticesCount() / 3;
+//    for (int i = 0; i < numPoints; ++i) {
+//        ring->getPoint(i, &pt);
+//        // add point coordinates in float
+//        // TODO: add getZ + level
+//        m_buffers[m_currentBuffer].addVertex(
+//                static_cast<float>(pt.getX() + m_crossExtent * DEFAULT_MAX_X2),
+//                static_cast<float>(pt.getY()), level);
+//
+//        // add triangle indices unsigned short
+//        if (i < numPoints - 2) {
+//            m_buffers[m_currentBuffer].addIndex(startPolyIndex,
+//                    startPolyIndex + i + 1, startPolyIndex + i + 2);
+//        }
+//    }
 }
 
 char GlBufferBucket::crossExtent() const

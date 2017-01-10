@@ -194,7 +194,8 @@ void FeatureRenderLayer::initStyle()
         break;
     case wkbMultiLineString:
     case wkbLineString:
-        //->setColor ({0, 255, 255, 255});
+        m_style.reset(new SimpleFillStyle());
+        m_style->setColor ({0, 255, 255, 255});
         break;
     case wkbMultiPolygon:
     case wkbPolygon:
