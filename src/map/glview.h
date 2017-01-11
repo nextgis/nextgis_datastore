@@ -181,6 +181,12 @@ enum ngsShaderType {
     SH_FRAGMENT
 };
 
+enum class LineCapType : uint8_t {
+    Round,
+    Butt,
+    Square,
+};
+
 class GlBuffer
 {
 public:
@@ -282,6 +288,7 @@ public:
 protected:
     void fill(const OGRGeometry* geom, float level);
     void fillPoint(const OGRPoint* point, float level);
+    void fillLineString(const OGRLineString* line, float level);
     void fillPolygon(const OGRPolygon* polygon, float level);
 
 protected:

@@ -29,17 +29,19 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-    jsondocument.h
-    stringutil.h
-    maputil.h
+    catalogobjectcontainer.h
     geometryutil.h
+    jsondocument.h
+    maputil.h
+    stringutil.h
 )
 
 set(CSOURCES
-    jsondocument.cpp
-    stringutil.cpp
-    maputil.cpp
+    catalogobjectcontainer.cpp
     geometryutil.cpp
+    jsondocument.cpp
+    maputil.cpp
+    stringutil.cpp
 )
 
 if(UNIX)

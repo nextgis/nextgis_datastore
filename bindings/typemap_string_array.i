@@ -24,8 +24,8 @@
 
 %module Api
 
-// from SWIG's docs "15.8.1 Converting Java String arrays to char **"
-// http://heim.ifi.uio.no/inf3330/scripting/doc/swig/manual/Java.html#n57
+// from SWIG's docs "Converting Java String arrays to char **"
+// http://www.swig.org/Doc3.0/Java.html#Java_converting_java_string_arrays
 
 // This tells SWIG to treat char** as a special case when used as a parameter in a function call
 %typemap(in) char** (jint size) {

@@ -20,10 +20,12 @@
  ****************************************************************************/
  
 #include "api_priv.h"
-#include "datastore.h"
-#include "version.h"
-#include "mapstore.h"
+
+#include "catalogobjectcontainer.h"
 #include "constants.h"
+#include "datastore.h"
+#include "mapstore.h"
+#include "version.h"
 
 // GDAL
 #include "gdal.h"
@@ -905,4 +907,32 @@ const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *sep
     }
 
     return gFilters;
+}
+
+char* ngsGetDirectoryContainerPath(ngsCatalogObjectContainer* container)
+{
+    return CatalogObjectContainer::getPath(container);
+}
+
+void ngsDestroyDirectoryContainerPath(char* path)
+{
+    CatalogObjectContainer::freePath(path);
+}
+
+char* ngsGetDirectoryEntryPath(ngsCatalogObjectContainer* container, int entryIndex)
+{
+    return CatalogObjectContainer::getEntryPath(container, entryIndex);
+}
+
+void ngsDestroyDirectoryEntryPath(char* path)
+{
+    CatalogObjectContainer::freeEntryPath(path);
+}
+
+void ngsDirectoryContainerLoad(const char* path,
+        ngsDirectoryContainerLoadCallback callback,
+        void* callbackArguments)
+{
+    CatalogObjectContainer::loadDirectoryContainer(
+            path, callback, callbackArguments);
 }
