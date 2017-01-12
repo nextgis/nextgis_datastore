@@ -22,7 +22,6 @@
 
 #include "constants.h"
 #include "style.h"
-#include "vector.h"
 
 #include <iostream>
 
@@ -1178,7 +1177,7 @@ void GlBuffer::addVertex(float x, float y, float z)
     m_globalVertexBufferSize.fetch_add(VERTEX_SIZE);
 }
 
-void GlBuffer::addVertexWithNoraml(
+void GlBuffer::addVertexWithNormal(
         float vX, float vY, float vZ, float nX, float nY)
 {
     if (!canStoreVertexesWithNormals(1)) {
@@ -1451,6 +1450,38 @@ void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
     currBuffer->addIndex(startIndex);
 }
 
+/*
+ * Sharp corners cause dashed lines to tilt because the distance along the line
+ * is the same at both the inner and outer corners. To improve the appearance of
+ * dashed lines we add extra points near sharp corners so that a smaller part
+ * of the line is tilted.
+ *
+ * COS_HALF_SHARP_CORNER controls how sharp a corner has to be for us to add an
+ * extra vertex. The default is 75 degrees.
+ *
+ * The newly created vertices are placed SHARP_CORNER_OFFSET pixels
+ * from the corner.
+ */  // TODO:
+//const float COS_HALF_SHARP_CORNER = std::cos(75.0 / 2.0 * (M_PI / 180.0));
+//const float SHARP_CORNER_OFFSET = 15.0f;
+
+/*
+ * The maximum extent of a feature that can be safely stored in the buffer.
+ * In practice, all features are converted to this extent before being added.
+ *
+ * Positions are stored as signed 16bit integers.
+ * One bit is lost
+ * for signedness to support features extending past the left edge of the tile.
+ * One bit is lost
+ * because the line vertex buffer packs 1 bit of other data into the int.
+ * One bit is lost
+ * to support features extending past the extent on the right edge of the tile.
+ * This leaves us with 2^13 = 8192
+ */
+//constexpr int32_t EXTENT = 8192; // TODO:
+
+//constexpr float tileSize = 512; // TODO:
+
 void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 {
     // Based on the maxbox's LineBucket::addGeometry() from
@@ -1479,6 +1510,16 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
 
+    const LineCapType layoutLineCap = LineCapType::Round;
+    const LineJoinType layoutLineJoin = LineJoinType::Round;
+
+    const float miterLimit = layoutLineJoin == LineJoinType::Bevel
+            ? 1.05f
+            : 2.50f /* float(layout.get<LineMiterLimit>()) */;  // TODO:
+
+//    const double sharpCornerOffset = SHARP_CORNER_OFFSET  // TODO:
+//            * (float(EXTENT) / (tileSize /* tileSize * overscaling */));
+
     const Vector2 firstPt;
     const Vector2 lastPt;
     line->getPoint(0, const_cast<Vector2*>(&firstPt));
@@ -1487,7 +1528,12 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
     // For closed line string last point == first point, see
     // https://en.wikipedia.org/wiki/Well-known_text
     const bool closed = (firstPt == lastPt);
-    bool startOfLine = true;
+
+    if (2 == numPoints && closed)
+        return;
+
+    const LineCapType beginCap = layoutLineCap;
+    const LineCapType endCap = closed ? LineCapType::Butt : layoutLineCap;
 
     // all new vectors/points is empty, IsEmpty() == true
     Vector2 currPt;
@@ -1496,11 +1542,12 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
     Vector2 prevNormal;
     Vector2 nextNormal;
 
-    size_t startIndex =
+    bool startOfLine = true;
+    int startIndex =
             currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE;
-    int e1 = -1;
-    int e2 = -1;
-    int e3 = -1;
+
+    // the last three vertices added
+    m_e1 = m_e2 = m_e3 = -1;
 
     if (closed) {
         line->getPoint(numPoints - 2, &currPt);
@@ -1521,11 +1568,6 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
             nextPt.empty();
         }
 
-        // if two consecutive vertices exist, skip the current one
-        //if (nextPt && coordinates[i] == nextPt) {
-        //    continue;
-        //}
-
         if (nextNormal) {
             prevNormal = nextNormal;
         }
@@ -1534,6 +1576,11 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
         }
 
         line->getPoint(i, &currPt);
+
+        // if two consecutive vertices exist, skip the current one
+        if (nextPt && currPt == nextPt) {
+            continue;
+        }
 
         // Calculate the normal towards the next vertex in this line. In case
         // there is no next vertex, pretend that the line is continuing
@@ -1567,53 +1614,429 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                 + joinNormal.getY() * nextNormal.getY();
         const double miterLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : 1;
 
-        Vector2 extrude = joinNormal * miterLength;
-        Vector2 invExtrude = extrude * -1;
+//        const bool isSharpCorner = // TODO:
+//                (cosHalfAngle < COS_HALF_SHARP_CORNER) && prevPt && nextPt;
 
-        //const bool isSharpCorner =
-        //        cosHalfAngle < COS_HALF_SHARP_CORNER && prevPt && nextPt;
-
-        //if (isSharpCorner && i > 0) {
-        //}
+//        if (isSharpCorner && i > 0) { // TODO:
+//            const double prevSegmentLength = currPt.dist(prevPt);
+//            if (prevSegmentLength > 2.0 * sharpCornerOffset) {
+//                Vector2 newPrevPt = currPt
+//                        - (currPt - prevPt)
+//                                * (sharpCornerOffset / prevSegmentLength);
+//                addCurrentLineVertex(newPrevPt, level, prevNormal, 0, 0, false,
+//                        startIndex, currBuffer);
+//                prevPt = newPrevPt;
+//            }
+//        }
 
         // The join if a middle vertex, otherwise the cap
-        //const bool middleVertex = prevPt && nextPt;
+        const bool middleVertex = prevPt && nextPt;
+        LineJoinType currentJoin = layoutLineJoin;
+        /*const*/ LineCapType currentCap = nextPt ? beginCap : endCap; // TODO:
 
-        // Add point coordinates as float.
-        // Add triangle indexes as unsigned short.
+        if (middleVertex) {
+            if (currentJoin == LineJoinType::Round) {  // TODO:
+                if (miterLength < 1.05 /* layout.get<LineRoundLimit>() */) {
+                    currentJoin = LineJoinType::Miter;
+                } else /*if (miterLength <= 2)*/ {  // TODO:
+                    currentJoin = LineJoinType::FakeRound;
+                }
+            }
 
-        float ptx = static_cast<float>(
-                currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-        float pty = static_cast<float>(currPt.getY());
-        float ptz = level;
-        float ex = static_cast<float>(extrude.getX());
-        float ey = static_cast<float>(extrude.getY());
-        float iex = static_cast<float>(invExtrude.getX());
-        float iey = static_cast<float>(invExtrude.getY());
+            if (currentJoin == LineJoinType::Miter
+                    && miterLength > miterLimit) {
+                currentJoin = LineJoinType::Bevel;
+            }
 
-        // v(i*2), extrude
-        currBuffer->addVertexWithNoraml(ptx, pty, ptz, ex, ey);
+            if (currentJoin == LineJoinType::Bevel) {
+                // The maximum extrude length is 128 / 63 = 2 times the width
+                // of the line so if miterLength >= 2 we need to draw
+                // a different type of bevel where.
+                if (miterLength > 2) {
+                    currentJoin = LineJoinType::FlipBevel;
+                }
 
-        e3 = startIndex + i * 2;
-        if (e1 >= 0 && e2 >= 0) {
-            currBuffer->addTriangleIndexes(e1, e2, e3);
+                // If the miterLength is really small and the line bevel
+                // wouldn't be visible, just draw a miter join
+                // to save a triangle.
+                if (miterLength < miterLimit) {
+                    currentJoin = LineJoinType::Miter;
+                }
+            }
+        } else {
+            if (currentCap == LineCapType::Round) { // TODO:
+                currentCap = LineCapType::FakeRound;
+            }
         }
-        e1 = e2;
-        e2 = e3;
 
-        // v(i*2+1), -extrude
-        currBuffer->addVertexWithNoraml(ptx, pty, ptz, iex, iey);
+        if (middleVertex && currentJoin == LineJoinType::Miter) {
+            joinNormal = joinNormal * miterLength;
+            addCurrentLineVertex(currPt, level, joinNormal, 0, 0, false,
+                    startIndex, currBuffer);
 
-        e3 = startIndex + i * 2 + 1;
-        if (e1 >= 0 && e2 >= 0) {
-            currBuffer->addTriangleIndexes(e1, e2, e3);
+        } else if (middleVertex && currentJoin == LineJoinType::FlipBevel) {
+            // miter is too big, flip the direction to make a beveled join
+
+            if (miterLength > 100) {
+                // Almost parallel lines
+                joinNormal = nextNormal;
+            } else {
+                const double direction =
+                        prevNormal.crossProduct(nextNormal) > 0 ? -1 : 1;
+                const double bevelLength = miterLength
+                        * (prevNormal + nextNormal).magnitude()
+                        / (prevNormal - nextNormal).magnitude();
+                joinNormal = joinNormal.cross() * bevelLength * direction;
+            }
+
+            addCurrentLineVertex(currPt, level, joinNormal, 0, 0, false,
+                    startIndex, currBuffer);
+
+            addCurrentLineVertex(currPt, level, joinNormal * -1.0, 0, 0, false,
+                    startIndex, currBuffer);
+
+        } else if (middleVertex
+                && (currentJoin == LineJoinType::Bevel
+                           || currentJoin == LineJoinType::FakeRound)) {
+            const bool lineTurnsLeft = prevNormal.crossProduct(nextNormal) > 0;
+            const float offset = -std::sqrt(miterLength * miterLength - 1);
+            float offsetA;
+            float offsetB;
+
+            if (lineTurnsLeft) {
+                offsetB = 0;
+                offsetA = offset;
+            } else {
+                offsetA = 0;
+                offsetB = offset;
+            }
+
+            // Close previous segment with bevel
+            if (!startOfLine) {
+                addCurrentLineVertex(currPt, level, prevNormal, offsetA,
+                        offsetB, false, startIndex, currBuffer);
+            }
+
+            if (currentJoin == LineJoinType::FakeRound) {
+                // The join angle is sharp enough that a round join would be
+                // visible. Bevel joins fill the gap between segments with a
+                // single pie slice triangle. Create a round join by adding
+                // multiple pie slices. The join isn't actually round, but
+                // it looks like it is at the sizes we render lines at.
+
+                // Add more triangles for sharper angles.
+                // This math is just a good enough approximation.
+                // It isn't "correct".
+                const int n = std::floor((0.5 - (cosHalfAngle - 0.5)) * 8);
+
+                for (int m = 0; m < n; ++m) {
+                    Vector2 approxFractionalJoinNormal =
+                            (nextNormal * ((m + 1.0) / (n + 1.0)) + prevNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, lineTurnsLeft, false,
+                            startIndex, currBuffer);
+                }
+
+                addPieSliceLineVertex(currPt, level, joinNormal, lineTurnsLeft,
+                        false, startIndex, currBuffer);
+
+                for (int k = n - 1; k >= 0; --k) {
+                    Vector2 approxFractionalJoinNormal =
+                            (prevNormal * ((k + 1.0) / (n + 1.0)) + nextNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, lineTurnsLeft, false,
+                            startIndex, currBuffer);
+                }
+            }
+
+            // Start next segment
+            if (nextPt) {
+                addCurrentLineVertex(currPt, level, nextNormal, -offsetA,
+                        -offsetB, false, startIndex, currBuffer);
+            }
+
+        } else if (!middleVertex && currentCap == LineCapType::Butt) {
+            if (!startOfLine) {
+                // Close previous segment with a butt
+                addCurrentLineVertex(currPt, level, prevNormal, 0, 0, false,
+                        startIndex, currBuffer);
+            }
+
+            // Start next segment with a butt
+            if (nextPt) {
+                addCurrentLineVertex(currPt, level, nextNormal, 0, 0, false,
+                        startIndex, currBuffer);
+            }
+
+        } else if (!middleVertex && currentCap == LineCapType::Square) {
+            if (!startOfLine) {
+                // Close previous segment with a square cap
+                addCurrentLineVertex(currPt, level, prevNormal, 1, 1, false,
+                        startIndex, currBuffer);
+
+                // The segment is done. Unset vertices to disconnect segments.
+                m_e1 = m_e2 = -1;
+            }
+
+            // Start next segment
+            if (nextPt) {
+                addCurrentLineVertex(currPt, level, nextNormal, -1, -1, false,
+                        startIndex, currBuffer);
+            }
+
+        } else if (middleVertex ? currentJoin == LineJoinType::Round
+                                : currentCap == LineCapType::Round) {
+            if (!startOfLine) {
+                // Close previous segment with a butt
+                addCurrentLineVertex(currPt, level, prevNormal, 0, 0, false,
+                        startIndex, currBuffer);
+
+                // Add round cap or linejoin at end of segment
+                addCurrentLineVertex(currPt, level, prevNormal, 1, 1, true,
+                        startIndex, currBuffer);
+
+                // The segment is done. Unset vertices to disconnect segments.
+                m_e1 = m_e2 = -1;
+            }
+
+            // Start next segment with a butt
+            if (nextPt) {
+                // Add round cap before first segment
+                addCurrentLineVertex(currPt, level, nextNormal, -1, -1, true,
+                        startIndex, currBuffer);
+
+                addCurrentLineVertex(currPt, level, nextNormal, 0, 0, false,
+                        startIndex, currBuffer);
+            }
+
+        } else if (!middleVertex && currentCap == LineCapType::FakeRound) {
+            // TODO: Remove work with LineCapType::FakeRound and switch
+            // to LineCapType::Round based on the antialiased color changing
+            // for LineCapType::Square.
+
+            // Fill the fake round cap with a single pie slice triangle.
+            // Create a fake round cap by adding multiple pie slices.
+            // The cap isn't actually round, but it looks like it is
+            // at the sizes we render lines at.
+
+            // Add more triangles for fake round cap.
+            // This math is just a good enough approximation.
+            // It isn't "correct".
+            const int n = 4;
+
+            if (!startOfLine) {
+                // Close previous segment with a butt
+                addCurrentLineVertex(currPt, level, prevNormal, 0, 0, false,
+                        startIndex, currBuffer);
+
+                // Add fake round cap at end of segment
+                Vector2 invNormal = prevNormal * -1;
+                Vector2 crossNormal = invNormal.cross();
+
+                for (int m = 0; m < n; ++m) {
+                    Vector2 approxFractionalJoinNormal =
+                            (crossNormal * ((m + 1.0) / (n + 1.0)) + prevNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                for (int k = n - 1; k >= 0; --k) {
+                    Vector2 approxFractionalJoinNormal =
+                            (prevNormal * ((k + 1.0) / (n + 1.0)) + crossNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                addPieSliceLineVertex(currPt, level, crossNormal, false, false,
+                        startIndex, currBuffer);
+
+                for (int m = 0; m < n; ++m) {
+                    Vector2 approxFractionalJoinNormal =
+                            (invNormal * ((m + 1.0) / (n + 1.0)) + crossNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                for (int k = n - 1; k >= 0; --k) {
+                    Vector2 approxFractionalJoinNormal =
+                            (crossNormal * ((k + 1.0) / (n + 1.0)) + invNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                // The segment is done. Unset vertices to disconnect segments.
+                m_e1 = m_e2 = -1;
+            }
+
+            if (nextPt) {
+                // Add fake round cap before first segment
+                Vector2 invNormal = nextNormal * -1;
+                Vector2 crossNormal = nextNormal.cross();
+
+                bool firstPt = true;
+                for (int m = 0; m < n; ++m) {
+                    Vector2 approxFractionalJoinNormal =
+                            (crossNormal * ((m + 1.0) / (n + 1.0)) + invNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, firstPt,
+                            startIndex, currBuffer);
+                    if (firstPt)
+                        firstPt = false;
+                }
+
+                for (int k = n - 1; k >= 0; --k) {
+                    Vector2 approxFractionalJoinNormal =
+                            (invNormal * ((k + 1.0) / (n + 1.0)) + crossNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                addPieSliceLineVertex(currPt, level, crossNormal, false, false,
+                        startIndex, currBuffer);
+
+                for (int m = 0; m < n; ++m) {
+                    Vector2 approxFractionalJoinNormal =
+                            (nextNormal * ((m + 1.0) / (n + 1.0)) + crossNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                for (int k = n - 1; k >= 0; --k) {
+                    Vector2 approxFractionalJoinNormal =
+                            (crossNormal * ((k + 1.0) / (n + 1.0)) + nextNormal)
+                                    .unit();
+                    addPieSliceLineVertex(currPt, level,
+                            approxFractionalJoinNormal, false, false,
+                            startIndex, currBuffer);
+                }
+
+                // Start next segment with a butt
+                addCurrentLineVertex(currPt, level, nextNormal, 0, 0, false,
+                        startIndex, currBuffer);
+            }
         }
-        e1 = e2;
-        e2 = e3;
 
-        if (startOfLine) {
-            startOfLine = false;
+//        if (isSharpCorner && i < numPoints - 1) { // TODO:
+//            const double nextSegmentLength = currPt.dist(nextPt);
+//            if (nextSegmentLength > 2 * sharpCornerOffset) {
+//                Vector2 newCurrPt = currPt
+//                        + (nextPt - currPt)
+//                                * (sharpCornerOffset / nextSegmentLength);
+//                addCurrentLineVertex(newCurrPt, level, nextNormal, 0, 0, false,
+//                        startIndex, currBuffer);
+//                currPt = newCurrPt;
+//            }
+//        }
+
+        startOfLine = false;
+    }
+}
+
+void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
+        float level,
+        const Vector2& normal,
+        double endLeft,
+        double endRight,
+        bool round,
+        int startIndex,
+        GlBufferSharedPtr currBuffer)
+{
+    // Add point coordinates as float.
+    // Add triangle indexes as unsigned short.
+
+    float ptx =
+            static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+    float pty = static_cast<float>(currPt.getY());
+    float ptz = level;
+
+    Vector2 extrude = normal;
+    if (endLeft)
+        extrude = extrude - (normal.cross() * endLeft);
+
+    // v(i*2), extrude
+    float ex = static_cast<float>(extrude.getX());
+    float ey = static_cast<float>(extrude.getY());
+    currBuffer->addVertexWithNormal(ptx, pty, ptz, ex, ey);
+
+    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1
+            - startIndex;
+    if (m_e1 >= 0 && m_e2 >= 0) {
+        currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
+    }
+    m_e1 = m_e2;
+    m_e2 = m_e3;
+
+
+    extrude = normal * -1.0;
+    if (endRight)
+        extrude = extrude - (normal.cross() * endRight);
+
+    // v(i*2+1), -extrude
+    ex = static_cast<float>(extrude.getX());
+    ey = static_cast<float>(extrude.getY());
+    currBuffer->addVertexWithNormal(ptx, pty, ptz, ex, ey);
+
+    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1
+            - startIndex;
+    if (m_e1 >= 0 && m_e2 >= 0) {
+        currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
+    }
+    m_e1 = m_e2;
+    m_e2 = m_e3;
+}
+
+void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
+        float level,
+        const Vector2& extrude,
+        bool lineTurnsLeft,
+        bool firstPt,
+        int startIndex,
+        GlBufferSharedPtr currBuffer)
+{
+    // Add point coordinates as float.
+    // Add triangle indexes as unsigned short.
+
+    Vector2 flippedExtrude = extrude * (lineTurnsLeft ? -1.0 : 1.0);
+    float ptx =
+            static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+    float pty = static_cast<float>(currPt.getY());
+    float ptz = level;
+
+    float fex = static_cast<float>(flippedExtrude.getX());
+    float fey = static_cast<float>(flippedExtrude.getY());
+    currBuffer->addVertexWithNormal(ptx, pty, ptz, fex, fey);
+
+    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1
+            - startIndex;
+    if (m_e1 >= 0 && m_e2 >= 0) {
+        currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
+    }
+
+    if (lineTurnsLeft) {
+        if (firstPt) {
+            m_e1 = m_e3;
         }
+        m_e2 = m_e3;
+    } else {
+        if (firstPt) {
+            m_e2 = m_e3;
+        }
+        m_e1 = m_e3;
     }
 }
 
