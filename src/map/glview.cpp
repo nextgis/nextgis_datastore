@@ -1520,8 +1520,8 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 //    const double sharpCornerOffset = SHARP_CORNER_OFFSET  // TODO:
 //            * (float(EXTENT) / (tileSize /* tileSize * overscaling */));
 
-    const Vector2 firstPt;
-    const Vector2 lastPt;
+    const Vector2 firstPt{};
+    const Vector2 lastPt{};
     line->getPoint(0, const_cast<Vector2*>(&firstPt));
     line->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
 
