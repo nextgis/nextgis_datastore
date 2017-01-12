@@ -171,29 +171,28 @@ enum ngsOptions {
     OPT_DEBUGMODE = 1 << 1
 };
 
-enum ngsCatalogObjectType 
+enum ngsDirectoryEntryType
 {
-    COT_UNKNOWN = 1 << 0,
-    COT_DIRECTORY = 1 << 1,
-    COT_FILE = 1 << 2
+    DET_UNKNOWN = 1 << 0,
+    DET_DIRECTORY = 1 << 1,
+    DET_FILE = 1 << 2
 };
 
-typedef struct _ngsCatalogObject {
+typedef struct _ngsDirectoryEntry {
     char* baseName;
     char* extension;
-    enum ngsCatalogObjectType type;
-    int childrenCount;
-} ngsCatalogObject;
+    enum ngsDirectoryEntryType type;
+} ngsDirectoryEntry;
 
-typedef struct _ngsCatalogObjectContainer {
+typedef struct _ngsDirectoryContainer {
     char* parentPath;
     char* directoryName;
-    ngsCatalogObject* entries;
+    ngsDirectoryEntry* entries;
     int entryCount;
-} ngsCatalogObjectContainer;
+} ngsDirectoryContainer;
 
 typedef void (*ngsDirectoryContainerLoadCallback)(
-        ngsCatalogObjectContainer* container, void* callbackArguments);
+        ngsDirectoryContainer* container, void* callbackArguments);
 
 /**
  * Common functions
@@ -258,10 +257,10 @@ NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, doubl
 NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 
-NGS_EXTERNC char* ngsGetDirectoryContainerPath(ngsCatalogObjectContainer* container);
+NGS_EXTERNC char* ngsGetDirectoryContainerPath(ngsDirectoryContainer* container);
 NGS_EXTERNC void ngsDestroyDirectoryContainerPath(char* path);
 NGS_EXTERNC char* ngsGetDirectoryEntryPath(
-        ngsCatalogObjectContainer* container, int entryIndex);
+        ngsDirectoryContainer* container, int entryIndex);
 NGS_EXTERNC void ngsDestroyDirectoryEntryPath(char* path);
 
 NGS_EXTERNC void ngsDirectoryContainerLoad(const char* path,

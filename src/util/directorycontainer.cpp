@@ -20,7 +20,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#include "catalogobjectcontainer.h"
+#include "directorycontainer.h"
 
 #include "cpl_conv.h"
 #include "cpl_multiproc.h"
@@ -36,7 +36,7 @@
 namespace ngs
 {
 // static
-char* CatalogObjectContainer::getPath(ngsCatalogObjectContainer* container)
+char* DirectoryContainer::getPath(ngsDirectoryContainer* container)
 {
     const char* tmpPath = CPLFormFilename(
             container->parentPath, container->directoryName, nullptr);
@@ -46,18 +46,18 @@ char* CatalogObjectContainer::getPath(ngsCatalogObjectContainer* container)
 }
 
 // static
-void CatalogObjectContainer::freePath(char* path)
+void DirectoryContainer::freePath(char* path)
 {
     delete[] path;
 }
 
 // static
-char* CatalogObjectContainer::getEntryPath(
-        ngsCatalogObjectContainer* container, int entryIndex)
+char* DirectoryContainer::getEntryPath(
+        ngsDirectoryContainer* container, int entryIndex)
 {
     char* dirPath = getPath(container);
 
-    ngsCatalogObject* entry = &container->entries[entryIndex];
+    ngsDirectoryEntry* entry = &container->entries[entryIndex];
     const char* tmpPath =
             CPLFormFilename(dirPath, entry->baseName, entry->extension);
     char* entryPath = new char[strlen(tmpPath) + 1];
@@ -68,20 +68,20 @@ char* CatalogObjectContainer::getEntryPath(
 }
 
 // static
-void CatalogObjectContainer::freeEntryPath(char* path)
+void DirectoryContainer::freeEntryPath(char* path)
 {
     delete[] path;
 }
 
 // static
-bool CatalogObjectContainer::compareEntries(
-        const ngsCatalogObject& a, const ngsCatalogObject& b)
+bool DirectoryContainer::compareEntries(
+        const ngsDirectoryEntry& a, const ngsDirectoryEntry& b)
 {
-    if ((a.type & COT_DIRECTORY) && !(b.type & COT_DIRECTORY)) {
+    if ((a.type & DET_DIRECTORY) && !(b.type & DET_DIRECTORY)) {
         return true;
     }
 
-    if (!(a.type & COT_DIRECTORY) && (b.type & COT_DIRECTORY)) {
+    if (!(a.type & DET_DIRECTORY) && (b.type & DET_DIRECTORY)) {
         return false;
     }
 
@@ -90,7 +90,7 @@ bool CatalogObjectContainer::compareEntries(
 }
 
 // static
-ngsCatalogObjectContainer* CatalogObjectContainer::getDirectoryContainer(
+ngsDirectoryContainer* DirectoryContainer::getDirectoryContainer(
         const char* path)
 {
     if (!path) {
@@ -114,7 +114,7 @@ ngsCatalogObjectContainer* CatalogObjectContainer::getDirectoryContainer(
     const char* dirName = CPLGetFilename(cleanedPath);
     const char* parentPath = CPLGetPath(cleanedPath);
 
-    ngsCatalogObjectContainer* pContainer = new ngsCatalogObjectContainer;
+    ngsDirectoryContainer* pContainer = new ngsDirectoryContainer;
     pContainer->directoryName = new char[strlen(dirName) + 1];
     strcpy(pContainer->directoryName, dirName);
 
@@ -125,7 +125,7 @@ ngsCatalogObjectContainer* CatalogObjectContainer::getDirectoryContainer(
         strcpy(pContainer->parentPath, parentPath);
     }
 
-    std::vector<ngsCatalogObject> tmpEntries;
+    std::vector<ngsDirectoryEntry> tmpEntries;
     tmpEntries.reserve(nameCount);
 
     for (char** pFullName = pList; *pFullName != nullptr; ++pFullName) {
@@ -143,16 +143,16 @@ ngsCatalogObjectContainer* CatalogObjectContainer::getDirectoryContainer(
             return nullptr;  // TODO: throw error
         }
 
-        enum ngsCatalogObjectType  type;
+        enum ngsDirectoryEntryType type;
         if (VSI_ISDIR(stat.st_mode)) {
-            type = COT_DIRECTORY;
+            type = DET_DIRECTORY;
         } else if (VSI_ISREG(stat.st_mode)) {
-            type = COT_FILE;
+            type = DET_FILE;
         } else {
-            type = COT_UNKNOWN;
+            type = DET_UNKNOWN;
         }
 
-        ngsCatalogObject entry;
+        ngsDirectoryEntry entry;
         entry.type = type;
         entry.baseName = new char[strlen(baseName) + 1];
         strcpy(entry.baseName, baseName);
@@ -165,7 +165,7 @@ ngsCatalogObjectContainer* CatalogObjectContainer::getDirectoryContainer(
     CSLDestroy(pList);
 
     pContainer->entryCount = tmpEntries.size();
-    pContainer->entries = new ngsCatalogObject[tmpEntries.size()];
+    pContainer->entries = new ngsDirectoryEntry[tmpEntries.size()];
     std::sort(tmpEntries.begin(), tmpEntries.end(), compareEntries);
     std::copy(tmpEntries.begin(), tmpEntries.end(), pContainer->entries);
 
@@ -173,11 +173,11 @@ ngsCatalogObjectContainer* CatalogObjectContainer::getDirectoryContainer(
 }
 
 // static
-void CatalogObjectContainer::freeDirectoryContainer (
-        ngsCatalogObjectContainer* container)
+void DirectoryContainer::freeDirectoryContainer (
+        ngsDirectoryContainer* container)
 {
     for (int i = 0; i < container->entryCount; ++i) {
-        ngsCatalogObject* entry = &container->entries[i];
+        ngsDirectoryEntry* entry = &container->entries[i];
         delete[] entry->baseName;
         delete[] entry->extension;
     }
@@ -207,8 +207,8 @@ void loadDirectoryContainerThread(void* arguments)
         return;
     }
     ContainerArgs* args = static_cast<ContainerArgs*>(arguments);
-    ngsCatalogObjectContainer* container =
-            CatalogObjectContainer::getDirectoryContainer(args->path);
+    ngsDirectoryContainer* container =
+            DirectoryContainer::getDirectoryContainer(args->path);
     if (!container) {
         return; // TODO: error message
     }
@@ -217,7 +217,7 @@ void loadDirectoryContainerThread(void* arguments)
         args->callback(container, args->callbackArguments);
     }
 
-    CatalogObjectContainer::freeDirectoryContainer(container);
+    DirectoryContainer::freeDirectoryContainer(container);
     delete args->path;
     delete args;
 
@@ -231,7 +231,7 @@ void loadDirectoryContainerThread(void* arguments)
 }
 
 // static
-void CatalogObjectContainer::loadDirectoryContainer(const char* path,
+void DirectoryContainer::loadDirectoryContainer(const char* path,
         ngsDirectoryContainerLoadCallback callback,
         void* callbackArguments)
 {

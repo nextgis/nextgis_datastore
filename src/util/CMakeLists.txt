@@ -29,7 +29,7 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-    catalogobjectcontainer.h
+    directorycontainer.h
     geometryutil.h
     jsondocument.h
     maputil.h
@@ -37,7 +37,7 @@ set(HHEADER_PRIV
 )
 
 set(CSOURCES
-    catalogobjectcontainer.cpp
+    directorycontainer.cpp
     geometryutil.cpp
     jsondocument.cpp
     maputil.cpp

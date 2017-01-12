@@ -20,65 +20,43 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef CATALOGOBJECTCONTAINER_H
-#define CATALOGOBJECTCONTAINER_H
+#ifndef DIRECTORYCONTAINER_H
+#define DIRECTORYCONTAINER_H
 
 #include "api.h"
 
-#include "cpl_string.h"
-
-#include <memory>
-
 namespace ngs
 {
-class CatalogObjectContainer;
-using CatalogObjectContainerPtr = std::shared_ptr<CatalogObjectContainer>;
-
-class CatalogObjectContainer
+class DirectoryContainer
 {
 public:
     static bool isEntryDirectory(
-            ngsCatalogObjectContainer* container, int entryIndex)
+            ngsDirectoryContainer* container, int entryIndex)
     {
-        return container->entries[entryIndex].type & COT_DIRECTORY;
+        return container->entries[entryIndex].type & DET_DIRECTORY;
     }
 
-    static bool isEntryFile(
-            ngsCatalogObjectContainer* container, int entryIndex)
+    static bool isEntryFile(ngsDirectoryContainer* container, int entryIndex)
     {
-        return container->entries[entryIndex].type & COT_FILE;
+        return container->entries[entryIndex].type & DET_FILE;
     }
 
-    static char* getPath(ngsCatalogObjectContainer* container);
+    static char* getPath(ngsDirectoryContainer* container);
     static void freePath(char* path);
-    static char* getEntryPath(
-            ngsCatalogObjectContainer* container, int entryIndex);
+    static char* getEntryPath(ngsDirectoryContainer* container, int entryIndex);
     static void freeEntryPath(char* path);
 
     static bool compareEntries(
-            const ngsCatalogObject& a, const ngsCatalogObject& b);
+            const ngsDirectoryEntry& a, const ngsDirectoryEntry& b);
 
-    static ngsCatalogObjectContainer* getDirectoryContainer(const char* path);
-    static void freeDirectoryContainer(ngsCatalogObjectContainer* container);
+    static ngsDirectoryContainer* getDirectoryContainer(const char* path);
+    static void freeDirectoryContainer(ngsDirectoryContainer* container);
 
     static void loadDirectoryContainer(const char* path,
             ngsDirectoryContainerLoadCallback callback,
             void* callbackArguments);
-
-
-    static CatalogObjectContainerPtr load(const char* path);
-
-    CPLString path()
-    {
-        return m_Path;
-    }
-
-    ngsCatalogObject getCatalogObject(int id);
-
-protected:
-    CPLString m_Path;
 };
 
 }  // namespace ngs
 
-#endif  // CATALOGOBJECTCONTAINER_H
+#endif  // DIRECTORYCONTAINER_H
