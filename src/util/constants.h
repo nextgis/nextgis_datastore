@@ -19,8 +19,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef NGSCONSTANTS_H
+#define NGSCONSTANTS_H
 
 #define NOT_FOUND -1
 
@@ -110,4 +110,4 @@
 // Common
 #define BIG_VALUE 10000000.0
 
-#endif // CONSTANTS_H
+#endif // NGSCONSTANTS_H

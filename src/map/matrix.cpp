@@ -18,12 +18,10 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "matrix.h"
-#include "constants.h"
 #include "api.h"
-
 #include <cmath>
-
+#include "matrix.h"
+#include "util/constants.h"
 
 using namespace ngs;
 

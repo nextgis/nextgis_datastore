@@ -18,14 +18,14 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "mapview.h"
 #include "api_priv.h"
-#include "constants.h"
+#include "mapview.h"
 #include "renderlayer.h"
+#include "util/constants.h"
 
 #include <iostream>
 #ifdef _DEBUG
-#include <chrono>
+#   include <chrono>
 #endif //DEBUG
 
 using namespace ngs;

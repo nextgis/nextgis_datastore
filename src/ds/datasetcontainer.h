@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef DATASETCONTAINER_H
-#define DATASETCONTAINER_H
+#ifndef NGSDATASETCONTAINER_H
+#define NGSDATASETCONTAINER_H
 
 #include "dataset.h"
 
@@ -114,4 +114,4 @@ public:
 typedef shared_ptr<DatasetContainer> DatasetContainerPtr;
 }
 
-#endif // DATASETCONTAINER_H
+#endif // NGSDATASETCONTAINER_H

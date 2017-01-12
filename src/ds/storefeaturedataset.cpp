@@ -18,8 +18,8 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 #include "storefeaturedataset.h"
-#include "maputil.h"
-#include "geometryutil.h"
+#include "util/maputil.h"
+#include "util/geometryutil.h"
 
 using namespace ngs;
 

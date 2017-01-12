@@ -18,13 +18,13 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "renderlayer.h"
-#include "geometryutil.h"
-#include "featuredataset.h"
-#include "constants.h"
-
-#include <iostream>
 #include <algorithm>
+#include "ds/featuredataset.h"
+#include <iostream>
+#include "renderlayer.h"
+#include "util/constants.h"
+#include "util/geometryutil.h"
+
 #ifdef _DEBUG
 #  include <chrono>
 #endif //DEBUG

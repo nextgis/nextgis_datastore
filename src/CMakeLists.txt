@@ -22,23 +22,29 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-find_package (EGL REQUIRED)
-if(EGL_FOUND)
-    include_directories(${EGL_INCLUDE_DIRS})
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
-endif()
+if(ANDROID OR (UNIX AND NOT APPLE))
+    find_package (EGL REQUIRED)
+    if(EGL_FOUND)
+        include_directories(${EGL_INCLUDE_DIRS})
+        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
+    endif()
 
-find_package (GLES2 REQUIRED)
-if(OPENGLES2_FOUND)
-    include_directories(${OPENGLES2_INCLUDE_DIRS})
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
+    find_package (GLES2 REQUIRED)
+    if(OPENGLES2_FOUND)
+        include_directories(${OPENGLES2_INCLUDE_DIRS})
+        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
+    endif()
+else()
+    find_package(OpenGL REQUIRED)
+    if(OPENGL_FOUND)
+        include_directories(${OPENGL_INCLUDE_DIR})
+        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGL_LIBRARIES})
+    endif()
 endif()
 
 include_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/ds
-        ${CMAKE_CURRENT_SOURCE_DIR}/map
-        ${CMAKE_CURRENT_SOURCE_DIR}/util)
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 set(HHEADERS
     version.h
@@ -82,6 +88,8 @@ elseif(IOS)
 else()
     if(WIN32)
         add_definitions(-DNGS_ABI="Windows")
+    elseif(APPLE)
+        add_definitions(-DNGS_ABI="Mac OS X")
     else()
         add_definitions(-DNGS_ABI="UNIX")
     endif()
@@ -99,11 +107,13 @@ if(BUILD_SHARED_LIBS)
     else ()
       set (LIB_VERSION ${VERSION})
     endif()
-    set_target_properties (${LIB_NAME} PROPERTIES VERSION ${LIB_VERSION})
-    set_target_properties (${LIB_NAME} PROPERTIES SOVERSION ${SOVERSION})
-    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_EXPORTS)    
+    set_target_properties (${LIB_NAME} PROPERTIES
+        VERSION ${LIB_VERSION}
+        SOVERSION ${SOVERSION}
+        DEFINE_SYMBOL NGSTOR_EXPORTS
+    )
 else()
-    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)    
+    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
 endif()
 
 set_property(TARGET ${LIB_NAME} PROPERTY CXX_STANDARD 11)
@@ -127,6 +137,6 @@ if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
 endif()
 
 if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
-    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}" 
+    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}"
         COMPONENT headers)
 endif()

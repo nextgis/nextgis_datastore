@@ -18,14 +18,14 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "mapstore.h"
+
 #include "api.h"
-#include "constants.h"
-#include "table.h"
+#include <cmath>
+#include "ds/table.h"
+#include "mapstore.h"
 #include "mapview.h"
 #include "ogr_geometry.h"
-
-#include <cmath>
+#include "util/constants.h"
 
 using namespace ngs;
 

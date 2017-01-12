@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef API_PRIV_H
-#define API_PRIV_H
+#ifndef NGSAPI_PRIV_H
+#define NGSAPI_PRIV_H
 
 #include "api.h"
 #include "ogr_geometry.h"
@@ -59,4 +59,4 @@ inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) <=
 
 // TODO: use gettext or something same to translate messages
 
-#endif // API_PRIV_H
+#endif // NGSAPI_PRIV_H

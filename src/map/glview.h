@@ -19,8 +19,8 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
-#ifndef GLVIEW_H
-#define GLVIEW_H
+#ifndef NGSGLVIEW_H
+#define NGSGLVIEW_H
 
 
 #include "api_priv.h"
@@ -358,4 +358,4 @@ protected:
 }
 
 
-#endif // GLVIEW_H
+#endif // NGSGLVIEW_H

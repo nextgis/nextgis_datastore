@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef FEATUREDATASET_H
-#define FEATUREDATASET_H
+#ifndef NGSFEATUREDATASET_H
+#define NGSFEATUREDATASET_H
 
 #include "table.h"
 #include "spatialdataset.h"
@@ -87,4 +87,4 @@ public:
 
 }
 
-#endif // FEATUREDATASET_H
+#endif // NGSFEATUREDATASET_H

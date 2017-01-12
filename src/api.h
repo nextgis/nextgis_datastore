@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,9 +18,9 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
-#ifndef API_H
-#define API_H
+
+#ifndef NGSAPI_H
+#define NGSAPI_H
 
 #include "common.h"
 
@@ -87,7 +87,7 @@ enum ngsDrawState {
 };
 
 enum ngsDataStoreOptionsTypes {
-    OT_CREATE_DATASOUCE,
+    OT_CREATE_DATASOURCE,
     OT_CREATE_DATASET,
     OT_OPEN,
     OT_LOAD
@@ -152,48 +152,24 @@ enum ngsDirection {
 };
 
 enum ngsDriverType {
-    DT_VECTOR   = 1 << 1,
-    DT_RASTER   = 1 << 2,
-    DT_SERVICE  = 1 << 3,
-    DT_NETWORK  = 1 << 4,
-    DT_GNM      = 1 << 5,
+    DT_VECTOR     = 1 << 1,
+    DT_RASTER     = 1 << 2,
+    DT_SERVICE    = 1 << 3,
+    DT_NETWORK    = 1 << 4,
+    DT_GNM        = 1 << 5,
     DT_VECTOR_ALL = 1 << 6,
     DT_RASTER_ALL = 1 << 7
 };
 
 enum ngsFileMode {
     FM_READ   = 1 << 1,
-    FM_WRITE   = 1 << 2
+    FM_WRITE  = 1 << 2
 };
 
 enum ngsOptions {
     OPT_NONE = 0,
     OPT_DEBUGMODE = 1 << 1
 };
-
-enum ngsCatalogObjectType 
-{
-    COT_UNKNOWN = 1 << 0,
-    COT_DIRECTORY = 1 << 1,
-    COT_FILE = 1 << 2
-};
-
-typedef struct _ngsCatalogObject {
-    char* baseName;
-    char* extension;
-    enum ngsCatalogObjectType type;
-    int childrenCount;
-} ngsCatalogObject;
-
-typedef struct _ngsCatalogObjectContainer {
-    char* parentPath;
-    char* directoryName;
-    ngsCatalogObject* entries;
-    int entryCount;
-} ngsCatalogObjectContainer;
-
-typedef void (*ngsDirectoryContainerLoadCallback)(
-        ngsCatalogObjectContainer* container, void* callbackArguments);
 
 /**
  * Common functions
@@ -258,14 +234,4 @@ NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, doubl
 NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 
-NGS_EXTERNC char* ngsGetDirectoryContainerPath(ngsCatalogObjectContainer* container);
-NGS_EXTERNC void ngsDestroyDirectoryContainerPath(char* path);
-NGS_EXTERNC char* ngsGetDirectoryEntryPath(
-        ngsCatalogObjectContainer* container, int entryIndex);
-NGS_EXTERNC void ngsDestroyDirectoryEntryPath(char* path);
-
-NGS_EXTERNC void ngsDirectoryContainerLoad(const char* path,
-        ngsDirectoryContainerLoadCallback callback,
-        void* callbackArguments);
-
-#endif // API_H
+#endif // NGSAPI_H

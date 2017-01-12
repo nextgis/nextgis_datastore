@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef MAPTRANSFORM_H
-#define MAPTRANSFORM_H
+#ifndef NGSMAPTRANSFORM_H
+#define NGSMAPTRANSFORM_H
 
 #include "ogr_core.h"
 
@@ -76,4 +76,4 @@ protected:
 
 }
 
-#endif // MAPTRANSFORM_H
+#endif // NGSMAPTRANSFORM_H

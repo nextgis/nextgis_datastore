@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef TABLE_H
-#define TABLE_H
+#ifndef NGSTABLE_H
+#define NGSTABLE_H
 
 #include "dataset.h"
 #include "ogrsf_frmts.h"
@@ -67,4 +67,4 @@ protected:
 };
 
 }
-#endif // TABLE_H
+#endif // NGSTABLE_H

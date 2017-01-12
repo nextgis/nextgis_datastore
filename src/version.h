@@ -18,9 +18,9 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
-#ifndef VERSION_H
-#define VERSION_H
+
+#ifndef NGSVERSION_H
+#define NGSVERSION_H
 
 #define NGS_VERSION    "0.1.1"
 #define NGS_VERSION_MAJOR 0
@@ -45,4 +45,4 @@
     (NGS_VERSION_MAJOR == (major) && NGS_VERSION_MINOR == (minor) && \
      NGS_VERSION_REV >= (release)))
 
-#endif // VERSION_H
+#endif // NGSVERSION_H

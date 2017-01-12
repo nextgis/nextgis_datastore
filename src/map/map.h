@@ -18,12 +18,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef MAP_H
-#define MAP_H
+#ifndef NGSMAP_H
+#define NGSMAP_H
 
-#include "layer.h"
 #include "api_priv.h"
-#include "datastore.h"
+#include "layer.h"
+#include "ds/datastore.h"
 
 namespace ngs {
 
@@ -99,4 +99,4 @@ protected:
 typedef shared_ptr<Map> MapPtr;
 // typedef weak_ptr<Map> MapWPtr;
 }
-#endif // MAP_H
+#endif // NGSMAP_H

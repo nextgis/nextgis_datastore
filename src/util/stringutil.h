@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef STRINGUTIL_H
-#define STRINGUTIL_H
+#ifndef NGSSTRINGUTIL_H
+#define NGSSTRINGUTIL_H
 
 #include "cpl_string.h"
 
@@ -30,4 +30,4 @@ CPLString translit(const CPLString &str, const CPLString &lang = "");
 bool testBoolean(const char *str, bool defaultVal);
 
 }
-#endif // STRINGUTIL_H
+#endif // NGSSTRINGUTIL_H

@@ -29,19 +29,21 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-    catalogobjectcontainer.h
+#    catalogobjectcontainer.h
     geometryutil.h
     jsondocument.h
     maputil.h
     stringutil.h
+    versionutil.h
 )
 
 set(CSOURCES
-    catalogobjectcontainer.cpp
+#    catalogobjectcontainer.cpp <- disable as warning: ISO C++11 does not allow conversion from string literal to 'char *' [-Wwritable-strings]
     geometryutil.cpp
     jsondocument.cpp
     maputil.cpp
     stringutil.cpp
+    versionutil.cpp
 )
 
 if(UNIX)
@@ -65,6 +67,6 @@ set_property(TARGET ${LIB_NAME} PROPERTY C_STANDARD 11)
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)
 
 if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
-    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}" 
+    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}"
         COMPONENT headers)
 endif()

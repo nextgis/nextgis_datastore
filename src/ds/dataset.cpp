@@ -21,10 +21,9 @@
 #include "dataset.h"
 #include "datasetcontainer.h"
 #include "featuredataset.h"
-#include "rasterdataset.h"
-#include "stringutil.h"
-
 #include <iostream>
+#include "rasterdataset.h"
+#include "util/stringutil.h"
 
 using namespace ngs;
 

@@ -18,14 +18,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef GEOMETRYUTIL_H
-#define GEOMETRYUTIL_H
-
-#include "maputil.h"
-#include "featuredataset.h"
+#ifndef NGSGEOMETRYUTIL_H
+#define NGSGEOMETRYUTIL_H
 
 #include <array>
-
+#include "ds/featuredataset.h"
+#include "maputil.h"
 #include "ogrsf_frmts.h"
 
 #define SAMPLE_DISTANCE_PX 1.0
@@ -55,4 +53,4 @@ GeometryPtr envelopeToGeometry(const OGREnvelope& env,
 
 }
 
-#endif // GEOMETRYUTIL_H
+#endif // NGSGEOMETRYUTIL_H

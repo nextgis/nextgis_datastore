@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef RENDERLAYER_H
-#define RENDERLAYER_H
+#ifndef NGSRENDERLAYER_H
+#define NGSRENDERLAYER_H
 
 #include "mapview.h"
 #include "style.h"
@@ -114,4 +114,4 @@ public:
 };
 
 }
-#endif // RENDERLAYER_H
+#endif // NGSRENDERLAYER_H

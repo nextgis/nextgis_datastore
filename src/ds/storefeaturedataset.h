@@ -17,8 +17,8 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#ifndef STOREFEATUREDATASET_H
-#define STOREFEATUREDATASET_H
+#ifndef NGSSTOREFEATUREDATASET_H
+#define NGSSTOREFEATUREDATASET_H
 
 #include "featuredataset.h"
 
@@ -45,4 +45,4 @@ protected:
 };
 
 }
-#endif // STOREFEATUREDATASET_H
+#endif // NGSSTOREFEATUREDATASET_H

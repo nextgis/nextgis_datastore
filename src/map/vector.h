@@ -20,13 +20,11 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef VECTOR_H
-#define VECTOR_H
-
-#include "ogr_geometry.h"
+#ifndef NGSVECTOR_H
+#define NGSVECTOR_H
 
 #include <cmath>
-
+#include "ogr_geometry.h"
 
 class Vector2
         : public OGRPoint
@@ -131,4 +129,4 @@ Vector2SharedPtr makeSharedVector2(Args&&... args)
     return std::make_shared<Vector2>(std::forward<Args>(args)...);
 }
 
-#endif //VECTOR_H
+#endif // NGSVECTOR_H

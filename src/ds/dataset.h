@@ -18,22 +18,18 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef DATASET_H
-#define DATASET_H
+#ifndef NGSDATASET_H
+#define NGSDATASET_H
 
 #include "api_priv.h"
-
 #include "cpl_string.h"
 #include "gdal_frmts.h"
-#include "ogrsf_frmts.h"
-
 #include <memory>
+#include "ogrsf_frmts.h"
 
 namespace ngs {
 
-using namespace std;
-
-typedef shared_ptr< OGRLayer > ResultSetPtr;
+typedef std::shared_ptr< OGRLayer > ResultSetPtr;
 
 /**
  * @brief The GDALDatasetPtr class Wrapper class for GDALDataset
@@ -50,7 +46,7 @@ public:
 };
 
 class Dataset;
-typedef shared_ptr<Dataset> DatasetPtr;
+typedef std::shared_ptr<Dataset> DatasetPtr;
 // typedef weak_ptr<Dataset> DatasetWPtr;
 #define ngsDatasetType(x) static_cast<unsigned int>( ngs::Dataset::Type::x )
 
@@ -172,4 +168,4 @@ protected:
 
 }
 
-#endif // DATASET_H
+#endif // NGSDATASET_H

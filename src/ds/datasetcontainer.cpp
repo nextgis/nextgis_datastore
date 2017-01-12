@@ -18,12 +18,11 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "datasetcontainer.h"
-#include "featuredataset.h"
-#include "stringutil.h"
-
 #include <algorithm>
 #include <array>
+#include "datasetcontainer.h"
+#include "featuredataset.h"
+#include "util/stringutil.h"
 
 #define MAX_EQUAL_NAMES 10000
 #define MAX_LOADTASK_COUNT 100
@@ -624,7 +623,7 @@ const char *DatasetContainer::getOptions(ngsDataStoreOptionsTypes optionType) co
         return nullptr;
     GDALDriver *poDriver = m_DS->GetDriver ();
     switch (optionType) {
-    case OT_CREATE_DATASOUCE:
+    case OT_CREATE_DATASOURCE:
     case OT_OPEN:
     case OT_LOAD:
         return nullptr;

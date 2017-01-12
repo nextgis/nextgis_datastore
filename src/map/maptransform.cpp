@@ -18,12 +18,11 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "maptransform.h"
-#include "constants.h"
-#include "geometryutil.h"
-
 #include <algorithm>
 #include <iostream>
+#include "maptransform.h"
+#include "util/constants.h"
+#include "util/geometryutil.h"
 
 using namespace std;
 using namespace ngs;

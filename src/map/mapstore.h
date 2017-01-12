@@ -18,12 +18,13 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef MAPSTORE_H
-#define MAPSTORE_H
+#ifndef NGSMAPSTORE_H
+#define NGSMAPSTORE_H
 
-#include "datastore.h"
-#include "map.h"
 #include "api.h"
+#include "ds/datastore.h"
+#include "map.h"
+
 
 namespace ngs {
 
@@ -93,4 +94,4 @@ protected:
 typedef shared_ptr<MapStore> MapStorePtr;
 
 }
-#endif // MAPSTORE_H
+#endif // NGSMAPSTORE_H

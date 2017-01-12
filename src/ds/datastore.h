@@ -18,17 +18,15 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef DATASTORE_H
-#define DATASTORE_H
+#ifndef NGSDATASTORE_H
+#define NGSDATASTORE_H
 
 #include "datasetcontainer.h"
 
 namespace ngs {
 
-using namespace std;
-
 class DataStore;
-typedef shared_ptr<DataStore> DataStorePtr;
+typedef std::shared_ptr<DataStore> DataStorePtr;
 
 /**
  * @brief The geodata storage and manipulation class for raster, vector geodata
@@ -91,4 +89,4 @@ protected:
 
 }
 
-#endif // DATASTORE_H
+#endif // NGSDATASTORE_H

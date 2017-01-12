@@ -17,8 +17,8 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#ifndef MAPUTIL_H
-#define MAPUTIL_H
+#ifndef NGSMAPUTIL_H
+#define NGSMAPUTIL_H
 
 #include <cmath>
 #include <vector>
@@ -44,4 +44,4 @@ vector<TileItem> getTilesForExtent(const OGREnvelope& extent,
                                    bool unlimitX);
 }
 
-#endif // MAPUTIL_H
+#endif // NGSMAPUTIL_H

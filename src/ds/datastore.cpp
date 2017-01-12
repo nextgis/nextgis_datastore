@@ -18,18 +18,16 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "datastore.h"
 #include "api_priv.h"
-#include "rasterdataset.h"
-#include "storefeaturedataset.h"
-#include "constants.h"
-#include "geometryutil.h"
-
 #include "cpl_vsi.h"
 #include "cpl_conv.h"
-#include "version.h"
-
+#include "datastore.h"
 #include <iostream>
+#include "rasterdataset.h"
+#include "storefeaturedataset.h"
+#include "util/constants.h"
+#include "util/geometryutil.h"
+#include "version.h"
 
 #define NGS_DATA_FOLDER "data"
 
@@ -639,7 +637,7 @@ DataStorePtr DataStore::openOrCreate(const CPLString& path)
 const char *DataStore::getOptions(ngsDataStoreOptionsTypes optionType) const
 {
     switch (optionType) {
-    case OT_CREATE_DATASOUCE:
+    case OT_CREATE_DATASOURCE:
     case OT_OPEN:
     case OT_CREATE_DATASET:
         return DatasetContainer::getOptions (optionType);

@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef SPATIALDATASET_H
-#define SPATIALDATASET_H
+#ifndef NGSSPATIALDATASET_H
+#define NGSSPATIALDATASET_H
 
 #include "dataset.h"
 
@@ -35,4 +35,4 @@ public:
 
 }
 
-#endif // SPATIALDATASET_H
+#endif // NGSSPATIALDATASET_H

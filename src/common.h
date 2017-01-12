@@ -19,8 +19,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
  
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef NGSCOMMON_H
+#define NGSCOMMON_H
 
 #ifdef NGSTOR_STATIC
 #   define NGS_EXTERN
@@ -54,4 +54,4 @@
 #define NGS_EXTERNC NGS_EXTERN
 #endif
 
-#endif // COMMON_H
+#endif // NGSCOMMON_H

@@ -20,8 +20,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef STYLE_H
-#define STYLE_H
+#ifndef NGSSTYLE_H
+#define NGSSTYLE_H
 
 #include "glview.h"
 #include "matrix.h"
@@ -155,4 +155,4 @@ public:
 };
 }    // namespace ngs
 
-#endif    // STYLE_H
+#endif  // NGSSTYLE_H

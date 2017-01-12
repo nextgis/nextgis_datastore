@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef JSONDOCUMENT_H
-#define JSONDOCUMENT_H
+#ifndef NGSJSONDOCUMENT_H
+#define NGSJSONDOCUMENT_H
 
 #include "json.h"
 #include "cpl_string.h"
@@ -101,4 +101,4 @@ protected:
 
 }
 
-#endif // JSONDOCUMENT_H
+#endif // NGSJSONDOCUMENT_H

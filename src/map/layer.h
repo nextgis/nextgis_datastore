@@ -18,15 +18,14 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef LAYER_H
-#define LAYER_H
+#ifndef NGSLAYER_H
+#define NGSLAYER_H
 
-#include <string>
+#include "ds/datastore.h"
 #include <memory>
+#include <string>
 #include <vector>
-
-#include "jsondocument.h"
-#include "datastore.h"
+#include "util/jsondocument.h"
 
 namespace ngs {
 
@@ -60,4 +59,4 @@ typedef shared_ptr<Layer> LayerPtr;
 
 }
 
-#endif // LAYER_H
+#endif // NGSLAYER_H

@@ -18,16 +18,13 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#include "glview.h"
-
-#include "constants.h"
-#include "style.h"
-#include "vector.h"
-
-#include <iostream>
-
 #include "cpl_error.h"
 #include "cpl_string.h"
+#include "glview.h"
+#include <iostream>
+#include "style.h"
+#include "util/constants.h"
+#include "vector.h"
 
 /* Links:
 //https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
@@ -1479,8 +1476,8 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
 
-    const Vector2 firstPt;
-    const Vector2 lastPt;
+    Vector2 firstPt;
+    Vector2 lastPt;
     line->getPoint(0, const_cast<Vector2*>(&firstPt));
     line->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
 

@@ -21,7 +21,7 @@
 
 #include "map.h"
 #include "mapstore.h"
-#include "constants.h"
+#include "util/constants.h"
 
 using namespace ngs;
 
