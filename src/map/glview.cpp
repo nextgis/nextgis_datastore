@@ -1510,8 +1510,8 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
 
-    const LineCapType layoutLineCap = LineCapType::Round;
-    const LineJoinType layoutLineJoin = LineJoinType::Round;
+    const LineCapType layoutLineCap = LineCapType::Butt;
+    const LineJoinType layoutLineJoin = LineJoinType::Bevel;
 
     const float miterLimit = layoutLineJoin == LineJoinType::Bevel
             ? 1.05f
