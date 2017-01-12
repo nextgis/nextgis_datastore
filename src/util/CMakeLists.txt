@@ -29,7 +29,6 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-#    catalogobjectcontainer.h
     geometryutil.h
     jsondocument.h
     maputil.h
@@ -38,7 +37,6 @@ set(HHEADER_PRIV
 )
 
 set(CSOURCES
-#    catalogobjectcontainer.cpp <- disable as warning: ISO C++11 does not allow conversion from string literal to 'char *' [-Wwritable-strings]
     geometryutil.cpp
     jsondocument.cpp
     maputil.cpp

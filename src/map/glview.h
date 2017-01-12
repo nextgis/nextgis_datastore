@@ -24,6 +24,7 @@
 
 
 #include "api_priv.h"
+#include "vector.h"
 
 #include <atomic>
 #include <memory>
@@ -182,9 +183,20 @@ enum ngsShaderType {
 };
 
 enum class LineCapType : uint8_t {
-    Round,
     Butt,
     Square,
+    Round,
+    // the following type is for internal use only
+    FakeRound // TODO: remove it and switch to Round
+};
+
+enum class LineJoinType : uint8_t {
+    Miter,
+    Bevel,
+    Round,
+    // the following two types are for internal use only
+    FlipBevel,
+    FakeRound
 };
 
 class GlBuffer
@@ -210,7 +222,7 @@ public:
     static bool canGlobalStoreIndexes(size_t amount);
 
     void addVertex(float x, float y, float z);
-    void addVertexWithNoraml(float vX, float vY, float vZ, float nX, float nY);
+    void addVertexWithNormal(float vX, float vY, float vZ, float nX, float nY);
     void addIndex(unsigned short index);
     void addTriangleIndexes(
             unsigned short one, unsigned short two, unsigned short three);
@@ -291,6 +303,23 @@ protected:
     void fillLineString(const OGRLineString* line, float level);
     void fillPolygon(const OGRPolygon* polygon, float level);
 
+    void addCurrentLineVertex(const Vector2& currPt,
+            float level,
+            const Vector2& normal,
+            double endLeft,
+            double endRight,
+            bool round,
+            int startIndex,
+            GlBufferSharedPtr currBuffer);
+
+    void addPieSliceLineVertex(const Vector2& currPt,
+            float level,
+            const Vector2& extrude,
+            bool lineTurnsLeft,
+            bool fakeRound,
+            int startIndex,
+            GlBufferSharedPtr currBuffer);
+
 protected:
     vector<GlBufferSharedPtr> m_buffers;
     set<GIntBig> m_fids;
@@ -300,6 +329,9 @@ protected:
     OGREnvelope m_extent;
     bool m_filled;
     char m_crossExtent;
+    int m_e1;
+    int m_e2;
+    int m_e3;
 };
 
 using GlBufferBucketSharedPtr = std::shared_ptr<GlBufferBucket>;

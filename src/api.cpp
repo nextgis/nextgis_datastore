@@ -18,15 +18,15 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include "api.h"
+#include "version.h"
 
-#include "api_priv.h"
 #include "ds/datastore.h"
-#include <iostream>
 #include "map/mapstore.h"
-#include <memory>
 #include "util/constants.h"
 #include "util/versionutil.h"
-#include "version.h"
+
+#include <iostream>
 
 using namespace ngs;
 
@@ -79,8 +79,9 @@ void initGDAL(const char* dataPath, const char* cachePath)
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
 
 #ifdef _DEBUG
-    cout << "HTTP user agent set to: " << NGS_USERAGENT << "\n"
-         << "GDAL_DATA: " << CPLGetConfigOption("GDAL_DATA", "undefined") <<  endl;
+    std::cout << "HTTP user agent set to: " << NGS_USERAGENT << "\n"
+              << "GDAL_DATA: " << CPLGetConfigOption("GDAL_DATA", "undefined")
+              <<  std::endl;
 #endif //_DEBUG
 
     // register drivers

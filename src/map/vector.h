@@ -108,10 +108,32 @@ public:
         return (*this) / magn;
     }
 
+    /**
+     * @brief Computes the distance from the given point to this point.
+     *
+     * @param point
+     * @return distance from given point to this point
+     */
+    double dist(Vector2 point) const
+    {
+        return (point - *this).magnitude();
+    }
+
     // returns k X v (cross product). this is a vector perpendicular to v
     Vector2 cross() const
     {
         return {-getY(), getX()};
+    }
+
+    /**
+     * Computes the cross product k = u X v.
+     *
+     * @param v a vector
+     * @return returns the magnitude of u X v
+     */
+    double crossProduct(const Vector2 &v) const
+    {
+            return (getX() * v.getY() - getY() * v.getX());
     }
 
     // returns the unit normal to a line between this point and the point b

@@ -69,6 +69,7 @@ endif()
 
 set(OBJ_LIBRARIES)
 add_subdirectory (ds)
+# TODO: add_subdirectory(catalog)
 add_subdirectory (map)
 add_subdirectory (util)
 
