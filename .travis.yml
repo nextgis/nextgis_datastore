@@ -17,6 +17,7 @@ matrix:
       apt:
         packages:
           - ccache
+          - cmake
       env:
         - BUILD_NAME=android
         - DETAILS=""
