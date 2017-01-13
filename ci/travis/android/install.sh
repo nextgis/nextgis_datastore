@@ -7,7 +7,7 @@ echo "Extract files"
 unzip -q $HOME/downloads/android-ndk-r13b-linux-x86_64.zip -d $HOME/android-ndk
 echo "Make toolchain"
 python --version
-python $HOME/android-ndk/android-ndk-r13b/build/tools/make-standalone-toolchain.py --arch x86_64 --api 8 --install-dir $HOME/android-toolchain
+python $HOME/android-ndk/android-ndk-r13b/build/tools/make_standalone_toolchain.py --arch x86_64 --api 8 --install-dir $HOME/android-toolchain
 ls -lh $HOME
 echo "List of $HOME/android-toolchain"
 ls -lh $HOME/android-toolchain
