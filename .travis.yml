@@ -13,6 +13,7 @@ matrix:
         apt: true
         directories:
           - $HOME/.ccache
+          - $HOME/downloads
       apt:
         packages:
           - ccache
