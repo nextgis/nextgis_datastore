@@ -1,0 +1,87 @@
+# This is the config file for building NGS and running its gtest suite
+# with Travis-ci.org
+
+matrix:
+  fast_finish: true
+  include:
+#    - os: linux
+#      compiler: gcc
+    #   language: cpp
+    #   sudo: false
+    #   dist: trusty
+    #   cache:
+    #     apt: true
+    #     directories:
+    #       - $HOME/.ccache
+    #   apt:
+    #     packages:
+    #       - ccache
+    #   env:
+    #     - BUILD_NAME=android
+    #     - DETAILS=""
+    # - os: linux
+    #   compiler: gcc
+    #   language: cpp
+    #   sudo: required
+    #   cache:
+    #     apt: true
+    #     directories:
+    #       - $HOME/.ccache
+    #   env:
+    #     - BUILD_NAME=gcc48_stdcpp11
+    #     - DETAILS=""
+    # - os: linux
+    #   compiler: gcc
+    #   language: cpp
+    #   sudo: required
+    #   cache:
+    #     apt: true
+    #     directories:
+    #       - $HOME/.ccache
+    #   env:
+    #     - BUILD_NAME=gcc52_stdcpp14_sanitize
+    #     - DETAILS=""
+    - os: linux
+      compiler: gcc
+      language: cpp
+      sudo: required
+      cache:
+        apt: true
+        directories:
+          - $HOME/.ccache
+      env:
+        - BUILD_NAME=linux_gcc
+        - DETAILS=""
+    # - os: linux
+    #   compiler: clang
+    #   language: cpp
+    #   sudo: required
+    #   cache:
+    #     apt: true
+    #     directories:
+    #       - $HOME/.ccache
+    #   env:
+    #     - BUILD_NAME=ubuntu_1604_clang
+    #     - DETAILS=""
+    # - osx_image: xcode8
+    #   language: objective-c
+    #   compiler: clang
+    #   cache:
+    #     apt: true
+    #     directories:
+    #       - $HOME/.ccache
+    #   env:
+    #     - BUILD_NAME=osx
+    #     - DETAILS=""
+
+install:
+  - ./ci/travis/${BUILD_NAME}/install.sh
+
+script:
+  - ./ci/travis/${BUILD_NAME}/script.sh
+
+notifications:
+  email:
+    recipients:
+      - dmitry.baryshnikov@nextgis.com
+#      - nikita.kirin@nextgis.com
