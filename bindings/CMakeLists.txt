@@ -32,9 +32,6 @@ if(BUILD_BINDINGS)
 
     include(${SWIG_USE_FILE})
     include_directories(${PROJECT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/src/ds
-        ${PROJECT_SOURCE_DIR}/src/map
-        ${PROJECT_SOURCE_DIR}/src/util
         ${CMAKE_CURRENT_BINARY_DIR})
 
     option(BUILD_BINDINGS_JAVA "Build JAVA bindings" OFF)
@@ -51,8 +48,8 @@ if(BUILD_BINDINGS)
             )
 
             set(JAVA_CODE
-                ${CMAKE_CURRENT_SOURCE_DIR}/java/DirectoryContainer.java
-                ${CMAKE_CURRENT_SOURCE_DIR}/java/DirectoryEntry.java
+                #${CMAKE_CURRENT_SOURCE_DIR}/java/DirectoryContainer.java
+                #${CMAKE_CURRENT_SOURCE_DIR}/java/DirectoryEntry.java
 
                 # generated java sources
                 ${CMAKE_CURRENT_BINARY_DIR}/Api.java

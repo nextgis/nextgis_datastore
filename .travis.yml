@@ -4,32 +4,21 @@
 matrix:
   fast_finish: true
   include:
-#    - os: linux
-#      compiler: gcc
-    #   language: cpp
-    #   sudo: false
-    #   dist: trusty
-    #   cache:
-    #     apt: true
-    #     directories:
-    #       - $HOME/.ccache
-    #   apt:
-    #     packages:
-    #       - ccache
-    #   env:
-    #     - BUILD_NAME=android
-    #     - DETAILS=""
-    # - os: linux
-    #   compiler: gcc
-    #   language: cpp
-    #   sudo: required
-    #   cache:
-    #     apt: true
-    #     directories:
-    #       - $HOME/.ccache
-    #   env:
-    #     - BUILD_NAME=gcc48_stdcpp11
-    #     - DETAILS=""
+    - os: linux
+      compiler: gcc
+      language: cpp
+      sudo: false
+      dist: trusty
+      cache:
+        apt: true
+        directories:
+          - $HOME/.ccache
+      apt:
+        packages:
+          - ccache
+      env:
+        - BUILD_NAME=android
+        - DETAILS=""
     # - os: linux
     #   compiler: gcc
     #   language: cpp
@@ -65,7 +54,7 @@ matrix:
       env:
         - BUILD_NAME=linux_clang
         - DETAILS=""
-    # - osx_image: xcode8
+    # - osx_image: xcode8.2
     #   language: objective-c
     #   compiler: clang
     #   cache:
