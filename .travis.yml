@@ -44,6 +44,7 @@ matrix:
     - os: linux
       compiler: gcc
       language: cpp
+      dist: trusty
       sudo: required
       cache:
         apt: true
