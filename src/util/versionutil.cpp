@@ -288,7 +288,7 @@ const char* ngs::getVersionString(const char* request)
 #endif
 #ifdef HAVE_OPENSSLV_H
     else if(EQUAL(request, "openssl")) {
-        string val = CPLSPrintf("%#lx", OPENSSL_VERSION_NUMBER);
+        std::string val = CPLSPrintf("%#lx", OPENSSL_VERSION_NUMBER);
         int major = atoi(val.substr (2, 1).c_str ());
         int minor = atoi(val.substr (3, 2).c_str ());
         int rev = atoi(val.substr (5, 2).c_str ());
