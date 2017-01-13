@@ -53,17 +53,18 @@ matrix:
       env:
         - BUILD_NAME=linux_gcc
         - DETAILS=""
-    # - os: linux
-    #   compiler: clang
-    #   language: cpp
-    #   sudo: required
-    #   cache:
-    #     apt: true
-    #     directories:
-    #       - $HOME/.ccache
-    #   env:
-    #     - BUILD_NAME=ubuntu_1604_clang
-    #     - DETAILS=""
+    - os: linux
+      compiler: clang
+      language: cpp
+      dist: trusty
+      sudo: required
+      cache:
+        apt: true
+        directories:
+          - $HOME/.ccache
+      env:
+        - BUILD_NAME=linux_clang
+        - DETAILS=""
     # - osx_image: xcode8
     #   language: objective-c
     #   compiler: clang
@@ -85,4 +86,4 @@ notifications:
   email:
     recipients:
       - dmitry.baryshnikov@nextgis.com
-#      - nikita.kirin@nextgis.com
+      - nikita.kirin@nextgis.com
