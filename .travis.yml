@@ -19,6 +19,7 @@ matrix:
           - ccache
           - cmake
           - python
+          - swig
       env:
         - BUILD_NAME=android
         - DETAILS=""
