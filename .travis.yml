@@ -4,23 +4,6 @@
 matrix:
   fast_finish: true
   include:
-    - os: linux
-      compiler: gcc
-      language: cpp
-      sudo: true
-      dist: trusty
-      cache:
-        apt: true
-        directories:
-          - $HOME/.ccache
-          - $HOME/downloads
-      apt:
-        packages:
-          - ccache
-          - swig
-      env:
-        - BUILD_NAME=android
-        - DETAILS=""
     # - os: linux
     #   compiler: gcc
     #   language: cpp
@@ -65,6 +48,23 @@ matrix:
           - $HOME/.ccache
       env:
         - BUILD_NAME=osx
+        - DETAILS=""
+    - os: linux
+      compiler: gcc
+      language: cpp
+      sudo: true
+      dist: trusty
+      cache:
+        apt: true
+        directories:
+          - $HOME/.ccache
+          - $HOME/downloads
+      apt:
+        packages:
+          - ccache
+          - swig
+      env:
+        - BUILD_NAME=android
         - DETAILS=""
 
 install:
