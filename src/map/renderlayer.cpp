@@ -181,29 +181,33 @@ FeatureRenderLayer::~FeatureRenderLayer()
 void FeatureRenderLayer::initStyle()
 {
     FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset, m_dataset);
-    OGRwkbGeometryType geomType = featureDataset->getGeometryType ();
-    switch(OGR_GT_Flatten(geomType)) {
-    case wkbMultiPoint:
-    case wkbPoint:
-    {
-        SimplePointStyle* style = new SimplePointStyle();
-        m_style.reset(style);
-        m_style->setColor ({0, 0, 255, 255});
-        style->setRadius (9.0f);
-    }
-        break;
-    case wkbMultiLineString:
-    case wkbLineString:
-        m_style.reset(new SimpleFillStyle());
-        m_style->setColor ({0, 255, 255, 255});
-        break;
-    case wkbMultiPolygon:
-    case wkbPolygon:
-        m_style.reset(new SimpleFillStyle());
-        m_style->setColor ({255, 0, 0, 255});
-        break;
-    default:
-        break;
+    OGRwkbGeometryType geomType = featureDataset->getGeometryType();
+
+    switch (OGR_GT_Flatten(geomType)) {
+        case wkbMultiPoint:
+        case wkbPoint: {
+            SimplePointStyle* style = new SimplePointStyle();
+            m_style.reset(style);
+            m_style->setColor({0, 0, 255, 255});
+            style->setRadius(9.0f);
+        } break;
+
+        case wkbMultiLineString:
+        case wkbLineString: {
+            SimpleLineStyle* style = new SimpleLineStyle();
+            m_style.reset(style);
+            m_style->setColor({0, 255, 255, 255});
+            style->setLineWidth(2);
+        } break;
+
+        case wkbMultiPolygon:
+        case wkbPolygon: {
+            m_style.reset(new SimpleFillStyle());
+            m_style->setColor({255, 0, 0, 255});
+        } break;
+
+        default:
+            break;
     }
 }
 
