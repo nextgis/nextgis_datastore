@@ -14,6 +14,7 @@ matrix:
         directories:
           - $HOME/.ccache
           - $HOME/downloads
+      addons:
       apt:
         packages:
           - ccache
