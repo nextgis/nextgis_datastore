@@ -2,9 +2,10 @@
 
 set -e
 
-unset CC
-unset CXX
+#unset CC
+#unset CXX
 export PATH=$HOME/android-toolchain/bin:$PATH
+export ANDROID_STANDALONE_TOOLCHAIN=$HOME/android-toolchain
 
 mkdir build
 cd build
