@@ -56,16 +56,16 @@ matrix:
       env:
         - BUILD_NAME=linux_clang
         - DETAILS=""
-    # - osx_image: xcode8.2
-    #   language: objective-c
-    #   compiler: clang
-    #   cache:
-    #     apt: true
-    #     directories:
-    #       - $HOME/.ccache
-    #   env:
-    #     - BUILD_NAME=osx
-    #     - DETAILS=""
+    - osx_image: xcode8.2
+      language: objective-c
+      compiler: clang
+      cache:
+        apt: true
+        directories:
+          - $HOME/.ccache
+      env:
+        - BUILD_NAME=osx
+        - DETAILS=""
 
 install:
   - ./ci/travis/${BUILD_NAME}/install.sh

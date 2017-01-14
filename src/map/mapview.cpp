@@ -24,6 +24,8 @@
 #include "util/constants.h"
 
 #include <iostream>
+#include <string>
+
 #ifdef _DEBUG
 #   include <chrono>
 #endif //DEBUG
