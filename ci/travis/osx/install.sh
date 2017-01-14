@@ -3,7 +3,7 @@
 set -e
 
 brew update
-brew install cmake swig
+brew install swig
 
 git clone https://github.com/nextgis-borsch/lib_jsonc.git
 git clone https://github.com/nextgis-borsch/lib_geos.git
