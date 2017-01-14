@@ -17,8 +17,6 @@ matrix:
       apt:
         packages:
           - ccache
-          - cmake
-          - python
           - swig
       env:
         - BUILD_NAME=android
