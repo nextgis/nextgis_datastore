@@ -138,7 +138,7 @@ int MapView::notify()
 
         CPLString message;
         if(debugMode) {
-            message = to_string(featureCount);
+            message = CPLSPrintf("%d", featureCount);
         }
 
         return m_progressFunc(
