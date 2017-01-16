@@ -13,3 +13,7 @@ git clone https://github.com/nextgis-borsch/lib_png.git $HOME/nextgis/lib_png
 git clone https://github.com/nextgis-borsch/lib_tiff.git $HOME/nextgis/lib_tiff
 git clone https://github.com/nextgis-borsch/lib_geotiff.git $HOME/nextgis/lib_geotiff
 git clone https://github.com/nextgis-borsch/lib_gdal.git $HOME/nextgis/lib_gdal
+
+echo "List directory"
+ls -lh $HOME
+ls -lh $HOME/nextgis
