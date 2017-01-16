@@ -15,6 +15,3 @@ git clone https://github.com/nextgis-borsch/lib_geotiff.git $HOME/build/nextgis/
 git clone https://github.com/nextgis-borsch/lib_openssl.git $HOME/build/nextgis/lib_openssl
 git clone https://github.com/nextgis-borsch/lib_curl.git $HOME/build/nextgis/lib_curl
 git clone https://github.com/nextgis-borsch/lib_gdal.git $HOME/build/nextgis/lib_gdal
-
-echo "List directory"
-ls -lh $HOME/build/nextgis
