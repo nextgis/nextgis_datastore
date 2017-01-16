@@ -12,8 +12,12 @@ git clone https://github.com/nextgis-borsch/lib_jpeg.git $HOME/nextgis/lib_jpeg
 git clone https://github.com/nextgis-borsch/lib_png.git $HOME/nextgis/lib_png
 git clone https://github.com/nextgis-borsch/lib_tiff.git $HOME/nextgis/lib_tiff
 git clone https://github.com/nextgis-borsch/lib_geotiff.git $HOME/nextgis/lib_geotiff
+git clone https://github.com/nextgis-borsch/lib_openssl.git $HOME/nextgis/lib_openssl
+git clone https://github.com/nextgis-borsch/lib_curl.git $HOME/nextgis/lib_curl
 git clone https://github.com/nextgis-borsch/lib_gdal.git $HOME/nextgis/lib_gdal
 
 echo "List directory"
+ls -lh $PWD
 ls -lh $HOME
 ls -lh $HOME/nextgis
+ls -lh $HOME/build
