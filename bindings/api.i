@@ -30,7 +30,7 @@
 %}
 %include typemap_java.i
 %include callback_typemap_java.i
-%include directory_container_typemap_java.i
+#%include directory_container_typemap_java.i
 #endif
 
 %{
@@ -43,7 +43,7 @@
 #ifdef SWIGJAVA
 %include extend_java.i
 %include callback_java.i
-%include directory_container_java.i
+#%include directory_container_java.i
 #endif
 
 #ifdef SWIGPYTHON
