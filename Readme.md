@@ -48,6 +48,7 @@ Supported tiled services
 | Mac OS X              | [![Build Status](http://badges.herokuapp.com/travis/nextgis/nextgis_datastore?branch=master&env=BUILD_NAME=osx&label=osx)](https://travis-ci.org/nextgis/nextgis_datastore) |
 | Android              | [![Build Status](http://badges.herokuapp.com/travis/nextgis/nextgis_datastore?branch=master&env=BUILD_NAME=android&label=android)](https://travis-ci.org/nextgis/nextgis_datastore) |
 
+Details [link](https://travis-ci.org/nextgis/nextgis_datastore)
 
 ## NextGIS Web and My NextGIS integration
 
