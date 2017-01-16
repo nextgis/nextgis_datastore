@@ -24,11 +24,7 @@
 
 if(BUILD_BINDINGS)
 
-    if(ANDROID_STUDIO_CMAKE)
-        find_package(SWIG REQUIRED)
-    else()
-        find_host_package(SWIG REQUIRED)
-    endif()
+    find_exthost_package(SWIG REQUIRED)
 
     include(${SWIG_USE_FILE})
     include_directories(${PROJECT_SOURCE_DIR}/src

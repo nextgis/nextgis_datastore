@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -37,7 +37,7 @@ set_property(CACHE BUILD_TARGET_PLATFORM PROPERTY STRINGS "ANDROID" "IOS" "Deskt
 if(BUILD_TARGET_PLATFORM STREQUAL "ANDROID")
     include(android)
 elseif(BUILD_TARGET_PLATFORM STREQUAL "IOS")
-    include(ios)    
+    include(ios)
 endif()
 
 project(ngstore)

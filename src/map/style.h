@@ -36,30 +36,97 @@ public:
     virtual bool prepareProgram();
     virtual bool prepareData(const Matrix4& msMatrix, const Matrix4& vsMatrix);
     virtual void setColor(const ngsRGBA& color);
-    virtual void draw(const GlBuffer& buffer) const = 0;
+    virtual void draw(const GlBuffer& buffer) const;
 
 protected:
     virtual const GLchar* getShaderSource(enum ngsShaderType type) = 0;
 
 protected:
     GlProgramUPtr m_program;
+    bool m_load;
+
     GLint m_mPositionId;
-    GLint m_NormalId;
-    GLint m_vLineWidthId;
     GLint m_msMatrixId;
     GLint m_vsMatrixId;
     GLint m_colorId;
+
     GlColor m_color;
-    bool m_load;
 };
 
 using StyleUPtr = std::unique_ptr<Style>;
 
-class SimpleFillStyle : public Style
+class SimplePointStyle : public Style
 {
 public:
-    SimpleFillStyle();
-    virtual ~SimpleFillStyle();
+    SimplePointStyle();
+    virtual ~SimplePointStyle();
+
+    float getRadius() const;
+    void setRadius(float radius);
+
+    // Style interface
+public:
+    virtual bool prepareData(
+            const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+
+    // Style interface
+protected:
+    virtual const GLchar* getShaderSource(enum ngsShaderType type) override;
+    virtual void draw(const GlBuffer& buffer) const override;
+
+protected:
+    const GLchar* const m_vertexShaderSourcePtr = R"(
+        attribute vec3 a_mPosition;
+
+        uniform mat4 u_msMatrix;
+        uniform float u_vRadius;
+
+        void main()
+        {
+            gl_Position = u_msMatrix * vec4(a_mPosition, 1);
+            gl_PointSize = u_vRadius;
+        }
+    )";
+
+    // TODO: quad and triangle symbol. Sphere symbol (http://stackoverflow.com/a/25783231/2901140)
+    // https://www.raywenderlich.com/37600/opengl-es-particle-system-tutorial-part-1
+    // http://stackoverflow.com/a/10506172/2901140
+    // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
+    // http://stackoverflow.com/q/18659332/2901140
+    const GLchar* const m_fragmentShaderSourcePtr = R"(
+        precision mediump float;
+
+        uniform vec4 u_Color;
+
+        void main()
+        {
+           vec2 coord = gl_PointCoord - vec2(0.5);
+           if(length(coord) > 0.5) {
+               discard;
+           } else {
+               gl_FragColor = u_Color;
+           }
+        }
+    )";
+
+    GLint m_vRadiusId;
+
+    float m_radius;
+};
+
+class SimpleLineStyle : public Style
+{
+public:
+    SimpleLineStyle();
+    virtual ~SimpleLineStyle();
+
+    float getLineWidth() const;
+    void setLineWidth(float lineWidth);
+
+    // Style interface
+public:
+    virtual bool prepareData(
+            const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
 
     // Style interface
 protected:
@@ -86,26 +153,26 @@ protected:
 
     const GLchar* const m_fragmentShaderSourcePtr = R"(
         precision mediump float;
+
         uniform vec4 u_Color;
+
         void main()
         {
           gl_FragColor = u_Color;
         }
     )";
+
+    GLint m_NormalId;
+    GLint m_vLineWidthId;
+
+    float m_lineWidth;
 };
 
-class SimplePointStyle : public Style
+class SimpleFillStyle : public Style
 {
 public:
-    SimplePointStyle();
-    virtual ~SimplePointStyle();
-    float getRadius() const;
-    void setRadius(float radius);
-
-    // Style interface
-public:
-    virtual bool prepareData(
-            const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+    SimpleFillStyle();
+    virtual ~SimpleFillStyle();
 
     // Style interface
 protected:
@@ -114,37 +181,26 @@ protected:
 
 protected:
     const GLchar* const m_vertexShaderSourcePtr = R"(
-        attribute vec4 vPosition;
-        uniform mat4 mvMatrix;
-        uniform float fRadius;
+        attribute vec3 a_mPosition;
+
+        uniform mat4 u_msMatrix;
+
         void main()
         {
-           gl_Position = mvMatrix * vPosition;
-           gl_PointSize = fRadius;
+            gl_Position = u_msMatrix * vec4(a_mPosition, 1);
         }
     )";
 
-    // TODO: quad and triangle symbol. Sphere symbol (http://stackoverflow.com/a/25783231/2901140)
-    // https://www.raywenderlich.com/37600/opengl-es-particle-system-tutorial-part-1
-    // http://stackoverflow.com/a/10506172/2901140
-    // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
-    // http://stackoverflow.com/q/18659332/2901140
     const GLchar* const m_fragmentShaderSourcePtr = R"(
         precision mediump float;
+
         uniform vec4 u_Color;
+
         void main()
         {
-           vec2 coord = gl_PointCoord - vec2(0.5);
-           if(length(coord) > 0.5) {
-               discard;
-           } else {
-               gl_FragColor = u_Color;
-           }
+          gl_FragColor = u_Color;
         }
     )";
-
-    float m_radius;
-    GLint m_radiusId;
 };
 
 class SimpleRasterStyle : public Style
@@ -153,6 +209,6 @@ public:
     SimpleRasterStyle();
     virtual ~SimpleRasterStyle();
 };
-}    // namespace ngs
+}  // namespace ngs
 
 #endif  // NGSSTYLE_H

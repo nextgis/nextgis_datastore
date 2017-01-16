@@ -24,7 +24,6 @@
 #include <iostream>
 #include "style.h"
 #include "util/constants.h"
-#include "vector.h"
 
 /* Links:
 //https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
@@ -1541,8 +1540,6 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
     Vector2 nextNormal;
 
     bool startOfLine = true;
-    int startIndex =
-            currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE;
 
     // the last three vertices added
     m_e1 = m_e2 = m_e3 = -1;
@@ -1669,8 +1666,8 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 
         if (middleVertex && currentJoin == LineJoinType::Miter) {
             joinNormal = joinNormal * miterLength;
-            addCurrentLineVertex(currPt, level, joinNormal, 0, 0, false,
-                    startIndex, currBuffer);
+            addCurrentLineVertex(
+                    currPt, level, joinNormal, 0, 0, false, currBuffer);
 
         } else if (middleVertex && currentJoin == LineJoinType::FlipBevel) {
             // miter is too big, flip the direction to make a beveled join
@@ -1687,11 +1684,11 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                 joinNormal = joinNormal.cross() * bevelLength * direction;
             }
 
-            addCurrentLineVertex(currPt, level, joinNormal, 0, 0, false,
-                    startIndex, currBuffer);
+            addCurrentLineVertex(
+                    currPt, level, joinNormal, 0, 0, false, currBuffer);
 
-            addCurrentLineVertex(currPt, level, joinNormal * -1.0, 0, 0, false,
-                    startIndex, currBuffer);
+            addCurrentLineVertex(
+                    currPt, level, joinNormal * -1.0, 0, 0, false, currBuffer);
 
         } else if (middleVertex
                 && (currentJoin == LineJoinType::Bevel
@@ -1712,7 +1709,7 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
             // Close previous segment with bevel
             if (!startOfLine) {
                 addCurrentLineVertex(currPt, level, prevNormal, offsetA,
-                        offsetB, false, startIndex, currBuffer);
+                        offsetB, false, currBuffer);
             }
 
             if (currentJoin == LineJoinType::FakeRound) {
@@ -1733,11 +1730,11 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, lineTurnsLeft, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
                 addPieSliceLineVertex(currPt, level, joinNormal, lineTurnsLeft,
-                        false, startIndex, currBuffer);
+                        false, currBuffer);
 
                 for (int k = n - 1; k >= 0; --k) {
                     Vector2 approxFractionalJoinNormal =
@@ -1745,34 +1742,34 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, lineTurnsLeft, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
             }
 
             // Start next segment
             if (nextPt) {
                 addCurrentLineVertex(currPt, level, nextNormal, -offsetA,
-                        -offsetB, false, startIndex, currBuffer);
+                        -offsetB, false, currBuffer);
             }
 
         } else if (!middleVertex && currentCap == LineCapType::Butt) {
             if (!startOfLine) {
                 // Close previous segment with a butt
-                addCurrentLineVertex(currPt, level, prevNormal, 0, 0, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, prevNormal, 0, 0, false, currBuffer);
             }
 
             // Start next segment with a butt
             if (nextPt) {
-                addCurrentLineVertex(currPt, level, nextNormal, 0, 0, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, nextNormal, 0, 0, false, currBuffer);
             }
 
         } else if (!middleVertex && currentCap == LineCapType::Square) {
             if (!startOfLine) {
                 // Close previous segment with a square cap
-                addCurrentLineVertex(currPt, level, prevNormal, 1, 1, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, prevNormal, 1, 1, false, currBuffer);
 
                 // The segment is done. Unset vertices to disconnect segments.
                 m_e1 = m_e2 = -1;
@@ -1780,20 +1777,20 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 
             // Start next segment
             if (nextPt) {
-                addCurrentLineVertex(currPt, level, nextNormal, -1, -1, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, nextNormal, -1, -1, false, currBuffer);
             }
 
         } else if (middleVertex ? currentJoin == LineJoinType::Round
                                 : currentCap == LineCapType::Round) {
             if (!startOfLine) {
                 // Close previous segment with a butt
-                addCurrentLineVertex(currPt, level, prevNormal, 0, 0, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, prevNormal, 0, 0, false, currBuffer);
 
                 // Add round cap or linejoin at end of segment
-                addCurrentLineVertex(currPt, level, prevNormal, 1, 1, true,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, prevNormal, 1, 1, true, currBuffer);
 
                 // The segment is done. Unset vertices to disconnect segments.
                 m_e1 = m_e2 = -1;
@@ -1802,11 +1799,11 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
             // Start next segment with a butt
             if (nextPt) {
                 // Add round cap before first segment
-                addCurrentLineVertex(currPt, level, nextNormal, -1, -1, true,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, nextNormal, -1, -1, true, currBuffer);
 
-                addCurrentLineVertex(currPt, level, nextNormal, 0, 0, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, nextNormal, 0, 0, false, currBuffer);
             }
 
         } else if (!middleVertex && currentCap == LineCapType::FakeRound) {
@@ -1826,8 +1823,8 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 
             if (!startOfLine) {
                 // Close previous segment with a butt
-                addCurrentLineVertex(currPt, level, prevNormal, 0, 0, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, prevNormal, 0, 0, false, currBuffer);
 
                 // Add fake round cap at end of segment
                 Vector2 invNormal = prevNormal * -1;
@@ -1839,7 +1836,7 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
                 for (int k = n - 1; k >= 0; --k) {
@@ -1848,11 +1845,11 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
-                addPieSliceLineVertex(currPt, level, crossNormal, false, false,
-                        startIndex, currBuffer);
+                addPieSliceLineVertex(
+                        currPt, level, crossNormal, false, false, currBuffer);
 
                 for (int m = 0; m < n; ++m) {
                     Vector2 approxFractionalJoinNormal =
@@ -1860,7 +1857,7 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
                 for (int k = n - 1; k >= 0; --k) {
@@ -1869,7 +1866,7 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
                 // The segment is done. Unset vertices to disconnect segments.
@@ -1888,7 +1885,7 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, firstPt,
-                            startIndex, currBuffer);
+                            currBuffer);
                     if (firstPt)
                         firstPt = false;
                 }
@@ -1899,11 +1896,11 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
-                addPieSliceLineVertex(currPt, level, crossNormal, false, false,
-                        startIndex, currBuffer);
+                addPieSliceLineVertex(
+                        currPt, level, crossNormal, false, false, currBuffer);
 
                 for (int m = 0; m < n; ++m) {
                     Vector2 approxFractionalJoinNormal =
@@ -1911,7 +1908,7 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
                 for (int k = n - 1; k >= 0; --k) {
@@ -1920,12 +1917,12 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
                                     .unit();
                     addPieSliceLineVertex(currPt, level,
                             approxFractionalJoinNormal, false, false,
-                            startIndex, currBuffer);
+                            currBuffer);
                 }
 
                 // Start next segment with a butt
-                addCurrentLineVertex(currPt, level, nextNormal, 0, 0, false,
-                        startIndex, currBuffer);
+                addCurrentLineVertex(
+                        currPt, level, nextNormal, 0, 0, false, currBuffer);
             }
         }
 
@@ -1951,7 +1948,6 @@ void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
         double endLeft,
         double endRight,
         bool round,
-        int startIndex,
         GlBufferSharedPtr currBuffer)
 {
     // Add point coordinates as float.
@@ -1971,8 +1967,7 @@ void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
     float ey = static_cast<float>(extrude.getY());
     currBuffer->addVertexWithNormal(ptx, pty, ptz, ex, ey);
 
-    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1
-            - startIndex;
+    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
     if (m_e1 >= 0 && m_e2 >= 0) {
         currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
     }
@@ -1989,8 +1984,7 @@ void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
     ey = static_cast<float>(extrude.getY());
     currBuffer->addVertexWithNormal(ptx, pty, ptz, ex, ey);
 
-    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1
-            - startIndex;
+    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
     if (m_e1 >= 0 && m_e2 >= 0) {
         currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
     }
@@ -2003,7 +1997,6 @@ void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
         const Vector2& extrude,
         bool lineTurnsLeft,
         bool firstPt,
-        int startIndex,
         GlBufferSharedPtr currBuffer)
 {
     // Add point coordinates as float.
@@ -2019,8 +2012,7 @@ void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
     float fey = static_cast<float>(flippedExtrude.getY());
     currBuffer->addVertexWithNormal(ptx, pty, ptz, fex, fey);
 
-    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1
-            - startIndex;
+    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
     if (m_e1 >= 0 && m_e2 >= 0) {
         currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
     }
@@ -2042,28 +2034,61 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 {
     // TODO: not only external ring must be extracted
     const OGRLinearRing* ring = polygon->getExteriorRing();
+    int numPoints = ring->getNumPoints();
 
-    if (ring->getNumPoints() < 3)
+    if (numPoints < 3)
         return;
 
-    fillLineString(ring, level);
+    // TODO: cut line by x or y direction or
+    // tesselate to fill into array max size
+    if (numPoints > 21000) {
+        CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
+                numPoints);
+        return;
+    }
 
-//    unsigned short startPolyIndex =
-//            m_buffers[m_currentBuffer].getVerticesCount() / 3;
-//    for (int i = 0; i < numPoints; ++i) {
-//        ring->getPoint(i, &pt);
-//        // add point coordinates in float
-//        // TODO: add getZ + level
-//        m_buffers[m_currentBuffer].addVertex(
-//                static_cast<float>(pt.getX() + m_crossExtent * DEFAULT_MAX_X2),
-//                static_cast<float>(pt.getY()), level);
-//
-//        // add triangle indices unsigned short
-//        if (i < numPoints - 2) {
-//            m_buffers[m_currentBuffer].addIndex(startPolyIndex,
-//                    startPolyIndex + i + 1, startPolyIndex + i + 2);
-//        }
-//    }
+//    fillLineString(ring, level);
+
+    // For polygon last point == first point, see
+    // https://en.wikipedia.org/wiki/Well-known_text
+    --numPoints;
+
+    if (!m_buffers.back()->canStoreVertexes(numPoints)
+            || !m_buffers.back()->canStoreIndexes(3 * (numPoints - 2))) {
+        if (!GlBuffer::canGlobalStoreVertexes(numPoints)
+                || !GlBuffer::canGlobalStoreIndexes(3 * (numPoints - 2))) {
+            return;
+        }
+        m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
+    }
+
+    GlBufferSharedPtr currBuffer = m_buffers.back();
+
+    int startIndex = currBuffer->getVertexBufferSize() / VERTEX_SIZE;
+    Vector2 currPt;
+
+    // the last three vertices added
+    m_e1 = m_e2 = m_e3 = -1;
+
+    for (int i = 0; i < numPoints; ++i) {
+        // Add point coordinates as float.
+        // Add triangle indexes as unsigned short.
+
+        ring->getPoint(i, &currPt);
+        float ptx = static_cast<float>(
+                currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
+        float pty = static_cast<float>(currPt.getY());
+        float ptz = level;
+
+        currBuffer->addVertex(ptx, pty, ptz);
+
+        m_e3 = currBuffer->getVertexBufferSize() / VERTEX_SIZE - 1;
+        if (m_e1 >= 0 && m_e2 >= 0) {
+            currBuffer->addTriangleIndexes(startIndex, m_e2, m_e3);
+        }
+        m_e1 = m_e2;
+        m_e2 = m_e3;
+    }
 }
 
 char GlBufferBucket::crossExtent() const

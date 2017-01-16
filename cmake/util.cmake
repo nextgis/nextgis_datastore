@@ -38,7 +38,7 @@ function(check_version major minor rev)
       REV_VERSION ${VERSION_H_CONTENTS})
     string (REGEX MATCH "([0-9]+)"
       REV_VERSION ${REV_VERSION})
-    
+
     set(${major} ${MAJOR_VERSION} PARENT_SCOPE)
     set(${minor} ${MINOR_VERSION} PARENT_SCOPE)
     set(${rev} ${REV_VERSION} PARENT_SCOPE)
@@ -51,14 +51,14 @@ function(report_version name ver)
     string(ASCII 27 Esc)
     set(BoldYellow  "${Esc}[1;33m")
     set(ColourReset "${Esc}[m")
-        
+
     message(STATUS "${BoldYellow}${name} version ${ver}${ColourReset}")
-    
-endfunction()  
+
+endfunction()
 
 # macro to find packages on the host OS
 macro( find_exthost_package )
-    if(CMAKE_CROSSCOMPILING)
+    if(CMAKE_CROSSCOMPILING AND NOT ANDROID_STUDIO_CMAKE)
         set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER )
         set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER )
         set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER )
