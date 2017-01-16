@@ -87,7 +87,8 @@ echo "\n== Build GDAL ==========================================================
 cd $HOME/build/nextgis/lib_gdal
 mkdir build
 cd build
-cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DWITH_OpenSSL=ON -DWITH_ZLIB=ON -DWITH_EXPAT=ON -DWITH_GeoTIFF=ON -DWITH_ICONV=ON -DWITH_JSONC=ON -DWITH_LibXml2=ON -DWITH_TIFF=ON -DWITH_JPEG=ON -DWITH_PNG=ON -DCMAKE_INSTALL_PREFIX=$HOME/build/nextgis/lib_gdal/inst ..
+# -DSUPPRESS_VERBOSE_OUTPUT=ON
+cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DWITH_ZLIB=ON -DWITH_EXPAT=ON -DWITH_GeoTIFF=ON -DWITH_ICONV=ON -DWITH_JSONC=ON -DWITH_LibXml2=ON -DWITH_TIFF=ON -DWITH_JPEG=ON -DWITH_PNG=ON -DWITH_SQLite3=ON -DCMAKE_INSTALL_PREFIX=$HOME/build/nextgis/lib_gdal/inst ..
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
