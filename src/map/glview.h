@@ -309,7 +309,6 @@ protected:
             double endLeft,
             double endRight,
             bool round,
-            int startIndex,
             GlBufferSharedPtr currBuffer);
 
     void addPieSliceLineVertex(const Vector2& currPt,
@@ -317,7 +316,6 @@ protected:
             const Vector2& extrude,
             bool lineTurnsLeft,
             bool fakeRound,
-            int startIndex,
             GlBufferSharedPtr currBuffer);
 
 protected:
