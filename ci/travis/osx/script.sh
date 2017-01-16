@@ -2,6 +2,7 @@
 
 set -e
 
+echo "\nBuild JSON-C\n"
 cd $HOME/build/nextgis/lib_jsonc
 mkdir build
 cd build
@@ -9,6 +10,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCM
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild GEOS\n"
 cd $HOME/build/nextgis/lib_geos
 mkdir build
 cd build
@@ -16,6 +18,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCM
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild OpenSSL\n"
 cd $HOME/build/nextgis/lib_openssl
 mkdir build
 cd build
@@ -23,6 +26,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DOP
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild PROJ\n"
 cd $HOME/build/nextgis/lib_proj
 mkdir build
 cd build
@@ -30,6 +34,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCM
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild JPEG\n"
 cd $HOME/build/nextgis/lib_jpeg
 mkdir build
 cd build
@@ -37,6 +42,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCM
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild PNG\n"
 cd $HOME/build/nextgis/lib_png
 mkdir build
 cd build
@@ -51,6 +57,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DWI
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild SQLite\n"
 cd $HOME/build/nextgis/lib_sqlite
 mkdir build
 cd build
@@ -58,6 +65,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCM
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild TIFF\n"
 cd $HOME/build/nextgis/lib_tiff
 mkdir build
 cd build
@@ -65,6 +73,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DWI
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild GeoTIFF\n"
 cd $HOME/build/nextgis/lib_geotiff
 mkdir build
 cd build
@@ -72,6 +81,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DWI
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild GDAL\n"
 cd $HOME/build/nextgis/lib_gdal
 mkdir build
 cd build
@@ -79,6 +89,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DWI
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\nBuild NextGIS Datastore\n"
 cd $HOME/build/nextgis/nextgis_datastore
 mkdir build
 cd build
