@@ -51,6 +51,13 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DWI
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+cd $HOME/build/nextgis/lib_sqlite
+mkdir build
+cd build
+cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCMAKE_INSTALL_PREFIX=$HOME/build/nextgis/lib_sqlite/inst ..
+cmake --build . --config release -- -j 4
+cmake --build . --config release --target install
+
 cd $HOME/build/nextgis/lib_tiff
 mkdir build
 cd build
