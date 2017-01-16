@@ -42,7 +42,7 @@ Supported tiled services
 ## Unit tests
 
 | Environment           | Status        |
-| --------------------- |:-------------:|
+| --------------------- |--------------:|
 | Ubuntu trusty GCC     | [![Build Status](http://badges.herokuapp.com/travis/nextgis/nextgis_datastore?branch=master&env=BUILD_NAME=linux_gcc&label=linux_gcc)](https://travis-ci.org/nextgis/nextgis_datastore) |
 | Ubuntu trusty Clang   | [![Build Status](http://badges.herokuapp.com/travis/nextgis/nextgis_datastore?branch=master&env=BUILD_NAME=linux_clang&label=linux_clang)](https://travis-ci.org/nextgis/nextgis_datastore) |
 | Mac OS X              | [![Build Status](http://badges.herokuapp.com/travis/nextgis/nextgis_datastore?branch=master&env=BUILD_NAME=osx&label=osx)](https://travis-ci.org/nextgis/nextgis_datastore) |
