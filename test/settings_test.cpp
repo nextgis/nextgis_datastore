@@ -22,6 +22,8 @@
 #include "test.h"
 #include "util/jsondocument.h"
 
+#define SETTINGS_FILE "./tmp/settings.json"
+
 TEST(SettingsTests, WriteTest) {
     // just try to create directory
     VSIMkdir("./tmp", 0755);
@@ -31,15 +33,17 @@ TEST(SettingsTests, WriteTest) {
     root.add("one_level", true);
     root.add("two_level/second_level", false);
     root.add("three_level/second_level/third_level", true);
-    //EXPECT_EQ(doc.save("/Users/Bishop/tmp/settings.json"), ngsErrorCodes::EC_SUCCESS);
-    EXPECT_EQ(doc.save("./tmp/settings.json"), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(doc.save(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
 }
 
 TEST(SettingsTests, ReadTest) {
     ngs::JSONDocument doc;
-    ASSERT_EQ(doc.load("./tmp/settings.json"), ngsErrorCodes::EC_SUCCESS);
+    ASSERT_EQ(doc.load(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
     ngs::JSONObject root = doc.getRoot();
     EXPECT_EQ(root.getBool("one_level", false), true);
     EXPECT_EQ(root.getBool("two_level/second_level", true), false);
     EXPECT_EQ(root.getBool("three_level/second_level/third_level", false), true);
+
+    // delete settings file
+    VSIUnlink(SETTINGS_FILE);
 }
