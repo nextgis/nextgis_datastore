@@ -20,10 +20,11 @@
  ****************************************************************************/
 
 #include "test.h"
-#include "datastore.h"
-#include "featuredataset.h"
-#include "rasterdataset.h"
+#include "ds/datastore.h"
+#include "ds/featuredataset.h"
+#include "ds/rasterdataset.h"
 
+// gdal
 #include "cpl_conv.h"
 
 static int counter = 0;

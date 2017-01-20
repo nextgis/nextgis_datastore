@@ -22,12 +22,12 @@
 #ifndef NGSVERSIONUTIL_H
 #define NGSVERSIONUTIL_H
 
-#include <string>
+#include "cpl_string.h"
 
 namespace ngs {
     int getVersion(const char* request);
     const char* getVersionString(const char* request);
-    std::string reportFormats();
+    CPLString reportFormats();
 }
 
 #endif // NGSVERSIONUTIL_H

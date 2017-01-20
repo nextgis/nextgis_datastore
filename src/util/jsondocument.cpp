@@ -26,6 +26,8 @@
 
 using namespace ngs;
 
+#define JSON_PATH_DELIMITER "/"
+
 //------------------------------------------------------------------------------
 // JSONDocument
 //------------------------------------------------------------------------------
@@ -98,6 +100,12 @@ JSONObject::JSONObject()
     m_jsonObject = json_object_new_object();
 }
 
+JSONObject::JSONObject(const char *name, const JSONObject &parent)
+{
+    m_jsonObject = json_object_new_object();
+    json_object_object_add(parent.m_jsonObject, name, m_jsonObject);
+}
+
 JSONObject::JSONObject(json_object *jsonObject) : m_jsonObject(jsonObject)
 {
 
@@ -121,6 +129,12 @@ void JSONObject::add(const char *name, int val)
     json_object_object_add(m_jsonObject, name, poVal);
 }
 
+void JSONObject::add(const char *name, long val)
+{
+    json_object *poVal = json_object_new_int64 (val);
+    json_object_object_add(m_jsonObject, name, poVal);
+}
+
 void JSONObject::add(const char *name, const JSONArray &val)
 {
     json_object_object_add(m_jsonObject, name, val.m_jsonObject);
@@ -128,8 +142,14 @@ void JSONObject::add(const char *name, const JSONArray &val)
 
 void JSONObject::add(const char *name, bool val)
 {
-    json_object *poVal = json_object_new_boolean (val);
-    json_object_object_add(m_jsonObject, name, poVal);
+    if(nullptr == name)
+        return;
+    char objectName[255];
+    JSONObject object = getObjectByPath(name, &objectName[0]);
+    if(object.isValid()) {
+        json_object *poVal = json_object_new_boolean (val);
+        json_object_object_add(object.m_jsonObject, objectName, poVal);
+   }
 }
 
 CPLString JSONObject::getString(const char *name, const char* defaultVal) const
@@ -162,13 +182,81 @@ int JSONObject::getInteger(const char *name, int defaultVal) const
     return defaultVal;
 }
 
-bool JSONObject::getBool(const char *name, bool defaultVal) const
+long JSONObject::getLong(const char *name, long defaultVal) const
 {
     json_object* poVal = nullptr;
     if( json_object_object_get_ex(m_jsonObject, name, &poVal)) {
-    if( poVal && json_object_get_type(poVal) == json_type_boolean )
-        return json_object_get_boolean (poVal);
+    if( poVal && json_object_get_type(poVal) == json_type_int ) // FIXME: How to differ long and int if json_type_int64 or json_type_long not exist?
+        return json_object_get_int64 (poVal);
     }
+    return defaultVal;
+}
+
+bool JSONObject::getBool(const char *name, bool defaultVal) const
+{
+    if(nullptr == name)
+        return defaultVal;
+    JSONObject object = getObjectByPath(name);
+    if(object.isValid())
+        return object.getBool(defaultVal);
+    return defaultVal;
+}
+
+JSONObject JSONObject::getObjectByPath(const char* path) const
+{
+    json_object* poVal = nullptr;
+    CPLStringList pathPortions(CSLTokenizeString2( path, JSON_PATH_DELIMITER, 0 ));
+    int portionsCount = pathPortions.size();
+    if(0 == portionsCount)
+        return JSONObject(nullptr);
+    JSONObject object = *this;
+    for(int i = 0; i < portionsCount; ++i) {
+        // TODO: check array index in path - i.e. settings/catalog/root/id:1/name
+        // if EQUALN(pathPortions[i+1], "id:", 3) -> getArray
+        if(json_object_object_get_ex(object.m_jsonObject, pathPortions[i], &poVal)) {
+            object = JSONObject(poVal);
+        }
+        else {
+            if(i == portionsCount - 1)
+                return JSONObject(nullptr);
+            else
+                object = JSONObject(pathPortions[i], object.m_jsonObject);
+        }
+    }
+    return object;
+}
+
+JSONObject JSONObject::getObjectByPath(const char *path, char *name)
+{
+    json_object* poVal = nullptr;
+    CPLStringList pathPortions(CSLTokenizeString2( path, JSON_PATH_DELIMITER, 0 ));
+    int portionsCount = pathPortions.size();
+    if(0 == portionsCount)
+        return JSONObject(nullptr);
+    JSONObject object = *this;
+    for(int i = 0; i < portionsCount -1 ; ++i) {
+        // TODO: check array index in path - i.e. settings/catalog/root/id:1/name
+        // if EQUALN(pathPortions[i+1], "id:", 3) -> getArray
+        if(json_object_object_get_ex(object.m_jsonObject, pathPortions[i], &poVal)) {
+            object = JSONObject(poVal);
+        }
+        else {
+            object = JSONObject(pathPortions[i], object.m_jsonObject);
+        }
+    }
+
+    // Check if such object already  exists
+    if(json_object_object_get_ex(object.m_jsonObject,
+                                 pathPortions[portionsCount - 1], &poVal))
+        return JSONObject(nullptr);
+    strcpy (name, pathPortions[portionsCount - 1]);
+    return object;
+}
+
+bool JSONObject::getBool(bool defaultVal) const
+{
+    if( m_jsonObject && json_object_get_type(m_jsonObject) == json_type_boolean )
+        return json_object_get_boolean (m_jsonObject);
     return defaultVal;
 }
 
@@ -181,6 +269,15 @@ JSONArray JSONObject::getArray(const char *name) const
     }
     return JSONArray(nullptr);
 
+}
+
+JSONObject JSONObject::getObject(const char *name) const
+{
+    json_object* poVal = nullptr;
+    if(json_object_object_get_ex(m_jsonObject, name, &poVal)) {
+        return JSONObject(poVal);
+    }
+    return JSONObject(nullptr);
 }
 
 JSONObject::Type JSONObject::getType() const
@@ -204,6 +301,11 @@ JSONObject::Type JSONObject::getType() const
         return Type::String;
     }
     return Type::Null;
+}
+
+bool JSONObject::isValid() const
+{
+    return nullptr != m_jsonObject;
 }
 
 //------------------------------------------------------------------------------

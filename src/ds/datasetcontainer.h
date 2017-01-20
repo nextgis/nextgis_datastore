@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -95,15 +95,15 @@ protected:
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     bool isDatabase() const;
-    vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDataset);
+    std::vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDataset);
 protected:
-    map<string, DatasetPtr> m_datasets;
+    std::map<CPLString, DatasetPtr> m_datasets;
     /**
      * Load Dataset
      */
     CPLJoinableThread* m_hLoadThread;
     bool m_cancelLoad;
-    vector<LoadData> m_loadData;
+    std::vector<LoadData> m_loadData;
     unsigned int m_newTaskId;
 
     // Dataset interface
@@ -111,7 +111,7 @@ public:
     virtual int destroy(ProgressInfo *processInfo) override;
 };
 
-typedef shared_ptr<DatasetContainer> DatasetContainerPtr;
+typedef std::shared_ptr<DatasetContainer> DatasetContainerPtr;
 }
 
 #endif // NGSDATASETCONTAINER_H

@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -22,6 +22,8 @@
 #define NGSJSONDOCUMENT_H
 
 #include "json.h"
+
+// gdal
 #include "cpl_string.h"
 
 namespace ngs {
@@ -33,6 +35,7 @@ class JSONArray;
 class JSONObject
 {
     friend class JSONArray;
+    friend class JSONDocument;
 public:
     enum class Type {
         Null,
@@ -41,24 +44,47 @@ public:
         Boolean,
         String,
         Integer,
+        Long,
         Double
     };
 
 public:
     JSONObject();
+    JSONObject(const char* name, const JSONObject& parent);
+private:
     JSONObject(json_object *jsonObject);
+
+public:
+    // setters
     void add(const char* name, const char* val);
     void add(const char* name, double val);
     void add(const char* name, int val);
+    void add(const char* name, long val);
     void add(const char* name, const JSONArray& val);
+    void add(const char* name, const JSONObject& val);
     void add(const char* name, bool val);
+
+    // getters
     CPLString getString(const char* name, const char *defaultVal) const;
     double getDouble(const char* name, double defaultVal) const;
     int getInteger(const char* name, int defaultVal) const;
+    long getLong(const char* name, long defaultVal) const;
     bool getBool(const char* name, bool defaultVal) const;
+    CPLString getString(const char *defaultVal) const;
+    double getDouble(double defaultVal) const;
+    int getInteger(int defaultVal) const;
+    long getLong(long defaultVal) const;
+    bool getBool(bool defaultVal) const;
+
+    //
     JSONArray getArray(const char* name) const;
+    JSONObject getObject(const char* name) const;
     enum Type getType() const;
+    bool isValid() const;
+    JSONObject getObjectByPath(const char *path) const;
 protected:
+    JSONObject getObjectByPath(const char *path, char *name);
+private:
     json_object *m_jsonObject;
 };
 
@@ -67,14 +93,16 @@ protected:
  */
 class JSONArray : public JSONObject
 {
+    friend class JSONObject;
 public:
     JSONArray();
+private:
     JSONArray(json_object *jsonObject);
+public:
     int size() const;
     void add(const JSONObject& val);
     JSONObject operator[](int key);
     const JSONObject operator[](int key) const;
-
 };
 
 /**
@@ -95,7 +123,7 @@ public:
     // while (reader.hasNext())
     // String name = reader.nextName()
     // reader.beginArray();
-protected:
+private:
     json_object *m_rootJsonObject;
 };
 

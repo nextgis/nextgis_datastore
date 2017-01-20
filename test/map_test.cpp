@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -18,14 +18,14 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-
 #include "test.h"
-#include "datastore.h"
-#include "featuredataset.h"
-#include "mapstore.h"
-#include "constants.h"
-#include "mapview.h"
+#include "ds/datastore.h"
+#include "ds/featuredataset.h"
+#include "map/mapstore.h"
+#include "map/mapview.h"
+#include "util/constants.h"
 
+// stl
 #include <memory>
 
 static int counter = 0;

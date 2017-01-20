@@ -23,9 +23,9 @@
 #include "version.h"
 
 // GDAL
-#include "gdal.h"
-#include "cpl_string.h"
 #include "cpl_csv.h"
+#include "cpl_string.h"
+#include "gdal.h"
 
 #ifdef HAVE_CURL_H
 #include <curl/curlver.h>
@@ -91,7 +91,7 @@ static CPLString gFormats;
  * return.
  * @return supported raster/vector/network formats or empty string
  */
-std::string ngs::reportFormats()
+CPLString ngs::reportFormats()
 {
     for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
         GDALDriverH hDriver = GDALGetDriver(iDr);

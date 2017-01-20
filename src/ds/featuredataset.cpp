@@ -168,9 +168,9 @@ bool FeatureDataset::setIgnoredFields(const char** fields)
     return m_layer->SetIgnoredFields (fields) == OGRERR_NONE;
 }
 
-vector<CPLString> FeatureDataset::getGeometryColumns() const
+std::vector<CPLString> FeatureDataset::getGeometryColumns() const
 {
-    vector<CPLString> out;
+    std::vector<CPLString> out;
     OGRFeatureDefn *defn = m_layer->GetLayerDefn ();
     for(int i = 0; i < defn->GetGeomFieldCount (); ++i) {
         OGRGeomFieldDefn* geom = defn->GetGeomFieldDefn (i);

@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>

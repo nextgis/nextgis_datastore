@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -22,11 +22,13 @@
 #define NGSTABLE_H
 
 #include "dataset.h"
+
+// gdal
 #include "ogrsf_frmts.h"
 
 namespace ngs {
 
-class FieldMapPtr : public shared_ptr<int>
+class FieldMapPtr : public std::shared_ptr<int>
 {
 public:
     FieldMapPtr(unsigned long size);
@@ -34,7 +36,7 @@ public:
     const int &operator[](int key) const;
 };
 
-class FeaturePtr : public shared_ptr< OGRFeature >
+class FeaturePtr : public std::shared_ptr< OGRFeature >
 {
 public:
     FeaturePtr(OGRFeature* feature);

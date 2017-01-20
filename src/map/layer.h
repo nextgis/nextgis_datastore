@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -22,10 +22,12 @@
 #define NGSLAYER_H
 
 #include "ds/datastore.h"
+#include "util/jsondocument.h"
+
+// stl
 #include <memory>
 #include <string>
 #include <vector>
-#include "util/jsondocument.h"
 
 namespace ngs {
 
@@ -55,7 +57,7 @@ protected:
     DatasetPtr m_dataset;
 };
 
-typedef shared_ptr<Layer> LayerPtr;
+typedef std::shared_ptr<Layer> LayerPtr;
 
 }
 

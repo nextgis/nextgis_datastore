@@ -1,9 +1,9 @@
 /******************************************************************************
- * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
- * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,16 +18,13 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#ifndef NGSFILEUTILS_H
+#define NGSFILEUTILS_H
 
-#include "test.h"
+namespace ngs {
 
-#include "map/glview.h"
+bool checkPathExist(const char *path);
 
-TEST(GlTests, TestCreate) {
-#ifdef OFFSCREEN_GL
-    ngs::GlOffScreenView view;
-    EXPECT_EQ(view.init (), true);
-    view.setSize (640, 480);
-    EXPECT_EQ(view.isOk (), true);
-#endif // OFFSCREEN_GL
 }
+
+#endif // NGSFILEUTILS_H

@@ -1,8 +1,8 @@
 /******************************************************************************
-*  Project: NextGIS ...
-*  Purpose: Application for ...
-*  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*******************************************************************************
+ * Project:  libngstore
+ * Purpose:  NextGIS store and visualization support library
+ * Author:   Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ ******************************************************************************
 *  Copyright (C) 2012-2016 NextGIS, info@nextgis.ru
 *
 *   This program is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 namespace ngs {
 
 class StoreFeatureDataset;
-typedef shared_ptr<StoreFeatureDataset> StoreFeatureDatasetPtr;
+typedef std::shared_ptr<StoreFeatureDataset> StoreFeatureDatasetPtr;
 
 class StoreFeatureDataset : public FeatureDataset
 {

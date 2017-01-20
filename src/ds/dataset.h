@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -34,7 +34,7 @@ typedef std::shared_ptr< OGRLayer > ResultSetPtr;
 /**
  * @brief The GDALDatasetPtr class Wrapper class for GDALDataset
  */
-class GDALDatasetPtr : public shared_ptr< GDALDataset >
+class GDALDatasetPtr : public std::shared_ptr< GDALDataset >
 {
 public:
     GDALDatasetPtr(GDALDataset* ds);

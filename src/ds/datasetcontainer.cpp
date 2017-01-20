@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -18,21 +18,24 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include <algorithm>
-#include <array>
+
 #include "datasetcontainer.h"
 #include "featuredataset.h"
 #include "util/stringutil.h"
+
+// stl
+#include <algorithm>
+#include <array>
 
 #define MAX_EQUAL_NAMES 10000
 #define MAX_LOADTASK_COUNT 100
 
 using namespace ngs;
 
-const static array<char, 22> forbiddenChars = {{':', '@', '#', '%', '^', '&', '*',
+const static std::array<char, 22> forbiddenChars = {{':', '@', '#', '%', '^', '&', '*',
     '!', '$', '(', ')', '+', '-', '?', '=', '/', '\\', '"', '\'', '[', ']', ','}};
 
-const static array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTION",
+const static std::array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTION",
     "ADD", "AFTER", "ALL", "ALTER", "ANALYZE", "AND", "AS", "ASC", "ATTACH",
     "AUTOINCREMENT", "BEFORE", "BEGIN", "BETWEEN", "BY", "CASCADE", "CASE",
     "CAST", "CHECK", "COLLATE", "COLUMN", "COMMIT", "CONFLICT", "CONSTRAINT",
@@ -281,7 +284,7 @@ bool DatasetContainer::isNameValid(const CPLString &name) const
 
 bool forbiddenChar (char c)
 {
-    return find(forbiddenChars.begin(), forbiddenChars.end(), c) !=
+    return std::find(forbiddenChars.begin(), forbiddenChars.end(), c) !=
             forbiddenChars.end();
 }
 
@@ -342,9 +345,9 @@ bool DatasetContainer::isDatabase() const
 
 }
 
-vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcDataset)
+std::vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcDataset)
 {
-    vector<OGRwkbGeometryType> out;
+    std::vector<OGRwkbGeometryType> out;
     FeatureDataset* const srcFD = ngsDynamicCast(FeatureDataset, srcDataset);
     if(nullptr == srcFD)
         return out;
@@ -353,7 +356,7 @@ vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcData
             OGR_GT_Flatten(geomType) == wkbGeometryCollection) {
 
         char** ignoreFields = nullptr;
-        unique_ptr<char*, void(*)(char**)> fieldsPtr(ignoreFields, CSLDestroy);
+        std::unique_ptr<char*, void(*)(char**)> fieldsPtr(ignoreFields, CSLDestroy);
         OGRFeatureDefn* defn = srcFD->getDefinition ();
         for(int i = 0; i < defn->GetFieldCount (); ++i) {
             OGRFieldDefn *fld = defn->GetFieldDefn (i);
@@ -362,7 +365,7 @@ vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcData
         ignoreFields = CSLAddString (ignoreFields, "OGR_STYLE");
         srcFD->setIgnoredFields (const_cast<const char**>(fieldsPtr.get()));
         srcFD->reset ();
-        map<OGRwkbGeometryType, int> counts;
+        std::map<OGRwkbGeometryType, int> counts;
         FeaturePtr feature;
         while((feature = srcFD->nextFeature ()) != nullptr) {
             OGRGeometry * geom = feature->GetGeometryRef ();
@@ -405,7 +408,7 @@ unsigned int DatasetContainer::loadDataset(const CPLString &name,
                                   void* progressArguments)
 {
     if(m_loadData.size () > MAX_LOADTASK_COUNT) {
-        vector<LoadData>(m_loadData.begin() + MAX_LOADTASK_COUNT - 10,
+        std::vector<LoadData>(m_loadData.begin() + MAX_LOADTASK_COUNT - 10,
                          m_loadData.end()).swap(m_loadData);
     }
 
@@ -482,7 +485,7 @@ int DatasetContainer::copyDataset(DatasetPtr srcDataset,
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
 
         // get output geometry type
-        vector<OGRwkbGeometryType> geometryTypes = getGeometryTypes(srcDataset);
+        std::vector<OGRwkbGeometryType> geometryTypes = getGeometryTypes(srcDataset);
         for(OGRwkbGeometryType geometryType : geometryTypes) {
             OGRwkbGeometryType filterGeomType = wkbUnknown;
             CPLString newName = name;

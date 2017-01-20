@@ -26,6 +26,7 @@
 #include "api_priv.h"
 #include "vector.h"
 
+// stl
 #include <atomic>
 #include <memory>
 #include <set>
@@ -243,8 +244,8 @@ protected:
     size_t m_finalVertexBufferSize;
     size_t m_finalIndexBufferSize;
 
-    vector<GLfloat> m_vertices;
-    vector<GLushort> m_indices;
+    std::vector<GLfloat> m_vertices;
+    std::vector<GLushort> m_indices;
     GLuint m_glHardBuffers[2];
 
     static std::atomic_int_fast32_t m_globalVertexBufferSize;
@@ -319,8 +320,8 @@ protected:
             GlBufferSharedPtr currBuffer);
 
 protected:
-    vector<GlBufferSharedPtr> m_buffers;
-    set<GIntBig> m_fids;
+    std::vector<GlBufferSharedPtr> m_buffers;
+    std::set<GIntBig> m_fids;
     int m_X;
     int m_Y;
     unsigned char m_zoom;
@@ -359,7 +360,7 @@ protected:
     GLuint m_id;
 };
 
-typedef unique_ptr<GlProgram> GlProgramUPtr;
+typedef std::unique_ptr<GlProgram> GlProgramUPtr;
 
 class GlFuctions
 {
@@ -375,8 +376,8 @@ public:
     // Draw functions
     void testDraw(int colorId) const;
     void testDrawPreserved(int colorId) const;
-    void drawPolygons(const vector<GLfloat> &vertices,
-                      const vector<GLushort> &indices) const;
+    void drawPolygons(const std::vector<GLfloat> &vertices,
+                      const std::vector<GLushort> &indices) const;
 protected:
     bool loadExtensions();
 

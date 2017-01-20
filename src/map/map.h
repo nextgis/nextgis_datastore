@@ -23,11 +23,10 @@
 
 #include "api_priv.h"
 #include "layer.h"
+
 #include "ds/datastore.h"
 
 namespace ngs {
-
-using namespace std;
 
 class MapStore;
 
@@ -89,14 +88,14 @@ protected:
     CPLString m_path;
     unsigned short m_epsg;
     double m_minX, m_minY, m_maxX, m_maxY;
-    vector<LayerPtr> m_layers;
+    std::vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
     DataStorePtr m_DataStore;
     unsigned char m_id;
     bool m_relativePaths;
 };
 
-typedef shared_ptr<Map> MapPtr;
-// typedef weak_ptr<Map> MapWPtr;
+typedef std::shared_ptr<Map> MapPtr;
+// typedef std::weak_ptr<Map> MapWPtr;
 }
 #endif // NGSMAP_H

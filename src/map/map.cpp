@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -21,42 +21,64 @@
 
 #include "map.h"
 #include "mapstore.h"
+
 #include "util/constants.h"
 
 using namespace ngs;
+
+#define DEFAULT_MAP_BK {210, 245, 255, 255}
 
 //------------------------------------------------------------------------------
 // Map
 //------------------------------------------------------------------------------
 
-Map::Map() : m_name(DEFAULT_MAP_NAME),
-    m_epsg(DEFAULT_EPSG), m_minX(DEFAULT_MIN_X), m_minY(DEFAULT_MIN_Y),
-    m_maxX(DEFAULT_MAX_X), m_maxY(DEFAULT_MAX_Y), m_relativePaths(true)
+Map::Map() :
+    m_name(DEFAULT_MAP_NAME),
+    m_epsg(DEFAULT_EPSG),
+    m_minX(DEFAULT_MIN_X),
+    m_minY(DEFAULT_MIN_Y),
+    m_maxX(DEFAULT_MAX_X),
+    m_maxY(DEFAULT_MAX_Y),
+    m_relativePaths(true)
 {
-    m_bkColor = {210, 245, 255, 255};
+    m_bkColor = DEFAULT_MAP_BK;
 }
 
 Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
          double minX, double minY, double maxX, double maxY) :
-    m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY), m_relativePaths(true)
+    m_name(name),
+    m_description(description),
+    m_epsg(epsg),
+    m_minX(minX),
+    m_minY(minY),
+    m_maxX(maxX),
+    m_maxY(maxY),
+    m_relativePaths(true)
 {
-    m_bkColor = {210, 245, 255, 255};
+    m_bkColor = DEFAULT_MAP_BK;
 }
 
-Map::Map(DataStorePtr dataStore) : m_DataStore(dataStore), m_relativePaths(true)
+Map::Map(DataStorePtr dataStore) :
+    m_DataStore(dataStore),
+    m_relativePaths(true)
 {
-    m_bkColor = {210, 245, 255, 255};
+    m_bkColor = DEFAULT_MAP_BK;
 }
 
 Map::Map(const CPLString &name, const CPLString &description,
          unsigned short epsg, double minX, double minY, double maxX, double maxY,
          DataStorePtr dataStore) :
-    m_name(name), m_description(description), m_epsg(epsg),
-    m_minX(minX), m_minY(minY), m_maxX(maxX), m_maxY(maxY),
-    m_DataStore(dataStore), m_relativePaths(true)
+    m_name(name),
+    m_description(description),
+    m_epsg(epsg),
+    m_minX(minX),
+    m_minY(minY),
+    m_maxX(maxX),
+    m_maxY(maxY),
+    m_DataStore(dataStore),
+    m_relativePaths(true)
 {
-    m_bkColor = {210, 245, 255, 255};
+    m_bkColor = DEFAULT_MAP_BK;
 }
 
 Map::~Map()

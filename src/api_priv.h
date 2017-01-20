@@ -1,9 +1,9 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -24,12 +24,10 @@
 #include "api.h"
 #include "ogr_geometry.h"
 
-#include <memory>
+// stl
 #include <cmath>
 #include <limits>
-
-
-using namespace std;
+#include <memory>
 
 /**
   * useful functions
@@ -53,7 +51,7 @@ inline ngsRGBA ngsHEX2RGBA(int color) {
 
 // http://stackoverflow.com/a/15012792
 inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) <=
-            numeric_limits<double>::epsilon(); };
+            std::numeric_limits<double>::epsilon(); };
 
 #define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 

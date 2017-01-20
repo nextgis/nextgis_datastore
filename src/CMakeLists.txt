@@ -34,7 +34,7 @@ if(ANDROID OR (UNIX AND NOT APPLE))
         include_directories(${OPENGLES2_INCLUDE_DIRS})
         set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
     endif()
-else()
+else() # TODO: Windows?
     find_package(OpenGL REQUIRED)
     if(OPENGL_FOUND)
         include_directories(${OPENGL_INCLUDE_DIR})
@@ -69,7 +69,7 @@ endif()
 
 set(OBJ_LIBRARIES)
 add_subdirectory (ds)
-# TODO: add_subdirectory(catalog)
+add_subdirectory (catalog)
 add_subdirectory (map)
 add_subdirectory (util)
 

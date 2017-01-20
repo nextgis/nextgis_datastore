@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
@@ -26,6 +26,7 @@
 #include "util/constants.h"
 #include "util/versionutil.h"
 
+// stl
 #include <iostream>
 
 using namespace ngs;

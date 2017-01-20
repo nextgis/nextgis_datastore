@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -21,17 +21,18 @@
 #ifndef NGSFEATUREDATASET_H
 #define NGSFEATUREDATASET_H
 
-#include "table.h"
 #include "spatialdataset.h"
+#include "table.h"
 
+// gdal
 #include "ogr_spatialref.h"
 
 #define ngsFeatureLoadSkipType(x) static_cast<unsigned int>( ngs::FeatureDataset::SkipType::x )
 
 namespace ngs {
 
-typedef shared_ptr< OGRGeometry > GeometryPtr;
-typedef unique_ptr< OGRGeometry > GeometryUPtr;
+typedef std::shared_ptr< OGRGeometry > GeometryPtr;
+typedef std::unique_ptr< OGRGeometry > GeometryUPtr;
 
 class CoordinateTransformationPtr
 {
@@ -71,7 +72,7 @@ public:
                              OGRwkbGeometryType filterGeomType,
                              ProgressInfo* progressInfo);
     bool setIgnoredFields(const char **fields);
-    vector<CPLString> getGeometryColumns() const;
+    std::vector<CPLString> getGeometryColumns() const;
     CPLString getGeometryColumn() const;
     ResultSetPtr executeSQL(const CPLString& statement,
                             GeometryPtr spatialFilter,

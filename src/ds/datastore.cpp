@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -19,15 +19,20 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "api_priv.h"
-#include "cpl_vsi.h"
-#include "cpl_conv.h"
 #include "datastore.h"
-#include <iostream>
 #include "rasterdataset.h"
 #include "storefeaturedataset.h"
+#include "version.h"
 #include "util/constants.h"
 #include "util/geometryutil.h"
-#include "version.h"
+
+// gdal
+#include "cpl_conv.h"
+#include "cpl_vsi.h"
+
+// stl
+#include <iostream>
+
 
 #define NGS_DATA_FOLDER "data"
 

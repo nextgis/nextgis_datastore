@@ -20,8 +20,8 @@
  ****************************************************************************/
 
 #include "test.h"
-#include "matrix.h"
-#include "constants.h"
+#include "map/matrix.h"
+#include "util/constants.h"
 
 #define DEG2RAD M_PI / 180.0
 
@@ -77,7 +77,6 @@ TEST(MatrixTests, TestProject) {
     ppt = mat4.project (pt);
     EXPECT_EQ(ppt.x, 1005);
     EXPECT_EQ(ppt.y, 1005);
-
 }
 
 TEST(MatrixTests, TestWorldToScene) {
@@ -115,7 +114,6 @@ TEST(MatrixTests, TestWorldToScene) {
     ppt = matWgs.project (pt);
     EXPECT_EQ(ppt.x, -1);
     EXPECT_EQ(ppt.y, -1);
-
 }
 
 TEST(MatrixTests, TestSceneToWorld) {

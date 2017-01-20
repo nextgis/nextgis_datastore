@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
@@ -20,10 +20,13 @@
  ****************************************************************************/
 
 #include "test.h"
-#include "constants.h"
 #include "version.h"
 
+#include "util/constants.h"
+
+// gdal
 #include "cpl_multiproc.h"
+#include "cpl_vsi.h"
 
 static int counter = 0;
 

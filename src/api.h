@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
+ * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
  *   Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
@@ -176,7 +176,7 @@ enum ngsOptions {
  */
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
-NGS_EXTERNC int ngsInit(const char* dataPath, const char* cachePath);
+NGS_EXTERNC int ngsInit(const char* dataPath, const char* cachePath); // TODO: change to  char **papszOptions -> CACHE_DIR, SETTINGS_DIR, GDAL_DATA, SHARE_DIR, DEBUG_MODE ...
 NGS_EXTERNC void ngsUninit();
 NGS_EXTERNC void ngsOnPause();
 NGS_EXTERNC void ngsOnLowMemory();
@@ -231,6 +231,7 @@ NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
 NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
 NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h);
+/** Map canvas functions */
 NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 

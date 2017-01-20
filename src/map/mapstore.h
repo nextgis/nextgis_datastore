@@ -87,11 +87,11 @@ public:
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
 protected:
     unsigned char m_mapCounter;
-    map<unsigned char, MapPtr> m_maps; // max 255 maps can be simultaneously opened
+    std::map<unsigned char, MapPtr> m_maps; // max 255 maps can be simultaneously opened
     ngsNotifyFunc m_notifyFunc;
 };
 
-typedef shared_ptr<MapStore> MapStorePtr;
+typedef std::shared_ptr<MapStore> MapStorePtr;
 
 }
 #endif // NGSMAPSTORE_H
