@@ -1222,16 +1222,6 @@ size_t GlBuffer::getIndexBufferSize() const
     return m_bound ? m_finalIndexBufferSize : m_indices.size();
 }
 
-size_t GlBuffer::getFinalVertexBufferSize() const
-{
-    return m_finalVertexBufferSize;
-}
-
-size_t GlBuffer::getFinalIndexBufferSize() const
-{
-    return m_finalIndexBufferSize;
-}
-
 //static
 std::int_fast32_t GlBuffer::getGlobalVertexBufferSize()
 {
@@ -1276,6 +1266,9 @@ GlBufferBucket::GlBufferBucket(int x,
         , m_extent(env)
         , m_filled(false)
         , m_crossExtent(crossExtent)
+        , m_e1(-1)
+        , m_e2(-1)
+        , m_e3(-1)
 {
     m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
 }
@@ -2032,31 +2025,16 @@ void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
 
 void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 {
-    // TODO: not only external ring must be extracted
-    const OGRLinearRing* ring = polygon->getExteriorRing();
-    int numPoints = ring->getNumPoints();
+    // TODO: draw boundaries
+    //fillLineString(polygon->getExteriorRing(), level);
 
-    if (numPoints < 3)
-        return;
+    PolygonTriangulator tr;
+    tr.triangulate(polygon);
 
-    // TODO: cut line by x or y direction or
-    // tesselate to fill into array max size
-    if (numPoints > 21000) {
-        CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
-                numPoints);
-        return;
-    }
-
-//    fillLineString(ring, level);
-
-    // For polygon last point == first point, see
-    // https://en.wikipedia.org/wiki/Well-known_text
-    --numPoints;
-
-    if (!m_buffers.back()->canStoreVertexes(numPoints)
-            || !m_buffers.back()->canStoreIndexes(3 * (numPoints - 2))) {
-        if (!GlBuffer::canGlobalStoreVertexes(numPoints)
-                || !GlBuffer::canGlobalStoreIndexes(3 * (numPoints - 2))) {
+    if (!m_buffers.back()->canStoreVertexes(tr.getNumVertices())
+            || !m_buffers.back()->canStoreIndexes(3 * tr.getNumTriangles())) {
+        if (!GlBuffer::canGlobalStoreVertexes(tr.getNumVertices())
+                || !GlBuffer::canGlobalStoreIndexes(3 * tr.getNumTriangles())) {
             return;
         }
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
@@ -2064,30 +2042,35 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
 
-    int startIndex = currBuffer->getVertexBufferSize() / VERTEX_SIZE;
-    Vector2 currPt;
+    // Get vertices of triangles and copy them to buffer.
+    for (PolygonTriangulator::CDT::Finite_vertices_iterator vit =
+                    tr.getCdt().finite_vertices_begin();
+            vit != tr.getCdt().finite_vertices_end(); ++vit) {
 
-    // the last three vertices added
-    m_e1 = m_e2 = m_e3 = -1;
+        if (vit->info().in_domain()) {
+            float x = static_cast<float>(
+                    vit->point().x() + m_crossExtent * DEFAULT_MAX_X2);
+            float y = static_cast<float>(vit->point().y());
+            float z = level;
+            currBuffer->addVertex(x, y, z);
 
-    for (int i = 0; i < numPoints; ++i) {
-        // Add point coordinates as float.
-        // Add triangle indexes as unsigned short.
-
-        ring->getPoint(i, &currPt);
-        float ptx = static_cast<float>(
-                currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-        float pty = static_cast<float>(currPt.getY());
-        float ptz = level;
-
-        currBuffer->addVertex(ptx, pty, ptz);
-
-        m_e3 = currBuffer->getVertexBufferSize() / VERTEX_SIZE - 1;
-        if (m_e1 >= 0 && m_e2 >= 0) {
-            currBuffer->addTriangleIndexes(startIndex, m_e2, m_e3);
+            // Set index by buffer
+            vit->info().m_index =
+                    currBuffer->getVertexBufferSize() / VERTEX_SIZE - 1;
         }
-        m_e1 = m_e2;
-        m_e2 = m_e3;
+    }
+
+    // Get indices of vertices and copy them to buffer.
+    for (PolygonTriangulator::CDT::Finite_faces_iterator fit =
+                    tr.getCdt().finite_faces_begin();
+            fit != tr.getCdt().finite_faces_end(); ++fit) {
+
+        if (fit->info().in_domain()) {
+            int i0 = fit->vertex(0)->info().m_index;
+            int i1 = fit->vertex(1)->info().m_index;
+            int i2 = fit->vertex(2)->info().m_index;
+            currBuffer->addTriangleIndexes(i0, i1, i2);
+        }
     }
 }
 
@@ -2151,20 +2134,145 @@ bool GlBufferBucket::intersects(const OGREnvelope &ext) const
     return m_extent.Intersects (ext) == TRUE;
 }
 
-size_t GlBufferBucket::getFinalVertexBufferSize() const
+size_t GlBufferBucket::getVertexBufferSize() const
 {
     size_t count = 0;
     for(const GlBufferSharedPtr& buff : m_buffers) {
-        count += buff->getFinalVertexBufferSize();
+        count += buff->getVertexBufferSize();
     }
     return count;
 }
 
-size_t GlBufferBucket::getFinalIndexBufferSize() const
+size_t GlBufferBucket::getIndexBufferSize() const
 {
     size_t count = 0;
     for(const GlBufferSharedPtr& buff : m_buffers) {
-        count += buff->getFinalIndexBufferSize();
+        count += buff->getIndexBufferSize();
     }
     return count;
+}
+
+PolygonTriangulator::PolygonTriangulator()
+        : m_numTriangles(0)
+        , m_numVertices(0)
+{
+}
+
+PolygonTriangulator::~PolygonTriangulator()
+{
+}
+
+void PolygonTriangulator::markDomains(CDT& ct,
+        CDT::Face_handle start,
+        int index,
+        std::list<CDT::Edge>& border)
+{
+    if (start->info().m_nestingLevel != -1) {
+        return;
+    }
+    std::list<CDT::Face_handle> queue;
+    queue.push_back(start);
+    while (!queue.empty()) {
+        CDT::Face_handle fh = queue.front();
+        queue.pop_front();
+        if (fh->info().m_nestingLevel == -1) {
+            fh->info().m_nestingLevel = index;
+            for (int i = 0; i < 3; i++) {
+                CDT::Edge e(fh, i);
+                CDT::Face_handle n = fh->neighbor(i);
+                if (n->info().m_nestingLevel == -1) {
+                    if (ct.is_constrained(e))
+                        border.push_back(e);
+                    else
+                        queue.push_back(n);
+                }
+            }
+        }
+    }
+}
+
+// Explore set of facets connected with non constrained edges,
+// and attribute to each such set a nesting level.
+// We start from facets incident to the infinite vertex, with a nesting
+// level of 0. Then we recursively consider the non-explored facets incident
+// to constrained edges bounding the former set
+// and increase the nesting level by 1.
+// Facets in the domain are those with an odd nesting level.
+void PolygonTriangulator::markDomains(CDT& cdt)
+{
+    std::list<CDT::Edge> border;
+    markDomains(cdt, cdt.infinite_face(), 0, border);
+    while (!border.empty()) {
+        CDT::Edge e = border.front();
+        border.pop_front();
+        CDT::Face_handle n = e.first->neighbor(e.second);
+        if (n->info().m_nestingLevel == -1) {
+            markDomains(cdt, n, e.first->info().m_nestingLevel + 1, border);
+        }
+    }
+}
+
+void PolygonTriangulator::triangulate(const OGRPolygon* polygon)
+{
+    const int intRingCnt = polygon->getNumInteriorRings();
+    for (int i = -1; i < intRingCnt; ++i) {
+        const OGRLinearRing* ring;
+        if (-1 == i) {
+            ring = polygon->getExteriorRing();
+        } else {
+            ring = polygon->getInteriorRing(i);
+        }
+
+        int numPoints = ring->getNumPoints();
+        if (numPoints < 3) {
+            if (-1 == i)
+                return;
+            else
+                continue;
+        }
+
+        // TODO: cut line by x or y direction or
+        // tesselate to fill into array max size
+        if (numPoints > 21000) {
+            CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
+                    numPoints);
+            return;
+        }
+
+        // Construct non-intersecting nested polygons.
+        // TODO: Make for intersecting nested polygons (we need it?)
+        Polygon_2 cgalPolygon;  // TODO: place in heap memory
+
+        OGRPoint pt;
+        OGRPointIterator* ptIt = ring->getPointIterator();
+        while (ptIt->getNextPoint(&pt)) {
+            cgalPolygon.push_back(CDT::Point(pt.getX(), pt.getY()));
+        }
+        OGRPointIterator::destroy(ptIt);
+
+        // Insert the polygons into a constrained triangulation.
+        // For polygon last point == first point, see
+        // https://en.wikipedia.org/wiki/Well-known_text
+        // From insert_constraint() docs: The polyline is considered as
+        // a polygon if the first and last point are equal.
+        m_cdt.insert_constraint(
+                cgalPolygon.vertices_begin(), cgalPolygon.vertices_end());
+    }
+
+    // Mark facets that are inside the domain bounded by the polygon.
+    markDomains(m_cdt);
+
+    // Get count of triangles that are inside the domain and mark their vertices.
+    for (CDT::Finite_faces_iterator fit = m_cdt.finite_faces_begin();
+            fit != m_cdt.finite_faces_end(); ++fit) {
+        if (fit->info().in_domain()) {
+            for (int i = 0; i < 3; ++i) {
+                if (!fit->vertex(i)->info().in_domain()) {
+                    fit->vertex(i)->info().m_index = m_numVertices;
+                    ++m_numVertices;
+                }
+            }
+            ++m_numTriangles;
+        }
+    }
 }

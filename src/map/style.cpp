@@ -172,7 +172,7 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
     ngsCheckGLEerror(
             glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
-    ngsCheckGLEerror(glDrawElements(GL_POINTS, buffer.getFinalIndexBufferSize(),
+    ngsCheckGLEerror(glDrawElements(GL_POINTS, buffer.getIndexBufferSize(),
             GL_UNSIGNED_SHORT, nullptr));
 }
 
@@ -243,7 +243,7 @@ void SimpleLineStyle::draw(const GlBuffer& buffer) const
             reinterpret_cast<const GLvoid*>(3 * sizeof(float))));
 
     ngsCheckGLEerror(glDrawElements(GL_TRIANGLES,
-            buffer.getFinalIndexBufferSize(), GL_UNSIGNED_SHORT, nullptr));
+            buffer.getIndexBufferSize(), GL_UNSIGNED_SHORT, nullptr));
 }
 
 //------------------------------------------------------------------------------
@@ -279,5 +279,5 @@ void SimpleFillStyle::draw(const GlBuffer& buffer) const
             glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
     ngsCheckGLEerror(glDrawElements(GL_TRIANGLES,
-            buffer.getFinalIndexBufferSize(), GL_UNSIGNED_SHORT, nullptr));
+            buffer.getIndexBufferSize(), GL_UNSIGNED_SHORT, nullptr));
 }

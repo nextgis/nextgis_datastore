@@ -387,8 +387,8 @@ void ngs::FeatureRenderLayer::drawTiles()
     int finalIndexBufferSize = 0;
     for (const GlBufferBucketSharedPtr& tile : m_tiles) {
         tile->draw(*m_style.get());
-        finalVertexBufferSize += tile->getFinalVertexBufferSize();
-        finalIndexBufferSize += tile->getFinalIndexBufferSize();
+        finalVertexBufferSize += tile->getVertexBufferSize();
+        finalIndexBufferSize += tile->getIndexBufferSize();
     }
 
     cout << "drawTiles(), finalVertexBufferSize == " << finalVertexBufferSize

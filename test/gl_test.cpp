@@ -31,3 +31,35 @@ TEST(GlTests, TestCreate) {
     EXPECT_EQ(view.isOk (), true);
 #endif // OFFSCREEN_GL
 }
+
+TEST(GlTests, PolygonTriangulatorTest)
+{
+    OGRLinearRing externalRing;
+    externalRing.addPoint(0, 0);
+    externalRing.addPoint(2, 0);
+    externalRing.addPoint(2, 2);
+    externalRing.addPoint(0, 2);
+    externalRing.closeRings();
+
+    OGRLinearRing internalRing;
+    internalRing.addPoint(0.5, 0.5);
+    internalRing.addPoint(1.5, 0.5);
+    internalRing.addPoint(1.5, 1.5);
+    internalRing.addPoint(0.5, 1.5);
+    internalRing.closeRings();
+
+    OGRPolygon polygon;
+    polygon.addRing(&externalRing);
+    polygon.addRing(&internalRing);
+
+    OGREnvelope env;
+    ngs::GlBufferBucketSharedPtr tile =
+            ngs::makeSharedGlBufferBucket(ngs::GlBufferBucket(1, 1, 1, env, 1));
+    tile->fill(1, &polygon, 0);
+
+    size_t vertexBufferSize = tile->getVertexBufferSize();
+    EXPECT_EQ(vertexBufferSize, 24);  // 8 vertices * 3 coordinates
+
+    size_t indexBufferSize = tile->getIndexBufferSize();
+    EXPECT_EQ(indexBufferSize, 24);  // 8 triangles * 3 indices
+}

@@ -22,12 +22,20 @@
 #ifndef NGSGLVIEW_H
 #define NGSGLVIEW_H
 
-
 #include "api_priv.h"
 #include "vector.h"
 
+// CGAL
+#include <CGAL/Constrained_Delaunay_triangulation_2.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Point_2.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/Triangulation_face_base_with_info_2.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
+
 // stl
 #include <atomic>
+#include <list>
 #include <memory>
 #include <set>
 #include <vector>
@@ -230,8 +238,6 @@ public:
 
     size_t getVertexBufferSize() const;
     size_t getIndexBufferSize() const;
-    size_t getFinalVertexBufferSize() const;
-    size_t getFinalIndexBufferSize() const;
 
     static std::int_fast32_t getGlobalVertexBufferSize();
     static std::int_fast32_t getGlobalIndexBufferSize();
@@ -295,8 +301,8 @@ public:
     bool intersects(const OGREnvelope& ext) const;
     char crossExtent() const;
 
-    size_t getFinalVertexBufferSize() const;
-    size_t getFinalIndexBufferSize() const;
+    size_t getVertexBufferSize() const;
+    size_t getIndexBufferSize() const;
 
 protected:
     void fill(const OGRGeometry* geom, float level);
@@ -388,5 +394,89 @@ protected:
 
 }
 
+// Based on the
+// http://doc.cgal.org/latest/Triangulation_2/index.html#title29
+// "8.4 Example: Triangulating a Polygonal Domain".
+// The following code inserts nested polygons into
+// a constrained Delaunay triangulation and counts the number of facets
+// that are inside the domain delimited by these polygons.
+// Note that the following code does not work
+// if the boundaries of the polygons intersect.
+class PolygonTriangulator
+{
+protected:
+    struct VertexInfo2
+    {
+        VertexInfo2()
+                : m_index(-1)
+        {
+        }
+
+        bool in_domain()
+        {
+            return m_index != -1;
+        }
+
+        int m_index;
+    };
+
+    struct FaceInfo2
+    {
+        FaceInfo2()
+                : m_nestingLevel(-1)
+        {
+        }
+
+        bool in_domain()
+        {
+            return m_nestingLevel % 2 == 1;
+        }
+
+        int m_nestingLevel;
+    };
+
+    typedef CGAL::Exact_predicates_inexact_constructions_kernel Kern;
+    typedef CGAL::Triangulation_vertex_base_with_info_2<VertexInfo2, Kern> Vbi;
+    typedef CGAL::Triangulation_vertex_base_2<Kern, Vbi> Vb;
+    typedef CGAL::Triangulation_face_base_with_info_2<FaceInfo2, Kern> Fbi;
+    typedef CGAL::Constrained_triangulation_face_base_2<Kern, Fbi> Fb;
+    typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
+    typedef CGAL::Exact_predicates_tag Itag;
+    typedef CGAL::Polygon_2<Kern> Polygon_2;
+
+public:
+    typedef CGAL::Constrained_Delaunay_triangulation_2<Kern, TDS, Itag> CDT;
+
+public:
+    explicit PolygonTriangulator();
+    virtual ~PolygonTriangulator();
+
+    void triangulate(const OGRPolygon* polygon);
+
+    CDT& getCdt()
+    {
+        return m_cdt;
+    }
+    size_t getNumTriangles()
+    {
+        return m_numTriangles;
+    }
+    size_t getNumVertices()
+    {
+        return m_numVertices;
+    }
+
+protected:
+    void markDomains(CDT& ct,
+            CDT::Face_handle start,
+            int index,
+            std::list<CDT::Edge>& border);
+    void markDomains(CDT& cdt);
+
+protected:
+    CDT m_cdt;  // TODO: place in heap memory
+    size_t m_numTriangles;
+    size_t m_numVertices;
+};
 
 #endif // NGSGLVIEW_H
