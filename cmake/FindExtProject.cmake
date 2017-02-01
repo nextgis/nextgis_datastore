@@ -306,7 +306,7 @@ function(find_extproject name)
         set(number_of_tries 0)
         while(error_code AND number_of_tries LESS 3)
           execute_process(
-            COMMAND ${GIT_EXECUTABLE} clone ${EP_URL}/${repo_name} ${name}_EP
+            COMMAND ${GIT_EXECUTABLE} clone --depth 1 ${EP_URL}/${repo_name} ${name}_EP
             WORKING_DIRECTORY  ${EXT_DOWNLOAD_DIR}
             RESULT_VARIABLE error_code
             )
@@ -412,7 +412,7 @@ function(find_extproject name)
         if(repo_header_only)
             continue()
         endif()
-        if (repo_intetrface)
+        if (repo_interface)
             get_target_property(LINK_INTERFACE_LIBS "${IMPORTED_TARGET}" INTERFACE_LINK_LIBRARIES)
             foreach(LINK_INTERFACE_LIB ${LINK_INTERFACE_LIBS})
                 if(LINK_INTERFACE_LIB)
