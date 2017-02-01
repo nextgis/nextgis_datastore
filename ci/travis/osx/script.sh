@@ -92,7 +92,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DWITH_ZLIB=ON -DWITH_EXPAT=ON -D
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
-echo "\n== Build Boost =======================================================\n"
+echo "\n== Build Boost =========================================================\n"
 cd $HOME/build/nextgis/lib_boost
 mkdir build
 cd build
@@ -100,7 +100,7 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCM
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
-echo "\n== Build CGAL =======================================================\n"
+echo "\n== Build CGAL ==========================================================\n"
 cd $HOME/build/nextgis/lib_cgal
 mkdir build
 cd build
