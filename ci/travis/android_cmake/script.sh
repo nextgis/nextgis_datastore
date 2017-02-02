@@ -26,5 +26,5 @@ cmake .. \
  -DBUILD_TARGET_PLATFORM=ANDROID \
  -DANDROID_STUDIO_CMAKE=ON \
 
-cmake --build . -- -j 1
+cmake --build . -- -j 4
 # TODO: cmake --build . --config release --target test
