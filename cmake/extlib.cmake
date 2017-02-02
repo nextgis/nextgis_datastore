@@ -87,9 +87,9 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     add_definitions (-DHAVE_CGAL_VERSION_H)
 endif()
 
-find_anyproject(JSONC REQUIRED SHARED OFF)
-
 find_anyproject(CGAL REQUIRED SHARED OFF)
+
+find_anyproject(JSONC REQUIRED SHARED OFF)
 
 find_anyproject(OpenSSL REQUIRED SHARED OFF CMAKE_ARGS
     -DOPENSSL_NO_AFALGENG=ON
