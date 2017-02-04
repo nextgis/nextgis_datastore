@@ -21,7 +21,7 @@
 ################################################################################
 
 set(TARGET_LINK_LIB) # ${TARGET_LINK_LIB} ""
-set(DEPENDENCY_LIB) # ${DEPENDENCY_LIB} ""
+set(DEPENDENCY_LIB) # ${DEPENDENCY_LIB} "" 
 set(WITHOPT ${WITHOPT} "")
 set(EXPORTS_PATHS)
 set(LINK_SEARCH_PATHS)
