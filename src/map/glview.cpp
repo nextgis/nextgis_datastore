@@ -1123,48 +1123,48 @@ bool GlBuffer::bound() const
 }
 
 // static
-bool GlBuffer::canGlobalStoreVertexes(size_t amount)
+bool GlBuffer::canGlobalStoreVertices(size_t amount)
 {
     return (m_globalVertexBufferSize.load() + amount * VERTEX_SIZE)
             < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
 // static
-bool GlBuffer::canGlobalStoreVertexesWithNormals(size_t amount)
+bool GlBuffer::canGlobalStoreVerticesWithNormals(size_t amount)
 {
     return (m_globalVertexBufferSize.load() + amount * VERTEX_WITH_NORMAL_SIZE)
             < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
 // static
-bool GlBuffer::canGlobalStoreIndexes(size_t amount)
+bool GlBuffer::canGlobalStoreIndices(size_t amount)
 {
     return (m_globalIndexBufferSize.load() + amount)
             < MAX_GLOBAL_INDEX_BUFFER_SIZE;
 }
 
-bool GlBuffer::canStoreVertexes(size_t amount) const
+bool GlBuffer::canStoreVertices(size_t amount) const
 {
     return (m_vertices.size() + amount * VERTEX_SIZE) < MAX_VERTEX_BUFFER_SIZE
-            && canGlobalStoreVertexes(amount);
+            && canGlobalStoreVertices(amount);
 }
 
-bool GlBuffer::canStoreVertexesWithNormals(size_t amount) const
+bool GlBuffer::canStoreVerticesWithNormals(size_t amount) const
 {
     return (m_vertices.size() + amount * VERTEX_WITH_NORMAL_SIZE)
             < MAX_VERTEX_BUFFER_SIZE
-            && canGlobalStoreVertexes(amount);
+            && canGlobalStoreVertices(amount);
 }
 
-bool GlBuffer::canStoreIndexes(size_t amount) const
+bool GlBuffer::canStoreIndices(size_t amount) const
 {
     return (m_indices.size() + amount) < MAX_INDEX_BUFFER_SIZE
-            && canGlobalStoreIndexes(amount);
+            && canGlobalStoreIndices(amount);
 }
 
 void GlBuffer::addVertex(float x, float y, float z)
 {
-    if (!canStoreVertexes(1)) {
+    if (!canStoreVertices(1)) {
         return;
     }
     m_vertices.emplace_back(x);
@@ -1177,7 +1177,7 @@ void GlBuffer::addVertex(float x, float y, float z)
 void GlBuffer::addVertexWithNormal(
         float vX, float vY, float vZ, float nX, float nY)
 {
-    if (!canStoreVertexesWithNormals(1)) {
+    if (!canStoreVerticesWithNormals(1)) {
         return;
     }
     m_vertices.emplace_back(vX);
@@ -1191,7 +1191,7 @@ void GlBuffer::addVertexWithNormal(
 
 void GlBuffer::addIndex(unsigned short index)
 {
-    if (!canStoreIndexes(1)) {
+    if (!canStoreIndices(1)) {
         return;
     }
     m_indices.emplace_back(index);
@@ -1199,10 +1199,10 @@ void GlBuffer::addIndex(unsigned short index)
     m_globalIndexBufferSize.fetch_add(1);
 }
 
-void GlBuffer::addTriangleIndexes(
+void GlBuffer::addTriangleIndices(
         unsigned short one, unsigned short two, unsigned short three)
 {
-    if (!canStoreIndexes(3)) {
+    if (!canStoreIndices(3)) {
         return;
     }
     m_indices.emplace_back(one);
@@ -1421,10 +1421,10 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
 
 void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
 {
-    if (!m_buffers.back()->canStoreVertexes(1)
-            || !m_buffers.back()->canStoreIndexes(1)) {
-        if (!GlBuffer::canGlobalStoreVertexes(1)
-                || !GlBuffer::canGlobalStoreIndexes(1)) {
+    if (!m_buffers.back()->canStoreVertices(1)
+            || !m_buffers.back()->canStoreIndices(1)) {
+        if (!GlBuffer::canGlobalStoreVertices(1)
+                || !GlBuffer::canGlobalStoreIndices(1)) {
             return;
         }
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
@@ -1489,10 +1489,10 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
         return;
     }
 
-    if (!m_buffers.back()->canStoreVertexesWithNormals(2 * numPoints)
-            || !m_buffers.back()->canStoreIndexes(6 * (numPoints - 1))) {
-        if (!GlBuffer::canGlobalStoreVertexesWithNormals(2 * numPoints)
-                || !GlBuffer::canGlobalStoreIndexes(6 * (numPoints - 1))) {
+    if (!m_buffers.back()->canStoreVerticesWithNormals(2 * numPoints)
+            || !m_buffers.back()->canStoreIndices(6 * (numPoints - 1))) {
+        if (!GlBuffer::canGlobalStoreVerticesWithNormals(2 * numPoints)
+                || !GlBuffer::canGlobalStoreIndices(6 * (numPoints - 1))) {
             return;
         }
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
@@ -1944,7 +1944,7 @@ void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
         GlBufferSharedPtr currBuffer)
 {
     // Add point coordinates as float.
-    // Add triangle indexes as unsigned short.
+    // Add triangle indices as unsigned short.
 
     float ptx =
             static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
@@ -1962,7 +1962,7 @@ void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
 
     m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
     if (m_e1 >= 0 && m_e2 >= 0) {
-        currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
+        currBuffer->addTriangleIndices(m_e1, m_e2, m_e3);
     }
     m_e1 = m_e2;
     m_e2 = m_e3;
@@ -1979,7 +1979,7 @@ void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
 
     m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
     if (m_e1 >= 0 && m_e2 >= 0) {
-        currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
+        currBuffer->addTriangleIndices(m_e1, m_e2, m_e3);
     }
     m_e1 = m_e2;
     m_e2 = m_e3;
@@ -1993,7 +1993,7 @@ void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
         GlBufferSharedPtr currBuffer)
 {
     // Add point coordinates as float.
-    // Add triangle indexes as unsigned short.
+    // Add triangle indices as unsigned short.
 
     Vector2 flippedExtrude = extrude * (lineTurnsLeft ? -1.0 : 1.0);
     float ptx =
@@ -2007,7 +2007,7 @@ void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
 
     m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
     if (m_e1 >= 0 && m_e2 >= 0) {
-        currBuffer->addTriangleIndexes(m_e1, m_e2, m_e3);
+        currBuffer->addTriangleIndices(m_e1, m_e2, m_e3);
     }
 
     if (lineTurnsLeft) {
@@ -2031,10 +2031,10 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
     PolygonTriangulator tr;
     tr.triangulate(polygon);
 
-    if (!m_buffers.back()->canStoreVertexes(tr.getNumVertices())
-            || !m_buffers.back()->canStoreIndexes(3 * tr.getNumTriangles())) {
-        if (!GlBuffer::canGlobalStoreVertexes(tr.getNumVertices())
-                || !GlBuffer::canGlobalStoreIndexes(3 * tr.getNumTriangles())) {
+    if (!m_buffers.back()->canStoreVertices(tr.getNumVertices())
+            || !m_buffers.back()->canStoreIndices(3 * tr.getNumTriangles())) {
+        if (!GlBuffer::canGlobalStoreVertices(tr.getNumVertices())
+                || !GlBuffer::canGlobalStoreIndices(3 * tr.getNumTriangles())) {
             return;
         }
         m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
@@ -2069,7 +2069,7 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
             int i0 = fit->vertex(0)->info().m_index;
             int i1 = fit->vertex(1)->info().m_index;
             int i2 = fit->vertex(2)->info().m_index;
-            currBuffer->addTriangleIndexes(i0, i1, i2);
+            currBuffer->addTriangleIndices(i0, i1, i2);
         }
     }
 }

@@ -222,18 +222,18 @@ public:
     void bind();
     bool bound() const;
 
-    bool canStoreVertexes(size_t amount) const;
-    bool canStoreVertexesWithNormals(size_t amount) const;
-    bool canStoreIndexes(size_t amount) const;
+    bool canStoreVertices(size_t amount) const;
+    bool canStoreVerticesWithNormals(size_t amount) const;
+    bool canStoreIndices(size_t amount) const;
 
-    static bool canGlobalStoreVertexes(size_t amount);
-    static bool canGlobalStoreVertexesWithNormals(size_t amount);
-    static bool canGlobalStoreIndexes(size_t amount);
+    static bool canGlobalStoreVertices(size_t amount);
+    static bool canGlobalStoreVerticesWithNormals(size_t amount);
+    static bool canGlobalStoreIndices(size_t amount);
 
     void addVertex(float x, float y, float z);
     void addVertexWithNormal(float vX, float vY, float vZ, float nX, float nY);
     void addIndex(unsigned short index);
-    void addTriangleIndexes(
+    void addTriangleIndices(
             unsigned short one, unsigned short two, unsigned short three);
 
     size_t getVertexBufferSize() const;

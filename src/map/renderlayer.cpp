@@ -257,8 +257,8 @@ void FeatureRenderLayer::fillRenderBuffers()
         }
 
         int numPoints = 4;
-        if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
-                || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
+        if (!GlBuffer::canGlobalStoreVerticesWithNormals(4 * numPoints)
+                || !GlBuffer::canGlobalStoreIndices(6 * numPoints)) {
             cout << "can not store, m_renderZoom " << ((int) m_renderZoom)
                  << "\n";
             cout << "GlBuffer::getGlobalVertexBufferSize() "
