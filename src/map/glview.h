@@ -252,7 +252,7 @@ protected:
 
     std::vector<GLfloat> m_vertices;
     std::vector<GLushort> m_indices;
-    GLuint m_glHardBuffers[2];
+    GLuint m_glHardBufferIds[2];
 
     static std::atomic_int_fast32_t m_globalVertexBufferSize;
     static std::atomic_int_fast32_t m_globalIndexBufferSize;

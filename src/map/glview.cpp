@@ -1034,7 +1034,7 @@ GlBuffer::GlBuffer()
         : m_bound(false)
         , m_finalVertexBufferSize(0)
         , m_finalIndexBufferSize(0)
-        , m_glHardBuffers{GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN}
+        , m_glHardBufferIds{GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN}
 {
     m_vertices.reserve(MAX_VERTEX_BUFFER_SIZE);
     m_indices.reserve(MAX_INDEX_BUFFER_SIZE);
@@ -1051,7 +1051,7 @@ GlBuffer::~GlBuffer()
     m_globalIndexBufferSize.fetch_sub(getIndexBufferSize());
 
     if (m_bound) {
-        glDeleteBuffers(2, m_glHardBuffers);
+        glDeleteBuffers(2, m_glHardBufferIds);
         m_globalHardBuffersCount.fetch_sub(2);
     }
 }
@@ -1068,14 +1068,14 @@ GlBuffer& GlBuffer::operator=(GlBuffer&& other)
     m_bound = other.m_bound;
     m_finalVertexBufferSize = other.m_finalVertexBufferSize;
     m_finalIndexBufferSize = other.m_finalIndexBufferSize;
-    m_glHardBuffers[0] = other.m_glHardBuffers[0];
-    m_glHardBuffers[1] = other.m_glHardBuffers[1];
+    m_glHardBufferIds[0] = other.m_glHardBufferIds[0];
+    m_glHardBufferIds[1] = other.m_glHardBufferIds[1];
 
     other.m_bound = false;
     other.m_finalVertexBufferSize = 0;
     other.m_finalIndexBufferSize = 0;
-    other.m_glHardBuffers[0] = GL_BUFFER_UNKNOWN;
-    other.m_glHardBuffers[1] = GL_BUFFER_UNKNOWN;
+    other.m_glHardBufferIds[0] = GL_BUFFER_UNKNOWN;
+    other.m_glHardBufferIds[1] = GL_BUFFER_UNKNOWN;
 
     m_vertices.clear();
     m_vertices.shrink_to_fit();
@@ -1098,17 +1098,17 @@ void GlBuffer::bind()
         return;
 
     m_globalHardBuffersCount.fetch_add(2);
-    ngsCheckGLEerror(glGenBuffers(2, m_glHardBuffers));
+    ngsCheckGLEerror(glGenBuffers(2, m_glHardBufferIds));
 
     m_finalVertexBufferSize = m_vertices.size();
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_glHardBuffers[0]));
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_glHardBufferIds[0]));
     ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER,
             sizeof(GLfloat) * m_finalVertexBufferSize, m_vertices.data(),
             GL_STATIC_DRAW));
     m_vertices.clear();
 
     m_finalIndexBufferSize = m_indices.size();
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glHardBuffers[1]));
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glHardBufferIds[1]));
     ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
             sizeof(GLushort) * m_finalIndexBufferSize, m_indices.data(),
             GL_STATIC_DRAW));
@@ -1244,9 +1244,9 @@ GLuint GlBuffer::getBuffer(ngsShaderType type) const
 {
     switch (type) {
         case SH_VERTEX:
-            return m_glHardBuffers[0];
+            return m_glHardBufferIds[0];
         case SH_FRAGMENT:
-            return m_glHardBuffers[1];
+            return m_glHardBufferIds[1];
     }
     return GL_BUFFER_UNKNOWN;
 }
