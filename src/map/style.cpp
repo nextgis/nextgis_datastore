@@ -33,7 +33,9 @@ using namespace ngs;
 //------------------------------------------------------------------------------
 
 Style::Style()
-        : m_program(new GlProgram())
+        : m_vertexShaderSourcePtr(nullptr)
+        , m_fragmentShaderSourcePtr(nullptr)
+        , m_program(new GlProgram())
         , m_load(false)
         , m_mPositionId(-1)
         , m_msMatrixId(-1)
@@ -44,6 +46,17 @@ Style::Style()
 
 Style::~Style()
 {
+}
+
+const GLchar* Style::getShaderSource(enum ngsShaderType type)
+{
+    switch (type) {
+        case SH_VERTEX:
+            return m_vertexShaderSourcePtr;
+        case SH_FRAGMENT:
+            return m_fragmentShaderSourcePtr;
+    }
+    return nullptr;
 }
 
 void Style::setColor(const ngsRGBA& color)
@@ -111,9 +124,9 @@ void Style::draw(const GlBuffer& buffer) const
         return;
 
     ngsCheckGLEerror(
-            glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(SH_VERTEX)));
+            glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(BF_VERTICES)));
     ngsCheckGLEerror(glBindBuffer(
-            GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(SH_FRAGMENT)));
+            GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(BF_INDICES)));
 }
 
 //------------------------------------------------------------------------------
@@ -125,21 +138,12 @@ SimplePointStyle::SimplePointStyle()
         , m_vRadiusId(-1)
         , m_radius(6)
 {
+    m_vertexShaderSourcePtr =  m_pointVertexShaderSourcePtr;
+    m_fragmentShaderSourcePtr = m_pointFragmentShaderSourcePtr;
 }
 
 SimplePointStyle::~SimplePointStyle()
 {
-}
-
-const GLchar* SimplePointStyle::getShaderSource(enum ngsShaderType type)
-{
-    switch (type) {
-        case SH_VERTEX:
-            return m_vertexShaderSourcePtr;
-        case SH_FRAGMENT:
-            return m_fragmentShaderSourcePtr;
-    }
-    return nullptr;
 }
 
 float SimplePointStyle::getRadius() const
@@ -186,21 +190,12 @@ SimpleLineStyle::SimpleLineStyle()
         , m_vLineWidthId(-1)
         , m_lineWidth(1)
 {
+    m_vertexShaderSourcePtr = m_lineVertexShaderSourcePtr;
+    m_fragmentShaderSourcePtr = m_lineFragmentShaderSourcePtr;
 }
 
 SimpleLineStyle::~SimpleLineStyle()
 {
-}
-
-const GLchar* SimpleLineStyle::getShaderSource(enum ngsShaderType type)
-{
-    switch (type) {
-        case SH_VERTEX:
-            return m_vertexShaderSourcePtr;
-        case SH_FRAGMENT:
-            return m_fragmentShaderSourcePtr;
-    }
-    return nullptr;
 }
 
 float SimpleLineStyle::getLineWidth() const
@@ -253,21 +248,12 @@ void SimpleLineStyle::draw(const GlBuffer& buffer) const
 SimpleFillStyle::SimpleFillStyle()
         : Style()
 {
+    m_vertexShaderSourcePtr = m_fillVertexShaderSourcePtr;
+    m_fragmentShaderSourcePtr = m_fillFragmentShaderSourcePtr;
 }
 
 SimpleFillStyle::~SimpleFillStyle()
 {
-}
-
-const GLchar* SimpleFillStyle::getShaderSource(enum ngsShaderType type)
-{
-    switch (type) {
-        case SH_VERTEX:
-            return m_vertexShaderSourcePtr;
-        case SH_FRAGMENT:
-            return m_fragmentShaderSourcePtr;
-    }
-    return nullptr;
 }
 
 void SimpleFillStyle::draw(const GlBuffer& buffer) const

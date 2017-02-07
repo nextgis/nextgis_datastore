@@ -1101,14 +1101,15 @@ void GlBuffer::bind()
     ngsCheckGLEerror(glGenBuffers(2, m_glHardBufferIds));
 
     m_finalVertexBufferSize = m_vertices.size();
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, m_glHardBufferIds[0]));
+    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, getBuffer(BF_VERTICES)));
     ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER,
             sizeof(GLfloat) * m_finalVertexBufferSize, m_vertices.data(),
             GL_STATIC_DRAW));
     m_vertices.clear();
 
     m_finalIndexBufferSize = m_indices.size();
-    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glHardBufferIds[1]));
+    ngsCheckGLEerror(
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBuffer(BF_INDICES)));
     ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
             sizeof(GLushort) * m_finalIndexBufferSize, m_indices.data(),
             GL_STATIC_DRAW));
@@ -1240,12 +1241,12 @@ std::int_fast32_t GlBuffer::getGlobalHardBuffersCount()
     return m_globalHardBuffersCount.load();
 }
 
-GLuint GlBuffer::getBuffer(ngsShaderType type) const
+GLuint GlBuffer::getBuffer(ngsBufferType type) const
 {
     switch (type) {
-        case SH_VERTEX:
+        case BF_VERTICES:
             return m_glHardBufferIds[0];
-        case SH_FRAGMENT:
+        case BF_INDICES:
             return m_glHardBufferIds[1];
     }
     return GL_BUFFER_UNKNOWN;

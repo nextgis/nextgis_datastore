@@ -39,9 +39,12 @@ public:
     virtual void draw(const GlBuffer& buffer) const;
 
 protected:
-    virtual const GLchar* getShaderSource(enum ngsShaderType type) = 0;
+    virtual const GLchar* getShaderSource(enum ngsShaderType type);
 
 protected:
+    const GLchar* m_vertexShaderSourcePtr;
+    const GLchar* m_fragmentShaderSourcePtr;
+
     GlProgramUPtr m_program;
     bool m_load;
 
@@ -71,11 +74,10 @@ public:
 
     // Style interface
 protected:
-    virtual const GLchar* getShaderSource(enum ngsShaderType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
-    const GLchar* const m_vertexShaderSourcePtr = R"(
+    const GLchar* const m_pointVertexShaderSourcePtr = R"(
         attribute vec3 a_mPosition;
 
         uniform mat4 u_msMatrix;
@@ -93,7 +95,7 @@ protected:
     // http://stackoverflow.com/a/10506172/2901140
     // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
     // http://stackoverflow.com/q/18659332/2901140
-    const GLchar* const m_fragmentShaderSourcePtr = R"(
+    const GLchar* const m_pointFragmentShaderSourcePtr = R"(
         precision mediump float;
 
         uniform vec4 u_Color;
@@ -130,11 +132,10 @@ public:
 
     // Style interface
 protected:
-    virtual const GLchar* getShaderSource(enum ngsShaderType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
-    const GLchar* const m_vertexShaderSourcePtr = R"(
+    const GLchar* const m_lineVertexShaderSourcePtr = R"(
         attribute vec3 a_mPosition;
         attribute vec2 a_Normal;
 
@@ -151,7 +152,7 @@ protected:
         }
     )";
 
-    const GLchar* const m_fragmentShaderSourcePtr = R"(
+    const GLchar* const m_lineFragmentShaderSourcePtr = R"(
         precision mediump float;
 
         uniform vec4 u_Color;
@@ -176,11 +177,10 @@ public:
 
     // Style interface
 protected:
-    virtual const GLchar* getShaderSource(enum ngsShaderType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
-    const GLchar* const m_vertexShaderSourcePtr = R"(
+    const GLchar* const m_fillVertexShaderSourcePtr = R"(
         attribute vec3 a_mPosition;
 
         uniform mat4 u_msMatrix;
@@ -191,7 +191,7 @@ protected:
         }
     )";
 
-    const GLchar* const m_fragmentShaderSourcePtr = R"(
+    const GLchar* const m_fillFragmentShaderSourcePtr = R"(
         precision mediump float;
 
         uniform vec4 u_Color;

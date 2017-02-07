@@ -191,6 +191,11 @@ enum ngsShaderType {
     SH_FRAGMENT
 };
 
+enum ngsBufferType {
+    BF_VERTICES = 0,
+    BF_INDICES
+};
+
 enum class LineCapType : uint8_t {
     Butt,
     Square,
@@ -243,7 +248,7 @@ public:
     static std::int_fast32_t getGlobalIndexBufferSize();
     static std::int_fast32_t getGlobalHardBuffersCount();
 
-    GLuint getBuffer(enum ngsShaderType type) const;
+    GLuint getBuffer(enum ngsBufferType type) const;
 
 protected:
     bool m_bound;
@@ -259,9 +264,9 @@ protected:
     static std::atomic_int_fast32_t m_globalHardBuffersCount;
 };
 
-// http://stackoverflow.com/a/13196986
 using GlBufferSharedPtr = std::shared_ptr<GlBuffer>;
 
+// http://stackoverflow.com/a/13196986
 template <typename... Args>
 GlBufferSharedPtr makeSharedGlBuffer(Args&&... args)
 {
