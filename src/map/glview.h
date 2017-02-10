@@ -2,9 +2,9 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
- * Author: NikitaFeodonit, nfeodonit@yandex.com
+*  Author: NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
-*  Copyright (C) 2016 NextGIS, <info@nextgis.com>
+*  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -24,14 +24,6 @@
 
 #include "api_priv.h"
 #include "vector.h"
-
-// CGAL
-#include <CGAL/Constrained_Delaunay_triangulation_2.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Point_2.h>
-#include <CGAL/Polygon_2.h>
-#include <CGAL/Triangulation_face_base_with_info_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 
 // stl
 #include <atomic>
@@ -73,6 +65,10 @@
 #define ngsCheckGLEerror(cmd) (cmd)
 #define ngsCheckEGLEerror(cmd) (cmd)
 #endif
+
+#define GL_BUFFERS_COUNT 3
+#define VERTEX_SIZE 3
+#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
 
 #ifdef OFFSCREEN_GL // need for headless desktop drawing (i.e. some preview gerneartion)
 #include "EGL/egl.h"
@@ -193,7 +189,8 @@ enum ngsShaderType {
 
 enum ngsBufferType {
     BF_VERTICES = 0,
-    BF_INDICES
+    BF_INDICES,
+    BF_BORDER_INDICES
 };
 
 enum class LineCapType : uint8_t {
@@ -227,40 +224,51 @@ public:
     void bind();
     bool bound() const;
 
-    bool canStoreVertices(size_t amount) const;
-    bool canStoreVerticesWithNormals(size_t amount) const;
-    bool canStoreIndices(size_t amount) const;
+    static bool canGlobalStoreVertices(size_t amount, bool withNormals = false);
+    static bool canGlobalStoreIndices(
+            size_t amount, enum ngsBufferType indexType = BF_INDICES);
 
-    static bool canGlobalStoreVertices(size_t amount);
-    static bool canGlobalStoreVerticesWithNormals(size_t amount);
-    static bool canGlobalStoreIndices(size_t amount);
+    bool canStoreVertices(size_t amount, bool withNormals = false) const;
+    bool canStoreIndices(
+            size_t amount, enum ngsBufferType indexType = BF_INDICES) const;
 
-    void addVertex(float x, float y, float z);
-    void addVertexWithNormal(float vX, float vY, float vZ, float nX, float nY);
-    void addIndex(unsigned short index);
-    void addTriangleIndices(
-            unsigned short one, unsigned short two, unsigned short three);
+    void addVertex(float x,
+            float y,
+            float z,
+            bool withNormals = false,
+            float nX = 0,
+            float nY = 0);
+    void addIndex(
+            unsigned short index, enum ngsBufferType indexType = BF_INDICES);
+    void addTriangleIndices(unsigned short one,
+            unsigned short two,
+            unsigned short three,
+            enum ngsBufferType indexType = BF_INDICES);
 
     size_t getVertexBufferSize() const;
-    size_t getIndexBufferSize() const;
+    size_t getIndexBufferSize(enum ngsBufferType indexType = BF_INDICES) const;
 
     static std::int_fast32_t getGlobalVertexBufferSize();
-    static std::int_fast32_t getGlobalIndexBufferSize();
+    static std::int_fast32_t getGlobalIndexBufferSize(
+            enum ngsBufferType indexType = BF_INDICES);
     static std::int_fast32_t getGlobalHardBuffersCount();
 
-    GLuint getBuffer(enum ngsBufferType type) const;
+    GLuint getGlHardBufferId(enum ngsBufferType type) const;
 
 protected:
     bool m_bound;
     size_t m_finalVertexBufferSize;
     size_t m_finalIndexBufferSize;
+    size_t m_finalBorderIndexBufferSize;
 
     std::vector<GLfloat> m_vertices;
     std::vector<GLushort> m_indices;
-    GLuint m_glHardBufferIds[2];
+    std::vector<GLushort> m_borderIndices;
+    GLuint m_glHardBufferIds[GL_BUFFERS_COUNT];
 
     static std::atomic_int_fast32_t m_globalVertexBufferSize;
     static std::atomic_int_fast32_t m_globalIndexBufferSize;
+    static std::atomic_int_fast32_t m_globalBorderIndexBufferSize;
     static std::atomic_int_fast32_t m_globalHardBuffersCount;
 };
 
@@ -314,6 +322,7 @@ protected:
     void fillPoint(const OGRPoint* point, float level);
     void fillLineString(const OGRLineString* line, float level);
     void fillPolygon(const OGRPolygon* polygon, float level);
+    void fillBorderedPolygon(const OGRPolygon* polygon, float level);
 
     void addCurrentLineVertex(const Vector2& currPt,
             float level,
@@ -397,91 +406,6 @@ protected:
     bool m_extensionLoad, m_pBkChanged;
 };
 
-}
+}  // namespace ngs
 
-// Based on the
-// http://doc.cgal.org/latest/Triangulation_2/index.html#title29
-// "8.4 Example: Triangulating a Polygonal Domain".
-// The following code inserts nested polygons into
-// a constrained Delaunay triangulation and counts the number of facets
-// that are inside the domain delimited by these polygons.
-// Note that the following code does not work
-// if the boundaries of the polygons intersect.
-class PolygonTriangulator
-{
-protected:
-    struct VertexInfo2
-    {
-        VertexInfo2()
-                : m_index(-1)
-        {
-        }
-
-        bool in_domain()
-        {
-            return m_index != -1;
-        }
-
-        int m_index;
-    };
-
-    struct FaceInfo2
-    {
-        FaceInfo2()
-                : m_nestingLevel(-1)
-        {
-        }
-
-        bool in_domain()
-        {
-            return m_nestingLevel % 2 == 1;
-        }
-
-        int m_nestingLevel;
-    };
-
-    typedef CGAL::Exact_predicates_inexact_constructions_kernel Kern;
-    typedef CGAL::Triangulation_vertex_base_with_info_2<VertexInfo2, Kern> Vbi;
-    typedef CGAL::Triangulation_vertex_base_2<Kern, Vbi> Vb;
-    typedef CGAL::Triangulation_face_base_with_info_2<FaceInfo2, Kern> Fbi;
-    typedef CGAL::Constrained_triangulation_face_base_2<Kern, Fbi> Fb;
-    typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
-    typedef CGAL::Exact_predicates_tag Itag;
-    typedef CGAL::Polygon_2<Kern> Polygon_2;
-
-public:
-    typedef CGAL::Constrained_Delaunay_triangulation_2<Kern, TDS, Itag> CDT;
-
-public:
-    explicit PolygonTriangulator();
-    virtual ~PolygonTriangulator();
-
-    void triangulate(const OGRPolygon* polygon);
-
-    CDT& getCdt()
-    {
-        return m_cdt;
-    }
-    size_t getNumTriangles()
-    {
-        return m_numTriangles;
-    }
-    size_t getNumVertices()
-    {
-        return m_numVertices;
-    }
-
-protected:
-    void markDomains(CDT& ct,
-            CDT::Face_handle start,
-            int index,
-            std::list<CDT::Edge>& border);
-    void markDomains(CDT& cdt);
-
-protected:
-    CDT m_cdt;  // TODO: place in heap memory
-    size_t m_numTriangles;
-    size_t m_numVertices;
-};
-
-#endif // NGSGLVIEW_H
+#endif  // NGSGLVIEW_H

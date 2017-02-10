@@ -2,9 +2,9 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
- * Author: NikitaFeodonit, nfeodonit@yandex.com
+*  Author: NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
-*  Copyright (C) 2016 NextGIS, <info@nextgis.com>
+*  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -18,10 +18,12 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
+#include <algorithm>
 #include "cpl_error.h"
 #include "cpl_string.h"
 #include "glview.h"
 #include <iostream>
+#include "map/glfillers.h"
 #include "style.h"
 #include "util/constants.h"
 
@@ -54,9 +56,6 @@
 #define MAX_INDEX_BUFFER_SIZE 16383
 #define MAX_GLOBAL_VERTEX_BUFFER_SIZE 327180000
 #define MAX_GLOBAL_INDEX_BUFFER_SIZE 327180000
-
-#define VERTEX_SIZE 3
-#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
 
 using namespace ngs;
 
@@ -1028,16 +1027,21 @@ std::atomic_int_fast32_t GlBuffer::m_globalVertexBufferSize;
 // static
 std::atomic_int_fast32_t GlBuffer::m_globalIndexBufferSize;
 // static
+std::atomic_int_fast32_t GlBuffer::m_globalBorderIndexBufferSize;
+// static
 std::atomic_int_fast32_t GlBuffer::m_globalHardBuffersCount;
 
 GlBuffer::GlBuffer()
         : m_bound(false)
         , m_finalVertexBufferSize(0)
         , m_finalIndexBufferSize(0)
-        , m_glHardBufferIds{GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN}
+        , m_finalBorderIndexBufferSize(0)
+        , m_glHardBufferIds{
+                  GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN}
 {
     m_vertices.reserve(MAX_VERTEX_BUFFER_SIZE);
     m_indices.reserve(MAX_INDEX_BUFFER_SIZE);
+    m_borderIndices.reserve(MAX_INDEX_BUFFER_SIZE);
 }
 
 GlBuffer::GlBuffer(GlBuffer&& other)
@@ -1049,10 +1053,12 @@ GlBuffer::~GlBuffer()
 {
     m_globalVertexBufferSize.fetch_sub(getVertexBufferSize());
     m_globalIndexBufferSize.fetch_sub(getIndexBufferSize());
+    m_globalBorderIndexBufferSize.fetch_sub(
+            getIndexBufferSize(BF_BORDER_INDICES));
 
     if (m_bound) {
-        glDeleteBuffers(2, m_glHardBufferIds);
-        m_globalHardBuffersCount.fetch_sub(2);
+        glDeleteBuffers(GL_BUFFERS_COUNT, m_glHardBufferIds);
+        m_globalHardBuffersCount.fetch_sub(GL_BUFFERS_COUNT);
     }
 }
 
@@ -1064,18 +1070,24 @@ GlBuffer& GlBuffer::operator=(GlBuffer&& other)
 
     m_globalVertexBufferSize.fetch_add(other.getVertexBufferSize());
     m_globalIndexBufferSize.fetch_add(other.getIndexBufferSize());
+    m_globalBorderIndexBufferSize.fetch_add(
+            other.getIndexBufferSize(BF_BORDER_INDICES));
 
     m_bound = other.m_bound;
     m_finalVertexBufferSize = other.m_finalVertexBufferSize;
     m_finalIndexBufferSize = other.m_finalIndexBufferSize;
+    m_finalBorderIndexBufferSize = other.m_finalBorderIndexBufferSize;
     m_glHardBufferIds[0] = other.m_glHardBufferIds[0];
     m_glHardBufferIds[1] = other.m_glHardBufferIds[1];
+    m_glHardBufferIds[2] = other.m_glHardBufferIds[2];
 
     other.m_bound = false;
     other.m_finalVertexBufferSize = 0;
     other.m_finalIndexBufferSize = 0;
+    other.m_finalBorderIndexBufferSize = 0;
     other.m_glHardBufferIds[0] = GL_BUFFER_UNKNOWN;
     other.m_glHardBufferIds[1] = GL_BUFFER_UNKNOWN;
+    other.m_glHardBufferIds[2] = GL_BUFFER_UNKNOWN;
 
     m_vertices.clear();
     m_vertices.shrink_to_fit();
@@ -1089,6 +1101,12 @@ GlBuffer& GlBuffer::operator=(GlBuffer&& other)
     other.m_indices.clear();
     other.m_indices.shrink_to_fit();
 
+    m_borderIndices.clear();
+    m_borderIndices.shrink_to_fit();
+    m_borderIndices = other.m_borderIndices;
+    other.m_borderIndices.clear();
+    other.m_borderIndices.shrink_to_fit();
+
     return *this;
 }
 
@@ -1097,23 +1115,34 @@ void GlBuffer::bind()
     if (m_bound || m_vertices.empty() || m_indices.empty())
         return;
 
-    m_globalHardBuffersCount.fetch_add(2);
-    ngsCheckGLEerror(glGenBuffers(2, m_glHardBufferIds));
+    m_globalHardBuffersCount.fetch_add(GL_BUFFERS_COUNT);
+    ngsCheckGLEerror(glGenBuffers(GL_BUFFERS_COUNT, m_glHardBufferIds));
 
     m_finalVertexBufferSize = m_vertices.size();
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, getBuffer(BF_VERTICES)));
+    ngsCheckGLEerror(
+            glBindBuffer(GL_ARRAY_BUFFER, getGlHardBufferId(BF_VERTICES)));
     ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER,
             sizeof(GLfloat) * m_finalVertexBufferSize, m_vertices.data(),
             GL_STATIC_DRAW));
     m_vertices.clear();
 
     m_finalIndexBufferSize = m_indices.size();
-    ngsCheckGLEerror(
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBuffer(BF_INDICES)));
+    ngsCheckGLEerror(glBindBuffer(
+            GL_ELEMENT_ARRAY_BUFFER, getGlHardBufferId(BF_INDICES)));
     ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
             sizeof(GLushort) * m_finalIndexBufferSize, m_indices.data(),
             GL_STATIC_DRAW));
     m_indices.clear();
+
+    if (!m_borderIndices.empty()) {
+        m_finalBorderIndexBufferSize = m_borderIndices.size();
+        ngsCheckGLEerror(glBindBuffer(
+                GL_ELEMENT_ARRAY_BUFFER, getGlHardBufferId(BF_BORDER_INDICES)));
+        ngsCheckGLEerror(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                sizeof(GLushort) * m_finalBorderIndexBufferSize,
+                m_borderIndices.data(), GL_STATIC_DRAW));
+        m_borderIndices.clear();
+    }
 
     m_bound = true;
 }
@@ -1124,93 +1153,135 @@ bool GlBuffer::bound() const
 }
 
 // static
-bool GlBuffer::canGlobalStoreVertices(size_t amount)
+bool GlBuffer::canGlobalStoreVertices(size_t amount, bool withNormals)
 {
-    return (m_globalVertexBufferSize.load() + amount * VERTEX_SIZE)
+    return (m_globalVertexBufferSize.load()
+                   + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE
+                                           : VERTEX_SIZE))
             < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
 }
 
 // static
-bool GlBuffer::canGlobalStoreVerticesWithNormals(size_t amount)
+bool GlBuffer::canGlobalStoreIndices(
+        size_t amount, enum ngsBufferType indexType)
 {
-    return (m_globalVertexBufferSize.load() + amount * VERTEX_WITH_NORMAL_SIZE)
-            < MAX_GLOBAL_VERTEX_BUFFER_SIZE;
+    int_fast32_t size;
+    switch (indexType) {
+        case BF_INDICES:
+            size = m_globalIndexBufferSize.load();
+            break;
+        case BF_BORDER_INDICES:
+            size = m_globalBorderIndexBufferSize.load();
+            break;
+        default:
+            return false;
+    }
+
+    return (size + amount) < MAX_GLOBAL_INDEX_BUFFER_SIZE;
 }
 
-// static
-bool GlBuffer::canGlobalStoreIndices(size_t amount)
+bool GlBuffer::canStoreVertices(size_t amount, bool withNormals) const
 {
-    return (m_globalIndexBufferSize.load() + amount)
-            < MAX_GLOBAL_INDEX_BUFFER_SIZE;
+    return ((m_vertices.size()
+                    + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE
+                                            : VERTEX_SIZE))
+                   < MAX_VERTEX_BUFFER_SIZE)
+            && canGlobalStoreVertices(amount, withNormals);
 }
 
-bool GlBuffer::canStoreVertices(size_t amount) const
+bool GlBuffer::canStoreIndices(
+        size_t amount, enum ngsBufferType indexType) const
 {
-    return (m_vertices.size() + amount * VERTEX_SIZE) < MAX_VERTEX_BUFFER_SIZE
-            && canGlobalStoreVertices(amount);
-}
+    int_fast32_t size;
+    switch (indexType) {
+        case BF_INDICES:
+            size = m_indices.size();
+            break;
+        case BF_BORDER_INDICES:
+            size = m_borderIndices.size();
+            break;
+        default:
+            return false;
+    }
 
-bool GlBuffer::canStoreVerticesWithNormals(size_t amount) const
-{
-    return (m_vertices.size() + amount * VERTEX_WITH_NORMAL_SIZE)
-            < MAX_VERTEX_BUFFER_SIZE
-            && canGlobalStoreVertices(amount);
-}
-
-bool GlBuffer::canStoreIndices(size_t amount) const
-{
-    return (m_indices.size() + amount) < MAX_INDEX_BUFFER_SIZE
+    return ((size + amount) < MAX_INDEX_BUFFER_SIZE)
             && canGlobalStoreIndices(amount);
 }
 
-void GlBuffer::addVertex(float x, float y, float z)
+void GlBuffer::addVertex(
+        float x, float y, float z, bool withNormals, float nX, float nY)
 {
-    if (!canStoreVertices(1)) {
+    if (!canStoreVertices(1, withNormals)) {
         return;
     }
     m_vertices.emplace_back(x);
     m_vertices.emplace_back(y);
     m_vertices.emplace_back(z);
 
-    m_globalVertexBufferSize.fetch_add(VERTEX_SIZE);
+    if (withNormals) {
+        m_vertices.emplace_back(nX);
+        m_vertices.emplace_back(nY);
+    }
+
+    m_globalVertexBufferSize.fetch_add(
+            withNormals ? VERTEX_WITH_NORMAL_SIZE : VERTEX_SIZE);
 }
 
-void GlBuffer::addVertexWithNormal(
-        float vX, float vY, float vZ, float nX, float nY)
+void GlBuffer::addIndex(unsigned short index, enum ngsBufferType indexType)
 {
-    if (!canStoreVerticesWithNormals(1)) {
+    if (!canStoreIndices(1, indexType)) {
         return;
     }
-    m_vertices.emplace_back(vX);
-    m_vertices.emplace_back(vY);
-    m_vertices.emplace_back(vZ);
-    m_vertices.emplace_back(nX);
-    m_vertices.emplace_back(nY);
 
-    m_globalVertexBufferSize.fetch_add(VERTEX_WITH_NORMAL_SIZE);
+    std::vector<GLushort>* pBuffer;
+    std::atomic_int_fast32_t* pSize;
+
+    switch (indexType) {
+        case BF_INDICES:
+            pBuffer = &m_indices;
+            pSize = &m_globalIndexBufferSize;
+            return;
+        case BF_BORDER_INDICES:
+            pBuffer = &m_borderIndices;
+            pSize = &m_globalBorderIndexBufferSize;
+            return;
+        default:
+            return;
+    }
+
+    pBuffer->emplace_back(index);
+    pSize->fetch_add(1);
 }
 
-void GlBuffer::addIndex(unsigned short index)
+void GlBuffer::addTriangleIndices(unsigned short one,
+        unsigned short two,
+        unsigned short three,
+        enum ngsBufferType indexType)
 {
-    if (!canStoreIndices(1)) {
+    if (!canStoreIndices(3, indexType)) {
         return;
     }
-    m_indices.emplace_back(index);
 
-    m_globalIndexBufferSize.fetch_add(1);
-}
+    std::vector<GLushort>* pBuffer;
+    std::atomic_int_fast32_t* pSize;
 
-void GlBuffer::addTriangleIndices(
-        unsigned short one, unsigned short two, unsigned short three)
-{
-    if (!canStoreIndices(3)) {
-        return;
+    switch (indexType) {
+        case BF_INDICES:
+            pBuffer = &m_indices;
+            pSize = &m_globalIndexBufferSize;
+            break;
+        case BF_BORDER_INDICES:
+            pBuffer = &m_borderIndices;
+            pSize = &m_globalBorderIndexBufferSize;
+            break;
+        default:
+            return;
     }
-    m_indices.emplace_back(one);
-    m_indices.emplace_back(two);
-    m_indices.emplace_back(three);
 
-    m_globalIndexBufferSize.fetch_add(3);
+    pBuffer->emplace_back(one);
+    pBuffer->emplace_back(two);
+    pBuffer->emplace_back(three);
+    pSize->fetch_add(3);
 }
 
 size_t GlBuffer::getVertexBufferSize() const
@@ -1218,9 +1289,17 @@ size_t GlBuffer::getVertexBufferSize() const
     return m_bound ? m_finalVertexBufferSize : m_vertices.size();
 }
 
-size_t GlBuffer::getIndexBufferSize() const
+size_t GlBuffer::getIndexBufferSize(enum ngsBufferType indexType) const
 {
-    return m_bound ? m_finalIndexBufferSize : m_indices.size();
+    switch (indexType) {
+        case BF_INDICES:
+            return m_bound ? m_finalIndexBufferSize : m_indices.size();
+        case BF_BORDER_INDICES:
+            return m_bound ? m_finalBorderIndexBufferSize
+                           : m_borderIndices.size();
+        default:
+            return 0;
+    }
 }
 
 //static
@@ -1230,9 +1309,17 @@ std::int_fast32_t GlBuffer::getGlobalVertexBufferSize()
 }
 
 //static
-std::int_fast32_t GlBuffer::getGlobalIndexBufferSize()
+std::int_fast32_t GlBuffer::getGlobalIndexBufferSize(
+        enum ngsBufferType indexType)
 {
-    return m_globalIndexBufferSize.load();
+    switch (indexType) {
+        case BF_INDICES:
+            return m_globalIndexBufferSize.load();
+        case BF_BORDER_INDICES:
+            return m_globalBorderIndexBufferSize.load();
+        default:
+            return 0;
+    }
 }
 
 //static
@@ -1241,13 +1328,15 @@ std::int_fast32_t GlBuffer::getGlobalHardBuffersCount()
     return m_globalHardBuffersCount.load();
 }
 
-GLuint GlBuffer::getBuffer(ngsBufferType type) const
+GLuint GlBuffer::getGlHardBufferId(ngsBufferType type) const
 {
     switch (type) {
         case BF_VERTICES:
             return m_glHardBufferIds[0];
         case BF_INDICES:
             return m_glHardBufferIds[1];
+        case BF_BORDER_INDICES:
+            return m_glHardBufferIds[2];
     }
     return GL_BUFFER_UNKNOWN;
 }
@@ -1367,7 +1456,8 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
         } break;
         case wkbPolygon: {
             const OGRPolygon* polygon = static_cast<const OGRPolygon*>(geom);
-            fillPolygon(polygon, level);
+//            fillPolygon(polygon, level);
+            fillBorderedPolygon(polygon, level);
         } break;
         case wkbMultiPoint: {
             const OGRMultiPoint* mpt = static_cast<const OGRMultiPoint*>(geom);
@@ -1392,7 +1482,8 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
             for (int i = 0; i < mplg->getNumGeometries(); ++i) {
                 const OGRPolygon* polygon =
                         static_cast<const OGRPolygon*>(mplg->getGeometryRef(i));
-                fillPolygon(polygon, level);
+//                fillPolygon(polygon, level);
+                fillBorderedPolygon(polygon, level);
             }
         } break;
         case wkbGeometryCollection: {
@@ -1441,43 +1532,8 @@ void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
     currBuffer->addIndex(startIndex);
 }
 
-/*
- * Sharp corners cause dashed lines to tilt because the distance along the line
- * is the same at both the inner and outer corners. To improve the appearance of
- * dashed lines we add extra points near sharp corners so that a smaller part
- * of the line is tilted.
- *
- * COS_HALF_SHARP_CORNER controls how sharp a corner has to be for us to add an
- * extra vertex. The default is 75 degrees.
- *
- * The newly created vertices are placed SHARP_CORNER_OFFSET pixels
- * from the corner.
- */  // TODO:
-//const float COS_HALF_SHARP_CORNER = std::cos(75.0 / 2.0 * (M_PI / 180.0));
-//const float SHARP_CORNER_OFFSET = 15.0f;
-
-/*
- * The maximum extent of a feature that can be safely stored in the buffer.
- * In practice, all features are converted to this extent before being added.
- *
- * Positions are stored as signed 16bit integers.
- * One bit is lost
- * for signedness to support features extending past the left edge of the tile.
- * One bit is lost
- * because the line vertex buffer packs 1 bit of other data into the int.
- * One bit is lost
- * to support features extending past the extent on the right edge of the tile.
- * This leaves us with 2^13 = 8192
- */
-//constexpr int32_t EXTENT = 8192; // TODO:
-
-//constexpr float tileSize = 512; // TODO:
-
 void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
 {
-    // Based on the maxbox's LineBucket::addGeometry() from
-    // https://github.com/mapbox/mapbox-gl-native
-
     int numPoints = line->getNumPoints();
     if (numPoints < 2)
         return;
@@ -1490,9 +1546,9 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
         return;
     }
 
-    if (!m_buffers.back()->canStoreVerticesWithNormals(2 * numPoints)
+    if (!m_buffers.back()->canStoreVertices(2 * numPoints, true)
             || !m_buffers.back()->canStoreIndices(6 * (numPoints - 1))) {
-        if (!GlBuffer::canGlobalStoreVerticesWithNormals(2 * numPoints)
+        if (!GlBuffer::canGlobalStoreVertices(2 * numPoints, true)
                 || !GlBuffer::canGlobalStoreIndices(6 * (numPoints - 1))) {
             return;
         }
@@ -1500,535 +1556,16 @@ void GlBufferBucket::fillLineString(const OGRLineString* line, float level)
     }
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
-
-    const LineCapType layoutLineCap = LineCapType::Butt;
-    const LineJoinType layoutLineJoin = LineJoinType::Bevel;
-
-    const float miterLimit = layoutLineJoin == LineJoinType::Bevel
-            ? 1.05f
-            : 2.50f /* float(layout.get<LineMiterLimit>()) */;  // TODO:
-
-//    const double sharpCornerOffset = SHARP_CORNER_OFFSET  // TODO:
-//            * (float(EXTENT) / (tileSize /* tileSize * overscaling */));
-
-    const Vector2 firstPt{};
-    const Vector2 lastPt{};
-    line->getPoint(0, const_cast<Vector2*>(&firstPt));
-    line->getPoint(numPoints - 1, const_cast<Vector2*>(&lastPt));
-
-    // For closed line string last point == first point, see
-    // https://en.wikipedia.org/wiki/Well-known_text
-    const bool closed = (firstPt == lastPt);
-
-    if (2 == numPoints && closed)
-        return;
-
-    const LineCapType beginCap = layoutLineCap;
-    const LineCapType endCap = closed ? LineCapType::Butt : layoutLineCap;
-
-    // all new vectors/points is empty, IsEmpty() == true
-    Vector2 currPt;
-    Vector2 prevPt;
-    Vector2 nextPt;
-    Vector2 prevNormal;
-    Vector2 nextNormal;
-
-    bool startOfLine = true;
-
-    // the last three vertices added
-    m_e1 = m_e2 = m_e3 = -1;
-
-    if (closed) {
-        line->getPoint(numPoints - 2, &currPt);
-        nextNormal = firstPt.normal(currPt);
-    }
+    LineStringFiller lf(line, level, m_crossExtent, LineCapType::Butt,
+            LineJoinType::Bevel, currBuffer);
 
     for (int i = 0; i < numPoints; ++i) {
-        // TODO: add getZ + level
-
-        if (closed && i == numPoints - 1) {
-            // if the line is closed, we treat the last vertex like the first
-            line->getPoint(1, &nextPt);
-        } else if (i + 1 < numPoints) {
-            // just the next vertex
-            line->getPoint(i + 1, &nextPt);
-        } else {
-            // there is no next vertex
-            nextPt.empty();
-        }
-
-        if (nextNormal) {
-            prevNormal = nextNormal;
-        }
-        if (currPt) {
-            prevPt = currPt;
-        }
-
-        line->getPoint(i, &currPt);
-
-        // if two consecutive vertices exist, skip the current one
-        if (nextPt && currPt == nextPt) {
-            continue;
-        }
-
-        // Calculate the normal towards the next vertex in this line. In case
-        // there is no next vertex, pretend that the line is continuing
-        // straight, meaning that we are just using the previous normal.
-        nextNormal = nextPt ? nextPt.normal(currPt) : prevNormal;
-
-        // If we still don't have a previous normal, this is the beginning of a
-        // non-closed line, so we're doing a straight "join".
-        if (!prevNormal) {
-            prevNormal = nextNormal;
-        }
-
-        // Determine the normal of the join extrusion. It is the angle bisector
-        // of the segments between the previous line and the next line.
-        Vector2 joinNormal = (prevNormal + nextNormal).unit();
-
-        /*  joinNormal     prevNormal
-         *             ↖      ↑
-         *                .________. prevVertex
-         *                |
-         * nextNormal  ←  |  currentVertex
-         *                |
-         *     nextVertex !
-         *
-         */
-
-        // Calculate the length of the miter.
-        // Find the cosine of the angle between the next and join normals.
-        // The inverse of that is the miter length.
-        const double cosHalfAngle = joinNormal.getX() * nextNormal.getX()
-                + joinNormal.getY() * nextNormal.getY();
-        const double miterLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : 1;
-
-//        const bool isSharpCorner = // TODO:
-//                (cosHalfAngle < COS_HALF_SHARP_CORNER) && prevPt && nextPt;
-
-//        if (isSharpCorner && i > 0) { // TODO:
-//            const double prevSegmentLength = currPt.dist(prevPt);
-//            if (prevSegmentLength > 2.0 * sharpCornerOffset) {
-//                Vector2 newPrevPt = currPt
-//                        - (currPt - prevPt)
-//                                * (sharpCornerOffset / prevSegmentLength);
-//                addCurrentLineVertex(newPrevPt, level, prevNormal, 0, 0, false,
-//                        startIndex, currBuffer);
-//                prevPt = newPrevPt;
-//            }
-//        }
-
-        // The join if a middle vertex, otherwise the cap
-        const bool middleVertex = prevPt && nextPt;
-        LineJoinType currentJoin = layoutLineJoin;
-        /*const*/ LineCapType currentCap = nextPt ? beginCap : endCap; // TODO:
-
-        if (middleVertex) {
-            if (currentJoin == LineJoinType::Round) {  // TODO:
-                if (miterLength < 1.05 /* layout.get<LineRoundLimit>() */) {
-                    currentJoin = LineJoinType::Miter;
-                } else /*if (miterLength <= 2)*/ {  // TODO:
-                    currentJoin = LineJoinType::FakeRound;
-                }
-            }
-
-            if (currentJoin == LineJoinType::Miter
-                    && miterLength > miterLimit) {
-                currentJoin = LineJoinType::Bevel;
-            }
-
-            if (currentJoin == LineJoinType::Bevel) {
-                // The maximum extrude length is 128 / 63 = 2 times the width
-                // of the line so if miterLength >= 2 we need to draw
-                // a different type of bevel where.
-                if (miterLength > 2) {
-                    currentJoin = LineJoinType::FlipBevel;
-                }
-
-                // If the miterLength is really small and the line bevel
-                // wouldn't be visible, just draw a miter join
-                // to save a triangle.
-                if (miterLength < miterLimit) {
-                    currentJoin = LineJoinType::Miter;
-                }
-            }
-        } else {
-            if (currentCap == LineCapType::Round) { // TODO:
-                currentCap = LineCapType::FakeRound;
-            }
-        }
-
-        if (middleVertex && currentJoin == LineJoinType::Miter) {
-            joinNormal = joinNormal * miterLength;
-            addCurrentLineVertex(
-                    currPt, level, joinNormal, 0, 0, false, currBuffer);
-
-        } else if (middleVertex && currentJoin == LineJoinType::FlipBevel) {
-            // miter is too big, flip the direction to make a beveled join
-
-            if (miterLength > 100) {
-                // Almost parallel lines
-                joinNormal = nextNormal;
-            } else {
-                const double direction =
-                        prevNormal.crossProduct(nextNormal) > 0 ? -1 : 1;
-                const double bevelLength = miterLength
-                        * (prevNormal + nextNormal).magnitude()
-                        / (prevNormal - nextNormal).magnitude();
-                joinNormal = joinNormal.cross() * bevelLength * direction;
-            }
-
-            addCurrentLineVertex(
-                    currPt, level, joinNormal, 0, 0, false, currBuffer);
-
-            addCurrentLineVertex(
-                    currPt, level, joinNormal * -1.0, 0, 0, false, currBuffer);
-
-        } else if (middleVertex
-                && (currentJoin == LineJoinType::Bevel
-                           || currentJoin == LineJoinType::FakeRound)) {
-            const bool lineTurnsLeft = prevNormal.crossProduct(nextNormal) > 0;
-            const float offset = -std::sqrt(miterLength * miterLength - 1);
-            float offsetA;
-            float offsetB;
-
-            if (lineTurnsLeft) {
-                offsetB = 0;
-                offsetA = offset;
-            } else {
-                offsetA = 0;
-                offsetB = offset;
-            }
-
-            // Close previous segment with bevel
-            if (!startOfLine) {
-                addCurrentLineVertex(currPt, level, prevNormal, offsetA,
-                        offsetB, false, currBuffer);
-            }
-
-            if (currentJoin == LineJoinType::FakeRound) {
-                // The join angle is sharp enough that a round join would be
-                // visible. Bevel joins fill the gap between segments with a
-                // single pie slice triangle. Create a round join by adding
-                // multiple pie slices. The join isn't actually round, but
-                // it looks like it is at the sizes we render lines at.
-
-                // Add more triangles for sharper angles.
-                // This math is just a good enough approximation.
-                // It isn't "correct".
-                const int n = std::floor((0.5 - (cosHalfAngle - 0.5)) * 8);
-
-                for (int m = 0; m < n; ++m) {
-                    Vector2 approxFractionalJoinNormal =
-                            (nextNormal * ((m + 1.0) / (n + 1.0)) + prevNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, lineTurnsLeft, false,
-                            currBuffer);
-                }
-
-                addPieSliceLineVertex(currPt, level, joinNormal, lineTurnsLeft,
-                        false, currBuffer);
-
-                for (int k = n - 1; k >= 0; --k) {
-                    Vector2 approxFractionalJoinNormal =
-                            (prevNormal * ((k + 1.0) / (n + 1.0)) + nextNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, lineTurnsLeft, false,
-                            currBuffer);
-                }
-            }
-
-            // Start next segment
-            if (nextPt) {
-                addCurrentLineVertex(currPt, level, nextNormal, -offsetA,
-                        -offsetB, false, currBuffer);
-            }
-
-        } else if (!middleVertex && currentCap == LineCapType::Butt) {
-            if (!startOfLine) {
-                // Close previous segment with a butt
-                addCurrentLineVertex(
-                        currPt, level, prevNormal, 0, 0, false, currBuffer);
-            }
-
-            // Start next segment with a butt
-            if (nextPt) {
-                addCurrentLineVertex(
-                        currPt, level, nextNormal, 0, 0, false, currBuffer);
-            }
-
-        } else if (!middleVertex && currentCap == LineCapType::Square) {
-            if (!startOfLine) {
-                // Close previous segment with a square cap
-                addCurrentLineVertex(
-                        currPt, level, prevNormal, 1, 1, false, currBuffer);
-
-                // The segment is done. Unset vertices to disconnect segments.
-                m_e1 = m_e2 = -1;
-            }
-
-            // Start next segment
-            if (nextPt) {
-                addCurrentLineVertex(
-                        currPt, level, nextNormal, -1, -1, false, currBuffer);
-            }
-
-        } else if (middleVertex ? currentJoin == LineJoinType::Round
-                                : currentCap == LineCapType::Round) {
-            if (!startOfLine) {
-                // Close previous segment with a butt
-                addCurrentLineVertex(
-                        currPt, level, prevNormal, 0, 0, false, currBuffer);
-
-                // Add round cap or linejoin at end of segment
-                addCurrentLineVertex(
-                        currPt, level, prevNormal, 1, 1, true, currBuffer);
-
-                // The segment is done. Unset vertices to disconnect segments.
-                m_e1 = m_e2 = -1;
-            }
-
-            // Start next segment with a butt
-            if (nextPt) {
-                // Add round cap before first segment
-                addCurrentLineVertex(
-                        currPt, level, nextNormal, -1, -1, true, currBuffer);
-
-                addCurrentLineVertex(
-                        currPt, level, nextNormal, 0, 0, false, currBuffer);
-            }
-
-        } else if (!middleVertex && currentCap == LineCapType::FakeRound) {
-            // TODO: Remove work with LineCapType::FakeRound and switch
-            // to LineCapType::Round based on the antialiased color changing
-            // for LineCapType::Square.
-
-            // Fill the fake round cap with a single pie slice triangle.
-            // Create a fake round cap by adding multiple pie slices.
-            // The cap isn't actually round, but it looks like it is
-            // at the sizes we render lines at.
-
-            // Add more triangles for fake round cap.
-            // This math is just a good enough approximation.
-            // It isn't "correct".
-            const int n = 4;
-
-            if (!startOfLine) {
-                // Close previous segment with a butt
-                addCurrentLineVertex(
-                        currPt, level, prevNormal, 0, 0, false, currBuffer);
-
-                // Add fake round cap at end of segment
-                Vector2 invNormal = prevNormal * -1;
-                Vector2 crossNormal = invNormal.cross();
-
-                for (int m = 0; m < n; ++m) {
-                    Vector2 approxFractionalJoinNormal =
-                            (crossNormal * ((m + 1.0) / (n + 1.0)) + prevNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                for (int k = n - 1; k >= 0; --k) {
-                    Vector2 approxFractionalJoinNormal =
-                            (prevNormal * ((k + 1.0) / (n + 1.0)) + crossNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                addPieSliceLineVertex(
-                        currPt, level, crossNormal, false, false, currBuffer);
-
-                for (int m = 0; m < n; ++m) {
-                    Vector2 approxFractionalJoinNormal =
-                            (invNormal * ((m + 1.0) / (n + 1.0)) + crossNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                for (int k = n - 1; k >= 0; --k) {
-                    Vector2 approxFractionalJoinNormal =
-                            (crossNormal * ((k + 1.0) / (n + 1.0)) + invNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                // The segment is done. Unset vertices to disconnect segments.
-                m_e1 = m_e2 = -1;
-            }
-
-            if (nextPt) {
-                // Add fake round cap before first segment
-                Vector2 invNormal = nextNormal * -1;
-                Vector2 crossNormal = nextNormal.cross();
-
-                bool firstPt = true;
-                for (int m = 0; m < n; ++m) {
-                    Vector2 approxFractionalJoinNormal =
-                            (crossNormal * ((m + 1.0) / (n + 1.0)) + invNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, firstPt,
-                            currBuffer);
-                    if (firstPt)
-                        firstPt = false;
-                }
-
-                for (int k = n - 1; k >= 0; --k) {
-                    Vector2 approxFractionalJoinNormal =
-                            (invNormal * ((k + 1.0) / (n + 1.0)) + crossNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                addPieSliceLineVertex(
-                        currPt, level, crossNormal, false, false, currBuffer);
-
-                for (int m = 0; m < n; ++m) {
-                    Vector2 approxFractionalJoinNormal =
-                            (nextNormal * ((m + 1.0) / (n + 1.0)) + crossNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                for (int k = n - 1; k >= 0; --k) {
-                    Vector2 approxFractionalJoinNormal =
-                            (crossNormal * ((k + 1.0) / (n + 1.0)) + nextNormal)
-                                    .unit();
-                    addPieSliceLineVertex(currPt, level,
-                            approxFractionalJoinNormal, false, false,
-                            currBuffer);
-                }
-
-                // Start next segment with a butt
-                addCurrentLineVertex(
-                        currPt, level, nextNormal, 0, 0, false, currBuffer);
-            }
-        }
-
-//        if (isSharpCorner && i < numPoints - 1) { // TODO:
-//            const double nextSegmentLength = currPt.dist(nextPt);
-//            if (nextSegmentLength > 2 * sharpCornerOffset) {
-//                Vector2 newCurrPt = currPt
-//                        + (nextPt - currPt)
-//                                * (sharpCornerOffset / nextSegmentLength);
-//                addCurrentLineVertex(newCurrPt, level, nextNormal, 0, 0, false,
-//                        startIndex, currBuffer);
-//                currPt = newCurrPt;
-//            }
-//        }
-
-        startOfLine = false;
-    }
-}
-
-void GlBufferBucket::addCurrentLineVertex(const Vector2& currPt,
-        float level,
-        const Vector2& normal,
-        double endLeft,
-        double endRight,
-        bool round,
-        GlBufferSharedPtr currBuffer)
-{
-    // Add point coordinates as float.
-    // Add triangle indices as unsigned short.
-
-    float ptx =
-            static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-    float pty = static_cast<float>(currPt.getY());
-    float ptz = level;
-
-    Vector2 extrude = normal;
-    if (endLeft)
-        extrude = extrude - (normal.cross() * endLeft);
-
-    // v(i*2), extrude
-    float ex = static_cast<float>(extrude.getX());
-    float ey = static_cast<float>(extrude.getY());
-    currBuffer->addVertexWithNormal(ptx, pty, ptz, ex, ey);
-
-    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
-    if (m_e1 >= 0 && m_e2 >= 0) {
-        currBuffer->addTriangleIndices(m_e1, m_e2, m_e3);
-    }
-    m_e1 = m_e2;
-    m_e2 = m_e3;
-
-
-    extrude = normal * -1.0;
-    if (endRight)
-        extrude = extrude - (normal.cross() * endRight);
-
-    // v(i*2+1), -extrude
-    ex = static_cast<float>(extrude.getX());
-    ey = static_cast<float>(extrude.getY());
-    currBuffer->addVertexWithNormal(ptx, pty, ptz, ex, ey);
-
-    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
-    if (m_e1 >= 0 && m_e2 >= 0) {
-        currBuffer->addTriangleIndices(m_e1, m_e2, m_e3);
-    }
-    m_e1 = m_e2;
-    m_e2 = m_e3;
-}
-
-void GlBufferBucket::addPieSliceLineVertex(const Vector2& currPt,
-        float level,
-        const Vector2& extrude,
-        bool lineTurnsLeft,
-        bool firstPt,
-        GlBufferSharedPtr currBuffer)
-{
-    // Add point coordinates as float.
-    // Add triangle indices as unsigned short.
-
-    Vector2 flippedExtrude = extrude * (lineTurnsLeft ? -1.0 : 1.0);
-    float ptx =
-            static_cast<float>(currPt.getX() + m_crossExtent * DEFAULT_MAX_X2);
-    float pty = static_cast<float>(currPt.getY());
-    float ptz = level;
-
-    float fex = static_cast<float>(flippedExtrude.getX());
-    float fey = static_cast<float>(flippedExtrude.getY());
-    currBuffer->addVertexWithNormal(ptx, pty, ptz, fex, fey);
-
-    m_e3 = currBuffer->getVertexBufferSize() / VERTEX_WITH_NORMAL_SIZE - 1;
-    if (m_e1 >= 0 && m_e2 >= 0) {
-        currBuffer->addTriangleIndices(m_e1, m_e2, m_e3);
-    }
-
-    if (lineTurnsLeft) {
-        if (firstPt) {
-            m_e1 = m_e3;
-        }
-        m_e2 = m_e3;
-    } else {
-        if (firstPt) {
-            m_e2 = m_e3;
-        }
-        m_e1 = m_e3;
+        lf.insertVertex(i);
     }
 }
 
 void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
 {
-    // TODO: draw boundaries
-    //fillLineString(polygon->getExteriorRing(), level);
-
     PolygonTriangulator tr;
     tr.triangulate(polygon);
 
@@ -2042,37 +1579,87 @@ void GlBufferBucket::fillPolygon(const OGRPolygon* polygon, float level)
     }
 
     GlBufferSharedPtr currBuffer = m_buffers.back();
+    tr.insertVerticesToBuffer(level, m_crossExtent, currBuffer);
+}
 
-    // Get vertices of triangles and copy them to buffer.
-    for (PolygonTriangulator::CDT::Finite_vertices_iterator vit =
-                    tr.getCdt().finite_vertices_begin();
-            vit != tr.getCdt().finite_vertices_end(); ++vit) {
+void GlBufferBucket::fillBorderedPolygon(const OGRPolygon* polygon, float level)
+{
+    PolygonTriangulator tr;
+    size_t polygonPointIndex = 0;
+    const int intRingCnt = polygon->getNumInteriorRings();
+    for (int i = -1; i < intRingCnt; ++i) {
+        const OGRLinearRing* ring;
+        if (-1 == i) {
+            ring = polygon->getExteriorRing();
+        } else {
+            ring = polygon->getInteriorRing(i);
+        }
 
-        if (vit->info().in_domain()) {
-            float x = static_cast<float>(
-                    vit->point().x() + m_crossExtent * DEFAULT_MAX_X2);
-            float y = static_cast<float>(vit->point().y());
-            float z = level;
-            currBuffer->addVertex(x, y, z);
+        int numPoints = ring->getNumPoints();
+        if (numPoints < 3) {
+            if (-1 == i)
+                return;
+            else
+                continue;
+        }
 
-            // Set index by buffer
-            vit->info().m_index =
-                    currBuffer->getVertexBufferSize() / VERTEX_SIZE - 1;
+        // TODO: cut line by x or y direction or
+        // tesselate to fill into array max size
+        if (numPoints > 21000) {
+            CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
+                    numPoints);
+            return;
+        }
+
+        polygonPointIndex = tr.insertConstraint(ring, polygonPointIndex);
+    }
+
+    // Mark facets that are inside the domain bounded by the polygon.
+    tr.markDomains();
+
+    int maxVerticesCnt = std::max(2 * polygonPointIndex, tr.getNumVertices());
+    int maxIndicesCnt =
+            std::max(6 * (polygonPointIndex - 1), 3 * tr.getNumTriangles());
+
+    if (!m_buffers.back()->canStoreVertices(maxVerticesCnt, true)
+            || !m_buffers.back()->canStoreIndices(maxIndicesCnt)) {
+        if (!GlBuffer::canGlobalStoreVertices(maxVerticesCnt, true)
+                || !GlBuffer::canGlobalStoreIndices(maxIndicesCnt)) {
+            return;
+        }
+        m_buffers.emplace_back(makeSharedGlBuffer(GlBuffer()));
+    }
+
+    GlBufferSharedPtr currBuffer = m_buffers.back();
+    std::vector<size_t> borderIndices(polygonPointIndex);
+    for (int i = -1; i < intRingCnt; ++i) {
+        const OGRLinearRing* ring;
+        if (-1 == i) {
+            ring = polygon->getExteriorRing();
+        } else {
+            ring = polygon->getInteriorRing(i);
+        }
+
+        int numPoints = ring->getNumPoints();
+        if (numPoints < 3) {
+            if (-1 == i)
+                return;
+            else
+                continue;
+        }
+
+        LineStringFiller lf(ring, level, m_crossExtent, LineCapType::Butt,
+                LineJoinType::Bevel, currBuffer);
+        for (int i = 0; i < numPoints; ++i) {
+            int vertexIndex = lf.insertVertex(i, BF_BORDER_INDICES);
+            if (-1 == vertexIndex) {
+                // TODO:
+            }
+            borderIndices.push_back(vertexIndex);
         }
     }
 
-    // Get indices of vertices and copy them to buffer.
-    for (PolygonTriangulator::CDT::Finite_faces_iterator fit =
-                    tr.getCdt().finite_faces_begin();
-            fit != tr.getCdt().finite_faces_end(); ++fit) {
-
-        if (fit->info().in_domain()) {
-            int i0 = fit->vertex(0)->info().m_index;
-            int i1 = fit->vertex(1)->info().m_index;
-            int i2 = fit->vertex(2)->info().m_index;
-            currBuffer->addTriangleIndices(i0, i1, i2);
-        }
-    }
+    tr.insertVerticesToBuffer(level, m_crossExtent, currBuffer, &borderIndices);
 }
 
 char GlBufferBucket::crossExtent() const
@@ -2151,129 +1738,4 @@ size_t GlBufferBucket::getIndexBufferSize() const
         count += buff->getIndexBufferSize();
     }
     return count;
-}
-
-PolygonTriangulator::PolygonTriangulator()
-        : m_numTriangles(0)
-        , m_numVertices(0)
-{
-}
-
-PolygonTriangulator::~PolygonTriangulator()
-{
-}
-
-void PolygonTriangulator::markDomains(CDT& ct,
-        CDT::Face_handle start,
-        int index,
-        std::list<CDT::Edge>& border)
-{
-    if (start->info().m_nestingLevel != -1) {
-        return;
-    }
-    std::list<CDT::Face_handle> queue;
-    queue.push_back(start);
-    while (!queue.empty()) {
-        CDT::Face_handle fh = queue.front();
-        queue.pop_front();
-        if (fh->info().m_nestingLevel == -1) {
-            fh->info().m_nestingLevel = index;
-            for (int i = 0; i < 3; i++) {
-                CDT::Edge e(fh, i);
-                CDT::Face_handle n = fh->neighbor(i);
-                if (n->info().m_nestingLevel == -1) {
-                    if (ct.is_constrained(e))
-                        border.push_back(e);
-                    else
-                        queue.push_back(n);
-                }
-            }
-        }
-    }
-}
-
-// Explore set of facets connected with non constrained edges,
-// and attribute to each such set a nesting level.
-// We start from facets incident to the infinite vertex, with a nesting
-// level of 0. Then we recursively consider the non-explored facets incident
-// to constrained edges bounding the former set
-// and increase the nesting level by 1.
-// Facets in the domain are those with an odd nesting level.
-void PolygonTriangulator::markDomains(CDT& cdt)
-{
-    std::list<CDT::Edge> border;
-    markDomains(cdt, cdt.infinite_face(), 0, border);
-    while (!border.empty()) {
-        CDT::Edge e = border.front();
-        border.pop_front();
-        CDT::Face_handle n = e.first->neighbor(e.second);
-        if (n->info().m_nestingLevel == -1) {
-            markDomains(cdt, n, e.first->info().m_nestingLevel + 1, border);
-        }
-    }
-}
-
-void PolygonTriangulator::triangulate(const OGRPolygon* polygon)
-{
-    const int intRingCnt = polygon->getNumInteriorRings();
-    for (int i = -1; i < intRingCnt; ++i) {
-        const OGRLinearRing* ring;
-        if (-1 == i) {
-            ring = polygon->getExteriorRing();
-        } else {
-            ring = polygon->getInteriorRing(i);
-        }
-
-        int numPoints = ring->getNumPoints();
-        if (numPoints < 3) {
-            if (-1 == i)
-                return;
-            else
-                continue;
-        }
-
-        // TODO: cut line by x or y direction or
-        // tesselate to fill into array max size
-        if (numPoints > 21000) {
-            CPLDebug("GlBufferBucket", "Too many points - %d, need to divide",
-                    numPoints);
-            return;
-        }
-
-        // Construct non-intersecting nested polygons.
-        // TODO: Make for intersecting nested polygons (we need it?)
-        Polygon_2 cgalPolygon;  // TODO: place in heap memory
-
-        OGRPoint pt;
-        OGRPointIterator* ptIt = ring->getPointIterator();
-        while (ptIt->getNextPoint(&pt)) {
-            cgalPolygon.push_back(CDT::Point(pt.getX(), pt.getY()));
-        }
-        OGRPointIterator::destroy(ptIt);
-
-        // Insert the polygons into a constrained triangulation.
-        // For polygon last point == first point, see
-        // https://en.wikipedia.org/wiki/Well-known_text
-        // From insert_constraint() docs: The polyline is considered as
-        // a polygon if the first and last point are equal.
-        m_cdt.insert_constraint(
-                cgalPolygon.vertices_begin(), cgalPolygon.vertices_end());
-    }
-
-    // Mark facets that are inside the domain bounded by the polygon.
-    markDomains(m_cdt);
-
-    // Get count of triangles that are inside the domain and mark their vertices.
-    for (CDT::Finite_faces_iterator fit = m_cdt.finite_faces_begin();
-            fit != m_cdt.finite_faces_end(); ++fit) {
-        if (fit->info().in_domain()) {
-            for (int i = 0; i < 3; ++i) {
-                if (!fit->vertex(i)->info().in_domain()) {
-                    fit->vertex(i)->info().m_index = m_numVertices;
-                    ++m_numVertices;
-                }
-            }
-            ++m_numTriangles;
-        }
-    }
 }

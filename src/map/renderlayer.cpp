@@ -202,8 +202,14 @@ void FeatureRenderLayer::initStyle()
 
         case wkbMultiPolygon:
         case wkbPolygon: {
-            m_style.reset(new SimpleFillStyle());
+//            SimpleFillStyle* style = new SimpleFillStyle();
+//            m_style.reset(style);
+//            m_style->setColor({255, 0, 0, 255});
+            SimpleFillBorderedStyle* style = new SimpleFillBorderedStyle();
+            m_style.reset(style);
             m_style->setColor({255, 0, 0, 255});
+            style->setBorderWidth(2);
+            style->setBorderColor({0, 0, 0, 255});
         } break;
 
         default:
@@ -257,7 +263,7 @@ void FeatureRenderLayer::fillRenderBuffers()
         }
 
         int numPoints = 4;
-        if (!GlBuffer::canGlobalStoreVerticesWithNormals(4 * numPoints)
+        if (!GlBuffer::canGlobalStoreVertices(4 * numPoints, true)
                 || !GlBuffer::canGlobalStoreIndices(6 * numPoints)) {
             cout << "can not store, m_renderZoom " << ((int) m_renderZoom)
                  << "\n";

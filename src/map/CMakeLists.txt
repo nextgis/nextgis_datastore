@@ -28,26 +28,28 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-    mapstore.h
+    glfillers.h
+    glview.h
+    layer.h
     map.h
+    mapstore.h
     maptransform.h
     mapview.h
     matrix.h
-    glview.h
-    layer.h
     renderlayer.h
     style.h
     vector.h
 )
 
 set(CSOURCES
-    mapstore.cpp
+    glfillers.cpp
+    glview.cpp
+    layer.cpp
     map.cpp
+    mapstore.cpp
     maptransform.cpp
     mapview.cpp
     matrix.cpp
-    glview.cpp
-    layer.cpp
     renderlayer.cpp
     style.cpp
 )

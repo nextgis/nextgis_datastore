@@ -102,7 +102,7 @@ bool Style::prepareData(const Matrix4& msMatrix, const Matrix4& vsMatrix)
         m_vsMatrixId = glGetUniformLocation(m_program->id(), "u_vsMatrix");
 
     if (m_colorId == -1)
-        m_colorId = glGetUniformLocation(m_program->id(), "u_Color");
+        m_colorId = glGetUniformLocation(m_program->id(), "u_color");
 
     std::array<GLfloat, 16> msMat4f = msMatrix.dataF();
     ngsCheckGLEerror(
@@ -123,10 +123,10 @@ void Style::draw(const GlBuffer& buffer) const
     if (!buffer.bound())
         return;
 
-    ngsCheckGLEerror(
-            glBindBuffer(GL_ARRAY_BUFFER, buffer.getBuffer(BF_VERTICES)));
     ngsCheckGLEerror(glBindBuffer(
-            GL_ELEMENT_ARRAY_BUFFER, buffer.getBuffer(BF_INDICES)));
+            GL_ARRAY_BUFFER, buffer.getGlHardBufferId(BF_VERTICES)));
+    ngsCheckGLEerror(glBindBuffer(
+            GL_ELEMENT_ARRAY_BUFFER, buffer.getGlHardBufferId(BF_INDICES)));
 }
 
 //------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ SimplePointStyle::SimplePointStyle()
         , m_vRadiusId(-1)
         , m_radius(6)
 {
-    m_vertexShaderSourcePtr =  m_pointVertexShaderSourcePtr;
+    m_vertexShaderSourcePtr = m_pointVertexShaderSourcePtr;
     m_fragmentShaderSourcePtr = m_pointFragmentShaderSourcePtr;
 }
 
@@ -186,7 +186,7 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
 
 SimpleLineStyle::SimpleLineStyle()
         : Style()
-        , m_NormalId(-1)
+        , m_normalId(-1)
         , m_vLineWidthId(-1)
         , m_lineWidth(1)
 {
@@ -214,8 +214,8 @@ bool SimpleLineStyle::prepareData(
     if (!Style::prepareData(msMatrix, vsMatrix))
         return false;
 
-    if (m_NormalId == -1)
-        m_NormalId = glGetAttribLocation(m_program->id(), "a_Normal");
+    if (m_normalId == -1)
+        m_normalId = glGetAttribLocation(m_program->id(), "a_normal");
 
     if (m_vLineWidthId == -1)
         m_vLineWidthId = glGetUniformLocation(m_program->id(), "u_vLineWidth");
@@ -232,13 +232,13 @@ void SimpleLineStyle::draw(const GlBuffer& buffer) const
     ngsCheckGLEerror(glVertexAttribPointer(
             m_mPositionId, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0));
 
-    ngsCheckGLEerror(glEnableVertexAttribArray(m_NormalId));
-    ngsCheckGLEerror(glVertexAttribPointer(m_NormalId, 2, GL_FLOAT, GL_FALSE,
+    ngsCheckGLEerror(glEnableVertexAttribArray(m_normalId));
+    ngsCheckGLEerror(glVertexAttribPointer(m_normalId, 2, GL_FLOAT, GL_FALSE,
             5 * sizeof(float),
             reinterpret_cast<const GLvoid*>(3 * sizeof(float))));
 
-    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES,
-            buffer.getIndexBufferSize(), GL_UNSIGNED_SHORT, nullptr));
+    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, buffer.getIndexBufferSize(),
+            GL_UNSIGNED_SHORT, nullptr));
 }
 
 //------------------------------------------------------------------------------
@@ -264,6 +264,98 @@ void SimpleFillStyle::draw(const GlBuffer& buffer) const
     ngsCheckGLEerror(
             glVertexAttribPointer(m_mPositionId, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
+    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, buffer.getIndexBufferSize(),
+            GL_UNSIGNED_SHORT, nullptr));
+}
+
+//------------------------------------------------------------------------------
+// SimpleFillBorderStyle
+//------------------------------------------------------------------------------
+
+SimpleFillBorderedStyle::SimpleFillBorderedStyle()
+        : Style()
+        , m_isBorderId(-1)
+        , m_normalId(-1)
+        , m_vBorderWidthId(-1)
+        , m_borderColorId(-1)
+        , m_borderWidth(1)
+{
+    m_vertexShaderSourcePtr = m_fillBorderVertexShaderSourcePtr;
+    m_fragmentShaderSourcePtr = m_fillBorderFragmentShaderSourcePtr;
+}
+
+SimpleFillBorderedStyle::~SimpleFillBorderedStyle()
+{
+}
+
+float SimpleFillBorderedStyle::getBorderWidth() const
+{
+    return m_borderWidth;
+}
+
+void SimpleFillBorderedStyle::setBorderWidth(float borderWidth)
+{
+    m_borderWidth = borderWidth;
+}
+
+void SimpleFillBorderedStyle::setBorderColor(const ngsRGBA& color)
+{
+    m_borederColor.r = float(color.R) / 255;
+    m_borederColor.g = float(color.G) / 255;
+    m_borederColor.b = float(color.B) / 255;
+    m_borederColor.a = float(color.A) / 255;
+}
+
+bool SimpleFillBorderedStyle::prepareData(
+        const Matrix4& msMatrix, const Matrix4& vsMatrix)
+{
+    if (!Style::prepareData(msMatrix, vsMatrix))
+        return false;
+
+    if (m_normalId == -1)
+        m_normalId = glGetAttribLocation(m_program->id(), "a_normal");
+
+    if (m_isBorderId == -1)
+        m_isBorderId = glGetUniformLocation(m_program->id(), "u_isBorder");
+    ngsCheckGLEerror(glUniform1i(m_isBorderId, 1));
+
+    if (m_vBorderWidthId == -1)
+        m_vBorderWidthId =
+                glGetUniformLocation(m_program->id(), "u_vBorderWidth");
+    ngsCheckGLEerror(glUniform1f(m_vBorderWidthId, m_borderWidth));
+
+    if (m_borderColorId == -1)
+        m_borderColorId =
+                glGetUniformLocation(m_program->id(), "u_borderColor");
+    ngsCheckGLEerror(glUniform4f(m_borderColorId, m_borederColor.r,
+            m_borederColor.g, m_borederColor.b, m_borederColor.a));
+
+    return true;
+}
+
+void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
+{
+    Style::draw(buffer);
+
+    ngsCheckGLEerror(glEnableVertexAttribArray(m_mPositionId));
+    ngsCheckGLEerror(glVertexAttribPointer(
+            m_mPositionId, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0));
+
+    ngsCheckGLEerror(glEnableVertexAttribArray(m_normalId));
+    ngsCheckGLEerror(glVertexAttribPointer(m_normalId, 2, GL_FLOAT, GL_FALSE,
+            5 * sizeof(float),
+            reinterpret_cast<const GLvoid*>(3 * sizeof(float))));
+
+    ngsCheckGLEerror(glBindBuffer(
+            GL_ELEMENT_ARRAY_BUFFER, buffer.getGlHardBufferId(BF_INDICES)));
+    ngsCheckGLEerror(glUniform1i(m_isBorderId, false));
+    ngsCheckGLEerror(glDrawElements(
+            GL_TRIANGLES, buffer.getIndexBufferSize(), GL_UNSIGNED_SHORT, 0));
+
+    ngsCheckGLEerror(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
+            buffer.getGlHardBufferId(BF_BORDER_INDICES)));
+    ngsCheckGLEerror(glUniform1i(m_isBorderId, true));
     ngsCheckGLEerror(glDrawElements(GL_TRIANGLES,
-            buffer.getIndexBufferSize(), GL_UNSIGNED_SHORT, nullptr));
+            buffer.getIndexBufferSize(BF_BORDER_INDICES), GL_UNSIGNED_SHORT,
+            0));
 }

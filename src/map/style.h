@@ -98,7 +98,7 @@ protected:
     const GLchar* const m_pointFragmentShaderSourcePtr = R"(
         precision mediump float;
 
-        uniform vec4 u_Color;
+        uniform vec4 u_color;
 
         void main()
         {
@@ -106,7 +106,7 @@ protected:
            if(length(coord) > 0.5) {
                discard;
            } else {
-               gl_FragColor = u_Color;
+               gl_FragColor = u_color;
            }
         }
     )";
@@ -137,7 +137,7 @@ protected:
 protected:
     const GLchar* const m_lineVertexShaderSourcePtr = R"(
         attribute vec3 a_mPosition;
-        attribute vec2 a_Normal;
+        attribute vec2 a_normal;
 
         uniform float u_vLineWidth;
         uniform mat4 u_msMatrix;
@@ -145,7 +145,7 @@ protected:
 
         void main()
         {
-            vec4 vDelta = vec4(a_Normal * u_vLineWidth, 0, 0);
+            vec4 vDelta = vec4(a_normal * u_vLineWidth, 0, 0);
             vec4 sDelta = u_vsMatrix * vDelta;
             vec4 sPosition = u_msMatrix * vec4(a_mPosition, 1);
             gl_Position = sPosition + sDelta;
@@ -155,15 +155,15 @@ protected:
     const GLchar* const m_lineFragmentShaderSourcePtr = R"(
         precision mediump float;
 
-        uniform vec4 u_Color;
+        uniform vec4 u_color;
 
         void main()
         {
-          gl_FragColor = u_Color;
+          gl_FragColor = u_color;
         }
     )";
 
-    GLint m_NormalId;
+    GLint m_normalId;
     GLint m_vLineWidthId;
 
     float m_lineWidth;
@@ -194,13 +194,82 @@ protected:
     const GLchar* const m_fillFragmentShaderSourcePtr = R"(
         precision mediump float;
 
-        uniform vec4 u_Color;
+        uniform vec4 u_color;
 
         void main()
         {
-          gl_FragColor = u_Color;
+          gl_FragColor = u_color;
         }
     )";
+};
+
+class SimpleFillBorderedStyle : public Style
+{
+public:
+    SimpleFillBorderedStyle();
+    virtual ~SimpleFillBorderedStyle();
+
+    float getBorderWidth() const;
+    void setBorderWidth(float borderWidth);
+    void setBorderColor(const ngsRGBA& color);
+    void setBorderInicesCount(size_t count);
+
+    // Style interface
+public:
+    virtual bool prepareData(
+            const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+
+    // Style interface
+protected:
+    virtual void draw(const GlBuffer& buffer) const override;
+
+protected:
+    const GLchar* const m_fillBorderVertexShaderSourcePtr = R"(
+        attribute vec3 a_mPosition;
+        attribute vec2 a_normal;
+
+        uniform bool u_isBorder;
+        uniform float u_vBorderWidth;
+        uniform mat4 u_msMatrix;
+        uniform mat4 u_vsMatrix;
+
+        void main()
+        {
+            if (u_isBorder) {
+                vec4 vDelta = vec4(a_normal * u_vBorderWidth, 0, 0);
+                vec4 sDelta = u_vsMatrix * vDelta;
+                vec4 sPosition = u_msMatrix * vec4(a_mPosition, 1);
+                gl_Position = sPosition + sDelta;
+            } else {
+                gl_Position = u_msMatrix * vec4(a_mPosition, 1);
+            }
+        }
+    )";
+
+    const GLchar* const m_fillBorderFragmentShaderSourcePtr = R"(
+        precision mediump float;
+
+        uniform bool u_isBorder;
+        uniform vec4 u_color;
+        uniform vec4 u_borderColor;
+
+        void main()
+        {
+            if (u_isBorder) {
+                gl_FragColor = u_borderColor;
+            } else {
+                gl_FragColor = u_color;
+            }
+        }
+    )";
+
+    GLint m_isBorderId;
+    GLint m_normalId;
+    GLint m_vBorderWidthId;
+    GLint m_borderColorId;
+
+    GlColor m_borederColor;
+    float m_borderWidth;
 };
 
 class SimpleRasterStyle : public Style
