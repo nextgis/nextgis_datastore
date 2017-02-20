@@ -1240,11 +1240,11 @@ void GlBuffer::addIndex(unsigned short index, enum ngsBufferType indexType)
         case BF_INDICES:
             pBuffer = &m_indices;
             pSize = &m_globalIndexBufferSize;
-            return;
+            break;
         case BF_BORDER_INDICES:
             pBuffer = &m_borderIndices;
             pSize = &m_globalBorderIndexBufferSize;
-            return;
+            break;
         default:
             return;
     }

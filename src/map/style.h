@@ -90,11 +90,12 @@ protected:
         }
     )";
 
-    // TODO: quad and triangle symbol. Sphere symbol (http://stackoverflow.com/a/25783231/2901140)
+    // TODO: quad and triangle symbol.
+    // Sphere symbol (http://stackoverflow.com/a/25783231)
     // https://www.raywenderlich.com/37600/opengl-es-particle-system-tutorial-part-1
-    // http://stackoverflow.com/a/10506172/2901140
+    // http://stackoverflow.com/a/10506172
     // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
-    // http://stackoverflow.com/q/18659332/2901140
+    // http://stackoverflow.com/q/18659332
     const GLchar* const m_pointFragmentShaderSourcePtr = R"(
         precision mediump float;
 
