@@ -28,6 +28,16 @@
 
 namespace ngs
 {
+enum ngsPointType {
+    PT_UNKNOWN = 0,
+    PT_SQUARE,
+    PT_RECTANGLE,
+    PT_CIRCLE,
+    PT_TRIANGLE,
+    PT_DIAMOND,
+    PT_STAR
+};
+
 class Style
 {
 public:
@@ -64,8 +74,11 @@ public:
     SimplePointStyle();
     virtual ~SimplePointStyle();
 
-    float getRadius() const;
-    void setRadius(float radius);
+    enum ngsPointType getType() const;
+    void setType(enum ngsPointType type);
+
+    float getSize() const;
+    void setSize(float size);
 
     // Style interface
 public:
@@ -81,16 +94,16 @@ protected:
         attribute vec3 a_mPosition;
 
         uniform mat4 u_msMatrix;
-        uniform float u_vRadius;
+        uniform float u_vSize;
 
         void main()
         {
             gl_Position = u_msMatrix * vec4(a_mPosition, 1);
-            gl_PointSize = u_vRadius;
+            gl_PointSize = u_vSize;
         }
     )";
 
-    // TODO: quad and triangle symbol.
+    // Circle: http://stackoverflow.com/a/17275113
     // Sphere symbol (http://stackoverflow.com/a/25783231)
     // https://www.raywenderlich.com/37600/opengl-es-particle-system-tutorial-part-1
     // http://stackoverflow.com/a/10506172
@@ -100,21 +113,112 @@ protected:
         precision mediump float;
 
         uniform vec4 u_color;
+        uniform int u_type;
+
+        bool isInTriangle(vec2 point, vec2 p1, vec2 p2, vec2 p3)
+        {
+          float a = (p1.x - point.x) * (p2.y - p1.y)
+                  - (p2.x - p1.x) * (p1.y - point.y);
+          float b = (p2.x - point.x) * (p3.y - p2.y)
+                  - (p3.x - p2.x) * (p2.y - point.y);
+          float c = (p3.x - point.x) * (p1.y - p3.y)
+                  - (p1.x - p3.x) * (p3.y - point.y);
+
+          if ((a >= 0.0 && b >= 0.0 && c >= 0.0)
+                || (a <= 0.0 && b <= 0.0 && c <= 0.0))
+            return true;
+          else
+            return false;
+        }
+
+        void drawSquare()
+        {
+            gl_FragColor = u_color;
+        }
+        
+        void drawRectangle()
+        {
+            if(0.4 < gl_PointCoord.x && gl_PointCoord.x > 0.6)
+                discard;
+            else
+                gl_FragColor = u_color;
+        }
+        
+        void drawCircle()
+        {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            if(length(coord) > 0.5)
+               discard;
+            else
+               gl_FragColor = u_color;
+        }
+        
+        void drawTriangle()
+        {
+            if(!isInTriangle(vec2(gl_PointCoord),
+                    vec2(0.0, 0.933), vec2(1.0, 0.933), vec2(0.5, 0.066)))
+               discard;
+            else
+               gl_FragColor = u_color;
+        }
+        
+        void drawDiamond()
+        {
+            if(!(isInTriangle(vec2(gl_PointCoord),
+                    vec2(0.2, 0.5), vec2(0.8, 0.5), vec2(0.5, 0.0))
+                || isInTriangle(vec2(gl_PointCoord),
+                    vec2(0.2, 0.5), vec2(0.8, 0.5), vec2(0.5, 1.0))))
+               discard;
+            else
+               gl_FragColor = u_color;
+        }
+        
+        void drawStar()
+        {
+            float d1 = 0.4;
+            float d2 = 0.6;
+            
+            bool a1 = isInTriangle(vec2(gl_PointCoord),
+                    vec2(d1, d1), vec2(d2, d1), vec2(0.5, 0.0));
+            bool a2 = isInTriangle(vec2(gl_PointCoord),
+                    vec2(d2, d1), vec2(d2, d2), vec2(1.0, 0.5));
+            bool a3 = isInTriangle(vec2(gl_PointCoord),
+                    vec2(d1, d2), vec2(d2, d2), vec2(0.5, 1.0));
+            bool a4 = isInTriangle(vec2(gl_PointCoord),
+                    vec2(d1, d1), vec2(d1, d2), vec2(0.0, 0.5));
+            bool a5 = isInTriangle(vec2(gl_PointCoord),
+                    vec2(d1, d1), vec2(d2, d2), vec2(d2, d1));
+            bool a6 = isInTriangle(vec2(gl_PointCoord),
+                    vec2(d1, d1), vec2(d2, d2), vec2(d1, d2));
+            
+            if(!(a1 || a2 || a3 || a4 || a5 || a6))
+               discard;
+            else
+               gl_FragColor = u_color;
+        }
 
         void main()
         {
-           vec2 coord = gl_PointCoord - vec2(0.5);
-           if(length(coord) > 0.5) {
-               discard;
-           } else {
-               gl_FragColor = u_color;
-           }
+            if(1 == u_type)      // Square
+                drawSquare();
+            else if(2 == u_type) // Rectangle
+                drawRectangle();
+            else if(3 == u_type) // Circle
+                drawCircle();
+            else if(4 == u_type) // Triangle
+                drawTriangle();
+            else if(5 == u_type) // Diamond
+                drawDiamond();
+            else if(6 == u_type) // Star
+                drawStar();
         }
     )";
 
-    GLint m_vRadiusId;
+    GLint m_typeId;
+    GLint m_vSizeId;
 
-    float m_radius;
+    enum ngsPointType m_type;
+    float m_size;
 };
 
 class SimpleLineStyle : public Style

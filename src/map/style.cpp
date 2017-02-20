@@ -135,8 +135,10 @@ void Style::draw(const GlBuffer& buffer) const
 
 SimplePointStyle::SimplePointStyle()
         : Style()
-        , m_vRadiusId(-1)
-        , m_radius(6)
+        , m_vSizeId(-1)
+        , m_typeId(-1)
+        , m_type(PT_CIRCLE)
+        , m_size(6)
 {
     m_vertexShaderSourcePtr = m_pointVertexShaderSourcePtr;
     m_fragmentShaderSourcePtr = m_pointFragmentShaderSourcePtr;
@@ -146,14 +148,24 @@ SimplePointStyle::~SimplePointStyle()
 {
 }
 
-float SimplePointStyle::getRadius() const
+enum ngsPointType SimplePointStyle::getType() const
 {
-    return m_radius;
+    return m_type;
 }
 
-void SimplePointStyle::setRadius(float radius)
+void SimplePointStyle::setType(enum ngsPointType type)
 {
-    m_radius = radius;
+    m_type = type;
+}
+
+float SimplePointStyle::getSize() const
+{
+    return m_size;
+}
+
+void SimplePointStyle::setSize(float size)
+{
+    m_size = size;
 }
 
 bool SimplePointStyle::prepareData(
@@ -161,10 +173,17 @@ bool SimplePointStyle::prepareData(
 {
     if (!Style::prepareData(msMatrix, vsMatrix))
         return false;
-    if (m_vRadiusId == -1) {
-        m_vRadiusId = glGetUniformLocation(m_program->id(), "u_vRadius");
+
+    if (m_typeId == -1) {
+        m_typeId = glGetUniformLocation(m_program->id(), "u_type");
     }
-    ngsCheckGLEerror(glUniform1f(m_vRadiusId, m_radius));
+    ngsCheckGLEerror(glUniform1i(m_typeId, m_type));
+
+    if (m_vSizeId == -1) {
+        m_vSizeId = glGetUniformLocation(m_program->id(), "u_vSize");
+    }
+    ngsCheckGLEerror(glUniform1f(m_vSizeId, m_size));
+
     return true;
 }
 
@@ -317,7 +336,6 @@ bool SimpleFillBorderedStyle::prepareData(
 
     if (m_isBorderId == -1)
         m_isBorderId = glGetUniformLocation(m_program->id(), "u_isBorder");
-    ngsCheckGLEerror(glUniform1i(m_isBorderId, 1));
 
     if (m_vBorderWidthId == -1)
         m_vBorderWidthId =

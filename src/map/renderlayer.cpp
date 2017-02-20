@@ -189,7 +189,8 @@ void FeatureRenderLayer::initStyle()
             SimplePointStyle* style = new SimplePointStyle();
             m_style.reset(style);
             m_style->setColor({0, 0, 255, 255});
-            style->setRadius(9.0f);
+            style->setType(PT_CIRCLE);
+            style->setSize(9.0f);
         } break;
 
         case wkbMultiLineString:
