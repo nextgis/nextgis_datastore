@@ -33,7 +33,7 @@ function(find_anyproject name)
     string(TOUPPER ${name} UPPER_NAME)
     set(IS_FOUND ${UPPER_NAME}_FOUND)
     set(VERSION_STRING ${UPPER_NAME}_VERSION_STRING)
-    if(NOT DEFINED ${IS_FOUND}) #if the package was found anywhere
+    if(NOT DEFINED ${IS_FOUND}) #if the package was found anywhere 
         set(${IS_FOUND} FALSE)
     endif()
 
