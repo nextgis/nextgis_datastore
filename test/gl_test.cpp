@@ -58,7 +58,11 @@ TEST(GlTests, PolygonTriangulatorTest)
     tile->fill(1, &polygon, 0);
 
     size_t vertexBufferSize = tile->getVertexBufferSize();
-    EXPECT_EQ(vertexBufferSize, 24);  // 8 vertices * 3 coordinates
+
+    // For SimpleFillStyle, 8 vertices * 3 coordinates
+    //EXPECT_EQ(vertexBufferSize, 24);
+    // For SimpleFillBorderedStyle, LineJoinType::Bevel
+    EXPECT_EQ(vertexBufferSize, 220);
 
     size_t indexBufferSize = tile->getIndexBufferSize();
     EXPECT_EQ(indexBufferSize, 24);  // 8 triangles * 3 indices
