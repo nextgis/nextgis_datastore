@@ -189,7 +189,8 @@ void FeatureRenderLayer::initStyle()
             SimplePointStyle* style = new SimplePointStyle();
             m_style.reset(style);
             m_style->setColor({0, 0, 255, 255});
-            style->setRadius(9.0f);
+            style->setType(PT_CIRCLE);
+            style->setSize(9.0f);
         } break;
 
         case wkbMultiLineString:
@@ -202,8 +203,14 @@ void FeatureRenderLayer::initStyle()
 
         case wkbMultiPolygon:
         case wkbPolygon: {
-            m_style.reset(new SimpleFillStyle());
+//            SimpleFillStyle* style = new SimpleFillStyle();
+//            m_style.reset(style);
+//            m_style->setColor({255, 0, 0, 255});
+            SimpleFillBorderedStyle* style = new SimpleFillBorderedStyle();
+            m_style.reset(style);
             m_style->setColor({255, 0, 0, 255});
+            style->setBorderWidth(2);
+            style->setBorderColor({0, 0, 0, 255});
         } break;
 
         default:
@@ -257,8 +264,8 @@ void FeatureRenderLayer::fillRenderBuffers()
         }
 
         int numPoints = 4;
-        if (!GlBuffer::canGlobalStoreVertexesWithNormals(4 * numPoints)
-                || !GlBuffer::canGlobalStoreIndexes(6 * numPoints)) {
+        if (!GlBuffer::canGlobalStoreVertices(4 * numPoints, true)
+                || !GlBuffer::canGlobalStoreIndices(6 * numPoints)) {
             cout << "can not store, m_renderZoom " << ((int) m_renderZoom)
                  << "\n";
             cout << "GlBuffer::getGlobalVertexBufferSize() "
@@ -387,8 +394,8 @@ void ngs::FeatureRenderLayer::drawTiles()
     int finalIndexBufferSize = 0;
     for (const GlBufferBucketSharedPtr& tile : m_tiles) {
         tile->draw(*m_style.get());
-        finalVertexBufferSize += tile->getFinalVertexBufferSize();
-        finalIndexBufferSize += tile->getFinalIndexBufferSize();
+        finalVertexBufferSize += tile->getVertexBufferSize();
+        finalIndexBufferSize += tile->getIndexBufferSize();
     }
 
     cout << "drawTiles(), finalVertexBufferSize == " << finalVertexBufferSize

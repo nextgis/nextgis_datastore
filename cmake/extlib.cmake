@@ -40,6 +40,9 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
 
     set(WITH_GDAL ON CACHE BOOL "GDAL on" FORCE)
 
+    set(WITH_Boost ON CACHE BOOL "Boost on" FORCE)
+    set(WITH_CGAL ON CACHE BOOL "CGAL on" FORCE)
+
     set(WITH_SQLite3_EXTERNAL ON CACHE BOOL "SQLite3 external on" FORCE)
     set(WITH_OpenSSL_EXTERNAL ON CACHE BOOL "OpenSSL external on" FORCE)
     set(WITH_ICONV_EXTERNAL ON CACHE BOOL "iconv external on")
@@ -54,6 +57,8 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     set(WITH_PNG_EXTERNAL ON CACHE BOOL "PNG external on" FORCE)
     set(WITH_GDAL_EXTERNAL ON CACHE BOOL "GDAL external on" FORCE)
 
+    set(WITH_Boost_EXTERNAL ON CACHE BOOL "Boost external on" FORCE)
+    set(WITH_CGAL_EXTERNAL ON CACHE BOOL "CGAL external on" FORCE)
 
     set(WITH_JPEG12 OFF CACHE BOOL "JPEG12 off" FORCE)
     set(WITH_JPEG12_EXTERNAL OFF CACHE BOOL "JPEG12 external off" FORCE)
@@ -77,7 +82,12 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     add_definitions (-DHAVE_ICONV_H)
     add_definitions (-DHAVE_ZLIB_H)
     add_definitions (-DHAVE_OPENSSLV_H)
+
+    add_definitions (-DHAVE_BOOST_VERSION_HPP)
+    add_definitions (-DHAVE_CGAL_VERSION_H)
 endif()
+
+find_anyproject(CGAL REQUIRED SHARED OFF)
 
 find_anyproject(JSONC REQUIRED SHARED OFF)
 
@@ -468,6 +478,30 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         string(REPLACE "openssl" "" OPENSSL_PATH ${OPENSSL_PATH})
         include_directories (${OPENSSL_PATH})
         add_definitions (-DHAVE_OPENSSLV_H)
+    endif()
+
+    #include "boost/version.hpp"
+    find_path(BOOST_PATH version.hpp PATHS
+        ${THIRD_PARTY_INCLUDE_PATH}/boost
+        /usr/include/boost
+        /usr/local/include/boost)
+    if(BOOST_PATH)
+        # cut boost
+        string(REPLACE "boost" "" BOOST_PATH ${BOOST_PATH})
+        include_directories (${BOOST_PATH})
+        add_definitions (-DHAVE_BOOST_VERSION_HPP)
+    endif()
+
+    #include "CGAL/version.h"
+    find_path(CGAL_PATH version.h PATHS
+        ${THIRD_PARTY_INCLUDE_PATH}/CGAL
+        /usr/include/CGAL
+        /usr/local/include/CGAL)
+    if(CGAL_PATH)
+        # cut CGAL
+        string(REPLACE "CGAL" "" CGAL_PATH ${CGAL_PATH})
+        include_directories (${CGAL_PATH})
+        add_definitions (-DHAVE_CGAL_VERSION_H)
     endif()
 
 endif()

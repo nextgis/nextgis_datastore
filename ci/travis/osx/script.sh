@@ -92,6 +92,22 @@ cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DWITH_ZLIB=ON -DWITH_EXPAT=ON -D
 cmake --build . --config release -- -j 4
 cmake --build . --config release --target install
 
+echo "\n== Build Boost =========================================================\n"
+cd $HOME/build/nextgis/lib_boost
+mkdir build
+cd build
+cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCMAKE_INSTALL_PREFIX=$HOME/build/nextgis/lib_boost/inst ..
+cmake --build . --config release -- -j 4
+cmake --build . --config release --target install
+
+echo "\n== Build CGAL ==========================================================\n"
+cd $HOME/build/nextgis/lib_cgal
+mkdir build
+cd build
+cmake -DOSX_FRAMEWORK=ON -DREGISTER_PACKAGE=ON -DSUPPRESS_VERBOSE_OUTPUT=ON -DCMAKE_INSTALL_PREFIX=$HOME/build/nextgis/lib_cgal/inst ..
+cmake --build . --config release -- -j 4
+cmake --build . --config release --target install
+
 echo "\n++ Build NextGIS Datastore +++++++++++++++++++++++++++++++++++++++++++++\n"
 export GDAL_DATA=$HOME/build/nextgis/lib_gdal/data
 export PROJ_LIB=$HOME/build/nextgis/lib_proj/nad

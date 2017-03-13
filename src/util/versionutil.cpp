@@ -79,6 +79,14 @@
 #include "openssl/opensslv.h"
 #endif
 
+#ifdef HAVE_BOOST_VERSION_HPP
+#include "boost/version.hpp"
+#endif
+
+#ifdef HAVE_CGAL_VERSION_H
+#include "CGAL/version.h"
+#endif
+
 #ifndef _LIBICONV_VERSION
 #define _LIBICONV_VERSION 0x010E
 #endif
@@ -200,6 +208,14 @@ int ngs::getVersion(const char* request)
     else if(EQUAL(request, "openssl"))
         return OPENSSL_VERSION_NUMBER;
 #endif
+#ifdef HAVE_BOOST_VERSION_HPP
+    else if(EQUAL(request, "boost"))
+        return BOOST_VERSION;
+#endif
+#ifdef HAVE_CGAL_VERSION_H
+    else if(EQUAL(request, "CGAL"))
+        return CGAL_VERSION_NR;
+#endif
     else if(EQUAL(request, "self"))
         return NGS_VERSION_NUM;
     return 0;
@@ -293,6 +309,21 @@ const char* ngs::getVersionString(const char* request)
         int minor = atoi(val.substr (3, 2).c_str ());
         int rev = atoi(val.substr (5, 2).c_str ());
         return CPLSPrintf("%d.%d.%d", major, minor, rev);
+    }
+#endif
+#ifdef HAVE_BOOST_VERSION_HPP
+    else if(EQUAL(request, "boost")) {
+        int major = BOOST_VERSION / 100000;
+        int minor = BOOST_VERSION / 100 % 1000;
+        int rev = BOOST_VERSION % 100;
+        return CPLSPrintf("%d.%d.%d", major, minor, rev);
+    }
+#endif
+#ifdef HAVE_CGAL_VERSION_H
+    else if(EQUAL(request, "CGAL")) {
+        int major = CGAL_VERSION_NR / 10000000 % 100;
+        int minor = CGAL_VERSION_NR / 100000 % 100;
+        return CPLSPrintf("%d.%d", major, minor);
     }
 #endif
     else if(EQUAL(request, "self"))

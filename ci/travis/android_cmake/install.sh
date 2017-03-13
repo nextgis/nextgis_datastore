@@ -16,7 +16,7 @@ sudo apt-get install -qq libstdc++6 swig3.0
 
 mkdir -p $HOME/downloads
 wget -c -N -P $HOME/downloads https://dl.google.com/android/repository/android-ndk-r13b-linux-x86_64.zip
+wget -c -N -P $HOME/downloads https://dl.google.com/android/repository/cmake-3.6.3155560-linux-x86_64.zip
 echo "Extract files"
 unzip -q $HOME/downloads/android-ndk-r13b-linux-x86_64.zip -d $HOME/android-ndk
-echo "Make toolchain"
-python $HOME/android-ndk/android-ndk-r13b/build/tools/make_standalone_toolchain.py --arch arm --api 21 --install-dir $HOME/android-toolchain
+unzip -q $HOME/downloads/cmake-3.6.3155560-linux-x86_64.zip -d $HOME/android-cmake

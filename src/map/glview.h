@@ -2,9 +2,9 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
- * Author: NikitaFeodonit, nfeodonit@yandex.com
+*  Author: NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
-*  Copyright (C) 2016 NextGIS, <info@nextgis.com>
+*  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -22,12 +22,12 @@
 #ifndef NGSGLVIEW_H
 #define NGSGLVIEW_H
 
-
 #include "api_priv.h"
 #include "vector.h"
 
 // stl
 #include <atomic>
+#include <list>
 #include <memory>
 #include <set>
 #include <vector>
@@ -65,6 +65,10 @@
 #define ngsCheckGLEerror(cmd) (cmd)
 #define ngsCheckEGLEerror(cmd) (cmd)
 #endif
+
+#define GL_BUFFERS_COUNT 3
+#define VERTEX_SIZE 3
+#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
 
 #ifdef OFFSCREEN_GL // need for headless desktop drawing (i.e. some preview gerneartion)
 #include "EGL/egl.h"
@@ -183,6 +187,12 @@ enum ngsShaderType {
     SH_FRAGMENT
 };
 
+enum ngsBufferType {
+    BF_VERTICES = 0,
+    BF_INDICES,
+    BF_BORDER_INDICES
+};
+
 enum class LineCapType : uint8_t {
     Butt,
     Square,
@@ -214,48 +224,57 @@ public:
     void bind();
     bool bound() const;
 
-    bool canStoreVertexes(size_t amount) const;
-    bool canStoreVertexesWithNormals(size_t amount) const;
-    bool canStoreIndexes(size_t amount) const;
+    static bool canGlobalStoreVertices(size_t amount, bool withNormals = false);
+    static bool canGlobalStoreIndices(
+            size_t amount, enum ngsBufferType indexType = BF_INDICES);
 
-    static bool canGlobalStoreVertexes(size_t amount);
-    static bool canGlobalStoreVertexesWithNormals(size_t amount);
-    static bool canGlobalStoreIndexes(size_t amount);
+    bool canStoreVertices(size_t amount, bool withNormals = false) const;
+    bool canStoreIndices(
+            size_t amount, enum ngsBufferType indexType = BF_INDICES) const;
 
-    void addVertex(float x, float y, float z);
-    void addVertexWithNormal(float vX, float vY, float vZ, float nX, float nY);
-    void addIndex(unsigned short index);
-    void addTriangleIndexes(
-            unsigned short one, unsigned short two, unsigned short three);
+    void addVertex(float x,
+            float y,
+            float z,
+            bool withNormals = false,
+            float nX = 0,
+            float nY = 0);
+    void addIndex(
+            unsigned short index, enum ngsBufferType indexType = BF_INDICES);
+    void addTriangleIndices(unsigned short one,
+            unsigned short two,
+            unsigned short three,
+            enum ngsBufferType indexType = BF_INDICES);
 
     size_t getVertexBufferSize() const;
-    size_t getIndexBufferSize() const;
-    size_t getFinalVertexBufferSize() const;
-    size_t getFinalIndexBufferSize() const;
+    size_t getIndexBufferSize(enum ngsBufferType indexType = BF_INDICES) const;
 
     static std::int_fast32_t getGlobalVertexBufferSize();
-    static std::int_fast32_t getGlobalIndexBufferSize();
+    static std::int_fast32_t getGlobalIndexBufferSize(
+            enum ngsBufferType indexType = BF_INDICES);
     static std::int_fast32_t getGlobalHardBuffersCount();
 
-    GLuint getBuffer(enum ngsShaderType type) const;
+    GLuint getGlHardBufferId(enum ngsBufferType type) const;
 
 protected:
     bool m_bound;
     size_t m_finalVertexBufferSize;
     size_t m_finalIndexBufferSize;
+    size_t m_finalBorderIndexBufferSize;
 
     std::vector<GLfloat> m_vertices;
     std::vector<GLushort> m_indices;
-    GLuint m_glHardBuffers[2];
+    std::vector<GLushort> m_borderIndices;
+    GLuint m_glHardBufferIds[GL_BUFFERS_COUNT];
 
     static std::atomic_int_fast32_t m_globalVertexBufferSize;
     static std::atomic_int_fast32_t m_globalIndexBufferSize;
+    static std::atomic_int_fast32_t m_globalBorderIndexBufferSize;
     static std::atomic_int_fast32_t m_globalHardBuffersCount;
 };
 
-// http://stackoverflow.com/a/13196986
 using GlBufferSharedPtr = std::shared_ptr<GlBuffer>;
 
+// http://stackoverflow.com/a/13196986
 template <typename... Args>
 GlBufferSharedPtr makeSharedGlBuffer(Args&&... args)
 {
@@ -295,14 +314,15 @@ public:
     bool intersects(const OGREnvelope& ext) const;
     char crossExtent() const;
 
-    size_t getFinalVertexBufferSize() const;
-    size_t getFinalIndexBufferSize() const;
+    size_t getVertexBufferSize() const;
+    size_t getIndexBufferSize() const;
 
 protected:
     void fill(const OGRGeometry* geom, float level);
     void fillPoint(const OGRPoint* point, float level);
     void fillLineString(const OGRLineString* line, float level);
     void fillPolygon(const OGRPolygon* polygon, float level);
+    void fillBorderedPolygon(const OGRPolygon* polygon, float level);
 
     void addCurrentLineVertex(const Vector2& currPt,
             float level,
@@ -386,7 +406,6 @@ protected:
     bool m_extensionLoad, m_pBkChanged;
 };
 
-}
+}  // namespace ngs
 
-
-#endif // NGSGLVIEW_H
+#endif  // NGSGLVIEW_H

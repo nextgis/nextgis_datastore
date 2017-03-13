@@ -20,7 +20,7 @@
 # along with this script.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-set(repo_name lib_curl)
-set(repo_project curl)
-set(repo_include curl)
-
+set(repo_name lib_boost)
+set(repo_project boost)
+set(repo_include)
+set(repo_header_only ON)

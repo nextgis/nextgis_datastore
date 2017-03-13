@@ -28,34 +28,48 @@ set(HHEADERS
 )
 
 set(HHEADER_PRIV
-    mapstore.h
+    glfillers.h
+    glview.h
+    layer.h
     map.h
+    mapstore.h
     maptransform.h
     mapview.h
     matrix.h
-    glview.h
-    layer.h
     renderlayer.h
     style.h
     vector.h
 )
 
 set(CSOURCES
-    mapstore.cpp
+    glfillers.cpp
+    glview.cpp
+    layer.cpp
     map.cpp
+    mapstore.cpp
     maptransform.cpp
     mapview.cpp
     matrix.cpp
-    glview.cpp
-    layer.cpp
     renderlayer.cpp
     style.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
 
+if(WITH_CGAL_EXTERNAL)
+    add_dependencies(${LIB_NAME} CGAL_EP)
+endif()
+
 if(WITH_JSONC_EXTERNAL)
     add_dependencies(${LIB_NAME} JSONC_EP)
+endif()
+
+if(WITH_OpenSSL_EXTERNAL)
+    add_dependencies(${LIB_NAME} OpenSSL_EP)
+endif()
+
+if(WITH_CURL_EXTERNAL)
+    add_dependencies(${LIB_NAME} CURL_EP)
 endif()
 
 if(WITH_GDAL_EXTERNAL)

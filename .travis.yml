@@ -66,6 +66,23 @@ matrix:
       env:
         - BUILD_NAME=android
         - DETAILS=""
+    - os: linux
+      compiler: clang
+      language: cpp
+      sudo: true
+      dist: trusty
+      cache:
+        apt: true
+        directories:
+          - $HOME/.ccache
+          - $HOME/downloads
+      apt:
+        packages:
+          - ccache
+          - swig
+      env:
+        - BUILD_NAME=android_cmake
+        - DETAILS=""
 
 install:
   - ./ci/travis/${BUILD_NAME}/install.sh
