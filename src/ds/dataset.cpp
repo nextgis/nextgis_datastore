@@ -17,12 +17,15 @@
 *   You should have received a copy of the GNU General Public License
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#include "api.h"
+
 #include "dataset.h"
+
+#include <iostream>
+
 #include "datasetcontainer.h"
 #include "featuredataset.h"
-#include <iostream>
 #include "rasterdataset.h"
+#include "ngstore/api.h"
 #include "util/stringutil.h"
 
 using namespace ngs;

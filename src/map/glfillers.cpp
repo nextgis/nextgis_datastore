@@ -21,7 +21,7 @@
 
 #include "map/glfillers.h"
 
-#include "util/constants.h"
+#include "ngstore/util/constants.h"
 
 #include "cpl_error.h"
 

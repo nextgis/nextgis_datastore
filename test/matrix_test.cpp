@@ -20,10 +20,9 @@
  ****************************************************************************/
 
 #include "test.h"
-#include "map/matrix.h"
-#include "util/constants.h"
 
-#define DEG2RAD M_PI / 180.0
+#include "map/matrix.h"
+#include "ngstore/util/constants.h"
 
 ngs::Matrix4 createMatix(){
     ngs::Matrix4 mat4;

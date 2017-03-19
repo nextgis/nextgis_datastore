@@ -29,8 +29,6 @@ set(CMAKE_COLOR_MAKEFILE ON)
 # set path to additional CMake modules
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-set(PACKAGE_ID "com.nextgis.store.bindings")
-
 set(BUILD_TARGET_PLATFORM "Desktop" CACHE STRING "Select build target platform")
 set_property(CACHE BUILD_TARGET_PLATFORM PROPERTY STRINGS "ANDROID" "IOS" "Desktop")
 
@@ -45,7 +43,7 @@ project(ngstore)
 include(GNUInstallDirs)
 set(INSTALL_BIN_DIR ${CMAKE_INSTALL_FULL_BINDIR} CACHE INTERNAL "Installation directory for executables" FORCE)
 set(INSTALL_LIB_DIR ${CMAKE_INSTALL_FULL_LIBDIR} CACHE INTERNAL "Installation directory for libraries" FORCE)
-set(INSTALL_INC_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR}/ngstore CACHE INTERNAL "Installation directory for headers" FORCE)
+set(INSTALL_INC_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR} CACHE INTERNAL "Installation directory for headers" FORCE)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_definitions(-D_DEBUG)
@@ -53,7 +51,8 @@ endif()
 
 include(util)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
 check_version(NGS_MAJOR_VERSION NGS_MINOR_VERSION NGS_REV_VERSION)
 set(VERSION ${NGS_MAJOR_VERSION}.${NGS_MINOR_VERSION}.${NGS_REV_VERSION})
@@ -67,6 +66,7 @@ include(extlib)
 
 add_subdirectory(bindings)
 add_subdirectory(src)
+add_subdirectory(include)
 add_subdirectory(test)
 
 # uninstall

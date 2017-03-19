@@ -22,7 +22,7 @@
 #include "settings.h"
 #include "fileutil.h"
 
-using namespace ngs;
+namespace ngs {
 
 #define SETTINGS_FILE "settings"
 #define SETTINGS_FILE_EXT "json"
@@ -57,3 +57,4 @@ bool Settings::save()
     return false;
 }
 
+}

@@ -22,76 +22,8 @@
 #ifndef NGSAPI_H
 #define NGSAPI_H
 
-#include "common.h"
-
-/**
- * @brief The NextGIS store and visualisation library error codes enum
- */
-enum ngsErrorCodes {
-    EC_SUCCESS = 0,        /**< Success */
-    EC_IN_PROCESS,         /**< In process */
-    EC_PENDING,            /**< Pending */
-    EC_CANCELED,           /**< Canceled */
-    EC_UNEXPECTED_ERROR,   /**< Unexpected error */
-    EC_PATH_NOT_SPECIFIED, /**< Path is not specified */
-    EC_INVALID,            /**< Path, map, structure, etc. is invalid */
-    EC_UNSUPPORTED,        /**< The feature is unsupported */
-    EC_CREATE_FAILED,      /**< Create failed */
-    EC_DELETE_FAILED,      /**< Failed to delete file, folder or something else */
-    EC_SAVE_FAILED,        /**< Failed to save file, folder or something else */
-    EC_SET_FAILED,         /**< Failed to set value */
-    EC_OPEN_FAILED,        /**< Failed to open file, folder or something else */
-    EC_INSERT_FAILED,      /**< Insert new feature failed */
-    EC_UPDATE_FAILED,      /**< Update feature failed */
-    EC_INIT_FAILED,        /**< Initialise failed */
-    EC_COPY_FAILED,        /**< Copy failed */
-    EC_MOVE_FAILED,        /**< Move failed */
-    EC_CLOSE_FAILED,       /**< Close failed */
-};
-
-/**
- * @brief The table, datasource, map and etc. change codes enum
- */
-enum ngsChangeCodes {
-    CC_NOP = 0,
-    CC_CREATE_RESOURCE,
-    CC_DELETE_RESOURCE,
-    CC_CHANGE_RESOURCE,
-    CC_CREATE_FEATURE,
-    CC_CHANGE_FEATURE,
-    CC_DELETE_FEATURE,
-    CC_DELETEALL_FEATURES,
-    CC_CREATE_ATTACHMENT,
-    CC_CHANGE_ATTACHMENT,
-    CC_DELETE_ATTACHMENT,
-    CC_DELETEALL_ATTACHMENTS
-};
-
-/**
- * @brief The notification source code enum
- */
-enum ngsSourceCodes {
-    SC_UNDEFINED = 0,
-    SC_DATA_STORE,
-    SC_MAP_STORE,
-    SC_DATASET
-};
-
-/**
- * @brief The draw state enum
- */
-enum ngsDrawState {
-    DS_NORMAL = 1,  /**< normal draw */
-    DS_REDRAW,      /**< free all caches and draw from the scratch */
-    DS_PRESERVED    /**< draw from caches */
-};
-
-enum ngsDataStoreOptionsTypes {
-    OT_CREATE_DATASOURCE,
-    OT_CREATE_DATASET,
-    OT_OPEN,
-    OT_LOAD
-};
+#include "ngstore/common.h"
+#include "ngstore/codes.h"
 
 /**
  * @brief Prototype of function, which executed periodically during some long
@@ -118,75 +50,23 @@ typedef int (*ngsProgressFunc)(unsigned int id, double complete,
 typedef void (*ngsNotifyFunc)(enum ngsSourceCodes src, const char* table, long row,
                               enum ngsChangeCodes operation);
 
-typedef struct _ngsRGBA {
-    unsigned char R;
-    unsigned char G;
-    unsigned char B;
-    unsigned char A;
-} ngsRGBA;
-
-/* Spatial coordinates */
-typedef struct _ngsCoordinate {
-    double X;
-    double Y;
-    double Z;
-} ngsCoordinate;
-
-/* Display coordinates */
-typedef struct _ngsPosition {
-    double X;
-    double Y;
-} ngsPosition;
-
-typedef struct _ngsLoadTaskInfo {
-    const char* name;
-    const char* newNames;
-    const char* dstPath;
-    enum ngsErrorCodes status;
-} ngsLoadTaskInfo;
-
-enum ngsDirection {
-    X = 0,
-    Y,
-    Z
-};
-
-enum ngsDriverType {
-    DT_VECTOR     = 1 << 1,
-    DT_RASTER     = 1 << 2,
-    DT_SERVICE    = 1 << 3,
-    DT_NETWORK    = 1 << 4,
-    DT_GNM        = 1 << 5,
-    DT_VECTOR_ALL = 1 << 6,
-    DT_RASTER_ALL = 1 << 7
-};
-
-enum ngsFileMode {
-    FM_READ   = 1 << 1,
-    FM_WRITE  = 1 << 2
-};
-
-enum ngsOptions {
-    OPT_NONE = 0,
-    OPT_DEBUGMODE = 1 << 1
-};
-
 /**
  * Common functions
  */
+
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
-NGS_EXTERNC int ngsInit(const char* dataPath, const char* cachePath); // TODO: change to  char **papszOptions -> CACHE_DIR, SETTINGS_DIR, GDAL_DATA, SHARE_DIR, DEBUG_MODE ...
+NGS_EXTERNC int ngsInit(char **options = nullptr);
 NGS_EXTERNC void ngsUninit();
-NGS_EXTERNC void ngsOnPause();
-NGS_EXTERNC void ngsOnLowMemory();
-NGS_EXTERNC void ngsSetOptions(ngsOptions options);
-NGS_EXTERNC ngsOptions ngsGetOptions();
+NGS_EXTERNC void ngsFreeResources(bool full = false);
+
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
+
 /**
  * Storage functions
  */
+
 NGS_EXTERNC int ngsDataStoreInit(const char* path);
 NGS_EXTERNC int ngsDataStoreDestroy(const char* path, const char* cachePath);
 NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
@@ -206,10 +86,10 @@ NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionTy
  *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
 NGS_EXTERNC int ngsMapInit(unsigned char mapId);
-NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
+NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);
-NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
+NGS_EXTERNC int ngsMapOpen(const char* path);
 NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
 NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
@@ -235,4 +115,4 @@ NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, doubl
 NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 
-#endif // API_H
+#endif // NGSAPI_H

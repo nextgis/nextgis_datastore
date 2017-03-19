@@ -18,11 +18,13 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include <algorithm>
-#include "ds/featuredataset.h"
-#include <iostream>
 #include "renderlayer.h"
-#include "util/constants.h"
+
+#include <algorithm>
+#include <iostream>
+
+#include "ds/featuredataset.h"
+#include "ngstore/util/constants.h"
 #include "util/geometryutil.h"
 
 #ifdef _DEBUG

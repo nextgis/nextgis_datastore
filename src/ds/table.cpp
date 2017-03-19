@@ -19,8 +19,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "table.h"
-#include "api.h"
 #include "datastore.h"
+#include "ngstore/api.h"
 
 using namespace ngs;
 

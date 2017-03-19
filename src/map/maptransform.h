@@ -24,7 +24,7 @@
 #include "ogr_core.h"
 
 #include "matrix.h"
-#include "api.h"
+#include "ngstore/api.h"
 
 namespace ngs {
 

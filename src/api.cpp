@@ -18,45 +18,34 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "api.h"
-#include "version.h"
-
-#include "ds/datastore.h"
-#include "map/mapstore.h"
-#include "util/constants.h"
-#include "util/versionutil.h"
+#include "ngstore/api.h"
 
 // stl
 #include <iostream>
 
+#include "ds/datastore.h"
+#include "map/mapstore.h"
+#include "ngstore/version.h"
+#include "ngstore/util/constants.h"
+#include "util/error.h"
+#include "util/versionutil.h"
+
 using namespace ngs;
+
+// TODO: Add catalog support. Maybe some path prefix for catalog paths - ngc://
+// TODO: Update/Fix unit test. Add GL offscreen rendering GL test
+// TODO: Add support to Framebuffer Objects rendering
+// TODO: Load and tiled vector data
 
 static DataStorePtr gDataStore;
 static MapStorePtr gMapStore;
-static ngsOptions gOptions = OPT_NONE;
 static CPLString gFilters;
 
-/**
- * @brief ngsInitDataStore Open or create data store. All datastore functgions
- * will work with this datastore object until new one willn ot open.
- * @param path Path to create datastore (geopackage database name)
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-int ngsDataStoreInit(const char *path)
-{
-    if(gDataStore && gDataStore->path().compare (path) == 0)
-        return ngsErrorCodes::EC_SUCCESS;
-    gDataStore = DataStore::openOrCreate(path);
-    if(nullptr == gDataStore)
-        return ngsErrorCodes::EC_OPEN_FAILED;
-    return ngsErrorCodes::EC_SUCCESS;
-}
+static bool debugMode = false;
 
-void initMapStore()
+bool isDebugMode()
 {
-    if(nullptr == gMapStore){
-        gMapStore.reset (new MapStore());
-    }
+    return debugMode;
 }
 
 /* special hook for find EPSG files
@@ -75,9 +64,13 @@ void initGDAL(const char* dataPath, const char* cachePath)
     CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGS_USERAGENT);
     CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
     CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
+#ifdef NGS_MOBILE // for mobile devices
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk");
+#endif
     if(cachePath)
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
+    if(isDebugMode())
+        CPLSetConfigOption("CPL_DEBUG", "ON");
 
 #ifdef _DEBUG
     std::cout << "HTTP user agent set to: " << NGS_USERAGENT << "\n"
@@ -133,15 +126,30 @@ const char* ngsGetVersionString(const char* request)
 
 /**
  * @brief init library structures
- * @param dataPath path to GDAL_DATA folder
- * @param cachePath path to cache folder
+ * @param options Init library options list:
+ * - CACHE_DIR - path to cache directory (mainly for TMS/WMS cache)
+ * - SETTINGS_DIR - path to settings directory
+ * - GDAL_DATA - path to GDAL data directory
+ * - SHARE_DIR - TBD
+ * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
+ * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsInit(const char* dataPath, const char* cachePath)
+int ngsInit(char **options)
 {
+    debugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
+    const char* dataPath = CSLFetchNameValue(options, "GDAL_DATA");
+    const char* cachePath = CSLFetchNameValue(options, "CACHE_DIR");
+//    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
+
+#ifdef HAVE_LIBINTL_H
+    const char* locale = CSLFetchNameValue(options, "LOCALE");
+    //TOOD: Do we need std::setlocale(LC_ALL, locale); execution here or it will call from programm?
+#endif
+
 #ifdef NGS_MOBILE
     if(nullptr == dataPath)
-        return ngsErrorCodes::EC_PATH_NOT_SPECIFIED;
+        return returnError(ngsErrorCodes::EC_NOT_SPECIFIED, _("GDAL_PATH option is required"));
 #endif
 
     initGDAL(dataPath, cachePath);
@@ -159,6 +167,41 @@ void ngsUninit()
 
     GDALDestroyDriverManager();
 }
+
+void initMapStore()
+{
+    if(nullptr == gMapStore){
+        gMapStore.reset (new MapStore());
+    }
+}
+/**
+ * @brief Inform library to free resources as possible
+ */
+void ngsFreeResources(bool full)
+{
+
+    initMapStore();
+    gMapStore->onLowMemory ();
+    if(nullptr != gDataStore)
+        gDataStore->onLowMemory ();
+}
+
+/**
+ * @brief ngsInitDataStore Open or create data store. All datastore functgions
+ * will work with this datastore object until new one willn ot open.
+ * @param path Path to create datastore (geopackage database name)
+ * @return ngsErrorCodes value - SUCCES if everything is OK
+ */
+int ngsDataStoreInit(const char *path)
+{
+    if(gDataStore && gDataStore->path().compare (path) == 0)
+        return ngsErrorCodes::EC_SUCCESS;
+    gDataStore = DataStore::openOrCreate(path);
+    if(nullptr == gDataStore)
+        return ngsErrorCodes::EC_OPEN_FAILED;
+    return ngsErrorCodes::EC_SUCCESS;
+}
+
 
 /**
  * @brief Delete storage directory and cache (optional)
@@ -219,16 +262,6 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
     return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
 }
 
-/**
- * @brief Inform library if low memory event occures
- */
-void ngsOnLowMemory()
-{
-    initMapStore();
-    gMapStore->onLowMemory ();
-    if(nullptr != gDataStore)
-        gDataStore->onLowMemory ();
-}
 
 /**
  * @brief Set notify function executed on some library events
@@ -240,26 +273,6 @@ void ngsSetNotifyFunction(ngsNotifyFunc callback)
         gDataStore->setNotifyFunc (callback);
     initMapStore();
     gMapStore->setNotifyFunc (callback);
-}
-
-/**
- * @brief Inform library to free resources as possible
- */
-void ngsOnPause()
-{
-    // just free maps
-    if(nullptr != gMapStore)
-        gMapStore->onLowMemory ();
-}
-
-void ngsSetOptions(ngsOptions options)
-{
-    gOptions = options;
-}
-
-ngsOptions ngsGetOptions()
-{
-    return gOptions;
 }
 
 /**
@@ -362,7 +375,7 @@ double ngsMapGetScale(unsigned char mapId)
  * @param maxY maximum Y coordinate
  * @return 0 if create failed or map id.
  */
-unsigned char ngsMapCreate(const char* name, const char* description,
+int ngsMapCreate(const char* name, const char* description,
                  unsigned short epsg, double minX, double minY,
                  double maxX, double maxY)
 {
@@ -379,7 +392,7 @@ unsigned char ngsMapCreate(const char* name, const char* description,
  * @param path Path to map file
  * @return 0 if open failed or map id.
  */
-unsigned char ngsMapOpen(const char *path)
+int ngsMapOpen(const char *path)
 {
     // for this API before work with map datastore must be open
     if(nullptr == gDataStore)

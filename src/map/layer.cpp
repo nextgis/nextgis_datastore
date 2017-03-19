@@ -18,10 +18,10 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include "layer.h"
 
 #include "ds/datastore.h"
-#include "layer.h"
-#include "util/constants.h"
+#include "ngstore/util/constants.h"
 
 using namespace ngs;
 

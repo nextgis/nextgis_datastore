@@ -20,12 +20,14 @@
  ****************************************************************************/
 
 #include "test.h"
-#include "ds/datastore.h"
-#include "ds/featuredataset.h"
-#include "ds/rasterdataset.h"
 
 // gdal
 #include "cpl_conv.h"
+
+
+#include "ds/datastore.h"
+#include "ds/featuredataset.h"
+#include "ds/rasterdataset.h"
 
 static int counter = 0;
 
@@ -40,6 +42,7 @@ int ngsTestProgressFunc(unsigned int /*taskId*/, double /*complete*/,
     return TRUE;
 }
 
+/*
 TEST(StoreTests, TestCreate) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
     const char* epsgPath = CPLFindFile ("gdal", "gcs.csv");
@@ -88,7 +91,7 @@ TEST(StoreTests, TestDeleteTMS){
     EXPECT_GE(counter, 1);
 }
 */
-
+/*
 TEST(StoreTests, TestLoad) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     ASSERT_NE(storage, nullptr);
@@ -117,5 +120,4 @@ TEST(StoreTests, TestDelete) {
     EXPECT_EQ(CSLCount(CPLReadDir("./tmp")), 2); // . and ..
     ngsUninit();
 }
-
-
+*/

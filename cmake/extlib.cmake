@@ -88,6 +88,7 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
 endif()
 
 find_anyproject(CGAL REQUIRED SHARED OFF)
+find_anyproject(Boost REQUIRED)
 
 find_anyproject(JSONC REQUIRED SHARED OFF)
 

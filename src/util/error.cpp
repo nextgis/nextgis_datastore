@@ -18,34 +18,36 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include "error.h"
 
-#include "test.h"
+#include "cpl_error.h"
 
-#include "ngstore/codes.h"
-#include "util/jsondocument.h"
+namespace ngs {
 
-#define SETTINGS_FILE "./tmp/settings.json"
+int returnError(enum ngsErrorCodes errorCode, const char *fmt, ...)
+{
+    if(errorCode >= ngsErrorCodes::EC_UNEXPECTED_ERROR) {
+        va_list args;
 
-TEST(SettingsTests, WriteTest) {
-    // just try to create directory
-    VSIMkdir("./tmp", 0755);
-
-    ngs::JSONDocument doc;
-    ngs::JSONObject root = doc.getRoot();
-    root.add("one_level", true);
-    root.add("two_level/second_level", false);
-    root.add("three_level/second_level/third_level", true);
-    EXPECT_EQ(doc.save(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
+        // Expand the error message
+        va_start(args, fmt);
+        CPLErrorV(CE_Failure, CPLE_AppDefined, fmt, args);
+        va_end(args);
+    }
+    return errorCode;
 }
 
-TEST(SettingsTests, ReadTest) {
-    ngs::JSONDocument doc;
-    ASSERT_EQ(doc.load(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
-    ngs::JSONObject root = doc.getRoot();
-    EXPECT_EQ(root.getBool("one_level", false), true);
-    EXPECT_EQ(root.getBool("two_level/second_level", true), false);
-    EXPECT_EQ(root.getBool("three_level/second_level/third_level", false), true);
+int returnWarning(enum ngsErrorCodes errorCode, const char *fmt, ...)
+{
+    if(errorCode >= ngsErrorCodes::EC_UNEXPECTED_ERROR) {
+        va_list args;
 
-    // delete settings file
-    VSIUnlink(SETTINGS_FILE);
+        // Expand the error message
+        va_start(args, fmt);
+        CPLErrorV(CE_Warning, CPLE_AppDefined, fmt, args);
+        va_end(args);
+    }
+    return errorCode;
+}
+
 }

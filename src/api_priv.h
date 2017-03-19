@@ -21,7 +21,7 @@
 #ifndef NGSAPI_PRIV_H
 #define NGSAPI_PRIV_H
 
-#include "api.h"
+#include "ngstore/api.h"
 #include "ogr_geometry.h"
 
 // stl
@@ -50,11 +50,12 @@ inline ngsRGBA ngsHEX2RGBA(int color) {
 #define ngsStaticCast(type, shared) static_cast<type*>(shared.get ())
 
 // http://stackoverflow.com/a/15012792
-inline bool isEqual(double val1, double val2) {return fabs(val1 - val2) <=
-            std::numeric_limits<double>::epsilon(); };
+inline bool isEqual(double val1, double val2) {
+    return fabs(val1 - val2) <= std::numeric_limits<double>::epsilon();
+}
 
 #define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
-// TODO: use gettext or something same to translate messages
+bool isDebugMode();
 
 #endif // NGSAPI_PRIV_H

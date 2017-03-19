@@ -54,4 +54,15 @@
 #define NGS_EXTERNC NGS_EXTERN
 #endif
 
+// TODO: Add gettext support
+// 1. CMake add generate translation macros
+// 2. Load catalog files code
+// 3. Init locale, etc.
+#ifdef HAVE_LIBINTL_H
+#include <libintl.h>
+#else
+#define gettext(String) (String)
+#define _(String) (String)
+#endif
+
 #endif // NGSCOMMON_H

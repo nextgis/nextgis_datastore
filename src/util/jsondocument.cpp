@@ -19,12 +19,12 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "jsondocument.h"
-#include "api.h"
+#include "ngstore/api.h"
 
 #include "cpl_vsi.h"
 #include "cpl_error.h"
 
-using namespace ngs;
+namespace ngs{
 
 #define JSON_PATH_DELIMITER "/"
 
@@ -343,4 +343,6 @@ JSONObject JSONArray::operator[](int key)
 const JSONObject JSONArray::operator[](int key) const
 {
     return JSONObject (json_object_array_get_idx(m_jsonObject, key));
+}
+
 }

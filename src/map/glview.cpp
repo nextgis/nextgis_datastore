@@ -25,7 +25,7 @@
 #include <iostream>
 #include "map/glfillers.h"
 #include "style.h"
-#include "util/constants.h"
+#include "ngstore/util/constants.h"
 
 /* Links:
 //https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html

@@ -20,7 +20,7 @@
  ****************************************************************************/
 
 #include "maputil.h"
-#include "constants.h"
+#include "ngstore/util/constants.h"
 
 #define MAX_TILES_COUNT 4096 // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
 

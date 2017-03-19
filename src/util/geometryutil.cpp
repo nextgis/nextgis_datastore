@@ -19,7 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "geometryutil.h"
-#include "constants.h"
+#include "ngstore/util/constants.h"
 
 OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
 {

@@ -22,15 +22,15 @@
 #define TEST_H
 
 #include "gtest/gtest.h"
-#include "api_priv.h"
+//#include "api_priv.h"
 
-#define TMS_URL "http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1"
-#define TMS_NAME "2gis"
-#define TMS_ALIAS "maps.2gis.com"
-#define TMS_COPYING "2gis (c)"
-#define TMS_EPSG 3857
-#define TMS_MIN_Z 0
-#define TMS_MAX_Z 18
-#define TMS_YORIG_TOP false
+//#define TMS_URL "http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1"
+//#define TMS_NAME "2gis"
+//#define TMS_ALIAS "maps.2gis.com"
+//#define TMS_COPYING "2gis (c)"
+//#define TMS_EPSG 3857
+//#define TMS_MIN_Z 0
+//#define TMS_MAX_Z 18
+//#define TMS_YORIG_TOP false
 
 #endif // TEST_H

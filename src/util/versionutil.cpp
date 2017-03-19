@@ -20,7 +20,7 @@
  ****************************************************************************/
 
 #include "versionutil.h"
-#include "version.h"
+#include "ngstore/version.h"
 
 // GDAL
 #include "cpl_csv.h"

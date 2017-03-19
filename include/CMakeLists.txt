@@ -22,55 +22,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-set(LIB_NAME ds)
-
-set(HHEADERS
-    datastore.h
-    dataset.h
-    datasetcontainer.h
-    spatialdataset.h
-    featuredataset.h
-    rasterdataset.h
-    table.h
-    storefeaturedataset.h
-)
-
-set(CSOURCES
-    datastore.cpp
-    dataset.cpp
-    datasetcontainer.cpp
-    spatialdataset.cpp
-    featuredataset.cpp
-    rasterdataset.cpp
-    table.cpp
-    storefeaturedataset.cpp
-)
-
-add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
-
-if(WITH_CGAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} CGAL_EP)
+if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ngstore DESTINATION "${INSTALL_INC_DIR}"
+        COMPONENT headers)
 endif()
-
-if(WITH_JSONC_EXTERNAL)
-    add_dependencies(${LIB_NAME} JSONC_EP)
-endif()
-
-if(WITH_OpenSSL_EXTERNAL)
-    add_dependencies(${LIB_NAME} OpenSSL_EP)
-endif()
-
-if(WITH_CURL_EXTERNAL)
-    add_dependencies(${LIB_NAME} CURL_EP)
-endif()
-
-if(WITH_GDAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} GDAL_EP)
-endif()
-
-set_target_properties(${LIB_NAME} PROPERTIES
-    CXX_STANDARD 11
-    C_STANDARD 11
-)
-
-set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)

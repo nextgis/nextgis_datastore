@@ -23,6 +23,7 @@
 ################################################################################
 
 if(BUILD_BINDINGS)
+    set(PACKAGE_ID "com.nextgis.store.bindings")
 
     find_exthost_package(SWIG REQUIRED)
 

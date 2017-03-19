@@ -18,10 +18,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "api.h"
-#include <cmath>
 #include "matrix.h"
-#include "util/constants.h"
+
+#include <cmath>
+
+#include "ngstore/api.h"
+#include "ngstore/util/constants.h"
 
 using namespace ngs;
 

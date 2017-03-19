@@ -24,7 +24,9 @@
 
 function(check_version major minor rev)
 
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/version.h VERSION_H_CONTENTS)
+    set(VERSION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/include/ngstore/version.h)
+
+    file(READ ${VERSION_FILE} VERSION_H_CONTENTS)
 
     string(REGEX MATCH "NGS_VERSION_MAJOR[ \t]+([0-9]+)"
       MAJOR_VERSION ${VERSION_H_CONTENTS})

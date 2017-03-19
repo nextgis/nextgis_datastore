@@ -25,10 +25,6 @@
 set(LIB_NAME util)
 
 set(HHEADERS
-    constants.h
-)
-
-set(HHEADER_PRIV
     geometryutil.h
     jsondocument.h
     maputil.h
@@ -53,7 +49,7 @@ if(UNIX)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-multichar")
 endif()
 
-add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
+add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
 if(WITH_CGAL_EXTERNAL)
     add_dependencies(${LIB_NAME} CGAL_EP)
@@ -75,12 +71,9 @@ if(WITH_GDAL_EXTERNAL)
     add_dependencies(${LIB_NAME} GDAL_EP)
 endif()
 
-set_property(TARGET ${LIB_NAME} PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${LIB_NAME} PROPERTY C_STANDARD 11)
+set_target_properties(${LIB_NAME} PROPERTIES
+    CXX_STANDARD 11
+    C_STANDARD 11
+)
 
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)
-
-if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
-    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}"
-        COMPONENT headers)
-endif()

@@ -22,8 +22,8 @@
 #include "datastore.h"
 #include "rasterdataset.h"
 #include "storefeaturedataset.h"
-#include "version.h"
-#include "util/constants.h"
+#include "ngstore/version.h"
+#include "ngstore/util/constants.h"
 #include "util/geometryutil.h"
 
 // gdal

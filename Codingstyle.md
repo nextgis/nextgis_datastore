@@ -7,3 +7,7 @@ This is the coding style
 3. Initialization of float/double should be a real number (i.e. float a = 1.0)
 
 # TBD
+
+# Links
+
+* [Google coding guide](https://google.github.io/styleguide/cppguide.html)

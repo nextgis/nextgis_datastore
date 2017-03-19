@@ -42,17 +42,18 @@ else() # TODO: Windows?
     endif()
 endif()
 
+set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${INCLUDE_DIR}
 )
 
 set(HHEADERS
-    version.h
-    common.h
-    api.h
-)
-
-set(HHEADER_PRIV
+    ${INCLUDE_DIR}/ngstore/api.h
+    ${INCLUDE_DIR}/ngstore/version.h
+    ${INCLUDE_DIR}/ngstore/common.h
+    ${INCLUDE_DIR}/ngstore/util/constants.h
     api_priv.h
 )
 
@@ -73,15 +74,6 @@ add_subdirectory (catalog)
 add_subdirectory (map)
 add_subdirectory (util)
 
-set(LIB_NAME)
-if(BUILD_SHARED_LIBS)
-    set(LIB_TYPE SHARED)
-    set(LIB_NAME ${PROJECT_NAME})
-else()
-    set(LIB_TYPE STATIC)
-    set(LIB_NAME ${PROJECT_NAME}static)
-endif()
-
 if(ANDROID)
     add_definitions(-DNGS_ABI="Android ${ANDROID_ABI}" -DNGS_MOBILE)
 elseif(IOS)
@@ -96,29 +88,49 @@ else()
     endif()
 endif()
 
-add_library(${LIB_NAME} ${LIB_TYPE} ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV}
-    ${OBJ_LIBRARIES})
+set(LIB_NAME ${PROJECT_NAME})
+if(WIN32)
+    set (LIB_VERSION ${NGS_MAJOR_VERSION})
+else ()
+    set (LIB_VERSION ${VERSION})
+endif()
 
 if(BUILD_SHARED_LIBS)
-    if(WIN32)
-        set (LIB_VERSION ${NGS_MAJOR_VERSION})
-        if(MSVC)
-            set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_i.lib")
-        endif()
-    else ()
-      set (LIB_VERSION ${VERSION})
+    add_library(${LIB_NAME} SHARED ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
+
+    if(MSVC)
+        set_target_properties(${LIB_NAME} PROPERTIES
+            IMPORT_SUFFIX "_i.lib"
+            SUFFIX "${NGS_MAJOR_VERSION}${NGS_MINOR_VERSION}.dll")
     endif()
+
     set_target_properties (${LIB_NAME} PROPERTIES
         VERSION ${LIB_VERSION}
         SOVERSION ${SOVERSION}
         DEFINE_SYMBOL NGSTOR_EXPORTS
     )
+
+    if(BUILD_SHARED_LIBS AND BUILD_STATIC_LIBS)
+        add_library(${LIB_NAME}static STATIC ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
+        if(WIN32)
+            set_target_properties(${LIB_NAME}static PROPERTIES OUTPUT_NAME ${LIB_NAME}_i)
+        else()
+            set_target_properties(${LIB_NAME}static PROPERTIES OUTPUT_NAME ${LIB_NAME})
+        endif()
+        set_target_properties(${LIB_NAME}static PROPERTIES
+            CXX_STANDARD 11
+            C_STANDARD 11
+            CLEAN_DIRECT_OUTPUT 1)
+    endif()
 else()
+    add_library(${LIB_NAME} STATIC ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
     set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
 endif()
 
-set_property(TARGET ${LIB_NAME} PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${LIB_NAME} PROPERTY C_STANDARD 11)
+set_target_properties(${LIB_NAME} PROPERTIES
+    CXX_STANDARD 11
+    C_STANDARD 11
+)
 
 target_link_extlibraries(${LIB_NAME})
 
@@ -135,9 +147,4 @@ if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR} COMPONENT libraries
         LIBRARY DESTINATION ${INSTALL_LIB_DIR} COMPONENT libraries
     )
-endif()
-
-if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
-    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}"
-        COMPONENT headers)
 endif()

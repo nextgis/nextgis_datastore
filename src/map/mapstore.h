@@ -21,10 +21,9 @@
 #ifndef NGSMAPSTORE_H
 #define NGSMAPSTORE_H
 
-#include "api.h"
 #include "ds/datastore.h"
 #include "map.h"
-
+#include "ngstore/api.h"
 
 namespace ngs {
 

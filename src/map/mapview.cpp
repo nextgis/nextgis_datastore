@@ -18,13 +18,14 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "api_priv.h"
 #include "mapview.h"
-#include "renderlayer.h"
-#include "util/constants.h"
 
 #include <iostream>
 #include <string>
+
+#include "api_priv.h"
+#include "renderlayer.h"
+#include "ngstore/util/constants.h"
 
 #ifdef _DEBUG
 #   include <chrono>
@@ -108,8 +109,6 @@ int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
 
 int MapView::notify()
 {
-    bool debugMode = ngsGetOptions() & OPT_DEBUGMODE;
-
     if(nullptr != m_progressFunc) {
         float completePortion = 0;
         bool fullComlete = true;
@@ -119,7 +118,7 @@ int MapView::notify()
             RenderLayer* renderLayer = ngsStaticCast(RenderLayer, layer);
             completePortion += renderLayer->getComplete ();
             fullComlete &= renderLayer->isComplete();
-            if(debugMode) {
+            if(isDebugMode()) {
                 int count = renderLayer->getFeatureCount();
                 if (count > -1) {
                     if (-1 == featureCount) {
@@ -137,12 +136,12 @@ int MapView::notify()
         }
 
         CPLString message;
-        if(debugMode) {
+        if(isDebugMode()) {
             message = CPLSPrintf("%d", featureCount);
         }
 
         return m_progressFunc(
-                getId(), static_cast<double>(completePortion), debugMode ? message.c_str() : nullptr,
+                getId(), static_cast<double>(completePortion), isDebugMode() ? message.c_str() : nullptr,
                 m_progressArguments);
     }
     return TRUE;

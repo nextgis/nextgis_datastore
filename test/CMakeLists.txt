@@ -29,8 +29,10 @@ if(BUILD_TESTS)
     set(WITH_GTest ON CACHE BOOL "Google test on")
     set(WITH_GTest_EXTERNAL ON CACHE BOOL "Google test external on")
     find_anyproject(GTest REQUIRED)
-    include_directories(${GTEST_INCLUDE_DIRS}
-        ${PROJECT_SOURCE_DIR}/src)
+    include_directories(
+        ${GTEST_INCLUDE_DIRS}
+        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/include)
 
     find_package(Threads)
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
@@ -47,16 +49,22 @@ if(BUILD_TESTS)
 
     link_directories(${LINK_SEARCH_PATHS})
 
+    set(HHEADERS
+        test.h
+    )
+
     add_custom_target (clean_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/tmp" )
     add_custom_target (prepare_test_data ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/data"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" "${CMAKE_CURRENT_BINARY_DIR}/data")
 
     macro(add_ngs_test name exe_name files)
-        add_executable(${exe_name} ${files})
+        add_executable(${exe_name} ${files} ${HHEADERS})
         target_link_extlibraries(${exe_name})
-        set_property(TARGET ${exe_name} PROPERTY CXX_STANDARD 11)
-        set_property(TARGET ${exe_name} PROPERTY C_STANDARD 11)
+        set_target_properties(${exe_name} PROPERTIES
+            CXX_STANDARD 11
+            C_STANDARD 11
+        )
         add_test(${name} ${CMAKE_CURRENT_BINARY_DIR}/${exe_name})
     endmacro ()
 

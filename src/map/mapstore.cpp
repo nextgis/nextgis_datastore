@@ -18,14 +18,15 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-
-#include "api.h"
-#include <cmath>
-#include "ds/table.h"
 #include "mapstore.h"
+
+#include <cmath>
+
+#include "ds/table.h"
 #include "mapview.h"
 #include "ogr_geometry.h"
-#include "util/constants.h"
+#include "ngstore/api.h"
+#include "ngstore/util/constants.h"
 
 using namespace ngs;
 

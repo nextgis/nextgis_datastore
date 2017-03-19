@@ -110,4 +110,6 @@
 // Common
 #define BIG_VALUE 10000000.0
 
+#define DEG2RAD M_PI / 180.0
+
 #endif // NGSCONSTANTS_H
