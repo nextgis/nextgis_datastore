@@ -21,11 +21,13 @@
 #ifndef NGSDATASET_H
 #define NGSDATASET_H
 
-#include "api_priv.h"
+#include <memory>
+
 #include "cpl_string.h"
 #include "gdal_frmts.h"
-#include <memory>
 #include "ogrsf_frmts.h"
+
+#include "api_priv.h"
 
 namespace ngs {
 
