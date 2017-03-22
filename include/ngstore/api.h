@@ -25,6 +25,42 @@
 #include "ngstore/common.h"
 #include "ngstore/codes.h"
 
+typedef struct _ngsRGBA {
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+    unsigned char A;
+} ngsRGBA;
+
+/* Spatial coordinates */
+typedef struct _ngsCoordinate {
+    double X;
+    double Y;
+    double Z;
+} ngsCoordinate;
+
+/* Display coordinates */
+typedef struct _ngsPosition {
+    double X;
+    double Y;
+} ngsPosition;
+
+typedef struct _ngsLoadTaskInfo {
+    const char* name;
+    const char* newNames;
+    const char* dstPath;
+    enum ngsErrorCodes status;
+} ngsLoadTaskInfo;
+
+/**
+ * @brief Catalog object short information. Int type coded both
+ * ngsCatalogObjectType and subtype (according to type).
+ */
+typedef struct _ngsCatlogObjectInfo {
+    const char* name;
+    int type;
+} ngsCatlogObjectInfo;
+
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
@@ -57,9 +93,35 @@ typedef void (*ngsNotifyFunc)(enum ngsSourceCodes src, const char* table, long r
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
 NGS_EXTERNC int ngsInit(char **options = nullptr);
-NGS_EXTERNC void ngsUninit();
+NGS_EXTERNC void ngsUnInit();
 NGS_EXTERNC void ngsFreeResources(bool full = false);
+NGS_EXTERNC const char* ngsGetLastErrorMessage();
 
+/**
+ * Catalog functions
+ */
+NGS_EXTERNC ngsCatlogObjectInfo** ngsCatalogObjectQuery(const char* path,
+                                                        int filter = 0);
+NGS_EXTERNC int ngsCatalogObjectDelete(const char* path);
+NGS_EXTERNC int ngsCatalogObjectCreate(const char* path, char **options = nullptr);
+NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
+                                     char **options = nullptr,
+                                     ngsProgressFunc callback = nullptr,
+                                     void* callbackData = nullptr);
+NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
+// create, open, load options - all are driver specific
+// NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, const char* newName);
+
+/*
+mapCreate
+mapOpen
+mapSave
+mapClose
+mapDraw
+mapSet/GetProperties - backgroud, center, scale, rotate
+mapGet coordinate, distance
+dispalyGet position, length
+*/
 NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
 

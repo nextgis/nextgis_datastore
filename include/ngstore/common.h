@@ -56,7 +56,7 @@
 
 // TODO: Add gettext support
 // 1. CMake add generate translation macros
-// 2. Load catalog files code
+// 2. Load translation catalog files code
 // 3. Init locale, etc.
 #ifdef HAVE_LIBINTL_H
 #include <libintl.h>

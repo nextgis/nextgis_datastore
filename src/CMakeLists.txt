@@ -53,6 +53,7 @@ set(HHEADERS
     ${INCLUDE_DIR}/ngstore/api.h
     ${INCLUDE_DIR}/ngstore/version.h
     ${INCLUDE_DIR}/ngstore/common.h
+    ${INCLUDE_DIR}/ngstore/codes.h
     ${INCLUDE_DIR}/ngstore/util/constants.h
     api_priv.h
 )

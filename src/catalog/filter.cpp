@@ -18,53 +18,60 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSOBJECT_H
-#define NGSOBJECT_H
-
-#include <memory>
-
-#include "cpl_string.h"
-
-#include "ngstore/codes.h"
 #include "ngstore/catalog/filter.h"
 
 namespace ngs {
 
 namespace catalog {
 
-/**
- * @brief The base class for catalog items
- */
-class Object
+Filter::Filter(const ngsCatalogObjectType type) : type(type)
 {
-public:
-    Object(const Object * parent = nullptr, const int type = 0,
-           const CPLString & name = "",
-           const CPLString & path = "");
-    virtual ~Object();
-    CPLString getName() const;
-    CPLString getPath() const;
-    ngsCatalogObjectType getType() const;
+}
 
-protected:
-    const Object *getParent() const;
-    void setName(const CPLString &value);
-    void setPath(const CPLString &value);
+bool Filter::canDisplay(ObjectPtr object) const
+{
+    // Always dispaly containers
+    // TODO: Do we want to filter local containers (folders), services, databases?
+    if(isContainer(object->getType())
+        return true;
 
-private:
-    Object(Object const&) = delete;
-    Object& operator= (Object const&) = delete;
+    if(object->getType() == type)
+        return true;
 
-protected:
-    CPLString name, path;
-    const Object * parent;
-    ngsCatalogObjectType type;
-};
+    if(isFeatureClass(object->getType()) && type == CAT_FC_ANY)
+        return true;
 
-typedef std::shared_ptr< Object > ObjectPtr;
+    if(isRaster(object->getType()) && type == CAT_RASTER_ANY)
+        return true;
 
+    if(isRaster(object->getType()) && type == CAT_RASTER_ANY)
+        return true;
+
+    if(isTable(object->getType()) && type == CAT_TABLE_ANY)
+        return true;
+
+    return false;
+}
+
+bool Filter::isFeatureClass(const ngsCatalogObjectType type)
+{
+    return type >= CAT_FC_ANY && type < CAT_FC_ALL;
+}
+
+bool Filter::isContainer(const ngsCatalogObjectType type)
+{
+    return type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL;
+}
+
+bool Filter::isRaster(const ngsCatalogObjectType type)
+{
+    return type >= CAT_RASTER_ANY && type < CAT_RASTER_ALL;
+}
+
+bool Filter::isTable(const ngsCatalogObjectType type)
+{
+    return type >= CAT_TABLE_ANY && type < CAT_TABLE_ALL;
 }
 
 }
-
-#endif // NGSOBJECT_H
+}

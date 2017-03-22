@@ -20,7 +20,55 @@
  ****************************************************************************/
 #include "object.h"
 
-Object::Object()
+namespace ngs {
+
+namespace catalog {
+
+Object::Object(const Object * parent, const int type, const CPLString & name,
+               const CPLString & path) :
+    name(name),
+    path(path),
+    parent(parent),
+    type(type)
 {
 
 }
+
+Object::~Object()
+{
+
+}
+
+const Object *Object::getParent() const
+{
+    return parent;
+}
+
+CPLString Object::getName() const
+{
+    return name;
+}
+
+void Object::setName(const CPLString &value)
+{
+    name = value;
+}
+
+CPLString Object::getPath() const
+{
+    return path;
+}
+
+void Object::setPath(const CPLString &value)
+{
+    path = value;
+}
+
+ngsCatalogObjectType Object::getType() const
+{
+    return type;
+}
+
+} // namespace catalog
+
+} // namespace ngs

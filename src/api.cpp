@@ -23,6 +23,7 @@
 // stl
 #include <iostream>
 
+#include "catalog/catalog.h"
 #include "ds/datastore.h"
 #include "map/mapstore.h"
 #include "ngstore/version.h"
@@ -37,7 +38,6 @@ using namespace ngs;
 // TODO: Add support to Framebuffer Objects rendering
 // TODO: Load and tiled vector data
 
-static DataStorePtr gDataStore;
 static MapStorePtr gMapStore;
 static CPLString gFilters;
 
@@ -64,6 +64,7 @@ void initGDAL(const char* dataPath, const char* cachePath)
     CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGS_USERAGENT);
     CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
     CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
+    CPLSetConfigOption("GDAL_DRIVER_PATH", "disabled");
 #ifdef NGS_MOBILE // for mobile devices
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk");
 #endif
@@ -129,8 +130,7 @@ const char* ngsGetVersionString(const char* request)
  * @param options Init library options list:
  * - CACHE_DIR - path to cache directory (mainly for TMS/WMS cache)
  * - SETTINGS_DIR - path to settings directory
- * - GDAL_DATA - path to GDAL data directory
- * - SHARE_DIR - TBD
+ * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
  * @return ngsErrorCodes value - SUCCES if everything is OK
@@ -140,16 +140,18 @@ int ngsInit(char **options)
     debugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
     const char* dataPath = CSLFetchNameValue(options, "GDAL_DATA");
     const char* cachePath = CSLFetchNameValue(options, "CACHE_DIR");
-//    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
+    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
+    CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
 
 #ifdef HAVE_LIBINTL_H
     const char* locale = CSLFetchNameValue(options, "LOCALE");
-    //TOOD: Do we need std::setlocale(LC_ALL, locale); execution here or it will call from programm?
+    //TODO: Do we need std::setlocale(LC_ALL, locale); execution here in library or it will call from programm?
 #endif
 
 #ifdef NGS_MOBILE
     if(nullptr == dataPath)
-        return returnError(ngsErrorCodes::EC_NOT_SPECIFIED, _("GDAL_PATH option is required"));
+        return returnError(ngsErrorCodes::EC_NOT_SPECIFIED,
+                           _("GDAL_PATH option is required"));
 #endif
 
     initGDAL(dataPath, cachePath);
@@ -160,30 +162,111 @@ int ngsInit(char **options)
 /**
  * @brief Clean up library structures
  */
-void ngsUninit()
+void ngsUnInit()
 {
     gMapStore.reset ();
-    gDataStore.reset ();
 
     GDALDestroyDriverManager();
 }
+
+/**
+ * @brief Inform library to free resources as possible
+ */
+void ngsFreeResources(bool /*TODO: full*/)
+{
+    // If full == true, free maps and catalog items
+    // Else free only maps
+}
+
+/**
+ * @brief Fetches the last error message posted with returnError, CPLError, etc.
+ * @return last error message or NULL if no error message present.
+ */
+const char *ngsGetLastErrorMessage()
+{
+    return CPLGetLastErrorMsg();
+}
+
+/**
+ * @brief Query name and type of child objects for provided path and filter.
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param filter Only objects correspondent to provided filter will be return.
+ * The filter is combination of enum ngsCatalogObjectType and subtype according
+ * object type.
+ * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
+ * after using.
+ */
+ngsCatlogObjectInfo **ngsCatalogObjectQuery(const char *path, int filter)
+{
+    catalog::Catalog& cat = catalog::Catalog::instance();
+    // Create filter class from filter value.
+
+}
+
+/**
+ * @brief Delete catalog object on specified path
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+int ngsCatalogObjectDelete(const char *path)
+{
+    catalog::Catalog& cat = catalog::Catalog::instance();
+    catalog::ObjectPtr object = cat.getObjectByPath(path);
+    // Check can delete
+    return object->destroy();
+}
+
+/**
+ * @brief Create new catalog object
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param options The array of create object options. Caller mast free this
+ * array after function finishes.
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+int ngsCatalogObjectCreate(const char *path, char **options)
+{
+    catalog::Catalog& cat = catalog::Catalog::instance();
+
+}
+
+/**
+ * @brief Copy or move source dataset to destination dataset
+ * @param srcPath The part to source dataset
+ * @param dstPath The path to destination dataset. Should be container which
+ * is ready to accept source dataset types.
+ * @param options The options key-value array specific to operation and
+ * destination dataset. TODO: Add common key and values.
+ * @param callback The callback function to report or cancel process.
+ * @param callbackData The callback function data.
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
+                         char **options, ngsProgressFunc callback,
+                         void *callbackData)
+{
+    catalog::Catalog& cat = catalog::Catalog::instance();
+
+}
+
+/**
+ * @brief Rename catalog object
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param newName The new object name. The name should be unique inside object
+ * parent container
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+int ngsCatalogObjectRename(const char *path, const char *newName)
+{
+    catalog::Catalog& cat = catalog::Catalog::instance();
+
+}
+
 
 void initMapStore()
 {
     if(nullptr == gMapStore){
         gMapStore.reset (new MapStore());
     }
-}
-/**
- * @brief Inform library to free resources as possible
- */
-void ngsFreeResources(bool full)
-{
-
-    initMapStore();
-    gMapStore->onLowMemory ();
-    if(nullptr != gDataStore)
-        gDataStore->onLowMemory ();
 }
 
 /**
@@ -650,3 +733,5 @@ const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *sep
 
     return gFilters;
 }
+
+

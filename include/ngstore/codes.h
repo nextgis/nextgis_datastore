@@ -93,37 +93,10 @@ enum ngsDataStoreOptionsTypes {
     OT_LOAD
 };
 
-typedef struct _ngsRGBA {
-    unsigned char R;
-    unsigned char G;
-    unsigned char B;
-    unsigned char A;
-} ngsRGBA;
-
-/* Spatial coordinates */
-typedef struct _ngsCoordinate {
-    double X;
-    double Y;
-    double Z;
-} ngsCoordinate;
-
-/* Display coordinates */
-typedef struct _ngsPosition {
-    double X;
-    double Y;
-} ngsPosition;
-
-typedef struct _ngsLoadTaskInfo {
-    const char* name;
-    const char* newNames;
-    const char* dstPath;
-    enum ngsErrorCodes status;
-} ngsLoadTaskInfo;
-
 enum ngsDirection {
-    X = 0,
-    Y,
-    Z
+    DIR_X = 0,
+    DIR_Y,
+    DIR_Z
 };
 
 enum ngsDriverType {

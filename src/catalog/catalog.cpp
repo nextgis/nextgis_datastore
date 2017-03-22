@@ -18,29 +18,39 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "objectcontainer.h"
+#include "catalog.h"
+
+#include "cpl_conv.h"
+
+#include "ngstore/common.h"
 
 namespace ngs {
 
 namespace catalog {
 
-ObjectContainer::ObjectContainer(const Object *parent, const int type,
-                                 const CPLString &name,
-                                 const CPLString &path) :
-    Object(parent, type, name, path)
+#define CONNECTIONS_DIR "connections"
+
+void Catalog::init()
+{
+    const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
+    if(nullptr == settingsPath)
+        return;
+    // 1. Load factories
+    // 2. Load root objects
+    const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
+                                                  "");
+}
+
+Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
+{
+    init();
+}
+
+Catalog::~Catalog()
 {
 
 }
 
-ObjectContainer::~ObjectContainer()
-{
-
 }
 
-std::vector<ObjectPtr> ObjectContainer::getChildren() const
-{
-    return children;
-}
-
-}
 }

@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -25,45 +25,28 @@
 set(LIB_NAME catalog)
 
 set(HHEADERS
-)
-
-set(HHEADER_PRIV
-
+    object.h
+    objectcontainer.h
+    catalog.h
+    ${INCLUDE_DIR}/ngstore/catalog/filter.h
 )
 
 set(CSOURCES
+    object.cpp
+    objectcontainer.cpp
+    catalog.cpp
+    filter.cpp
 )
 
-#[[
-add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS} ${HHEADER_PRIV})
-
-if(WITH_CGAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} CGAL_EP)
-endif()
-
-if(WITH_JSONC_EXTERNAL)
-    add_dependencies(${LIB_NAME} JSONC_EP)
-endif()
-
-if(WITH_OpenSSL_EXTERNAL)
-    add_dependencies(${LIB_NAME} OpenSSL_EP)
-endif()
-
-if(WITH_CURL_EXTERNAL)
-    add_dependencies(${LIB_NAME} CURL_EP)
-endif()
+add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
 if(WITH_GDAL_EXTERNAL)
     add_dependencies(${LIB_NAME} GDAL_EP)
 endif()
 
-set_property(TARGET ${LIB_NAME} PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${LIB_NAME} PROPERTY C_STANDARD 11)
+set_target_properties(${LIB_NAME} PROPERTIES
+    CXX_STANDARD 11
+    C_STANDARD 11
+)
 
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)
-
-if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL)
-    install(FILES ${HHEADERS} DESTINATION "${INSTALL_INC_DIR}"
-        COMPONENT headers)
-endif()
-]]

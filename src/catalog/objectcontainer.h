@@ -18,14 +18,33 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef OBJECTCONTAINER_H
-#define OBJECTCONTAINER_H
+#ifndef NGSOBJECTCONTAINER_H
+#define NGSOBJECTCONTAINER_H
+
+#include "object.h"
+
+#include <vector>
+
+namespace ngs {
+
+namespace catalog {
 
 
 class ObjectContainer : public Object
 {
 public:
-    ObjectContainer();
+    ObjectContainer(const Object * parent = nullptr, const int type = 0,
+                    const CPLString & name = "",
+                    const CPLString & path = "");
+    virtual ~ObjectContainer();
+    std::vector<ObjectPtr> getChildren() const;
+
+protected:
+    std::vector<ObjectPtr> children;
 };
 
-#endif // OBJECTCONTAINER_H
+}
+
+}
+
+#endif // NGSOBJECTCONTAINER_H

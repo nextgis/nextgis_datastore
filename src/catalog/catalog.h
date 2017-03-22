@@ -18,29 +18,40 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#ifndef NGSCATALOG_H
+#define NGSCATALOG_H
+
 #include "objectcontainer.h"
+
+#include <utility>
 
 namespace ngs {
 
 namespace catalog {
 
-ObjectContainer::ObjectContainer(const Object *parent, const int type,
-                                 const CPLString &name,
-                                 const CPLString &path) :
-    Object(parent, type, name, path)
+
+class Catalog : public ObjectContainer
 {
+public:
+    static Catalog& instance()
+    {
+        static Catalog cat;
+        return cat;
+    }
+
+protected:
+    void init();
+
+private:
+    Catalog();
+    virtual ~Catalog();
+
+    Catalog(Catalog const&) = delete;
+    Catalog& operator= (Catalog const&) = delete;
+};
 
 }
 
-ObjectContainer::~ObjectContainer()
-{
-
 }
 
-std::vector<ObjectPtr> ObjectContainer::getChildren() const
-{
-    return children;
-}
-
-}
-}
+#endif // NGSCATALOG_H

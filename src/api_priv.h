@@ -22,12 +22,13 @@
 #define NGSAPI_PRIV_H
 
 #include "ngstore/api.h"
-#include "ogr_geometry.h"
 
 // stl
 #include <cmath>
 #include <limits>
 #include <memory>
+
+#include "ogr_geometry.h"
 
 /**
   * useful functions

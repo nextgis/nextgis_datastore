@@ -27,6 +27,7 @@ namespace ngs {
 
 int returnError(enum ngsErrorCodes errorCode, const char *fmt, ...);
 int returnWarning(enum ngsErrorCodes errorCode, const char *fmt, ...);
+
 }
 
 #endif // NGSERROR_H
