@@ -34,8 +34,10 @@ ObjectContainer::ObjectContainer(const Object *parent,
 
 }
 
-ObjectPtr ObjectContainer::getObject(const char *path) const
+ObjectPtr ObjectContainer::getObject(const char *path)
 {
+    hasChildren();
+
     CPLString searchName;
     size_t pathLen = CPLStrnlen(path, Catalog::getMaxPathLength());
     CPLString separator = Catalog::getSeparator();
@@ -72,10 +74,24 @@ ObjectPtr ObjectContainer::getObject(const char *path) const
     return ObjectPtr();
 }
 
+void ObjectContainer::addObject(ObjectPtr object)
+{
+    children.push_back(object);
+}
+
 void ObjectContainer::clear()
 {
     children.clear();
     childrenLoaded = false;
+}
+
+ObjectPtr ObjectContainer::getChild(const CPLString &name) const
+{
+    for(const ObjectPtr& child : children) {
+        if(child->getName() == name)
+            return child;
+    }
+    return ObjectPtr();
 }
 
 }

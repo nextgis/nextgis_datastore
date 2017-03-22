@@ -28,6 +28,7 @@ set(HHEADERS
     object.h
     objectcontainer.h
     catalog.h
+    folder.h
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
 )
 
@@ -35,6 +36,7 @@ set(CSOURCES
     object.cpp
     objectcontainer.cpp
     catalog.cpp
+    folder.cpp
     filter.cpp
 )
 

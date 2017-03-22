@@ -23,6 +23,7 @@
 #include "cpl_conv.h"
 
 #include "api_priv.h"
+#include "localconnections.h"
 #include "ngstore/common.h"
 
 namespace ngs {
@@ -38,7 +39,8 @@ constexpr const char * CONNECTIONS_DIR = "connections";
 constexpr const char * CATALOG_PREFIX = "ngs://";
 constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX);
 
-Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
+Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog")),
+    showHidden(true)
 {
     init();
 }
@@ -48,7 +50,7 @@ CPLString Catalog::getFullName() const
     return CATALOG_PREFIX;
 }
 
-ObjectPtr Catalog::getObject(const char *path) const
+ObjectPtr Catalog::getObject(const char *path)
 {
     // Skip prefix ngs://
     path += CATALOG_PREFIX_LEN;
@@ -66,6 +68,16 @@ void Catalog::freeResources()
     }
 }
 
+void Catalog::createObjects(ObjectPtr object, std::vector<const char *> names)
+{
+    if(names.empty())
+        return;
+    ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
+    if(nullptr == container)
+        return;
+    //TODO: Check each factory for objects
+}
+
 CPLString Catalog::getSeparator()
 {
     return "/";
@@ -76,15 +88,42 @@ unsigned short Catalog::getMaxPathLength()
     return 1024;
 }
 
+#ifdef _WIN32
+bool Catalog::isFileHidden(const CPLString &filePath, const char *fileName)
+#else
+bool Catalog::isFileHidden(const CPLString &/*filePath*/, const char *fileName)
+#endif
+{
+    if(showHidden)
+        return false;
+
+    if(EQUALN(fileName, ".", 1))
+        return true;
+
+#ifdef _WIN32
+    DWORD attrs = GetFileAttributes(CPLFormFilename(filePath, fileName, NULL));
+    if (attrs != INVALID_FILE_ATTRIBUTES)
+        return attrs & FILE_ATTRIBUTE_HIDDEN;
+#endif
+    return false;
+}
+
 void Catalog::init()
 {
     const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
     if(nullptr == settingsPath)
         return;
     // 1. Load factories
+
     // 2. Load root objects
     const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
                                                   "");
+    children.push_back(ObjectPtr(new LocalConnections(this, connectionsPath)));
+}
+
+void Catalog::setShowHidden(bool value)
+{
+    showHidden = value;
 }
 
 void Catalog::setInstance(Catalog *pointer)

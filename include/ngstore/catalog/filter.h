@@ -32,6 +32,7 @@ enum ngsCatalogObjectType {
     CAT_UNKNOWN,
     CAT_CONTAINER_ANY,          /** Any container border */
     CAT_CONTAINER_ROOT,
+    CAT_CONTAINER_LOCALCONNECTION,
     CAT_CONTAINER_DIR,
     CAT_CONTAINER_GDB,
     CAT_CONTAINER_GDB_SET,
@@ -114,7 +115,7 @@ class MultiFilter : public Filter
 public:
     MultiFilter();
     virtual ~MultiFilter() = default;
-    virtual bool canDisplay(ObjectPtr object) const;
+    virtual bool canDisplay(ObjectPtr object) const override;
     void addType(enum ngsCatalogObjectType newType);
 
 protected:

@@ -32,9 +32,13 @@ class Catalog : public ObjectContainer
 public:
     Catalog();
     virtual ~Catalog() = default;
-    virtual CPLString getFullName() const;
-    virtual ObjectPtr getObject(const char* path) const;
+    virtual CPLString getFullName() const override;
+    virtual ObjectPtr getObject(const char* path) override;
     virtual void freeResources();
+    virtual void createObjects(ObjectPtr object, std::vector< const char *> names);
+
+    bool isFileHidden(const CPLString& filePath, const char* fileName);
+    void setShowHidden(bool value);
 
 public:
     static void setInstance(Catalog* pointer);
@@ -44,6 +48,9 @@ public:
 
 protected:
     void init();
+
+protected:
+    bool showHidden;
 };
 
 }

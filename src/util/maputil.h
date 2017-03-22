@@ -36,7 +36,7 @@ typedef struct _tile {
     char crossExtent;
 } TileItem;
 
-inline static double lg(double x) {return log(x) / LOG2;};
+inline static double lg(double x) {return log(x) / LOG2;}
 double getZoomForScale(double scale, double currentZoom);
 double getPixelSize(int zoom);
 std::vector<TileItem> getTilesForExtent(const OGREnvelope& extent,

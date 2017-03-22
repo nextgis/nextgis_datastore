@@ -18,36 +18,22 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSOBJECTCONTAINER_H
-#define NGSOBJECTCONTAINER_H
+#ifndef NGSFOLDER_H
+#define NGSFOLDER_H
 
-#include "object.h"
-
-#include <vector>
+#include "objectcontainer.h"
 
 namespace ngs {
 
-class ObjectContainer : public Object
+class Folder : public ObjectContainer
 {
 public:
-    ObjectContainer(const Object * parent = nullptr,
-                    const ngsCatalogObjectType type = CAT_UNKNOWN,
-                    const CPLString & name = "",
-                    const CPLString & path = "");
-    virtual ~ObjectContainer() = default;
-    virtual ObjectPtr getObject(const char* path);
-    virtual void addObject(ObjectPtr object);
-    virtual void clear();
-    virtual bool hasChildren() { return true; }
-
-protected:
-    ObjectPtr getChild(const CPLString& name) const;
-
-protected:
-    std::vector<ObjectPtr> children;
-    bool childrenLoaded;
+    Folder(const Object * parent = nullptr,
+           const CPLString & name = "",
+           const CPLString & path = "");
+    virtual bool hasChildren() override;
 };
 
 }
 
-#endif // NGSOBJECTCONTAINER_H
+#endif // NGSFOLDER_H
