@@ -23,6 +23,7 @@
 
 #include "folder.h"
 #include "jsondocument.h"
+#include "ngstore/common.h"
 
 #if defined (__APPLE__)
 #include <pwd.h>
@@ -34,7 +35,7 @@ constexpr const char* LOCAL_CONN_FILE = "connections.json";
 
 LocalConnections::LocalConnections(const Object * parent,
                                    const CPLString & path) :
-    ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, "Local connections",
+    ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, _("Local connections"),
                     path)
 {
     this->path = CPLFormFilename(path, LOCAL_CONN_FILE, nullptr);
@@ -85,16 +86,16 @@ bool LocalConnections::hasChildren()
            if (pwd)
               homeDir = pwd->pw_dir;
        }
-       connectionPaths.push_back(std::make_pair("Home", homeDir));
-       connectionPaths.push_back(std::make_pair("Documents",
+       connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
+       connectionPaths.push_back(std::make_pair(_("Documents"),
                                 CPLFormFilename(homeDir, "Documents", nullptr)));
-       connectionPaths.push_back(std::make_pair("Downloads",
+       connectionPaths.push_back(std::make_pair(_("Downloads"),
                                 CPLFormFilename(homeDir, "Downloads", nullptr)));
-       connectionPaths.push_back(std::make_pair("Public",
+       connectionPaths.push_back(std::make_pair(_("Public"),
                                 CPLFormFilename(homeDir, "Public", nullptr)));
 #elif defined(__unix__)
        const char *homeDir = getenv("HOME");
-       connectionPaths.push_back(std::make_pair("Home", homeDir));
+       connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
 #endif
 
        for(const auto &connectionPath : connectionPaths ) {
