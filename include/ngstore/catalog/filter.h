@@ -23,6 +23,8 @@
 
 #include "catalog/object.h"
 
+#include <vector>
+
 /**
  * @brief The Catalog Object Types enum
  */
@@ -88,11 +90,14 @@ enum ngsCatalogObjectType {
 
 namespace ngs {
 
+/**
+ * @brief The simple catalog filter class
+ */
 class Filter
 {
 public:
     Filter(const ngsCatalogObjectType type = CAT_UNKNOWN);
-    virtual ~Filter();
+    virtual ~Filter() = default;
     virtual bool canDisplay(ObjectPtr object) const;
 
 public:
@@ -102,6 +107,18 @@ public:
     static bool isContainer(const ngsCatalogObjectType type);
 protected:
     enum ngsCatalogObjectType type;
+};
+
+class MultiFilter : public Filter
+{
+public:
+    MultiFilter();
+    virtual ~MultiFilter() = default;
+    virtual bool canDisplay(ObjectPtr object) const;
+    void addType(enum ngsCatalogObjectType newType);
+
+protected:
+    std::vector< enum ngsCatalogObjectType > types;
 };
 
 }

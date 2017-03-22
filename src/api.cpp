@@ -40,11 +40,11 @@ using namespace ngs;
 
 static CPLString gFilters;
 
-static bool debugMode = false;
+static bool gDebugMode = false;
 
 bool isDebugMode()
 {
-    return debugMode;
+    return gDebugMode;
 }
 
 /* special hook for find EPSG files
@@ -136,7 +136,7 @@ const char* ngsGetVersionString(const char* request)
  */
 int ngsInit(char **options)
 {
-    debugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
+    gDebugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
     const char* dataPath = CSLFetchNameValue(options, "GDAL_DATA");
     const char* cachePath = CSLFetchNameValue(options, "CACHE_DIR");
     const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
@@ -170,12 +170,17 @@ void ngsUnInit()
 }
 
 /**
- * @brief Inform library to free resources as possible
+ * @brief ngsFreeResources Inform library to free resources as possible
+ * @param full If full is true maximum resources will be freed.
  */
-void ngsFreeResources(bool /*TODO: full*/)
+void ngsFreeResources(bool full)
 {
-    // If full == true, free maps and catalog items
-    // Else free only maps
+    MapStore* const mapStore = MapStore::getInstance();
+    mapStore->freeResources();
+    if(full) {
+        Catalog* const catalog = Catalog::getInstance();
+        catalog->freeResources();
+    }
 }
 
 /**
@@ -198,7 +203,7 @@ const char *ngsGetLastErrorMessage()
  */
 ngsCatlogObjectInfo **ngsCatalogObjectQuery(const char *path, int filter)
 {
-    catalog::Catalog& cat = catalog::Catalog::instance();
+    Catalog* const cat = Catalog::getInstance();
     // Create filter class from filter value.
 
 }
@@ -210,8 +215,8 @@ ngsCatlogObjectInfo **ngsCatalogObjectQuery(const char *path, int filter)
  */
 int ngsCatalogObjectDelete(const char *path)
 {
-    catalog::Catalog& cat = catalog::Catalog::instance();
-    catalog::ObjectPtr object = cat.getObjectByPath(path);
+    Catalog* const cat = Catalog::getInstance();
+    ObjectPtr object = cat->getObject(path);
     // Check can delete
     return object->destroy();
 }
@@ -225,7 +230,7 @@ int ngsCatalogObjectDelete(const char *path)
  */
 int ngsCatalogObjectCreate(const char *path, char **options)
 {
-    catalog::Catalog& cat = catalog::Catalog::instance();
+    Catalog* const cat = Catalog::getInstance();
 
 }
 

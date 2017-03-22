@@ -20,19 +20,17 @@
  ****************************************************************************/
 #include "object.h"
 
+#include "catalog.h"
+
 namespace ngs {
 
-Object::Object(const Object * parent, const int type, const CPLString & name,
+Object::Object(const Object * parent, const ngsCatalogObjectType type,
+               const CPLString & name,
                const CPLString & path) :
     name(name),
     path(path),
     parent(parent),
     type(type)
-{
-
-}
-
-Object::~Object()
 {
 
 }
@@ -65,6 +63,14 @@ void Object::setPath(const CPLString &value)
 ngsCatalogObjectType Object::getType() const
 {
     return type;
+}
+
+CPLString Object::getFullName() const
+{
+    CPLString out;
+    if(nullptr != parent)
+        out = parent->getFullName();
+    out += Catalog::getSeparator() + name;
 }
 
 } // namespace ngs

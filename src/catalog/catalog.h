@@ -31,11 +31,16 @@ class Catalog : public ObjectContainer
 {
 public:
     Catalog();
-    virtual ~Catalog();
+    virtual ~Catalog() = default;
+    virtual CPLString getFullName() const;
+    virtual ObjectPtr getObject(const char* path) const;
+    virtual void freeResources();
 
 public:
     static void setInstance(Catalog* pointer);
     static Catalog* getInstance();
+    static CPLString getSeparator();
+    static unsigned short getMaxPathLength();
 
 protected:
     void init();

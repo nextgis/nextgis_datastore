@@ -71,7 +71,7 @@ public:
     int setMapSize(unsigned char mapId, int width, int height, bool isYAxisInverted);
     int drawMap(unsigned char mapId, enum ngsDrawState state,
                 ngsProgressFunc progressFunc, void* progressArguments = nullptr);
-    void onLowMemory();
+    void freeResources();
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
     ngsRGBA getMapBackgroundColor(unsigned char mapId);

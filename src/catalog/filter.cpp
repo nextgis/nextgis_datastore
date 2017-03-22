@@ -22,15 +22,21 @@
 
 namespace ngs {
 
+//-----------------------------------------------------------------------------
+// Filter
+//-----------------------------------------------------------------------------
+
 Filter::Filter(const ngsCatalogObjectType type) : type(type)
 {
 }
 
 bool Filter::canDisplay(ObjectPtr object) const
 {
-    // Always dispaly containers
-    // TODO: Do we want to filter local containers (folders), services, databases?
-    if(isContainer(object->getType())
+    if(type == CAT_UNKNOWN)
+        return true;
+
+    // Always dispaly containers except filtering of container type
+    if(isContainer(object->getType() && !isContainer(type))
         return true;
 
     if(object->getType() == type)
@@ -69,6 +75,41 @@ bool Filter::isRaster(const ngsCatalogObjectType type)
 bool Filter::isTable(const ngsCatalogObjectType type)
 {
     return type >= CAT_TABLE_ANY && type < CAT_TABLE_ALL;
+}
+
+//-----------------------------------------------------------------------------
+// MultiFilter
+//-----------------------------------------------------------------------------
+
+MultiFilter::MultiFilter() : Filter(CAT_UNKNOWN)
+{
+
+}
+
+bool MultiFilter::canDisplay(ObjectPtr object) const
+{
+    for(const enum ngsCatalogObjectType thisType : types) {
+        if(object->getType() == thisType)
+            return true;
+
+        if(isContainer(object->getType()) && thisType == CAT_CONTAINER_ANY)
+            return true;
+
+        if(isFeatureClass(object->getType()) && thisType == CAT_FC_ANY)
+            return true;
+
+        if(isRaster(object->getType()) && thisType == CAT_RASTER_ANY)
+            return true;
+
+        if(isTable(object->getType()) && thisType == CAT_TABLE_ANY)
+            return true;
+    }
+            return false;
+}
+
+void MultiFilter::addType(ngsCatalogObjectType newType)
+{
+    types.push_back(newType);
 }
 
 }

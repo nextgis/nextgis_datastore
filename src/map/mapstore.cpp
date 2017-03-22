@@ -315,7 +315,7 @@ ngsPosition MapStore::getDisplayLength(unsigned char mapId, double w, double h)
     return out;
 }
 
-void MapStore::onLowMemory()
+void MapStore::freeResources()
 {
     // free all cached maps
     m_maps.clear ();

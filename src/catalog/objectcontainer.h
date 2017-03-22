@@ -27,18 +27,20 @@
 
 namespace ngs {
 
-
 class ObjectContainer : public Object
 {
 public:
-    ObjectContainer(const Object * parent = nullptr, const int type = 0,
+    ObjectContainer(const Object * parent = nullptr,
+                    const ngsCatalogObjectType type = CAT_UNKNOWN,
                     const CPLString & name = "",
                     const CPLString & path = "");
-    virtual ~ObjectContainer();
-    std::vector<ObjectPtr> getChildren() const;
+    virtual ~ObjectContainer() = default;
+    virtual ObjectPtr getObject(const char* path) const;
+    virtual void clear();
 
 protected:
     std::vector<ObjectPtr> children;
+    bool childrenLoaded;
 };
 
 }

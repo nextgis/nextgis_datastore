@@ -20,24 +20,62 @@
  ****************************************************************************/
 #include "objectcontainer.h"
 
+#include "api_priv.h"
+#include "catalog.h"
+
 namespace ngs {
 
-ObjectContainer::ObjectContainer(const Object *parent, const int type,
+ObjectContainer::ObjectContainer(const Object *parent,
+                                 const ngsCatalogObjectType type,
                                  const CPLString &name,
                                  const CPLString &path) :
-    Object(parent, type, name, path)
+    Object(parent, type, name, path), childrenLoaded(false)
 {
 
 }
 
-ObjectContainer::~ObjectContainer()
+ObjectPtr ObjectContainer::getObject(const char *path) const
 {
+    CPLString searchName;
+    size_t pathLen = CPLStrnlen(path, Catalog::getMaxPathLength());
+    CPLString separator = Catalog::getSeparator();
 
+    // Get first element
+    for(size_t i = 0; i < pathLen; ++i) {
+        searchName += path[0];
+        path++;
+        if(EQUALN(path, separator, separator.size())) {
+            path += separator.size();
+            break;
+        }
+    }
+
+    // Search child with name searchName
+    for(const ObjectPtr& child : children) {
+#ifdef _WIN32 // No case sensitive compare on Windows
+        if(EQUAL(child->getName(), searchName)) {
+#else
+        if(child->getName().compare(searchName) == 0) {
+#endif
+            if(EQUAL(path, "")) {
+                // No more path elements
+                return child;
+            }
+            else {
+                ObjectContainer* const container =
+                        ngsDynamicCast(ObjectContainer, child);
+                if(nullptr != container)
+                    return container->getObject(path);
+            }
+        }
+    }
+    return ObjectPtr();
 }
 
-std::vector<ObjectPtr> ObjectContainer::getChildren() const
+void ObjectContainer::clear()
 {
-    return children;
+    children.clear();
+    childrenLoaded = false;
 }
 
 }

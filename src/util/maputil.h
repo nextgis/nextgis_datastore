@@ -25,7 +25,7 @@
 
 #include "ogr_core.h"
 
-#define LOG2 0.30102999566 //log(2.0)
+constexpr double LOG2 = 0.30102999566;
 
 namespace ngs {
 

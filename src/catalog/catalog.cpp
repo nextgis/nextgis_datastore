@@ -22,6 +22,7 @@
 
 #include "cpl_conv.h"
 
+#include "api_priv.h"
 #include "ngstore/common.h"
 
 namespace ngs {
@@ -29,16 +30,50 @@ namespace ngs {
 typedef std::unique_ptr< Catalog > CatalogPtr;
 static CatalogPtr gCatalog;
 
-#define CONNECTIONS_DIR "connections"
+int constexpr length(const char* str)
+{
+    return *str ? 1 + length(str + 1) : 0;
+}
+constexpr const char * CONNECTIONS_DIR = "connections";
+constexpr const char * CATALOG_PREFIX = "ngs://";
+constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX);
 
 Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
 {
     init();
 }
 
-Catalog::~Catalog()
+CPLString Catalog::getFullName() const
 {
+    return CATALOG_PREFIX;
+}
 
+ObjectPtr Catalog::getObject(const char *path) const
+{
+    // Skip prefix ngs://
+    path += CATALOG_PREFIX_LEN;
+    return ObjectContainer::getObject(path);
+}
+
+void Catalog::freeResources()
+{
+    for(ObjectPtr &child : children) {
+        ObjectContainer * const container = ngsDynamicCast(ObjectContainer,
+                                                           child);
+        if(nullptr != container) {
+            container->clear();
+        }
+    }
+}
+
+CPLString Catalog::getSeparator()
+{
+    return "/";
+}
+
+unsigned short Catalog::getMaxPathLength()
+{
+    return 1024;
 }
 
 void Catalog::init()

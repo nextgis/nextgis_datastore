@@ -36,13 +36,15 @@ namespace ngs {
 class Object
 {
 public:
-    Object(const Object * parent = nullptr, const int type = 0,
+    Object(const Object * parent = nullptr,
+           const ngsCatalogObjectType type = CAT_UNKNOWN,
            const CPLString & name = "",
            const CPLString & path = "");
-    virtual ~Object();
+    virtual ~Object() = default;
     CPLString getName() const;
     CPLString getPath() const;
     ngsCatalogObjectType getType() const;
+    virtual CPLString getFullName() const;
 
 protected:
     const Object *getParent() const;

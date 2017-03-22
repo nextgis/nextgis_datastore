@@ -59,9 +59,4 @@ inline bool isEqual(double val1, double val2) {
 
 bool isDebugMode();
 
-// Private by now, but should make public in C++ API.
-void setMapStore(MapStore *store);
-MapStore *getMapStore();
-
-
 #endif // NGSAPI_PRIV_H
