@@ -30,8 +30,6 @@
 
 namespace ngs {
 
-namespace catalog {
-
 /**
  * @brief The base class for catalog items
  */
@@ -65,6 +63,5 @@ typedef std::shared_ptr< Object > ObjectPtr;
 
 }
 
-}
 
 #endif // NGSOBJECT_H

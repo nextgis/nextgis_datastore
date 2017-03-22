@@ -22,8 +22,6 @@
 
 namespace ngs {
 
-namespace catalog {
-
 ObjectContainer::ObjectContainer(const Object *parent, const int type,
                                  const CPLString &name,
                                  const CPLString &path) :
@@ -42,5 +40,4 @@ std::vector<ObjectPtr> ObjectContainer::getChildren() const
     return children;
 }
 
-}
 }

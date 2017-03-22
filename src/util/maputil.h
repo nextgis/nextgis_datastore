@@ -22,11 +22,11 @@
 
 #include <cmath>
 #include <vector>
+
 #include "ogr_core.h"
 
 #define LOG2 0.30102999566 //log(2.0)
 
-using namespace std;
 namespace ngs {
 
 typedef struct _tile {
@@ -39,7 +39,7 @@ typedef struct _tile {
 inline static double lg(double x) {return log(x) / LOG2;};
 double getZoomForScale(double scale, double currentZoom);
 double getPixelSize(int zoom);
-vector<TileItem> getTilesForExtent(const OGREnvelope& extent,
+std::vector<TileItem> getTilesForExtent(const OGREnvelope& extent,
                                    unsigned char zoom, bool reverseY,
                                    bool unlimitX);
 }

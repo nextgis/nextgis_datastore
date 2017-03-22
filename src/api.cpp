@@ -38,7 +38,6 @@ using namespace ngs;
 // TODO: Add support to Framebuffer Objects rendering
 // TODO: Load and tiled vector data
 
-static MapStorePtr gMapStore;
 static CPLString gFilters;
 
 static bool debugMode = false;
@@ -156,6 +155,9 @@ int ngsInit(char **options)
 
     initGDAL(dataPath, cachePath);
 
+    Catalog::setInstance(new Catalog());
+    MapStore::setInstance(new MapStore());
+
     return ngsErrorCodes::EC_SUCCESS;
 }
 
@@ -164,8 +166,6 @@ int ngsInit(char **options)
  */
 void ngsUnInit()
 {
-    gMapStore.reset ();
-
     GDALDestroyDriverManager();
 }
 
@@ -259,14 +259,6 @@ int ngsCatalogObjectRename(const char *path, const char *newName)
 {
     catalog::Catalog& cat = catalog::Catalog::instance();
 
-}
-
-
-void initMapStore()
-{
-    if(nullptr == gMapStore){
-        gMapStore.reset (new MapStore());
-    }
 }
 
 /**

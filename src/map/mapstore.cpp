@@ -28,13 +28,14 @@
 #include "ngstore/api.h"
 #include "ngstore/util/constants.h"
 
-using namespace ngs;
+namespace ngs {
 
 #define INVALID_MAPID 0
 //------------------------------------------------------------------------------
 // MapStore
 //------------------------------------------------------------------------------
-
+typedef std::unique_ptr<MapStore> MapStorePtr;
+static MapStorePtr gMapStore;
 
 MapStore::MapStore() : m_mapCounter(0), m_notifyFunc(nullptr)
 {
@@ -318,4 +319,18 @@ void MapStore::onLowMemory()
 {
     // free all cached maps
     m_maps.clear ();
+}
+
+void MapStore::setInstance(MapStore *pointer)
+{
+    if(gMapStore && nullptr != pointer) // Can be initialized only once.
+        return;
+    gMapStore.reset(pointer);
+}
+
+MapStore* MapStore::getInstance()
+{
+    return gMapStore.get();
+}
+
 }

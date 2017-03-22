@@ -27,8 +27,6 @@
 
 namespace ngs {
 
-namespace catalog {
-
 
 class ObjectContainer : public Object
 {
@@ -42,8 +40,6 @@ public:
 protected:
     std::vector<ObjectPtr> children;
 };
-
-}
 
 }
 

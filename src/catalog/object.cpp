@@ -22,8 +22,6 @@
 
 namespace ngs {
 
-namespace catalog {
-
 Object::Object(const Object * parent, const int type, const CPLString & name,
                const CPLString & path) :
     name(name),
@@ -68,7 +66,5 @@ ngsCatalogObjectType Object::getType() const
 {
     return type;
 }
-
-} // namespace catalog
 
 } // namespace ngs

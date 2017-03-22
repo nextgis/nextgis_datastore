@@ -27,30 +27,19 @@
 
 namespace ngs {
 
-namespace catalog {
-
-
 class Catalog : public ObjectContainer
 {
 public:
-    static Catalog& instance()
-    {
-        static Catalog cat;
-        return cat;
-    }
-
-protected:
-    void init();
-
-private:
     Catalog();
     virtual ~Catalog();
 
-    Catalog(Catalog const&) = delete;
-    Catalog& operator= (Catalog const&) = delete;
-};
+public:
+    static void setInstance(Catalog* pointer);
+    static Catalog* getInstance();
 
-}
+protected:
+    void init();
+};
 
 }
 

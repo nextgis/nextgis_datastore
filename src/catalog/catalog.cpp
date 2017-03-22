@@ -26,9 +26,20 @@
 
 namespace ngs {
 
-namespace catalog {
+typedef std::unique_ptr< Catalog > CatalogPtr;
+static CatalogPtr gCatalog;
 
 #define CONNECTIONS_DIR "connections"
+
+Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
+{
+    init();
+}
+
+Catalog::~Catalog()
+{
+
+}
 
 void Catalog::init()
 {
@@ -41,16 +52,16 @@ void Catalog::init()
                                                   "");
 }
 
-Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
+void Catalog::setInstance(Catalog *pointer)
 {
-    init();
+    if(gCatalog && nullptr != pointer) // Can be initialized only once.
+        return;
+    gCatalog.reset(pointer);
 }
 
-Catalog::~Catalog()
+Catalog* Catalog::getInstance()
 {
-
-}
-
+    return gCatalog.get();
 }
 
 }

@@ -88,8 +88,6 @@ enum ngsCatalogObjectType {
 
 namespace ngs {
 
-namespace catalog {
-
 class Filter
 {
 public:
@@ -108,5 +106,4 @@ protected:
 
 }
 
-}
 #endif // NGSFILTER_H

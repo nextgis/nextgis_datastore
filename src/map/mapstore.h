@@ -27,6 +27,8 @@
 
 namespace ngs {
 
+
+
 /**
  * @brief The MapStore class store maps with layers connected to datastore tables
  *        and styles (in memory storage)
@@ -84,13 +86,16 @@ public:
     ngsPosition getDisplayPosition(unsigned char mapId, double x, double y);
     ngsCoordinate getMapDistance(unsigned char mapId, double w, double h);
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
+
+public:
+    static void setInstance(MapStore* pointer);
+    static MapStore* getInstance();
+
 protected:
     unsigned char m_mapCounter;
     std::map<unsigned char, MapPtr> m_maps; // max 255 maps can be simultaneously opened
     ngsNotifyFunc m_notifyFunc;
 };
-
-typedef std::shared_ptr<MapStore> MapStorePtr;
 
 }
 #endif // NGSMAPSTORE_H

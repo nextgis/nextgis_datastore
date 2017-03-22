@@ -22,8 +22,6 @@
 
 namespace ngs {
 
-namespace catalog {
-
 Filter::Filter(const ngsCatalogObjectType type) : type(type)
 {
 }
@@ -73,5 +71,4 @@ bool Filter::isTable(const ngsCatalogObjectType type)
     return type >= CAT_TABLE_ANY && type < CAT_TABLE_ALL;
 }
 
-}
 }
