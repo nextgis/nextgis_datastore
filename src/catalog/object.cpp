@@ -40,7 +40,7 @@ const Object *Object::getParent() const
     return parent;
 }
 
-CPLString Object::getName() const
+const CPLString &Object::getName() const
 {
     return name;
 }
@@ -50,7 +50,7 @@ void Object::setName(const CPLString &value)
     name = value;
 }
 
-CPLString Object::getPath() const
+const CPLString &Object::getPath() const
 {
     return path;
 }
@@ -71,6 +71,8 @@ CPLString Object::getFullName() const
     if(nullptr != parent)
         out = parent->getFullName();
     out += Catalog::getSeparator() + name;
+
+    return out;
 }
 
 } // namespace ngs

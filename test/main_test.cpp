@@ -24,6 +24,7 @@
 // gdal
 #include "cpl_multiproc.h"
 #include "cpl_vsi.h"
+#include "cpl_string.h"
 
 #include "ngstore/api.h"
 #include "ngstore/version.h"
@@ -33,13 +34,17 @@
 
 static int counter = 0;
 
-void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
+void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/,
+                       const char* /*table*/,
+                       long /*row*/,
                        enum ngsChangeCodes /*operation*/) {
     counter++;
 }
 
-int ngsTestProgressFunc(unsigned int /*taskId*/, double /*complete*/,
-                        const char* /*message*/, void* /*progressArguments*/) {
+int ngsTestProgressFunc(unsigned int /*taskId*/,
+                        double /*complete*/,
+                        const char* /*message*/,
+                        void* /*progressArguments*/) {
     counter++;
     return 1;
 }
@@ -102,6 +107,36 @@ TEST(BasicTests, TestInlines) {
     EXPECT_EQ(color.G, newColor.G);
     EXPECT_EQ(color.B, newColor.B);
     EXPECT_EQ(color.A, newColor.A);
+}
+
+TEST(BasicTests, TestCatalogQuery) {
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    // TODO: CACHE_DIR, GDAL_DATA, LOCALE
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+
+    CSLDestroy(options);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery("ngc://");
+    ASSERT_NE(pathInfo, nullptr);
+    size_t count = 0;
+    while(pathInfo[count].name) {
+        count++;
+    }
+    ASSERT_GE(count, 1);
+    const char* path2test = CPLSPrintf("ngc://%s", pathInfo[0].name);
+    CPLFree(pathInfo);
+
+    pathInfo = ngsCatalogObjectQuery(path2test);
+    ASSERT_NE(pathInfo, nullptr);
+    count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << path2test << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 1);
+    CPLFree(pathInfo);
 }
 
 /*

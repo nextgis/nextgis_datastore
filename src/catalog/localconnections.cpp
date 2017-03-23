@@ -22,8 +22,8 @@
 #include "localconnections.h"
 
 #include "folder.h"
-#include "jsondocument.h"
 #include "ngstore/common.h"
+#include "util/jsondocument.h"
 
 #if defined (__APPLE__)
 #include <pwd.h>
@@ -72,9 +72,8 @@ bool LocalConnections::hasChildren()
            int ret = VSIStatL(testLetter, &statl);
            if(ret == 0) {
                if (VSI_ISDIR(statl.st_mode)) {
-                   const char* pathToAdd = CPLSPrintf("%s%s", testLetter,
-                                                        Catalog::getSeparator());
-                   connectionPaths.push_back(std::make_pair(pathToAdd, pathToAdd));
+                   const char* pathToAdd = CPLSPrintf("%s\\", testLetter);
+                   connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
                }
            }
        }
@@ -112,6 +111,8 @@ bool LocalConnections::hasChildren()
        root.add("connections", connections);
        doc.save(path);
     }
+
+    return ObjectContainer::hasChildren();
 }
 
 }

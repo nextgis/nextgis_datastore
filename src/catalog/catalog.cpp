@@ -23,12 +23,12 @@
 #include "cpl_conv.h"
 
 #include "api_priv.h"
+#include "folder.h"
 #include "localconnections.h"
 #include "ngstore/common.h"
 
 namespace ngs {
 
-typedef std::unique_ptr< Catalog > CatalogPtr;
 static CatalogPtr gCatalog;
 
 int constexpr length(const char* str)
@@ -36,13 +36,12 @@ int constexpr length(const char* str)
     return *str ? 1 + length(str + 1) : 0;
 }
 constexpr const char * CONNECTIONS_DIR = "connections";
-constexpr const char * CATALOG_PREFIX = "ngs://";
+constexpr const char * CATALOG_PREFIX = "ngc://";
 constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX);
 
 Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog")),
     showHidden(true)
 {
-    init();
 }
 
 CPLString Catalog::getFullName() const
@@ -52,7 +51,10 @@ CPLString Catalog::getFullName() const
 
 ObjectPtr Catalog::getObject(const char *path)
 {
-    // Skip prefix ngs://
+    if(EQUAL(path, CATALOG_PREFIX))
+        return std::static_pointer_cast<Object>(gCatalog);
+
+    // Skip prefix ngc://
     path += CATALOG_PREFIX_LEN;
     return ObjectContainer::getObject(path);
 }
@@ -76,6 +78,34 @@ void Catalog::createObjects(ObjectPtr object, std::vector<const char *> names)
     if(nullptr == container)
         return;
     //TODO: Check each factory for objects
+}
+
+bool Catalog::hasChildren()
+{
+    if(childrenLoaded)
+        return ObjectContainer::hasChildren();
+
+    const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
+    if(nullptr == settingsPath)
+        return false;
+
+    if(!Folder::isPathExists(settingsPath)) {
+        if(!Folder::mkDir(settingsPath))
+            return false;
+    }
+    // 1. Load factories
+
+    // 2. Load root objects
+    const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
+                                                  "");
+    if(!Folder::isPathExists(connectionsPath)) {
+        if(!Folder::mkDir(connectionsPath))
+            return false;
+    }
+    children.push_back(ObjectPtr(new LocalConnections(this, connectionsPath)));
+
+    childrenLoaded = true;
+    return ObjectContainer::hasChildren();
 }
 
 CPLString Catalog::getSeparator()
@@ -108,19 +138,6 @@ bool Catalog::isFileHidden(const CPLString &/*filePath*/, const char *fileName)
     return false;
 }
 
-void Catalog::init()
-{
-    const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
-    if(nullptr == settingsPath)
-        return;
-    // 1. Load factories
-
-    // 2. Load root objects
-    const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
-                                                  "");
-    children.push_back(ObjectPtr(new LocalConnections(this, connectionsPath)));
-}
-
 void Catalog::setShowHidden(bool value)
 {
     showHidden = value;
@@ -133,9 +150,9 @@ void Catalog::setInstance(Catalog *pointer)
     gCatalog.reset(pointer);
 }
 
-Catalog* Catalog::getInstance()
+CatalogPtr Catalog::getInstance()
 {
-    return gCatalog.get();
+    return gCatalog;
 }
 
 }

@@ -42,12 +42,12 @@ double ngs::getPixelSize(int zoom)
     return DEFAULT_MAX_X * 2.0 / sizeOneDimPixels;
 }
 
-vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
+std::vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
                                              unsigned char zoom, bool reverseY,
                                              bool unlimitX)
 {
     OGREnvelope env;
-    vector<ngs::TileItem> result;
+    std::vector<ngs::TileItem> result;
     if(zoom == 0) {
         env.MinX = DEFAULT_MIN_X;
         env.MaxX = DEFAULT_MAX_X;

@@ -29,6 +29,7 @@ set(HHEADERS
     objectcontainer.h
     catalog.h
     folder.h
+    localconnections.h
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
 )
 
@@ -38,6 +39,7 @@ set(CSOURCES
     catalog.cpp
     folder.cpp
     filter.cpp
+    localconnections.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

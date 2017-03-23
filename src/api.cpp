@@ -27,16 +27,17 @@
 #include "ds/datastore.h"
 #include "map/mapstore.h"
 #include "ngstore/version.h"
+#include "ngstore/catalog/filter.h"
 #include "ngstore/util/constants.h"
 #include "util/error.h"
 #include "util/versionutil.h"
 
+
 using namespace ngs;
 
-// TODO: Add catalog support. Maybe some path prefix for catalog paths - ngc://
+// TODO: Load and tiled vector data
 // TODO: Update/Fix unit test. Add GL offscreen rendering GL test
 // TODO: Add support to Framebuffer Objects rendering
-// TODO: Load and tiled vector data
 
 static CPLString gFilters;
 
@@ -132,7 +133,7 @@ const char* ngsGetVersionString(const char* request)
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
- * @return ngsErrorCodes value - SUCCES if everything is OK
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
 {
@@ -176,10 +177,12 @@ void ngsUnInit()
 void ngsFreeResources(bool full)
 {
     MapStore* const mapStore = MapStore::getInstance();
-    mapStore->freeResources();
+    if(nullptr != mapStore)
+        mapStore->freeResources();
     if(full) {
-        Catalog* const catalog = Catalog::getInstance();
-        catalog->freeResources();
+        CatalogPtr catalog = Catalog::getInstance();
+        if(catalog)
+            catalog->freeResources();
     }
 }
 
@@ -199,13 +202,51 @@ const char *ngsGetLastErrorMessage()
  * The filter is combination of enum ngsCatalogObjectType and subtype according
  * object type.
  * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
- * after using.
+ * after using with free or CPLFree method.
  */
-ngsCatlogObjectInfo **ngsCatalogObjectQuery(const char *path, int filter)
+ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
 {
-    Catalog* const cat = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::getInstance();
     // Create filter class from filter value.
+    Filter objectFilter(static_cast<enum ngsCatalogObjectType>(filter));
+    ObjectPtr object = catalog->getObject(path);
+    if(!object) {
+        return nullptr;
+    }
 
+    ngsCatalogObjectInfo* output = nullptr;
+    size_t outputSize = 0;
+    ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
+    if(!container) {
+        if(!objectFilter.canDisplay(object))
+            return nullptr;
+        output = static_cast<ngsCatalogObjectInfo*>(
+                    CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
+        output[0] = {object->getName(), object->getType()};
+        output[1] = {nullptr, -1};
+        return output;
+    }
+
+    if(!container->hasChildren())
+        return nullptr;
+
+    auto children = container->getChildren();
+    if(children.empty())
+        return nullptr;
+
+    for(const auto &child : children) {
+        if(objectFilter.canDisplay(child)) {
+            outputSize++;
+            output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
+                                sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
+            output[outputSize - 1] = {
+                    child->getName(), child->getType()};
+        }
+    }
+    if(outputSize > 0) {
+        output[outputSize] = {nullptr, -1};
+    }
+    return output;
 }
 
 /**
@@ -215,10 +256,11 @@ ngsCatlogObjectInfo **ngsCatalogObjectQuery(const char *path, int filter)
  */
 int ngsCatalogObjectDelete(const char *path)
 {
-    Catalog* const cat = Catalog::getInstance();
-    ObjectPtr object = cat->getObject(path);
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
     // Check can delete
-    return object->destroy();
+    //return object->destroy();
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 /**
@@ -230,8 +272,8 @@ int ngsCatalogObjectDelete(const char *path)
  */
 int ngsCatalogObjectCreate(const char *path, char **options)
 {
-    Catalog* const cat = Catalog::getInstance();
-
+    CatalogPtr catalog = Catalog::getInstance();
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 /**
@@ -249,8 +291,8 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
                          char **options, ngsProgressFunc callback,
                          void *callbackData)
 {
-    catalog::Catalog& cat = catalog::Catalog::instance();
-
+    CatalogPtr catalog = Catalog::getInstance();
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 /**
@@ -260,11 +302,11 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
  * parent container
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-int ngsCatalogObjectRename(const char *path, const char *newName)
-{
-    catalog::Catalog& cat = catalog::Catalog::instance();
-
-}
+//int ngsCatalogObjectRename(const char *path, const char *newName)
+//{
+//    CatalogPtr catalog = Catalog::getInstance();
+//    return ngsErrorCodes::EC_SUCCESS;
+//}
 
 /**
  * @brief ngsInitDataStore Open or create data store. All datastore functgions
@@ -272,15 +314,15 @@ int ngsCatalogObjectRename(const char *path, const char *newName)
  * @param path Path to create datastore (geopackage database name)
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDataStoreInit(const char *path)
-{
-    if(gDataStore && gDataStore->path().compare (path) == 0)
-        return ngsErrorCodes::EC_SUCCESS;
-    gDataStore = DataStore::openOrCreate(path);
-    if(nullptr == gDataStore)
-        return ngsErrorCodes::EC_OPEN_FAILED;
-    return ngsErrorCodes::EC_SUCCESS;
-}
+//int ngsDataStoreInit(const char *path)
+//{
+//    if(gDataStore && gDataStore->path().compare (path) == 0)
+//        return ngsErrorCodes::EC_SUCCESS;
+//    gDataStore = DataStore::openOrCreate(path);
+//    if(nullptr == gDataStore)
+//        return ngsErrorCodes::EC_OPEN_FAILED;
+//    return ngsErrorCodes::EC_SUCCESS;
+//}
 
 
 /**
@@ -289,19 +331,19 @@ int ngsDataStoreInit(const char *path)
  * @param cachePath Path to cache (may be NULL)
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsDataStoreDestroy(const char *path, const char *cachePath)
-{
-    if(nullptr == path)
-        return ngsErrorCodes::EC_INVALID;
-    gMapStore.reset ();
-    if(cachePath){
-        if(CPLUnlinkTree(cachePath) != 0){
-            return ngsErrorCodes::EC_DELETE_FAILED;
-        }
-    }
-    ngsDataStoreInit(path);
-    return gDataStore->destroy ();
-}
+//int ngsDataStoreDestroy(const char *path, const char *cachePath)
+//{
+//    if(nullptr == path)
+//        return ngsErrorCodes::EC_INVALID;
+//    gMapStore.reset ();
+//    if(cachePath){
+//        if(CPLUnlinkTree(cachePath) != 0){
+//            return ngsErrorCodes::EC_DELETE_FAILED;
+//        }
+//    }
+//    ngsDataStoreInit(path);
+//    return gDataStore->destroy ();
+//}
 
 /**
  * @brief Create remote TMS Raster
@@ -315,19 +357,19 @@ int ngsDataStoreDestroy(const char *path, const char *cachePath)
  * @param y_origin_top If true - OSGeo TMS, else - Slippy map
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
-                             const char *copyright, int epsg, int z_min, int z_max,
-                             bool y_origin_top)
-{
-    if(z_max == 0)
-        z_max = 18;
+//int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
+//                             const char *copyright, int epsg, int z_min, int z_max,
+//                             bool y_origin_top)
+//{
+//    if(z_max == 0)
+//        z_max = 18;
 
-    if(gDataStore)
-        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
-                                            epsg, z_min, z_max, y_origin_top);
+//    if(gDataStore)
+//        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
+//                                            epsg, z_min, z_max, y_origin_top);
 
-    return ngsErrorCodes::EC_CREATE_FAILED;
-}
+//    return ngsErrorCodes::EC_CREATE_FAILED;
+//}
 
 /**
  * @brief Sete map size in pixels
@@ -336,24 +378,24 @@ int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alia
  * @param height Output image height
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
-{
-    initMapStore();
-    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
-}
+//int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
+//{
+//    initMapStore();
+//    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
+//}
 
 
 /**
  * @brief Set notify function executed on some library events
  * @param Callback function pointer (not free by library)
  */
-void ngsSetNotifyFunction(ngsNotifyFunc callback)
-{
-    if(nullptr != gDataStore)
-        gDataStore->setNotifyFunc (callback);
-    initMapStore();
-    gMapStore->setNotifyFunc (callback);
-}
+//void ngsSetNotifyFunction(ngsNotifyFunc callback)
+//{
+//    if(nullptr != gDataStore)
+//        gDataStore->setNotifyFunc (callback);
+//    initMapStore();
+//    gMapStore->setNotifyFunc (callback);
+//}
 
 /**
  * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
@@ -363,23 +405,23 @@ void ngsSetNotifyFunction(ngsNotifyFunc callback)
  * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
-               ngsProgressFunc callback, void* callbackData)
-{
-    initMapStore();
-    return gMapStore->drawMap (mapId, state, callback, callbackData);
-}
+//int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+//               ngsProgressFunc callback, void* callbackData)
+//{
+//    initMapStore();
+//    return gMapStore->drawMap (mapId, state, callback, callbackData);
+//}
 
 /**
  * @brief ngsGetMapBackgroundColor Map background color
  * @param mapId Map id received from create or open map functions
  * @return map background color struct
  */
-ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
-{
-    initMapStore();
-    return gMapStore->getMapBackgroundColor (mapId);
-}
+//ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->getMapBackgroundColor (mapId);
+//}
 
 /**
  * @brief ngsSetMapBackgroundColor set specified by name map background color
@@ -390,12 +432,12 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
  * @param A alpha
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char G,
-                             unsigned char B, unsigned char A)
-{
-    initMapStore();
-    return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
-}
+//int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char G,
+//                             unsigned char B, unsigned char A)
+//{
+//    initMapStore();
+//    return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
+//}
 
 /**
  * @brief ngsMapSetCenter Set new map center coordinates
@@ -404,22 +446,22 @@ int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char
  * @param y Y coordinate
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSetCenter(unsigned char mapId, double x, double y)
-{
-    initMapStore();
-    return gMapStore->setMapCenter(mapId, x, y);
-}
+//int ngsMapSetCenter(unsigned char mapId, double x, double y)
+//{
+//    initMapStore();
+//    return gMapStore->setMapCenter(mapId, x, y);
+//}
 
 /**
  * @brief ngsMapGetCenter Get map center for current view (extent)
  * @param mapId Map id
  * @return Coordintate structure. If error occured all coordinates set to 0.0
  */
-ngsCoordinate ngsMapGetCenter(unsigned char mapId)
-{
-    initMapStore();
-    return gMapStore->getMapCenter(mapId);
-}
+//ngsCoordinate ngsMapGetCenter(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->getMapCenter(mapId);
+//}
 
 /**
  * @brief ngsMapSetScale Set current map scale
@@ -427,22 +469,22 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
  * @param scale value to set
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSetScale(unsigned char mapId, double scale)
-{
-    initMapStore();
-    return gMapStore->setMapScale(mapId, scale);
-}
+//int ngsMapSetScale(unsigned char mapId, double scale)
+//{
+//    initMapStore();
+//    return gMapStore->setMapScale(mapId, scale);
+//}
 
 /**
  * @brief ngsMapGetScale Return current map scale
  * @param mapId Map id
  * @return Current map scale or 1
  */
-double ngsMapGetScale(unsigned char mapId)
-{
-    initMapStore();
-    return gMapStore->getMapScale(mapId);
-}
+//double ngsMapGetScale(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->getMapScale(mapId);
+//}
 
 /**
  * @brief ngsCreateMap Create new empty map
@@ -455,31 +497,31 @@ double ngsMapGetScale(unsigned char mapId)
  * @param maxY maximum Y coordinate
  * @return 0 if create failed or map id.
  */
-int ngsMapCreate(const char* name, const char* description,
-                 unsigned short epsg, double minX, double minY,
-                 double maxX, double maxY)
-{
-    // for this API before work with map datastore must be open
-    if(nullptr == gDataStore)
-        return ngsErrorCodes::EC_CREATE_FAILED; // FIXME: must return 0
-    initMapStore();
-    return gMapStore->createMap (name, description, epsg,
-                                 minX, minY, maxX, maxY, gDataStore);
-}
+//int ngsMapCreate(const char* name, const char* description,
+//                 unsigned short epsg, double minX, double minY,
+//                 double maxX, double maxY)
+//{
+//    // for this API before work with map datastore must be open
+//    if(nullptr == gDataStore)
+//        return ngsErrorCodes::EC_CREATE_FAILED; // FIXME: must return 0
+//    initMapStore();
+//    return gMapStore->createMap (name, description, epsg,
+//                                 minX, minY, maxX, maxY, gDataStore);
+//}
 
 /**
  * @brief ngsOpenMap Open existing map from file
  * @param path Path to map file
  * @return 0 if open failed or map id.
  */
-int ngsMapOpen(const char *path)
-{
-    // for this API before work with map datastore must be open
-    if(nullptr == gDataStore)
-        return ngsErrorCodes::EC_OPEN_FAILED;
-    initMapStore();
-    return gMapStore->openMap (path, gDataStore);
-}
+//int ngsMapOpen(const char *path)
+//{
+//    // for this API before work with map datastore must be open
+//    if(nullptr == gDataStore)
+//        return ngsErrorCodes::EC_OPEN_FAILED;
+//    initMapStore();
+//    return gMapStore->openMap (path, gDataStore);
+//}
 
 /**
  * @brief ngsSaveMap Save map to file
@@ -487,11 +529,11 @@ int ngsMapOpen(const char *path)
  * @param path Path to store map data
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSave(unsigned char mapId, const char *path)
-{
-    initMapStore();
-    return gMapStore->saveMap (mapId, path);
-}
+//int ngsMapSave(unsigned char mapId, const char *path)
+//{
+//    initMapStore();
+//    return gMapStore->saveMap (mapId, path);
+//}
 
 /**
  * @brief ngsLoad
@@ -505,55 +547,55 @@ int ngsMapSave(unsigned char mapId, const char *path)
  * @return  Load task id or 0 if error occured. This id can be used to get some
  * additional information about the task.
  */
-unsigned int ngsDataStoreLoad(const char* name, const char *path,
-                              const char *subDatasetName, const char** options,
-                              ngsProgressFunc callback, void *callbackData)
-{
-    if(nullptr != gDataStore) {
-        CPLString sName(name);
-        CPLString sPath(path);
-        CPLString sSubDatasetName(subDatasetName);
-        return gDataStore->loadDataset(
-                sName, sPath, sSubDatasetName, options, callback, callbackData);
-    }
-    return 0;
-}
+//unsigned int ngsDataStoreLoad(const char* name, const char *path,
+//                              const char *subDatasetName, const char** options,
+//                              ngsProgressFunc callback, void *callbackData)
+//{
+//    if(nullptr != gDataStore) {
+//        CPLString sName(name);
+//        CPLString sPath(path);
+//        CPLString sSubDatasetName(subDatasetName);
+//        return gDataStore->loadDataset(
+//                sName, sPath, sSubDatasetName, options, callback, callbackData);
+//    }
+//    return 0;
+//}
 
-int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
-{
-    ngsDataStoreInit ( CPLGetDirname (path) );
-    if(nullptr == gDataStore)
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
-    initMapStore();
-    MapPtr map = gMapStore->getMap (mapId);
-    if(nullptr == map || nullptr == dataset)
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    return map->createLayer (name, dataset);
+//int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
+//{
+//    ngsDataStoreInit ( CPLGetDirname (path) );
+//    if(nullptr == gDataStore)
+//        return ngsErrorCodes::EC_CREATE_FAILED;
+//    DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
+//    initMapStore();
+//    MapPtr map = gMapStore->getMap (mapId);
+//    if(nullptr == map || nullptr == dataset)
+//        return ngsErrorCodes::EC_CREATE_FAILED;
+//    return map->createLayer (name, dataset);
 
-}
+//}
 
 /**
  * @brief ngsMapClose Close map and free resources
  * @param mapId Map id to close
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapClose(unsigned char mapId)
-{
-    initMapStore();
-    return gMapStore->closeMap (mapId);
-}
+//int ngsMapClose(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->closeMap (mapId);
+//}
 
 /**
  * @brief ngsMapInit Initialize map. It depends on map what to initialize.
  * @param mapId Map id
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapInit(unsigned char mapId)
-{
-    initMapStore();
-    return gMapStore->initMap (mapId);
-}
+//int ngsMapInit(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->initMap (mapId);
+//}
 
 /**
  * @brief ngsMapSetRotate Set map rotate
@@ -562,11 +604,11 @@ int ngsMapInit(unsigned char mapId)
  * @param rotate value to set
  * @return ngsErrorCodes value - SUCCES if everything is OK
  */
-int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
-{
-    initMapStore();
-    return gMapStore->setMapRotate (mapId, dir, rotate);
-}
+//int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
+//{
+//    initMapStore();
+//    return gMapStore->setMapRotate (mapId, dir, rotate);
+//}
 
 /**
  * @brief ngsMapGetRotate Return map rotate value
@@ -574,11 +616,11 @@ int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
  * @param dir Rotate direction. May be X, Y or Z
  * @return rotate value or 0 if error occured
  */
-double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
-{
-    initMapStore();
-    return gMapStore->getMapRotate (mapId, dir);
-}
+//double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
+//{
+//    initMapStore();
+//    return gMapStore->getMapRotate (mapId, dir);
+//}
 
 /**
  * @brief ngsMapGetCoordinate Georpaphic coordinates for display positon
@@ -587,11 +629,11 @@ double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
  * @param y Y position
  * @return Georpaphic coordinates
  */
-ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
-{
-    initMapStore();
-    return gMapStore->getMapCoordinate (mapId, x, y);
-}
+//ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
+//{
+//    initMapStore();
+//    return gMapStore->getMapCoordinate (mapId, x, y);
+//}
 
 /**
  * @brief ngsDisplayGetPosition Display position for geographic coordinates
@@ -600,11 +642,11 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
  * @param y Y coordinate
  * @return Display position
  */
-ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
-{
-    initMapStore();
-    return gMapStore->getDisplayPosition (mapId, x, y);
-}
+//ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
+//{
+//    initMapStore();
+//    return gMapStore->getDisplayPosition (mapId, x, y);
+//}
 
 /**
  * @brief ngsMapGetDistance Map distance from display length
@@ -613,11 +655,11 @@ ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
  * @param h Height
  * @return ngsCoordinate where X distance along x axis and Y along y axis
  */
-ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
-{
-    initMapStore();
-    return gMapStore->getMapDistance (mapId, w, h);
-}
+//ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
+//{
+//    initMapStore();
+//    return gMapStore->getMapDistance (mapId, w, h);
+//}
 
 /**
  * @brief ngsDisplayGetLength Display length from map distance
@@ -626,35 +668,35 @@ ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
  * @param h Height
  * @return ngsPosition where X length along x axis and Y along y axis
  */
-ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
-{
-    initMapStore();
-    return gMapStore->getDisplayLength (mapId, w, h);
-}
+//ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
+//{
+//    initMapStore();
+//    return gMapStore->getDisplayLength (mapId, w, h);
+//}
 
 /**
  * @brief ngsDataStoreGetLoadTaskInfo Report loading task status
  * @param taskId Task id
  * @return ngsLoadTaskInfo structure
  */
-ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId)
-{
-    if(nullptr != gDataStore)
-        return gDataStore->getLoadTaskInfo (taskId);
-    return {nullptr, nullptr, nullptr, ngsErrorCodes::EC_INVALID};
-}
+//ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId)
+//{
+//    if(nullptr != gDataStore)
+//        return gDataStore->getLoadTaskInfo (taskId);
+//    return {nullptr, nullptr, nullptr, ngsErrorCodes::EC_INVALID};
+//}
 
 /**
  * @brief ngsDataStoreGetOptions Report supported options in xml string
  * @param optionType Option to report
  * @return xml string or nullptr
  */
-const char *ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType)
-{
-    if(nullptr != gDataStore)
-        return gDataStore->getOptions (optionType);
-    return nullptr;
-}
+//const char *ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType)
+//{
+//    if(nullptr != gDataStore)
+//        return gDataStore->getOptions (optionType);
+//    return nullptr;
+//}
 
 const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator)
 {

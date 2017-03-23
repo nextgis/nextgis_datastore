@@ -35,8 +35,8 @@ bool Filter::canDisplay(ObjectPtr object) const
     if(type == CAT_UNKNOWN)
         return true;
 
-    // Always dispaly containers except filtering of container type
-    if(isContainer(object->getType() && !isContainer(type))
+    // Always display containers except filtering of container type
+    if(isContainer(object->getType()) && !isContainer(type))
         return true;
 
     if(object->getType() == type)

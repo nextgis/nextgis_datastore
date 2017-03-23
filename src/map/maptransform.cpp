@@ -154,7 +154,7 @@ bool MapTransform::setExtent(const OGREnvelope &env)
 
     initMatrices();
 
-    if(isEqual(m_rotate[ngsDirection::Z], 0.0)) {
+    if(isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)) {
         m_rotateExtent = m_extent;
     }
     else {
@@ -196,7 +196,7 @@ bool MapTransform::updateExtent()
 
     initMatrices();
 
-    if(isEqual(m_rotate[ngsDirection::Z], 0.0)){
+    if(isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)){
         m_rotateExtent = m_extent;
     }
     else {
@@ -221,8 +221,8 @@ void MapTransform::initMatrices()
     }
 
 
-    if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
-        m_sceneMatrix.rotateX (m_rotate[ngsDirection::X]);
+    if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
+        m_sceneMatrix.rotateX (m_rotate[ngsDirection::DIR_X]);
     }
 
     /* TODO: no idea about Y axis rotation
@@ -242,8 +242,8 @@ void MapTransform::initMatrices()
 
     m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);
 
-    if(!isEqual(m_rotate[ngsDirection::X], 0.0)){
-        m_invViewMatrix.rotateX (-m_rotate[ngsDirection::X]);
+    if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
+        m_invViewMatrix.rotateX (-m_rotate[ngsDirection::DIR_X]);
     }
 
     // scene -> view matrix
@@ -257,14 +257,14 @@ void MapTransform::initMatrices()
     m_invWorldToDisplayMatrix.multiply (m_invViewMatrix);
 
     // Z axis rotation
-    if(!isEqual(m_rotate[ngsDirection::Z], 0.0)){
+    if(!isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)){
         OGRRawPoint center = getEnvelopeCenter(m_extent);
         m_sceneMatrix.translate (center.x, center.y, 0);
-        m_sceneMatrix.rotateZ (m_rotate[ngsDirection::Z]);
+        m_sceneMatrix.rotateZ (m_rotate[ngsDirection::DIR_Z]);
         m_sceneMatrix.translate (-center.x, -center.y, 0);
 
-        m_worldToDisplayMatrix.rotateZ (-m_rotate[ngsDirection::Z]);
-        m_invWorldToDisplayMatrix.rotateZ (m_rotate[ngsDirection::Z]);
+        m_worldToDisplayMatrix.rotateZ (-m_rotate[ngsDirection::DIR_Z]);
+        m_invWorldToDisplayMatrix.rotateZ (m_rotate[ngsDirection::DIR_Z]);
     }
 }
 

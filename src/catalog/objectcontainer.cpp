@@ -94,4 +94,9 @@ ObjectPtr ObjectContainer::getChild(const CPLString &name) const
     return ObjectPtr();
 }
 
+std::vector<ObjectPtr> ObjectContainer::getChildren() const
+{
+    return children;
+}
+
 }

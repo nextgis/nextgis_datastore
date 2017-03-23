@@ -28,7 +28,7 @@
 #include "gdal.h"
 
 #ifdef HAVE_CURL_H
-#include <curl/curlver.h>
+#include "curl/curlver.h"
 #endif
 
 #ifdef HAVE_GEOS_C_H

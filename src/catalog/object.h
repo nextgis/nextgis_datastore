@@ -26,7 +26,6 @@
 #include "cpl_string.h"
 
 #include "ngstore/codes.h"
-#include "ngstore/catalog/filter.h"
 
 namespace ngs {
 
@@ -41,8 +40,8 @@ public:
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Object() = default;
-    CPLString getName() const;
-    CPLString getPath() const;
+    const CPLString &getName() const;
+    const CPLString &getPath() const;
     ngsCatalogObjectType getType() const;
     virtual CPLString getFullName() const;
 

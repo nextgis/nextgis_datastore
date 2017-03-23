@@ -59,7 +59,7 @@ typedef struct _ngsLoadTaskInfo {
 typedef struct _ngsCatlogObjectInfo {
     const char* name;
     int type;
-} ngsCatlogObjectInfo;
+} ngsCatalogObjectInfo;
 
 /**
  * @brief Prototype of function, which executed periodically during some long
@@ -100,7 +100,7 @@ NGS_EXTERNC const char* ngsGetLastErrorMessage();
 /**
  * Catalog functions
  */
-NGS_EXTERNC ngsCatlogObjectInfo** ngsCatalogObjectQuery(const char* path,
+NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char* path,
                                                         int filter = 0);
 NGS_EXTERNC int ngsCatalogObjectDelete(const char* path);
 NGS_EXTERNC int ngsCatalogObjectCreate(const char* path, char **options = nullptr);
@@ -108,7 +108,7 @@ NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
                                      char **options = nullptr,
                                      ngsProgressFunc callback = nullptr,
                                      void* callbackData = nullptr);
-NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
+// NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
 // create, open, load options - all are driver specific
 // NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, const char* newName);
 
@@ -122,24 +122,24 @@ mapSet/GetProperties - backgroud, center, scale, rotate
 mapGet coordinate, distance
 dispalyGet position, length
 */
-NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
+//NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
 
 /**
  * Storage functions
  */
 
-NGS_EXTERNC int ngsDataStoreInit(const char* path);
-NGS_EXTERNC int ngsDataStoreDestroy(const char* path, const char* cachePath);
-NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
-                                         const char* alias, const char* copyright,
-                                         int epsg, int z_min, int z_max,
-                                         bool y_origin_top);
-NGS_EXTERNC unsigned int ngsDataStoreLoad(const char* name, const char* path,
-                        const char *subDatasetName, const char** options,
-                        ngsProgressFunc callback, void* callbackData);
-NGS_EXTERNC ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId);
-NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
+//NGS_EXTERNC int ngsDataStoreInit(const char* path);
+//NGS_EXTERNC int ngsDataStoreDestroy(const char* path, const char* cachePath);
+//NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
+//                                         const char* alias, const char* copyright,
+//                                         int epsg, int z_min, int z_max,
+//                                         bool y_origin_top);
+//NGS_EXTERNC unsigned int ngsDataStoreLoad(const char* name, const char* path,
+//                        const char *subDatasetName, const char** options,
+//                        ngsProgressFunc callback, void* callbackData);
+//NGS_EXTERNC ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId);
+//NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**
  * Map functions
@@ -147,34 +147,34 @@ NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionTy
  *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
  *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
-NGS_EXTERNC int ngsMapInit(unsigned char mapId);
-NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
-                             unsigned short epsg, double minX, double minY,
-                             double maxX, double maxY);
-NGS_EXTERNC int ngsMapOpen(const char* path);
-NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
-NGS_EXTERNC int ngsMapClose(unsigned char mapId);
-NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
-                           int isYAxisInverted);
-NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
-                           ngsProgressFunc callback, void* callbackData);
-NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R,
-                                    unsigned char G, unsigned char B,
-                                    unsigned char A);
-NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
-NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
-                               const char* path);
-NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
-NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
-NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
-NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
-NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
-                                double rotate);
-NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
-NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y);
-NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h);
-/** Map canvas functions */
-NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
-NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
+//NGS_EXTERNC int ngsMapInit(unsigned char mapId);
+//NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
+//                             unsigned short epsg, double minX, double minY,
+//                             double maxX, double maxY);
+//NGS_EXTERNC int ngsMapOpen(const char* path);
+//NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
+//NGS_EXTERNC int ngsMapClose(unsigned char mapId);
+//NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
+//                           int isYAxisInverted);
+//NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+//                           ngsProgressFunc callback, void* callbackData);
+//NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R,
+//                                    unsigned char G, unsigned char B,
+//                                    unsigned char A);
+//NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
+//NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
+//                               const char* path);
+//NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
+//NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
+//NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
+//NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
+//NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
+//                                double rotate);
+//NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
+//NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y);
+//NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h);
+///** Map canvas functions */
+//NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
+//NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 
 #endif // NGSAPI_H

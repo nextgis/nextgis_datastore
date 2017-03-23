@@ -44,7 +44,7 @@ bool Folder::hasChildren()
         return false;
 
     std::vector< const char* > objectNames;
-    Catalog * const catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::getInstance();
     for(int i = 0; items[i] != nullptr; ++i) {
         if(EQUAL(items[i], ".") || EQUAL(items[i], ".."))
             continue;
@@ -58,6 +58,19 @@ bool Folder::hasChildren()
     catalog->createObjects(getChild(name), objectNames);
 
     CSLDestroy(items);
+
+    return !children.empty();
+}
+
+bool Folder::isPathExists(const char *path)
+{
+    VSIStatBuf sbuf;
+    return VSIStat(path, &sbuf) == 0;
+}
+
+bool Folder::mkDir(const char *path)
+{
+    return VSIMkdir(path, 0755) == 0;
 }
 
 }

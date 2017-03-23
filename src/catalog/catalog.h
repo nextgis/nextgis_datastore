@@ -27,6 +27,10 @@
 
 namespace ngs {
 
+class Catalog;
+typedef std::shared_ptr< Catalog > CatalogPtr;
+
+
 class Catalog : public ObjectContainer
 {
 public:
@@ -36,18 +40,20 @@ public:
     virtual ObjectPtr getObject(const char* path) override;
     virtual void freeResources();
     virtual void createObjects(ObjectPtr object, std::vector< const char *> names);
+    virtual bool hasChildren() override;
 
     bool isFileHidden(const CPLString& filePath, const char* fileName);
     void setShowHidden(bool value);
 
 public:
     static void setInstance(Catalog* pointer);
-    static Catalog* getInstance();
+    static CatalogPtr getInstance();
     static CPLString getSeparator();
     static unsigned short getMaxPathLength();
 
-protected:
-    void init();
+private:
+    Catalog(Catalog const&) = delete;
+    Catalog& operator= (Catalog const&) = delete;
 
 protected:
     bool showHidden;

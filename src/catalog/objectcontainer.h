@@ -38,7 +38,8 @@ public:
     virtual ObjectPtr getObject(const char* path);
     virtual void addObject(ObjectPtr object);
     virtual void clear();
-    virtual bool hasChildren() { return true; }
+    virtual bool hasChildren() { return !children.empty(); }
+    std::vector<ObjectPtr> getChildren() const;
 
 protected:
     ObjectPtr getChild(const CPLString& name) const;
