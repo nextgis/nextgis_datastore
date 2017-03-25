@@ -29,13 +29,15 @@
 
 namespace ngs {
 
+class ObjectContainer;
+
 /**
  * @brief The base class for catalog items
  */
 class Object
 {
 public:
-    Object(const Object * parent = nullptr,
+    Object(const ObjectContainer * parent = nullptr,
            const ngsCatalogObjectType type = CAT_UNKNOWN,
            const CPLString & name = "",
            const CPLString & path = "");
@@ -46,7 +48,7 @@ public:
     virtual CPLString getFullName() const;
 
 protected:
-    const Object *getParent() const;
+    const ObjectContainer *getParent() const;
     void setName(const CPLString &value);
     void setPath(const CPLString &value);
 
@@ -56,7 +58,7 @@ private:
 
 protected:
     CPLString m_name, m_path;
-    const Object * m_parent;
+    const ObjectContainer * m_parent;
     ngsCatalogObjectType m_type;
 };
 

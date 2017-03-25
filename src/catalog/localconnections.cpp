@@ -34,12 +34,12 @@ namespace ngs {
 constexpr const char * LOCAL_CONN_FILE = "connections";
 constexpr const char * LOCAL_CONN_FILE_EXT = "json";
 
-LocalConnections::LocalConnections(const Object * parent,
+LocalConnections::LocalConnections(const ObjectContainer * parent,
                                    const CPLString & path) :
     ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, _("Local connections"),
                     path)
 {
-    this->m_path = CPLFormFilename(path, LOCAL_CONN_FILE, LOCAL_CONN_FILE_EXT);
+    m_path = CPLFormFilename(path, LOCAL_CONN_FILE, LOCAL_CONN_FILE_EXT);
 }
 
 bool LocalConnections::hasChildren()

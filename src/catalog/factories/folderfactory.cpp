@@ -18,49 +18,37 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSCATALOG_H
-#define NGSCATALOG_H
+#include "folderfactory.h"
 
-#include "objectcontainer.h"
-#include "factories/objectfactory.h"
-
-#include <utility>
+#include "catalog/folder.h"
+#include "ngstore/common.h"
 
 namespace ngs {
 
-class Catalog;
-typedef std::shared_ptr< Catalog > CatalogPtr;
-
-
-class Catalog : public ObjectContainer
+FolderFactory::FolderFactory()
 {
-public:
-    Catalog();
-    virtual ~Catalog() = default;
-    virtual CPLString getFullName() const override;
-    virtual ObjectPtr getObject(const char* path) override;
-    virtual void freeResources();
-    virtual void createObjects(ObjectPtr object, std::vector< const char *> names);
-    virtual bool hasChildren() override;
-
-    bool isFileHidden(const CPLString& path, const char* name);
-    void setShowHidden(bool value);
-
-public:
-    static void setInstance(Catalog* pointer);
-    static CatalogPtr getInstance();
-    static CPLString getSeparator();
-    static unsigned short getMaxPathLength();
-
-private:
-    Catalog(Catalog const&) = delete;
-    Catalog& operator= (Catalog const&) = delete;
-
-protected:
-    bool m_showHidden;
-    std::vector<ObjectFactoryUPtr> m_factories;
-};
 
 }
 
-#endif // NGSCATALOG_H
+const char *ngs::FolderFactory::getName() const
+{
+    return _("Folders");
+}
+
+void ngs::FolderFactory::createObjects(ObjectContainer * const container,
+                                       std::vector<const char *> * const names)
+{
+    std::vector<const char *>::iterator it = names->begin();
+    while( it != names->end() ) {
+        const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
+        if(Folder::isDir(path)) {
+            container->addObject(ObjectPtr(new Folder(container, *it, path)));
+            it = names->erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+}

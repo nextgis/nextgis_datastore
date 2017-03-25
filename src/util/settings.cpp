@@ -31,7 +31,7 @@ Settings::Settings() : m_hasChanges(false)
 {
     const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
     m_path = CPLFormFilename(settingsPath, SETTINGS_FILE, SETTINGS_FILE_EXT);
-    if(Folder::isPathExists(m_path))
+    if(Folder::isExists(m_path))
         m_settings.load(m_path);
     m_root = m_settings.getRoot();
 }
@@ -99,7 +99,7 @@ bool Settings::save()
         if(nullptr == settingsPath)
             return false;
 
-        if(!Folder::isPathExists(settingsPath)) {
+        if(!Folder::isExists(settingsPath)) {
             if(!Folder::mkDir(settingsPath))
                 return false;
         }

@@ -22,11 +22,11 @@
 #define NGSOBJECTFACTORY_H
 
 #include <vector>
+#include <utility>
 
-#include "objectcontainer.h"
+#include "catalog/objectcontainer.h"
 
 namespace ngs {
-
 
 class ObjectFactory
 {
@@ -44,6 +44,7 @@ private:
     bool m_enabled;
 };
 
+typedef std::unique_ptr< ObjectFactory > ObjectFactoryUPtr;
 
 }
 

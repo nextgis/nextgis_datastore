@@ -21,12 +21,14 @@
 #include "catalog.h"
 
 #include "cpl_conv.h"
-
 #include "api_priv.h"
+
 #include "folder.h"
 #include "localconnections.h"
+#include "factories/folderfactory.h"
 #include "ngstore/common.h"
 #include "util/settings.h"
+
 
 namespace ngs {
 
@@ -78,7 +80,10 @@ void Catalog::createObjects(ObjectPtr object, std::vector<const char *> names)
     ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
     if(nullptr == container)
         return;
-    //TODO: Check each factory for objects
+    // Check each factory for objects
+    for(const ObjectFactoryUPtr& factory : m_factories) {
+        factory->createObjects(container, &names);
+    }
 }
 
 bool Catalog::hasChildren()
@@ -90,16 +95,17 @@ bool Catalog::hasChildren()
     if(nullptr == settingsPath)
         return false;
 
-    if(!Folder::isPathExists(settingsPath)) {
+    if(!Folder::isExists(settingsPath)) {
         if(!Folder::mkDir(settingsPath))
             return false;
     }
     // 1. Load factories
+    m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
 
     // 2. Load root objects
     const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
                                                   "");
-    if(!Folder::isPathExists(connectionsPath)) {
+    if(!Folder::isExists(connectionsPath)) {
         if(!Folder::mkDir(connectionsPath))
             return false;
     }

@@ -32,6 +32,7 @@ set(HHEADERS
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
     localconnections.h
     factories/objectfactory.h
+    factories/folderfactory.h
 )
 
 set(CSOURCES
@@ -42,6 +43,7 @@ set(CSOURCES
     filter.cpp
     localconnections.cpp
     factories/objectfactory.cpp
+    factories/folderfactory.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

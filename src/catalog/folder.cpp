@@ -24,7 +24,7 @@
 
 namespace ngs {
 
-Folder::Folder(const Object * parent,
+Folder::Folder(const ObjectContainer *parent,
                const CPLString & name, const CPLString & path) :
     ObjectContainer(parent, CAT_CONTAINER_DIR, name, path)
 {
@@ -52,17 +52,17 @@ bool Folder::hasChildren()
         if(catalog->isFileHidden(m_path, items[i]))
             continue;
 
-        objectNames.push_back(CPLFormFilename(m_path, items[i], nullptr));
+        objectNames.push_back(items[i]);
     }
 
-    catalog->createObjects(getChild(m_name), objectNames);
+    catalog->createObjects(m_parent->getChild(m_name), objectNames);
 
     CSLDestroy(items);
 
     return !m_children.empty();
 }
 
-bool Folder::isPathExists(const char *path)
+bool Folder::isExists(const char *path)
 {
     VSIStatBuf sbuf;
     return VSIStat(path, &sbuf) == 0;
@@ -71,6 +71,12 @@ bool Folder::isPathExists(const char *path)
 bool Folder::mkDir(const char *path)
 {
     return VSIMkdir(path, 0755) == 0;
+}
+
+bool Folder::isDir(const char *path)
+{
+    VSIStatBuf sbuf;
+    return VSIStatL(path, &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
 }
 
 }

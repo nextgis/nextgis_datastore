@@ -30,7 +30,7 @@ namespace ngs {
 class ObjectContainer : public Object
 {
 public:
-    ObjectContainer(const Object * parent = nullptr,
+    ObjectContainer(const ObjectContainer *parent = nullptr,
                     const ngsCatalogObjectType type = CAT_UNKNOWN,
                     const CPLString & name = "",
                     const CPLString & path = "");
@@ -40,8 +40,6 @@ public:
     virtual void clear();
     virtual bool hasChildren() { return !m_children.empty(); }
     std::vector<ObjectPtr> getChildren() const;
-
-protected:
     ObjectPtr getChild(const CPLString& name) const;
 
 protected:

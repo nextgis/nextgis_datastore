@@ -28,14 +28,15 @@ namespace ngs {
 class Folder : public ObjectContainer
 {
 public:
-    Folder(const Object * m_parent = nullptr,
-           const CPLString & m_name = "",
-           const CPLString & m_path = "");
+    Folder(const ObjectContainer * parent = nullptr,
+           const CPLString & name = "",
+           const CPLString & path = "");
     virtual bool hasChildren() override;
 
 public:
-    static bool isPathExists(const char* m_path);
-    static bool mkDir(const char* m_path);
+    static bool isExists(const char* path);
+    static bool mkDir(const char* path);
+    static bool isDir(const char* path);
 };
 
 }
