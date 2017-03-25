@@ -33,11 +33,11 @@ Folder::Folder(const Object * parent,
 
 bool Folder::hasChildren()
 {
-    if(childrenLoaded)
-        return !children.empty();
+    if(m_childrenLoaded)
+        return !m_children.empty();
 
-    childrenLoaded = true;
-    char **items = CPLReadDir(path);
+    m_childrenLoaded = true;
+    char **items = CPLReadDir(m_path);
 
     // No children in folder
     if(nullptr == items)
@@ -49,17 +49,17 @@ bool Folder::hasChildren()
         if(EQUAL(items[i], ".") || EQUAL(items[i], ".."))
             continue;
 
-        if(catalog->isFileHidden(path, items[i]))
+        if(catalog->isFileHidden(m_path, items[i]))
             continue;
 
-        objectNames.push_back(items[i]);
+        objectNames.push_back(CPLFormFilename(m_path, items[i], nullptr));
     }
 
-    catalog->createObjects(getChild(name), objectNames);
+    catalog->createObjects(getChild(m_name), objectNames);
 
     CSLDestroy(items);
 
-    return !children.empty();
+    return !m_children.empty();
 }
 
 bool Folder::isPathExists(const char *path)

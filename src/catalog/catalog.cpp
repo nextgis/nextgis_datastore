@@ -26,6 +26,7 @@
 #include "folder.h"
 #include "localconnections.h"
 #include "ngstore/common.h"
+#include "util/settings.h"
 
 namespace ngs {
 
@@ -39,9 +40,9 @@ constexpr const char * CONNECTIONS_DIR = "connections";
 constexpr const char * CATALOG_PREFIX = "ngc://";
 constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX);
 
-Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog")),
-    showHidden(true)
+Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
 {
+    m_showHidden = Settings::instance().getBool("catalog/show_hidden", true);
 }
 
 CPLString Catalog::getFullName() const
@@ -61,7 +62,7 @@ ObjectPtr Catalog::getObject(const char *path)
 
 void Catalog::freeResources()
 {
-    for(ObjectPtr &child : children) {
+    for(ObjectPtr &child : m_children) {
         ObjectContainer * const container = ngsDynamicCast(ObjectContainer,
                                                            child);
         if(nullptr != container) {
@@ -82,7 +83,7 @@ void Catalog::createObjects(ObjectPtr object, std::vector<const char *> names)
 
 bool Catalog::hasChildren()
 {
-    if(childrenLoaded)
+    if(m_childrenLoaded)
         return ObjectContainer::hasChildren();
 
     const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
@@ -102,9 +103,9 @@ bool Catalog::hasChildren()
         if(!Folder::mkDir(connectionsPath))
             return false;
     }
-    children.push_back(ObjectPtr(new LocalConnections(this, connectionsPath)));
+    m_children.push_back(ObjectPtr(new LocalConnections(this, connectionsPath)));
 
-    childrenLoaded = true;
+    m_childrenLoaded = true;
     return ObjectContainer::hasChildren();
 }
 
@@ -121,13 +122,13 @@ unsigned short Catalog::getMaxPathLength()
 #ifdef _WIN32
 bool Catalog::isFileHidden(const CPLString &filePath, const char *fileName)
 #else
-bool Catalog::isFileHidden(const CPLString &/*filePath*/, const char *fileName)
+bool Catalog::isFileHidden(const CPLString &/*path*/, const char *name)
 #endif
 {
-    if(showHidden)
+    if(m_showHidden)
         return false;
 
-    if(EQUALN(fileName, ".", 1))
+    if(EQUALN(name, ".", 1))
         return true;
 
 #ifdef _WIN32
@@ -140,7 +141,8 @@ bool Catalog::isFileHidden(const CPLString &/*filePath*/, const char *fileName)
 
 void Catalog::setShowHidden(bool value)
 {
-    showHidden = value;
+    m_showHidden = value;
+    Settings::instance().set("catalog/show_hidden", value);
 }
 
 void Catalog::setInstance(Catalog *pointer)

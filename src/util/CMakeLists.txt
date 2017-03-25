@@ -30,8 +30,8 @@ set(HHEADERS
     maputil.h
     stringutil.h
     versionutil.h
-    fileutil.h
     settings.h
+    error.h
 )
 
 set(CSOURCES
@@ -40,8 +40,8 @@ set(CSOURCES
     maputil.cpp
     stringutil.cpp
     versionutil.cpp
-    fileutil.cpp
     settings.cpp
+    error.cpp
 )
 
 if(UNIX)

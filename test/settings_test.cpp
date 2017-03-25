@@ -22,19 +22,25 @@
 #include "test.h"
 
 #include "ngstore/codes.h"
+#include "catalog/folder.h"
 #include "util/jsondocument.h"
+#include "util/settings.h"
 
-#define SETTINGS_FILE "./tmp/settings.json"
+constexpr const char* SETTINGS_FILE = "./tmp/settings.json";
 
 TEST(SettingsTests, WriteTest) {
     // just try to create directory
-    VSIMkdir("./tmp", 0755);
+    ngs::Folder::mkDir("./tmp");
 
     ngs::JSONDocument doc;
     ngs::JSONObject root = doc.getRoot();
     root.add("one_level", true);
     root.add("two_level/second_level", false);
     root.add("three_level/second_level/third_level", true);
+    root.add("four_level/second_level/third_level/forth_level", true);
+    root.destroy("four_level/second_level/third_level/forth_level");
+    root.add("three_level/second_level/third_level1", false);
+    root.set("three_level/second_level/third_level1", true);
     EXPECT_EQ(doc.save(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
 }
 
@@ -45,7 +51,16 @@ TEST(SettingsTests, ReadTest) {
     EXPECT_EQ(root.getBool("one_level", false), true);
     EXPECT_EQ(root.getBool("two_level/second_level", true), false);
     EXPECT_EQ(root.getBool("three_level/second_level/third_level", false), true);
+    EXPECT_EQ(root.getBool("four_level/second_level/third_level/forth_level", false), false);
+    EXPECT_EQ(root.getBool("three_level/second_level/third_level1", false), true);
 
     // delete settings file
     VSIUnlink(SETTINGS_FILE);
+}
+
+TEST(SettingsTests, Settings) {
+    ngs::Settings &settings = ngs::Settings::instance();
+    EXPECT_EQ(settings.getBool("catalog/show_hidden", false), false);
+    settings.set("catalog/show_hidden", true);
+    EXPECT_EQ(settings.getBool("catalog/show_hidden", false), true);
 }

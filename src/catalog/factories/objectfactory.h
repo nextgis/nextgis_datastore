@@ -18,13 +18,33 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSFILEUTILS_H
-#define NGSFILEUTILS_H
+#ifndef NGSOBJECTFACTORY_H
+#define NGSOBJECTFACTORY_H
+
+#include <vector>
+
+#include "objectcontainer.h"
 
 namespace ngs {
 
-bool checkPathExist(const char *path);
+
+class ObjectFactory
+{
+public:
+    ObjectFactory();
+    virtual ~ObjectFactory() = default;
+    virtual const char* getName() const = 0;
+    virtual void createObjects(ObjectContainer* const container,
+                               std::vector<const char *>* const names) = 0;
+
+    bool getEnabled() const;
+    void setEnabled(bool enabled);
+
+private:
+    bool m_enabled;
+};
+
 
 }
 
-#endif // NGSFILEUTILS_H
+#endif // NGSOBJECTFACTORY_H

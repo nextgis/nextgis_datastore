@@ -20,17 +20,18 @@
  ****************************************************************************/
 
 #include "settings.h"
-#include "fileutil.h"
+#include "catalog/folder.h"
 
 namespace ngs {
 
-#define SETTINGS_FILE "settings"
-#define SETTINGS_FILE_EXT "json"
+constexpr const char * SETTINGS_FILE = "settings";
+constexpr const char * SETTINGS_FILE_EXT = "json";
 
-Settings::Settings(const CPLString& path) : m_hasChanges(false)
+Settings::Settings() : m_hasChanges(false)
 {
-    m_path = CPLFormFilename(path, SETTINGS_FILE, SETTINGS_FILE_EXT);
-    if(checkPathExist(m_path))
+    const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
+    m_path = CPLFormFilename(settingsPath, SETTINGS_FILE, SETTINGS_FILE_EXT);
+    if(Folder::isPathExists(m_path))
         m_settings.load(m_path);
     m_root = m_settings.getRoot();
 }
@@ -40,21 +41,72 @@ Settings::~Settings()
     save();
 }
 
-/*bool Settings::getBool(const char *path, bool defaultVal) const
+void Settings::set(const char *path, bool val)
 {
-    if(nullptr == path)
-        return defaultVal;
-    JSONObject object = getObjectByPath(path);
-    return object.getBool(defaultVal);
+    m_root.set(path, val);
+}
 
-    return defaultVal;
-}*/
+void Settings::set(const char *path, double val)
+{
+    m_root.set(path, val);
+}
+
+void Settings::set(const char *path, int val)
+{
+    m_root.set(path, val);
+}
+
+void Settings::set(const char *path, long val)
+{
+    m_root.set(path, val);
+}
+
+void Settings::set(const char *path, const char *val)
+{
+    m_root.set(path, val);
+}
+
+bool Settings::getBool(const char *path, bool defaultVal) const
+{
+    return m_root.getBool(path, defaultVal);
+}
+
+double Settings::getDouble(const char *path, double defaultVal) const
+{
+    return m_root.getDouble(path, defaultVal);
+}
+
+int Settings::getInteger(const char *path, int defaultVal) const
+{
+    return m_root.getInteger(path, defaultVal);
+}
+
+long Settings::getLong(const char *path, long defaultVal) const
+{
+    return m_root.getLong(path, defaultVal);
+}
+
+const char *Settings::getString(const char *path, const char *defaultVal) const
+{
+    return m_root.getString(path, defaultVal);
+}
 
 bool Settings::save()
 {
-    if(m_hasChanges)
+    if(m_hasChanges) {
+        const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH",
+                                                      nullptr);
+        if(nullptr == settingsPath)
+            return false;
+
+        if(!Folder::isPathExists(settingsPath)) {
+            if(!Folder::mkDir(settingsPath))
+                return false;
+        }
+
         return m_settings.save(m_path);
-    return false;
+    }
+    return true;
 }
 
 }

@@ -27,50 +27,50 @@ namespace ngs {
 Object::Object(const Object * parent, const ngsCatalogObjectType type,
                const CPLString & name,
                const CPLString & path) :
-    name(name),
-    path(path),
-    parent(parent),
-    type(type)
+    m_name(name),
+    m_path(path),
+    m_parent(parent),
+    m_type(type)
 {
 
 }
 
 const Object *Object::getParent() const
 {
-    return parent;
+    return m_parent;
 }
 
 const CPLString &Object::getName() const
 {
-    return name;
+    return m_name;
 }
 
 void Object::setName(const CPLString &value)
 {
-    name = value;
+    m_name = value;
 }
 
 const CPLString &Object::getPath() const
 {
-    return path;
+    return m_path;
 }
 
 void Object::setPath(const CPLString &value)
 {
-    path = value;
+    m_path = value;
 }
 
 ngsCatalogObjectType Object::getType() const
 {
-    return type;
+    return m_type;
 }
 
 CPLString Object::getFullName() const
 {
     CPLString out;
-    if(nullptr != parent)
-        out = parent->getFullName();
-    out += Catalog::getSeparator() + name;
+    if(nullptr != m_parent)
+        out = m_parent->getFullName();
+    out += Catalog::getSeparator() + m_name;
 
     return out;
 }

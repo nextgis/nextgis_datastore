@@ -28,8 +28,8 @@ namespace ngs {
 class LocalConnections : public ObjectContainer
 {
 public:
-    LocalConnections(const Object * parent = nullptr,
-                     const CPLString & path = "");
+    LocalConnections(const Object * m_parent = nullptr,
+                     const CPLString & m_path = "");
     virtual bool hasChildren() override;
 };
 

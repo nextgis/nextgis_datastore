@@ -55,9 +55,9 @@ private:
     Object& operator= (Object const&) = delete;
 
 protected:
-    CPLString name, path;
-    const Object * parent;
-    ngsCatalogObjectType type;
+    CPLString m_name, m_path;
+    const Object * m_parent;
+    ngsCatalogObjectType m_type;
 };
 
 typedef std::shared_ptr< Object > ObjectPtr;

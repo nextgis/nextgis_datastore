@@ -31,20 +31,21 @@
 
 namespace ngs {
 
-constexpr const char* LOCAL_CONN_FILE = "connections.json";
+constexpr const char * LOCAL_CONN_FILE = "connections";
+constexpr const char * LOCAL_CONN_FILE_EXT = "json";
 
 LocalConnections::LocalConnections(const Object * parent,
                                    const CPLString & path) :
     ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, _("Local connections"),
                     path)
 {
-    this->path = CPLFormFilename(path, LOCAL_CONN_FILE, nullptr);
+    this->m_path = CPLFormFilename(path, LOCAL_CONN_FILE, LOCAL_CONN_FILE_EXT);
 }
 
 bool LocalConnections::hasChildren()
 {
     JSONDocument doc;
-    if(doc.load (path) == ngsErrorCodes::EC_SUCCESS) {
+    if(doc.load (m_path) == ngsErrorCodes::EC_SUCCESS) {
         JSONObject root = doc.getRoot ();
         if(root.getType () == JSONObject::Type::Object) {
             JSONArray connections = root.getArray("connections");
@@ -54,7 +55,7 @@ bool LocalConnections::hasChildren()
                     continue;
                 CPLString connName = connection.getString("name", "");
                 CPLString connPath = connection.getString("path", "");
-                children.push_back(ObjectPtr(new Folder(this, connName, connPath)));
+                m_children.push_back(ObjectPtr(new Folder(this, connName, connPath)));
             }
         }
     }
@@ -105,11 +106,11 @@ bool LocalConnections::hasChildren()
 
            connections.add(connection);
 
-           children.push_back(ObjectPtr(new Folder(this, connectionPath.first,
+           m_children.push_back(ObjectPtr(new Folder(this, connectionPath.first,
                                                    connectionPath.second)));
        }
        root.add("connections", connections);
-       doc.save(path);
+       doc.save(m_path);
     }
 
     return ObjectContainer::hasChildren();

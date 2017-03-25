@@ -38,15 +38,15 @@ public:
     virtual ObjectPtr getObject(const char* path);
     virtual void addObject(ObjectPtr object);
     virtual void clear();
-    virtual bool hasChildren() { return !children.empty(); }
+    virtual bool hasChildren() { return !m_children.empty(); }
     std::vector<ObjectPtr> getChildren() const;
 
 protected:
     ObjectPtr getChild(const CPLString& name) const;
 
 protected:
-    std::vector<ObjectPtr> children;
-    bool childrenLoaded;
+    std::vector<ObjectPtr> m_children;
+    bool m_childrenLoaded;
 };
 
 }

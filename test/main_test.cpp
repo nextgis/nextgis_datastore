@@ -136,6 +136,17 @@ TEST(BasicTests, TestCatalogQuery) {
         count++;
     }
     EXPECT_GE(count, 1);
+    path2test = CPLSPrintf("%s/%s", path2test, pathInfo[0].name);
+    CPLFree(pathInfo);
+
+    pathInfo = ngsCatalogObjectQuery(path2test);
+    ASSERT_NE(pathInfo, nullptr);
+    count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << path2test << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 1);
     CPLFree(pathInfo);
 }
 

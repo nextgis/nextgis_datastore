@@ -27,14 +27,18 @@
 namespace ngs {
 
 /**
- * @brief The Settings class provides persistent platform-independent library settings.
+ * @brief The Settings class provides persistent platform-independent library
+ * settings.
  */
 class Settings
 {
 public:
-    Settings(const CPLString& path);
-    ~Settings();
-/*
+    static Settings& instance()
+    {
+        static Settings s;
+        return s;
+    }
+
     // settres
     void set(const char* path, bool val);
     void set(const char* path, double val);
@@ -47,12 +51,17 @@ public:
     double getDouble(const char* path, double defaultVal) const;
     int getInteger(const char* path, int defaultVal) const;
     long getLong(const char* path, long defaultVal) const;
-    CPLString get(const char* path, const char* defaultVal) const;
-*/
+    const char* getString(const char* path, const char* defaultVal) const;
+
     // settings
     bool save();
+
 private:
-    JSONObject getObjectByPath(const char* path) const;
+    Settings();
+    ~Settings();
+    Settings(Settings const&) = delete;
+    Settings& operator= (Settings const&) = delete;
+
 private:
     JSONDocument m_settings;
     JSONObject m_root;

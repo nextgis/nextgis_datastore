@@ -18,18 +18,23 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "fileutil.h"
+#include "objectfactory.h"
 
-// gdal
-#include "cpl_string.h"
+namespace ngs {
 
-bool ngs::checkPathExist(const char *path)
+ObjectFactory::ObjectFactory()
 {
-    char *pszLocation = CPLStrdup( path );
-    bool result = false;
-    if( CPLCheckForFile(pszLocation, nullptr) ) {
-        result = true;
-    }
-    CPLFree( pszLocation );
-    return result;
+
+}
+
+bool ObjectFactory::getEnabled() const
+{
+    return m_enabled;
+}
+
+void ObjectFactory::setEnabled(bool enabled)
+{
+    m_enabled = enabled;
+}
+
 }

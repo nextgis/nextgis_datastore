@@ -24,7 +24,7 @@
 
 namespace ngs {
 
-int returnError(enum ngsErrorCodes errorCode, const char *fmt, ...)
+int errorMessage(enum ngsErrorCodes errorCode, const char *fmt, ...)
 {
     if(errorCode >= ngsErrorCodes::EC_UNEXPECTED_ERROR) {
         va_list args;
@@ -37,7 +37,7 @@ int returnError(enum ngsErrorCodes errorCode, const char *fmt, ...)
     return errorCode;
 }
 
-int returnWarning(enum ngsErrorCodes errorCode, const char *fmt, ...)
+int warningMessage(enum ngsErrorCodes errorCode, const char *fmt, ...)
 {
     if(errorCode >= ngsErrorCodes::EC_UNEXPECTED_ERROR) {
         va_list args;

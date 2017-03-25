@@ -29,7 +29,7 @@ ObjectContainer::ObjectContainer(const Object *parent,
                                  const ngsCatalogObjectType type,
                                  const CPLString &name,
                                  const CPLString &path) :
-    Object(parent, type, name, path), childrenLoaded(false)
+    Object(parent, type, name, path), m_childrenLoaded(false)
 {
 
 }
@@ -53,7 +53,7 @@ ObjectPtr ObjectContainer::getObject(const char *path)
     }
 
     // Search child with name searchName
-    for(const ObjectPtr& child : children) {
+    for(const ObjectPtr& child : m_children) {
 #ifdef _WIN32 // No case sensitive compare on Windows
         if(EQUAL(child->getName(), searchName)) {
 #else
@@ -76,18 +76,18 @@ ObjectPtr ObjectContainer::getObject(const char *path)
 
 void ObjectContainer::addObject(ObjectPtr object)
 {
-    children.push_back(object);
+    m_children.push_back(object);
 }
 
 void ObjectContainer::clear()
 {
-    children.clear();
-    childrenLoaded = false;
+    m_children.clear();
+    m_childrenLoaded = false;
 }
 
 ObjectPtr ObjectContainer::getChild(const CPLString &name) const
 {
-    for(const ObjectPtr& child : children) {
+    for(const ObjectPtr& child : m_children) {
         if(child->getName() == name)
             return child;
     }
@@ -96,7 +96,7 @@ ObjectPtr ObjectContainer::getChild(const CPLString &name) const
 
 std::vector<ObjectPtr> ObjectContainer::getChildren() const
 {
-    return children;
+    return m_children;
 }
 
 }

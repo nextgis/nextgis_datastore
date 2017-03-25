@@ -51,6 +51,7 @@ public:
 public:
     JSONObject();
     JSONObject(const char* name, const JSONObject& parent);
+
 private:
     JSONObject(json_object *jsonObject);
 
@@ -64,26 +65,35 @@ public:
     void add(const char* name, const JSONObject& val);
     void add(const char* name, bool val);
 
+    void set(const char* name, const char* val);
+    void set(const char* name, double val);
+    void set(const char* name, int val);
+    void set(const char* name, long val);
+    void set(const char* name, bool val);
+
     // getters
-    CPLString getString(const char* name, const char *defaultVal) const;
+    const char* getString(const char* name, const char *defaultVal) const;
     double getDouble(const char* name, double defaultVal) const;
     int getInteger(const char* name, int defaultVal) const;
     long getLong(const char* name, long defaultVal) const;
     bool getBool(const char* name, bool defaultVal) const;
-    CPLString getString(const char *defaultVal) const;
+
+    const char* getString(const char *defaultVal) const;
     double getDouble(double defaultVal) const;
     int getInteger(int defaultVal) const;
     long getLong(long defaultVal) const;
     bool getBool(bool defaultVal) const;
 
     //
+    void destroy(const char* name);
     JSONArray getArray(const char* name) const;
     JSONObject getObject(const char* name) const;
     enum Type getType() const;
     bool isValid() const;
-    JSONObject getObjectByPath(const char *path) const;
+
 protected:
-    JSONObject getObjectByPath(const char *path, char *name);
+    JSONObject getObjectByPath(const char *path, char *name) const;
+
 private:
     json_object *m_jsonObject;
 };

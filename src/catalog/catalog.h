@@ -42,7 +42,7 @@ public:
     virtual void createObjects(ObjectPtr object, std::vector< const char *> names);
     virtual bool hasChildren() override;
 
-    bool isFileHidden(const CPLString& filePath, const char* fileName);
+    bool isFileHidden(const CPLString& path, const char* name);
     void setShowHidden(bool value);
 
 public:
@@ -56,7 +56,7 @@ private:
     Catalog& operator= (Catalog const&) = delete;
 
 protected:
-    bool showHidden;
+    bool m_showHidden;
 };
 
 }
