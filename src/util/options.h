@@ -18,37 +18,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSOBJECTCONTAINER_H
-#define NGSOBJECTCONTAINER_H
+#ifndef NGSOPTIONS_H
+#define NGSOPTIONS_H
 
-#include "object.h"
+#include <map>
 
-#include <vector>
+#include "cpl_string.h"
 
 namespace ngs {
 
-class ObjectContainer : public Object
+class Options
 {
 public:
-    ObjectContainer(const ObjectContainer *parent = nullptr,
-                    const ngsCatalogObjectType type = CAT_UNKNOWN,
-                    const CPLString & name = "",
-                    const CPLString & path = "");
-    virtual ~ObjectContainer() = default;
-    virtual ObjectPtr getObject(const char* path);
-    virtual void addObject(ObjectPtr object);
-    virtual void clear();
-    virtual bool hasChildren() { return !m_children.empty(); }
-    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const {return false;}
-    virtual bool create(const ngsCatalogObjectType type, const CPLString & name, ) {return false;}
-    std::vector<ObjectPtr> getChildren() const;
-    ObjectPtr getChild(const CPLString& name) const;
+    Options() = default;
+    Options(const Options& options) : m_options(options.m_options) {}
+    Options(char** options);
+    const CPLString &getStringOption(const char * key) const;
+    bool getBoolOption(const char * key) const;
+    char** getOptions() const;
+    void addValue(const char * key, const char * value) { m_options[key] = value; }
 
 protected:
-    std::vector<ObjectPtr> m_children;
-    bool m_childrenLoaded;
+    std::map< CPLString, CPLString > m_options;
 };
 
 }
 
-#endif // NGSOBJECTCONTAINER_H
+#endif // NGSOPTIONS_H
