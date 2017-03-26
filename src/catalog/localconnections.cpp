@@ -63,7 +63,7 @@ bool LocalConnections::hasChildren()
        JSONObject root = doc.getRoot ();
        JSONArray connections;
        std::vector<std::pair<const char*, const char*>> connectionPaths;
-#if defined(_WIN32)
+#ifdef _WIN32
        char testLetter[3];
        testLetter[1] = ':';
        testLetter[2] = 0;

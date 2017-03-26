@@ -94,6 +94,17 @@ ObjectPtr ObjectContainer::getChild(const CPLString &name) const
     return ObjectPtr();
 }
 
+void ObjectContainer::removeChild(const CPLString &name)
+{
+    for(std::vector<ObjectPtr>::iterator it = m_children.begin();
+        it != m_children.end(); ++it) {
+        if((*it)->getName() == name) {
+            m_children.erase(it);
+            break;
+        }
+    }
+}
+
 std::vector<ObjectPtr> ObjectContainer::getChildren() const
 {
     return m_children;

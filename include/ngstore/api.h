@@ -45,6 +45,7 @@ typedef struct _ngsPosition {
     double Y;
 } ngsPosition;
 
+// TODO: Remove this
 typedef struct _ngsLoadTaskInfo {
     const char* name;
     const char* newNames;
@@ -56,7 +57,7 @@ typedef struct _ngsLoadTaskInfo {
  * @brief Catalog object short information. Int type coded both
  * ngsCatalogObjectType and subtype (according to type).
  */
-typedef struct _ngsCatlogObjectInfo {
+typedef struct _ngsCatalogObjectInfo {
     const char* name;
     int type;
 } ngsCatalogObjectInfo;
@@ -64,15 +65,14 @@ typedef struct _ngsCatlogObjectInfo {
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
- * @param id Process task id
- * @param complete If complete <= 1 then it means progress percent from 0 to 1,
- * long process is not complete.
- * If complete > 1 then long process is complete, progress percent equals (complete - 1)
- * @param message Some user friendly message from process
- * @param progressArguments Data from user
+ * @param status Task current status
+ * @param complete Progress percent from 0 to 1
+ * @param message Some user friendly message from task
+ * @param progressArguments Some user data or null pointer
  * @return 1 to continue execute process or 0 - to cancel
  */
-typedef int (*ngsProgressFunc)(unsigned int id, double complete,
+typedef int (*ngsProgressFunc)(enum ngsErrorCodes status,
+                               double complete,
                                const char* message,
                                void* progressArguments);
 /**

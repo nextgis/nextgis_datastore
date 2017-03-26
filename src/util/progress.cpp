@@ -18,37 +18,22 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSOBJECTCONTAINER_H
-#define NGSOBJECTCONTAINER_H
-
-#include "object.h"
-
-#include <vector>
+#include "util/progress.h"
 
 namespace ngs {
 
-class ObjectContainer : public Object
+Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
+    m_progressFunc(progressFunc), m_progressArguments(progressArguments)
 {
-public:
-    ObjectContainer(const ObjectContainer *parent = nullptr,
-                    const ngsCatalogObjectType type = CAT_UNKNOWN,
-                    const CPLString & name = "",
-                    const CPLString & path = "");
-    virtual ~ObjectContainer() = default;
-    virtual ObjectPtr getObject(const char* path);
-    virtual void addObject(ObjectPtr object);
-    virtual void clear();
-    virtual bool hasChildren() { return !m_children.empty(); }
-    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const {return false;}
-    std::vector<ObjectPtr> getChildren() const;
-    ObjectPtr getChild(const CPLString& name) const;
-    void removeChild(const CPLString& name);
-
-protected:
-    std::vector<ObjectPtr> m_children;
-    bool m_childrenLoaded;
-};
 
 }
 
-#endif // NGSOBJECTCONTAINER_H
+bool Progress::onProgress(ngsErrorCodes status, double complete,
+                          const char *message) const
+{
+    if(nullptr == m_progressFunc)
+        return true; // No cancel from user
+    return m_progressFunc(status, complete, message, m_progressArguments) == 1;
+}
+
+}

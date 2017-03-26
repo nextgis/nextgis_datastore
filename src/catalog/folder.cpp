@@ -21,6 +21,7 @@
 #include "folder.h"
 
 #include "catalog.h"
+#include "util/error.h"
 
 namespace ngs {
 
@@ -55,7 +56,8 @@ bool Folder::hasChildren()
         objectNames.push_back(items[i]);
     }
 
-    catalog->createObjects(m_parent->getChild(m_name), objectNames);
+    if(m_parent)
+        catalog->createObjects(m_parent->getChild(m_name), objectNames);
 
     CSLDestroy(items);
 
@@ -70,13 +72,77 @@ bool Folder::isExists(const char *path)
 
 bool Folder::mkDir(const char *path)
 {
-    return VSIMkdir(path, 0755) == 0;
+    if( VSIMkdir( path, 0755 ) != 0 )
+        return errorMessage(_("Create folder failed! Folder '%s'"), path);
+#ifdef _WIN32
+    if (EQUALN(CPLGetFilename(path), ".", 1)) {
+        SetFileAttributes(path, FILE_ATTRIBUTE_HIDDEN);
+    }
+#endif
+    return true;
+
 }
 
 bool Folder::isDir(const char *path)
 {
     VSIStatBuf sbuf;
     return VSIStatL(path, &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
+}
+
+bool Folder::deleteFile(const char *path)
+{
+    int result = VSIUnlink(path);
+    if (result == -1)
+        return errorMessage(_("Delete file failed! File '%s'"), path);
+    return true;
+}
+
+bool Folder::isSymlink(const char *path)
+{
+    VSIStatBuf sbuf;
+    return VSIStatL(path, &sbuf) == 0 && VSI_ISLNK(sbuf.st_mode);
+}
+
+bool Folder::isHidden(const char *path)
+{
+#ifdef _WIN32
+    DWORD dwAttrs = GetFileAttributes(path);
+    if (dwAttrs != INVALID_FILE_ATTRIBUTES)
+        return dwAttrs & FILE_ATTRIBUTE_HIDDEN;
+#endif
+    return EQUALN(CPLGetFilename(path), ".", 1);
+}
+
+bool Folder::canCreate(const ngsCatalogObjectType type) const
+{
+    switch (type) {
+    case CAT_CONTAINER_DIR:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Folder::destroy()
+{
+    //test if symlink
+    if(isSymlink(m_path)) {
+        return deleteFile(m_path);
+    }
+
+    int result = CPLUnlinkTree(m_path);
+    if (result == -1)
+        return errorMessage(_("Delete folder failed! Folder '%s'"), m_path.c_str());
+
+    if(m_parent)
+        m_parent->removeChild(getName());
+
+    return true;
+}
+
+bool Folder::canDestroy() const
+{
+    return true;
 }
 
 }

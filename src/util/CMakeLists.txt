@@ -32,6 +32,7 @@ set(HHEADERS
     versionutil.h
     settings.h
     error.h
+    progress.h
 )
 
 set(CSOURCES
@@ -42,6 +43,7 @@ set(CSOURCES
     versionutil.cpp
     settings.cpp
     error.cpp
+    progress.cpp
 )
 
 if(UNIX)

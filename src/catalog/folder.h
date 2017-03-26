@@ -37,6 +37,18 @@ public:
     static bool isExists(const char* path);
     static bool mkDir(const char* path);
     static bool isDir(const char* path);
+    static bool deleteFile(const char* path);
+    static bool isSymlink(const char* path);
+    static bool isHidden(const char* path);
+
+    // ObjectContainer interface
+public:
+    virtual bool canCreate(const ngsCatalogObjectType type) const override;
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+    virtual bool canDestroy() const override;
 };
 
 }

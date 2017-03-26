@@ -50,4 +50,15 @@ int warningMessage(enum ngsErrorCodes errorCode, const char *fmt, ...)
     return errorCode;
 }
 
+bool errorMessage(const char *fmt, ...)
+{
+    va_list args;
+
+    // Expand the error message
+    va_start(args, fmt);
+    CPLErrorV(CE_Failure, CPLE_AppDefined, fmt, args);
+    va_end(args);
+    return false;
+}
+
 }

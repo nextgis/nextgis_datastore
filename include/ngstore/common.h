@@ -25,7 +25,7 @@
 #ifdef NGSTOR_STATIC
 #   define NGS_EXTERN
 #else
-#   if defined (_WIN32) || defined (WINDOWS)
+#   ifdef _WIN32
 #    ifdef NGSTOR_EXPORTS
 #      ifdef __GNUC__
 #        define NGS_EXTERN __attribute__((dllexport))

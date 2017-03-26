@@ -18,37 +18,28 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSOBJECTCONTAINER_H
-#define NGSOBJECTCONTAINER_H
+#ifndef NGSPROGRESS_H
+#define NGSPROGRESS_H
 
-#include "object.h"
-
-#include <vector>
+#include "ngstore/api.h"
 
 namespace ngs {
 
-class ObjectContainer : public Object
+class Progress
 {
 public:
-    ObjectContainer(const ObjectContainer *parent = nullptr,
-                    const ngsCatalogObjectType type = CAT_UNKNOWN,
-                    const CPLString & name = "",
-                    const CPLString & path = "");
-    virtual ~ObjectContainer() = default;
-    virtual ObjectPtr getObject(const char* path);
-    virtual void addObject(ObjectPtr object);
-    virtual void clear();
-    virtual bool hasChildren() { return !m_children.empty(); }
-    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const {return false;}
-    std::vector<ObjectPtr> getChildren() const;
-    ObjectPtr getChild(const CPLString& name) const;
-    void removeChild(const CPLString& name);
+    Progress(ngsProgressFunc progressFunc = nullptr,
+             void *progressArguments = nullptr);
+    virtual ~Progress() = default;
+    virtual bool onProgress(enum ngsErrorCodes status,
+                            double complete,
+                            const char* message) const;
 
 protected:
-    std::vector<ObjectPtr> m_children;
-    bool m_childrenLoaded;
+    ngsProgressFunc m_progressFunc;
+    void *m_progressArguments;
 };
 
 }
 
-#endif // NGSOBJECTCONTAINER_H
+#endif // NGSPROGRESS_H
