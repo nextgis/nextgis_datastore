@@ -113,16 +113,6 @@ bool Folder::isHidden(const char *path)
     return EQUALN(CPLGetFilename(path), ".", 1);
 }
 
-bool Folder::canCreate(const ngsCatalogObjectType type) const
-{
-    switch (type) {
-    case CAT_CONTAINER_DIR:
-        return true;
-    default:
-        return false;
-    }
-}
-
 bool Folder::destroy()
 {
     //test if symlink
@@ -135,7 +125,7 @@ bool Folder::destroy()
         return errorMessage(_("Delete folder failed! Folder '%s'"), m_path.c_str());
 
     if(m_parent)
-        m_parent->removeChild(getName());
+        m_parent->notifyChanges();
 
     return true;
 }
@@ -145,4 +135,70 @@ bool Folder::canDestroy() const
     return true;
 }
 
+void Folder::refresh()
+{
+    // TODO: release this - current array and new arra compare
 }
+
+bool Folder::canCreate(const ngsCatalogObjectType type) const
+{
+    switch (type) {
+    case CAT_CONTAINER_DIR:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Folder::create(const ngsCatalogObjectType type, const CPLString &name,
+                         const Options & options)
+{
+    bool result = false;
+    const char* newPath = nullptr;
+    if(options.getBoolOption("CREATE_UNIQUE"))
+        newPath = createUniquePath(m_path, name);
+    else
+        newPath = CPLFormFilename(m_path, name, nullptr);
+    const char* newName = CPLGetBasename(newPath);
+
+    switch (type) {
+    case CAT_CONTAINER_DIR:
+        result = mkDir(newPath);
+        if(result && m_childrenLoaded)
+            m_children.push_back(ObjectPtr(new Folder(this, newName, newPath)));
+        break;
+    default:
+        break;
+    }
+    return result;
+}
+
+CPLString Folder::createUniquePath(const CPLString &path, const CPLString &name,
+                                   bool isFolder, const CPLString &add,
+                                   int counter)
+{
+    CPLString resultPath;
+    if(counter > 0) {
+        CPLString newAdd;
+        newAdd.Printf("%s(%d)", add.c_str(), counter);
+        CPLString tmpName = CPLGetBasename(name) + newAdd;
+        if(isFolder) {
+            resultPath = CPLFormFilename(path, tmpName, "");
+        }
+        else {
+            resultPath = CPLFormFilename(path, tmpName, CPLGetExtension(name));
+        }
+    }
+    else {
+        resultPath = CPLFormFilename(path, name, "");
+    }
+
+    if(isExists(resultPath))
+        return createUniquePath(path, name, isFolder, add, counter + 1);
+    else
+        return resultPath;
+}
+
+
+}
+

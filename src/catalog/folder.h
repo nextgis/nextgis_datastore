@@ -44,11 +44,21 @@ public:
     // ObjectContainer interface
 public:
     virtual bool canCreate(const ngsCatalogObjectType type) const override;
+    virtual void refresh() override;
+    virtual bool create(const ngsCatalogObjectType type, const CPLString & name,
+                        const Options &options) override;
 
     // Object interface
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
+
+public:
+    static CPLString createUniquePath(const CPLString &path,
+                                      const CPLString &name,
+                                      bool isFolder = true,
+                                      const CPLString &add = "",
+                                      int counter = 0);
 };
 
 }

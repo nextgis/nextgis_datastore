@@ -25,6 +25,8 @@
 
 #include <vector>
 
+#include "util/options.h"
+
 namespace ngs {
 
 class ObjectContainer : public Object
@@ -38,11 +40,22 @@ public:
     virtual ObjectPtr getObject(const char* path);
     virtual void addObject(ObjectPtr object);
     virtual void clear();
+    virtual void refresh() {}
     virtual bool hasChildren() { return !m_children.empty(); }
-    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const {return false;}
-    virtual bool create(const ngsCatalogObjectType type, const CPLString & name, ) {return false;}
+    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const {
+        return false;
+    }
+    virtual bool create(const ngsCatalogObjectType /*type*/,
+                        const CPLString & /*name*/,
+                        const Options& /*options*/) {
+        return false;
+    }
     std::vector<ObjectPtr> getChildren() const;
     ObjectPtr getChild(const CPLString& name) const;
+
+// events
+public:
+    virtual void notifyChanges() { refresh(); }
 
 protected:
     std::vector<ObjectPtr> m_children;

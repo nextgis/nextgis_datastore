@@ -259,8 +259,11 @@ int ngsCatalogObjectDelete(const char *path)
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObject(path);
     // Check can delete
-    //return object->destroy();
-    return ngsErrorCodes::EC_SUCCESS;
+    if(object->canDestroy())
+        return object->destroy() ? ngsErrorCodes::EC_SUCCESS :
+                                   ngsErrorCodes::EC_DELETE_FAILED;
+    return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
+                       _("The path cannot be deleted (write protected, locked, etc."));
 }
 
 /**
@@ -270,10 +273,21 @@ int ngsCatalogObjectDelete(const char *path)
  * array after function finishes.
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-int ngsCatalogObjectCreate(const char *path, char **options)
+int ngsCatalogObjectCreate(const char *path, const char* name, char **options)
 {
     CatalogPtr catalog = Catalog::getInstance();
-    return ngsErrorCodes::EC_SUCCESS;
+    Options createOptions(options);
+    enum ngsCatalogObjectType type = createOptions.getIntOption("TYPE");
+    createOptions.removeOption("TYPE");
+    ObjectPtr object = catalog->getObject(path);
+    ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
+    // Check can create
+    if(container->canCreate(type))
+        return container->create(type, name, createOptions) ?
+                    ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_CREATE_FAILED;
+
+    return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
+                        _("Cannot create such object type in path: %s"), path);
 }
 
 /**
