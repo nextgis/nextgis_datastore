@@ -179,16 +179,44 @@ TEST(BasicTests, TestCreate) {
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
-        std::cout << count << ". " << path << "/" <<  pathInfo[count].name << '\n';
+        std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
         count++;
     }
     EXPECT_GE(count, 2);
 
-    // TODO: create datastore -- EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::EC_SUCCESS);
+    ngsUnInit();
+}
+
+TEST(BasicTests, TestDelete) {
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+    CSLDestroy(options);
+
+    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
+    ASSERT_STRNE(catalogPath, "");
+    CPLString delPath = CPLFormFilename(catalogPath, "test_dir1", nullptr);
+    EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsErrorCodes::EC_SUCCESS);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
+    ASSERT_NE(pathInfo, nullptr);
+    size_t count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 2);
     ngsUnInit();
 }
 
 /*
+ * TestCreateDs
+ * TestOpenDs
+ * TestLoadDs
+ * TestDeleteDs
+    // TODO: create datastore -- EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::EC_SUCCESS);
 
 TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
