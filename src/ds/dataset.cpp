@@ -115,7 +115,7 @@ bool ProgressInfo::onProgress(double complete, const char *message) const
 {
     if(nullptr == m_progressFunc)
         return true; // no cancel from user
-    return m_progressFunc(m_id, complete, message, m_progressArguments) == TRUE;
+    return m_progressFunc(ngsErrorCodes::EC_SUCCESS/*m_id*/, complete, message, m_progressArguments) == TRUE;
 }
 
 

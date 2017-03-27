@@ -259,7 +259,7 @@ int ngsCatalogObjectDelete(const char *path)
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObject(path);
     // Check can delete
-    if(object->canDestroy())
+    if(object && object->canDestroy())
         return object->destroy() ? ngsErrorCodes::EC_SUCCESS :
                                    ngsErrorCodes::EC_DELETE_FAILED;
     return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
@@ -269,25 +269,47 @@ int ngsCatalogObjectDelete(const char *path)
 /**
  * @brief Create new catalog object
  * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param name The new object name
  * @param options The array of create object options. Caller mast free this
- * array after function finishes.
+ * array after function finishes. The common values are:
+ * TYPE (required) - The new object type from enum ngsCatalogObjectType
+ * CREATE_UNIQUE [ON, OFF] - If name already exists in container, make it unique
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
 int ngsCatalogObjectCreate(const char *path, const char* name, char **options)
 {
     CatalogPtr catalog = Catalog::getInstance();
     Options createOptions(options);
-    enum ngsCatalogObjectType type = createOptions.getIntOption("TYPE");
+    enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
+                createOptions.getIntOption("TYPE", CAT_UNKNOWN));
     createOptions.removeOption("TYPE");
     ObjectPtr object = catalog->getObject(path);
     ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
     // Check can create
-    if(container->canCreate(type))
+    if(nullptr != container && container->canCreate(type))
         return container->create(type, name, createOptions) ?
                     ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_CREATE_FAILED;
 
     return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
-                        _("Cannot create such object type in path: %s"), path);
+                        _("Cannot create such object type (%d) in path: %s"),
+                        type, path);
+}
+
+/**
+ * @brief Find catalog path (i.e. ngc://Local connections/tmp) correspondent
+ * system path (i.e. /home/user/tmp
+ * @param path System path
+ * @return Catalog path
+ */
+const char *ngsCatalogPathFromSystem(const char *path)
+{
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObjectByLocalPath(path);
+    if(object) {
+        static CPLString fullName = object->getFullName();
+        return fullName;
+    }
+    return "";
 }
 
 /**
@@ -786,5 +808,3 @@ const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *sep
 
     return gFilters;
 }
-
-

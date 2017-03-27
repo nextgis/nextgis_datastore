@@ -25,7 +25,7 @@
 
 namespace ngs {
 
-ObjectContainer::ObjectContainer(const ObjectContainer *parent,
+ObjectContainer::ObjectContainer(ObjectContainer * const parent,
                                  const ngsCatalogObjectType type,
                                  const CPLString &name,
                                  const CPLString &path) :
@@ -94,13 +94,26 @@ ObjectPtr ObjectContainer::getChild(const CPLString &name) const
     return ObjectPtr();
 }
 
-void ObjectContainer::removeChild(const CPLString &name)
+void ObjectContainer::removeDuplicates(std::vector<const char *> &deleteNames,
+                                       std::vector<const char *> &addNames)
 {
-    for(std::vector<ObjectPtr>::iterator it = m_children.begin();
-        it != m_children.end(); ++it) {
-        if((*it)->getName() == name) {
-            m_children.erase(it);
-            break;
+    auto it = deleteNames.begin();
+    while(it != deleteNames.end()) {
+        auto itan = addNames.begin();
+        bool deleteName = false;
+        while(itan != addNames.end()) {
+            if(EQUAL(*it, *itan)) {
+                it = deleteNames.erase(it);
+                itan = addNames.erase(itan);
+                deleteName = true;
+                break;
+            }
+            else {
+                ++itan;
+            }
+        }
+        if(!deleteName) {
+            ++it;
         }
     }
 }

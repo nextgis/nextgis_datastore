@@ -105,6 +105,7 @@ NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char* path,
 NGS_EXTERNC int ngsCatalogObjectDelete(const char* path);
 NGS_EXTERNC int ngsCatalogObjectCreate(const char* path, const char* name,
                                        char **options = nullptr);
+NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
 NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
                                      char **options = nullptr,
                                      ngsProgressFunc callback = nullptr,

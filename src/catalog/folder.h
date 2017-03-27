@@ -28,7 +28,7 @@ namespace ngs {
 class Folder : public ObjectContainer
 {
 public:
-    Folder(const ObjectContainer * parent = nullptr,
+    Folder(ObjectContainer * const parent = nullptr,
            const CPLString & name = "",
            const CPLString & path = "");
     virtual bool hasChildren() override;
@@ -59,6 +59,9 @@ public:
                                       bool isFolder = true,
                                       const CPLString &add = "",
                                       int counter = 0);
+
+protected:
+    std::vector<const char*> fillChildrenNames(char **items);
 };
 
 }

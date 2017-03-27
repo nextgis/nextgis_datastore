@@ -18,10 +18,11 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-
 #include "localconnections.h"
 
+#include "api_priv.h"
 #include "folder.h"
+#include "catalog.h"
 #include "ngstore/common.h"
 #include "util/jsondocument.h"
 
@@ -34,7 +35,7 @@ namespace ngs {
 constexpr const char * LOCAL_CONN_FILE = "connections";
 constexpr const char * LOCAL_CONN_FILE_EXT = "json";
 
-LocalConnections::LocalConnections(const ObjectContainer * parent,
+LocalConnections::LocalConnections(ObjectContainer * const parent,
                                    const CPLString & path) :
     ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, _("Local connections"),
                     path)
@@ -62,20 +63,16 @@ bool LocalConnections::hasChildren()
     else {
        JSONObject root = doc.getRoot ();
        JSONArray connections;
-       std::vector<std::pair<const char*, const char*>> connectionPaths;
+       std::vector<std::pair<CPLString, CPLString>> connectionPaths;
 #ifdef _WIN32
        char testLetter[3];
        testLetter[1] = ':';
        testLetter[2] = 0;
        for(char i = 'A'; i <= 'Z'; ++i) {
            testLetter[0] = i;
-           VSIStatBufL statl;
-           int ret = VSIStatL(testLetter, &statl);
-           if(ret == 0) {
-               if (VSI_ISDIR(statl.st_mode)) {
-                   const char* pathToAdd = CPLSPrintf("%s\\", testLetter);
-                   connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
-               }
+           if(Folder::isDir(testLetter)) {
+               const char* pathToAdd = CPLSPrintf("%s\\", testLetter);
+               connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
            }
        }
 #elif defined(__APPLE__)
@@ -114,6 +111,43 @@ bool LocalConnections::hasChildren()
     }
 
     return ObjectContainer::hasChildren();
+}
+
+ObjectPtr LocalConnections::getObjectByLocalPath(const char *path)
+{
+    size_t len = CPLStrnlen(path, Catalog::getMaxPathLength());
+    for(const ObjectPtr& child : m_children) {
+        const CPLString &testPath = child->getPath();
+        if(len <= testPath.length())
+            continue;
+
+        if(EQUALN(path, testPath, testPath.length())) {
+            ObjectContainer * const container = ngsDynamicCast(ObjectContainer,
+                                                               child);
+            if(nullptr != container) {
+                CPLString endPath(path + testPath.length());
+#ifdef _WIN32
+                CPLString from("\\");
+                CPLString to = Catalog::getSeparator();
+
+                size_t start_pos;
+                while((start_pos = endPath.find(from, start_pos)) != std::string::npos) {
+                    endPath.replace(start_pos, from.length(), to);
+                    start_pos += to.length();
+                }
+#endif
+                const char* subPath = endPath.c_str();
+                if(EQUALN(subPath, Catalog::getSeparator(),
+                          Catalog::getSeparator().length())) {
+                    subPath += Catalog::getSeparator().length();
+                }
+                if(container->hasChildren()) {
+                    return container->getObject(subPath);
+                }
+            }
+        }
+    }
+    return ObjectPtr();
 }
 
 }

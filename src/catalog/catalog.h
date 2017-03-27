@@ -39,6 +39,7 @@ public:
     virtual ~Catalog() = default;
     virtual CPLString getFullName() const override;
     virtual ObjectPtr getObject(const char* path) override;
+    virtual ObjectPtr getObjectByLocalPath(const char* path);
     virtual void freeResources();
     virtual void createObjects(ObjectPtr object, std::vector< const char *> names);
     virtual bool hasChildren() override;

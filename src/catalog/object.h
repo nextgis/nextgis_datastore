@@ -37,7 +37,7 @@ class ObjectContainer;
 class Object
 {
 public:
-    Object(const ObjectContainer * parent = nullptr,
+    Object(ObjectContainer * const parent = nullptr,
            const ngsCatalogObjectType type = CAT_UNKNOWN,
            const CPLString & name = "",
            const CPLString & path = "");
@@ -65,7 +65,7 @@ private:
 
 protected:
     CPLString m_name, m_path;
-    const ObjectContainer * m_parent;
+    ObjectContainer * const m_parent;
     ngsCatalogObjectType m_type;
 };
 

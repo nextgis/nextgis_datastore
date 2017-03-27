@@ -25,7 +25,7 @@
 
 namespace ngs {
 
-Folder::Folder(const ObjectContainer *parent,
+Folder::Folder(ObjectContainer * const parent,
                const CPLString & name, const CPLString & path) :
     ObjectContainer(parent, CAT_CONTAINER_DIR, name, path)
 {
@@ -37,29 +37,20 @@ bool Folder::hasChildren()
     if(m_childrenLoaded)
         return !m_children.empty();
 
-    m_childrenLoaded = true;
-    char **items = CPLReadDir(m_path);
+    if(m_parent) {
+        m_childrenLoaded = true;
+        char **items = CPLReadDir(m_path);
 
-    // No children in folder
-    if(nullptr == items)
-        return false;
+        // No children in folder
+        if(nullptr == items)
+            return false;
 
-    std::vector< const char* > objectNames;
-    CatalogPtr catalog = Catalog::getInstance();
-    for(int i = 0; items[i] != nullptr; ++i) {
-        if(EQUAL(items[i], ".") || EQUAL(items[i], ".."))
-            continue;
+        std::vector< const char* > objectNames = fillChildrenNames(items);
 
-        if(catalog->isFileHidden(m_path, items[i]))
-            continue;
+        Catalog::getInstance()->createObjects(m_parent->getChild(m_name), objectNames);
 
-        objectNames.push_back(items[i]);
+        CSLDestroy(items);
     }
-
-    if(m_parent)
-        catalog->createObjects(m_parent->getChild(m_name), objectNames);
-
-    CSLDestroy(items);
 
     return !m_children.empty();
 }
@@ -137,7 +128,52 @@ bool Folder::canDestroy() const
 
 void Folder::refresh()
 {
-    // TODO: release this - current array and new arra compare
+    if(!m_childrenLoaded) {
+        hasChildren();
+        return;
+    }
+
+    // Current names and new names arrays compare
+    if(m_parent) {
+
+        // Fill add names array
+        char **items = CPLReadDir(m_path);
+
+        // No children in folder
+        if(nullptr == items) {
+            clear();
+            return;
+        }
+
+        std::vector< const char* > deleteNames, addNames;
+        addNames = fillChildrenNames(items);
+
+        // Fill delete names array
+        for(const ObjectPtr& child : m_children)
+            deleteNames.push_back(child->getName());
+
+        // Remove same names from add and delete arrays
+        removeDuplicates(deleteNames, addNames);
+
+        // Delete objects
+        auto it = m_children.begin();
+        while(it != m_children.end()) {
+            const char* name = (*it)->getName();
+            auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
+            if(itdn != deleteNames.end()) {
+                deleteNames.erase(itdn);
+                it = m_children.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+
+        // Add objects
+        Catalog::getInstance()->createObjects(m_parent->getChild(m_name), addNames);
+
+        CSLDestroy(items);
+    }
 }
 
 bool Folder::canCreate(const ngsCatalogObjectType type) const
@@ -197,6 +233,23 @@ CPLString Folder::createUniquePath(const CPLString &path, const CPLString &name,
         return createUniquePath(path, name, isFolder, add, counter + 1);
     else
         return resultPath;
+}
+
+std::vector<const char *> Folder::fillChildrenNames(char **items)
+{
+    std::vector<const char*> names;
+    CatalogPtr catalog = Catalog::getInstance();
+    for(int i = 0; items[i] != nullptr; ++i) {
+        if(EQUAL(items[i], ".") || EQUAL(items[i], ".."))
+            continue;
+
+        if(catalog->isFileHidden(m_path, items[i]))
+            continue;
+
+        names.push_back(items[i]);
+    }
+
+    return names;
 }
 
 

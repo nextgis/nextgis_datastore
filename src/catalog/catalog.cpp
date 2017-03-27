@@ -39,8 +39,9 @@ int constexpr length(const char* str)
     return *str ? 1 + length(str + 1) : 0;
 }
 constexpr const char * CONNECTIONS_DIR = "connections";
-constexpr const char * CATALOG_PREFIX = "ngc://";
-constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX);
+constexpr const char * CATALOG_PREFIX = "ngc:/";
+constexpr const char * CATALOG_PREFIX_FULL = "ngc://";
+constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX_FULL);
 
 Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
 {
@@ -54,12 +55,29 @@ CPLString Catalog::getFullName() const
 
 ObjectPtr Catalog::getObject(const char *path)
 {
-    if(EQUAL(path, CATALOG_PREFIX))
+    if(EQUAL(path, CATALOG_PREFIX_FULL))
         return std::static_pointer_cast<Object>(gCatalog);
 
     // Skip prefix ngc://
     path += CATALOG_PREFIX_LEN;
     return ObjectContainer::getObject(path);
+}
+
+ObjectPtr Catalog::getObjectByLocalPath(const char *path)
+{
+    // Find LocalConnections
+    LocalConnections* localConnections = nullptr;
+    for(const ObjectPtr &rootObject : m_children) {
+        if(rootObject->getType() == CAT_CONTAINER_LOCALCONNECTION) {
+            localConnections = ngsDynamicCast(LocalConnections, rootObject);
+            break;
+        }
+    }
+
+    if(nullptr == localConnections || !localConnections->hasChildren())
+        return ObjectPtr();
+
+    return localConnections->getObjectByLocalPath(path);
 }
 
 void Catalog::freeResources()

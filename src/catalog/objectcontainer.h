@@ -32,7 +32,7 @@ namespace ngs {
 class ObjectContainer : public Object
 {
 public:
-    ObjectContainer(const ObjectContainer *parent = nullptr,
+    ObjectContainer(ObjectContainer * const parent = nullptr,
                     const ngsCatalogObjectType type = CAT_UNKNOWN,
                     const CPLString & name = "",
                     const CPLString & path = "");
@@ -56,6 +56,10 @@ public:
 // events
 public:
     virtual void notifyChanges() { refresh(); }
+
+protected:
+    static void removeDuplicates(std::vector<const char*> &deleteNames,
+                                 std::vector<const char*> &addNames);
 
 protected:
     std::vector<ObjectPtr> m_children;

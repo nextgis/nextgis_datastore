@@ -24,7 +24,7 @@
 
 namespace ngs {
 
-Object::Object(const ObjectContainer *parent, const ngsCatalogObjectType type,
+Object::Object(ObjectContainer *const parent, const ngsCatalogObjectType type,
                const CPLString & name,
                const CPLString & path) :
     m_name(name),

@@ -45,16 +45,22 @@ Options::Options(char **options)
     }
 }
 
-const CPLString &Options::getStringOption(const char *key) const
+const CPLString &Options::getStringOption(const char *key,
+                                          const CPLString &defaultOption) const
 {
     auto it = m_options.find(key);
+    if(it == m_options.end())
+        return defaultOption;
     return it->second;
 }
 
-bool Options::getBoolOption(const char *key) const
+bool Options::getBoolOption(const char *key, bool defaultOption) const
 {
     auto it = m_options.find(key);
-    if( it->second.empty())
+    if(it == m_options.end())
+        return defaultOption;
+
+    if(it->second.empty())
         return false;
     else if(EQUAL(it->second, "OFF"))
         return false;
@@ -67,6 +73,14 @@ bool Options::getBoolOption(const char *key) const
     return true;
 }
 
+int Options::getIntOption(const char *key, int defaultOption) const
+{
+    auto it = m_options.find(key);
+    if(it == m_options.end())
+        return defaultOption;
+    return atoi(it->second);
+}
+
 char **Options::getOptions() const
 {
     char** options = nullptr;
@@ -74,6 +88,12 @@ char **Options::getOptions() const
         options = CSLAddNameValue(options, it->first, it->second);
     }
     return options;
+}
+
+void Options::removeOption(const char *key)
+{
+    auto it = m_options.find(key);
+    m_options.erase(it);
 }
 
 }

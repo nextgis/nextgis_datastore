@@ -141,8 +141,10 @@ int MapView::notify()
         }
 
         return m_progressFunc(
-                getId(), static_cast<double>(completePortion), isDebugMode() ? message.c_str() : nullptr,
-                m_progressArguments);
+                    ngsErrorCodes::EC_SUCCESS/*getId()*/,
+                    static_cast<double>(completePortion),
+                    isDebugMode() ? message.c_str() : nullptr,
+                    m_progressArguments);
     }
     return TRUE;
 }

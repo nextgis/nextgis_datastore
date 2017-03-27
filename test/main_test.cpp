@@ -114,7 +114,6 @@ TEST(BasicTests, TestCatalogQuery) {
     options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
     options = CSLAddNameValue(options, "SETTINGS_DIR",
                               CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
-    // TODO: CACHE_DIR, GDAL_DATA, LOCALE
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
 
     CSLDestroy(options);
@@ -148,15 +147,48 @@ TEST(BasicTests, TestCatalogQuery) {
     }
     EXPECT_GE(count, 1);
     CPLFree(pathInfo);
+
+    ngsUnInit();
+}
+
+
+TEST(BasicTests, TestCreate) {
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    // TODO: CACHE_DIR, GDAL_DATA, LOCALE
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+    CSLDestroy(options);
+    options = nullptr;
+
+    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    const char* catalogPath = ngsCatalogPathFromSystem(path);
+    ASSERT_STRNE(catalogPath, "");
+
+    options = CSLAddNameValue(options, "TYPE",
+                              std::to_string(CAT_CONTAINER_DIR).c_str());
+    options = CSLAddNameValue(options, "CREATE_UNIQUE", "ON");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "test_dir1", options),
+              ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "test_dir1", options),
+              ngsErrorCodes::EC_SUCCESS);
+
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
+    ASSERT_NE(pathInfo, nullptr);
+    size_t count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << path << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 2);
+
+    // TODO: create datastore -- EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::EC_SUCCESS);
+    ngsUnInit();
 }
 
 /*
-TEST(BasicTests, TestCreate) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
-    EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::EC_SUCCESS);
-    ngsUninit();
-}
-
 
 TEST(BasicTests, TestOpen) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
