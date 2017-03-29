@@ -50,28 +50,18 @@ enum ngsErrorCodes {
  * @brief The table, datasource, map and etc. change codes enum
  */
 enum ngsChangeCodes {
-    CC_NOP = 0,
-    CC_CREATE_RESOURCE,
-    CC_DELETE_RESOURCE,
-    CC_CHANGE_RESOURCE,
-    CC_CREATE_FEATURE,
-    CC_CHANGE_FEATURE,
-    CC_DELETE_FEATURE,
-    CC_DELETEALL_FEATURES,
-    CC_CREATE_ATTACHMENT,
-    CC_CHANGE_ATTACHMENT,
-    CC_DELETE_ATTACHMENT,
-    CC_DELETEALL_ATTACHMENTS
-};
-
-/**
- * @brief The notification source code enum
- */
-enum ngsSourceCodes {
-    SC_UNDEFINED = 0,
-    SC_DATA_STORE,
-    SC_MAP_STORE,
-    SC_DATASET
+    CC_NOP                  = 0 << 1,
+    CC_CREATE_OBJECT        = 1 << 1,
+    CC_DELETE_OBJECT        = 2 << 1,
+    CC_CHANGE_OBJECT        = 3 << 1,
+    CC_CREATE_FEATURE       = 4 << 1,
+    CC_CHANGE_FEATURE       = 5 << 1,
+    CC_DELETE_FEATURE       = 6 << 1,
+    CC_DELETEALL_FEATURES   = 7 << 1,
+    CC_CREATE_ATTACHMENT    = 8 << 1,
+    CC_CHANGE_ATTACHMENT    = 9 << 1,
+    CC_DELETE_ATTACHMENT    = 10 << 1,
+    CC_DELETEALL_ATTACHMENTS = 11 << 1
 };
 
 /**
@@ -97,16 +87,6 @@ enum ngsDirection {
     DIR_X = 0,
     DIR_Y,
     DIR_Z
-};
-
-enum ngsDriverType {
-    DT_VECTOR     = 1 << 1,
-    DT_RASTER     = 1 << 2,
-    DT_SERVICE    = 1 << 3,
-    DT_NETWORK    = 1 << 4,
-    DT_GNM        = 1 << 5,
-    DT_VECTOR_ALL = 1 << 6,
-    DT_RASTER_ALL = 1 << 7
 };
 
 enum ngsFileMode {

@@ -34,7 +34,7 @@ namespace ngs {
 typedef std::shared_ptr< OGRLayer > ResultSetPtr;
 
 /**
- * @brief The GDALDatasetPtr class Wrapper class for GDALDataset
+ * @brief The wrapper class around GDALDataset pointer
  */
 class GDALDatasetPtr : public std::shared_ptr< GDALDataset >
 {
@@ -42,7 +42,6 @@ public:
     GDALDatasetPtr(GDALDataset* ds);
     GDALDatasetPtr();
     GDALDatasetPtr(const GDALDatasetPtr& ds);
-    virtual ~GDALDatasetPtr();
     GDALDatasetPtr& operator=(GDALDataset* ds);
     operator GDALDataset*() const;
 };
@@ -50,29 +49,6 @@ public:
 class Dataset;
 typedef std::shared_ptr<Dataset> DatasetPtr;
 // typedef weak_ptr<Dataset> DatasetWPtr;
-#define ngsDatasetType(x) static_cast<unsigned int>( ngs::Dataset::Type::x )
-
-class ProgressInfo
-{
-public:
-    ProgressInfo(unsigned int id, const char **options = nullptr,
-                 ngsProgressFunc progressFunc = nullptr,
-                 void *progressArguments = nullptr);
-    virtual ~ProgressInfo();
-    ProgressInfo(const ProgressInfo& data);
-    ProgressInfo& operator=(const ProgressInfo& data);
-    unsigned int id() const;
-    char **options() const;
-    bool onProgress(double complete, const char* message) const;
-    ngsErrorCodes status() const;
-    void setStatus(const ngsErrorCodes &status);
-protected:
-    unsigned int m_id;
-    char** m_options;
-    ngsProgressFunc m_progressFunc;
-    void *m_progressArguments;
-    enum ngsErrorCodes m_status;
-};
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
@@ -83,43 +59,12 @@ class Dataset
 {
     friend class DatasetContainer;
     friend class DataStore;
-public:
-    enum class Type {
-        Undefined   = 1 << 0,
-        Container   = 1 << 1,
-        Table       = 1 << 2,
-        Featureset  = 1 << 3,
-        Raster      = 1 << 4,
-        Store       = 1 << 5
-    };
 
-    enum class ChangeType {
-        AddFeature = ngsChangeCodes::CC_CREATE_FEATURE,
-        ChangeFeature = ngsChangeCodes::CC_CHANGE_FEATURE,
-        DeleteFeature = ngsChangeCodes::CC_DELETE_FEATURE,
-        DeleteAllFeatures = ngsChangeCodes::CC_DELETEALL_FEATURES,
-        AddAttachment = ngsChangeCodes::CC_CREATE_ATTACHMENT,
-        ChangeAttachment = ngsChangeCodes::CC_CHANGE_ATTACHMENT,
-        DeleteAttachment = ngsChangeCodes::CC_DELETE_ATTACHMENT,
-        DeleteAllAttachments = ngsChangeCodes::CC_DELETEALL_ATTACHMENTS,
-        AddDataset,
-        ChangeDataset,
-        DeleteDataset
-    };
 public:
     Dataset();
-    virtual ~Dataset();
-
-    // base properties
-    unsigned int type() const;
-    bool isVector() const;
-    bool isRaster() const;
-
-    CPLString name() const;
-    CPLString path() const;
+    virtual ~Dataset() = default;
 
     // is checks
-    bool isDeleted() const;
     bool isOpened() const;
     bool isReadOnly() const;
 
@@ -127,12 +72,6 @@ public:
     bool canDelete(void);
     bool canRename(void);
 
-    // base operations
-    virtual int destroy(ProgressInfo *processInfo = nullptr);
-    /* TODO: release this
-    int rename(const CPLString &newName, ngsProgressFunc progressFunc = nullptr,
-               void* progressArguments = nullptr);
-               */
     // static functions
     static DatasetPtr create(const CPLString& path, const CPLString& driver,
                              char **options = nullptr);
@@ -143,7 +82,6 @@ public:
     void setNotifyFunc(ngsNotifyFunc notifyFunc);
     void unsetNotifyFunc();
 protected:
-    virtual void setName(const CPLString& path);
     void notifyDatasetChanged(enum ChangeType changeType,
                               const CPLString &name, long id);
     static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
@@ -167,6 +105,28 @@ protected:
     GDALDatasetPtr m_DS;
     ngsNotifyFunc m_notifyFunc;
 };
+
+//class ProgressInfo
+//{
+//public:
+//    ProgressInfo(unsigned int id, const char **options = nullptr,
+//                 ngsProgressFunc progressFunc = nullptr,
+//                 void *progressArguments = nullptr);
+//    virtual ~ProgressInfo();
+//    ProgressInfo(const ProgressInfo& data);
+//    ProgressInfo& operator=(const ProgressInfo& data);
+//    unsigned int id() const;
+//    char **options() const;
+//    bool onProgress(double complete, const char* message) const;
+//    ngsErrorCodes status() const;
+//    void setStatus(const ngsErrorCodes &status);
+//protected:
+//    unsigned int m_id;
+//    char** m_options;
+//    ngsProgressFunc m_progressFunc;
+//    void *m_progressArguments;
+//    enum ngsErrorCodes m_status;
+//};
 
 }
 

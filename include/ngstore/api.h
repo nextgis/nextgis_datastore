@@ -76,15 +76,13 @@ typedef int (*ngsProgressFunc)(enum ngsErrorCodes status,
                                const char* message,
                                void* progressArguments);
 /**
- * @brief Prototype of function, which executed usually then some data changed
- * (dataset, map, etc.).
- * @param src Source of notification
- * @param table Table (Layer, Map) index
+ * @brief Prototype of function, which executed when changes accured.
+ * @param uri Catalog path (for features/rows ended with feature ID, for
+ * attachments ended with attachments/{int:id}).
  * @param row Row (Feature) index or NOT_FOUND
  * @param operation Operation which trigger notification.
  */
-typedef void (*ngsNotifyFunc)(enum ngsSourceCodes src, const char* table, long row,
-                              enum ngsChangeCodes operation);
+typedef void (*ngsNotifyFunc)(const char* uri, enum ngsChangeCodes operation);
 
 /**
  * Common functions

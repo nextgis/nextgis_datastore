@@ -49,6 +49,7 @@ inline ngsRGBA ngsHEX2RGBA(int color) {
 
 #define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
 #define ngsStaticCast(type, shared) static_cast<type*>(shared.get ())
+// #define ngsDatasetType(x) static_cast<unsigned int>( ngs::Dataset::Type::x )
 
 // http://stackoverflow.com/a/15012792
 inline bool isEqual(double val1, double val2) {

@@ -53,7 +53,7 @@ public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
 
-public:
+protected:
     static CPLString createUniquePath(const CPLString &path,
                                       const CPLString &name,
                                       bool isFolder = true,

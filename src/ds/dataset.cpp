@@ -28,7 +28,7 @@
 #include "ngstore/api.h"
 #include "util/stringutil.h"
 
-using namespace ngs;
+namespace ngs {
 
 //------------------------------------------------------------------------------
 // GDALDatasetPtr
@@ -49,11 +49,6 @@ GDALDatasetPtr::GDALDatasetPtr(const GDALDatasetPtr &ds) : shared_ptr(ds)
 {
 }
 
-GDALDatasetPtr::~GDALDatasetPtr()
-{
-
-}
-
 GDALDatasetPtr& GDALDatasetPtr::operator=(GDALDataset* ds) {
     reset(ds);
     return *this;
@@ -65,103 +60,11 @@ GDALDatasetPtr::operator GDALDataset *() const
 }
 
 //------------------------------------------------------------------------------
-// ProgressInfo
-//------------------------------------------------------------------------------
-ProgressInfo::ProgressInfo(unsigned int id, const char **options,
-                           ngsProgressFunc progressFunc, void *progressArguments) :
-    m_id(id), m_options(CSLDuplicate (const_cast<char**>(options))),
-    m_progressFunc(progressFunc),
-    m_progressArguments(progressArguments),
-    m_status(ngsErrorCodes::EC_PENDING)
-{
-
-}
-
-ProgressInfo::~ProgressInfo()
-{
-    CSLDestroy (m_options);
-}
-
-ProgressInfo::ProgressInfo(const ProgressInfo &data)
-{
-    m_id = data.m_id;
-    m_options = CSLDuplicate (data.m_options);
-    m_progressFunc = data.m_progressFunc;
-    m_progressArguments = data.m_progressArguments;
-    m_status = data.m_status;
-}
-
-ProgressInfo &ProgressInfo::operator=(const ProgressInfo &data)
-{
-    m_id = data.m_id;
-    m_options = CSLDuplicate (data.m_options);
-    m_progressFunc = data.m_progressFunc;
-    m_progressArguments = data.m_progressArguments;
-    m_status = data.m_status;
-    return *this;
-}
-
-ngsErrorCodes ProgressInfo::status() const
-{
-    return m_status;
-}
-
-void ProgressInfo::setStatus(const ngsErrorCodes &status)
-{
-    m_status = status;
-}
-
-bool ProgressInfo::onProgress(double complete, const char *message) const
-{
-    if(nullptr == m_progressFunc)
-        return true; // no cancel from user
-    return m_progressFunc(ngsErrorCodes::EC_SUCCESS/*m_id*/, complete, message, m_progressArguments) == TRUE;
-}
-
-
-char **ProgressInfo::options() const
-{
-    return m_options;
-}
-
-unsigned int ProgressInfo::id() const
-{
-    return m_id;
-}
-
-//------------------------------------------------------------------------------
 // Dataset
 //------------------------------------------------------------------------------
 
-Dataset::Dataset() : m_deleted(false), m_opened(false), m_readOnly(true),
-    m_notifyFunc(nullptr)
+Dataset::Dataset() : m_opened(false), m_readOnly(true)
 {
-    m_type = ngsDatasetType(Undefined);
-}
-
-Dataset::~Dataset()
-{
-
-}
-
-unsigned int Dataset::type() const
-{
-    return m_type;
-}
-
-bool Dataset::isVector() const
-{
-    return m_type & ngsDatasetType(Table) || m_type & ngsDatasetType(Featureset);
-}
-
-bool Dataset::isRaster() const
-{
-    return m_type & ngsDatasetType(Raster);
-}
-
-CPLString Dataset::name() const
-{
-    return m_name;
 }
 
 int Dataset::destroy(ProgressInfo *processInfo)
@@ -176,16 +79,6 @@ int Dataset::destroy(ProgressInfo *processInfo)
     return nRes;
 }
 
-bool Dataset::isDeleted() const
-{
-    return m_deleted;
-}
-
-CPLString Dataset::path() const
-{
-    return m_path;
-}
-
 bool Dataset::isOpened() const
 {
     return m_opened;
@@ -194,18 +87,6 @@ bool Dataset::isOpened() const
 bool Dataset::isReadOnly() const
 {
     return m_readOnly;
-}
-
-bool Dataset::canDelete()
-{
-    // TODO: correct this
-    return true;
-}
-
-bool Dataset::canRename()
-{
-    // TODO: correct this
-    return true;
 }
 
 DatasetPtr Dataset::create(const CPLString& path, const CPLString& driver,
@@ -288,16 +169,6 @@ DatasetPtr Dataset::open(const CPLString &path, unsigned int openFlags,
     return getDatasetForGDAL(path, DS);
 }
 
-void Dataset::setNotifyFunc(ngsNotifyFunc notifyFunc)
-{
-    m_notifyFunc = notifyFunc;
-}
-
-void Dataset::unsetNotifyFunc()
-{
-    m_notifyFunc = nullptr;
-}
-
 void Dataset::setName(const CPLString &path)
 {
     m_name = CPLGetBasename (path);
@@ -312,3 +183,72 @@ void Dataset::notifyDatasetChanged(enum ChangeType changeType,
                      id, static_cast<ngsChangeCodes>(changeType));
     }
 }
+
+//------------------------------------------------------------------------------
+// ProgressInfo
+//------------------------------------------------------------------------------
+//ProgressInfo::ProgressInfo(unsigned int id, const char **options,
+//                           ngsProgressFunc progressFunc, void *progressArguments) :
+//    m_id(id), m_options(CSLDuplicate (const_cast<char**>(options))),
+//    m_progressFunc(progressFunc),
+//    m_progressArguments(progressArguments),
+//    m_status(ngsErrorCodes::EC_PENDING)
+//{
+
+//}
+
+//ProgressInfo::~ProgressInfo()
+//{
+//    CSLDestroy (m_options);
+//}
+
+//ProgressInfo::ProgressInfo(const ProgressInfo &data)
+//{
+//    m_id = data.m_id;
+//    m_options = CSLDuplicate (data.m_options);
+//    m_progressFunc = data.m_progressFunc;
+//    m_progressArguments = data.m_progressArguments;
+//    m_status = data.m_status;
+//}
+
+//ProgressInfo &ProgressInfo::operator=(const ProgressInfo &data)
+//{
+//    m_id = data.m_id;
+//    m_options = CSLDuplicate (data.m_options);
+//    m_progressFunc = data.m_progressFunc;
+//    m_progressArguments = data.m_progressArguments;
+//    m_status = data.m_status;
+//    return *this;
+//}
+
+//ngsErrorCodes ProgressInfo::status() const
+//{
+//    return m_status;
+//}
+
+//void ProgressInfo::setStatus(const ngsErrorCodes &status)
+//{
+//    m_status = status;
+//}
+
+//bool ProgressInfo::onProgress(double complete, const char *message) const
+//{
+//    if(nullptr == m_progressFunc)
+//        return true; // no cancel from user
+//    return m_progressFunc(ngsErrorCodes::EC_SUCCESS/*m_id*/, complete, message, m_progressArguments) == TRUE;
+//}
+
+
+//char **ProgressInfo::options() const
+//{
+//    return m_options;
+//}
+
+//unsigned int ProgressInfo::id() const
+//{
+//    return m_id;
+//}
+
+
+
+} // namespace ngs

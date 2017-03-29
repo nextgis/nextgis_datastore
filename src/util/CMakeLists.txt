@@ -34,6 +34,7 @@ set(HHEADERS
     error.h
     progress.h
     options.h
+    notify.h
 )
 
 set(CSOURCES
@@ -46,6 +47,7 @@ set(CSOURCES
     error.cpp
     progress.cpp
     options.cpp
+    notify.cpp
 )
 
 if(UNIX)
