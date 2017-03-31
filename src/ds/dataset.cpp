@@ -22,10 +22,12 @@
 
 #include <iostream>
 
-#include "datasetcontainer.h"
-#include "featuredataset.h"
-#include "rasterdataset.h"
+//#include "datasetcontainer.h"
+//#include "featuredataset.h"
+//#include "rasterdataset.h"
 #include "ngstore/api.h"
+#include "catalog/folder.h"
+#include "util/error.h"
 #include "util/stringutil.h"
 
 namespace ngs {
@@ -35,12 +37,12 @@ namespace ngs {
 //------------------------------------------------------------------------------
 
 GDALDatasetPtr::GDALDatasetPtr(GDALDataset* ds) :
-    shared_ptr(ds, GDALClose )
+    shared_ptr(ds, GDALClose)
 {
 }
 
 GDALDatasetPtr::GDALDatasetPtr() :
-    shared_ptr(nullptr, GDALClose )
+    shared_ptr(nullptr, GDALClose)
 {
 
 }
@@ -63,126 +65,129 @@ GDALDatasetPtr::operator GDALDataset *() const
 // Dataset
 //------------------------------------------------------------------------------
 
-Dataset::Dataset() : m_opened(false), m_readOnly(true)
+Dataset::Dataset(ObjectContainer * const parent,
+                 const ngsCatalogObjectType type,
+                 const CPLString &name,
+                 const CPLString &path) : Object(parent, type, name, path),
+    m_DS(nullptr)
 {
 }
 
-int Dataset::destroy(ProgressInfo *processInfo)
+Dataset::~Dataset()
 {
-    m_DS.reset ();
-    int nRes = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::EC_SUCCESS :
-                                             ngsErrorCodes::EC_DELETE_FAILED;
-    if(nRes == ngsErrorCodes::EC_SUCCESS)
-        m_deleted = true;
-    if(processInfo)
-        processInfo->setStatus(static_cast<ngsErrorCodes>(nRes));
-    return nRes;
+    GDALClose(m_DS);
 }
 
-bool Dataset::isOpened() const
+bool Dataset::open(unsigned int openFlags, char **options)
 {
-    return m_opened;
-}
-
-bool Dataset::isReadOnly() const
-{
-    return m_readOnly;
-}
-
-DatasetPtr Dataset::create(const CPLString& path, const CPLString& driver,
-                           char **options)
-{
-    DatasetPtr out;
-    if(path.empty())
-        return out;
-
-    // get GeoPackage driver
-    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(driver);
-    if( poDriver == nullptr )
-        return out;
-
-    // create
-    CPLErrorReset();
-    GDALDatasetPtr DS = poDriver->Create( path, 0, 0, 0, GDT_Unknown, options );
-    if( DS == nullptr ) {
-        return out;
+    if(nullptr == m_path || EQUAL(m_path, "")) {
+        return errorMessage(ngsErrorCodes::EC_OPEN_FAILED, _("The path is empty"));
     }
 
-    return getDatasetForGDAL(path, DS);
-}
-
-DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
-{
-    GDALDriver* driver = ds->GetDriver ();
-
-    DatasetPtr out;
-    Dataset* outDS = nullptr;
-    if((testBoolean(driver->GetMetadataItem (GDAL_DMD_SUBDATASETS), false) &&
-       !testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false) ) ||
-            ds->GetLayerCount () > 1) {
-        outDS = new DatasetContainer();
-    }
-    else if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false)) {
-        RasterDataset* raster = new RasterDataset();
-        raster->m_spatialReference.SetFromUserInput (ds->GetProjectionRef ());
-        outDS = raster;
-    }
-    else { //if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_VECTOR), false))
-        OGRLayer* layer = ds->GetLayer (0);
-        if(nullptr != layer){
-            OGRFeatureDefn* defn = layer->GetLayerDefn ();
-            if( defn->GetGeomFieldCount () == 0 ) {
-                outDS = new Table(layer);
-            }
-            else {
-                outDS = new FeatureDataset(layer);
-            }       
-        }
-    }
-
-    if (!outDS) {
-        return nullptr;
-    }
-
-    outDS->m_DS = ds;
-    outDS->m_path = path;
-    outDS->m_opened = true;
-
-    out.reset (outDS);
-    return out;
-}
-
-DatasetPtr Dataset::open(const CPLString &path, unsigned int openFlags,
-                         char **options)
-{
-    DatasetPtr out;
-    if(nullptr == path)
-        return out;
     // open
     CPLErrorReset();
-    GDALDatasetPtr DS = static_cast<GDALDataset*>( GDALOpenEx( path,  openFlags,
-                                                    nullptr, options, nullptr));
-    if( DS == nullptr ) {
-        return out;
+    m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
+                                                 options, nullptr));
+    if(m_DS == nullptr) {
+        return false; // Error message comes from GDALOpenEx
     }
 
-    return getDatasetForGDAL(path, DS);
+    return true;
 }
 
-void Dataset::setName(const CPLString &path)
+bool Dataset::destroy()
 {
-    m_name = CPLGetBasename (path);
+    GDALClose(m_DS);
+    m_DS = nullptr;
+    return Folder::deleteFile(m_path);
 }
 
-void Dataset::notifyDatasetChanged(enum ChangeType changeType,
-                                    const CPLString &name, long id)
-{
-    // notify listeners
-    if(nullptr != m_notifyFunc) {
-        m_notifyFunc(ngsSourceCodes::SC_DATASET, name,
-                     id, static_cast<ngsChangeCodes>(changeType));
-    }
-}
+//int Dataset::destroy(ProgressInfo *processInfo)
+//{
+//    m_DS.reset ();
+//    int nRes = CPLUnlinkTree (m_path) == 0 ? ngsErrorCodes::EC_SUCCESS :
+//                                             ngsErrorCodes::EC_DELETE_FAILED;
+//    if(nRes == ngsErrorCodes::EC_SUCCESS)
+//        m_deleted = true;
+//    if(processInfo)
+//        processInfo->setStatus(static_cast<ngsErrorCodes>(nRes));
+//    return nRes;
+//}
+
+//DatasetPtr Dataset::create(const char* path, const char* driver,
+//                           char **options)
+//{
+//    DatasetPtr out;
+//    if(nullptr == path || EQUAL(path, "")) {
+//        CPLError(CE_Failure, CPLE_AppDefined, _("The path is empty"));
+//        return out;
+//    }
+
+//    // get GeoPackage driver
+//    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(driver);
+//    if( poDriver == nullptr ) {
+//        CPLError(CE_Failure, CPLE_AppDefined, _("The GDAL driver '%s' not found"),
+//                 driver);
+//        return out;
+//    }
+
+//    // create
+//    CPLErrorReset();
+//    GDALDatasetPtr DS = poDriver->Create( path, 0, 0, 0, GDT_Unknown, options );
+//    if( DS == nullptr ) {
+//        return out;
+//    }
+
+//    return getDatasetForGDAL(path, DS);
+//}
+
+//void Dataset::setName(const CPLString &path)
+//{
+//    m_name = CPLGetBasename (path);
+//}
+
+
+//DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
+//{
+//    GDALDriver* driver = ds->GetDriver ();
+
+//    DatasetPtr out;
+//    Dataset* outDS = nullptr;
+//    if((testBoolean(driver->GetMetadataItem (GDAL_DMD_SUBDATASETS), false) &&
+//       !testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false) ) ||
+//            ds->GetLayerCount () > 1) {
+//        outDS = new DatasetContainer();
+//    }
+//    else if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_RASTER), false)) {
+//        RasterDataset* raster = new RasterDataset();
+//        raster->m_spatialReference.SetFromUserInput (ds->GetProjectionRef ());
+//        outDS = raster;
+//    }
+//    else { //if (testBoolean(driver->GetMetadataItem (GDAL_DCAP_VECTOR), false))
+//        OGRLayer* layer = ds->GetLayer (0);
+//        if(nullptr != layer){
+//            OGRFeatureDefn* defn = layer->GetLayerDefn ();
+//            if( defn->GetGeomFieldCount () == 0 ) {
+//                outDS = new Table(layer);
+//            }
+//            else {
+//                outDS = new FeatureDataset(layer);
+//            }
+//        }
+//    }
+
+//    if (!outDS) {
+//        return nullptr;
+//    }
+
+//    outDS->m_DS = ds;
+//    outDS->m_path = path;
+//    outDS->m_opened = true;
+
+//    out.reset (outDS);
+//    return out;
+//}
+
 
 //------------------------------------------------------------------------------
 // ProgressInfo

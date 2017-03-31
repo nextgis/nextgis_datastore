@@ -76,9 +76,11 @@ enum ngsDrawState {
 /**
  * @brief The ngsDataStoreOptionsTypes enum
  */
-enum ngsDataStoreOptionsTypes {
+enum ngsOptionTypes {
     OT_CREATE_DATASOURCE,
-    OT_CREATE_DATASET,
+    OT_CREATE_RASTER,
+    OT_CREATE_LAYER,
+    OT_CREATE_LAYER_FIELD,
     OT_OPEN,
     OT_LOAD
 };

@@ -74,11 +74,6 @@ ObjectPtr ObjectContainer::getObject(const char *path)
     return ObjectPtr();
 }
 
-void ObjectContainer::addObject(ObjectPtr object)
-{
-    m_children.push_back(object);
-}
-
 void ObjectContainer::clear()
 {
     m_children.clear();

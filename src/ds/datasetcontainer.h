@@ -22,49 +22,51 @@
 #define NGSDATASETCONTAINER_H
 
 #include "dataset.h"
+#include "catalog/objectcontainer.h"
 
 namespace ngs {
 
-void LoadingThread(void * store);
+//void LoadingThread(void * store);
 
-class LoadData : public ProgressInfo
-{
-public:
-    LoadData(unsigned int id, const CPLString& path,
-             const CPLString& srcSubDatasetName,
-             const CPLString& dstDatasetName,
-             const char** options = nullptr, ngsProgressFunc onProgress = nullptr,
-             void *progressArguments = nullptr);
-    ~LoadData();
-    LoadData(const LoadData& data);
-    LoadData& operator=(const LoadData& data);
-    CPLString srcSubDatasetName() const;
-    void addNewName(const CPLString& name);
-    const char* path() const;
-    const char* getNewNames() const;
-    const char* getDestinationName() const;
-private:
-    CPLString m_path;
-    CPLString m_srcSubDatasetName;
-    CPLString m_dstDatasetName;
-    CPLString m_newNames;
-};
+//class LoadData : public ProgressInfo
+//{
+//public:
+//    LoadData(unsigned int id, const CPLString& path,
+//             const CPLString& srcSubDatasetName,
+//             const CPLString& dstDatasetName,
+//             const char** options = nullptr, ngsProgressFunc onProgress = nullptr,
+//             void *progressArguments = nullptr);
+//    ~LoadData();
+//    LoadData(const LoadData& data);
+//    LoadData& operator=(const LoadData& data);
+//    CPLString srcSubDatasetName() const;
+//    void addNewName(const CPLString& name);
+//    const char* path() const;
+//    const char* getNewNames() const;
+//    const char* getDestinationName() const;
+//private:
+//    CPLString m_path;
+//    CPLString m_srcSubDatasetName;
+//    CPLString m_dstDatasetName;
+//    CPLString m_newNames;
+//};
 
-class DatasetContainer : public Dataset
+class DatasetContainer : public ObjectContainer, virtual public IDataset
 {
-    friend void LoadingThread(void * store);
+//    friend void LoadingThread(void * store);
 public:
-    DatasetContainer();
+    DatasetContainer(ObjectContainer * const parent = nullptr,
+                     const ngsCatalogObjectType type = CAT_CONTAINER_ANY,
+                     const CPLString & name = "",
+                     const CPLString & path = "");
     virtual ~DatasetContainer();
-    virtual int datasetCount() const;
-    virtual int rasterCount() const;
-    virtual DatasetPtr getDataset(const CPLString& name);
-    virtual DatasetPtr getDataset(int index);
+//    virtual DatasetPtr getDataset(const CPLString& name);
+//    virtual DatasetPtr getDataset(int index);
     // TODO: getRaster
-    unsigned int loadDataset(const CPLString& name, const CPLString& path,
-                             const CPLString& subDatasetName, const char **options,
-                             ngsProgressFunc progressFunc,
-                             void* progressArguments = nullptr);
+//    unsigned int loadDataset(const CPLString& name, const CPLString& path,
+//                             const CPLString& subDatasetName, const char **options,
+//                             ngsProgressFunc progressFunc,
+//                             void* progressArguments = nullptr);
     /* TODO: does this need here?
     bool canCopy(const CPLString &destPath);
     bool canMove(const CPLString &destPath);
@@ -76,28 +78,45 @@ public:
              void* progressArguments = nullptr);
     */
     // TODO: create layer options, copy options
-    virtual int copyDataset(DatasetPtr srcDataset, const CPLString &dstDatasetName,
-                            LoadData *loadData = nullptr);
-    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
-                            LoadData *loadData = nullptr);
-    virtual DatasetPtr createDataset(const CPLString &name,
-                                     OGRFeatureDefn* const definition,
-                                     ProgressInfo *progressInfo = nullptr);
-    virtual DatasetPtr createDataset(const CPLString &name,
-                                     OGRFeatureDefn* const definition,
-                                     const OGRSpatialReference *spatialRef,
-                                     OGRwkbGeometryType type,
-                                     ProgressInfo *progressInfo = nullptr);
-    ngsLoadTaskInfo getLoadTaskInfo (unsigned int taskId) const;
-    virtual const char* getOptions(ngsDataStoreOptionsTypes optionType) const;
+//    virtual int copyDataset(DatasetPtr srcDataset, const CPLString &dstDatasetName,
+//                            LoadData *loadData = nullptr);
+//    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
+//                            LoadData *loadData = nullptr);
+//    virtual DatasetPtr createDataset(const CPLString &name,
+//                                     OGRFeatureDefn* const definition,
+//                                     ProgressInfo *progressInfo = nullptr);
+//    virtual DatasetPtr createDataset(const CPLString &name,
+//                                     OGRFeatureDefn* const definition,
+//                                     const OGRSpatialReference *spatialRef,
+//                                     OGRwkbGeometryType type,
+//                                     ProgressInfo *progressInfo = nullptr);
+//    ngsLoadTaskInfo getLoadTaskInfo (unsigned int taskId) const;
+    virtual const char* getOptions(enum ngsOptionTypes optionType) const;
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+
+    // IDataset interface
+public:
+    virtual bool isOpened() const override {return m_DS != nullptr;}
+    virtual bool isReadOnly() const override {return false;}
+    virtual bool open(unsigned int openFlags, char **options) override;
+
+    // ObjectContainer interface
+public:
+    virtual bool hasChildren() override;
+
 protected:
-    virtual bool isNameValid(const CPLString& name) const;
+    virtual bool isNameValid(const char *name) const;
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
-    bool isDatabase() const;
+    // static
     std::vector<OGRwkbGeometryType> getGeometryTypes(DatasetPtr srcDataset);
+
 protected:
-    std::map<CPLString, DatasetPtr> m_datasets;
+    GDALDataset* m_DS;
+//    std::map<CPLString, DatasetPtr> m_datasets;
     /**
      * Load Dataset
      */
@@ -105,13 +124,9 @@ protected:
     bool m_cancelLoad;
     std::vector<LoadData> m_loadData;
     unsigned int m_newTaskId;
-
-    // Dataset interface
-public:
-    virtual int destroy(ProgressInfo *processInfo) override;
 };
 
-typedef std::shared_ptr<DatasetContainer> DatasetContainerPtr;
+//typedef std::shared_ptr<DatasetContainer> DatasetContainerPtr;
 }
 
 #endif // NGSDATASETCONTAINER_H

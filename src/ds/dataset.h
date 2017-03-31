@@ -28,6 +28,7 @@
 #include "ogrsf_frmts.h"
 
 #include "api_priv.h"
+#include "catalog/object.h"
 
 namespace ngs {
 
@@ -46,8 +47,16 @@ public:
     operator GDALDataset*() const;
 };
 
-class Dataset;
-typedef std::shared_ptr<Dataset> DatasetPtr;
+class IDataset {
+public:
+    virtual ~IDataset() = default;
+    virtual bool isOpened() const = 0;
+    virtual bool isReadOnly() const = 0;
+    virtual bool open(unsigned int openFlags, char **options = nullptr) = 0;
+};
+
+//class Dataset;
+//typedef std::shared_ptr<Dataset> DatasetPtr;
 // typedef weak_ptr<Dataset> DatasetWPtr;
 
 /**
@@ -55,55 +64,42 @@ typedef std::shared_ptr<Dataset> DatasetPtr;
  * feature class, etc. are Dataset. The DataStore is an array of Datasets as
  * Map is array of Layers.
  */
-class Dataset
+class Dataset : public Object, public IDataset
 {
     friend class DatasetContainer;
     friend class DataStore;
 
 public:
-    Dataset();
-    virtual ~Dataset() = default;
+    Dataset(ObjectContainer * const parent = nullptr,
+            const ngsCatalogObjectType type = CAT_FC_ANY,
+            const CPLString & name = "",
+            const CPLString & path = "");
+    virtual ~Dataset();
 
     // is checks
-    bool isOpened() const;
-    bool isReadOnly() const;
+    virtual bool isOpened() const override { return m_DS != nullptr; }
+    virtual bool isReadOnly() const override { return false; }
+    virtual bool open(unsigned int openFlags, char **options = nullptr) override;
 
-    // can checks
-    bool canDelete(void);
-    bool canRename(void);
+    // Object interface
+public:
+    virtual bool destroy() override;
 
-    // static functions
-    static DatasetPtr create(const CPLString& path, const CPLString& driver,
-                             char **options = nullptr);
-    static DatasetPtr open(const CPLString& path,  unsigned int openFlags,
-                           char **options = nullptr);
-
-    // notifications
-    void setNotifyFunc(ngsNotifyFunc notifyFunc);
-    void unsetNotifyFunc();
-protected:
-    void notifyDatasetChanged(enum ChangeType changeType,
-                              const CPLString &name, long id);
-    static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
-    inline int reportError(int code, double percent,
-                           const char* message, ProgressInfo *processInfo = nullptr) {
-        //CPLError(CE_Failure, CPLE_AppDefined, message);
-        CPLErrorSetState(CE_Failure, CPLE_AppDefined, message);
-        if(processInfo) {
-            processInfo->setStatus (static_cast<ngsErrorCodes>(code));
-            processInfo->onProgress (percent, message);
-        }
-        return code;
-    }
+//protected:
+//    static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
+//    inline int reportError(int code, double percent,
+//                           const char* message, ProgressInfo *processInfo = nullptr) {
+//        //CPLError(CE_Failure, CPLE_AppDefined, message);
+//        CPLErrorSetState(CE_Failure, CPLE_AppDefined, message);
+//        if(processInfo) {
+//            processInfo->setStatus (static_cast<ngsErrorCodes>(code));
+//            processInfo->onProgress (percent, message);
+//        }
+//        return code;
+//    }
 
 protected:
-    unsigned int m_type;
-    CPLString m_name, m_path;
-    bool m_deleted;
-    bool m_opened;
-    bool m_readOnly;
-    GDALDatasetPtr m_DS;
-    ngsNotifyFunc m_notifyFunc;
+    GDALDataset* m_DS;
 };
 
 //class ProgressInfo

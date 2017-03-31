@@ -42,6 +42,7 @@ public:
     static bool isRaster(const ngsCatalogObjectType type);
     static bool isTable(const ngsCatalogObjectType type);
     static bool isContainer(const ngsCatalogObjectType type);
+    static bool isDatabase(const ngsCatalogObjectType type);
 protected:
     enum ngsCatalogObjectType type;
 };

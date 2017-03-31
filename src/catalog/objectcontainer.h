@@ -38,7 +38,6 @@ public:
                     const CPLString & path = "");
     virtual ~ObjectContainer() = default;
     virtual ObjectPtr getObject(const char* path);
-    virtual void addObject(ObjectPtr object);
     virtual void clear();
     virtual void refresh() {}
     virtual bool hasChildren() { return !m_children.empty(); }
@@ -58,6 +57,7 @@ public:
     virtual void notifyChanges() { refresh(); }
 
 protected:
+    virtual void addObject(ObjectPtr object) { m_children.push_back(object); }
     static void removeDuplicates(std::vector<const char*> &deleteNames,
                                  std::vector<const char*> &addNames);
 

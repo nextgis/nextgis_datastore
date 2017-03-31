@@ -21,6 +21,7 @@
 #include "folder.h"
 
 #include "catalog.h"
+#include "util/notify.h"
 #include "util/error.h"
 
 namespace ngs {
@@ -108,15 +109,20 @@ bool Folder::destroy()
 {
     //test if symlink
     if(isSymlink(m_path)) {
-        return deleteFile(m_path);
+        if(!deleteFile(m_path))
+            return false;
     }
-
-    int result = CPLUnlinkTree(m_path);
-    if (result == -1)
-        return errorMessage(_("Delete folder failed! Folder '%s'"), m_path.c_str());
-
+    else {
+        int result = CPLUnlinkTree(m_path);
+        if (result == -1)
+            return errorMessage(_("Delete folder failed! Folder '%s'"), 
+                                m_path.c_str());
+    }
+    
     if(m_parent)
         m_parent->notifyChanges();
+    
+    Notify::instance().onNotify(getFullName(), ngsChangeCodes::CC_DELETE_OBJECT);
 
     return true;
 }

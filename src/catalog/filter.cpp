@@ -77,6 +77,11 @@ bool Filter::isTable(const ngsCatalogObjectType type)
     return type >= CAT_TABLE_ANY && type < CAT_TABLE_ALL;
 }
 
+bool Filter::isDatabase(const ngsCatalogObjectType type)
+{
+    return type == CAT_CONTAINER_GDB || type == CAT_CONTAINER_POSTGRES;
+}
+
 //-----------------------------------------------------------------------------
 // MultiFilter
 //-----------------------------------------------------------------------------
