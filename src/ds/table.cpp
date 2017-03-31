@@ -19,10 +19,14 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "table.h"
-#include "datastore.h"
-#include "ngstore/api.h"
 
-using namespace ngs;
+#include "api_priv.h"
+#include "dataset.h"
+#include "ngstore/api.h"
+#include "util/error.h"
+#include "util/notify.h"
+
+namespace ngs {
 
 //------------------------------------------------------------------------------
 // FieldMapPtr
@@ -65,96 +69,102 @@ FeaturePtr& FeaturePtr::operator=(OGRFeature* feature) {
     return *this;
 }
 
-FeaturePtr::operator OGRFeature *() const
-{
-    return get();
-}
-
 //------------------------------------------------------------------------------
 // Table
 //------------------------------------------------------------------------------
 
-Table::Table(OGRLayer * const layer) : Dataset(), m_layer(layer)
+Table::Table(OGRLayer *layer,
+             bool isResultSet,
+             ObjectContainer * const parent,
+             const ngsCatalogObjectType type,
+             const CPLString &name,
+             const CPLString &path) :
+    Object(parent, type, name, path), m_layer(layer), m_isResultSet(isResultSet)
 {
-    m_type = ngsDatasetType (Table);
-    m_opened = true;
-    if(layer)
-        m_name = layer->GetName ();
+}
+
+Table::~Table()
+{
+    if(m_isResultSet) {
+        Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+        if(nullptr != dataset) {
+            GDALDataset * const DS = dataset->getGDALDataset();
+            if(nullptr != DS) {
+                DS->ReleaseResultSet(m_layer);
+            }
+        }
+    }
 }
 
 FeaturePtr Table::createFeature() const
 {
-    if(m_deleted)
+    if(nullptr == m_layer)
         return FeaturePtr();
 
     OGRFeature* pFeature = OGRFeature::CreateFeature( m_layer->GetLayerDefn() );
-    if (nullptr == pFeature){
+    if (nullptr == pFeature)
         return FeaturePtr();
-    }
 
     return FeaturePtr(pFeature);
 }
 
 FeaturePtr Table::getFeature(GIntBig id) const
 {
-    if(m_deleted)
+    if(nullptr == m_layer)
         return FeaturePtr();
 
     OGRFeature* pFeature = m_layer->GetFeature (id);
-    if (nullptr == pFeature){
+    if (nullptr == pFeature)
         return FeaturePtr();
-    }
 
     return FeaturePtr(pFeature);
 }
 
-int Table::insertFeature(const FeaturePtr &feature)
+bool Table::insertFeature(const FeaturePtr &feature)
 {
-   if(m_deleted)
-        return ngsErrorCodes::EC_INSERT_FAILED;
+   if(nullptr == m_layer)
+        return false;
 
-    int nReturnCode = m_layer->CreateFeature(feature) == OGRERR_NONE ?
-                ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_INSERT_FAILED;
+    if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
+        Notify::instance().onNotify(getFullName(),
+                                    ngsChangeCodes::CC_CREATE_FEATURE);
+        return true;
+    }
 
-    // notify datasource changed
-    if(nReturnCode == ngsErrorCodes::EC_SUCCESS)
-        notifyDatasetChanged(Dataset::ChangeType::AddFeature, name(), feature->GetFID());
-
-    return nReturnCode;
+    return false;
 }
 
-int Table::updateFeature(const FeaturePtr &feature)
+bool Table::updateFeature(const FeaturePtr &feature)
 {
-    if(m_deleted)
-        return ngsErrorCodes::EC_UPDATE_FAILED;
+    if(nullptr == m_layer)
+        return false;
 
-    int nReturnCode = m_layer->SetFeature(feature) == OGRERR_NONE ?
-                ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_UPDATE_FAILED;
+    if(m_layer->SetFeature(feature) == OGRERR_NONE) {
+        Notify::instance().onNotify(getFullName(),
+                                    ngsChangeCodes::CC_CHANGE_FEATURE);
+        return true;
+    }
 
-    // notify datasource changed
-    if(nReturnCode == ngsErrorCodes::EC_SUCCESS)
-        notifyDatasetChanged(Dataset::ChangeType::ChangeFeature, name(), feature->GetFID());
-
-    return nReturnCode;
+    return false;
 }
 
-int Table::deleteFeature(GIntBig id)
+bool Table::deleteFeature(GIntBig id)
 {
-    if(m_deleted)
-        return ngsErrorCodes::EC_DELETE_FAILED;
+    if(nullptr == m_layer)
+        return false;
 
-    int nReturnCode = m_layer->DeleteFeature (id) == OGRERR_NONE ?
-                ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_DELETE_FAILED;
-    // notify datasource changed
-    if(nReturnCode == ngsErrorCodes::EC_SUCCESS)
-        notifyDatasetChanged(Dataset::ChangeType::DeleteFeature, name(), id);
+    if(m_layer->DeleteFeature (id) == OGRERR_NONE) {
+        Notify::instance().onNotify(getFullName(),
+                                    ngsChangeCodes::CC_DELETE_FEATURE);
+        return true;
+    }
 
-    return nReturnCode;
+    return false;
 }
 
 GIntBig Table::featureCount(bool force) const
 {
-    if(m_deleted)
+    if(nullptr == m_layer)
         return 0;
 
     return m_layer->GetFeatureCount (force ? TRUE : FALSE);
@@ -162,46 +172,15 @@ GIntBig Table::featureCount(bool force) const
 
 void Table::reset() const
 {
-    if(!m_deleted)
+    if(nullptr != m_layer)
         m_layer->ResetReading ();
 }
 
 FeaturePtr Table::nextFeature() const
 {
-    if(m_deleted)
+    if(nullptr == m_layer)
         return FeaturePtr();
     return m_layer->GetNextFeature ();
-}
-
-ResultSetPtr Table::executeSQL(const CPLString &statement,
-                               const CPLString &dialect) const
-{
-    return ResultSetPtr(m_DS->ExecuteSQL(statement, nullptr, dialect),
-                                     [=](OGRLayer* layer)
-    {
-        m_DS->ReleaseResultSet(layer);
-    });
-}
-
-int Table::destroy(ProgressInfo *processInfo)
-{
-    if(processInfo) {
-        processInfo->onProgress (0, CPLSPrintf ("Deleting %s", name().c_str ()));
-        processInfo->setStatus (ngsErrorCodes::EC_DELETE_FAILED);
-    }
-    for(int i = 0; i < m_DS->GetLayerCount (); ++i){
-        if(m_DS->GetLayer (i) == m_layer) {
-            m_DS->DeleteLayer (i);
-            m_deleted = true;
-            if(processInfo) {
-                processInfo->onProgress (1.0, CPLSPrintf ("Deleted %s",
-                                                          name().c_str ()));
-                processInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
-            }
-            return ngsErrorCodes::EC_SUCCESS;
-        }
-    }
-    return ngsErrorCodes::EC_DELETE_FAILED;
 }
 
 int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
@@ -238,14 +217,44 @@ int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
     return ngsErrorCodes::EC_SUCCESS;
 }
 
-OGRFeatureDefn *Table::getDefinition() const
+const OGRFeatureDefn *Table::getDefinition() const
 {
-    if(nullptr != m_layer)
-        return m_layer->GetLayerDefn ();
-    return nullptr;
+    if(nullptr == m_layer)
+        return nullptr;
+    return m_layer->GetLayerDefn ();
 }
 
-CPLString Table::getFIDColumn() const
+const char* Table::getFIDColumn() const
 {
+    if(nullptr == m_layer)
+        return "";
     return m_layer->GetFIDColumn ();
+}
+
+
+bool Table::destroy()
+{
+    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset)
+        return errorMessage(_("Parent is not dataset"));
+    GDALDataset * const DS = dataset->getGDALDataset();
+    if(nullptr == DS)
+        return errorMessage(_("GDALDataset is null"));
+
+    for(int i = 0; i < DS->GetLayerCount (); ++i){
+        if(DS->GetLayer (i) == m_layer) {
+            if(DS->DeleteLayer (i) == OGRERR_NONE) {
+                m_layer = nullptr;
+                if(m_parent)
+                    m_parent->notifyChanges();
+                Notify::instance().onNotify(getFullName(),
+                                            ngsChangeCodes::CC_DELETE_OBJECT);
+                return true;
+            }
+        }
+    }
+    return false;
+
+}
+
 }

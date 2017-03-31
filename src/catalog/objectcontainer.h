@@ -33,7 +33,7 @@ class ObjectContainer : public Object
 {
 public:
     ObjectContainer(ObjectContainer * const parent = nullptr,
-                    const ngsCatalogObjectType type = CAT_UNKNOWN,
+                    const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
                     const CPLString & name = "",
                     const CPLString & path = "");
     virtual ~ObjectContainer() = default;

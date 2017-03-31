@@ -21,10 +21,10 @@
 #ifndef NGSTABLE_H
 #define NGSTABLE_H
 
-#include "dataset.h"
-
 // gdal
 #include "ogrsf_frmts.h"
+
+#include "catalog/object.h"
 
 namespace ngs {
 
@@ -42,30 +42,40 @@ public:
     FeaturePtr(OGRFeature* feature);
     FeaturePtr();
     FeaturePtr& operator=(OGRFeature* feature);
-    operator OGRFeature*() const;
+    operator OGRFeature*() const { return get(); }
 };
 
-class Table : public virtual Dataset
+class Table : public Object
 {
 public:
-    Table(OGRLayer * const layer);
+    Table(OGRLayer * layer,
+          bool isResultSet = false,
+          ObjectContainer * const parent = nullptr,
+          const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_TABLE_ANY,
+          const CPLString & name = "",
+          const CPLString & path = "");
+    virtual ~Table();
     FeaturePtr createFeature() const;
     FeaturePtr getFeature(GIntBig id) const;
-    int insertFeature(const FeaturePtr& feature);
-    int updateFeature(const FeaturePtr& feature);
-    int deleteFeature(GIntBig id);
+    bool insertFeature(const FeaturePtr& feature);
+    bool updateFeature(const FeaturePtr& feature);
+    bool deleteFeature(GIntBig id);
     GIntBig featureCount(bool force = true) const;
     void reset() const;
     FeaturePtr nextFeature() const;
-    ResultSetPtr executeSQL(const CPLString& statement,
-                            const CPLString& dialect = "") const;
-    virtual int destroy(ProgressInfo *processInfo = nullptr) override;
     virtual int copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
                          ProgressInfo *processInfo = nullptr);
-    OGRFeatureDefn* getDefinition() const;
-    CPLString getFIDColumn() const;
+    const OGRFeatureDefn *getDefinition() const;
+    const char *getFIDColumn() const;
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+
 protected:
-    OGRLayer * const m_layer;
+    OGRLayer * m_layer;
+    bool m_isResultSet;
+
 };
 
 }

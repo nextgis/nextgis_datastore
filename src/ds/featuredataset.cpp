@@ -284,55 +284,58 @@ CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,
     }
 }
 
-
-std::vector<OGRwkbGeometryType> DatasetContainer::getGeometryTypes(DatasetPtr srcDataset)
+std::vector<OGRwkbGeometryType> FeatureDataset::getGeometryTypes()
 {
     std::vector<OGRwkbGeometryType> out;
-    FeatureDataset* const srcFD = ngsDynamicCast(FeatureDataset, srcDataset);
-    if(nullptr == srcFD)
-        return out;
-    OGRwkbGeometryType geomType = srcFD->getGeometryType ();
+
+    OGRwkbGeometryType geomType = getGeometryType();
     if (OGR_GT_Flatten(geomType) == wkbUnknown ||
             OGR_GT_Flatten(geomType) == wkbGeometryCollection) {
 
         char** ignoreFields = nullptr;
         std::unique_ptr<char*, void(*)(char**)> fieldsPtr(ignoreFields, CSLDestroy);
-        OGRFeatureDefn* defn = srcFD->getDefinition ();
-        for(int i = 0; i < defn->GetFieldCount (); ++i) {
+        OGRFeatureDefn* defn = getDefinition();
+        for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn *fld = defn->GetFieldDefn (i);
-            ignoreFields = CSLAddString (ignoreFields, fld->GetNameRef ());
+            ignoreFields = CSLAddString(ignoreFields, fld->GetNameRef());
         }
-        ignoreFields = CSLAddString (ignoreFields, "OGR_STYLE");
-        srcFD->setIgnoredFields (const_cast<const char**>(fieldsPtr.get()));
-        srcFD->reset ();
+        ignoreFields = CSLAddString(ignoreFields, "OGR_STYLE");
+        setIgnoredFields(const_cast<const char**>(fieldsPtr.get()));
+        reset();
         std::map<OGRwkbGeometryType, int> counts;
         FeaturePtr feature;
-        while((feature = srcFD->nextFeature ()) != nullptr) {
-            OGRGeometry * geom = feature->GetGeometryRef ();
+        while((feature = nextFeature()) != nullptr) {
+            OGRGeometry * const geom = feature->GetGeometryRef();
             if (nullptr != geom) {
-                OGRwkbGeometryType geomType = geom->getGeometryType ();
+                OGRwkbGeometryType geomType = geom->getGeometryType();
                 counts[OGR_GT_Flatten(geomType)] += 1;
             }
         }
-        srcFD->setIgnoredFields (nullptr);
+        setIgnoredFields (nullptr);
 
         if(counts[wkbPoint] > 0) {
-            if(counts[wkbMultiPoint] > 0)
-                out.push_back (wkbMultiPoint);
-            else
-                out.push_back (wkbPoint);
+            if(counts[wkbMultiPoint] > 0) {
+                out.push_back(wkbMultiPoint);
+            }
+            else {
+                out.push_back(wkbPoint);
+            }
         }
         else if(counts[wkbLineString] > 0) {
-            if(counts[wkbMultiLineString] > 0)
-                out.push_back (wkbMultiLineString);
-            else
-                out.push_back (wkbLineString);
+            if(counts[wkbMultiLineString] > 0) {
+                out.push_back(wkbMultiLineString);
+            }
+            else {
+                out.push_back(wkbLineString);
+            }
         }
         else if(counts[wkbPolygon] > 0) {
-            if(counts[wkbMultiPolygon] > 0)
-                out.push_back (wkbMultiPolygon);
-            else
-                out.push_back (wkbPolygon);
+            if(counts[wkbMultiPolygon] > 0) {
+                out.push_back(wkbMultiPolygon);
+            }
+            else {
+                out.push_back(wkbPolygon);
+            }
         }
     }
     else {

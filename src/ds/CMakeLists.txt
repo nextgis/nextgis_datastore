@@ -27,8 +27,6 @@ set(LIB_NAME ds)
 set(HHEADERS
     datastore.h
     dataset.h
-    datasetcontainer.h
-    spatialdataset.h
     featuredataset.h
     rasterdataset.h
     table.h
@@ -38,8 +36,6 @@ set(HHEADERS
 set(CSOURCES
     datastore.cpp
     dataset.cpp
-    datasetcontainer.cpp
-    spatialdataset.cpp
     featuredataset.cpp
     rasterdataset.cpp
     table.cpp

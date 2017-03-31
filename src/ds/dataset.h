@@ -23,12 +23,11 @@
 
 #include <memory>
 
-#include "cpl_string.h"
-#include "gdal_frmts.h"
 #include "ogrsf_frmts.h"
 
 #include "api_priv.h"
-#include "catalog/object.h"
+#include "table.h"
+#include "catalog/objectcontainer.h"
 
 namespace ngs {
 
@@ -47,43 +46,61 @@ public:
     operator GDALDataset*() const;
 };
 
-class IDataset {
+/**
+ * @brief The ISpatialDataset interface class for datasets with spatial reference.
+ */
+class ISpatialDataset {
 public:
-    virtual ~IDataset() = default;
-    virtual bool isOpened() const = 0;
-    virtual bool isReadOnly() const = 0;
-    virtual bool open(unsigned int openFlags, char **options = nullptr) = 0;
+    virtual ~ISpatialDataset() = default;
+    virtual const OGRSpatialReference * getSpatialReference() const = 0;
+
 };
 
-//class Dataset;
-//typedef std::shared_ptr<Dataset> DatasetPtr;
-// typedef weak_ptr<Dataset> DatasetWPtr;
+typedef std::shared_ptr<Table> TablePtr;
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
  * feature class, etc. are Dataset. The DataStore is an array of Datasets as
  * Map is array of Layers.
  */
-class Dataset : public Object, public IDataset
+class Dataset : public ObjectContainer
 {
-    friend class DatasetContainer;
-    friend class DataStore;
-
 public:
     Dataset(ObjectContainer * const parent = nullptr,
-            const ngsCatalogObjectType type = CAT_FC_ANY,
+            const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");
     virtual ~Dataset();
+    virtual const char* getOptions(enum ngsOptionTypes optionType) const;
+    virtual GDALDataset * getGDALDataset() const { return m_DS; }
+
+    TablePtr executeSQL(const char* statement, const char* dialect = "") const;
 
     // is checks
-    virtual bool isOpened() const override { return m_DS != nullptr; }
-    virtual bool isReadOnly() const override { return false; }
-    virtual bool open(unsigned int openFlags, char **options = nullptr) override;
+    virtual bool isOpened() const { return m_DS != nullptr; }
+    virtual bool isReadOnly() const { return false; }
+    virtual bool open(unsigned int openFlags, char **options = nullptr);
 
     // Object interface
 public:
     virtual bool destroy() override;
+
+    // ObjectContainer interface
+public:
+    virtual bool hasChildren() override;
+
+protected:
+    virtual bool isNameValid(const char *name) const;
+    virtual CPLString normalizeDatasetName(const CPLString& name) const;
+    virtual CPLString normalizeFieldName(const CPLString& name) const;
+
+protected:
+    GDALDataset* m_DS;
+};
+
+}
+
+#endif // NGSDATASET_H
 
 //protected:
 //    static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
@@ -97,11 +114,6 @@ public:
 //        }
 //        return code;
 //    }
-
-protected:
-    GDALDataset* m_DS;
-};
-
 //class ProgressInfo
 //{
 //public:
@@ -124,6 +136,54 @@ protected:
 //    enum ngsErrorCodes m_status;
 //};
 
-}
+//void LoadingThread(void * store);
 
-#endif // NGSDATASET_H
+//class LoadData : public ProgressInfo
+//{
+//public:
+//    LoadData(unsigned int id, const CPLString& path,
+//             const CPLString& srcSubDatasetName,
+//             const CPLString& dstDatasetName,
+//             const char** options = nullptr, ngsProgressFunc onProgress = nullptr,
+//             void *progressArguments = nullptr);
+//    ~LoadData();
+//    LoadData(const LoadData& data);
+//    LoadData& operator=(const LoadData& data);
+//    CPLString srcSubDatasetName() const;
+//    void addNewName(const CPLString& name);
+//    const char* path() const;
+//    const char* getNewNames() const;
+//    const char* getDestinationName() const;
+//private:
+//    CPLString m_path;
+//    CPLString m_srcSubDatasetName;
+//    CPLString m_dstDatasetName;
+//    CPLString m_newNames;
+//};
+
+//    unsigned int loadDataset(const CPLString& name, const CPLString& path,
+//                             const CPLString& subDatasetName, const char **options,
+//                             ngsProgressFunc progressFunc,
+//                             void* progressArguments = nullptr);
+    // TODO: create layer options, copy options
+//    virtual int copyDataset(DatasetPtr srcDataset, const CPLString &dstDatasetName,
+//                            LoadData *loadData = nullptr);
+//    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
+//                            LoadData *loadData = nullptr);
+//    virtual DatasetPtr createDataset(const CPLString &name,
+//                                     OGRFeatureDefn* const definition,
+//                                     ProgressInfo *progressInfo = nullptr);
+//    virtual DatasetPtr createDataset(const CPLString &name,
+//                                     OGRFeatureDefn* const definition,
+//                                     const OGRSpatialReference *spatialRef,
+//                                     OGRwkbGeometryType type,
+//                                     ProgressInfo *progressInfo = nullptr);
+//    ngsLoadTaskInfo getLoadTaskInfo (unsigned int taskId) const;
+
+/**
+ * Load Dataset
+ */
+//CPLJoinableThread* m_hLoadThread;
+//bool m_cancelLoad;
+//std::vector<LoadData> m_loadData;
+//unsigned int m_newTaskId;
