@@ -26,8 +26,7 @@
 namespace ngs {
 
 CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
-CPLString translit(const CPLString &str, const CPLString &lang = "");
-bool testBoolean(const char *str, bool defaultVal);
+CPLString normalize(const CPLString &str, const CPLString &lang = "");
 
 }
 #endif // NGSSTRINGUTIL_H

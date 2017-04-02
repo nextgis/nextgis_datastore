@@ -49,7 +49,6 @@ class Table : public Object
 {
 public:
     Table(OGRLayer * layer,
-          bool isResultSet = false,
           ObjectContainer * const parent = nullptr,
           const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_TABLE_ANY,
           const CPLString & name = "",
@@ -74,8 +73,6 @@ public:
 
 protected:
     OGRLayer * m_layer;
-    bool m_isResultSet;
-
 };
 
 }

@@ -74,11 +74,11 @@ public:
     virtual const char* getOptions(enum ngsOptionTypes optionType) const;
     virtual GDALDataset * getGDALDataset() const { return m_DS; }
 
-    TablePtr executeSQL(const char* statement, const char* dialect = "") const;
+    TablePtr executeSQL(const char* statement, const char* dialect = "");
 
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
-    virtual bool isReadOnly() const { return false; }
+    virtual bool isReadOnly() const { return m_readonly; }
     virtual bool open(unsigned int openFlags, char **options = nullptr);
 
     // Object interface
@@ -96,6 +96,7 @@ protected:
 
 protected:
     GDALDataset* m_DS;
+    bool m_readonly;
 };
 
 }

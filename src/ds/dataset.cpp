@@ -22,10 +22,13 @@
 
 #include <array>
 
+#include "featureclass.h"
 #include "table.h"
-#include "ngstore/api.h"
 #include "catalog/folder.h"
+#include "ngstore/api.h"
+#include "ngstore/catalog/filter.h"
 #include "util/error.h"
+#include "util/stringutil.h"
 
 namespace ngs {
 
@@ -90,7 +93,7 @@ Dataset::Dataset(ObjectContainer * const parent,
                  const CPLString &name,
                  const CPLString &path) :
     ObjectContainer(parent, type, name, path),
-    m_DS(nullptr)
+    m_DS(nullptr), m_readonly(false)
 {
 }
 
@@ -105,14 +108,25 @@ bool Dataset::open(unsigned int openFlags, char **options)
         return errorMessage(ngsErrorCodes::EC_OPEN_FAILED, _("The path is empty"));
     }
 
-    // open
     CPLErrorReset();
     m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
                                                  options, nullptr));
     if(m_DS == nullptr) {
-        return false; // Error message comes from GDALOpenEx
+        if(openFlags & GDAL_OF_UPDATE) {
+            // Try to open read-only
+            openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
+            openFlags |= GDAL_OF_READONLY;
+            m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
+                                                         options, nullptr));
+            if(nullptr == m_DS)
+                return false; // Error message comes from GDALOpenEx
+            else
+                m_readonly = true;
+        }
+        else {
+            return false;
+        }
     }
-
     return true;
 }
 
@@ -123,7 +137,6 @@ bool Dataset::destroy()
     m_DS = nullptr;
     return Folder::deleteFile(m_path);
 }
-
 
 bool Dataset::isNameValid(const char* name) const
 {
@@ -140,18 +153,18 @@ CPLString Dataset::normalizeDatasetName(const CPLString &name) const
 {
     // create unique name
     CPLString outName;
-    if(name.empty ()) {
+    if(name.empty()) {
         outName = "new_dataset";
     }
     else {
-        outName = translit(name);
-        replace_if( outName.begin(), outName.end(), forbiddenChar, '_');
+        outName = normalize(name);
+        replace_if(outName.begin(), outName.end(), forbiddenChar, '_');
     }
 
     CPLString originName = outName;
     int nameCounter = 0;
     while(!isNameValid (outName)) {
-        outName = originName + "_" + CPLSPrintf ("%d", ++nameCounter);
+        outName = originName + "_" + std::to_string(++nameCounter);
         if(nameCounter == MAX_EQUAL_NAMES) {
             return "";
         }
@@ -162,14 +175,14 @@ CPLString Dataset::normalizeDatasetName(const CPLString &name) const
 
 CPLString Dataset::normalizeFieldName(const CPLString &name) const
 {
-    CPLString out = translit (name); // TODO: add lang support, i.e. ru_RU)
+    CPLString out = normalize(name); // TODO: add lang support, i.e. ru_RU)
 
     replace_if( out.begin(), out.end(), forbiddenChar, '_');
 
     if(isdigit (out[0]))
         out = "Fld_" + out;
 
-    if(Filter::isDatabase (m_type)) {
+    if(Filter::isDatabase(m_type)) {
         // check for sql forbidden names
         if(find(forbiddenSQLFieldNames.begin (), forbiddenSQLFieldNames.end(),
                 out) != forbiddenSQLFieldNames.end()) {
@@ -201,46 +214,29 @@ const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
     }
 }
 
-bool Dataset::open(unsigned int openFlags, char **options)
-{
-    if(nullptr == m_path || EQUAL(m_path, "")) {
-        return errorMessage(ngsErrorCodes::EC_OPEN_FAILED, _("The path is empty"));
-    }
-
-    // open
-    CPLErrorReset();
-    m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
-                                                 options, nullptr));
-    if(m_DS == nullptr) {
-        return false; // Error message comes from GDALOpenEx
-    }
-
-    return true;
-}
-
 bool Dataset::hasChildren()
 {
     if(!isOpened()) {
-        if(!open(GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr)) {
+        if(!open(GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR, nullptr)) {
             return false;
         }
     }
 
     // fill vector layers and tables
     int i;
-    for(i = 0; i < m_DS->GetLayerCount (); ++i){
-        OGRLayer* layer = m_DS->GetLayer (i);
+    for(i = 0; i < m_DS->GetLayerCount(); ++i){
+        OGRLayer* layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             const char* layerName = layer->GetName();
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
             if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new Table(layer, false, this,
-                                                CAT_TABLE_ANY, layerName, "")));
+                m_children.push_back(ObjectPtr(new Table(layer, this,
+                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName, "")));
             }
             else {
                 m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                                                    CAT_FC_ANY, layerName, "")));
+                            ngsCatalogObjectType::CAT_FC_ANY, layerName, "")));
             }
         }
     }
@@ -257,7 +253,8 @@ bool Dataset::hasChildren()
         strLen = CPLStrnlen(testStr, 255);
         if(EQUAL(testStr + strLen - 4, "NAME")) {
             CPLStrlcpy(rasterName, testStr, strLen - 4);
-            m_children.push_back(ObjectPtr(new Raster(this, CAT_RASTER_ANY, rasterName, "")));
+            m_children.push_back(ObjectPtr(new Raster(this,
+                        ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, "")));
         }
     }
     CSLDestroy(subdatasetList);
@@ -267,13 +264,19 @@ bool Dataset::hasChildren()
     return ObjectContainer::hasChildren();
 }
 
-TablePtr Dataset::executeSQL(const char* statement, const char* dialect) const
+TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
 {
-    if(nullptr != m_DS) {
-        return TablePtr(new Table(m_DS->ExecuteSQL(statement, nullptr, dialect),
-                            true, this, ngsCatalogObjectType::CAT_QUERY_RESULT));
-    }
-    return TablePtr();
+    if(nullptr == m_DS)
+        return TablePtr();
+    OGRLayer * layer = m_DS->ExecuteSQL(statement, nullptr, dialect);
+    if(nullptr == layer)
+        return TablePtr();
+    if(layer->GetGeomType() == wkbNone)
+        return TablePtr(new Table(layer, this,
+                                  ngsCatalogObjectType::CAT_QUERY_RESULT));
+    else
+        return TablePtr(new FeatureClass(layer, this,
+                                    ngsCatalogObjectType::CAT_QUERY_RESULT));
 }
 
 

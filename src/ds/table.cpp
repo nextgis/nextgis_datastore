@@ -74,18 +74,17 @@ FeaturePtr& FeaturePtr::operator=(OGRFeature* feature) {
 //------------------------------------------------------------------------------
 
 Table::Table(OGRLayer *layer,
-             bool isResultSet,
              ObjectContainer * const parent,
              const ngsCatalogObjectType type,
              const CPLString &name,
              const CPLString &path) :
-    Object(parent, type, name, path), m_layer(layer), m_isResultSet(isResultSet)
+    Object(parent, type, name, path), m_layer(layer)
 {
 }
 
 Table::~Table()
 {
-    if(m_isResultSet) {
+    if(m_type == ngsCatalogObjectType::CAT_QUERY_RESULT) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
             GDALDataset * const DS = dataset->getGDALDataset();

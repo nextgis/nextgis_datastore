@@ -20,12 +20,11 @@
  ****************************************************************************/
 #include "stringutil.h"
 
-#include <algorithm>
 #include <map>
 
-using namespace std;
+namespace ngs {
 
-const static map<const char*, const char*> ruMap = { {"а", "a"}, {"б", "b"},
+const static std::map<const char*, const char*> ruMap = { {"а", "a"}, {"б", "b"},
     {"в", "v"}, {"г", "g"}, {"д", "d"}, {"е", "e"}, {"ё", "ye"}, {"ж", "zh"},
     {"з", "z"}, {"и", "i"}, {"й", "y"}, {"к", "k"}, {"л", "l"}, {"м", "m"},
     {"н", "n"}, {"о", "o"}, {"п", "p"}, {"р", "r"}, {"с", "s"}, {"т", "t"},
@@ -44,7 +43,7 @@ bool invalidChar (char c)
     return !isprint( static_cast<unsigned char>( c ) );
 }
 
-CPLString ngs::stripUnicode(const CPLString &str, const char replaceChar)
+CPLString stripUnicode(const CPLString &str, const char replaceChar)
 {
     CPLString out = str;
     replace_if(out.begin (), out.end (), invalidChar, replaceChar);
@@ -52,13 +51,13 @@ CPLString ngs::stripUnicode(const CPLString &str, const char replaceChar)
     return out;
 }
 
-CPLString ngs::translit(const CPLString &str, const CPLString &lang)
+CPLString normalize(const CPLString &str, const CPLString &lang)
 {
     CPLString out = str;
-    if(lang.empty ())
-        return ngs::stripUnicode (str);
+    if(lang.empty())
+        return stripUnicode(str);
 
-    if( lang[0] == 'r' && lang[1] == 'u' ) {
+    if(EQUALN(lang, "ru", 2)) {
         auto first = str.begin ();
         char buf[2] = {'\0', '\0'};
         while (first!=str.end ()) {
@@ -72,14 +71,9 @@ CPLString ngs::translit(const CPLString &str, const CPLString &lang)
         }
     }
     else {
-        return ngs::stripUnicode (str);
+        return stripUnicode (str);
     }
     return out;
 }
 
-bool ngs::testBoolean(const char *str, bool defaultVal)
-{
-    if(nullptr == str)
-        return defaultVal;
-    return CPLTestBool (str);
 }
