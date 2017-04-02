@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "util/progress.h"
 
+#include "cpl_string.h"
+
 namespace ngs {
 
 Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
@@ -29,10 +31,15 @@ Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
 }
 
 bool Progress::onProgress(ngsErrorCodes status, double complete,
-                          const char *message) const
+                          const char *format, ...) const
 {
     if(nullptr == m_progressFunc)
         return true; // No cancel from user
+    va_list args;
+    CPLString message;
+    va_start( args, format );
+    message.vPrintf( format, args );
+    va_end( args );
     return m_progressFunc(status, complete, message, m_progressArguments) == 1;
 }
 

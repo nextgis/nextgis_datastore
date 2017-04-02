@@ -33,7 +33,7 @@ public:
     virtual ~Progress() = default;
     virtual bool onProgress(enum ngsErrorCodes status,
                             double complete,
-                            const char* message) const;
+                            const char *format, ...) const;
 
 protected:
     ngsProgressFunc m_progressFunc;

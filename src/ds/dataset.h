@@ -31,8 +31,6 @@
 
 namespace ngs {
 
-typedef std::shared_ptr< OGRLayer > ResultSetPtr;
-
 /**
  * @brief The wrapper class around GDALDataset pointer
  */
@@ -53,10 +51,7 @@ class ISpatialDataset {
 public:
     virtual ~ISpatialDataset() = default;
     virtual const OGRSpatialReference * getSpatialReference() const = 0;
-
 };
-
-typedef std::shared_ptr<Table> TablePtr;
 
 /**
  * @brief The Dataset class is base class of DataStore. Each table, raster,

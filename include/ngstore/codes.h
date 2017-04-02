@@ -29,6 +29,8 @@ enum ngsErrorCodes {
     EC_IN_PROCESS,         /**< In process */
     EC_PENDING,            /**< Pending */
     EC_CANCELED,           /**< Canceled */
+    EC_FINISHED,           /**< Finished */
+    EC_WARNING = 300,      /**< Warning, not error */
     EC_UNEXPECTED_ERROR = 400,   /**< Unexpected error */
     EC_NOT_SPECIFIED,      /**< Path, value, etc. is not specified */
     EC_INVALID,            /**< Path, map, structure, etc. is invalid */
