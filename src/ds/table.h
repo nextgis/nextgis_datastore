@@ -45,6 +45,9 @@ public:
     operator OGRFeature*() const { return get(); }
 };
 
+class Table;
+typedef std::shared_ptr<Table> TablePtr;
+
 class Table : public Object
 {
 public:
@@ -62,8 +65,8 @@ public:
     GIntBig featureCount(bool force = true) const;
     void reset() const;
     FeaturePtr nextFeature() const;
-    virtual int copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
-                         ProgressInfo *processInfo = nullptr);
+    virtual bool copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
+                          const Progress& process = Progress());
     const OGRFeatureDefn *getDefinition() const;
     const char *getFIDColumn() const;
 

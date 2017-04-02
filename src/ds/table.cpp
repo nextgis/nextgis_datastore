@@ -182,38 +182,43 @@ FeaturePtr Table::nextFeature() const
     return m_layer->GetNextFeature ();
 }
 
-int Table::copyRows(const Table *pSrcTable, const FieldMapPtr fieldMap,
-                    ProgressInfo *processInfo)
+bool Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
+                     const Progress& process)
 {
-    if(processInfo) {
-        processInfo->onProgress (0, CPLSPrintf ("Start copy records from '%s' to '%s'",
-                                    pSrcTable->name ().c_str (), name().c_str ()));
+    if(!srcTable) {
+        process.onProgress(ngsErrorCodes::EC_COPY_FAILED, 0.0,
+                           _("Source table is invalid"));
+        return false;
     }
-    GIntBig featureCount = pSrcTable->featureCount();
+
+    process.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+                       _("Start copy records from '%s' to '%s'"),
+                       srcTable->getName().c_str(), m_name.c_str());
+
+    GIntBig featureCount = srcTable->featureCount();
     double counter = 0;
-    pSrcTable->reset ();
+    srcTable->reset();
     FeaturePtr feature;
-    while((feature = pSrcTable->nextFeature ()) != nullptr) {
-        if(processInfo)
-            processInfo->onProgress ( counter / featureCount, "copying...");
+    while((feature = srcTable->nextFeature ()) != nullptr) {
+        double complete = counter / featureCount;
+        process.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
+                           _("Copy in process ..."));
 
-        FeaturePtr dstFeature = createFeature ();
-        dstFeature->SetFieldsFrom (feature, fieldMap.get());
+        FeaturePtr dstFeature = createFeature();
+        dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
-        int nRes = insertFeature(dstFeature);
-        if(nRes != ngsErrorCodes::EC_SUCCESS) {
-            CPLString errorMsg;
-            errorMsg.Printf ("Create feature failed. Source feature FID:%lld",
-                             feature->GetFID ());
-            reportError (nRes, counter / featureCount, errorMsg, processInfo);
+        if(!insertFeature(dstFeature)) {
+            process.onProgress(ngsErrorCodes::EC_WARNING, complete,
+                               _("Create feature failed. Source feature FID:%lld"),
+                               feature->GetFID ());
         }
         counter++;
     }
-    if(processInfo)
-        processInfo->onProgress (1.0,
-                                 CPLSPrintf ("Done. Copied %d rows", int(counter)));
 
-    return ngsErrorCodes::EC_SUCCESS;
+    process.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d rows"),
+                       int(counter));
+
+    return true;
 }
 
 const OGRFeatureDefn *Table::getDefinition() const
