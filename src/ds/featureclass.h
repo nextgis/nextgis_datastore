@@ -21,77 +21,59 @@
 #ifndef NGSFEATUREDATASET_H
 #define NGSFEATUREDATASET_H
 
-#include "spatialdataset.h"
+#include "coordinatetransformation.h"
 #include "table.h"
-
-// gdal
-#include "ogr_spatialref.h"
-
-#define ngsFeatureLoadSkipType(x) static_cast<unsigned int>( ngs::FeatureDataset::SkipType::x )
-
-// For gettext translation
-#define POINT_STR _("Point")
-#define LINESTRING_STR _("Line String")
-#define POLYGON_STR _("Polygon")
-#define MPOINT_STR _("Multi Point")
-#define MLINESTRING_STR _("Multi Line String")
-#define MPOLYGON_STR _("Multi Polygon")
+#include "util/options.h"
 
 namespace ngs {
 
 typedef std::shared_ptr< OGRGeometry > GeometryPtr;
-typedef std::unique_ptr< OGRGeometry > GeometryUPtr;
 
-class CoordinateTransformationPtr
-{
-public:
-    CoordinateTransformationPtr( OGRSpatialReference *srcSRS,
-                                 OGRSpatialReference *dstSRS);
-    ~CoordinateTransformationPtr();
-    bool transform(OGRGeometry *geom);
-protected:
-    // no copy constructor
-    CoordinateTransformationPtr(const CoordinateTransformationPtr& /*other*/) {}
-protected:
-    OGRCoordinateTransformation* m_oCT;
-};
+class FeatureClass;
+typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 
-class FeatureDataset : public Table, public SpatialDataset
+class FeatureClass : public Table, public ISpatialDataset
 {
 public:
     enum class SkipType : unsigned int {
-        NoSkip          = 0x0000,
-        EmptyGeometry   = 0x0001,
-        InvalidGeometry = 0x0002
+        NOSKIP          = 0x0000,
+        EMPTYGEOMETRY   = 0x0001,
+        INVALIDGEOMETRY = 0x0002
     };
 
     enum class GeometryReportType {
-        Full,
-        Ogc,
-        Simple
+        FULL,
+        OGC,
+        SIMPLE
     };
 
 public:
-    FeatureDataset(OGRLayer * const layer);
-    virtual OGRSpatialReference *getSpatialReference() const override;
+    FeatureClass(OGRLayer * layer,
+                 ObjectContainer * const parent = nullptr,
+                 const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
+                 const CPLString & name = "",
+                 const CPLString & path = "");
+    virtual ~FeatureClass() = default;
+
     OGRwkbGeometryType getGeometryType() const;
-    virtual int copyFeatures(const FeatureDataset *srcDataset,
-                             const FieldMapPtr fieldMap,
-                             OGRwkbGeometryType filterGeomType,
-                             ProgressInfo* progressInfo);
-    bool setIgnoredFields(const char **fields);
-    std::vector<CPLString> getGeometryColumns() const;
-    CPLString getGeometryColumn() const;
-    ResultSetPtr executeSQL(const CPLString& statement,
-                            GeometryPtr spatialFilter,
-                            const CPLString& dialect = "") const;
-    ResultSetPtr getGeometries(unsigned char zoom,
-                            GeometryPtr spatialFilter) const;
-
+    std::vector<OGRwkbGeometryType> getGeometryTypes();
+    const char* getGeometryColumn() const;
+    std::vector<const char*> getGeometryColumns() const;
+    bool setIgnoredFields(const std::vector<const char*> fields =
+            std::vector<const char*>());
+    virtual bool copyFeatures(const FeatureClassPtr srcFClass,
+                              const FieldMapPtr fieldMap,
+                              OGRwkbGeometryType filterGeomType,
+                              const Progress& process = Progress(),
+                              const Options& options = Options());
     // static
-    static CPLString getGeometryTypeName(OGRwkbGeometryType type,
-                                         enum GeometryReportType reportType);
+    static const char *getGeometryTypeName(OGRwkbGeometryType type,
+                enum GeometryReportType reportType = GeometryReportType::SIMPLE);
 
+
+    // ISpatialDataset interface
+public:
+    virtual OGRSpatialReference *getSpatialReference() const override;
 };
 
 }

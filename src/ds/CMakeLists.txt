@@ -31,6 +31,7 @@ set(HHEADERS
     raster.h
     table.h
     storefeaturedataset.h
+    coordinatetransformation.h
 )
 
 set(CSOURCES
@@ -40,6 +41,7 @@ set(CSOURCES
     raster.cpp
     table.cpp
     storefeaturedataset.cpp
+    coordinatetransformation.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

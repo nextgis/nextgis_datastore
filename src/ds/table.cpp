@@ -84,7 +84,8 @@ Table::Table(OGRLayer *layer,
 
 Table::~Table()
 {
-    if(m_type == ngsCatalogObjectType::CAT_QUERY_RESULT) {
+    if(m_type == ngsCatalogObjectType::CAT_QUERY_RESULT ||
+       m_type == ngsCatalogObjectType::CAT_QUERY_RESULT_FC) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
             GDALDataset * const DS = dataset->getGDALDataset();
@@ -112,7 +113,7 @@ FeaturePtr Table::getFeature(GIntBig id) const
     if(nullptr == m_layer)
         return FeaturePtr();
 
-    OGRFeature* pFeature = m_layer->GetFeature (id);
+    OGRFeature* pFeature = m_layer->GetFeature(id);
     if (nullptr == pFeature)
         return FeaturePtr();
 
@@ -152,7 +153,7 @@ bool Table::deleteFeature(GIntBig id)
     if(nullptr == m_layer)
         return false;
 
-    if(m_layer->DeleteFeature (id) == OGRERR_NONE) {
+    if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         Notify::instance().onNotify(getFullName(),
                                     ngsChangeCodes::CC_DELETE_FEATURE);
         return true;
@@ -221,18 +222,18 @@ bool Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     return true;
 }
 
-const OGRFeatureDefn *Table::getDefinition() const
+OGRFeatureDefn *Table::getDefinition() const
 {
     if(nullptr == m_layer)
         return nullptr;
-    return m_layer->GetLayerDefn ();
+    return m_layer->GetLayerDefn();
 }
 
 const char* Table::getFIDColumn() const
 {
     if(nullptr == m_layer)
         return "";
-    return m_layer->GetFIDColumn ();
+    return m_layer->GetFIDColumn();
 }
 
 

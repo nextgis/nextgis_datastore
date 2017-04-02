@@ -18,16 +18,27 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "rasterdataset.h"
+#include "raster.h"
 
-using namespace ngs;
+namespace ngs {
 
-RasterDataset::RasterDataset() : SpatialDataset()
+Raster::Raster(ObjectContainer * const parent,
+               const ngsCatalogObjectType type,
+               const CPLString &name,
+               const CPLString &path) :
+  Object(parent, type, name, path), m_DS(nullptr)
 {
 }
 
+Raster::~Raster()
+{
+    GDALClose(m_DS);
+}
 
-OGRSpatialReference *RasterDataset::getSpatialReference() const
+OGRSpatialReference *Raster::getSpatialReference() const
 {
     return const_cast<OGRSpatialReference *>(&m_spatialReference);
 }
+
+}
+

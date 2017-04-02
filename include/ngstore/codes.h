@@ -159,7 +159,8 @@ enum ngsCatalogObjectType {
     CAT_TABLE_XLS,
     CAT_TABLE_XLSX,
     CAT_TABLE_ALL,
-    CAT_QUERY_RESULT
+    CAT_QUERY_RESULT,
+    CAT_QUERY_RESULT_FC
 };
 
 #endif // NGSCODES_H

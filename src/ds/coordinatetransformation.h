@@ -1,9 +1,9 @@
 /******************************************************************************
- * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
- * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,36 +18,38 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSRASTERDATASET_H
-#define NGSRASTERDATASET_H
+#ifndef NGSCOORDINATETRANSFORMATION_H
+#define NGSCOORDINATETRANSFORMATION_H
 
-#include "catalog/object.h"
-#include "coordinatetransformation.h"
+// gdal
+#include "ogr_spatialref.h"
+#include "ogrsf_frmts.h"
 
 namespace ngs {
 
 /**
- * @brief The Raster dataset class represent image or raster
+ * @brief The ISpatialDataset interface class for datasets with spatial reference.
  */
-class Raster : public Object, public ISpatialDataset
+class ISpatialDataset {
+public:
+    virtual ~ISpatialDataset() = default;
+    virtual OGRSpatialReference * getSpatialReference() const = 0;
+};
+
+class CoordinateTransformation
 {
 public:
-    Raster(ObjectContainer * const parent = nullptr,
-           const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
-           const CPLString & name = "",
-           const CPLString & path = "");
-    virtual ~Raster();
-
-    // ISpatialDataset interface
-public:
-    virtual OGRSpatialReference *getSpatialReference() const override;
-
+    CoordinateTransformation(OGRSpatialReference *srcSRS,
+                             OGRSpatialReference *dstSRS);
+    ~CoordinateTransformation();
+    bool transform(OGRGeometry *geom);
 protected:
-    OGRSpatialReference m_spatialReference;
-    GDALDataset* m_DS;
-
+    // no copy constructor
+    CoordinateTransformation(const CoordinateTransformation& /*other*/) = default;
+protected:
+    OGRCoordinateTransformation* m_oCT;
 };
 
 }
 
-#endif // NGSRASTERDATASET_H
+#endif // NGSCOORDINATETRANSFORMATION_H

@@ -246,15 +246,17 @@ bool Dataset::hasChildren()
     i = 0;
     size_t strLen = 0;
     const char* testStr = nullptr;
-    char rasterName[255];
+    char rasterPath[255];
     while(subdatasetList[i] != nullptr) {
         ++i;
         testStr = subdatasetList[i];
         strLen = CPLStrnlen(testStr, 255);
         if(EQUAL(testStr + strLen - 4, "NAME")) {
-            CPLStrlcpy(rasterName, testStr, strLen - 4);
+            CPLStrlcpy(rasterPath, testStr, strLen - 4);
+            CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
+            const char* rasterName = pathPortions[pathPortions.size() - 1];
             m_children.push_back(ObjectPtr(new Raster(this,
-                        ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, "")));
+                ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, rasterPath)));
         }
     }
     CSLDestroy(subdatasetList);
@@ -276,7 +278,25 @@ TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
                                   ngsCatalogObjectType::CAT_QUERY_RESULT));
     else
         return TablePtr(new FeatureClass(layer, this,
-                                    ngsCatalogObjectType::CAT_QUERY_RESULT));
+                                         ngsCatalogObjectType::CAT_QUERY_RESULT_FC));
+}
+
+TablePtr Dataset::executeSQL(const char *statement,
+                                    GeometryPtr spatialFilter,
+                                    const char *dialect)
+{
+    if(nullptr == m_DS)
+        return TablePtr();
+    OGRLayer * layer = m_DS->ExecuteSQL(statement, spatialFilter.get(), dialect);
+    if(nullptr == layer)
+        return TablePtr();
+    if(layer->GetGeomType() == wkbNone)
+        return TablePtr(new Table(layer, this,
+                                  ngsCatalogObjectType::CAT_QUERY_RESULT));
+    else
+        return TablePtr(new FeatureClass(layer, this,
+                                         ngsCatalogObjectType::CAT_QUERY_RESULT_FC));
+
 }
 
 

@@ -1,9 +1,9 @@
 /******************************************************************************
- * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
- * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,36 +18,33 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSRASTERDATASET_H
-#define NGSRASTERDATASET_H
-
-#include "catalog/object.h"
 #include "coordinatetransformation.h"
 
 namespace ngs {
 
-/**
- * @brief The Raster dataset class represent image or raster
- */
-class Raster : public Object, public ISpatialDataset
+CoordinateTransformation::CoordinateTransformation(
+        OGRSpatialReference *srcSRS, OGRSpatialReference *dstSRS)
 {
-public:
-    Raster(ObjectContainer * const parent = nullptr,
-           const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
-           const CPLString & name = "",
-           const CPLString & path = "");
-    virtual ~Raster();
-
-    // ISpatialDataset interface
-public:
-    virtual OGRSpatialReference *getSpatialReference() const override;
-
-protected:
-    OGRSpatialReference m_spatialReference;
-    GDALDataset* m_DS;
-
-};
-
+    if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
+        m_oCT = static_cast<OGRCoordinateTransformation*>(
+                              OGRCreateCoordinateTransformation(srcSRS, dstSRS));
+    }
+    else {
+        m_oCT = nullptr;
+    }
 }
 
-#endif // NGSRASTERDATASET_H
+CoordinateTransformation::~CoordinateTransformation()
+{
+    if(nullptr != m_oCT)
+        OCTDestroyCoordinateTransformation(
+                    reinterpret_cast<OGRCoordinateTransformationH>(m_oCT));
+}
+
+bool CoordinateTransformation::transform(OGRGeometry* geom) {
+    if(nullptr == m_oCT)
+        return false;
+    return geom->transform(m_oCT) == OGRERR_NONE;
+}
+
+}

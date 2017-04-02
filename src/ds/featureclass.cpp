@@ -18,105 +18,110 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "featuredataset.h"
+#include "featureclass.h"
 
-#include "ogr_spatialref.h"
+#include "coordinatetransformation.h"
 
-using namespace ngs;
+// For gettext translation
+#define POINT_STR _("Point")
+#define LINESTRING_STR _("Line String")
+#define POLYGON_STR _("Polygon")
+#define MPOINT_STR _("Multi Point")
+#define MLINESTRING_STR _("Multi Line String")
+#define MPOLYGON_STR _("Multi Polygon")
 
-//------------------------------------------------------------------------------
-// CoordinateTransformationPtr
-//------------------------------------------------------------------------------
+namespace ngs {
 
-CoordinateTransformationPtr::CoordinateTransformationPtr(
-        OGRSpatialReference *srcSRS, OGRSpatialReference *dstSRS)
+#define ngsFeatureLoadSkipType(x) static_cast<unsigned int>( FeatureClass::SkipType::x )
+
+FeatureClass::FeatureClass(OGRLayer *layer,
+                               ObjectContainer * const parent,
+                               const ngsCatalogObjectType type,
+                               const CPLString &name,
+                               const CPLString &path) :
+    Table(layer, parent, type, name, path)
 {
-    if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
-        m_oCT = static_cast<OGRCoordinateTransformation*>(
-                              OGRCreateCoordinateTransformation(srcSRS, dstSRS));
-    }
-    else {
-        m_oCT = nullptr;
-    }
 }
 
-CoordinateTransformationPtr::~CoordinateTransformationPtr()
+OGRSpatialReference *FeatureClass::getSpatialReference() const
 {
-    if(nullptr != m_oCT)
-        OCTDestroyCoordinateTransformation(reinterpret_cast<OGRCoordinateTransformationH>(m_oCT));
+    if(nullptr == m_layer)
+        return nullptr;
+    return m_layer->GetSpatialRef();
 }
 
-bool CoordinateTransformationPtr::transform(OGRGeometry* geom) {
-    if(nullptr == m_oCT)
+OGRwkbGeometryType FeatureClass::getGeometryType() const
+{
+    if(nullptr == m_layer)
+        return wkbUnknown;
+    return m_layer->GetGeomType ();
+}
+
+const char* FeatureClass::getGeometryColumn() const
+{
+    if(nullptr == m_layer)
+        return "";
+    return m_layer->GetGeometryColumn();
+}
+
+std::vector<const char*> FeatureClass::getGeometryColumns() const
+{
+    std::vector<const char*> out;
+    OGRFeatureDefn *defn = m_layer->GetLayerDefn();
+    for(int i = 0; i < defn->GetGeomFieldCount(); ++i) {
+        OGRGeomFieldDefn* geom = defn->GetGeomFieldDefn(i);
+        out.push_back (geom->GetNameRef());
+    }
+    return out;
+}
+
+
+bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
+                               const FieldMapPtr fieldMap,
+                               OGRwkbGeometryType filterGeomType,
+                               const Progress& process, const Options &options)
+{
+    if(!srcFClass) {
+        process.onProgress(ngsErrorCodes::EC_COPY_FAILED, 0.0,
+                           _("Source feature class is invalid"));
         return false;
-    return geom->transform (m_oCT) == OGRERR_NONE;
-}
-
-//------------------------------------------------------------------------------
-// FeatureDataset
-//------------------------------------------------------------------------------
-
-FeatureDataset::FeatureDataset(OGRLayer * const layer) : Table(layer),
-    SpatialDataset()
-{
-    m_type = ngsDatasetType(Featureset);
-}
-
-OGRSpatialReference *FeatureDataset::getSpatialReference() const
-{
-    if(nullptr != m_layer)
-        return m_layer->GetSpatialRef ();
-    return nullptr;
-}
-
-OGRwkbGeometryType FeatureDataset::getGeometryType() const
-{
-    if(nullptr != m_layer)
-        return m_layer->GetGeomType ();
-    return wkbUnknown;
-}
-
-int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
-                                 const FieldMapPtr fieldMap,
-                                 OGRwkbGeometryType filterGeomType,
-                                 ProgressInfo *progressInfo)
-{
-    unsigned int flags = 0;
-    if(progressInfo) {
-        progressInfo->onProgress (0, CPLSPrintf ("Start copy features from '%s' to '%s'",
-                                    srcDataset->name ().c_str (), name().c_str ()));
-        char** val = CSLFetchNameValueMultiple(progressInfo->options(),
-                                               "FEATURES_SKIP");
-        for( int i = 0; val != NULL && val[i] != NULL; ++i ) {
-            if(EQUAL(val[i], "EMPTY_GEOMETRY"))
-                flags |= ngsFeatureLoadSkipType(EmptyGeometry);
-            if(EQUAL(val[i], "INVALID_GEOMETRY"))
-                flags |= ngsFeatureLoadSkipType(InvalidGeometry);
-        }
     }
 
-    OGRSpatialReference *srcSRS = srcDataset->getSpatialReference();
+    process.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+                       _("Start copy features from '%s' to '%s'"),
+                       srcFClass->getName().c_str(), m_name.c_str());
+
+
+    unsigned int flags = 0;
+    if(options.getBoolOption("SKIP_EMPTY_GEOMETRY"))
+        flags |= ngsFeatureLoadSkipType(EMPTYGEOMETRY);
+    if(options.getBoolOption("SKIP_INVALID_GEOMETRY"))
+        flags |= ngsFeatureLoadSkipType(INVALIDGEOMETRY);
+
+    OGRSpatialReference *srcSRS = srcFClass->getSpatialReference();
     OGRSpatialReference *dstSRS = getSpatialReference();
-    CoordinateTransformationPtr CT (srcSRS, dstSRS);
-    GIntBig featureCount = srcDataset->featureCount();
+    CoordinateTransformation CT(srcSRS, dstSRS);
+    GIntBig featureCount = srcFClass->featureCount();
     OGRwkbGeometryType dstGeomType = getGeometryType();
     double counter = 0;
-    srcDataset->reset ();
+    srcFClass->reset();
     FeaturePtr feature;
-    while((feature = srcDataset->nextFeature ()) != nullptr) {
-        if(progressInfo)
-            progressInfo->onProgress (counter / featureCount, "copying...");
+    while((feature = srcFClass->nextFeature()) != nullptr) {
+        double complete = counter / featureCount;
+        process.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
+                           _("Copy in process ..."));
 
-        OGRGeometry * geom = feature->GetGeometryRef ();
+        OGRGeometry * geom = feature->GetGeometryRef();
         OGRGeometry *newGeom = nullptr;
-        if(nullptr == geom && flags & ngsFeatureLoadSkipType(EmptyGeometry))
-            continue;
-
-        if(nullptr != geom) {
-            if((flags & ngsFeatureLoadSkipType(EmptyGeometry)) &&
-                    geom->IsEmpty ())
+        if(nullptr == geom) {
+            if(flags & ngsFeatureLoadSkipType(EMPTYGEOMETRY))
                 continue;
-            if((flags & ngsFeatureLoadSkipType(InvalidGeometry)) &&
+        }
+        else {
+            if((flags & ngsFeatureLoadSkipType(EMPTYGEOMETRY)) &&
+                    geom->IsEmpty())
+                continue;
+            if((flags & ngsFeatureLoadSkipType(INVALIDGEOMETRY)) &&
                     !geom->IsValid())
                 continue;
 
@@ -135,120 +140,55 @@ int FeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                 newGeom = OGRGeometryFactory::forceTo(geom, dstGeomType);
             }
             else {
-                newGeom = geom->clone ();
+                newGeom = geom->clone();
             }
 
             CT.transform(newGeom);
         }
 
-        FeaturePtr dstFeature = createFeature ();
+        FeaturePtr dstFeature = createFeature();
         if(nullptr != newGeom)
-            dstFeature->SetGeometryDirectly (newGeom);
-        dstFeature->SetFieldsFrom (feature, fieldMap.get());
+            dstFeature->SetGeometryDirectly(newGeom);
+        dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
-        int nRes = insertFeature(dstFeature);
-        if(nRes != ngsErrorCodes::EC_SUCCESS) {
-            CPLString errorMsg;
-            errorMsg.Printf ("Create feature failed. "
-                             "Source feature FID:%lld", feature->GetFID ());
-            reportError (nRes, counter / featureCount, errorMsg, progressInfo);
+        if(!insertFeature(dstFeature)) {
+            process.onProgress(ngsErrorCodes::EC_WARNING, complete,
+                               _("Create feature failed. Source feature FID:%lld"),
+                               feature->GetFID ());
         }
         counter++;
     }
-    if(progressInfo) {
-        progressInfo->onProgress (1.0, CPLSPrintf ("Done. Copied %d features",
-                                              int(counter)));
-        progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
+    process.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d features"),
+                       int(counter));
+
+    return true;
+}
+
+bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
+{
+    if(fields.empty()) {
+        return m_layer->SetIgnoredFields(nullptr) == OGRERR_NONE;
     }
-    return ngsErrorCodes::EC_SUCCESS;
-}
 
-bool FeatureDataset::setIgnoredFields(const char** fields)
-{
-    return m_layer->SetIgnoredFields (fields) == OGRERR_NONE;
-}
-
-std::vector<CPLString> FeatureDataset::getGeometryColumns() const
-{
-    std::vector<CPLString> out;
-    OGRFeatureDefn *defn = m_layer->GetLayerDefn ();
-    for(int i = 0; i < defn->GetGeomFieldCount (); ++i) {
-        OGRGeomFieldDefn* geom = defn->GetGeomFieldDefn (i);
-        out.push_back (geom->GetNameRef ());
+    char** ignoreFields = nullptr;
+    for(const char* fieldName : fields) {
+        ignoreFields = CSLAddString(ignoreFields, fieldName);
     }
-    return out;
+    bool result = m_layer->SetIgnoredFields(
+                const_cast<const char**>(ignoreFields)) == OGRERR_NONE;
+    CSLDestroy(ignoreFields);
+    return result;
 }
 
-CPLString FeatureDataset::getGeometryColumn() const
-{
-    return m_layer->GetGeometryColumn ();
-}
-
-ResultSetPtr FeatureDataset::executeSQL(const CPLString &statement,
-                                        GeometryPtr spatialFilter,
-                                        const CPLString &dialect) const
-{
-    return ResultSetPtr(m_DS->ExecuteSQL(statement, spatialFilter.get (), dialect),
-                                     [=](OGRLayer* layer)
-    {
-        m_DS->ReleaseResultSet(layer);
-    });
-}
-
-/*
-char RenderLayer::getCloseOvr()
-{
-    float diff = 18;
-    float currentDiff;
-    char zoom = 18;
-    for(auto sampleDist : gSampleDists) {
-        currentDiff = sampleDist.second - m_renderZoom;
-        if(currentDiff > 0 && currentDiff < diff) {
-            diff = currentDiff;
-            zoom = sampleDist.second;
-        }
-    }
-    return zoom;
-}
-*/
-
-ResultSetPtr FeatureDataset::getGeometries(unsigned char /*zoom*/,
-                                           GeometryPtr spatialFilter) const
-{
-    // check geometry column
-    CPLString geomFieldName;
-    //bool originalGeom = true;
-    //if(m_renderZoom > 15) {
-        geomFieldName = getGeometryColumn ();
-    /*}
-    else {
-        char zoom = getCloseOvr();
-        if(zoom < 18) {
-            geomFieldName.Printf ("ngs_geom_%d, %s", zoom,
-                                  featureDataset->getGeometryColumn ().c_str ());
-            originalGeom = false;
-        }
-        else {
-            geomFieldName = featureDataset->getGeometryColumn ();
-        }
-    }*/
-
-    CPLString statement;
-    statement.Printf ("SELECT %s,%s FROM %s", getFIDColumn().c_str(), geomFieldName.c_str (),
-                      name ().c_str ());
-
-    return executeSQL (statement, spatialFilter, "");
-}
-
-CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,
+const char* FeatureClass::getGeometryTypeName(OGRwkbGeometryType type,
                                                 GeometryReportType reportType)
 {
-    if(reportType == GeometryReportType::Full)
+    if(reportType == GeometryReportType::FULL)
         return OGRGeometryTypeToName(type);
-    if(reportType == GeometryReportType::Ogc)
+    if(reportType == GeometryReportType::OGC)
         return OGRToOGCGeomType(type);
 
-    switch (OGR_GT_Flatten(type)) {
+    switch(OGR_GT_Flatten(type)) {
     case wkbUnknown:
         return "unk";
     case wkbPoint:
@@ -279,12 +219,18 @@ CPLString FeatureDataset::getGeometryTypeName(OGRwkbGeometryType type,
         return "crv";
     case wkbSurface:
         return "surf";
+    case wkbPolyhedralSurface:
+        return "psurf";
+    case wkbTIN:
+        return "tin";
+    case wkbTriangle:
+        return "triangle";
     default:
         return "any";
     }
 }
 
-std::vector<OGRwkbGeometryType> FeatureDataset::getGeometryTypes()
+std::vector<OGRwkbGeometryType> FeatureClass::getGeometryTypes()
 {
     std::vector<OGRwkbGeometryType> out;
 
@@ -292,15 +238,14 @@ std::vector<OGRwkbGeometryType> FeatureDataset::getGeometryTypes()
     if (OGR_GT_Flatten(geomType) == wkbUnknown ||
             OGR_GT_Flatten(geomType) == wkbGeometryCollection) {
 
-        char** ignoreFields = nullptr;
-        std::unique_ptr<char*, void(*)(char**)> fieldsPtr(ignoreFields, CSLDestroy);
+        std::vector<const char*> ignoreFields;
         OGRFeatureDefn* defn = getDefinition();
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
-            OGRFieldDefn *fld = defn->GetFieldDefn (i);
-            ignoreFields = CSLAddString(ignoreFields, fld->GetNameRef());
+            OGRFieldDefn *fld = defn->GetFieldDefn(i);
+            ignoreFields.push_back(fld->GetNameRef());
         }
-        ignoreFields = CSLAddString(ignoreFields, "OGR_STYLE");
-        setIgnoredFields(const_cast<const char**>(fieldsPtr.get()));
+        ignoreFields.push_back("OGR_STYLE");
+        setIgnoredFields(ignoreFields);
         reset();
         std::map<OGRwkbGeometryType, int> counts;
         FeaturePtr feature;
@@ -311,7 +256,8 @@ std::vector<OGRwkbGeometryType> FeatureDataset::getGeometryTypes()
                 counts[OGR_GT_Flatten(geomType)] += 1;
             }
         }
-        setIgnoredFields (nullptr);
+        ignoreFields.clear();
+        setIgnoredFields(ignoreFields);
 
         if(counts[wkbPoint] > 0) {
             if(counts[wkbMultiPoint] > 0) {
@@ -343,3 +289,53 @@ std::vector<OGRwkbGeometryType> FeatureDataset::getGeometryTypes()
     }
     return out;
 }
+
+/*
+char RenderLayer::getCloseOvr()
+{
+    float diff = 18;
+    float currentDiff;
+    char zoom = 18;
+    for(auto sampleDist : gSampleDists) {
+        currentDiff = sampleDist.second - m_renderZoom;
+        if(currentDiff > 0 && currentDiff < diff) {
+            diff = currentDiff;
+            zoom = sampleDist.second;
+        }
+    }
+    return zoom;
+}
+
+ResultSetPtr FeatureClass::getGeometries(unsigned char zoom,
+                                           GeometryPtr spatialFilter) const
+{
+    // check geometry column
+    CPLString geomFieldName;
+    //bool originalGeom = true;
+    //if(m_renderZoom > 15) {
+        geomFieldName = getGeometryColumn ();
+    }
+    else {
+        char zoom = getCloseOvr();
+        if(zoom < 18) {
+            geomFieldName.Printf ("ngs_geom_%d, %s", zoom,
+                                  featureDataset->getGeometryColumn ().c_str ());
+            originalGeom = false;
+        }
+        else {
+            geomFieldName = featureDataset->getGeometryColumn ();
+        }
+    }
+
+    CPLString statement;
+    statement.Printf ("SELECT %s,%s FROM %s", getFIDColumn().c_str(), geomFieldName.c_str (),
+                      name ().c_str ());
+
+    return executeSQL (statement, spatialFilter, "");
+}
+
+*/
+
+}
+
+

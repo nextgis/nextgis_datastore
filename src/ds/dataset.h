@@ -26,6 +26,8 @@
 #include "ogrsf_frmts.h"
 
 #include "api_priv.h"
+#include "featureclass.h"
+#include "raster.h"
 #include "table.h"
 #include "catalog/objectcontainer.h"
 
@@ -45,15 +47,6 @@ public:
 };
 
 /**
- * @brief The ISpatialDataset interface class for datasets with spatial reference.
- */
-class ISpatialDataset {
-public:
-    virtual ~ISpatialDataset() = default;
-    virtual const OGRSpatialReference * getSpatialReference() const = 0;
-};
-
-/**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
  * feature class, etc. are Dataset. The DataStore is an array of Datasets as
  * Map is array of Layers.
@@ -70,6 +63,9 @@ public:
     virtual GDALDataset * getGDALDataset() const { return m_DS; }
 
     TablePtr executeSQL(const char* statement, const char* dialect = "");
+    TablePtr executeSQL(const char* statement,
+                            GeometryPtr spatialFilter,
+                            const char* dialect = "");
 
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
