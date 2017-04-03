@@ -81,13 +81,13 @@ int Options::getIntOption(const char *key, int defaultOption) const
     return atoi(it->second);
 }
 
-char **Options::getOptions() const
+OptionsArrayUPtr Options::getOptions() const
 {
     char** options = nullptr;
     for(auto it = m_options.begin(); it != m_options.end(); ++it) {
         options = CSLAddNameValue(options, it->first, it->second);
     }
-    return options;
+    return OptionsArrayUPtr(options, CSLDestroy);
 }
 
 void Options::removeOption(const char *key)

@@ -40,9 +40,6 @@ public:
     // static
 public:
     static bool create(const char* path);
-    static bool createMetadataTable(GDALDataset* ds);
-    static bool createRastersTable(GDALDataset* ds);
-    static bool createAttachmentsTable(GDALDataset* ds);
 
     // ISpatialDataset interface
 public:
@@ -50,6 +47,9 @@ public:
         return const_cast<OGRSpatialReference *>(&m_storeSpatialRef); }
 
     // Dataset interface
+public:
+    virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
+
 protected:
     virtual bool isNameValid(const char *name) const override;
 

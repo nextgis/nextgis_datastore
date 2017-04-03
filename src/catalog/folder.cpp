@@ -21,6 +21,7 @@
 #include "folder.h"
 
 #include "catalog.h"
+#include "ds/datastore.h"
 #include "util/notify.h"
 #include "util/error.h"
 
@@ -211,6 +212,9 @@ bool Folder::create(const ngsCatalogObjectType type, const CPLString &name,
             m_children.push_back(ObjectPtr(new Folder(this, newName, newPath)));
         break;
     case CAT_CONTAINER_NGS:
+        result = DataStore::create(newPath);
+        if(result && m_childrenLoaded)
+            m_children.push_back(ObjectPtr(new DataStore(this, newName, newPath)));
         break;
     default:
         break;

@@ -255,6 +255,7 @@ bool DataStore::create(const char *path)
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("Create metadata table failed"));
 
+    /* TODO: Add raster and attachments support
     if(!createRastersTable(DS))
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("Create rasters table failed"));
@@ -262,37 +263,23 @@ bool DataStore::create(const char *path)
     if(!createAttachmentsTable(DS))
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("Create attachments table failed"));
+    */
+
+    GDALClose(DS);
     return true;
 }
 
-DataStorePtr DataStore::open(const CPLString &path)
+bool DataStore::open(unsigned int openFlags, const Options &options)
 {
+    if(!Dataset::open(openFlags, options))
+        return false;
+
     CPLErrorReset();
-    DataStorePtr out;
-    if(path.empty()) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Path not specified.");
-        return out;
-    }
-
-    if (CPLCheckForFile(const_cast<char*>(path.c_str ()), nullptr) != TRUE) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Invalid path.");
-        return out;
-
-    }
-
-    GDALDatasetPtr DS (static_cast<GDALDataset*>( GDALOpenEx(path,
-                       GDAL_OF_SHARED|GDAL_OF_UPDATE, nullptr, nullptr, nullptr)));
-
-    if( DS == nullptr ) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Dataset create failed.");
-        return out;
-    }
 
     // check version and upgrade if needed
-    OGRLayer* pMetadataLayer = DS->GetLayerByName (METHADATA_TABLE_NAME);
+    OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
     if(nullptr == pMetadataLayer) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Invalid structure.");
-        return out;
+        return errorMessage(ngsErrorCodes::EC_OPEN_FAILED, _("Invalid structure"));
     }
 
     pMetadataLayer->ResetReading();
@@ -301,31 +288,48 @@ DataStorePtr DataStore::open(const CPLString &path)
         if(EQUAL(feature->GetFieldAsString(META_KEY), NGS_VERSION_KEY)) {
             int nVersion = atoi(feature->GetFieldAsString(META_VALUE));
             if(nVersion < NGS_VERSION_NUM) {
-                int nResult = upgrade (nVersion, DS);
-                if(nResult != ngsErrorCodes::EC_SUCCESS) {
-                    CPLError(CE_Failure, CPLE_AppDefined, "Upgrade DB failed.");
-                    return out;
+                // Upgrade database if needed
+                if(!upgrade(nVersion)) {
+                    return errorMessage(ngsErrorCodes::EC_OPEN_FAILED,
+                                        _("Upgrade storage failed"));
                 }
             }
             break;
         }
     }
 
-    OGRLayer* pRasterLayer = DS->GetLayerByName (RASTERS_TABLE_NAME);
-    if(nullptr == pRasterLayer) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Invalid structure.");
-        return out;
+    return true;
+}
+
+bool DataStore::upgrade(int /* oldVersion */)
+{
+    // no structure changes for version 1
+    return true;
+}
+
+void DataStore::enableJournal(bool enable)
+{
+    if(enable) {        
+        m_disableJournalCounter--;
+        if(m_disableJournalCounter == 0) {
+            executeSQL ("PRAGMA synchronous=ON", "SQLITE");
+            executeSQL ("PRAGMA journal_mode=ON", "SQLITE");
+            executeSQL ("PRAGMA count_changes=ON", "SQLITE");
+        }
     }
+    else {
+        CPLAssert (m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
+        m_disableJournalCounter++;
+        if(m_disableJournalCounter == 1) {
+            executeSQL ("PRAGMA synchronous=OFF", "SQLITE");
+            //executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
+            executeSQL ("PRAGMA journal_mode=OFF", "SQLITE");
+            executeSQL ("PRAGMA count_changes=OFF", "SQLITE");
+            // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
+        }
+    }
+}
 
-    DataStore *outDS = new DataStore();
-
-    outDS->m_DS = DS;
-    outDS->m_path = path;
-    outDS->m_opened = true;
-    outDS->setDataPath ();
-    out.reset (outDS);
-
-    return out;
 }
 
 /*
@@ -429,11 +433,11 @@ int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
     return nRet;
 }
 
-*/
+
 
 DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
-                                     const OGRSpatialReference */*spatialRef*/,
+                                     const OGRSpatialReference *spatialRef,
                                      OGRwkbGeometryType type,
                                     ProgressInfo *progressInfo)
 {
@@ -482,7 +486,7 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
                 return out;
             }
         }
-    }*/
+    }*//*
 
     Dataset* dstDataset = nullptr;
     if( type == wkbNone) {
@@ -505,35 +509,4 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
 
     return out;
 }
-
-
-bool DataStore::upgrade(int /* oldVersion */)
-{
-    // no structure changes for version 1
-    return true;
-}
-
-void DataStore::enableJournal(bool enable)
-{
-    if(enable) {        
-        m_disableJournalCounter--;
-        if(m_disableJournalCounter == 0) {
-            executeSQL ("PRAGMA synchronous=ON", "SQLITE");
-            executeSQL ("PRAGMA journal_mode=ON", "SQLITE");
-            executeSQL ("PRAGMA count_changes=ON", "SQLITE");
-        }
-    }
-    else {
-        CPLAssert (m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
-        m_disableJournalCounter++;
-        if(m_disableJournalCounter == 1) {
-            executeSQL ("PRAGMA synchronous=OFF", "SQLITE");
-            //executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
-            executeSQL ("PRAGMA journal_mode=OFF", "SQLITE");
-            executeSQL ("PRAGMA count_changes=OFF", "SQLITE");
-            // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
-        }
-    }
-}
-
-}
+*/

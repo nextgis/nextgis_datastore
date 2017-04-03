@@ -22,10 +22,13 @@
 #define NGSOPTIONS_H
 
 #include <map>
+#include <memory>
 
 #include "cpl_string.h"
 
 namespace ngs {
+
+typedef std::unique_ptr<char*, void(*)(char**)> OptionsArrayUPtr;
 
 class Options
 {
@@ -37,7 +40,7 @@ public:
                                      const CPLString & defaultOption = "") const;
     bool getBoolOption(const char *key, bool defaultOption = true) const;
     int getIntOption(const char *key, int defaultOption = 0) const;
-    char** getOptions() const;
+    OptionsArrayUPtr getOptions() const;
     void addOption(const char *key, const char * value) { m_options[key] = value; }
     void removeOption(const char *key);
 

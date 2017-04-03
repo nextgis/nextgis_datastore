@@ -70,7 +70,7 @@ public:
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
     virtual bool isReadOnly() const { return m_readonly; }
-    virtual bool open(unsigned int openFlags, char **options = nullptr);
+    virtual bool open(unsigned int openFlags, const Options &options = Options());
 
     // Object interface
 public:

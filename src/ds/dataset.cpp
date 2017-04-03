@@ -20,6 +20,7 @@
 
 #include "dataset.h"
 
+// stl
 #include <array>
 
 #include "featureclass.h"
@@ -103,22 +104,26 @@ Dataset::~Dataset()
     GDALClose(m_DS);
 }
 
-bool Dataset::open(unsigned int openFlags, char **options)
+bool Dataset::open(unsigned int openFlags, const Options &options)
 {
     if(nullptr == m_path || EQUAL(m_path, "")) {
         return errorMessage(ngsErrorCodes::EC_OPEN_FAILED, _("The path is empty"));
     }
 
+    // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
+
     CPLErrorReset();
+    auto openOptions = options.getOptions();
     m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
-                                                 options, nullptr));
+                                                 openOptions.get(), nullptr));
+
     if(m_DS == nullptr) {
         if(openFlags & GDAL_OF_UPDATE) {
             // Try to open read-only
             openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
             openFlags |= GDAL_OF_READONLY;
-            m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
-                                                         options, nullptr));
+            m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags,
+                                          nullptr, openOptions.get(), nullptr));
             if(nullptr == m_DS)
                 return false; // Error message comes from GDALOpenEx
             else
