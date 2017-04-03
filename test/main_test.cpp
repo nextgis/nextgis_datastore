@@ -211,6 +211,57 @@ TEST(BasicTests, TestDelete) {
     ngsUnInit();
 }
 
+TEST(BasicTests, TestCreateDataStore) {
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+    CSLDestroy(options);
+    options = nullptr;
+
+    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    const char* catalogPath = ngsCatalogPathFromSystem(path);
+    ASSERT_STRNE(catalogPath, "");
+
+    options = CSLAddNameValue(options, "TYPE",
+                              std::to_string(CAT_CONTAINER_NGS).c_str());
+    options = CSLAddNameValue(options, "CREATE_UNIQUE", "ON");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "main", options),
+              ngsErrorCodes::EC_SUCCESS);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
+    ASSERT_NE(pathInfo, nullptr);
+    size_t count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 3);
+    ngsUnInit();
+}
+
+TEST(BasicTests, TestOpenDataStore) {
+    // TODO: Add open datastore test
+}
+
+TEST(BasicTests, TestDeleteDataStore) {
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+    CSLDestroy(options);
+
+    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
+    ASSERT_STRNE(catalogPath, "");
+    CPLString delPath = CPLFormFilename(catalogPath, "main", "ngst");
+    EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsErrorCodes::EC_SUCCESS);
+    ngsUnInit();
+}
+
+
 /*
  * TestCreateDs
  * TestOpenDs
