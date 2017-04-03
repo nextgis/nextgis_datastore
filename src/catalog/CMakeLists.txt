@@ -33,6 +33,7 @@ set(HHEADERS
     localconnections.h
     factories/objectfactory.h
     factories/folderfactory.h
+    factories/datastorefactory.h
 )
 
 set(CSOURCES
@@ -44,6 +45,7 @@ set(CSOURCES
     localconnections.cpp
     factories/objectfactory.cpp
     factories/folderfactory.cpp
+    factories/datastorefactory.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

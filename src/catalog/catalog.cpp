@@ -25,6 +25,7 @@
 
 #include "folder.h"
 #include "localconnections.h"
+#include "factories/datastorefactory.h"
 #include "factories/folderfactory.h"
 #include "ngstore/common.h"
 #include "util/settings.h"
@@ -89,14 +90,19 @@ void Catalog::freeResources()
 
 void Catalog::createObjects(ObjectPtr object, std::vector<const char *> names)
 {
-    if(names.empty())
+    if(names.empty()) {
         return;
+    }
+
     ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
-    if(nullptr == container)
+    if(nullptr == container) {
         return;
+    }
     // Check each factory for objects
     for(const ObjectFactoryUPtr& factory : m_factories) {
-        factory->createObjects(container, &names);
+        if(factory->getEnabled()) {
+            factory->createObjects(container, &names);
+        }
     }
 }
 
@@ -114,6 +120,7 @@ bool Catalog::hasChildren()
             return false;
     }
     // 1. Load factories
+    m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
 
     // 2. Load root objects

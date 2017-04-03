@@ -51,13 +51,13 @@ public:
     }
     std::vector<ObjectPtr> getChildren() const;
     ObjectPtr getChild(const CPLString& name) const;
+    virtual void addChild(ObjectPtr object) { m_children.push_back(object); }
 
 // events
 public:
     virtual void notifyChanges() { refresh(); }
 
 protected:
-    virtual void addObject(ObjectPtr object) { m_children.push_back(object); }
     static void removeDuplicates(std::vector<const char*> &deleteNames,
                                  std::vector<const char*> &addNames);
 

@@ -40,6 +40,7 @@ public:
     // static
 public:
     static bool create(const char* path);
+    static const char* getExtension();
 
     // ISpatialDataset interface
 public:

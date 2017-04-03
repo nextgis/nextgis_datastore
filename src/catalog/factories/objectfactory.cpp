@@ -22,7 +22,7 @@
 
 namespace ngs {
 
-ObjectFactory::ObjectFactory()
+ObjectFactory::ObjectFactory() : m_enabled(true)
 {
 
 }

@@ -18,31 +18,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "folderfactory.h"
+#include "datastorefactory.h"
 
-#include "catalog/folder.h"
-#include "ngstore/common.h"
+#include "ds/datastore.h"
 
 namespace ngs {
 
-FolderFactory::FolderFactory() : ObjectFactory()
+DataStoreFactory::DataStoreFactory() : ObjectFactory()
 {
 
 }
 
-const char *FolderFactory::getName() const
+
+const char *DataStoreFactory::getName() const
 {
-    return _("Folders");
+    return _("NextGIS DataStore");
 }
 
-void FolderFactory::createObjects(ObjectContainer * const container,
-                                       std::vector<const char *> * const names)
+void DataStoreFactory::createObjects(ObjectContainer * const container,
+                                     std::vector<const char *> * const names)
 {
     std::vector<const char *>::iterator it = names->begin();
     while( it != names->end() ) {
-        const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
-        if(Folder::isDir(path)) {
-            container->addChild(ObjectPtr(new Folder(container, *it, path)));
+        if(EQUAL(CPLGetExtension(*it), DataStore::getExtension())) {
+            const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
+            container->addChild(ObjectPtr(new DataStore(container, *it, path)));
             it = names->erase(it);
         }
         else {

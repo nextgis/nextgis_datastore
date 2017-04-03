@@ -269,6 +269,11 @@ bool DataStore::create(const char *path)
     return true;
 }
 
+const char *DataStore::getExtension()
+{
+    return STORE_EXT;
+}
+
 bool DataStore::open(unsigned int openFlags, const Options &options)
 {
     if(!Dataset::open(openFlags, options))
