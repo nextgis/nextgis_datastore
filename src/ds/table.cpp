@@ -32,8 +32,8 @@ namespace ngs {
 // FieldMapPtr
 //-------------------------------------------------
 
-FieldMapPtr::FieldMapPtr(unsigned long size) : shared_ptr(static_cast<int*>(CPLMalloc(
-                                                sizeof(int) * size)), CPLFree)
+FieldMapPtr::FieldMapPtr(unsigned long size) :
+    shared_ptr(static_cast<int*>(CPLMalloc(sizeof(int) * size)), CPLFree)
 {
 
 }

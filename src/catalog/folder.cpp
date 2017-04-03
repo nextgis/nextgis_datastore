@@ -186,6 +186,7 @@ bool Folder::canCreate(const ngsCatalogObjectType type) const
 {
     switch (type) {
     case CAT_CONTAINER_DIR:
+    case CAT_CONTAINER_NGS:
         return true;
     default:
         return false;
@@ -208,6 +209,8 @@ bool Folder::create(const ngsCatalogObjectType type, const CPLString &name,
         result = mkDir(newPath);
         if(result && m_childrenLoaded)
             m_children.push_back(ObjectPtr(new Folder(this, newName, newPath)));
+        break;
+    case CAT_CONTAINER_NGS:
         break;
     default:
         break;

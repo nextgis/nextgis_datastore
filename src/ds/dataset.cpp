@@ -28,6 +28,7 @@
 #include "ngstore/api.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
+#include "util/notify.h"
 #include "util/stringutil.h"
 
 namespace ngs {
@@ -135,12 +136,23 @@ bool Dataset::destroy()
     clear();
     GDALClose(m_DS);
     m_DS = nullptr;
-    return Folder::deleteFile(m_path);
+    if(!Folder::deleteFile(m_path))
+        return false;
+
+    if(m_parent)
+        m_parent->notifyChanges();
+
+    Notify::instance().onNotify(getFullName(), ngsChangeCodes::CC_DELETE_OBJECT);
+
+    return true;
 }
 
 bool Dataset::isNameValid(const char* name) const
 {
-    return m_DS->GetLayerByName(name) == nullptr;
+    for(const ObjectPtr& object : m_children)
+        if(EQUAL(object->getName(), name))
+            return false;
+    return true;
 }
 
 bool forbiddenChar (char c)
@@ -210,7 +222,14 @@ const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
     case OT_OPEN:
         return poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST);
     case OT_LOAD:
-        return nullptr;
+        return "<LoadOptionList>"
+               "  <Option name='LOAD_OP' type='string-select' description='select load operation' default='COPY'>"
+               "    <Value>COPY</Value>"
+               "    <Value>MOVE</Value>"
+               "  </Option>"
+               "  <Option name='SKIP_EMPTY_GEOMETRY' type='boolean' description='Skip empty geometry' default='NO'/>"
+               "  <Option name='SKIP_INVALID_GEOMETRY' type='boolean' description='Skip invalid geometry' default='NO'/>"
+               "</LoadOptionList>";
     }
 }
 

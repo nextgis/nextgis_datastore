@@ -22,46 +22,11 @@
 #ifndef NGSCONSTANTS_H
 #define NGSCONSTANTS_H
 
-#define NOT_FOUND -1
+constexpr int NOT_FOUND = -1;
 
-// Structure
-#define MAIN_DATABASE "ngs.gpkg"
-#define METHADATA_TABLE_NAME "ngs_meta"         // 1
-#define ATTACHEMENTS_TABLE_NAME "ngs_attach"    // 2
-#define RASTERS_TABLE_NAME "ngs_raster"         // 3
-#define SYS_TABLE_COUNT 3
-
-// Metadata
-#define META_KEY "key"
-#define META_KEY_LIMIT 64
-#define META_VALUE "value"
-#define META_VALUE_LIMIT 255
-
-// Rasters
-#define LAYER_URL "url"
-#define LAYER_NAME "name"
-#define LAYER_ALIAS "alias"
-#define LAYER_TYPE "type"
-#define LAYER_COPYING "copyright"
-#define LAYER_EPSG "epsg"
-#define LAYER_MIN_Z "z_min"
-#define LAYER_MAX_Z "z_max"
-#define LAYER_YORIG_TOP "y_origin_top"
-#define LAYER_ACCOUNT "account"
-
-// Attachments
-#define ATTACH_TABLE "table"
-#define ATTACH_FEATURE "fid"
-#define ATTACH_ID "attid"
-#define ATTACH_SIZE "size"
-#define ATTACH_FILE_NAME "file_name"
-#define ATTACH_FILE_MIME "file_mime"
-#define ATTACH_DESCRIPTION "descript"
-#define ATTACH_DATA "data"
-#define ATTACH_FILE_DATE "date"
 
 // Maps
-#define MAP_NAME "name"
+/*#define MAP_NAME "name"
 #define MAP_DESCRIPTION "descript"
 #define MAP_LAYERS "layers"
 #define MAP_RELATIVEPATHS "relative_paths"
@@ -73,7 +38,9 @@
 #define MAP_BKCOLOR "bk_color"
 #define MAP_SINGLESOURCE "single_src"
 #define DEFAULT_MAP_NAME "default"
-#define DEFAULT_EPSG 3857
+*/
+constexpr unsigned short DEFAULT_EPSG = 3857;
+/*
 #define DEFAULT_MAX_X 20037508.34 // 180.0
 #define DEFAULT_MAX_Y 20037508.34 // 90.0
 #define DEFAULT_MIN_X -DEFAULT_MAX_X
@@ -94,7 +61,6 @@
 //#define DATASET_NAME "ds_name"
 
 // Common
-#define NGS_VERSION_KEY "ngs_version"
 #define NAME_FIELD_LIMIT 64
 #define ALIAS_FIELD_LIMIT 255
 #define DESCRIPTION_FIELD_LIMIT 1024
@@ -111,5 +77,6 @@
 #define BIG_VALUE 10000000.0
 
 #define DEG2RAD M_PI / 180.0
+*/
 
 #endif // NGSCONSTANTS_H

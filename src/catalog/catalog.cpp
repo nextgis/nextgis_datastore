@@ -28,16 +28,12 @@
 #include "factories/folderfactory.h"
 #include "ngstore/common.h"
 #include "util/settings.h"
-
+#include "util/stringutil.h"
 
 namespace ngs {
 
 static CatalogPtr gCatalog;
 
-int constexpr length(const char* str)
-{
-    return *str ? 1 + length(str + 1) : 0;
-}
 constexpr const char * CONNECTIONS_DIR = "connections";
 constexpr const char * CATALOG_PREFIX = "ngc:/";
 constexpr const char * CATALOG_PREFIX_FULL = "ngc://";

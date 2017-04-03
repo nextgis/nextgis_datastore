@@ -18,13 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "api_priv.h"
+
 #include "datastore.h"
-#include "rasterdataset.h"
-#include "storefeaturedataset.h"
-#include "ngstore/version.h"
-#include "ngstore/util/constants.h"
-#include "util/geometryutil.h"
 
 // gdal
 #include "cpl_conv.h"
@@ -33,95 +28,241 @@
 // stl
 #include <iostream>
 
+#include "api_priv.h"
 
-#define NGS_DATA_FOLDER "data"
+#include "catalog/catalog.h"
+#include "catalog/folder.h"
+#include "ngstore/version.h"
+#include "ngstore/util/constants.h"
+#include "util/error.h"
+#include "util/geometryutil.h"
+#include "util/stringutil.h"
 
-using namespace ngs;
+namespace ngs {
+
+constexpr const char* STORE_EXT = "ngst"; // NextGIS Store
+constexpr int STORE_EXT_LEN = length(STORE_EXT);
+
+constexpr const char* METHADATA_TABLE_NAME = "ngst_meta";
+constexpr const char* ATTACHEMENTS_TABLE_NAME = "ngst_attach";
+constexpr const char* RASTERS_TABLE_NAME = "ngst_raster";
+
+constexpr const char* NGS_VERSION_KEY = "ngs_version";
+
+// Metadata
+constexpr const char* META_KEY = "key";
+constexpr unsigned short META_KEY_LIMIT = 128;
+constexpr const char* META_VALUE = "value";
+constexpr unsigned short META_VALUE_LIMIT = 512;
+
+
+//------------------------------------------------------------------------------
+// Static functions
+//------------------------------------------------------------------------------
+
+bool createMetadataTable(GDALDataset* ds)
+{
+    OGRLayer* pMetadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
+                                                   wkbNone, nullptr);
+    if (nullptr == pMetadataLayer) {
+        return false;
+    }
+
+    OGRFieldDefn oFieldKey(META_KEY, OFTString);
+    oFieldKey.SetWidth(META_KEY_LIMIT);
+    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
+    oFieldValue.SetWidth(META_VALUE_LIMIT);
+
+    if(pMetadataLayer->CreateField(&oFieldKey) != OGRERR_NONE ||
+       pMetadataLayer->CreateField(&oFieldValue) != OGRERR_NONE) {
+        return false;
+    }
+
+    FeaturePtr feature(OGRFeature::CreateFeature(pMetadataLayer->GetLayerDefn()));
+
+    // write version
+    feature->SetField(META_KEY, NGS_VERSION_KEY);
+    feature->SetField(META_VALUE, NGS_VERSION_NUM);
+    return pMetadataLayer->CreateFeature(feature) == OGRERR_NONE ? true : false;
+}
+
+/* TODO: add raster support
+
+// Rasters
+#define LAYER_URL "url"
+#define LAYER_NAME "name"
+#define LAYER_ALIAS "alias"
+#define LAYER_TYPE "type"
+#define LAYER_COPYING "copyright"
+#define LAYER_EPSG "epsg"
+#define LAYER_MIN_Z "z_min"
+#define LAYER_MAX_Z "z_max"
+#define LAYER_YORIG_TOP "y_origin_top"
+#define LAYER_ACCOUNT "account"
+
+bool createRastersTable(GDALDataset* ds)
+{
+    OGRLayer* pRasterLayer = ds->CreateLayer(RASTERS_TABLE_NAME, nullptr,
+                                                   wkbNone, nullptr);
+    if (NULL == pRasterLayer) {
+        return true;
+    }
+
+    OGRFieldDefn oUrl(LAYER_URL, OFTString);
+    OGRFieldDefn oName(LAYER_NAME, OFTString);
+    oName.SetWidth(NAME_FIELD_LIMIT);
+// FIXME: do we need this field?
+    OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
+// FIXME: do we need this field?
+    OGRFieldDefn oAlias(LAYER_ALIAS, OFTString);
+    oName.SetWidth(ALIAS_FIELD_LIMIT);
+
+    OGRFieldDefn oCopyright(LAYER_COPYING, OFTString);
+    OGRFieldDefn oEPSG(LAYER_EPSG, OFTInteger);
+    OGRFieldDefn oZMin(LAYER_MIN_Z, OFTReal);
+    OGRFieldDefn oZMax(LAYER_MAX_Z, OFTReal);
+    OGRFieldDefn oYOrigTop(LAYER_YORIG_TOP, OFTInteger);
+    oYOrigTop.SetSubType (OFSTBoolean);
+
+    OGRFieldDefn oAccount(LAYER_ACCOUNT, OFTString);
+    oAccount.SetWidth(NAME_FIELD_LIMIT);
+
+    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
+    oFieldValue.SetWidth(META_VALUE_LIMIT);
+
+    if(pRasterLayer->CreateField(&oUrl) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oName) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oType) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oAlias) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oCopyright) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oEPSG) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oZMin) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oZMax) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oYOrigTop) != OGRERR_NONE ||
+       pRasterLayer->CreateField(&oAccount) != OGRERR_NONE) {
+        return ngsErrorCodes::EC_CREATE_FAILED;
+    }
+
+    return ngsErrorCodes::EC_SUCCESS;
+}
+*/
+
+/* TODO: Add support fo attachments
+
+// Attachments
+#define ATTACH_TABLE "table"
+#define ATTACH_FEATURE "fid"
+#define ATTACH_ID "attid"
+#define ATTACH_SIZE "size"
+#define ATTACH_FILE_NAME "file_name"
+#define ATTACH_FILE_MIME "file_mime"
+#define ATTACH_DESCRIPTION "descript"
+#define ATTACH_DATA "data"
+#define ATTACH_FILE_DATE "date"
+
+bool createAttachmentsTable(GDALDataset* ds)
+{
+    OGRLayer* pAttachmentsLayer = DS->CreateLayer(ATTACHEMENTS_TABLE_NAME, NULL,
+                                                   wkbNone, NULL);
+    if (NULL == pAttachmentsLayer) {
+        return ngsErrorCodes::EC_CREATE_FAILED;
+    }
+
+    OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
+    oTable.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oFeatureID(ATTACH_FEATURE, OFTInteger64);
+
+    OGRFieldDefn oAttachID(ATTACH_ID, OFTInteger64);
+    OGRFieldDefn oAttachSize(ATTACH_SIZE, OFTInteger64);
+    OGRFieldDefn oFileName(ATTACH_FILE_NAME, OFTString);
+    oFileName.SetWidth(ALIAS_FIELD_LIMIT);
+    OGRFieldDefn oMime(ATTACH_FILE_MIME, OFTString);
+    oMime.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oDescription(ATTACH_DESCRIPTION, OFTString);
+    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
+    OGRFieldDefn oData(ATTACH_DATA, OFTBinary);
+    OGRFieldDefn oDate(ATTACH_FILE_DATE, OFTDateTime);
+
+    if(pAttachmentsLayer->CreateField(&oTable) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oFeatureID) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oAttachID) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oAttachSize) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oFileName) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oMime) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
+        return ngsErrorCodes::EC_CREATE_FAILED;
+    }
+
+    return ngsErrorCodes::EC_SUCCESS;
+}
+*/
 
 //------------------------------------------------------------------------------
 // DataStore
 //------------------------------------------------------------------------------
 
-DataStore::DataStore() : DatasetContainer(), m_disableJournalCounter(0)
+DataStore::DataStore(ObjectContainer * const parent,
+                     const CPLString &name,
+                     const CPLString &path) :
+    Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_NGS, name, path),
+    m_disableJournalCounter(0)
 {
-    m_type = ngsDatasetType(Store) | ngsDatasetType(Container);
     m_storeSpatialRef.importFromEPSG(DEFAULT_EPSG);
 }
 
-DataStore::~DataStore()
+bool DataStore::isNameValid(const char *name) const
 {
+    if(nullptr == name || EQUAL(name, ""))
+        return false;
+    if(EQUALN(name, STORE_EXT, STORE_EXT_LEN))
+        return false;
+
+    if(m_children.empty())
+        return true;
+
+    return Dataset::isNameValid(name);
 }
 
-DataStorePtr DataStore::create(const CPLString &path)
+bool DataStore::create(const char *path)
 {
     CPLErrorReset();
-    DataStorePtr out;
-    if(path.empty()) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Path not specified.");
-        return out;
+    if(nullptr == path || EQUAL(path, "")) {
+        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
+                            _("The path is empty"));
     }
 
-    CPLString absPath = path;
-    CPLString dir = CPLGetPath (absPath);
-    if(dir.empty ()) {
-        dir = CPLGetCurrentDir ();
-        absPath = CPLFormFilename (dir, absPath, nullptr);
-    }
+    // Check extension present
+    size_t len = CPLStrnlen(path, Catalog::getMaxPathLength());
+    CPLString newPath(path);
+    if(!EQUAL(path + len - STORE_EXT_LEN, STORE_EXT))
+        newPath = CPLFormFilename(path, nullptr, STORE_EXT);
 
-    // create folder if not exist
-    if( CPLCheckForFile (const_cast<char*>(dir.c_str ()), nullptr) == FALSE &&
-            VSIMkdir( dir, 0755 ) != 0 ) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Create datastore failed.");
-        return out;
-    }
-
-    // get GeoPackage driver
     GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
-    if( poDriver == nullptr ) {
-        CPLError(CE_Failure, CPLE_AppDefined, "GeoPackage driver is not present.");
-        return out;
+    if(poDriver == nullptr) {
+        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
+                            _("GeoPackage driver is not present"));
     }
 
-    // create
-    GDALDatasetPtr DS (poDriver->Create( path, 0, 0, 0, GDT_Unknown, nullptr ));
-    if( DS == nullptr ) {
-        CPLError(CE_Failure, CPLE_AppDefined, "Dataset create failed.");
-        return out;
+    GDALDataset* DS = poDriver->Create(path, 0, 0, 0, GDT_Unknown, nullptr);
+    if(DS == nullptr) {
+        return false;
     }
 
-    // create folder for external images and other stuff if not exist
-    // if db name is ngs.gpkg folder shoudl be names ngs.data
-    CPLString baseName = CPLGetBasename (absPath);
-    CPLString dataPath = CPLFormFilename(dir, baseName, NGS_DATA_FOLDER);
-    if( CPLCheckForFile (const_cast<char*>(dataPath.c_str ()), nullptr) == FALSE) {
-        if( VSIMkdir( dataPath.c_str (), 0755 ) != 0 ) {
-            CPLError(CE_Failure, CPLE_AppDefined, "Create datafolder failed.");
-            return out;
-        }
-    }
+    // Create system tables
+    if(!createMetadataTable(DS))
+        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
+                            _("Create metadata table failed"));
 
-    // create system tables
-    int nResult;
-    nResult = createMetadataTable (DS);
-    if(nResult != ngsErrorCodes::EC_SUCCESS)
-        return out;
-    nResult = createRastersTable (DS);
-    if(nResult != ngsErrorCodes::EC_SUCCESS)
-        return out;
-    nResult = createAttachmentsTable (DS);
-    if(nResult != ngsErrorCodes::EC_SUCCESS)
-        return out;
+    if(!createRastersTable(DS))
+        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
+                            _("Create rasters table failed"));
 
-    DataStore *outDS = new DataStore();
-
-    outDS->m_DS = DS;
-    outDS->m_path = path;
-    outDS->m_opened = true;
-    outDS->m_dataPath = dataPath;
-
-    out.reset (outDS);
-
-    return out;
+    if(!createAttachmentsTable(DS))
+        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
+                            _("Create attachments table failed"));
+    return true;
 }
 
 DataStorePtr DataStore::open(const CPLString &path)
@@ -187,6 +328,7 @@ DataStorePtr DataStore::open(const CPLString &path)
     return out;
 }
 
+/*
 int DataStore::createRemoteTMSRaster(const char *url, const char *name,
                                      const char *alias, const char *copyright,
                                      int epsg, int z_min, int z_max,
@@ -220,22 +362,6 @@ int DataStore::createRemoteTMSRaster(const char *url, const char *name,
         m_notifyFunc(ngsSourceCodes::SC_DATA_STORE, RASTERS_TABLE_NAME,
                      NOT_FOUND, ngsChangeCodes::CC_CREATE_RESOURCE);
     return ngsErrorCodes::EC_SUCCESS;
-}
-
-int DataStore::datasetCount() const
-{
-    // each layer have history table. Count is (dsLayerCount - SYS_TABLE_COUNT) / 2
-    int dsLayerCount = m_DS->GetLayerCount ();
-    return (dsLayerCount - SYS_TABLE_COUNT) / 2;
-}
-
-int DataStore::rasterCount() const
-{
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
-    if(nullptr == pRasterLayer)
-        return 0;
-    return DatasetContainer::rasterCount () + static_cast<int>(
-                pRasterLayer->GetFeatureCount ());
 }
 
 DatasetPtr DataStore::getDataset(const CPLString &name)
@@ -277,25 +403,33 @@ DatasetPtr DataStore::getDataset(const CPLString &name)
     return outDataset;
 }
 
-DatasetPtr DataStore::getDataset(int index)
+int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
+                           LoadData *loadData)
 {
-    int dsLayers = m_DS->GetLayerCount () - SYS_TABLE_COUNT;
-    if(index < dsLayers){
-        int counter = 0;
-        for(int i = 0; i < m_DS->GetLayerCount (); ++i){
-            OGRLayer* pLayer = m_DS->GetLayer (i);
-            // skip system tables
-            if(EQUAL (pLayer->GetName (), METHADATA_TABLE_NAME) ||
-               EQUAL (pLayer->GetName (), ATTACHEMENTS_TABLE_NAME) ||
-               EQUAL (pLayer->GetName (), RASTERS_TABLE_NAME) )
-                continue;
-            if(counter == index)
-                return getDataset(pLayer->GetName());
-            counter++;
-        }
+    int nRet = ngsErrorCodes::EC_COPY_FAILED;
+    if(srcDataset->type () & ngsDatasetType (Table) ||
+       srcDataset->type () & ngsDatasetType (Featureset)) {
+        // disable journal
+        enableJournal(false);
+        nRet = DatasetContainer::copyDataset (srcDataset, dstName,
+                                              loadData);
+        // enable journal
+        enableJournal(true);
     }
-    return DatasetPtr();
+    else if (srcDataset->type () & ngsDatasetType (Raster)) {
+        // TODO: raster. Create raster in DB? Copy/move raster into the folder and store info in DB? Reproject? Band selection?
+        // TODO: reproject/or copy and result register in sorage, some checks (SRS, bands, etc.)
+        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
+                            "Unsupported dataset", loadData);
+    }
+    else {
+        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
+                            "Unsupported dataset", loadData);
+    }
+    return nRet;
 }
+
+*/
 
 DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
@@ -316,6 +450,8 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     }
 
     // TODO: create ovr layer
+    // TODO: create changes layer CPLString changesLayerName = name + "_changes";
+
 
     // create history layer
     CPLString historyLayerName = name + HISTORY_APPEND;
@@ -370,224 +506,10 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
     return out;
 }
 
-int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
-                           LoadData *loadData)
-{
-    int nRet = ngsErrorCodes::EC_COPY_FAILED;
-    if(srcDataset->type () & ngsDatasetType (Table) ||
-       srcDataset->type () & ngsDatasetType (Featureset)) {
-        // disable journal
-        enableJournal(false);
-        nRet = DatasetContainer::copyDataset (srcDataset, dstName,
-                                              loadData);
-        // enable journal
-        enableJournal(true);
-    }
-    else if (srcDataset->type () & ngsDatasetType (Raster)) {
-        // TODO: raster. Create raster in DB? Copy/move raster into the folder and store info in DB? Reproject? Band selection?
-        // TODO: reproject/or copy and result register in sorage, some checks (SRS, bands, etc.)
-        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
-                            "Unsupported dataset", loadData);
-    }
-    else {
-        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
-                            "Unsupported dataset", loadData);
-    }
-    return nRet;
-}
 
-/* TODO: getRaster(int index)
- OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
- FeaturePtr feature( pRasterLayer->GetFeature (index - dsLayers) );
- if(nullptr == feature)
-     return DatasetWPtr();
-return getDataset (feature->GetFieldAsString (LAYER_NAME));
-OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
-pRasterLayer->ResetReading ();
-FeaturePtr feature;
-while( (feature = pRasterLayer->GetNextFeature()) != nullptr ) {
-    if(EQUAL(feature->GetFieldAsString (LAYER_NAME), name)){
-
-        switch(feature->GetFieldAsInteger (LAYER_TYPE)){
-        case Dataset::REMOTE_TMS:
-            dataset.reset (static_cast<Dataset*>(new RemoteTMSDataset(this,
-                                    feature->GetFieldAsString (LAYER_NAME),
-                                    feature->GetFieldAsString (LAYER_ALIAS))));
-            m_datasources[dataset->name ()] = dataset;
-            break;
-        }
-
-        return dataset;
-    }
-}*/
-
-int DataStore::destroy(ProgressInfo *progressInfo)
-{
-    setDataPath ();
-    // Unlink some folders with external rasters adn etc.
-    if(!m_dataPath.empty()) {
-        if(CPLUnlinkTree(m_dataPath) != 0){
-            if(progressInfo)
-                progressInfo->setStatus (ngsErrorCodes::EC_DELETE_FAILED);
-            return ngsErrorCodes::EC_DELETE_FAILED;
-        }
-    }
-    return DatasetContainer::destroy (progressInfo);
-}
-
-int DataStore::createMetadataTable(GDALDatasetPtr DS)
-{
-    OGRLayer* pMetadataLayer = DS->CreateLayer(METHADATA_TABLE_NAME, NULL,
-                                                   wkbNone, NULL);
-    if (NULL == pMetadataLayer) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    OGRFieldDefn oFieldKey(META_KEY, OFTString);
-    oFieldKey.SetWidth(META_KEY_LIMIT);
-    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
-    oFieldValue.SetWidth(META_VALUE_LIMIT);
-
-    if(pMetadataLayer->CreateField(&oFieldKey) != OGRERR_NONE ||
-       pMetadataLayer->CreateField(&oFieldValue) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    FeaturePtr feature( OGRFeature::CreateFeature(
-                pMetadataLayer->GetLayerDefn()) );
-
-    // write version
-    feature->SetField(META_KEY, NGS_VERSION_KEY);
-    feature->SetField(META_VALUE, NGS_VERSION_NUM);
-    if(pMetadataLayer->CreateFeature(feature) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-    return ngsErrorCodes::EC_SUCCESS;
-}
-
-int DataStore::createRastersTable(GDALDatasetPtr DS)
-{
-    OGRLayer* pRasterLayer = DS->CreateLayer(RASTERS_TABLE_NAME, NULL,
-                                                   wkbNone, NULL);
-    if (NULL == pRasterLayer) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    OGRFieldDefn oUrl(LAYER_URL, OFTString);
-    OGRFieldDefn oName(LAYER_NAME, OFTString);
-    oName.SetWidth(NAME_FIELD_LIMIT);
-// FIXME: do we need this field?
-    OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
-// FIXME: do we need this field?
-    OGRFieldDefn oAlias(LAYER_ALIAS, OFTString);
-    oName.SetWidth(ALIAS_FIELD_LIMIT);
-
-    OGRFieldDefn oCopyright(LAYER_COPYING, OFTString);
-    OGRFieldDefn oEPSG(LAYER_EPSG, OFTInteger);
-    OGRFieldDefn oZMin(LAYER_MIN_Z, OFTReal);
-    OGRFieldDefn oZMax(LAYER_MAX_Z, OFTReal);
-    OGRFieldDefn oYOrigTop(LAYER_YORIG_TOP, OFTInteger);
-    oYOrigTop.SetSubType (OFSTBoolean);
-
-    OGRFieldDefn oAccount(LAYER_ACCOUNT, OFTString);
-    oAccount.SetWidth(NAME_FIELD_LIMIT);
-
-    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
-    oFieldValue.SetWidth(META_VALUE_LIMIT);
-
-    if(pRasterLayer->CreateField(&oUrl) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oName) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oType) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oAlias) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oCopyright) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oEPSG) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oZMin) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oZMax) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oYOrigTop) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oAccount) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    return ngsErrorCodes::EC_SUCCESS;
-}
-
-int DataStore::createAttachmentsTable(GDALDatasetPtr DS)
-{
-    OGRLayer* pAttachmentsLayer = DS->CreateLayer(ATTACHEMENTS_TABLE_NAME, NULL,
-                                                   wkbNone, NULL);
-    if (NULL == pAttachmentsLayer) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
-    oTable.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oFeatureID(ATTACH_FEATURE, OFTInteger64);
-
-    OGRFieldDefn oAttachID(ATTACH_ID, OFTInteger64);
-    OGRFieldDefn oAttachSize(ATTACH_SIZE, OFTInteger64);
-    OGRFieldDefn oFileName(ATTACH_FILE_NAME, OFTString);
-    oFileName.SetWidth(ALIAS_FIELD_LIMIT);
-    OGRFieldDefn oMime(ATTACH_FILE_MIME, OFTString);
-    oMime.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oDescription(ATTACH_DESCRIPTION, OFTString);
-    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
-    OGRFieldDefn oData(ATTACH_DATA, OFTBinary);
-    OGRFieldDefn oDate(ATTACH_FILE_DATE, OFTDateTime);
-
-    if(pAttachmentsLayer->CreateField(&oTable) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oFeatureID) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oAttachID) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oAttachSize) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oFileName) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oMime) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    return ngsErrorCodes::EC_SUCCESS;
-}
-
-int DataStore::upgrade(int /* oldVersion */, GDALDatasetPtr /*ds*/)
+bool DataStore::upgrade(int /* oldVersion */)
 {
     // no structure changes for version 1
-    return ngsErrorCodes::EC_SUCCESS;
-}
-
-void DataStore::setDataPath()
-{
-    if(m_dataPath.empty ()) {
-        CPLString baseName = CPLGetBasename (m_path);
-        CPLString dir = CPLGetPath (m_path);
-        m_dataPath = CPLFormFilename(dir, baseName, "data");
-        if( CPLCheckForFile (const_cast<char*>(m_dataPath.c_str ()), nullptr)
-                == FALSE)
-            m_dataPath.clear();
-    }
-}
-
-bool DataStore::isNameValid(const CPLString &name) const
-{
-    if(name.size () < 4 || name.size () >= NAME_FIELD_LIMIT)
-        return false;
-    if((name[0] == 'n' || name[0] == 'N') &&
-       (name[1] == 'g' || name[1] == 'G') &&
-       (name[2] == 's' || name[2] == 'S') &&
-       (name[3] == '_'))
-        return false;
-    if(m_datasets.find (name) != m_datasets.end ())
-        return false;
-    if(m_DS->GetLayerByName (name) != nullptr)
-        return false;
-
-    CPLString statement("SELECT count(*) FROM " RASTERS_TABLE_NAME " WHERE "
-                     LAYER_NAME " = '");
-    statement += name + "'";
-    ResultSetPtr tmpLayer = executeSQL ( statement );
-    FeaturePtr feature = tmpLayer->GetFeature (0);
-    if(feature->GetFieldAsInteger (0) > 0)
-        return false;
     return true;
 }
 
@@ -596,67 +518,22 @@ void DataStore::enableJournal(bool enable)
     if(enable) {        
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
-            executeSQL ("PRAGMA synchronous=ON");
-            executeSQL ("PRAGMA journal_mode=ON");
-            executeSQL ("PRAGMA count_changes=ON");
+            executeSQL ("PRAGMA synchronous=ON", "SQLITE");
+            executeSQL ("PRAGMA journal_mode=ON", "SQLITE");
+            executeSQL ("PRAGMA count_changes=ON", "SQLITE");
         }
     }
     else {
         CPLAssert (m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
-            executeSQL ("PRAGMA synchronous=OFF");
-            //executeSQL ("PRAGMA locking_mode=EXCLUSIVE");
-            executeSQL ("PRAGMA journal_mode=OFF");
-            executeSQL ("PRAGMA count_changes=OFF");
-            // executeSQL ("PRAGMA cache_size=15000");
+            executeSQL ("PRAGMA synchronous=OFF", "SQLITE");
+            //executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
+            executeSQL ("PRAGMA journal_mode=OFF", "SQLITE");
+            executeSQL ("PRAGMA count_changes=OFF", "SQLITE");
+            // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
         }
     }
 }
 
-ResultSetPtr DataStore::executeSQL(const CPLString &statement) const
-{
-    return ResultSetPtr(m_DS->ExecuteSQL(statement, nullptr, "SQLITE"),
-                                     [=](OGRLayer* layer)
-    {
-        m_DS->ReleaseResultSet(layer);
-    });
-}
-
-void DataStore::onLowMemory()
-{
-    // free all cached datasources
-    m_datasets.clear ();
-}
-
-DataStorePtr DataStore::openOrCreate(const CPLString& path)
-{
-    DataStorePtr out;
-    out = open( path );
-    if( nullptr == out)
-        return create(path);
-    return out;
-}
-
-
-const char *DataStore::getOptions(ngsDataStoreOptionsTypes optionType) const
-{
-    switch (optionType) {
-    case OT_CREATE_DATASOURCE:
-    case OT_OPEN:
-    case OT_CREATE_DATASET:
-        return DatasetContainer::getOptions (optionType);
-    case OT_LOAD:
-        return "<LoadOptionList>"
-               "  <Option name='LOAD_OP' type='string-select' description='select load operation' default='COPY'>"
-               "    <Value>COPY</Value>"
-               "    <Value>MOVE</Value>"
-               "  </Option>"
-               "  <Option name='FEATURES_SKIP' type='string-select' description='skip features during loading' default='NO'>"
-               "    <Value>NO</Value>"
-               "    <Value>EMPTY_GEOMETRY</Value>"
-               "    <Value>INVALID_GEOMETRY</Value>"
-               "  </Option>"
-               "</LoadOptionList>";
-    }
 }

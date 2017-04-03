@@ -25,6 +25,11 @@
 
 namespace ngs {
 
+int constexpr length(const char* str)
+{
+    return *str ? 1 + length(str + 1) : 0;
+}
+
 CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
 CPLString normalize(const CPLString &str, const CPLString &lang = "");
 

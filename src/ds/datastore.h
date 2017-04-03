@@ -21,39 +21,48 @@
 #ifndef NGSDATASTORE_H
 #define NGSDATASTORE_H
 
-#include "datasetcontainer.h"
+#include "dataset.h"
 
 namespace ngs {
-
-class DataStore;
-typedef std::shared_ptr<DataStore> DataStorePtr;
 
 /**
  * @brief The geodata storage and manipulation class for raster, vector geodata
  * and attachments
  */
-class DataStore : public DatasetContainer
+class DataStore : public Dataset, public ISpatialDataset
 {
 public:
-    DataStore();
-    virtual ~DataStore();
+    DataStore(ObjectContainer * const parent = nullptr,
+              const CPLString & name = "",
+              const CPLString & path = "");
+    virtual ~DataStore() = default;
 
-    // overrides
-    virtual int destroy(ProgressInfo* progressInfo = nullptr) override;
-    virtual int datasetCount() const override;
-    virtual int rasterCount() const override;
-    virtual DatasetPtr getDataset(const CPLString& name) override;
-    virtual DatasetPtr getDataset(int index) override;
+    // static
+public:
+    static bool create(const char* path);
+    static bool createMetadataTable(GDALDataset* ds);
+    static bool createRastersTable(GDALDataset* ds);
+    static bool createAttachmentsTable(GDALDataset* ds);
+
+    // ISpatialDataset interface
+public:
+    virtual OGRSpatialReference *getSpatialReference() const override {
+        return const_cast<OGRSpatialReference *>(&m_storeSpatialRef); }
+
+    // Dataset interface
+protected:
+    virtual bool isNameValid(const char *name) const override;
+
+protected:
+    void enableJournal(bool enable);
+    bool upgrade(int oldVersion);
+/*
     virtual DatasetPtr createDataset(const CPLString &name,
                                      OGRFeatureDefn* const definition,
                                      const OGRSpatialReference *,
                                      OGRwkbGeometryType type = wkbUnknown,
                                      ProgressInfo *progressInfo = nullptr) override;
-    virtual int copyDataset(DatasetPtr srcDataset, const CPLString& dstName,
-                            LoadData *loadData = nullptr) override;
 
-    // static
-    static DataStorePtr openOrCreate(const CPLString& path);
     static DataStorePtr create(const CPLString& path);
     static DataStorePtr open(const CPLString& path);
 
@@ -63,25 +72,9 @@ public:
                               int epsg, int z_min, int z_max,
                               bool y_origin_top);
 
-    ResultSetPtr executeSQL(const CPLString& statement) const;
-    void onLowMemory();
-
-    // DatasetContainer interface
-public:
-    virtual const char *getOptions(ngsDataStoreOptionsTypes optionType) const override;
+*/
 
 protected:
-    // TODO: create changes layer CPLString changesLayerName = name + "_changes";
-    static int createMetadataTable(GDALDatasetPtr ds);
-    static int createRastersTable(GDALDatasetPtr ds);
-    static int createAttachmentsTable(GDALDatasetPtr ds);
-    static int upgrade(int oldVersion, GDALDatasetPtr ds);
-    void setDataPath();
-    virtual bool isNameValid(const CPLString &name) const override;
-    void enableJournal(bool enable);
-
-protected:
-    CPLString m_dataPath;
     unsigned char m_disableJournalCounter;
     OGRSpatialReference m_storeSpatialRef;
 
