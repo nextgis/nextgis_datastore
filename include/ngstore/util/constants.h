@@ -22,6 +22,8 @@
 #ifndef NGSCONSTANTS_H
 #define NGSCONSTANTS_H
 
+#include <cmath>
+
 constexpr int NOT_FOUND = -1;
 
 
@@ -40,13 +42,18 @@ constexpr int NOT_FOUND = -1;
 #define DEFAULT_MAP_NAME "default"
 */
 constexpr unsigned short DEFAULT_EPSG = 3857;
+constexpr double DEFAULT_MAX_X2 = 40075016.68;
+constexpr double DEFAULT_MAX_Y2 = 40075016.68;
+constexpr double DEFAULT_MAX_X = 20037508.34;
+constexpr double DEFAULT_MAX_Y = 20037508.34;
+constexpr double DEFAULT_MIN_X = -DEFAULT_MAX_X;
+constexpr double DEFAULT_MIN_Y = -DEFAULT_MAX_Y;
+
 /*
 #define DEFAULT_MAX_X 20037508.34 // 180.0
 #define DEFAULT_MAX_Y 20037508.34 // 90.0
 #define DEFAULT_MIN_X -DEFAULT_MAX_X
 #define DEFAULT_MIN_Y -DEFAULT_MAX_Y
-#define DEFAULT_MAX_X2 40075016.68
-#define DEFAULT_MAX_Y2 40075016.68
 #define DEFAULT_RATIO 1
 #define MAP_DOCUMENT_EXT "ngmd"
 #define DEFAULT_TILE_SIZE 256
@@ -65,11 +72,6 @@ constexpr unsigned short DEFAULT_EPSG = 3857;
 #define ALIAS_FIELD_LIMIT 255
 #define DESCRIPTION_FIELD_LIMIT 1024
 
-// GDAL
-#define HTTP_TIMEOUT "5"
-#define HTTP_USE_GZIP "ON"
-#define CACHEMAX "24"
-
 // Draw
 #define NOTIFY_PERCENT 0.1
 
@@ -78,5 +80,8 @@ constexpr unsigned short DEFAULT_EPSG = 3857;
 
 #define DEG2RAD M_PI / 180.0
 */
+
+constexpr double DEG2RAD = M_PI / 180.0;
+
 
 #endif // NGSCONSTANTS_H

@@ -23,15 +23,12 @@
 #include <memory>
 
 #include "ds/datastore.h"
-#include "ds/featuredataset.h"
-#include "map/mapstore.h"
-#include "map/mapview.h"
 #include "ngstore/util/constants.h"
 
 
 static int counter = 0;
 
-int ngsTestProgressFunc(unsigned int/* taskId*/, double /*complete*/,
+int ngsTestProgressFunc(enum ngsErrorCodes /*status*/, double /*complete*/,
                         const char* /*message*/, void* /*progressArguments*/) {
     counter++;
     return TRUE;

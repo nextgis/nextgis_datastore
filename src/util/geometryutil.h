@@ -21,6 +21,7 @@
 #ifndef NGSGEOMETRYUTIL_H
 #define NGSGEOMETRYUTIL_H
 
+/*
 #include <array>
 #include "ds/featuredataset.h"
 #include "maputil.h"
@@ -52,5 +53,6 @@ GeometryPtr envelopeToGeometry(const OGREnvelope& env,
                                   OGRSpatialReference *spatialRef);
 
 }
+*/
 
 #endif // NGSGEOMETRYUTIL_H

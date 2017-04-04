@@ -26,17 +26,14 @@
 
 
 #include "ds/datastore.h"
-#include "ds/featuredataset.h"
-#include "ds/rasterdataset.h"
 
 static int counter = 0;
 
-void ngsTestNotifyFunc(enum ngsSourceCodes /*src*/, const char* /*table*/, long /*row*/,
-                       enum ngsChangeCodes /*operation*/) {
+void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCodes /*operation*/) {
     counter++;
 }
 
-int ngsTestProgressFunc(unsigned int /*taskId*/, double /*complete*/,
+int ngsTestProgressFunc(enum ngsErrorCodes /*status*/, double /*complete*/,
                         const char* /*message*/, void* /*progressArguments*/) {
     counter++;
     return TRUE;

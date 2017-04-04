@@ -19,7 +19,7 @@
 ******************************************************************************/
 #ifndef NGSSTOREFEATUREDATASET_H
 #define NGSSTOREFEATUREDATASET_H
-
+/*
 #include "featuredataset.h"
 
 #define HISTORY_APPEND "_history"
@@ -45,4 +45,5 @@ protected:
 };
 
 }
+*/
 #endif // NGSSTOREFEATUREDATASET_H

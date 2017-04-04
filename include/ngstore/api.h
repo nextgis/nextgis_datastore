@@ -123,7 +123,7 @@ mapGet coordinate, distance
 dispalyGet position, length
 */
 //NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
-NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
+//NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
 
 /**
  * Storage functions

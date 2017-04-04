@@ -19,6 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "geometryutil.h"
+/*
 #include "ngstore/util/constants.h"
 
 OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
@@ -39,7 +40,7 @@ OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
         out->addPoint(env.MaxX, env.MaxY);
         return out;
     }
-*/
+*//*
     // TODO: do we need this?
     // geometry->SimplifyPreserveTopology
     return geometry->Simplify (distance * 3);
@@ -174,3 +175,4 @@ ngs::GeometryPtr ngs::envelopeToGeometry(const OGREnvelope &env,
     return GeometryPtr(static_cast<OGRGeometry*>(rgn));
 
 }
+*/

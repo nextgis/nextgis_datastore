@@ -20,6 +20,7 @@
  ****************************************************************************/
 
 #include "maputil.h"
+/*
 #include "ngstore/util/constants.h"
 
 #define MAX_TILES_COUNT 4096 // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
@@ -79,7 +80,7 @@ std::vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
     if (endY > tilesInMapOneDim) {
         endY = tilesInMapOneDim;
     }
-    /* this block unlimited X scroll of the map*/
+    /* this block unlimited X scroll of the map*//*
     if(!unlimitX) {
         if (begX < 0) {
             begX = 0;
@@ -135,3 +136,4 @@ std::vector<ngs::TileItem> ngs::getTilesForExtent(const OGREnvelope &extent,
 
     return result;
 }
+*/

@@ -25,10 +25,10 @@
 
 #include "catalog/catalog.h"
 #include "ds/datastore.h"
-#include "map/mapstore.h"
+//#include "map/mapstore.h"
 #include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
-#include "ngstore/util/constants.h"
+// #include "ngstore/util/constants.h"
 #include "util/error.h"
 #include "util/versionutil.h"
 
@@ -39,7 +39,12 @@ using namespace ngs;
 // TODO: Update/Fix unit test. Add GL offscreen rendering GL test
 // TODO: Add support to Framebuffer Objects rendering
 
-static CPLString gFilters;
+
+constexpr const char* HTTP_TIMEOUT = "5";
+constexpr const char* HTTP_USE_GZIP = "ON";
+constexpr const char* CACHEMAX = "24";
+
+//static CPLString gFilters;
 
 static bool gDebugMode = false;
 
@@ -157,7 +162,7 @@ int ngsInit(char **options)
     initGDAL(dataPath, cachePath);
 
     Catalog::setInstance(new Catalog());
-    MapStore::setInstance(new MapStore());
+    // TODO: MapStore::setInstance(new MapStore());
 
     return ngsErrorCodes::EC_SUCCESS;
 }
@@ -176,9 +181,9 @@ void ngsUnInit()
  */
 void ngsFreeResources(bool full)
 {
-    MapStore* const mapStore = MapStore::getInstance();
-    if(nullptr != mapStore)
-        mapStore->freeResources();
+    // TODO: MapStore* const mapStore = MapStore::getInstance();
+    //if(nullptr != mapStore)
+    //    mapStore->freeResources();
     if(full) {
         CatalogPtr catalog = Catalog::getInstance();
         if(catalog)
@@ -734,77 +739,77 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 //    return nullptr;
 //}
 
-const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator)
-{
-    gFilters.Clear ();
+//const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator)
+//{
+//    gFilters.Clear ();
 
-    // cannot combine DT_*_ALL with othe flags
-    if(flags & DT_VECTOR_ALL && flags != DT_VECTOR_ALL)
-        return gFilters;
-    if(flags & DT_RASTER_ALL && flags != DT_RASTER_ALL)
-        return gFilters;
-    if(flags & DT_VECTOR_ALL)
-        gFilters = "Vector datasets (";
-    if(flags & DT_RASTER_ALL)
-        gFilters = "Raster datasets (";
+//    // cannot combine DT_*_ALL with othe flags
+//    if(flags & DT_VECTOR_ALL && flags != DT_VECTOR_ALL)
+//        return gFilters;
+//    if(flags & DT_RASTER_ALL && flags != DT_RASTER_ALL)
+//        return gFilters;
+//    if(flags & DT_VECTOR_ALL)
+//        gFilters = "Vector datasets (";
+//    if(flags & DT_RASTER_ALL)
+//        gFilters = "Raster datasets (";
 
-    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ )
-    {
-        GDALDriverH hDriver = GDALGetDriver(iDr);
+//    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ )
+//    {
+//        GDALDriverH hDriver = GDALGetDriver(iDr);
 
-        char** papszMD = GDALGetMetadata( hDriver, NULL );
+//        char** papszMD = GDALGetMetadata( hDriver, NULL );
 
-        if( (flags & DT_RASTER &&
-            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) ) &&
-            (flags & DT_VECTOR &&
-            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) ) &&
-            (flags & DT_GNM &&
-            !CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) ) )
-            continue;
+//        if( (flags & DT_RASTER &&
+//            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) ) &&
+//            (flags & DT_VECTOR &&
+//            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) ) &&
+//            (flags & DT_GNM &&
+//            !CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) ) )
+//            continue;
 
-        if( flags & DT_RASTER_ALL &&
-            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
-            continue;
+//        if( flags & DT_RASTER_ALL &&
+//            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
+//            continue;
 
-        if( flags & DT_VECTOR_ALL &&
-            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
-            continue;
+//        if( flags & DT_VECTOR_ALL &&
+//            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
+//            continue;
 
-        if( mode & FM_WRITE &&
-            (!CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) ||
-             !CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE )) )
-            continue;
+//        if( mode & FM_WRITE &&
+//            (!CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) ||
+//             !CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE )) )
+//            continue;
 
-        if( flags & DT_SERVICE &&
-                EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
-                                           ""), "") )
-            continue;
+//        if( flags & DT_SERVICE &&
+//                EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
+//                                           ""), "") )
+//            continue;
 
-        if(! (flags & DT_SERVICE) &&
-                !EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
-                                           ""), "") )
-            continue;
+//        if(! (flags & DT_SERVICE) &&
+//                !EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
+//                                           ""), "") )
+//            continue;
 
-        const char* longName = CSLFetchNameValue(papszMD, GDAL_DMD_LONGNAME);
-        const char* ext = CSLFetchNameValue(papszMD, GDAL_DMD_EXTENSION);
+//        const char* longName = CSLFetchNameValue(papszMD, GDAL_DMD_LONGNAME);
+//        const char* ext = CSLFetchNameValue(papszMD, GDAL_DMD_EXTENSION);
 
-        if( (flags & DT_VECTOR_ALL || flags & DT_RASTER_ALL) && nullptr != ext &&
-                !EQUAL(ext, "")) {
-            gFilters += " *." + CPLString(ext);
-        }
-        else if(nullptr != longName && nullptr != ext && !EQUAL(longName, "") &&
-                !EQUAL(ext, ""))
-        {
-            if(gFilters.empty ())
-                gFilters += CPLString(longName) + " (*." + CPLString(ext) + ")";
-            else
-                gFilters += separator + CPLString(longName) + " (*." + CPLString(ext) + ")";
-        }
-    }
+//        if( (flags & DT_VECTOR_ALL || flags & DT_RASTER_ALL) && nullptr != ext &&
+//                !EQUAL(ext, "")) {
+//            gFilters += " *." + CPLString(ext);
+//        }
+//        else if(nullptr != longName && nullptr != ext && !EQUAL(longName, "") &&
+//                !EQUAL(ext, ""))
+//        {
+//            if(gFilters.empty ())
+//                gFilters += CPLString(longName) + " (*." + CPLString(ext) + ")";
+//            else
+//                gFilters += separator + CPLString(longName) + " (*." + CPLString(ext) + ")";
+//        }
+//    }
 
-    if( flags & DT_VECTOR_ALL || flags & DT_RASTER_ALL) {
-        gFilters += ")";
-    }
+//    if( flags & DT_VECTOR_ALL || flags & DT_RASTER_ALL) {
+//        gFilters += ")";
+//    }
 
-    return gFilters;
-}
+//    return gFilters;
+//}

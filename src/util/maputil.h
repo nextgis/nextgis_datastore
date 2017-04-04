@@ -20,6 +20,7 @@
 #ifndef NGSMAPUTIL_H
 #define NGSMAPUTIL_H
 
+/*
 #include <cmath>
 #include <vector>
 
@@ -43,5 +44,5 @@ std::vector<TileItem> getTilesForExtent(const OGREnvelope& extent,
                                    unsigned char zoom, bool reverseY,
                                    bool unlimitX);
 }
-
+*/
 #endif // NGSMAPUTIL_H

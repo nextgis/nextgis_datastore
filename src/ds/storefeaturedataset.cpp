@@ -18,6 +18,7 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 #include "storefeaturedataset.h"
+/*
 #include "util/maputil.h"
 #include "util/geometryutil.h"
 
@@ -119,7 +120,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
                     }
                 }
             }
-*/
+*//*
         }
         dstFeature->SetFieldsFrom (feature, fieldMap.get());
 
