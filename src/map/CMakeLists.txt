@@ -4,9 +4,9 @@
 #  Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
 #  Language: C/C++
 ################################################################################
-#  GNU Lesser General Public Licens v3
+#  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -53,21 +53,21 @@ set(CSOURCES
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
-if(WITH_CGAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} CGAL_EP)
-endif()
+#if(WITH_CGAL_EXTERNAL)
+#    add_dependencies(${LIB_NAME} CGAL_EP)
+#endif()
 
-if(WITH_JSONC_EXTERNAL)
-    add_dependencies(${LIB_NAME} JSONC_EP)
-endif()
+#if(WITH_JSONC_EXTERNAL)
+#    add_dependencies(${LIB_NAME} JSONC_EP)
+#endif()
 
-if(WITH_OpenSSL_EXTERNAL)
-    add_dependencies(${LIB_NAME} OpenSSL_EP)
-endif()
+#if(WITH_OpenSSL_EXTERNAL)
+#    add_dependencies(${LIB_NAME} OpenSSL_EP)
+#endif()
 
-if(WITH_CURL_EXTERNAL)
-    add_dependencies(${LIB_NAME} CURL_EP)
-endif()
+#if(WITH_CURL_EXTERNAL)
+#    add_dependencies(${LIB_NAME} CURL_EP)
+#endif()
 
 if(WITH_GDAL_EXTERNAL)
     add_dependencies(${LIB_NAME} GDAL_EP)

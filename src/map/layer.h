@@ -21,17 +21,17 @@
 #ifndef NGSLAYER_H
 #define NGSLAYER_H
 
-#include "ds/datastore.h"
 #include "util/jsondocument.h"
 
 // stl
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace ngs {
 
-
+/**
+ * @brief The Layer class - base class for any map layer.
+ */
 class Layer
 {
 public:
@@ -44,17 +44,16 @@ public:
 
 public:
     Layer();
-    Layer(const CPLString& name, DatasetPtr dataset);
-    virtual ~Layer();
-    virtual int load(const JSONObject& store,
+    Layer(const CPLString& name, enum Type type);
+    virtual ~Layer() = default;
+    virtual bool load(const JSONObject& store,
                      DatasetContainerPtr dataStore = DatasetContainerPtr(),
                      const CPLString& mapPath = "");
     // TODO: virtual int load(const JSONObject& store, const CPLString& mapPath = "");
-    JSONObject save(const CPLString& mapPath) const;
+    virtual JSONObject save(const CPLString& mapPath) const;
 protected:
     CPLString m_name;
     enum Type m_type;
-    DatasetPtr m_dataset;
 };
 
 typedef std::shared_ptr<Layer> LayerPtr;

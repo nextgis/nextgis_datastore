@@ -4,7 +4,7 @@
 #  Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
 #  Language: C/C++
 ################################################################################
-#  GNU Lesser General Public Licens v3
+#  GNU Lesser General Public License v3
 #
 #  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
 #

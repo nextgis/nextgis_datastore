@@ -21,8 +21,7 @@
 #ifndef NGSMAPSTORE_H
 #define NGSMAPSTORE_H
 
-#include "ds/datastore.h"
-#include "map.h"
+#include "mapview.h"
 #include "ngstore/api.h"
 
 namespace ngs {
@@ -35,10 +34,9 @@ namespace ngs {
  */
 class MapStore
 {
-    friend class Map;
 public:
     MapStore();
-    virtual ~MapStore();
+    virtual ~MapStore() = default;
 
     /**
      * @brief createMap Create new map
@@ -54,28 +52,22 @@ public:
     virtual unsigned char createMap(const CPLString& name, const CPLString& description,
                           unsigned short epsg, double minX, double minY,
                           double maxX, double maxY);
-    virtual unsigned char createMap(const CPLString& name, const CPLString& description,
-                          unsigned short epsg, double minX, double minY,
-                          double maxX, double maxY, DataStorePtr dataStore);
-    /**
-     * @brief map count in storage
-     * @return map count
-     */
-    virtual unsigned char mapCount() const;
     virtual unsigned char openMap(const char* path);
-    virtual unsigned char openMap(const char* path, DataStorePtr dataStore);
-    virtual int saveMap(unsigned char mapId, const char* path);
-    virtual int closeMap(unsigned char mapId);
-    virtual MapPtr getMap(unsigned char mapId);
-    int initMap(unsigned char mapId);
-    int setMapSize(unsigned char mapId, int width, int height, bool isYAxisInverted);
+    virtual bool saveMap(unsigned char mapId, const char* path);
+    virtual bool closeMap(unsigned char mapId);
+    virtual MapViewPtr getMap(unsigned char mapId);
+
+    //
+    void freeResources();
+
+    // Map manipulation
+    //    int initMap(unsigned char mapId);
+    bool setMapSize(unsigned char mapId, int width, int height,
+                   bool isYAxisInverted);
     int drawMap(unsigned char mapId, enum ngsDrawState state,
                 ngsProgressFunc progressFunc, void* progressArguments = nullptr);
-    void freeResources();
-    void setNotifyFunc(ngsNotifyFunc notifyFunc);
-    void unsetNotifyFunc();
     ngsRGBA getMapBackgroundColor(unsigned char mapId);
-    int setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
+    void setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
     int setMapCenter(unsigned char mapId, double x, double y);
     ngsCoordinate getMapCenter(unsigned char mapId);
     int setMapScale(unsigned char mapId, double scale);
@@ -92,9 +84,7 @@ public:
     static MapStore* getInstance();
 
 protected:
-    unsigned char m_mapCounter;
-    std::map<unsigned char, MapPtr> m_maps; // max 255 maps can be simultaneously opened
-    ngsNotifyFunc m_notifyFunc;
+    std::vector<MapViewPtr> m_maps;
 };
 
 }

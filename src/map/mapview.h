@@ -61,5 +61,6 @@ protected:
     virtual LayerPtr createLayer(enum Layer::Type type) override;
 };
 
+typedef std::shared_ptr<MapView> MapViewPtr;
 }
 #endif // NGSMAPVIEW_H

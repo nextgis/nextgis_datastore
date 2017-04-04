@@ -46,12 +46,12 @@ typedef struct _ngsPosition {
 } ngsPosition;
 
 // TODO: Remove this
-typedef struct _ngsLoadTaskInfo {
-    const char* name;
-    const char* newNames;
-    const char* dstPath;
-    enum ngsErrorCodes status;
-} ngsLoadTaskInfo;
+//typedef struct _ngsLoadTaskInfo {
+//    const char* name;
+//    const char* newNames;
+//    const char* dstPath;
+//    enum ngsErrorCodes status;
+//} ngsLoadTaskInfo;
 
 /**
  * @brief Catalog object short information. Int type coded both
@@ -79,7 +79,6 @@ typedef int (*ngsProgressFunc)(enum ngsErrorCodes status,
  * @brief Prototype of function, which executed when changes accured.
  * @param uri Catalog path (for features/rows ended with feature ID, for
  * attachments ended with attachments/{int:id}).
- * @param row Row (Feature) index or NOT_FOUND
  * @param operation Operation which trigger notification.
  */
 typedef void (*ngsNotifyFunc)(const char* uri, enum ngsChangeCodes operation);

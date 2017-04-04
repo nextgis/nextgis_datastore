@@ -21,149 +21,117 @@
 #include "mapstore.h"
 
 #include <cmath>
+#include <limits>
 
-#include "ds/table.h"
 #include "mapview.h"
 #include "ogr_geometry.h"
 #include "ngstore/api.h"
-#include "ngstore/util/constants.h"
+//#include "ngstore/util/constants.h"
 
 namespace ngs {
 
-#define INVALID_MAPID 0
+constexpr unsigned char INVALID_MAPID = 0;
+
 //------------------------------------------------------------------------------
 // MapStore
 //------------------------------------------------------------------------------
 typedef std::unique_ptr<MapStore> MapStorePtr;
 static MapStorePtr gMapStore;
 
-MapStore::MapStore() : m_mapCounter(0), m_notifyFunc(nullptr)
+
+MapStore::MapStore()
 {
-
-}
-
-MapStore::~MapStore()
-{
-
+    m_maps.push_back(MapViewPtr());
 }
 
 unsigned char MapStore::createMap(const CPLString &name, const CPLString &description,
                         unsigned short epsg, double minX, double minY,
                         double maxX, double maxY)
 {
-    MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY));
-    m_maps[++m_mapCounter] = newMap;
-    return m_mapCounter;
-}
-
-unsigned char MapStore::createMap(const CPLString &name, const CPLString &description,
-                        unsigned short epsg, double minX, double minY,
-                        double maxX, double maxY, DataStorePtr dataStore)
-{
-    MapPtr newMap(new MapView(name, description, epsg, minX, minY, maxX, maxY,
-                              dataStore));
-    m_maps[++m_mapCounter] = newMap;
-    newMap->setId (m_mapCounter);
-    return m_mapCounter;
-}
-
-unsigned char MapStore::mapCount() const
-{    
-    return static_cast<unsigned char>(m_maps.size ());
+    if(m_maps.size() >= std::numeric_limits<unsigned char>::max())
+        return INVALID_MAPID;
+    m_maps.push_back(MapViewPtr(new MapView(name, description, epsg, minX, minY,
+                                        maxX, maxY)));
+    return static_cast<unsigned char>(m_maps.size() - 1);
 }
 
 unsigned char MapStore::openMap(const char *path)
 {
-    MapPtr newMap(new MapView());
-    int nRes = newMap->open (path);
-    if(nRes != ngsErrorCodes::EC_SUCCESS)
+    MapViewPtr newMap(new MapView());
+    if(newMap->open(path))
         return INVALID_MAPID;
 
-    m_maps[++m_mapCounter] = newMap;
-    newMap->setId (m_mapCounter);
-    return m_mapCounter;
+    m_maps.push_back(newMap);
+    return static_cast<unsigned char>(m_maps.size() - 1);
 }
 
-unsigned char MapStore::openMap(const char *path, DataStorePtr dataStore)
+bool MapStore::saveMap(unsigned char mapId, const char *path)
 {
-    MapPtr newMap(new MapView(dataStore));
-    int nRes = newMap->open (path);
-    if(nRes != ngsErrorCodes::EC_SUCCESS)
-        return INVALID_MAPID;
-
-    m_maps[++m_mapCounter] = newMap;
-    newMap->setId (m_mapCounter);
-    return m_mapCounter;
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return false;
+    return map->save(path);
 }
 
-int MapStore::saveMap(unsigned char mapId, const char *path)
+bool MapStore::closeMap(unsigned char mapId)
 {
-    if(!m_maps[mapId])
-        return ngsErrorCodes::EC_SAVE_FAILED;
-    return m_maps[mapId]->save (path);
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return false;
+
+    if(map->close()) {
+        m_maps[mapId] = MapViewPtr();
+        return true;
+    }
+
+    return false;
 }
 
-int MapStore::closeMap(unsigned char mapId)
-{
-    if(!m_maps[mapId])
-        return ngsErrorCodes::EC_CLOSE_FAILED;
-    int nRes = m_maps[mapId]->close ();
-    if(nRes == ngsErrorCodes::EC_SUCCESS)
-        m_maps[mapId].reset ();
-    return nRes;
-}
-
-MapPtr MapStore::getMap(unsigned char mapId)
-{
+MapViewPtr MapStore::getMap(unsigned char mapId)
+{    
+    if(mapId > m_maps.size())
+        return MapViewPtr();
     return m_maps[mapId];
-}
-
-void MapStore::setNotifyFunc(ngsNotifyFunc notifyFunc)
-{
-    m_notifyFunc = notifyFunc;
-}
-
-void MapStore::unsetNotifyFunc()
-{
-    m_notifyFunc = nullptr;
 }
 
 ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId)
 {
-    if(!m_maps[mapId])
+    MapViewPtr map = getMap(mapId);
+    if(!map)
         return {0,0,0,0};
-    return m_maps[mapId]->getBackgroundColor ();
+    return map->getBackgroundColor ();
 }
 
-int MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
+void MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 {
-    if(!m_maps[mapId])
-        return ngsErrorCodes::EC_INVALID;
-    return m_maps[mapId]->setBackgroundColor (color);
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return;
+    map->setBackgroundColor(color);
 }
 
-int MapStore::setMapSize(unsigned char mapId, int width, int height,
+bool MapStore::setMapSize(unsigned char mapId, int width, int height,
                       bool isYAxisInverted)
 {
-    if(!m_maps[mapId])
-        return ngsErrorCodes::EC_INVALID;
-    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return false;
+    MapView* pMapView = static_cast<MapView*>(map.get ());
     if(nullptr == pMapView)
-        return ngsErrorCodes::EC_INVALID;
-    pMapView->setDisplaySize (width, height, isYAxisInverted);
-    return ngsErrorCodes::EC_SUCCESS;
+        return false;
+    pMapView->setDisplaySize(width, height, isYAxisInverted);
+    return true;
 }
 
-
-int MapStore::initMap(unsigned char mapId)
-{
-    if(!m_maps[mapId])
-        return ngsErrorCodes::EC_INVALID;
-    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
-    if(nullptr == pMapView)
-        return ngsErrorCodes::EC_INVALID;
-    return pMapView->initDisplay ();
-}
+//int MapStore::initMap(unsigned char mapId)
+//{
+//    if(!m_maps[mapId])
+//        return ngsErrorCodes::EC_INVALID;
+//    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
+//    if(nullptr == pMapView)
+//        return ngsErrorCodes::EC_INVALID;
+//    return pMapView->initDisplay ();
+//}
 
 int MapStore::drawMap(unsigned char mapId, ngsDrawState state, ngsProgressFunc progressFunc,
                       void *progressArguments)
@@ -285,14 +253,12 @@ ngsPosition MapStore::getDisplayPosition(unsigned char mapId, double x, double y
 ngsCoordinate MapStore::getMapDistance(unsigned char mapId, double w, double h)
 {
     ngsCoordinate out = { 0.0, 0.0, 0.0 };
-    if(!m_maps[mapId])
-        return out;
-    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
-    if(nullptr == pMapView)
+    MapViewPtr map = getMap(mapId);
+    if(!map)
         return out;
 
-    OGRRawPoint beg = pMapView->displayToWorld (OGRRawPoint(0, 0));
-    OGRRawPoint end = pMapView->displayToWorld (OGRRawPoint(w, h));
+    OGRRawPoint beg = map->displayToWorld (OGRRawPoint(0, 0));
+    OGRRawPoint end = map->displayToWorld (OGRRawPoint(w, h));
 
     out.X = end.x - beg.x;
     out.Y = end.y - beg.y;
@@ -302,14 +268,12 @@ ngsCoordinate MapStore::getMapDistance(unsigned char mapId, double w, double h)
 ngsPosition MapStore::getDisplayLength(unsigned char mapId, double w, double h)
 {
     ngsPosition out = {0, 0};
-    if(!m_maps[mapId])
-        return out;
-    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
-    if(nullptr == pMapView)
+    MapViewPtr map = getMap(mapId);
+    if(!map)
         return out;
 
-    OGRRawPoint beg = pMapView->worldToDisplay (OGRRawPoint(0, 0));
-    OGRRawPoint end = pMapView->worldToDisplay (OGRRawPoint(w, h));
+    OGRRawPoint beg = map->worldToDisplay(OGRRawPoint(0, 0));
+    OGRRawPoint end = map->worldToDisplay(OGRRawPoint(w, h));
     out.X = (end.x - beg.x);
     out.Y = (end.y - beg.y);
     return out;

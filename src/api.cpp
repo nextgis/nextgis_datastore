@@ -25,7 +25,7 @@
 
 #include "catalog/catalog.h"
 #include "ds/datastore.h"
-//#include "map/mapstore.h"
+#include "map/mapstore.h"
 #include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
 // #include "ngstore/util/constants.h"
@@ -162,7 +162,7 @@ int ngsInit(char **options)
     initGDAL(dataPath, cachePath);
 
     Catalog::setInstance(new Catalog());
-    // TODO: MapStore::setInstance(new MapStore());
+    MapStore::setInstance(new MapStore());
 
     return ngsErrorCodes::EC_SUCCESS;
 }
@@ -181,13 +181,15 @@ void ngsUnInit()
  */
 void ngsFreeResources(bool full)
 {
-    // TODO: MapStore* const mapStore = MapStore::getInstance();
-    //if(nullptr != mapStore)
-    //    mapStore->freeResources();
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr != mapStore) {
+        mapStore->freeResources();
+    }
     if(full) {
         CatalogPtr catalog = Catalog::getInstance();
-        if(catalog)
+        if(catalog) {
             catalog->freeResources();
+        }
     }
 }
 

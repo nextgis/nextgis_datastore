@@ -123,9 +123,9 @@ class JSONDocument
 public:
     JSONDocument();
     ~JSONDocument();
-    int save(const char* path);
+    bool save(const char* path);
     JSONObject getRoot();
-    int load(const char* path);
+    bool load(const char* path);
 
     // TODO: add JSONObject reader(stream);
     // JsonReader reader = new JsonReader(new InputStreamReader(in, "UTF-8"));

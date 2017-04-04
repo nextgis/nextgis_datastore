@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -22,13 +22,12 @@
 #define NGSMAP_H
 
 #include "api_priv.h"
+
 #include "layer.h"
 
 #include "ds/datastore.h"
 
 namespace ngs {
-
-class MapStore;
 
 class Map
 {
@@ -36,48 +35,35 @@ public:
     Map();
     Map(const CPLString& name, const CPLString& description, unsigned short epsg,
         double minX, double minY, double maxX, double maxY);
-    Map(DataStorePtr dataStore);
-    Map(const CPLString& name, const CPLString& description, unsigned short epsg,
-        double minX, double minY, double maxX, double maxY,
-        DataStorePtr dataStore);
-    virtual ~Map();
-    CPLString name() const;
-    void setName(const CPLString &name);
+    virtual ~Map() = default;
 
-    CPLString description() const;
-    void setDescription(const CPLString &description);
-
-    unsigned short epsg() const;
-    void setEpsg(unsigned short epsg);
-
-    double minX() const;
-    void setMinX(double minX);
-
-    double minY() const;
-    void setMinY(double minY);
-
-    double maxX() const;
-    void setMaxX(double maxX);
-
-    double maxY() const;
-    void setMaxY(double maxY);
+    const CPLString &getName() const {return m_name;}
+    void setName(const CPLString &name) { m_name = name;}
+    const CPLString &getDescription() const {return m_description;}
+    void setDescription(const CPLString &description) {m_description = description;}
+    unsigned short getEpsg() const {return m_epsg;}
+    void setEpsg(unsigned short epsg) {m_epsg = epsg;}
+    void setBounds(double minX, double minY, double maxX, double maxY) {
+        m_minX = minX;
+        m_minY = minY;
+        m_maxX = maxX;
+        m_maxY = maxY;
+    }
+    double getMinX() const {return m_minX;}
+    double getMinY() const {return m_minY;}
+    double getMaxX() const {return m_maxX;}
+    double getMaxY() const {return m_maxY;}
+    ngsRGBA getBackgroundColor() const {return  m_bkColor;}
+    void setBackgroundColor(const ngsRGBA& color) {m_bkColor = color;}
+    bool getRelativePaths() const {return m_relativePaths;}
+    void setRelativePaths(bool relativePaths) {m_relativePaths = relativePaths;}
 
     virtual int open(const char* path);
-    virtual int save(const char* path);
-    virtual int destroy();
-    virtual int close();
+    virtual bool save(const char* path);
+    virtual bool close();
 
-    ngsRGBA getBackgroundColor() const;
-    virtual int setBackgroundColor(const ngsRGBA& color);
-
-    virtual int createLayer(const CPLString &name, DatasetPtr dataset);
-    size_t layerCount() const;
-
-    unsigned char getId() const;
-    void setId(unsigned char id);
-
-    bool getRelativePaths() const;
-    void setRelativePaths(bool relativePaths);
+//    virtual int createLayer(const CPLString &name, DatasetPtr dataset);
+    size_t layerCount() const {return m_layers.size();}
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);
@@ -85,17 +71,12 @@ protected:
 protected:
     CPLString m_name;
     CPLString m_description;
-    CPLString m_path;
     unsigned short m_epsg;
     double m_minX, m_minY, m_maxX, m_maxY;
     std::vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
-    DataStorePtr m_DataStore;
-    unsigned char m_id;
     bool m_relativePaths;
 };
 
-typedef std::shared_ptr<Map> MapPtr;
-// typedef std::weak_ptr<Map> MapWPtr;
 }
 #endif // NGSMAP_H

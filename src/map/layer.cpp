@@ -20,29 +20,26 @@
  ****************************************************************************/
 #include "layer.h"
 
-#include "ds/datastore.h"
 #include "ngstore/util/constants.h"
 
-using namespace ngs;
+namespace ngs {
+
+// Layers
+constexpr const char* LAYER_NAME = "name";
+constexpr const char* LAYER_TYPE = "type";
+constexpr const char* DEFAULT_LAYER_NAME = "new layer";
 
 //------------------------------------------------------------------------------
 // Layer
 //------------------------------------------------------------------------------
 
-Layer::Layer()
+Layer::Layer() : m_name(DEFAULT_LAYER_NAME), m_type(Layer::Type::Invalid)
 {
-    m_type = Layer::Type::Invalid;
 }
 
-Layer::Layer(const CPLString &name, DatasetPtr dataset) : m_name(name),
-    m_dataset(dataset)
+Layer::Layer(const CPLString &name, Type type) : m_name(name),
+    m_type(type)
 {
-    m_type = Layer::Type::Invalid;
-}
-
-Layer::~Layer()
-{
-
 }
 
 int Layer::load(const JSONObject &store, DatasetContainerPtr dataStore,
@@ -73,24 +70,26 @@ int Layer::load(const JSONObject &store, DatasetContainerPtr dataStore,
     return ngsErrorCodes::EC_SUCCESS;
 }
 
-JSONObject Layer::save(const CPLString &mapPath) const
+JSONObject Layer::save(const CPLString &/*mapPath*/) const
 {
     JSONObject out;
     out.add(LAYER_NAME, m_name);
     out.add(LAYER_TYPE, static_cast<int>(m_type));
-    if(nullptr != m_dataset) {
-        out.add(LAYER_SOURCE_TYPE, static_cast<int>(m_dataset->type ()));
-        // relative or absolute path
-        if(mapPath.empty ()) {
-            out.add(LAYER_SOURCE, m_dataset->path ());
-        }
-        else {
-            CPLString relPath = CPLExtractRelativePath(mapPath,
-                                                       m_dataset->path (), NULL);
-            if(relPath.empty ())
-                relPath = m_dataset->path ();
-            out.add(LAYER_SOURCE, relPath);
-        }
-    }
+// TODO: Check absolute or relative catalog path
+//    if(nullptr != m_dataset) {
+//        // relative or absolute path
+//        if(mapPath.empty ()) {
+//            out.add(LAYER_SOURCE, m_dataset->path ());
+//        }
+//        else {
+//            CPLString relPath = CPLExtractRelativePath(mapPath,
+//                                                       m_dataset->path (), NULL);
+//            if(relPath.empty ())
+//                relPath = m_dataset->path ();
+//            out.add(LAYER_SOURCE, relPath);
+//        }
+//    }
     return out;
+}
+
 }

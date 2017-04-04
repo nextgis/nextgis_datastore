@@ -46,11 +46,11 @@ JSONDocument::~JSONDocument()
         json_object_put(m_rootJsonObject);
 }
 
-int JSONDocument::save(const char *path)
+bool JSONDocument::save(const char *path)
 {
     VSILFILE* fp = VSIFOpenL(path, "wt");
     if( nullptr == fp )
-        return ngsErrorCodes::EC_SAVE_FAILED;
+        return errorMessage(_("Open file %s to write failed"), path);
 
     const char* data = json_object_to_json_string_ext(m_rootJsonObject,
                                                       JSON_C_TO_STRING_PRETTY);
@@ -58,7 +58,7 @@ int JSONDocument::save(const char *path)
 
     VSIFCloseL(fp);
 
-    return ngsErrorCodes::EC_SUCCESS;
+    return true;
 }
 
 JSONObject JSONDocument::getRoot()
@@ -68,15 +68,15 @@ JSONObject JSONDocument::getRoot()
     return JSONObject(m_rootJsonObject);
 }
 
-int JSONDocument::load(const char *path)
+bool JSONDocument::load(const char *path)
 {
     VSILFILE* fp = VSIFOpenL(path, "rt");
     if( fp == nullptr )
-        return ngsErrorCodes::EC_OPEN_FAILED;
+        return errorMessage(_("Open file %s failed"), path);
 
     GByte* pabyOut = nullptr;
     if( !VSIIngestFile( fp, path, &pabyOut, nullptr, -1) ) {
-        return ngsErrorCodes::EC_OPEN_FAILED;
+        return errorMessage(_("Read file %s failed"), path);
     }
 
     VSIFCloseL(fp);
@@ -87,11 +87,11 @@ int JSONDocument::load(const char *path)
                                     reinterpret_cast<const char*>(pabyOut), -1);
     json_tokener_free(jstok);
     if( jstok->err != json_tokener_success) {
-        return errorMessage(ngsErrorCodes::EC_OPEN_FAILED,
-                            _("JSON parsing error: %s (at offset %d)"),
-                            json_tokener_error_desc(jstok->err), jstok->char_offset);
+        return errorMessage(_("JSON parsing error: %s (at offset %d)"),
+                            json_tokener_error_desc(jstok->err),
+                            jstok->char_offset);
     }
-    return ngsErrorCodes::EC_SUCCESS;
+    return true;
 }
 
 //------------------------------------------------------------------------------
