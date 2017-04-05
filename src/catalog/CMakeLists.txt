@@ -28,9 +28,11 @@ set(HHEADERS
     object.h
     objectcontainer.h
     catalog.h
+    file.h
     folder.h
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
     localconnections.h
+    mapfile.h
     factories/objectfactory.h
     factories/folderfactory.h
     factories/datastorefactory.h
@@ -40,9 +42,11 @@ set(CSOURCES
     object.cpp
     objectcontainer.cpp
     catalog.cpp
+    file.cpp
     folder.cpp
     filter.cpp
     localconnections.cpp
+    mapfile.cpp
     factories/objectfactory.cpp
     factories/folderfactory.cpp
     factories/datastorefactory.cpp

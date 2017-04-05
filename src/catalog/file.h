@@ -18,51 +18,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSFOLDER_H
-#define NGSFOLDER_H
+#ifndef NGSFILE_H
+#define NGSFILE_H
 
 #include "objectcontainer.h"
 
 namespace ngs {
 
-class Folder : public ObjectContainer
+class File : public Object
 {
 public:
-    Folder(ObjectContainer * const parent = nullptr,
-           const CPLString & name = "",
-           const CPLString & path = "");
-    virtual bool hasChildren() override;
+    File(ObjectContainer * const parent = nullptr,
+         const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FILE_ANY,
+         const CPLString & name = "",
+         const CPLString & path = "");
 
 public:
-    static bool isExists(const char* path);
-    static bool mkDir(const char* path);
-    static bool isDir(const char* path);    
-    static bool isSymlink(const char* path);
-    static bool isHidden(const char* path);
-
-    // ObjectContainer interface
-public:
-    virtual bool canCreate(const ngsCatalogObjectType type) const override;
-    virtual void refresh() override;
-    virtual bool create(const ngsCatalogObjectType type, const CPLString & name,
-                        const Options &options) override;
+    static bool deleteFile(const char* path);
 
     // Object interface
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
-
-protected:
-    static CPLString createUniquePath(const CPLString &path,
-                                      const CPLString &name,
-                                      bool isFolder = true,
-                                      const CPLString &add = "",
-                                      int counter = 0);
-
-protected:
-    std::vector<const char*> fillChildrenNames(char **items);
 };
 
 }
 
-#endif // NGSFOLDER_H
+#endif // NGSFILE_H

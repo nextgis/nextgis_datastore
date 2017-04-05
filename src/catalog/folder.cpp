@@ -21,6 +21,7 @@
 #include "folder.h"
 
 #include "catalog.h"
+#include "file.h"
 #include "ds/datastore.h"
 #include "util/notify.h"
 #include "util/error.h"
@@ -82,14 +83,6 @@ bool Folder::isDir(const char *path)
     return VSIStatL(path, &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
 }
 
-bool Folder::deleteFile(const char *path)
-{
-    int result = VSIUnlink(path);
-    if (result == -1)
-        return errorMessage(_("Delete file failed! File '%s'"), path);
-    return true;
-}
-
 bool Folder::isSymlink(const char *path)
 {
     VSIStatBuf sbuf;
@@ -110,7 +103,7 @@ bool Folder::destroy()
 {
     //test if symlink
     if(isSymlink(m_path)) {
-        if(!deleteFile(m_path))
+        if(!File::deleteFile(m_path))
             return false;
     }
     else {
@@ -199,26 +192,36 @@ bool Folder::create(const ngsCatalogObjectType type, const CPLString &name,
 {
     bool result = false;
     const char* newPath = nullptr;
-    if(options.getBoolOption("CREATE_UNIQUE"))
+    if(options.getBoolOption("CREATE_UNIQUE")) {
         newPath = createUniquePath(m_path, name);
-    else
+    }
+    else {
         newPath = CPLFormFilename(m_path, name, nullptr);
+    }
     const char* newName = CPLGetBasename(newPath);
 
     switch (type) {
     case CAT_CONTAINER_DIR:
         result = mkDir(newPath);
-        if(result && m_childrenLoaded)
+        if(result && m_childrenLoaded) {
             m_children.push_back(ObjectPtr(new Folder(this, newName, newPath)));
+        }
         break;
     case CAT_CONTAINER_NGS:
         result = DataStore::create(newPath);
-        if(result && m_childrenLoaded)
+        if(result && m_childrenLoaded) {
             m_children.push_back(ObjectPtr(new DataStore(this, newName, newPath)));
+        }
         break;
     default:
         break;
     }
+
+    if(result) {
+        CPLString fullName = getFullName() + Catalog::getSeparator() + newName;
+        Notify::instance().onNotify(fullName, ngsChangeCodes::CC_CREATE_OBJECT);
+    }
+
     return result;
 }
 

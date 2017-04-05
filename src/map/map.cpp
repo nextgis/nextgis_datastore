@@ -110,6 +110,9 @@ int Map::open(const char *path)
 
 bool Map::save(const char *path)
 {
+    // map file in catalog
+    // new map only in one in memory
+
     JSONDocument doc;
     JSONObject root = doc.getRoot ();
 

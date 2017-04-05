@@ -150,9 +150,9 @@ dispalyGet position, length
 //NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
 //                             unsigned short epsg, double minX, double minY,
 //                             double maxX, double maxY);
-//NGS_EXTERNC int ngsMapOpen(const char* path);
-//NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
-//NGS_EXTERNC int ngsMapClose(unsigned char mapId);
+NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
+NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
+NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 //NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
 //                           int isYAxisInverted);
 //NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,

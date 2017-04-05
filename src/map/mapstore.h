@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -21,16 +21,14 @@
 #ifndef NGSMAPSTORE_H
 #define NGSMAPSTORE_H
 
-#include "mapview.h"
-#include "ngstore/api.h"
+#include "catalog/mapfile.h"
 
 namespace ngs {
 
 
-
 /**
- * @brief The MapStore class store maps with layers connected to datastore tables
- *        and styles (in memory storage)
+ * @brief The MapStore class provides functionality to create, open, close, etc.
+ * maps mostly for C API. In C++ one can work with map/mapview directly.
  */
 class MapStore
 {
@@ -52,32 +50,37 @@ public:
     virtual unsigned char createMap(const CPLString& name, const CPLString& description,
                           unsigned short epsg, double minX, double minY,
                           double maxX, double maxY);
-    virtual unsigned char openMap(const char* path);
-    virtual bool saveMap(unsigned char mapId, const char* path);
+    virtual unsigned char openMap(MapFile * const file);
+    virtual bool saveMap(unsigned char mapId, MapFile * const file);
     virtual bool closeMap(unsigned char mapId);
     virtual MapViewPtr getMap(unsigned char mapId);
 
     //
-    void freeResources();
+    void freeResources() {m_maps.clear ();}
 
     // Map manipulation
     //    int initMap(unsigned char mapId);
-    bool setMapSize(unsigned char mapId, int width, int height,
+    //    int drawMap(unsigned char mapId, enum ngsDrawState state,
+    //                ngsProgressFunc progressFunc, void* progressArguments = nullptr);
+
+    void setMapSize(unsigned char mapId, int width, int height,
                    bool isYAxisInverted);
-    int drawMap(unsigned char mapId, enum ngsDrawState state,
-                ngsProgressFunc progressFunc, void* progressArguments = nullptr);
     ngsRGBA getMapBackgroundColor(unsigned char mapId);
     void setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
-    int setMapCenter(unsigned char mapId, double x, double y);
+    bool setMapCenter(unsigned char mapId, double x, double y);
     ngsCoordinate getMapCenter(unsigned char mapId);
-    int setMapScale(unsigned char mapId, double scale);
+    bool setMapScale(unsigned char mapId, double scale);
     double getMapScale(unsigned char mapId);
-    int setMapRotate(unsigned char mapId, enum ngsDirection dir, double rotate);
+    bool setMapRotate(unsigned char mapId, enum ngsDirection dir, double rotate);
     double getMapRotate(unsigned char mapId, enum ngsDirection dir);
     ngsCoordinate getMapCoordinate(unsigned char mapId, double x, double y);
     ngsPosition getDisplayPosition(unsigned char mapId, double x, double y);
     ngsCoordinate getMapDistance(unsigned char mapId, double w, double h);
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
+
+    // static
+public:
+    static unsigned char invalidMapId();
 
 public:
     static void setInstance(MapStore* pointer);

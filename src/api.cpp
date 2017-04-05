@@ -24,11 +24,10 @@
 #include <iostream>
 
 #include "catalog/catalog.h"
-#include "ds/datastore.h"
+#include "catalog/mapfile.h"
 #include "map/mapstore.h"
 #include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
-// #include "ngstore/util/constants.h"
 #include "util/error.h"
 #include "util/versionutil.h"
 
@@ -202,6 +201,10 @@ const char *ngsGetLastErrorMessage()
     return CPLGetLastErrorMsg();
 }
 
+//------------------------------------------------------------------------------
+// Catalog
+//------------------------------------------------------------------------------
+
 /**
  * @brief Query name and type of child objects for provided path and filter.
  * @param path The path inside catalog in form ngc://Local connections/tmp
@@ -351,183 +354,9 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 //    return ngsErrorCodes::EC_SUCCESS;
 //}
 
-/**
- * @brief ngsInitDataStore Open or create data store. All datastore functgions
- * will work with this datastore object until new one willn ot open.
- * @param path Path to create datastore (geopackage database name)
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsDataStoreInit(const char *path)
-//{
-//    if(gDataStore && gDataStore->path().compare (path) == 0)
-//        return ngsErrorCodes::EC_SUCCESS;
-//    gDataStore = DataStore::openOrCreate(path);
-//    if(nullptr == gDataStore)
-//        return ngsErrorCodes::EC_OPEN_FAILED;
-//    return ngsErrorCodes::EC_SUCCESS;
-//}
-
-
-/**
- * @brief Delete storage directory and cache (optional)
- * @param path Path to storage
- * @param cachePath Path to cache (may be NULL)
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsDataStoreDestroy(const char *path, const char *cachePath)
-//{
-//    if(nullptr == path)
-//        return ngsErrorCodes::EC_INVALID;
-//    gMapStore.reset ();
-//    if(cachePath){
-//        if(CPLUnlinkTree(cachePath) != 0){
-//            return ngsErrorCodes::EC_DELETE_FAILED;
-//        }
-//    }
-//    ngsDataStoreInit(path);
-//    return gDataStore->destroy ();
-//}
-
-/**
- * @brief Create remote TMS Raster
- * @param url URL to TMS tiles with replacement variables, of the format ${x}, ${y}, etc.
- * @param name Layer name, only alpha, numeric and underline
- * @param alias Layer alias name. User readable text
- * @param copyright Copyright text, link, etc. (optional)
- * @param epsg EPSG code
- * @param z_min Minimum zoom level
- * @param z_max Maximum zoom level. If equal 0 will be set to 18
- * @param y_origin_top If true - OSGeo TMS, else - Slippy map
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
-//                             const char *copyright, int epsg, int z_min, int z_max,
-//                             bool y_origin_top)
-//{
-//    if(z_max == 0)
-//        z_max = 18;
-
-//    if(gDataStore)
-//        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
-//                                            epsg, z_min, z_max, y_origin_top);
-
-//    return ngsErrorCodes::EC_CREATE_FAILED;
-//}
-
-/**
- * @brief Sete map size in pixels
- * @param mapId Map id received from create or open map functions
- * @param width Output image width
- * @param height Output image height
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
-//{
-//    initMapStore();
-//    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
-//}
-
-
-/**
- * @brief Set notify function executed on some library events
- * @param Callback function pointer (not free by library)
- */
-//void ngsSetNotifyFunction(ngsNotifyFunc callback)
-//{
-//    if(nullptr != gDataStore)
-//        gDataStore->setNotifyFunc (callback);
-//    initMapStore();
-//    gMapStore->setNotifyFunc (callback);
-//}
-
-/**
- * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
- * @param mapId Map id received from create or open map functions
- * @param state Draw state (NORMAL, PRESERVED, REDRAW)
- * @param callback Progress function
- * @param callbackData Progress function arguments
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
-//               ngsProgressFunc callback, void* callbackData)
-//{
-//    initMapStore();
-//    return gMapStore->drawMap (mapId, state, callback, callbackData);
-//}
-
-/**
- * @brief ngsGetMapBackgroundColor Map background color
- * @param mapId Map id received from create or open map functions
- * @return map background color struct
- */
-//ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->getMapBackgroundColor (mapId);
-//}
-
-/**
- * @brief ngsSetMapBackgroundColor set specified by name map background color
- * @param mapId Map id received from create or open map functions
- * @param R red
- * @param G green
- * @param B blue
- * @param A alpha
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char G,
-//                             unsigned char B, unsigned char A)
-//{
-//    initMapStore();
-//    return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
-//}
-
-/**
- * @brief ngsMapSetCenter Set new map center coordinates
- * @param mapId Map id
- * @param x X coordinate
- * @param y Y coordinate
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapSetCenter(unsigned char mapId, double x, double y)
-//{
-//    initMapStore();
-//    return gMapStore->setMapCenter(mapId, x, y);
-//}
-
-/**
- * @brief ngsMapGetCenter Get map center for current view (extent)
- * @param mapId Map id
- * @return Coordintate structure. If error occured all coordinates set to 0.0
- */
-//ngsCoordinate ngsMapGetCenter(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->getMapCenter(mapId);
-//}
-
-/**
- * @brief ngsMapSetScale Set current map scale
- * @param mapId Map id
- * @param scale value to set
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapSetScale(unsigned char mapId, double scale)
-//{
-//    initMapStore();
-//    return gMapStore->setMapScale(mapId, scale);
-//}
-
-/**
- * @brief ngsMapGetScale Return current map scale
- * @param mapId Map id
- * @return Current map scale or 1
- */
-//double ngsMapGetScale(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->getMapScale(mapId);
-//}
+//------------------------------------------------------------------------------
+// Map
+//------------------------------------------------------------------------------
 
 /**
  * @brief ngsCreateMap Create new empty map
@@ -554,28 +383,258 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 
 /**
  * @brief ngsOpenMap Open existing map from file
- * @param path Path to map file
+ * @param path Path to map file inside catalog in form ngc://some path/
  * @return 0 if open failed or map id.
  */
-//int ngsMapOpen(const char *path)
-//{
-//    // for this API before work with map datastore must be open
-//    if(nullptr == gDataStore)
-//        return ngsErrorCodes::EC_OPEN_FAILED;
-//    initMapStore();
-//    return gMapStore->openMap (path, gDataStore);
-//}
+unsigned char ngsMapOpen(const char *path)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore)
+        return MapStore::invalidMapId();
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
+    MapFile * const mapFile = ngsDynamicCast(MapFile, object);
+    return mapStore->openMap(mapFile);
+}
 
 /**
  * @brief ngsSaveMap Save map to file
  * @param mapId Map id to save
  * @param path Path to store map data
- * @return ngsErrorCodes value - SUCCES if everything is OK
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapSave(unsigned char mapId, const char *path)
+int ngsMapSave(unsigned char mapId, const char *path)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return MapStore::invalidMapId();
+    }
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr mapFileObject = catalog->getObject(path);
+    MapFile * mapFile;
+    if(mapFileObject) {
+        mapFile = ngsDynamicCast(MapFile, mapFileObject);
+    }
+    else { // create new MapFile
+        const char* saveFolder = CPLGetPath(path);
+        const char* saveName = CPLGetFilename(path);
+        ObjectPtr object = catalog->getObject(saveFolder);
+        ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
+        mapFile = new MapFile(container, saveName,
+                        CPLFormFilename(object->getPath(), saveName, nullptr));
+        mapFileObject = ObjectPtr(mapFile);
+    }
+
+    if(!mapStore->saveMap(mapId, mapFile)) {
+        return ngsErrorCodes::EC_SAVE_FAILED;
+    }
+
+    return ngsErrorCodes::EC_SUCCESS;
+}
+
+/**
+ * @brief ngsMapClose Close map and free resources
+ * @param mapId Map id to close
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+int ngsMapClose(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore)
+        return errorMessage(ngsErrorCodes::EC_CLOSE_FAILED,
+                            _("MapStore is not initialized"));
+    return mapStore->closeMap(mapId) ? ngsErrorCodes::EC_SUCCESS :
+                                       ngsErrorCodes::EC_CLOSE_FAILED;
+}
+
+/**
+ * @brief ngsMapInit Initialize map. It depends on map what to initialize.
+ * @param mapId Map id
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsMapInit(unsigned char mapId)
 //{
 //    initMapStore();
-//    return gMapStore->saveMap (mapId, path);
+//    return gMapStore->initMap (mapId);
+//}
+
+
+/**
+ * @brief ngsInitDataStore Open or create data store. All datastore functgions
+ * will work with this datastore object until new one willn ot open.
+ * @param path Path to create datastore (geopackage database name)
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsDataStoreInit(const char *path)
+//{
+//    if(gDataStore && gDataStore->path().compare (path) == 0)
+//        return ngsErrorCodes::EC_SUCCESS;
+//    gDataStore = DataStore::openOrCreate(path);
+//    if(nullptr == gDataStore)
+//        return ngsErrorCodes::EC_OPEN_FAILED;
+//    return ngsErrorCodes::EC_SUCCESS;
+//}
+
+
+/**
+ * @brief Delete storage directory and cache (optional)
+ * @param path Path to storage
+ * @param cachePath Path to cache (may be NULL)
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsDataStoreDestroy(const char *path, const char *cachePath)
+//{
+//    if(nullptr == path)
+//        return ngsErrorCodes::EC_INVALID;
+//    gMapStore.reset ();
+//    if(cachePath){
+//        if(CPLUnlinkTree(cachePath) != 0){
+//            return ngsErrorCodes::EC_DELETE_FAILED;
+//        }
+//    }
+//    ngsDataStoreInit(path);
+//    return gDataStore->destroy ();
+//}
+
+/**
+ * @brief Create remote TMS Raster
+ * @param url URL to TMS tiles with replacement variables, of the format ${x}, ${y}, etc.
+ * @param name Layer name, only alpha, numeric and underline
+ * @param alias Layer alias name. User readable text
+ * @param copyright Copyright text, link, etc. (optional)
+ * @param epsg EPSG code
+ * @param z_min Minimum zoom level
+ * @param z_max Maximum zoom level. If equal 0 will be set to 18
+ * @param y_origin_top If true - OSGeo TMS, else - Slippy map
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
+//                             const char *copyright, int epsg, int z_min, int z_max,
+//                             bool y_origin_top)
+//{
+//    if(z_max == 0)
+//        z_max = 18;
+
+//    if(gDataStore)
+//        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
+//                                            epsg, z_min, z_max, y_origin_top);
+
+//    return ngsErrorCodes::EC_CREATE_FAILED;
+//}
+
+/**
+ * @brief Sete map size in pixels
+ * @param mapId Map id received from create or open map functions
+ * @param width Output image width
+ * @param height Output image height
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
+//{
+//    initMapStore();
+//    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
+//}
+
+
+/**
+ * @brief Set notify function executed on some library events
+ * @param Callback function pointer (not free by library)
+ */
+//void ngsSetNotifyFunction(ngsNotifyFunc callback)
+//{
+//    if(nullptr != gDataStore)
+//        gDataStore->setNotifyFunc (callback);
+//    initMapStore();
+//    gMapStore->setNotifyFunc (callback);
+//}
+
+/**
+ * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
+ * @param mapId Map id received from create or open map functions
+ * @param state Draw state (NORMAL, PRESERVED, REDRAW)
+ * @param callback Progress function
+ * @param callbackData Progress function arguments
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+//               ngsProgressFunc callback, void* callbackData)
+//{
+//    initMapStore();
+//    return gMapStore->drawMap (mapId, state, callback, callbackData);
+//}
+
+/**
+ * @brief ngsGetMapBackgroundColor Map background color
+ * @param mapId Map id received from create or open map functions
+ * @return map background color struct
+ */
+//ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->getMapBackgroundColor (mapId);
+//}
+
+/**
+ * @brief ngsSetMapBackgroundColor set specified by name map background color
+ * @param mapId Map id received from create or open map functions
+ * @param R red
+ * @param G green
+ * @param B blue
+ * @param A alpha
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char G,
+//                             unsigned char B, unsigned char A)
+//{
+//    initMapStore();
+//    return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
+//}
+
+/**
+ * @brief ngsMapSetCenter Set new map center coordinates
+ * @param mapId Map id
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsMapSetCenter(unsigned char mapId, double x, double y)
+//{
+//    initMapStore();
+//    return gMapStore->setMapCenter(mapId, x, y);
+//}
+
+/**
+ * @brief ngsMapGetCenter Get map center for current view (extent)
+ * @param mapId Map id
+ * @return Coordintate structure. If error occured all coordinates set to 0.0
+ */
+//ngsCoordinate ngsMapGetCenter(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->getMapCenter(mapId);
+//}
+
+/**
+ * @brief ngsMapSetScale Set current map scale
+ * @param mapId Map id
+ * @param scale value to set
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsMapSetScale(unsigned char mapId, double scale)
+//{
+//    initMapStore();
+//    return gMapStore->setMapScale(mapId, scale);
+//}
+
+/**
+ * @brief ngsMapGetScale Return current map scale
+ * @param mapId Map id
+ * @return Current map scale or 1
+ */
+//double ngsMapGetScale(unsigned char mapId)
+//{
+//    initMapStore();
+//    return gMapStore->getMapScale(mapId);
 //}
 
 /**
@@ -619,33 +678,11 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 //}
 
 /**
- * @brief ngsMapClose Close map and free resources
- * @param mapId Map id to close
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapClose(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->closeMap (mapId);
-//}
-
-/**
- * @brief ngsMapInit Initialize map. It depends on map what to initialize.
- * @param mapId Map id
- * @return ngsErrorCodes value - SUCCES if everything is OK
- */
-//int ngsMapInit(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->initMap (mapId);
-//}
-
-/**
  * @brief ngsMapSetRotate Set map rotate
  * @param mapId Map id
  * @param dir Rotate direction. May be X, Y or Z
  * @param rotate value to set
- * @return ngsErrorCodes value - SUCCES if everything is OK
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
 //int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
 //{

@@ -38,7 +38,7 @@ public:
     virtual ~Map() = default;
 
     const CPLString &getName() const {return m_name;}
-    void setName(const CPLString &name) { m_name = name;}
+    void setName(const CPLString &name) {m_name = name;}
     const CPLString &getDescription() const {return m_description;}
     void setDescription(const CPLString &description) {m_description = description;}
     unsigned short getEpsg() const {return m_epsg;}
