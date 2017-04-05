@@ -27,6 +27,8 @@
 #include <memory>
 #include <vector>
 
+#include "catalog/objectcontainer.h"
+
 namespace ngs {
 
 /**
@@ -47,10 +49,8 @@ public:
     Layer(const CPLString& name, enum Type type);
     virtual ~Layer() = default;
     virtual bool load(const JSONObject& store,
-                     DatasetContainerPtr dataStore = DatasetContainerPtr(),
-                     const CPLString& mapPath = "");
-    // TODO: virtual int load(const JSONObject& store, const CPLString& mapPath = "");
-    virtual JSONObject save(const CPLString& mapPath) const;
+                      ObjectContainer * const objectContainer = nullptr);
+    virtual JSONObject save(ObjectContainer * const objectContainer = nullptr) const;
 protected:
     CPLString m_name;
     enum Type m_type;

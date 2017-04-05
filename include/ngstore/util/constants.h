@@ -34,6 +34,7 @@ constexpr double DEFAULT_MAX_Y = 20037508.34;
 constexpr double DEFAULT_MIN_X = -DEFAULT_MAX_X;
 constexpr double DEFAULT_MIN_Y = -DEFAULT_MAX_Y;
 
+constexpr const char* LAYER_TYPE = "type";
 /*
 #define DEFAULT_RATIO 1
 #define DEFAULT_TILE_SIZE 256

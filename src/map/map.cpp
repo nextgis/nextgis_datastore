@@ -26,7 +26,6 @@
 namespace ngs {
 
 constexpr ngsRGBA DEFAULT_MAP_BK = {210, 245, 255, 255};
-constexpr const char* MAP_DOCUMENT_EXT = "ngmd";
 constexpr const char* DEFAULT_MAP_NAME = "new map";
 constexpr const char* MAP_NAME = "name";
 constexpr const char* MAP_DESCRIPTION = "descript";
@@ -38,7 +37,6 @@ constexpr const char* MAP_MIN_Y = "min_y";
 constexpr const char* MAP_MAX_X = "max_x";
 constexpr const char* MAP_MAX_Y = "max_y";
 constexpr const char* MAP_BKCOLOR = "bk_color";
-
 
 //------------------------------------------------------------------------------
 // Map
@@ -70,14 +68,15 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
 {
 }
 
-int Map::open(const char *path)
+bool Map::open(MapFile * const mapFile)
 {
     JSONDocument doc;
-    if(doc.load (path) != ngsErrorCodes::EC_SUCCESS)
-        return ngsErrorCodes::EC_OPEN_FAILED;
-    JSONObject root = doc.getRoot ();
-    if(root.getType () == JSONObject::Type::Object) {
+    if(doc.load(mapFile->getPath())) {
+        return false;
+    }
 
+    JSONObject root = doc.getRoot();
+    if(root.getType() == JSONObject::Type::Object) {
         m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
         m_description = root.getString (MAP_DESCRIPTION, "");
         m_relativePaths = root.getBool (MAP_RELATIVEPATHS, true);
@@ -93,28 +92,25 @@ int Map::open(const char *path)
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
             JSONObject layerConfig = layers[i];
-            Layer::Type type = static_cast<Layer::Type>(layerConfig.getInteger (
-                                                            LAYER_TYPE, 0));
+            Layer::Type type = static_cast<Layer::Type>(
+                        layerConfig.getInteger (LAYER_TYPE, 0));
             // load layer
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
-                if(layer->load(layerConfig, m_DataStore, m_relativePaths ?
-                           CPLGetPath(path) : "") == ngsErrorCodes::EC_SUCCESS) // FIXME: is it must be (... CPLGetPath(path) : path)  ?
+                if(layer->load(layerConfig, m_relativePaths ?
+                               mapFile->getParent() : nullptr))
                     m_layers.push_back (layer);
             }
         }
     }
 
-    return ngsErrorCodes::EC_SUCCESS;
+    return true;
 }
 
-bool Map::save(const char *path)
+bool Map::save(MapFile * const mapFile)
 {
-    // map file in catalog
-    // new map only in one in memory
-
     JSONDocument doc;
-    JSONObject root = doc.getRoot ();
+    JSONObject root = doc.getRoot();
 
     root.add(MAP_NAME, m_name);
     root.add(MAP_DESCRIPTION, m_description);
@@ -128,16 +124,16 @@ bool Map::save(const char *path)
 
     JSONArray layers;
     for(LayerPtr layer : m_layers) {
-        layers.add(layer->save(m_relativePaths ? CPLGetPath(path) : ""));
+        layers.add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
     }
     root.add(MAP_LAYERS, layers);
 
-    return doc.save(CPLResetExtension(path, MAP_DOCUMENT_EXT));
+    return doc.save(mapFile->getPath());
 }
 
 bool Map::close()
 {
-    m_layers.clear ();
+    m_layers.clear();
     return true;
 }
 

@@ -29,6 +29,7 @@
 
 namespace ngs {
 
+class MapFile;
 class Map
 {
 public:
@@ -58,8 +59,8 @@ public:
     bool getRelativePaths() const {return m_relativePaths;}
     void setRelativePaths(bool relativePaths) {m_relativePaths = relativePaths;}
 
-    virtual int open(const char* path);
-    virtual bool save(const char* path);
+    virtual bool open(MapFile * const mapFile);
+    virtual bool save(MapFile * const mapFile);
     virtual bool close();
 
 //    virtual int createLayer(const CPLString &name, DatasetPtr dataset);

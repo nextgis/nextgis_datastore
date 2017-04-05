@@ -70,10 +70,13 @@ unsigned char MapStore::openMap(MapFile * const file)
 
 bool MapStore::saveMap(unsigned char mapId, MapFile * const file)
 {
+    if(nullptr == file)
+        return false;
     MapViewPtr map = getMap(mapId);
     if(!map)
         return false;
-    return map->save(path);
+
+    return file->save(map);
 }
 
 bool MapStore::closeMap(unsigned char mapId)

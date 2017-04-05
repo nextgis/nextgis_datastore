@@ -24,9 +24,7 @@
 
 namespace ngs {
 
-// Layers
 constexpr const char* LAYER_NAME = "name";
-constexpr const char* LAYER_TYPE = "type";
 constexpr const char* DEFAULT_LAYER_NAME = "new layer";
 
 //------------------------------------------------------------------------------
@@ -42,35 +40,33 @@ Layer::Layer(const CPLString &name, Type type) : m_name(name),
 {
 }
 
-int Layer::load(const JSONObject &store, DatasetContainerPtr dataStore,
-                const CPLString &mapPath)
+bool Layer::load(const JSONObject& store, ObjectContainer * const /*objectContainer*/)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
-    unsigned int type = static_cast<unsigned int>(store.getInteger (
-                                 LAYER_SOURCE_TYPE, ngsDatasetType (Undefined)));
-    if(type & ngsDatasetType (Store)) {
-        CPLString path = store.getString (LAYER_SOURCE, "");
-        CPLString datasetName = CPLGetBasename (path);
-        if(dataStore) {
-            m_dataset = dataStore->getDataset (datasetName);
-        }
-        else {
-            path = CPLGetDirname (path);
-            // load dataset by path and name
-            dataStore = DataStore::open (path);
-            if(nullptr != dataStore) {
-                if(mapPath.empty ())
-                    m_dataset = dataStore->getDataset (datasetName);
-                else
-                    m_dataset = dataStore->getDataset (CPLFormFilename(mapPath,
-                                                           datasetName, NULL));
-            }
-        }
-    }
-    return ngsErrorCodes::EC_SUCCESS;
+// TODO: Check absolute or relative catalog path
+//    if(type & ngsDatasetType (Store)) {
+//        CPLString path = store.getString (LAYER_SOURCE, "");
+//        CPLString datasetName = CPLGetBasename (path);
+//        if(dataStore) {
+//            m_dataset = dataStore->getDataset (datasetName);
+//        }
+//        else {
+//            path = CPLGetDirname (path);
+//            // load dataset by path and name
+//            dataStore = DataStore::open (path);
+//            if(nullptr != dataStore) {
+//                if(mapPath.empty ())
+//                    m_dataset = dataStore->getDataset (datasetName);
+//                else
+//                    m_dataset = dataStore->getDataset (CPLFormFilename(mapPath,
+//                                                           datasetName, NULL));
+//            }
+//        }
+//    }
+    return true;
 }
 
-JSONObject Layer::save(const CPLString &/*mapPath*/) const
+JSONObject Layer::save(ObjectContainer * const /*objectContainer*/) const
 {
     JSONObject out;
     out.add(LAYER_NAME, m_name);

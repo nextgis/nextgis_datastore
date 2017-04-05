@@ -53,9 +53,9 @@ public:
     virtual bool copy(const CPLString &/*destPath*/, const Progress &/*progress*/)  {return false;}
     virtual bool canCopy(const CPLString &/*destPath*/) const  {return false;}
     virtual bool move(const CPLString &/*destPath*/, const Progress &/*progress*/) {return false;}
+    const ObjectContainer *getParent() const;
 
 protected:
-    const ObjectContainer *getParent() const;
     void setName(const CPLString &value);
     void setPath(const CPLString &value);
 

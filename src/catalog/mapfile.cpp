@@ -20,30 +20,64 @@
  ****************************************************************************/
 #include "mapfile.h"
 
+#include "util/notify.h"
+#include "util/stringutil.h"
+
 namespace ngs {
+
+constexpr const char* MAP_DOCUMENT_EXT = "ngmd";
+constexpr int MAP_DOCUMENT_EXT_LEN = length(MAP_DOCUMENT_EXT);
 
 MapFile::MapFile(ObjectContainer * const parent,
                  const CPLString &name,
                  const CPLString &path) :
     File(parent, ngsCatalogObjectType::CAT_FILE_NGMAPDOCUMENT, name, path)
 {
+    if(!EQUAL(m_name.c_str() + m_name.length() - MAP_DOCUMENT_EXT_LEN,
+               MAP_DOCUMENT_EXT)) {
+        m_name += ".";
+        m_name += MAP_DOCUMENT_EXT;
+    }
 
+    if(!EQUAL(m_path.c_str() + m_path.length() - MAP_DOCUMENT_EXT_LEN,
+                   MAP_DOCUMENT_EXT)) {
+            m_path += ".";
+            m_path += MAP_DOCUMENT_EXT;
+        }
 }
 
 bool MapFile::open()
 {
-
+    if(m_mapView)
+        return true;
+    m_mapView = MapViewPtr(new MapView);
+    return m_mapView->open(this);
 }
 
 bool MapFile::save(MapViewPtr mapView)
 {
-    if(nullptr != m_parent) {
-        m_parent->notifyChanges();
-
-
+    bool change = false;
+    if(m_mapView == mapView) {
+        change = true;
+    }
+    else {
+        m_mapView = mapView;
     }
 
-    Notify::instance().onNotify(path, ngsChangeCodes::CC_CREATE_OBJECT);
+    bool result = m_mapView->save(this);
+
+    if(nullptr != m_parent) {
+        m_parent->notifyChanges();
+    }
+
+    if(change) {
+        Notify::instance().onNotify(m_path, ngsChangeCodes::CC_CHANGE_OBJECT);
+    }
+    else {
+        Notify::instance().onNotify(m_path, ngsChangeCodes::CC_CREATE_OBJECT);
+    }
+
+    return result;
 }
 
 bool MapFile::destroy()

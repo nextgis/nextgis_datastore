@@ -45,7 +45,7 @@ public:
      * @param minY minimum y
      * @param maxX maximum x
      * @param maxY maximum y
-     * @return -1 if some error occures or map Id
+     * @return 0 if some error occures or new map identificator if success.
      */
     virtual unsigned char createMap(const CPLString& name, const CPLString& description,
                           unsigned short epsg, double minX, double minY,
