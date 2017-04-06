@@ -29,13 +29,12 @@
 #include <iostream>
 
 #include "api_priv.h"
-
+#include "geometry.h"
 #include "catalog/catalog.h"
 #include "catalog/folder.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
 #include "util/error.h"
-#include "util/geometryutil.h"
 #include "util/stringutil.h"
 
 namespace ngs {

@@ -120,6 +120,7 @@ bool Catalog::hasChildren()
             return false;
     }
     // 1. Load factories
+    // TODO: Add NextGIS Map document factory
     m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
 

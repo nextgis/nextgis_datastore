@@ -19,7 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "renderlayer.h"
-
+/*
 #include <algorithm>
 #include <iostream>
 
@@ -456,3 +456,4 @@ int FeatureRenderLayer::getFidCount() const
     }
     return fidCount;
 }
+*/

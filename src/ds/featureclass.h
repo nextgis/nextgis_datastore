@@ -27,8 +27,6 @@
 
 namespace ngs {
 
-typedef std::shared_ptr< OGRGeometry > GeometryPtr;
-
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 

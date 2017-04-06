@@ -25,7 +25,7 @@
 
 #include "featureclass.h"
 #include "table.h"
-#include "catalog/folder.h"
+#include "catalog/file.h"
 #include "ngstore/api.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
@@ -141,7 +141,7 @@ bool Dataset::destroy()
     clear();
     GDALClose(m_DS);
     m_DS = nullptr;
-    if(!Folder::deleteFile(m_path))
+    if(!File::deleteFile(m_path))
         return false;
 
     if(m_parent)

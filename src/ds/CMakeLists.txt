@@ -32,6 +32,7 @@ set(HHEADERS
     table.h
     storefeaturedataset.h
     coordinatetransformation.h
+    geometry.h
 )
 
 set(CSOURCES
@@ -42,6 +43,7 @@ set(CSOURCES
     table.cpp
     storefeaturedataset.cpp
     coordinatetransformation.cpp
+    geometry.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

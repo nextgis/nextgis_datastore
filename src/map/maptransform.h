@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -24,6 +24,7 @@
 #include "ogr_core.h"
 
 #include "matrix.h"
+#include "ds/geometry.h"
 #include "ngstore/api.h"
 
 namespace ngs {
@@ -32,39 +33,42 @@ class MapTransform
 {
 public:
     MapTransform(int width, int height);
-    virtual ~MapTransform();
+    virtual ~MapTransform() = default;
 
-    int getDisplayWidht() const;
-    int getDisplayHeight() const;
-    double getRotate(enum ngsDirection dir) const;
+    int getDisplayWidht() const {return m_displayHeight;}
+    int getDisplayHeight() const {return m_displayWidht;}
+    double getRotate(enum ngsDirection dir) const {return m_rotate[dir];}
     bool setRotate(enum ngsDirection dir, double rotate);
 
-    OGREnvelope getExtent() const;
-    OGRRawPoint getCenter() const;
-    OGRRawPoint worldToDisplay(const OGRRawPoint &pt);
-    OGRRawPoint displayToWorld(const OGRRawPoint &pt);
+    Envelope getExtent() const {return m_rotateExtent;}
+    OGRRawPoint getCenter() const {return m_center;}
+    OGRRawPoint worldToDisplay(const OGRRawPoint &pt) {
+        return m_worldToDisplayMatrix.project(pt);}
+    OGRRawPoint displayToWorld(const OGRRawPoint &pt) {
+        return m_invWorldToDisplayMatrix.project(pt);}
     void setDisplaySize(int width, int height, bool isYAxisInverted);
     bool setScale(double scale);
     bool setCenter(double x, double y);
     bool setScaleAndCenter(double scale, double x, double y);
-    bool setExtent(const OGREnvelope& env);
+    bool setExtent(const Envelope &env);
     double getZoom() const;
-    double getScale() const;
-    Matrix4 getSceneMatrix() const;
-    Matrix4 getInvViewMatrix() const;
+    double getScale() const {return m_scale;}
+    Matrix4 getSceneMatrix() const {return m_sceneMatrix;}
+    Matrix4 getInvViewMatrix() const {return m_invViewMatrix;}
 
-    bool getXAxisLooped() const;
+    bool getXAxisLooped() const {return m_XAxisLooped;}
 
 protected:
     bool updateExtent();
     void initMatrices();
     void setRotateExtent();
+
 protected:
     int m_displayWidht, m_displayHeight;
     OGRRawPoint m_center;
     double m_rotate[3];
     double m_scale, m_scaleScene, m_scaleView, m_scaleWorld;
-    OGREnvelope m_extent, m_rotateExtent;
+    Envelope m_extent, m_rotateExtent;
     double m_ratio;
     bool m_YAxisInverted, m_XAxisLooped;
     /* NOTE: sceneMatrix transform from world coordinates to GL coordinates -1 x 1

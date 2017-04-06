@@ -21,6 +21,7 @@
 
 #include "test.h"
 
+#include "ds/geometry.h"
 #include "map/matrix.h"
 #include "ngstore/util/constants.h"
 
@@ -209,7 +210,7 @@ TEST(MatrixTests, TestRotateByCenter) {
 TEST(MatrixTests, TestComplexProject) {
 
     int display_sqw = 100;
-    double map_sqw = DEFAULT_MAX_X;
+    double map_sqw = ngs::DEFAULT_BOUNDS.getMaxX();
     bool m_isYAxisInverted = false;
     int m_displayWidht = display_sqw;
     int m_displayHeight = display_sqw;

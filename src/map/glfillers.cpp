@@ -21,9 +21,10 @@
 
 #include "map/glfillers.h"
 
+#include "cpl_error.h"
+
 #include "ngstore/util/constants.h"
 
-#include "cpl_error.h"
 
 using namespace ngs;
 
@@ -518,6 +519,7 @@ int LineStringFiller::insertVertex(size_t index, enum ngsBufferType indexType)
     return vertexIndex;
 }
 
+/*
 void LineStringFiller::addCurrentLineVertex(const Vector2& currPt,
         float level,
         const Vector2& normal,
@@ -816,3 +818,5 @@ void PolygonTriangulator::triangulate(const OGRPolygon* polygon)
     // Mark facets that are inside the domain bounded by the polygon.
     markDomains();
 }
+
+*/

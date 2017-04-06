@@ -22,6 +22,7 @@
 #define NGSMAPVIEW_H
 
 #include "map.h"
+
 #include "maptransform.h"
 #include "glview.h"
 
@@ -34,28 +35,23 @@ public:
     MapView(const CPLString& name, const CPLString& description,
             unsigned short epsg,
             double minX, double minY, double maxX, double maxY);
-    MapView(DataStorePtr dataSource);
-    MapView(const CPLString& name, const CPLString& description,
-            unsigned short epsg,
-            double minX, double minY, double maxX, double maxY,
-            DataStorePtr dataSource);
-    virtual ~MapView();
-    bool isDisplayInit() const;
-    int initDisplay();
-    int draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
-             void* progressArguments = nullptr);
-    int notify();
+    virtual ~MapView() = default;
+//    bool isDisplayInit() const;
+//    int initDisplay();
+//    int draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
+//             void* progressArguments = nullptr);
+//    int notify();
 
     // Map interface
 public:
-    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
-    virtual int setBackgroundColor(const ngsRGBA &color) override;
+//    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
+//    virtual int setBackgroundColor(const ngsRGBA &color) override;
 
-protected:
-    bool m_displayInit;
-    ngsProgressFunc m_progressFunc;
-    void* m_progressArguments;
-    GlFuctions m_glFunctions;
+//protected:
+//    bool m_displayInit;
+//    ngsProgressFunc m_progressFunc;
+//    void* m_progressArguments;
+//    GlFuctions m_glFunctions;
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type) override;

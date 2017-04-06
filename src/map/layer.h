@@ -31,6 +31,8 @@
 
 namespace ngs {
 
+constexpr const char* LAYER_TYPE = "type";
+
 /**
  * @brief The Layer class - base class for any map layer.
  */
@@ -49,8 +51,8 @@ public:
     Layer(const CPLString& name, enum Type type);
     virtual ~Layer() = default;
     virtual bool load(const JSONObject& store,
-                      ObjectContainer * const objectContainer = nullptr);
-    virtual JSONObject save(ObjectContainer * const objectContainer = nullptr) const;
+                      const ObjectContainer *objectContainer = nullptr);
+    virtual JSONObject save(const ObjectContainer * objectContainer = nullptr) const;
 protected:
     CPLString m_name;
     enum Type m_type;

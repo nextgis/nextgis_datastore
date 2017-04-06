@@ -20,7 +20,7 @@
  ****************************************************************************/
 #ifndef NGSRENDERLAYER_H
 #define NGSRENDERLAYER_H
-
+/*
 #include "mapview.h"
 #include "style.h"
 
@@ -30,7 +30,7 @@ void FillGLBufferThread(void * layer);
 
 /**
  * @brief The RenderLayer class Base for renderable map layers
- */
+ *//*
 class RenderLayer : public Layer
 {
     friend class MapView;
@@ -114,4 +114,5 @@ public:
 };
 
 }
+*/
 #endif // NGSRENDERLAYER_H

@@ -26,17 +26,8 @@
 
 constexpr int NOT_FOUND = -1;
 
-constexpr unsigned short DEFAULT_EPSG = 3857;
-constexpr double DEFAULT_MAX_X2 = 40075016.68;
-constexpr double DEFAULT_MAX_Y2 = 40075016.68;
-constexpr double DEFAULT_MAX_X = 20037508.34;
-constexpr double DEFAULT_MAX_Y = 20037508.34;
-constexpr double DEFAULT_MIN_X = -DEFAULT_MAX_X;
-constexpr double DEFAULT_MIN_Y = -DEFAULT_MAX_Y;
-
-constexpr const char* LAYER_TYPE = "type";
 /*
-#define DEFAULT_RATIO 1
+
 #define DEFAULT_TILE_SIZE 256
 
 // Common
@@ -47,8 +38,6 @@ constexpr const char* LAYER_TYPE = "type";
 // Draw
 #define NOTIFY_PERCENT 0.1
 
-// Common
-#define BIG_VALUE 10000000.0
 */
 
 constexpr double DEG2RAD = M_PI / 180.0;

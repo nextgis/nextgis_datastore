@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -23,41 +23,25 @@
 #include <algorithm>
 #include <iostream>
 
-#include "ngstore/util/constants.h"
-#include "util/geometryutil.h"
+#include "api_priv.h"
+#include "ds/geometry.h"
 
-using namespace std;
-using namespace ngs;
+namespace ngs {
 
-// TODO: DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y, DEFAULT_MAX_Y - special struct not definition
+constexpr double DEFAULT_RATIO = 1.0;
 
-MapTransform::MapTransform(int width, int height) : m_displayWidht(width),
-    m_displayHeight(height), m_rotate{0},
-    m_ratio(DEFAULT_RATIO), m_XAxisLooped(true), m_YAxisInverted(false)
+MapTransform::MapTransform(int width, int height) :
+    m_displayWidht(width),
+    m_displayHeight(height),
+    m_rotate{0},
+    m_ratio(DEFAULT_RATIO),
+    m_YAxisInverted(false),
+    m_XAxisLooped(true)
 {
-    setExtent(setEnvelope(DEFAULT_MIN_X, DEFAULT_MAX_X, DEFAULT_MIN_Y,
-                          DEFAULT_MAX_Y));
+    setExtent(DEFAULT_BOUNDS);
     setDisplaySize(width, height, false);
 }
 
-MapTransform::~MapTransform()
-{
-
-}
-
-int MapTransform::getDisplayHeight() const
-{
-    return m_displayHeight;
-}
-int MapTransform::getDisplayWidht() const
-{
-    return m_displayWidht;
-}
-
-double MapTransform::getRotate(enum ngsDirection dir) const
-{
-    return m_rotate[dir];
-}
 
 bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
 {
@@ -65,25 +49,6 @@ bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
     return updateExtent();
 }
 
-OGREnvelope MapTransform::getExtent() const
-{
-    return m_rotateExtent;
-}
-
-OGRRawPoint MapTransform::getCenter() const
-{
-    return m_center;
-}
-
-OGRRawPoint MapTransform::worldToDisplay(const OGRRawPoint &pt)
-{
-    return m_worldToDisplayMatrix.project (pt);
-}
-
-OGRRawPoint MapTransform::displayToWorld(const OGRRawPoint &pt)
-{
-    return m_invWorldToDisplayMatrix.project (pt);
-}
 
 void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
@@ -122,35 +87,36 @@ bool MapTransform::setScaleAndCenter(double scale, double x, double y)
     return updateExtent();
 }
 
-bool MapTransform::setExtent(const OGREnvelope &env)
+bool MapTransform::setExtent(const Envelope &env)
 {
-    m_center = getEnvelopeCenter (env);
-    m_extent = setEnvelopeRatio(env, m_ratio);
+    m_extent = env;
+    m_center = m_extent.getCenter();
+    m_extent.setRatio(m_ratio);
 
     if(m_XAxisLooped) {
-        while (m_extent.MinX > DEFAULT_MAX_X) {
-            m_extent.MinX -= DEFAULT_MAX_X2;
-            m_extent.MaxX -= DEFAULT_MAX_X2;
+        while (m_extent.getMinX() > DEFAULT_BOUNDS.getMinX()) {
+            m_extent.setMinX(m_extent.getMinX() - DEFAULT_BOUNDS_X2.getMaxX());
+            m_extent.setMaxX(m_extent.getMaxX() - DEFAULT_BOUNDS_X2.getMaxX());
         }
-        while (m_extent.MaxX < DEFAULT_MIN_X) {
-            m_extent.MinX += DEFAULT_MAX_X2;
-            m_extent.MaxX += DEFAULT_MAX_X2;
+        while (m_extent.getMaxX() < DEFAULT_BOUNDS.getMinX()) {
+            m_extent.setMinX(m_extent.getMinX() + DEFAULT_BOUNDS_X2.getMaxX());
+            m_extent.setMaxX(m_extent.getMaxX() + DEFAULT_BOUNDS_X2.getMaxX());
         }
     }
 
-    double w = getEnvelopeWidth (env);
-    double h = getEnvelopeHeight (env);
-    double scaleX = fabs(double(m_displayWidht) / w);
-    double scaleY = fabs(double(m_displayHeight) / h);
-    m_scale = min(scaleX, scaleY);
+    double w = m_extent.getWidth();
+    double h = m_extent.getHeight();
+    double scaleX = std::fabs(double(m_displayWidht) / w);
+    double scaleY = std::fabs(double(m_displayHeight) / h);
+    m_scale = std::min(scaleX, scaleY);
 
     scaleX = 1.0 / w;
     scaleY = 1.0 / h;
-    m_scaleScene = min(scaleX, scaleY);
+    m_scaleScene = std::min(scaleX, scaleY);
 
-    scaleX = w / DEFAULT_MAX_X2;
-    scaleY = h / DEFAULT_MAX_Y2;
-    m_scaleWorld = 1 / min(scaleX, scaleY);
+    scaleX = w / DEFAULT_BOUNDS_X2.getMaxX();
+    scaleY = h / DEFAULT_BOUNDS_X2.getMaxY();
+    m_scaleWorld = 1 / std::min(scaleX, scaleY);
 
     initMatrices();
 
@@ -170,27 +136,27 @@ bool MapTransform::updateExtent()
     double doubleScale = m_scale * 2;
     double halfWidth = double(m_displayWidht) / doubleScale;
     double halfHeight = double(m_displayHeight) / doubleScale;
-    m_extent.MinX = m_center.x - halfWidth;
-    m_extent.MaxX = m_center.x + halfWidth;
-    m_extent.MinY = m_center.y - halfHeight;
-    m_extent.MaxY = m_center.y + halfHeight;
+    m_extent.setMinX(m_center.x - halfWidth);
+    m_extent.setMaxX(m_center.x + halfWidth);
+    m_extent.setMinY(m_center.y - halfHeight);
+    m_extent.setMaxY(m_center.y + halfHeight);
 
     double scaleX = 1.0 / (halfWidth + halfWidth);
     double scaleY = 1.0 / (halfHeight + halfHeight);
-    m_scaleScene = min(scaleX, scaleY);
+    m_scaleScene = std::min(scaleX, scaleY);
 
-    scaleX = halfWidth / DEFAULT_MAX_X;
-    scaleY = halfHeight / DEFAULT_MAX_Y;
-    m_scaleWorld = 1 / min(scaleX, scaleY);
+    scaleX = halfWidth / DEFAULT_BOUNDS.getMaxX();
+    scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
+    m_scaleWorld = 1 / std::min(scaleX, scaleY);
 
     if(m_XAxisLooped) {
-        while (m_extent.MinX > DEFAULT_MAX_X) {
-            m_extent.MinX -= DEFAULT_MAX_X2;
-            m_extent.MaxX -= DEFAULT_MAX_X2;
+        while (m_extent.getMinX() > DEFAULT_BOUNDS.getMaxX()) {
+            m_extent.setMinX(m_extent.getMinX() - DEFAULT_BOUNDS.getMaxX());
+            m_extent.setMaxX(m_extent.getMaxX() - DEFAULT_BOUNDS.getMaxX());
         }
-        while (m_extent.MaxX < DEFAULT_MIN_X) {
-            m_extent.MinX += DEFAULT_MAX_X2;
-            m_extent.MaxX += DEFAULT_MAX_X2;
+        while (m_extent.getMaxX() < DEFAULT_BOUNDS.getMinX()) {
+            m_extent.setMinX(m_extent.getMinX() + DEFAULT_BOUNDS.getMaxX());
+            m_extent.setMaxX(m_extent.getMaxX() + DEFAULT_BOUNDS.getMaxX());
         }
     }
 
@@ -213,16 +179,18 @@ void MapTransform::initMatrices()
     m_sceneMatrix.clear ();
 
     if (m_YAxisInverted) {
-        m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
-                             m_extent.MaxY, m_extent.MinY, DEFAULT_MIN_X, DEFAULT_MAX_X);
+        m_sceneMatrix.ortho(m_extent.getMinX(), m_extent.getMaxX(),
+                            m_extent.getMaxY(), m_extent.getMinY(),
+                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
     } else {
-        m_sceneMatrix.ortho (m_extent.MinX, m_extent.MaxX,
-                             m_extent.MinY, m_extent.MaxY, DEFAULT_MIN_X, DEFAULT_MAX_X);
+        m_sceneMatrix.ortho(m_extent.getMinX(), m_extent.getMaxX(),
+                            m_extent.getMinY(), m_extent.getMaxY(),
+                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
     }
 
 
     if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
-        m_sceneMatrix.rotateX (m_rotate[ngsDirection::DIR_X]);
+        m_sceneMatrix.rotateX(m_rotate[ngsDirection::DIR_X]);
     }
 
     /* TODO: no idea about Y axis rotation
@@ -233,38 +201,38 @@ void MapTransform::initMatrices()
 
     // world -> scene inv matrix
     m_invSceneMatrix = m_sceneMatrix;
-    m_invSceneMatrix.invert ();
+    m_invSceneMatrix.invert();
 
     // scene -> view inv matrix
-    m_invViewMatrix.clear ();
+    m_invViewMatrix.clear();
 
-    double maxDeep = max(m_displayWidht, m_displayHeight);
+    double maxDeep = std::max(m_displayWidht, m_displayHeight);
 
     m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);
 
     if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
-        m_invViewMatrix.rotateX (-m_rotate[ngsDirection::DIR_X]);
+        m_invViewMatrix.rotateX(-m_rotate[ngsDirection::DIR_X]);
     }
 
     // scene -> view matrix
     m_viewMatrix = m_invViewMatrix;
-    m_viewMatrix.invert ();
+    m_viewMatrix.invert();
 
     m_worldToDisplayMatrix = m_viewMatrix;
-    m_worldToDisplayMatrix.multiply (m_sceneMatrix);
+    m_worldToDisplayMatrix.multiply(m_sceneMatrix);
 
     m_invWorldToDisplayMatrix = m_invSceneMatrix;
-    m_invWorldToDisplayMatrix.multiply (m_invViewMatrix);
+    m_invWorldToDisplayMatrix.multiply(m_invViewMatrix);
 
     // Z axis rotation
     if(!isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)){
-        OGRRawPoint center = getEnvelopeCenter(m_extent);
-        m_sceneMatrix.translate (center.x, center.y, 0);
-        m_sceneMatrix.rotateZ (m_rotate[ngsDirection::DIR_Z]);
-        m_sceneMatrix.translate (-center.x, -center.y, 0);
+        OGRRawPoint center = m_extent.getCenter();
+        m_sceneMatrix.translate(center.x, center.y, 0);
+        m_sceneMatrix.rotateZ(m_rotate[ngsDirection::DIR_Z]);
+        m_sceneMatrix.translate(-center.x, -center.y, 0);
 
-        m_worldToDisplayMatrix.rotateZ (-m_rotate[ngsDirection::DIR_Z]);
-        m_invWorldToDisplayMatrix.rotateZ (m_rotate[ngsDirection::DIR_Z]);
+        m_worldToDisplayMatrix.rotateZ(-m_rotate[ngsDirection::DIR_Z]);
+        m_invWorldToDisplayMatrix.rotateZ(m_rotate[ngsDirection::DIR_Z]);
     }
 }
 
@@ -278,46 +246,28 @@ void MapTransform::setRotateExtent()
     inPt[3] = OGRRawPoint(m_displayWidht, 0);
 
     pt = m_invWorldToDisplayMatrix.project (inPt[0]);
-    m_rotateExtent.MinX = pt.x;
-    m_rotateExtent.MaxX = pt.x;
-    m_rotateExtent.MinY = pt.y;
-    m_rotateExtent.MaxY = pt.y;
+    m_rotateExtent.setMinX(pt.x);
+    m_rotateExtent.setMaxX(pt.x);
+    m_rotateExtent.setMinY(pt.y);
+    m_rotateExtent.setMaxY(pt.y);
 
 
     for(unsigned char i = 1; i < 4; ++i) {
         pt = m_invWorldToDisplayMatrix.project (inPt[i]);
-        if(pt.x > m_rotateExtent.MaxX)
-            m_rotateExtent.MaxX = pt.x;
-        if(pt.x < m_rotateExtent.MinX)
-            m_rotateExtent.MinX = pt.x;
-        if(pt.y > m_rotateExtent.MaxY)
-            m_rotateExtent.MaxY = pt.y;
-        if(pt.y < m_rotateExtent.MinY)
-            m_rotateExtent.MinY = pt.y;
+        if(pt.x > m_rotateExtent.getMaxX())
+            m_rotateExtent.setMaxX(pt.x);
+        if(pt.x < m_rotateExtent.getMinX())
+            m_rotateExtent.setMinX(pt.x);
+        if(pt.y > m_rotateExtent.getMaxY())
+            m_rotateExtent.setMaxY(pt.y);
+        if(pt.y < m_rotateExtent.getMinY())
+            m_rotateExtent.setMinY(pt.y);
     }
-}
-
-bool MapTransform::getXAxisLooped() const
-{
-    return m_XAxisLooped;
-}
-
-double MapTransform::getScale() const
-{
-    return m_scale;
-}
-
-Matrix4 MapTransform::getSceneMatrix() const
-{
-    return m_sceneMatrix;
-}
-
-Matrix4 MapTransform::getInvViewMatrix() const
-{
-    return m_invViewMatrix;
 }
 
 double MapTransform::getZoom() const {
     double retVal = log(m_scaleWorld) / M_LN2;
     return retVal < 0 ? 0 : retVal;
+}
+
 }

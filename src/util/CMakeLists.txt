@@ -25,7 +25,6 @@
 set(LIB_NAME util)
 
 set(HHEADERS
-    geometryutil.h
     jsondocument.h
     maputil.h
     stringutil.h
@@ -38,7 +37,6 @@ set(HHEADERS
 )
 
 set(CSOURCES
-    geometryutil.cpp
     jsondocument.cpp
     maputil.cpp
     stringutil.cpp

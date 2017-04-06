@@ -40,7 +40,7 @@ Layer::Layer(const CPLString &name, Type type) : m_name(name),
 {
 }
 
-bool Layer::load(const JSONObject& store, ObjectContainer * const /*objectContainer*/)
+bool Layer::load(const JSONObject& store, const ObjectContainer * /*objectContainer*/)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
 // TODO: Check absolute or relative catalog path
@@ -66,7 +66,7 @@ bool Layer::load(const JSONObject& store, ObjectContainer * const /*objectContai
     return true;
 }
 
-JSONObject Layer::save(ObjectContainer * const /*objectContainer*/) const
+JSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
 {
     JSONObject out;
     out.add(LAYER_NAME, m_name);

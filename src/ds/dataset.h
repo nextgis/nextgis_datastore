@@ -26,6 +26,7 @@
 #include "ogrsf_frmts.h"
 
 #include "api_priv.h"
+#include "geometry.h"
 #include "featureclass.h"
 #include "raster.h"
 #include "table.h"

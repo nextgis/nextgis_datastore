@@ -1511,6 +1511,7 @@ void GlBufferBucket::fill(const OGRGeometry* geom, float level)
     }
 }
 
+/*
 void GlBufferBucket::fillPoint(const OGRPoint* point, float level)
 {
     if (!m_buffers.back()->canStoreVertices(1)
@@ -1739,3 +1740,5 @@ size_t GlBufferBucket::getIndexBufferSize() const
     }
     return count;
 }
+
+*/

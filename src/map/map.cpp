@@ -45,10 +45,10 @@ constexpr const char* MAP_BKCOLOR = "bk_color";
 Map::Map() :
     m_name(DEFAULT_MAP_NAME),
     m_epsg(DEFAULT_EPSG),
-    m_minX(DEFAULT_MIN_X),
-    m_minY(DEFAULT_MIN_Y),
-    m_maxX(DEFAULT_MAX_X),
-    m_maxY(DEFAULT_MAX_Y),
+    m_minX(DEFAULT_BOUNDS.getMinX()),
+    m_minY(DEFAULT_BOUNDS.getMinY()),
+    m_maxX(DEFAULT_BOUNDS.getMaxX()),
+    m_maxY(DEFAULT_BOUNDS.getMaxY()),
     m_bkColor(DEFAULT_MAP_BK),
     m_relativePaths(true)
 {
@@ -82,10 +82,10 @@ bool Map::open(MapFile * const mapFile)
         m_relativePaths = root.getBool (MAP_RELATIVEPATHS, true);
         m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,
                                                               DEFAULT_EPSG));
-        m_minX = root.getDouble (MAP_MIN_X, DEFAULT_MIN_X);
-        m_minY = root.getDouble (MAP_MIN_Y, DEFAULT_MIN_Y);
-        m_maxX = root.getDouble (MAP_MAX_X, DEFAULT_MAX_X);
-        m_maxY = root.getDouble (MAP_MAX_Y, DEFAULT_MAX_Y);
+        m_minX = root.getDouble(MAP_MIN_X, DEFAULT_BOUNDS.getMinX());
+        m_minY = root.getDouble(MAP_MIN_Y, DEFAULT_BOUNDS.getMinY());
+        m_maxX = root.getDouble(MAP_MAX_X, DEFAULT_BOUNDS.getMaxX());
+        m_maxY = root.getDouble(MAP_MAX_Y, DEFAULT_BOUNDS.getMaxY());
         m_bkColor = ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR,
                                                  ngsRGBA2HEX(m_bkColor)));
 
@@ -93,13 +93,13 @@ bool Map::open(MapFile * const mapFile)
         for(int i = 0; i < layers.size(); ++i) {
             JSONObject layerConfig = layers[i];
             Layer::Type type = static_cast<Layer::Type>(
-                        layerConfig.getInteger (LAYER_TYPE, 0));
+                        layerConfig.getInteger(LAYER_TYPE, 0));
             // load layer
             LayerPtr layer = createLayer(type);
             if(nullptr != layer) {
                 if(layer->load(layerConfig, m_relativePaths ?
                                mapFile->getParent() : nullptr))
-                    m_layers.push_back (layer);
+                    m_layers.push_back(layer);
             }
         }
     }
