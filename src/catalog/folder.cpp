@@ -104,14 +104,15 @@ bool Folder::destroy()
 {
     //test if symlink
     if(isSymlink(m_path)) {
-        if(!File::deleteFile(m_path))
+        if(!File::deleteFile(m_path)) {
             return false;
+        }
     }
     else {
-        int result = CPLUnlinkTree(m_path);
-        if (result == -1)
+        if (CPLUnlinkTree(m_path) == -1) {
             return errorMessage(_("Delete folder failed! Folder '%s'"), 
                                 m_path.c_str());
+        }
     }
     
     if(m_parent)

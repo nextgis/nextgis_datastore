@@ -31,6 +31,7 @@ namespace ngs {
 
 class ObjectContainer : public Object
 {
+    friend class ObjectFactory;
 public:
     ObjectContainer(ObjectContainer * const parent = nullptr,
                     const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
@@ -51,11 +52,18 @@ public:
     }
     std::vector<ObjectPtr> getChildren() const;
     ObjectPtr getChild(const CPLString& name) const;
-    virtual void addChild(ObjectPtr object) { m_children.push_back(object); }
 
-// events
+    // events
 public:
     virtual void notifyChanges() { refresh(); }
+
+protected:
+    /**
+     * @brief addChild Executes from catalog factories to add new child to
+     * container.
+     * @param object The child object to add.
+     */
+    virtual void addChild(ObjectPtr object) { m_children.push_back(object); }
 
 protected:
     static void removeDuplicates(std::vector<const char*> &deleteNames,

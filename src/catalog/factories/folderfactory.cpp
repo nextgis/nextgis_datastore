@@ -39,10 +39,10 @@ void FolderFactory::createObjects(ObjectContainer * const container,
                                        std::vector<const char *> * const names)
 {
     std::vector<const char *>::iterator it = names->begin();
-    while( it != names->end() ) {
+    while(it != names->end()) {
         const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
         if(Folder::isDir(path)) {
-            container->addChild(ObjectPtr(new Folder(container, *it, path)));
+            addChild(container, ObjectPtr(new Folder(container, *it, path)));
             it = names->erase(it);
         }
         else {

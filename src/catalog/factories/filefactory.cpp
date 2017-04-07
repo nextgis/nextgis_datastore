@@ -42,7 +42,7 @@ void FileFactory::createObjects(ObjectContainer * const container,
         const char* ext = CPLGetExtension(*it);
         if(EQUAL(MapFile::getExtension(), ext)) {
             const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
-            container->addChild(ObjectPtr(new MapFile(container, *it, path)));
+            addChild(container, ObjectPtr(new MapFile(container, *it, path)));
             it = names->erase(it);
         } // TODO: Add txt, log support. Do we need prj, spr support here?
         else {

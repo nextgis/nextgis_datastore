@@ -39,6 +39,10 @@ public:
 
     bool getEnabled() const;
     void setEnabled(bool enabled);
+protected:
+    virtual void addChild(ObjectContainer * const container, ObjectPtr object) {
+        container->addChild(object);
+    }
 
 private:
     bool m_enabled;
