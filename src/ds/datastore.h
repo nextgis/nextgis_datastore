@@ -42,6 +42,10 @@ public:
     static bool create(const char* path);
     static const char* getExtension();
 
+    // Object interface
+public:
+    virtual bool canDestroy() const override;
+
     // ISpatialDataset interface
 public:
     virtual OGRSpatialReference *getSpatialReference() const override {
@@ -53,6 +57,7 @@ public:
 
 protected:
     virtual bool isNameValid(const char *name) const override;
+    virtual void fillFeatureClasses() override;
 
 protected:
     void enableJournal(bool enable);

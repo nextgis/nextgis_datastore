@@ -33,17 +33,7 @@ MapFile::MapFile(ObjectContainer * const parent,
                  const CPLString &path) :
     File(parent, ngsCatalogObjectType::CAT_FILE_NGMAPDOCUMENT, name, path)
 {
-    if(!EQUAL(m_name.c_str() + m_name.length() - MAP_DOCUMENT_EXT_LEN,
-               MAP_DOCUMENT_EXT)) {
-        m_name += ".";
-        m_name += MAP_DOCUMENT_EXT;
-    }
 
-    if(!EQUAL(m_path.c_str() + m_path.length() - MAP_DOCUMENT_EXT_LEN,
-                   MAP_DOCUMENT_EXT)) {
-            m_path += ".";
-            m_path += MAP_DOCUMENT_EXT;
-        }
 }
 
 bool MapFile::open()
@@ -78,6 +68,11 @@ bool MapFile::save(MapViewPtr mapView)
     }
 
     return result;
+}
+
+const char *MapFile::getExtension()
+{
+    return MAP_DOCUMENT_EXT;
 }
 
 bool MapFile::destroy()

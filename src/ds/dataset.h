@@ -85,6 +85,7 @@ protected:
     virtual bool isNameValid(const char *name) const;
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
+    virtual void fillFeatureClasses();
 
 protected:
     GDALDataset* m_DS;

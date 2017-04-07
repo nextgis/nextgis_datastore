@@ -102,6 +102,7 @@ Dataset::Dataset(ObjectContainer * const parent,
 Dataset::~Dataset()
 {
     GDALClose(m_DS);
+    m_DS = nullptr;
 }
 
 bool Dataset::open(unsigned int openFlags, const Options &options)
@@ -210,6 +211,26 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
     return out;
 }
 
+void Dataset::fillFeatureClasses()
+{
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i){
+        OGRLayer* layer = m_DS->GetLayer(i);
+        if(nullptr != layer) {
+            OGRwkbGeometryType geometryType = layer->GetGeomType();
+            const char* layerName = layer->GetName();
+            // layer->GetLayerDefn()->GetGeomFieldCount() == 0
+            if(geometryType == wkbNone) {
+                m_children.push_back(ObjectPtr(new Table(layer, this,
+                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName, "")));
+            }
+            else {
+                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
+                            ngsCatalogObjectType::CAT_FC_ANY, layerName, "")));
+            }
+        }
+    }
+}
+
 const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
 {
     if(nullptr == m_DS)
@@ -247,43 +268,29 @@ bool Dataset::hasChildren()
     }
 
     // fill vector layers and tables
-    int i;
-    for(i = 0; i < m_DS->GetLayerCount(); ++i){
-        OGRLayer* layer = m_DS->GetLayer(i);
-        if(nullptr != layer) {
-            OGRwkbGeometryType geometryType = layer->GetGeomType();
-            const char* layerName = layer->GetName();
-            // layer->GetLayerDefn()->GetGeomFieldCount() == 0
-            if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new Table(layer, this,
-                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName, "")));
-            }
-            else {
-                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            ngsCatalogObjectType::CAT_FC_ANY, layerName, "")));
-            }
-        }
-    }
+    fillFeatureClasses();
 
     // fill rasters
     char** subdatasetList = m_DS->GetMetadata ("SUBDATASETS");
-    i = 0;
-    size_t strLen = 0;
-    const char* testStr = nullptr;
-    char rasterPath[255];
-    while(subdatasetList[i] != nullptr) {
-        ++i;
-        testStr = subdatasetList[i];
-        strLen = CPLStrnlen(testStr, 255);
-        if(EQUAL(testStr + strLen - 4, "NAME")) {
-            CPLStrlcpy(rasterPath, testStr, strLen - 4);
-            CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
-            const char* rasterName = pathPortions[pathPortions.size() - 1];
-            m_children.push_back(ObjectPtr(new Raster(this,
-                ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, rasterPath)));
+    if(nullptr != subdatasetList) {
+        int i = 0;
+        size_t strLen = 0;
+        const char* testStr = nullptr;
+        char rasterPath[255];
+        while(subdatasetList[i] != nullptr) {
+            ++i;
+            testStr = subdatasetList[i];
+            strLen = CPLStrnlen(testStr, 255);
+            if(EQUAL(testStr + strLen - 4, "NAME")) {
+                CPLStrlcpy(rasterPath, testStr, strLen - 4);
+                CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
+                const char* rasterName = pathPortions[pathPortions.size() - 1];
+                m_children.push_back(ObjectPtr(new Raster(this,
+                    ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, rasterPath)));
+            }
         }
+        CSLDestroy(subdatasetList);
     }
-    CSLDestroy(subdatasetList);
 
     m_childrenLoaded = true;
 

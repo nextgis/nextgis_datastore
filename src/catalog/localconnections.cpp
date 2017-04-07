@@ -46,7 +46,7 @@ LocalConnections::LocalConnections(ObjectContainer * const parent,
 bool LocalConnections::hasChildren()
 {
     JSONDocument doc;
-    if(doc.load (m_path) == ngsErrorCodes::EC_SUCCESS) {
+    if(doc.load (m_path)) {
         JSONObject root = doc.getRoot ();
         if(root.getType () == JSONObject::Type::Object) {
             JSONArray connections = root.getArray("connections");

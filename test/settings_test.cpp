@@ -41,12 +41,12 @@ TEST(SettingsTests, WriteTest) {
     root.destroy("four_level/second_level/third_level/forth_level");
     root.add("three_level/second_level/third_level1", false);
     root.set("three_level/second_level/third_level1", true);
-    EXPECT_EQ(doc.save(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(doc.save(SETTINGS_FILE), true);
 }
 
 TEST(SettingsTests, ReadTest) {
     ngs::JSONDocument doc;
-    ASSERT_EQ(doc.load(SETTINGS_FILE), ngsErrorCodes::EC_SUCCESS);
+    ASSERT_EQ(doc.load(SETTINGS_FILE), true);
     ngs::JSONObject root = doc.getRoot();
     EXPECT_EQ(root.getBool("one_level", false), true);
     EXPECT_EQ(root.getBool("two_level/second_level", true), false);

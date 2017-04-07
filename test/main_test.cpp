@@ -119,7 +119,7 @@ TEST(BasicTests, TestCatalogQuery) {
         count++;
     }
     ASSERT_GE(count, 1);
-    const char* path2test = CPLSPrintf("ngc://%s", pathInfo[0].name);
+    CPLString path2test = CPLSPrintf("ngc://%s", pathInfo[0].name);
     CPLFree(pathInfo);
 
     pathInfo = ngsCatalogObjectQuery(path2test);
@@ -130,7 +130,7 @@ TEST(BasicTests, TestCatalogQuery) {
         count++;
     }
     EXPECT_GE(count, 1);
-    path2test = CPLSPrintf("%s/%s", path2test, pathInfo[0].name);
+    path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[0].name);
     CPLFree(pathInfo);
 
     pathInfo = ngsCatalogObjectQuery(path2test);
@@ -157,8 +157,8 @@ TEST(BasicTests, TestCreate) {
     CSLDestroy(options);
     options = nullptr;
 
-    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
-    const char* catalogPath = ngsCatalogPathFromSystem(path);
+    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
 
     options = CSLAddNameValue(options, "TYPE",
@@ -190,7 +190,7 @@ TEST(BasicTests, TestDelete) {
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
     CSLDestroy(options);
 
-    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
     CPLString delPath = CPLFormFilename(catalogPath, "test_dir1", nullptr);
@@ -215,8 +215,8 @@ TEST(BasicTests, TestCreateDataStore) {
     CSLDestroy(options);
     options = nullptr;
 
-    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
-    const char* catalogPath = ngsCatalogPathFromSystem(path);
+    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
 
     options = CSLAddNameValue(options, "TYPE",
@@ -244,16 +244,18 @@ TEST(BasicTests, TestOpenDataStore) {
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
 
     CSLDestroy(options);
-    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
-    const char* catalogPath = ngsCatalogPathFromSystem(path);
+    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
-    const char* storePath = CPLFormFilename(catalogPath, "main", "ngst");
+    CPLString storePath = CPLFormFilename(catalogPath, "main", "ngst");
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(storePath);
 
-    ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
-    while(pathInfo[count].name) {
-        count++;
+
+    if(nullptr != pathInfo) {
+        while(pathInfo[count].name) {
+            count++;
+        }
     }
     ASSERT_GE(count, 0);
     CPLFree(pathInfo);
@@ -269,10 +271,10 @@ TEST(BasicTests, TestDeleteDataStore) {
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
     CSLDestroy(options);
 
-    const char* path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
-    const char* catalogPath = ngsCatalogPathFromSystem(path);
+    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
-    const char* delPath = CPLFormFilename(catalogPath, "main", "ngst");
+    CPLString delPath = CPLFormFilename(catalogPath, "main", "ngst");
     EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsErrorCodes::EC_SUCCESS);
     ngsUnInit();
 }

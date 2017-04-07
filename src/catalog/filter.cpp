@@ -20,6 +20,9 @@
  ****************************************************************************/
 #include "ngstore/catalog/filter.h"
 
+#include "catalog/mapfile.h"
+#include "ds/datastore.h"
+
 namespace ngs {
 
 //-----------------------------------------------------------------------------
@@ -80,6 +83,140 @@ bool Filter::isTable(const ngsCatalogObjectType type)
 bool Filter::isDatabase(const ngsCatalogObjectType type)
 {
     return type == CAT_CONTAINER_GDB || type == CAT_CONTAINER_POSTGRES;
+}
+
+GDALDriver *Filter::getGDALDriver(const ngsCatalogObjectType type)
+{
+
+    switch (type) {
+    case CAT_CONTAINER_NGS:
+        return GetGDALDriverManager()->GetDriverByName("GPKG");
+    case CAT_CONTAINER_GDB:
+        return GetGDALDriverManager()->GetDriverByName("OpenFileGDB");
+    case CAT_CONTAINER_POSTGRES:
+        return GetGDALDriverManager()->GetDriverByName("PostgreSQL");
+    case CAT_CONTAINER_WFS:
+        return GetGDALDriverManager()->GetDriverByName("WFS");
+    case CAT_CONTAINER_WMS:
+        return GetGDALDriverManager()->GetDriverByName("WMS");
+    case CAT_CONTAINER_KML:
+        return GetGDALDriverManager()->GetDriverByName("KML");
+    case CAT_CONTAINER_KMZ:
+        return GetGDALDriverManager()->GetDriverByName("LIBKML");
+    case CAT_CONTAINER_SXF:
+        return GetGDALDriverManager()->GetDriverByName("SXF");
+    case CAT_FC_ESRI_SHAPEFILE:
+        return GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+    case CAT_FC_MAPINFO_TAB:
+    case CAT_FC_MAPINFO_MIF:
+        return GetGDALDriverManager()->GetDriverByName("MapInfo File");
+    case CAT_FC_DXF:
+        return GetGDALDriverManager()->GetDriverByName("DXF");
+    case CAT_FC_GML:
+        return GetGDALDriverManager()->GetDriverByName("GML");
+    case CAT_FC_GEOJSON:
+        return GetGDALDriverManager()->GetDriverByName("GeoJSON");
+    case CAT_FC_S57:
+        return GetGDALDriverManager()->GetDriverByName("S57");
+    case CAT_FC_CSV:
+        return GetGDALDriverManager()->GetDriverByName("CSV");
+    case CAT_RASTER_BMP:
+        return GetGDALDriverManager()->GetDriverByName("BMP");
+    case CAT_RASTER_TIFF:
+        return GetGDALDriverManager()->GetDriverByName("GTiff");
+    case CAT_RASTER_TIL:
+        return GetGDALDriverManager()->GetDriverByName("TIL");
+    case CAT_RASTER_IMG:
+        return GetGDALDriverManager()->GetDriverByName("HFA");
+    case CAT_RASTER_JPEG:
+        return GetGDALDriverManager()->GetDriverByName("JPEG");
+    case CAT_RASTER_PNG:
+        return GetGDALDriverManager()->GetDriverByName("PNG");
+    case CAT_RASTER_GIF:
+        return GetGDALDriverManager()->GetDriverByName("GIF");
+    case CAT_RASTER_SAGA:
+        return GetGDALDriverManager()->GetDriverByName("SAGA");
+    case CAT_RASTER_VRT:
+        return GetGDALDriverManager()->GetDriverByName("VRT");
+    case CAT_RASTER_WMS:
+        return GetGDALDriverManager()->GetDriverByName("WMS");
+    case CAT_RASTER_TMS:
+        return GetGDALDriverManager()->GetDriverByName("WMS");
+    case CAT_RASTER_POSTGIS:
+        return GetGDALDriverManager()->GetDriverByName("PostgreSQL");
+    case CAT_RASTER_GDB:
+        return GetGDALDriverManager()->GetDriverByName("OpenFileGDB");
+    case CAT_TABLE_POSTGRES:
+        return GetGDALDriverManager()->GetDriverByName("PostgreSQL");
+    case CAT_TABLE_MAPINFO_TAB:
+    case CAT_TABLE_MAPINFO_MIF:
+        return GetGDALDriverManager()->GetDriverByName("MapInfo File");
+    case CAT_TABLE_CSV:
+        return GetGDALDriverManager()->GetDriverByName("CSV");
+    case CAT_TABLE_GDB:
+        return GetGDALDriverManager()->GetDriverByName("OpenFileGDB");
+    case CAT_TABLE_ODS:
+        return GetGDALDriverManager()->GetDriverByName("ODS");
+    case CAT_TABLE_XLS:
+        return GetGDALDriverManager()->GetDriverByName("XLS");
+    case CAT_TABLE_XLSX:
+        return GetGDALDriverManager()->GetDriverByName("GeoJSON");
+    default:
+        return nullptr;
+    }
+}
+
+const char *Filter::getExtension(const ngsCatalogObjectType type)
+{
+    GDALDriver *driver = getGDALDriver(type);
+    switch (type) {
+    case CAT_CONTAINER_POSTGRES:
+        return "dbconn";
+    case CAT_CONTAINER_WFS:
+    case CAT_CONTAINER_WMS:
+    case CAT_CONTAINER_NGW:
+        return "wconn";
+    case CAT_CONTAINER_NGS:
+        return DataStore::getExtension();
+    case CAT_FILE_NGMAPDOCUMENT:
+        return MapFile::getExtension();
+    case CAT_CONTAINER_KMZ:
+        return "kmz";
+    case CAT_FC_MAPINFO_TAB:
+    case CAT_TABLE_MAPINFO_TAB:
+        return "tab";
+    case CAT_FC_MAPINFO_MIF:
+    case CAT_TABLE_MAPINFO_MIF:
+        return "mif";
+    case CAT_CONTAINER_GDB:
+    case CAT_CONTAINER_KML:
+    case CAT_CONTAINER_SXF:
+    case CAT_FC_ESRI_SHAPEFILE:
+    case CAT_FC_DXF:
+    case CAT_FC_GML:
+    case CAT_FC_GEOJSON:
+    case CAT_FC_CSV:
+    case CAT_RASTER_BMP:
+    case CAT_RASTER_TIFF:
+    case CAT_RASTER_TIL:
+    case CAT_RASTER_IMG:
+    case CAT_RASTER_JPEG:
+    case CAT_RASTER_PNG:
+    case CAT_RASTER_GIF:
+    case CAT_RASTER_SAGA:
+    case CAT_RASTER_VRT:
+    case CAT_TABLE_CSV:
+    case CAT_TABLE_ODS:
+    case CAT_TABLE_XLS:
+    case CAT_TABLE_XLSX:
+    case CAT_CONTAINER_GPKG:
+        if(nullptr != driver)
+            return driver->GetMetadataItem(GDAL_DMD_EXTENSION);
+        else
+            return "";
+    default:
+        return "";
+    }
 }
 
 //-----------------------------------------------------------------------------

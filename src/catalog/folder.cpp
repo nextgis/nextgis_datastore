@@ -23,6 +23,7 @@
 #include "catalog.h"
 #include "file.h"
 #include "ds/datastore.h"
+#include "ngstore/catalog/filter.h"
 #include "util/notify.h"
 #include "util/error.h"
 
@@ -123,7 +124,7 @@ bool Folder::destroy()
 
 bool Folder::canDestroy() const
 {
-    return true;
+    return access(m_path, W_OK) == 0;
 }
 
 void Folder::refresh()
@@ -191,14 +192,18 @@ bool Folder::create(const ngsCatalogObjectType type, const CPLString &name,
                          const Options & options)
 {
     bool result = false;
-    const char* newPath = nullptr;
+    CPLString newPath;
     if(options.getBoolOption("CREATE_UNIQUE")) {
         newPath = createUniquePath(m_path, name);
     }
     else {
         newPath = CPLFormFilename(m_path, name, nullptr);
     }
-    const char* newName = CPLGetBasename(newPath);
+    const char* ext = Filter::getExtension(type);
+    if(nullptr != ext && !EQUAL(ext, "")) {
+        newPath = CPLResetExtension(newPath, ext);
+    }
+    CPLString newName = CPLGetFilename(newPath);
 
     switch (type) {
     case CAT_CONTAINER_DIR:

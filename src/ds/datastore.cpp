@@ -33,6 +33,7 @@
 #include "catalog/catalog.h"
 #include "catalog/folder.h"
 #include "ngstore/version.h"
+#include "ngstore/catalog/filter.h"
 #include "ngstore/util/constants.h"
 #include "util/error.h"
 #include "util/stringutil.h"
@@ -218,10 +219,29 @@ bool DataStore::isNameValid(const char *name) const
     if(EQUALN(name, STORE_EXT, STORE_EXT_LEN))
         return false;
 
-    if(m_children.empty())
-        return true;
-
     return Dataset::isNameValid(name);
+}
+
+void DataStore::fillFeatureClasses()
+{
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i){
+        OGRLayer* layer = m_DS->GetLayer(i);
+        if(nullptr != layer) {
+            OGRwkbGeometryType geometryType = layer->GetGeomType();
+            const char* layerName = layer->GetName();
+            if(EQUALN(layerName, STORE_EXT, STORE_EXT_LEN)) {
+                continue;
+            }
+            if(geometryType == wkbNone) {
+                m_children.push_back(ObjectPtr(new Table(layer, this,
+                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName, "")));
+            }
+            else {
+                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
+                            ngsCatalogObjectType::CAT_FC_ANY, layerName, "")));
+            }
+        }
+    }
 }
 
 bool DataStore::create(const char *path)
@@ -232,13 +252,8 @@ bool DataStore::create(const char *path)
                             _("The path is empty"));
     }
 
-    // Check extension present
-    size_t len = CPLStrnlen(path, Catalog::getMaxPathLength());
-    CPLString newPath(path);
-    if(!EQUAL(path + len - STORE_EXT_LEN, STORE_EXT))
-        newPath = CPLFormFilename(path, nullptr, STORE_EXT);
-
-    GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GPKG");
+    GDALDriver *poDriver = Filter::getGDALDriver(
+                ngsCatalogObjectType::CAT_CONTAINER_NGS);
     if(poDriver == nullptr) {
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("GeoPackage driver is not present"));
@@ -332,6 +347,11 @@ void DataStore::enableJournal(bool enable)
             // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
         }
     }
+}
+
+bool DataStore::canDestroy() const
+{
+    return access(m_path, W_OK) == 0;
 }
 
 }

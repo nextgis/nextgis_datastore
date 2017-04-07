@@ -23,6 +23,8 @@
 
 #include "catalog/object.h"
 
+#include "gdal_priv.h"
+
 #include <vector>
 
 namespace ngs {
@@ -43,6 +45,8 @@ public:
     static bool isTable(const ngsCatalogObjectType type);
     static bool isContainer(const ngsCatalogObjectType type);
     static bool isDatabase(const ngsCatalogObjectType type);
+    static GDALDriver *getGDALDriver(const ngsCatalogObjectType type);
+    static const char* getExtension(const ngsCatalogObjectType type);
 protected:
     enum ngsCatalogObjectType type;
 };

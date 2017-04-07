@@ -171,6 +171,8 @@ int ngsInit(char **options)
  */
 void ngsUnInit()
 {
+    MapStore::setInstance(nullptr);
+    Catalog::setInstance(nullptr);
     GDALDestroyDriverManager();
 }
 
@@ -273,7 +275,7 @@ int ngsCatalogObjectDelete(const char *path)
         return object->destroy() ? ngsErrorCodes::EC_SUCCESS :
                                    ngsErrorCodes::EC_DELETE_FAILED;
     return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
-                       _("The path cannot be deleted (write protected, locked, etc."));
+                       _("The path cannot be deleted (write protected, locked, etc.)"));
 }
 
 /**
@@ -416,8 +418,9 @@ int ngsMapSave(unsigned char mapId, const char *path)
         mapFile = ngsDynamicCast(MapFile, mapFileObject);
     }
     else { // create new MapFile
-        const char* saveFolder = CPLGetPath(path);
-        const char* saveName = CPLGetFilename(path);
+        const char* newPath = CPLResetExtension(path, MapFile::getExtension());
+        const char* saveFolder = CPLGetPath(newPath);
+        const char* saveName = CPLGetFilename(newPath);
         ObjectPtr object = catalog->getObject(saveFolder);
         ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
         mapFile = new MapFile(container, saveName,

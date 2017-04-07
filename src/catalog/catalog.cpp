@@ -62,6 +62,9 @@ ObjectPtr Catalog::getObject(const char *path)
 
 ObjectPtr Catalog::getObjectByLocalPath(const char *path)
 {
+    if(!hasChildren())
+        return ObjectPtr();
+
     // Find LocalConnections
     LocalConnections* localConnections = nullptr;
     for(const ObjectPtr &rootObject : m_children) {

@@ -36,6 +36,10 @@ public:
     bool open();
     bool save(MapViewPtr mapView = MapViewPtr());
 
+    // static
+public:
+    static const char *getExtension();
+
     // Object interface
 public:
     virtual bool destroy() override;
