@@ -38,8 +38,8 @@ void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCodes /*operation*/) {
     counter++;
 }
 
-int ngsTestProgressFunc(enum ngsErrorCodes /*status*/, double /*complete*/,
-                        const char* /*message*/, void* /*progressArguments*/) {
+int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
+                        void* /*progressArguments*/) {
     counter++;
     return 1;
 }

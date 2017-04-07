@@ -66,7 +66,7 @@ public:
     void reset() const;
     FeaturePtr nextFeature() const;
     virtual bool copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
-                          const Progress& process = Progress());
+                          const Progress& progress = Progress());
     OGRFeatureDefn *getDefinition() const;
     const char *getFIDColumn() const;
 

@@ -28,8 +28,8 @@
 
 static int counter = 0;
 
-int ngsTestProgressFunc(enum ngsErrorCodes /*status*/, double /*complete*/,
-                        const char* /*message*/, void* /*progressArguments*/) {
+int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
+                        void* /*progressArguments*/) {
     counter++;
     return TRUE;
 }

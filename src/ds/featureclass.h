@@ -62,7 +62,7 @@ public:
     virtual bool copyFeatures(const FeatureClassPtr srcFClass,
                               const FieldMapPtr fieldMap,
                               OGRwkbGeometryType filterGeomType,
-                              const Progress& process = Progress(),
+                              const Progress& progress = Progress(),
                               const Options& options = Options());
     // static
     static const char *getGeometryTypeName(OGRwkbGeometryType type,

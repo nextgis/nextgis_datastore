@@ -316,9 +316,55 @@ bool Dataset::hasChildren()
 bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
                     const Progress &progress)
 {
-    // TODO: release this. Is this async call?
+    CPLString newName = options.getStringOption("NEW_NAME",
+                                                CPLGetBasename(child->getName()));
+    newName = normalizeDatasetName(newName);
+    if(move) {
+        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+                        _("Move '%s' to '%s'"), newName.c_str (),
+                            m_name.c_str ());
+    }
+    else {
+        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+                        _("Copy '%s' to '%s'"), newName.c_str (),
+                            m_name.c_str ());
+    }
 
-    return false;
+    if(Filter::isTable(child->getType())) {
+        TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
+        if(nullptr == srcTable) {
+            return errorMessage(_("Source object '%s' report type TABLE, but it is not a table"),
+                                child->getName().c_str());
+        }
+        OGRFeatureDefn* const srcDefinition = srcTable->getDefinition();
+        TablePtr dstTable = createDataset(newName, srcDefinition, options);
+        if(!dstTable) {
+            return false;
+        }
+        OGRFeatureDefn* const dstDefinition = dstTable->getDefinition();
+        CPLAssert (srcDefinition->GetFieldCount() ==
+                  dstDefinition->GetFieldCount());
+        // Create fields map. We expected equal count of fields
+        FieldMapPtr fieldMap(static_cast<unsigned long>(
+                                 dstDefinition->GetFieldCount()));
+        for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
+            fieldMap[i] = i;
+        }
+
+        return dstTable->copyRows(srcTable, fieldMap, progress);
+
+    }
+    else if(Filter::isFeatureClass(child->getType())) {
+
+    }
+    else {
+        // TODO: raster and container support
+        return errorMessage(_("'%s' has unsuported type"), child->getName().c_str());
+    }
+
+    if(move)
+        return child->destroy();
+    return true;
 }
 
 TablePtr Dataset::executeSQL(const char* statement, const char* dialect)

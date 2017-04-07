@@ -184,15 +184,13 @@ FeaturePtr Table::nextFeature() const
 }
 
 bool Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
-                     const Progress& process)
+                     const Progress& progress)
 {
     if(!srcTable) {
-        process.onProgress(ngsErrorCodes::EC_COPY_FAILED, 0.0,
-                           _("Source table is invalid"));
-        return false;
+        return errorMessage(_("Source table is invalid"));
     }
 
-    process.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+    progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
                        srcTable->getName().c_str(), m_name.c_str());
 
@@ -202,21 +200,21 @@ bool Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     FeaturePtr feature;
     while((feature = srcTable->nextFeature ()) != nullptr) {
         double complete = counter / featureCount;
-        process.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
+        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
                            _("Copy in process ..."));
 
         FeaturePtr dstFeature = createFeature();
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            process.onProgress(ngsErrorCodes::EC_WARNING, complete,
+            progress.onProgress(ngsErrorCodes::EC_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
                                feature->GetFID ());
         }
         counter++;
     }
 
-    process.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d rows"),
+    progress.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d rows"),
                        int(counter));
 
     return true;

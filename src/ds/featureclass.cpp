@@ -21,6 +21,7 @@
 #include "featureclass.h"
 
 #include "coordinatetransformation.h"
+#include "util/error.h"
 
 // For gettext translation
 #define POINT_STR _("Point")
@@ -79,18 +80,15 @@ std::vector<const char*> FeatureClass::getGeometryColumns() const
 bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                                const FieldMapPtr fieldMap,
                                OGRwkbGeometryType filterGeomType,
-                               const Progress& process, const Options &options)
+                               const Progress& progress, const Options &options)
 {
     if(!srcFClass) {
-        process.onProgress(ngsErrorCodes::EC_COPY_FAILED, 0.0,
-                           _("Source feature class is invalid"));
-        return false;
+        return errorMessage(_("Source feature class is invalid"));
     }
 
-    process.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+    progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
                        _("Start copy features from '%s' to '%s'"),
                        srcFClass->getName().c_str(), m_name.c_str());
-
 
     unsigned int flags = 0;
     if(options.getBoolOption("SKIP_EMPTY_GEOMETRY"))
@@ -108,7 +106,7 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     FeaturePtr feature;
     while((feature = srcFClass->nextFeature()) != nullptr) {
         double complete = counter / featureCount;
-        process.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
+        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
                            _("Copy in process ..."));
 
         OGRGeometry * geom = feature->GetGeometryRef();
@@ -152,13 +150,13 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            process.onProgress(ngsErrorCodes::EC_WARNING, complete,
+            progress.onProgress(ngsErrorCodes::EC_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
                                feature->GetFID ());
         }
         counter++;
     }
-    process.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d features"),
+    progress.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d features"),
                        int(counter));
 
     return true;
