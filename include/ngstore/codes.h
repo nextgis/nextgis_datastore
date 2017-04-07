@@ -46,6 +46,7 @@ enum ngsErrorCodes {
     EC_COPY_FAILED,        /**< Copy failed */
     EC_MOVE_FAILED,        /**< Move failed */
     EC_CLOSE_FAILED,       /**< Close failed */
+    EC_RENAME_FAILED       /**< Rename failed */
 };
 
 /**

@@ -46,15 +46,10 @@ public:
     const CPLString &getPath() const;
     ngsCatalogObjectType getType() const;
     virtual CPLString getFullName() const;
-    virtual bool destroy() {return false;}
-    virtual bool canDestroy() const {return false;}
-    virtual bool rename(const CPLString &/*newName*/)  {return false;}
-    virtual bool canRename() const  {return false;}
-    virtual bool copy(const CPLString &/*destPath*/, const Progress &/*progress*/)
-        {return false;}
-    virtual bool canCopy(const CPLString &/*destPath*/) const  {return false;}
-    virtual bool move(const CPLString &/*destPath*/, const Progress &/*progress*/)
-        {return false;}
+    virtual bool destroy() { return false; }
+    virtual bool canDestroy() const { return false; }
+    virtual bool rename(const CPLString &/*newName*/)  { return false; }
+    virtual bool canRename() const  { return false; }
     const ObjectContainer *getParent() const;
 
 protected:

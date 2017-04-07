@@ -233,19 +233,27 @@ void Dataset::fillFeatureClasses()
 
 const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
 {
-    if(nullptr == m_DS)
-        return nullptr;
-    GDALDriver *poDriver = m_DS->GetDriver ();
+    GDALDriver *poDriver = Filter::getGDALDriver(m_type);
     switch (optionType) {
     case OT_CREATE_DATASOURCE:
+        if(nullptr == poDriver)
+            return "";
         return poDriver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST);
     case OT_CREATE_LAYER:
+        if(nullptr == poDriver)
+            return "";
         return poDriver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST);
     case OT_CREATE_LAYER_FIELD:
+        if(nullptr == poDriver)
+            return "";
         return poDriver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES);
     case OT_CREATE_RASTER:
+        if(nullptr == poDriver)
+            return "";
         return poDriver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
     case OT_OPEN:
+        if(nullptr == poDriver)
+            return "";
         return poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST);
     case OT_LOAD:
         return "<LoadOptionList>"

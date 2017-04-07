@@ -47,9 +47,18 @@ public:
     }
     virtual bool create(const ngsCatalogObjectType /*type*/,
                         const CPLString & /*name*/,
-                        const Options& /*options*/) {
+                        const Options& /*options*/ = Options()) {
         return false;
     }
+    virtual bool canPaste(ObjectPtr /*child*/, bool /*move*/ = false) {
+        return false;
+    }
+    virtual bool paste(ObjectPtr /*child*/, bool /*move*/ = false,
+                       const Options& /*options*/ = Options(),
+                       const Progress &/*progress*/ = Progress()) {
+        return false;
+    }
+
     std::vector<ObjectPtr> getChildren() const;
     ObjectPtr getChild(const CPLString& name) const;
 

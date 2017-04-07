@@ -330,7 +330,9 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * @param dstPath The path to destination dataset. Should be container which
  * is ready to accept source dataset types.
  * @param options The options key-value array specific to operation and
- * destination dataset. TODO: Add common key and values.
+ * destination dataset. There is common options:
+ * - MOVE - if TRUE move source dataset, otherwise - copy. If source dataset is
+ * readonly, copy will be produced.
  * @param callback The callback function to report or cancel process.
  * @param callbackData The callback function data.
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
@@ -341,8 +343,32 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 {
     CatalogPtr catalog = Catalog::getInstance();
     Progress progress(callback, callbackData);
+    Options loadOptions(options);
+    bool move = loadOptions.getBoolOption("MOVE", false);
+    loadOptions.removeOption("MOVE");
+    ObjectPtr srcObject = catalog->getObject(srcPath);
+    if(!srcObject)
+        return errorMessage(ngsErrorCodes::EC_INVALID,
+                            _("Source dataset '%s' not found"), srcPath);
 
-    return ngsErrorCodes::EC_SUCCESS;
+    ObjectPtr dstObject = catalog->getObject(dstPath);
+    if(!dstObject)
+        return errorMessage(ngsErrorCodes::EC_INVALID,
+                            _("Destination dataset '%s' not found"), dstPath);
+
+    ObjectContainer * const container = ngsDynamicCast(ObjectContainer, dstObject);
+    // Check can paster
+    if(nullptr != container && container->canPaste(srcObject, move))
+        return container->paste(srcObject, move, loadOptions, progress) ?
+                    ngsErrorCodes::EC_SUCCESS :
+                    move ? ngsErrorCodes::EC_MOVE_FAILED :
+                           ngsErrorCodes::EC_COPY_FAILED;
+
+    return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
+                               ngsErrorCodes::EC_COPY_FAILED,
+                        _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
+                        dstPath, srcPath);
+
 }
 
 /**
@@ -352,11 +378,50 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
  * parent container
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsCatalogObjectRename(const char *path, const char *newName)
-//{
-//    CatalogPtr catalog = Catalog::getInstance();
-//    return ngsErrorCodes::EC_SUCCESS;
-//}
+int ngsCatalogObjectRename(const char *path, const char *newName)
+{
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
+    if(!object)
+        return errorMessage(ngsErrorCodes::EC_INVALID,
+                            _("Source dataset '%s' not found"), path);
+
+    if(!object->canRename())
+        return errorMessage(ngsErrorCodes::EC_RENAME_FAILED,
+                            _("Cannot rename dataset '%s' to '%s'"),
+                            path, newName);
+
+    return object->rename(newName) ? ngsErrorCodes::EC_SUCCESS :
+                                     ngsErrorCodes::EC_RENAME_FAILED;
+}
+
+/**
+ * @brief ngsCatalogObjectOptions Query dataset options.
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param optionType The one of ngsOptionTypes enum values:
+ * OT_CREATE_DATASOURCE, OT_CREATE_RASTER, OT_CREATE_LAYER,
+ * OT_CREATE_LAYER_FIELD, OT_OPEN, OT_LOAD
+ * @return Options description in xml form.
+ */
+const char* ngsCatalogObjectOptions(const char* path, int optionType)
+{
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
+    if(!object) {
+        errorMessage(ngsErrorCodes::EC_INVALID,
+                            _("Source dataset '%s' not found"), path);
+        return "";
+    }
+    Dataset * const dataset = ngsDynamicCast(Dataset, object);
+    if(nullptr != dataset) {
+        errorMessage(ngsErrorCodes::EC_INVALID,
+                            _("The '%s' not a dataset. Options query not supported"), path);
+        return "";
+    }
+    enum ngsOptionTypes enumOptionType = static_cast<enum ngsOptionTypes>(optionType);
+
+    return dataset->getOptions(enumOptionType);
+}
 
 //------------------------------------------------------------------------------
 // Map

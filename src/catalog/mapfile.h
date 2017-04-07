@@ -32,7 +32,7 @@ public:
     MapFile(ObjectContainer * const parent = nullptr,
             const CPLString & name = "",
             const CPLString & path = "");
-    MapViewPtr getMap() const {return m_mapView;}
+    MapViewPtr getMap() const { return m_mapView; }
     bool open();
     bool save(MapViewPtr mapView = MapViewPtr());
 

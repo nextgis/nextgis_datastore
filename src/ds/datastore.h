@@ -49,11 +49,13 @@ public:
     // ISpatialDataset interface
 public:
     virtual OGRSpatialReference *getSpatialReference() const override {
-        return const_cast<OGRSpatialReference *>(&m_storeSpatialRef); }
+        return const_cast<OGRSpatialReference *>(&m_storeSpatialRef);
+    }
 
     // Dataset interface
 public:
-    virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
+    virtual bool open(unsigned int openFlags,
+                      const Options &options = Options()) override;
 
 protected:
     virtual bool isNameValid(const char *name) const override;

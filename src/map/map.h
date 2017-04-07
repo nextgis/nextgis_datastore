@@ -38,26 +38,28 @@ public:
         double minX, double minY, double maxX, double maxY);
     virtual ~Map() = default;
 
-    const CPLString &getName() const {return m_name;}
-    void setName(const CPLString &name) {m_name = name;}
-    const CPLString &getDescription() const {return m_description;}
-    void setDescription(const CPLString &description) {m_description = description;}
-    unsigned short getEpsg() const {return m_epsg;}
-    void setEpsg(unsigned short epsg) {m_epsg = epsg;}
+    const CPLString &getName() const { return m_name; }
+    void setName(const CPLString &name) { m_name = name; }
+    const CPLString &getDescription() const { return m_description; }
+    void setDescription(const CPLString &description) {
+        m_description = description;
+    }
+    unsigned short getEpsg() const { return m_epsg; }
+    void setEpsg(unsigned short epsg) { m_epsg = epsg; }
     void setBounds(double minX, double minY, double maxX, double maxY) {
         m_minX = minX;
         m_minY = minY;
         m_maxX = maxX;
         m_maxY = maxY;
     }
-    double getMinX() const {return m_minX;}
-    double getMinY() const {return m_minY;}
-    double getMaxX() const {return m_maxX;}
-    double getMaxY() const {return m_maxY;}
-    ngsRGBA getBackgroundColor() const {return  m_bkColor;}
-    void setBackgroundColor(const ngsRGBA& color) {m_bkColor = color;}
-    bool getRelativePaths() const {return m_relativePaths;}
-    void setRelativePaths(bool relativePaths) {m_relativePaths = relativePaths;}
+    double getMinX() const { return m_minX; }
+    double getMinY() const { return m_minY; }
+    double getMaxX() const { return m_maxX; }
+    double getMaxY() const { return m_maxY; }
+    ngsRGBA getBackgroundColor() const { return  m_bkColor; }
+    void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
+    bool getRelativePaths() const { return m_relativePaths; }
+    void setRelativePaths(bool relativePaths) { m_relativePaths = relativePaths; }
 
     virtual bool open(MapFile * const mapFile);
     virtual bool save(MapFile * const mapFile);

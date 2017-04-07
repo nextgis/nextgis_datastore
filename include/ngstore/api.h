@@ -107,9 +107,8 @@ NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
                                      char **options = nullptr,
                                      ngsProgressFunc callback = nullptr,
                                      void* callbackData = nullptr);
-// NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
-// create, open, load options - all are driver specific
-// NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, const char* newName);
+NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
+NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, int optionType);
 
 /*
 mapCreate
