@@ -257,10 +257,18 @@ const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
         return poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST);
     case OT_LOAD:
         return "<LoadOptionList>"
-               "  <Option name='LOAD_OP' type='string-select' description='select load operation' default='COPY'>"
-               "    <Value>COPY</Value>"
-               "    <Value>MOVE</Value>"
+               "  <Option name='MOVE' type='boolean' description='If TRUE move dataset, else copy it.' default='FALSE'/>"
+               "  <Option name='NEW_NAME' type='string' description='The new name for loaded dataset'/>"
+               "  <Option name='ACCEPT_GEOMETRY' type='string-select' description='Load only specific geometry types' default='ANY'>"
+               "    <Value>ANY</Value>"
+               "    <Value>POINT</Value>"
+               "    <Value>LINESTRING</Value>"
+               "    <Value>POLYGON</Value>"
+               "    <Value>MULTIPOINT</Value>"
+               "    <Value>MULTILINESTRING</Value>"
+               "    <Value>MULTIPOLYGON</Value>"
                "  </Option>"
+               "  <Option name='FORCE_GEOMETRY_TO_MULTI' type='boolean' description='Force input geometry to multi' default='NO'/>"
                "  <Option name='SKIP_EMPTY_GEOMETRY' type='boolean' description='Skip empty geometry' default='NO'/>"
                "  <Option name='SKIP_INVALID_GEOMETRY' type='boolean' description='Skip invalid geometry' default='NO'/>"
                "</LoadOptionList>";
@@ -303,6 +311,14 @@ bool Dataset::hasChildren()
     m_childrenLoaded = true;
 
     return ObjectContainer::hasChildren();
+}
+
+bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
+                    const Progress &progress)
+{
+    // TODO: release this. Is this async call?
+
+    return false;
 }
 
 TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
@@ -853,3 +869,4 @@ TablePtr Dataset::executeSQL(const char *statement,
 
 
 } // namespace ngs
+

@@ -50,7 +50,7 @@ public:
                         const Options& /*options*/ = Options()) {
         return false;
     }
-    virtual bool canPaste(ObjectPtr /*child*/, bool /*move*/ = false) {
+    virtual bool canPaste(const ngsCatalogObjectType /*type*/) {
         return false;
     }
     virtual bool paste(ObjectPtr /*child*/, bool /*move*/ = false,

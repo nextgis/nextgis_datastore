@@ -330,9 +330,8 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * @param dstPath The path to destination dataset. Should be container which
  * is ready to accept source dataset types.
  * @param options The options key-value array specific to operation and
- * destination dataset. There is common options:
- * - MOVE - if TRUE move source dataset, otherwise - copy. If source dataset is
- * readonly, copy will be produced.
+ * destination dataset. The load options can be fetched via
+ * ngsCatalogObjectOptions() function
  * @param callback The callback function to report or cancel process.
  * @param callbackData The callback function data.
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
@@ -351,6 +350,10 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
         return errorMessage(ngsErrorCodes::EC_INVALID,
                             _("Source dataset '%s' not found"), srcPath);
 
+    if(move && !srcObject->canDestroy())
+        return  errorMessage(ngsErrorCodes::EC_MOVE_FAILED,
+                             _("Cannot move source dataset '%s'"), srcPath);
+
     ObjectPtr dstObject = catalog->getObject(dstPath);
     if(!dstObject)
         return errorMessage(ngsErrorCodes::EC_INVALID,
@@ -358,7 +361,7 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 
     ObjectContainer * const container = ngsDynamicCast(ObjectContainer, dstObject);
     // Check can paster
-    if(nullptr != container && container->canPaste(srcObject, move))
+    if(nullptr != container && container->canPaste(srcObject->getType()))
         return container->paste(srcObject, move, loadOptions, progress) ?
                     ngsErrorCodes::EC_SUCCESS :
                     move ? ngsErrorCodes::EC_MOVE_FAILED :

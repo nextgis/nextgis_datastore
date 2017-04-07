@@ -80,6 +80,9 @@ public:
     // ObjectContainer interface
 public:
     virtual bool hasChildren() override;
+    virtual bool paste(ObjectPtr child, bool move = false,
+                       const Options & options = Options(),
+                       const Progress &progress = Progress()) override;
 
 protected:
     virtual bool isNameValid(const char *name) const;
