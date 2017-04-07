@@ -340,6 +340,8 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
                          void *callbackData)
 {
     CatalogPtr catalog = Catalog::getInstance();
+    Progress progress(callback, callbackData);
+
     return ngsErrorCodes::EC_SUCCESS;
 }
 

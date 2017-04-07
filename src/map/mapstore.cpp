@@ -57,11 +57,12 @@ unsigned char MapStore::openMap(MapFile * const file)
         return INVALID_MAPID;
 
     MapViewPtr map = file->getMap();
+    if(!map)
         return INVALID_MAPID;
 
-    for(unsigned char i = 0; i < static_cast<unsigned char>(m_maps.size()); ++i) {
+    for(size_t i = 0; i < m_maps.size(); ++i) {
         if(m_maps[i] == map)
-            return i;
+            return static_cast<unsigned char>(i);
     }
 
     m_maps.push_back(map);

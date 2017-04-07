@@ -20,16 +20,21 @@
  ****************************************************************************/
 #include "catalog.h"
 
+// gdal
 #include "cpl_conv.h"
 #include "api_priv.h"
 
 #include "folder.h"
 #include "localconnections.h"
-#include "factories/datastorefactory.h"
-#include "factories/folderfactory.h"
+
 #include "ngstore/common.h"
 #include "util/settings.h"
 #include "util/stringutil.h"
+
+// factories
+#include "factories/datastorefactory.h"
+#include "factories/folderfactory.h"
+#include "factories/filefactory.h"
 
 namespace ngs {
 
@@ -125,6 +130,7 @@ bool Catalog::hasChildren()
     // 1. Load factories
     // TODO: Add NextGIS Map document factory
     m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
+    m_factories.push_back(ObjectFactoryUPtr(new FileFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
 
     // 2. Load root objects

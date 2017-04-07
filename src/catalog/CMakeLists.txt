@@ -35,6 +35,7 @@ set(HHEADERS
     mapfile.h
     factories/objectfactory.h
     factories/folderfactory.h
+    factories/filefactory.h
     factories/datastorefactory.h
 )
 
@@ -49,6 +50,7 @@ set(CSOURCES
     mapfile.cpp
     factories/objectfactory.cpp
     factories/folderfactory.cpp
+    factories/filefactory.cpp
     factories/datastorefactory.cpp
 )
 

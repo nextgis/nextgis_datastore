@@ -26,11 +26,11 @@
 #include "cpl_vsi.h"
 #include "cpl_string.h"
 
+#include "api_priv.h"
 #include "ngstore/api.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
 
-#include "api_priv.h"
 
 static int counter = 0;
 
@@ -93,7 +93,6 @@ TEST(BasicTests, TestVersions) {
     EXPECT_NE(nullptr, ngsGetVersionString("formats"));
 }
 
-
 TEST(BasicTests, TestInlines) {
     ngsRGBA color = {254, 253, 252, 251};
     int hexColor = ngsRGBA2HEX (color);
@@ -145,7 +144,6 @@ TEST(BasicTests, TestCatalogQuery) {
 
     ngsUnInit();
 }
-
 
 TEST(BasicTests, TestCreate) {
     char** options = nullptr;
@@ -281,17 +279,13 @@ TEST(BasicTests, TestDeleteDataStore) {
 
 
 /*
- * TestCreateDs
- * TestOpenDs
  * TestLoadDs
- * TestDeleteDs
-    // TODO: create datastore -- EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::EC_SUCCESS);
-
-TEST(BasicTests, TestOpen) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
-    EXPECT_EQ(ngsDataStoreInit(""), ngsErrorCodes::EC_OPEN_FAILED);
-    EXPECT_EQ(ngsDataStoreInit("./tmp/ngs.gpkg"), ngsErrorCodes::EC_SUCCESS);
-    ngsSetNotifyFunction (ngsTestNotifyFunc);
+TEST(BasicTests, TestLoad) {
+    counter = 0;
+    EXPECT_EQ(ngsDataStoreLoad("test" ,"./data/bld.shp", "", nullptr, ngsTestProgressFunc,
+                      nullptr), 1);
+    CPLSleep(0.6);
+    EXPECT_GE(counter, 1);
 }
 
 TEST(BasicTests, TestCreateTMS) {
@@ -317,16 +311,4 @@ TEST(BasicTests, TestInitMap) {
     EXPECT_GE(counter, 1);*//*
 }
 
-TEST(BasicTests, TestLoad) {
-    counter = 0;
-    EXPECT_EQ(ngsDataStoreLoad("test" ,"./data/bld.shp", "", nullptr, ngsTestProgressFunc,
-                      nullptr), 1);
-    CPLSleep(0.6);
-    EXPECT_GE(counter, 1);
-}
-
-TEST(BasicTests, TestDelete) {
-    EXPECT_EQ(ngsDataStoreDestroy ("./tmp/ngs.gpkg", nullptr), ngsErrorCodes::EC_SUCCESS);
-    ngsUninit();
-}
 */
