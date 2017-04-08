@@ -234,11 +234,11 @@ void DataStore::fillFeatureClasses()
             }
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
-                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName, "")));
+                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName)));
             }
             else {
                 m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            ngsCatalogObjectType::CAT_FC_ANY, layerName, "")));
+                            ngsCatalogObjectType::CAT_FC_ANY, layerName)));
             }
         }
     }

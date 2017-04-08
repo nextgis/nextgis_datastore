@@ -45,14 +45,6 @@ typedef struct _ngsPosition {
     double Y;
 } ngsPosition;
 
-// TODO: Remove this
-//typedef struct _ngsLoadTaskInfo {
-//    const char* name;
-//    const char* newNames;
-//    const char* dstPath;
-//    enum ngsErrorCodes status;
-//} ngsLoadTaskInfo;
-
 /**
  * @brief Catalog object short information. Int type coded both
  * ngsCatalogObjectType and subtype (according to type).

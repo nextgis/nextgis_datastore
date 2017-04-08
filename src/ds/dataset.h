@@ -72,7 +72,16 @@ public:
     virtual bool isOpened() const { return m_DS != nullptr; }
     virtual bool isReadOnly() const { return m_readonly; }
     virtual bool open(unsigned int openFlags, const Options &options = Options());
-
+    virtual FeatureClass* createFeatureClass(const CPLString &name,
+                                             OGRFeatureDefn* const definition,
+                                             const OGRSpatialReference *spatialRef,
+                                             OGRwkbGeometryType type,
+                                             const Options& options = Options(),
+                                             const Progress &progress = Progress());
+    virtual Table* createTable(const CPLString &name,
+                               OGRFeatureDefn* const definition,
+                               const Options& options = Options(),
+                               const Progress &progress = Progress());
     // Object interface
 public:
     virtual bool destroy() override;
@@ -98,89 +107,3 @@ protected:
 }
 
 #endif // NGSDATASET_H
-
-//protected:
-//    static DatasetPtr getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds);
-//    inline int reportError(int code, double percent,
-//                           const char* message, ProgressInfo *processInfo = nullptr) {
-//        //CPLError(CE_Failure, CPLE_AppDefined, message);
-//        CPLErrorSetState(CE_Failure, CPLE_AppDefined, message);
-//        if(processInfo) {
-//            processInfo->setStatus (static_cast<ngsErrorCodes>(code));
-//            processInfo->onProgress (percent, message);
-//        }
-//        return code;
-//    }
-//class ProgressInfo
-//{
-//public:
-//    ProgressInfo(unsigned int id, const char **options = nullptr,
-//                 ngsProgressFunc progressFunc = nullptr,
-//                 void *progressArguments = nullptr);
-//    virtual ~ProgressInfo();
-//    ProgressInfo(const ProgressInfo& data);
-//    ProgressInfo& operator=(const ProgressInfo& data);
-//    unsigned int id() const;
-//    char **options() const;
-//    bool onProgress(double complete, const char* message) const;
-//    ngsErrorCodes status() const;
-//    void setStatus(const ngsErrorCodes &status);
-//protected:
-//    unsigned int m_id;
-//    char** m_options;
-//    ngsProgressFunc m_progressFunc;
-//    void *m_progressArguments;
-//    enum ngsErrorCodes m_status;
-//};
-
-//void LoadingThread(void * store);
-
-//class LoadData : public ProgressInfo
-//{
-//public:
-//    LoadData(unsigned int id, const CPLString& path,
-//             const CPLString& srcSubDatasetName,
-//             const CPLString& dstDatasetName,
-//             const char** options = nullptr, ngsProgressFunc onProgress = nullptr,
-//             void *progressArguments = nullptr);
-//    ~LoadData();
-//    LoadData(const LoadData& data);
-//    LoadData& operator=(const LoadData& data);
-//    CPLString srcSubDatasetName() const;
-//    void addNewName(const CPLString& name);
-//    const char* path() const;
-//    const char* getNewNames() const;
-//    const char* getDestinationName() const;
-//private:
-//    CPLString m_path;
-//    CPLString m_srcSubDatasetName;
-//    CPLString m_dstDatasetName;
-//    CPLString m_newNames;
-//};
-
-//    unsigned int loadDataset(const CPLString& name, const CPLString& path,
-//                             const CPLString& subDatasetName, const char **options,
-//                             ngsProgressFunc progressFunc,
-//                             void* progressArguments = nullptr);
-    // TODO: create layer options, copy options
-//    virtual int copyDataset(DatasetPtr srcDataset, const CPLString &dstDatasetName,
-//                            LoadData *loadData = nullptr);
-//    virtual int moveDataset(DatasetPtr srcDataset, const CPLString& dstDatasetName,
-//                            LoadData *loadData = nullptr);
-//    virtual DatasetPtr createDataset(const CPLString &name,
-//                                     OGRFeatureDefn* const definition,
-//                                     ProgressInfo *progressInfo = nullptr);
-//    virtual DatasetPtr createDataset(const CPLString &name,
-//                                     OGRFeatureDefn* const definition,
-//                                     const OGRSpatialReference *spatialRef,
-//                                     OGRwkbGeometryType type,
-//                                     ProgressInfo *progressInfo = nullptr);
-//    ngsLoadTaskInfo getLoadTaskInfo (unsigned int taskId) const;
-
-/**
- * Load Dataset
- */
-//CPLJoinableThread* m_hLoadThread;
-//bool m_cancelLoad;
-//std::vector<LoadData> m_loadData;
-//unsigned int m_newTaskId;

@@ -34,7 +34,7 @@
 
 using namespace ngs;
 
-// TODO: Load and tiled vector data
+// TODO: Tile vector data on load
 // TODO: Update/Fix unit test. Add GL offscreen rendering GL test
 // TODO: Add support to Framebuffer Objects rendering
 
@@ -331,7 +331,8 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * is ready to accept source dataset types.
  * @param options The options key-value array specific to operation and
  * destination dataset. The load options can be fetched via
- * ngsCatalogObjectOptions() function
+ * ngsCatalogObjectOptions() function. Also load options can combine with
+ * layer create options.
  * @param callback The callback function to report or cancel process.
  * @param callbackData The callback function data.
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK

@@ -33,12 +33,6 @@ typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 class FeatureClass : public Table, public ISpatialDataset
 {
 public:
-    enum class SkipType : unsigned int {
-        NOSKIP          = 0x0000,
-        EMPTYGEOMETRY   = 0x0001,
-        INVALIDGEOMETRY = 0x0002
-    };
-
     enum class GeometryReportType {
         FULL,
         OGC,
@@ -49,8 +43,7 @@ public:
     FeatureClass(OGRLayer * layer,
                  ObjectContainer * const parent = nullptr,
                  const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
-                 const CPLString & name = "",
-                 const CPLString & path = "");
+                 const CPLString & name = "");
     virtual ~FeatureClass() = default;
 
     OGRwkbGeometryType getGeometryType() const;
@@ -67,6 +60,7 @@ public:
     // static
     static const char *getGeometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
+    static OGRwkbGeometryType getGeometryTypeFromName(const char* name);
 
 
     // ISpatialDataset interface

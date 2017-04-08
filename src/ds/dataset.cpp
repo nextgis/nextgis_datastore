@@ -137,6 +137,55 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
     return true;
 }
 
+FeatureClass *Dataset::createFeatureClass(const CPLString &name,
+                                          OGRFeatureDefn * const definition,
+                                          const OGRSpatialReference *spatialRef,
+                                          OGRwkbGeometryType type,
+                                          const Options &options,
+                                          const Progress &progress)
+{
+    OGRLayer *layer = m_DS->CreateLayer(name,
+                    const_cast<OGRSpatialReference*>(spatialRef), type,
+                                        options.getOptions().get());
+    if(layer == nullptr) {
+        return nullptr;
+    }
+
+    for (int i = 0; i < definition->GetFieldCount(); ++i) {
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn dstField(srcField);
+
+        CPLString newFieldName = normalizeFieldName(srcField->GetNameRef());
+        if(!EQUAL(newFieldName, srcField->GetNameRef())) {
+            progress.onProgress(ngsErrorCodes::EC_WARNING, 0.0, _("Field %s of source table was renamed to %s in destination tables"), srcField->GetNameRef(), newFieldName.c_str());
+        }
+
+        dstField.SetName(newFieldName);
+        if (layer->CreateField(&dstField) != OGRERR_NONE) {
+            return nullptr;
+        }
+    }
+
+    FeatureClass* out = new FeatureClass(layer, this,
+                                         ngsCatalogObjectType::CAT_FC_ANY, name);
+
+    if(m_parent)
+        m_parent->notifyChanges();
+
+    Notify::instance().onNotify(out->getFullName(), ngsChangeCodes::CC_CREATE_OBJECT);
+
+    return out;
+}
+
+Table *Dataset::createTable(const CPLString &name,
+                            OGRFeatureDefn * const definition,
+                            const Options &options,
+                            const Progress &progress)
+{
+    return static_cast<Table*>(createFeatureClass(name, definition, nullptr,
+                                                  wkbNone, options, progress));
+}
+
 bool Dataset::destroy()
 {
     clear();
@@ -221,11 +270,11 @@ void Dataset::fillFeatureClasses()
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
-                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName, "")));
+                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName)));
             }
             else {
                 m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            ngsCatalogObjectType::CAT_FC_ANY, layerName, "")));
+                            ngsCatalogObjectType::CAT_FC_ANY, layerName)));
             }
         }
     }
@@ -332,18 +381,17 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
     if(Filter::isTable(child->getType())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
-        if(nullptr == srcTable) {
+        if(!srcTable) {
             return errorMessage(_("Source object '%s' report type TABLE, but it is not a table"),
                                 child->getName().c_str());
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition();
-        TablePtr dstTable = createDataset(newName, srcDefinition, options);
-        if(!dstTable) {
+        std::unique_ptr<Table> dstTable(createTable(newName, srcDefinition,
+                                                    options));
+        if(nullptr == dstTable) {
             return false;
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition();
-        CPLAssert (srcDefinition->GetFieldCount() ==
-                  dstDefinition->GetFieldCount());
         // Create fields map. We expected equal count of fields
         FieldMapPtr fieldMap(static_cast<unsigned long>(
                                  dstDefinition->GetFieldCount()));
@@ -355,7 +403,53 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
     }
     else if(Filter::isFeatureClass(child->getType())) {
+        FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
+        if(!srcFClass) {
+            return errorMessage(_("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
+                                child->getName().c_str());
+        }
+        bool toMulti = options.getBoolOption("FORCE_GEOMETRY_TO_MULTI", false);
+        OGRFeatureDefn* const srcDefinition = srcFClass->getDefinition();
+        std::vector<OGRwkbGeometryType> geometryTypes =
+                srcFClass->getGeometryTypes();
+        OGRwkbGeometryType filterFeometryType =
+                FeatureClass::getGeometryTypeFromName(
+                    options.getStringOption("ACCEPT_GEOMETRY", "ANY"));
+        for(OGRwkbGeometryType geometryType : geometryTypes) {
+            if(filterFeometryType != geometryType &&
+                    filterFeometryType != wkbUnknown) {
+                continue;
+            }
+            CPLString createName = newName;
+            OGRwkbGeometryType newGeometryType = geometryType;
+            if(geometryTypes.size () > 1 && filterFeometryType == wkbUnknown) {
+                createName += "_";
+                createName += FeatureClass::getGeometryTypeName(geometryType,
+                                        FeatureClass::GeometryReportType::SIMPLE);
+                if(toMulti && geometryType < wkbMultiPoint) {
+                    newGeometryType =
+                            static_cast<OGRwkbGeometryType>(geometryType + 3);
+                }
+            }
 
+            std::unique_ptr<FeatureClass> dstFClass(createFeatureClass(createName,
+                srcDefinition, srcFClass->getSpatialReference(), geometryType,
+                options));
+            if(nullptr == dstFClass) {
+                return false;
+            }
+            OGRFeatureDefn* const dstDefinition = dstFClass->getDefinition();
+            // Create fields map. We expected equal count of fields
+            FieldMapPtr fieldMap(static_cast<unsigned long>(
+                                               dstDefinition->GetFieldCount()));
+            for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
+                fieldMap[i] = i;
+            }
+            if(!dstFClass->copyFeatures(srcFClass, fieldMap, filterFeometryType,
+                                        progress, options)) {
+                return false;
+            }
+        }
     }
     else {
         // TODO: raster and container support
@@ -400,7 +494,6 @@ TablePtr Dataset::executeSQL(const char *statement,
 
 }
 
-
 //unsigned int DatasetContainer::loadDataset(const CPLString &name,
 //                                           const CPLString& path, const
 //                                  CPLString& subDatasetName, const char **options,
@@ -419,205 +512,6 @@ TablePtr Dataset::executeSQL(const char *statement,
 //        m_hLoadThread = CPLCreateJoinableThread(LoadingThread, this);
 //    }
 //    return id;
-//}
-
-//int DatasetContainer::copyDataset(DatasetPtr srcDataset,
-//                                  const CPLString &dstDatasetName,
-//                                  LoadData *loadData)
-//{
-//    // create uniq name
-//    CPLString name;
-//    if(dstDatasetName.empty ())
-//        name = normalizeDatasetName(srcDataset->name ());
-//    else
-//        name = normalizeDatasetName(dstDatasetName);
-
-//    if(name.empty ())
-//            return ngsErrorCodes::EC_UNEXPECTED_ERROR;
-
-//    if(loadData)
-//        loadData->onProgress (0, CPLSPrintf ("Copy dataset '%s' to '%s'",
-//                        name.c_str (), m_name.c_str ()));
-
-//    if(srcDataset->type () & ngsDatasetType(Table)) {
-//        if(loadData)
-//            loadData->addNewName (name);
-//        Table* const srcTable = ngsDynamicCast(Table, srcDataset);
-//        if(nullptr == srcTable) {
-//            CPLString errorMsg;
-//            errorMsg.Printf ("Source dataset '%s' report type TABLE, but it is not a table.",
-//                     srcDataset->name ().c_str ());
-//            return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
-//                                loadData);
-//        }
-//        OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
-//        DatasetPtr dstDataset = createDataset(name, srcDefinition, loadData);
-//        Table* const dstTable = ngsDynamicCast(Table, dstDataset);
-//        if(nullptr == dstTable) {
-//            CPLString errorMsg;
-//            errorMsg.Printf ("Destination dataset '%s' report type TABLE, but it is not a table.",
-//                     srcDataset->name ().c_str ());
-//            return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
-//                                loadData);
-//        }
-//        OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
-
-//        CPLAssert (srcDefinition->GetFieldCount() ==
-//                  dstDefinition->GetFieldCount());
-//        // Create fields map. We expected equal count of fields
-//        FieldMapPtr fieldMap(static_cast<unsigned long>(
-//                                 dstDefinition->GetFieldCount()));
-//        for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
-//            fieldMap[i] = i;
-//        }
-
-//        return dstTable->copyRows(srcTable, fieldMap, loadData);
-//    }
-//    else if(srcDataset->type () & ngsDatasetType(Featureset)) {
-//        FeatureDataset* const srcTable = ngsDynamicCast(FeatureDataset, srcDataset);
-//        if(nullptr == srcTable) {
-//            CPLString errorMsg;
-//            errorMsg.Printf ("Source dataset '%s' report type FEATURESET, but it is not a feature class.",
-//                     srcDataset->name ().c_str ());
-//            return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
-//                                loadData);
-//        }
-//        OGRFeatureDefn* const srcDefinition = srcTable->getDefinition ();
-
-//        // get output geometry type
-//        std::vector<OGRwkbGeometryType> geometryTypes = getGeometryTypes(srcDataset);
-//        for(OGRwkbGeometryType geometryType : geometryTypes) {
-//            OGRwkbGeometryType filterGeomType = wkbUnknown;
-//            CPLString newName = name;
-//            if(geometryTypes.size () > 1) {
-//                newName += "_" + FeatureDataset::getGeometryTypeName(
-//                            geometryType, FeatureDataset::GeometryReportType::Simple);
-//                if (OGR_GT_Flatten(geometryType) > wkbPolygon &&
-//                    OGR_GT_Flatten(geometryType) < wkbGeometryCollection) {
-//                   filterGeomType = static_cast<OGRwkbGeometryType>(
-//                               geometryType - 3);
-//               }
-//            }
-
-//            if(loadData)
-//                loadData->addNewName (newName);
-//            DatasetPtr dstDataset = createDataset(newName, srcDefinition,
-//                                          srcTable->getSpatialReference (),
-//                                          geometryType, loadData);
-//            FeatureDataset* const dstTable = ngsDynamicCast(FeatureDataset, dstDataset);
-//            if(nullptr == dstTable) {
-//                CPLString errorMsg;
-//                errorMsg.Printf ("Source dataset '%s' report type FEATURESET, but it is not a feature class.",
-//                         srcDataset->name ().c_str ());
-//                return reportError (ngsErrorCodes::EC_COPY_FAILED, 0, errorMsg,
-//                                    loadData);
-//            }
-//            OGRFeatureDefn* const dstDefinition = dstTable->getDefinition ();
-
-//            CPLAssert (srcDefinition->GetFieldCount() ==
-//                       dstDefinition->GetFieldCount());
-//            // Create fields map. We expected equal count of fields
-//            FieldMapPtr fieldMap(static_cast<unsigned long>(
-//                                     dstDefinition->GetFieldCount()));
-//            for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
-//                fieldMap[i] = i;
-//            }
-
-//            int nRes = dstTable->copyFeatures (srcTable, fieldMap, filterGeomType,
-//                                               loadData);
-//            if(nRes != ngsErrorCodes::EC_SUCCESS)
-//                return nRes;
-//        }
-//    }
-//    else { // TODO: raster and container support
-//        CPLString errorMsg;
-//        errorMsg.Printf ("Dataset '%s' unsupported",
-//                            srcDataset->name ().c_str ());
-//        return reportError (ngsErrorCodes::EC_UNSUPPORTED, 0, errorMsg,
-//                            loadData);
-//    }
-//    return ngsErrorCodes::EC_SUCCESS;
-//}
-
-//int DatasetContainer::moveDataset(DatasetPtr srcDataset,
-//                                  const CPLString &dstDatasetName,
-//                                  LoadData *loadData)
-//{
-//    if(loadData)
-//        loadData->onProgress (0, CPLSPrintf ("Move dataset '%s' to '%s'",
-//                        srcDataset->name().c_str (), m_name.c_str ()));
-
-//    int nResult = copyDataset (srcDataset, dstDatasetName, loadData);
-//    if(nResult != ngsErrorCodes::EC_SUCCESS)
-//        return nResult;
-//    return srcDataset->destroy (loadData);
-//}
-
-//DatasetPtr DatasetContainer::createDataset(const CPLString& name,
-//                                            OGRFeatureDefn* const definition,
-//                                            ProgressInfo *progressInfo)
-//{
-//    return createDataset (name, definition, nullptr, wkbNone, progressInfo);
-//}
-
-//DatasetPtr DatasetContainer::createDataset(const CPLString &name,
-//                                            OGRFeatureDefn* const definition,
-//                                            const OGRSpatialReference *spatialRef,
-//                                            OGRwkbGeometryType type,
-//                                            ProgressInfo *progressInfo)
-//{
-//    char** options = nullptr;
-//    if(progressInfo) {
-//        progressInfo->onProgress (0, CPLSPrintf ("Create dataset '%s'", name.c_str ()));
-//        options = progressInfo->options ();
-//    }
-//    DatasetPtr out;
-//    OGRLayer *dstLayer = m_DS->CreateLayer(name,
-//        const_cast<OGRSpatialReference*>(spatialRef), type, options);
-//    if(dstLayer == nullptr) {
-//        return out;
-//    }
-
-//    for (int i = 0; i < definition->GetFieldCount(); ++i) {
-//        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
-//        OGRFieldDefn dstField(srcField);
-
-//        // TODO: add special behaviour for different drivers (see. ogr2ogr)
-
-//        dstField.SetName(normalizeFieldName(srcField->GetNameRef()));
-//        if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
-//            return out;
-//        }
-//    }
-
-//    Dataset* dstDataset = nullptr;
-//    if( type == wkbNone) {
-//        dstDataset = new Table(dstLayer);
-//    }
-//    else {
-//        dstDataset = new FeatureDataset(dstLayer);
-//    }
-
-//    dstDataset->setNotifyFunc (m_notifyFunc);
-//    dstDataset->m_DS = m_DS;
-//    out.reset(dstDataset);
-//    if(dstDataset)
-//        m_datasets[out->name ()] = out;
-
-//    return out;
-//}
-
-//ngsLoadTaskInfo DatasetContainer::getLoadTaskInfo(unsigned int taskId) const
-//{
-//    for(const LoadData& data : m_loadData) {
-//        if(data.id () == taskId) {
-//            return {data.getDestinationName (),
-//                    data.getNewNames(),
-//                    m_path.c_str (),
-//                    data.status()};
-//        }
-//    }
-//    return {NULL, NULL, NULL, ngsErrorCodes::EC_INVALID};
 //}
 
 //DatasetPtr Dataset::create(const char* path, const char* driver,
@@ -646,12 +540,6 @@ TablePtr Dataset::executeSQL(const char *statement,
 
 //    return getDatasetForGDAL(path, DS);
 //}
-
-//void Dataset::setName(const CPLString &path)
-//{
-//    m_name = CPLGetBasename (path);
-//}
-
 
 //DatasetPtr Dataset::getDatasetForGDAL(const CPLString& path, GDALDatasetPtr ds)
 //{
@@ -692,72 +580,6 @@ TablePtr Dataset::executeSQL(const char *statement,
 
 //    out.reset (outDS);
 //    return out;
-//}
-
-
-//------------------------------------------------------------------------------
-// ProgressInfo
-//------------------------------------------------------------------------------
-//ProgressInfo::ProgressInfo(unsigned int id, const char **options,
-//                           ngsProgressFunc progressFunc, void *progressArguments) :
-//    m_id(id), m_options(CSLDuplicate (const_cast<char**>(options))),
-//    m_progressFunc(progressFunc),
-//    m_progressArguments(progressArguments),
-//    m_status(ngsErrorCodes::EC_PENDING)
-//{
-
-//}
-
-//ProgressInfo::~ProgressInfo()
-//{
-//    CSLDestroy (m_options);
-//}
-
-//ProgressInfo::ProgressInfo(const ProgressInfo &data)
-//{
-//    m_id = data.m_id;
-//    m_options = CSLDuplicate (data.m_options);
-//    m_progressFunc = data.m_progressFunc;
-//    m_progressArguments = data.m_progressArguments;
-//    m_status = data.m_status;
-//}
-
-//ProgressInfo &ProgressInfo::operator=(const ProgressInfo &data)
-//{
-//    m_id = data.m_id;
-//    m_options = CSLDuplicate (data.m_options);
-//    m_progressFunc = data.m_progressFunc;
-//    m_progressArguments = data.m_progressArguments;
-//    m_status = data.m_status;
-//    return *this;
-//}
-
-//ngsErrorCodes ProgressInfo::status() const
-//{
-//    return m_status;
-//}
-
-//void ProgressInfo::setStatus(const ngsErrorCodes &status)
-//{
-//    m_status = status;
-//}
-
-//bool ProgressInfo::onProgress(double complete, const char *message) const
-//{
-//    if(nullptr == m_progressFunc)
-//        return true; // no cancel from user
-//    return m_progressFunc(ngsErrorCodes::EC_SUCCESS/*m_id*/, complete, message, m_progressArguments) == TRUE;
-//}
-
-
-//char **ProgressInfo::options() const
-//{
-//    return m_options;
-//}
-
-//unsigned int ProgressInfo::id() const
-//{
-//    return m_id;
 //}
 
 //void ngs::LoadingThread(void * store)
@@ -825,74 +647,6 @@ TablePtr Dataset::executeSQL(const char *statement,
 //    }
 
 //    dstDataset->m_hLoadThread = nullptr;
-//}
-
-//------------------------------------------------------------------------------
-// LoadData
-//------------------------------------------------------------------------------
-//LoadData::LoadData(unsigned int id, const CPLString &path,
-//                   const CPLString &srcSubDatasetName,
-//                   const CPLString &dstDatasetName, const char **options,
-//                   ngsProgressFunc progressFunc, void *progressArguments) :
-//    ProgressInfo(id, options, progressFunc, progressArguments), m_path(path),
-//    m_srcSubDatasetName(srcSubDatasetName),
-//    m_dstDatasetName(dstDatasetName)
-//{
-
-//}
-
-//LoadData::~LoadData()
-//{
-//}
-
-//LoadData::LoadData(const LoadData &data) : ProgressInfo(data)
-//{
-//    m_path = data.m_path;
-//    m_srcSubDatasetName = data.m_srcSubDatasetName;
-//    m_dstDatasetName = data.m_dstDatasetName;
-//    m_newNames = data.m_newNames;
-//}
-
-//LoadData &LoadData::operator=(const LoadData &data)
-//{
-//    m_id = data.m_id;
-//    m_path = data.m_path;
-//    m_srcSubDatasetName = data.m_srcSubDatasetName;
-//    m_dstDatasetName = data.m_dstDatasetName;
-//    m_newNames = data.m_newNames;
-//    m_options = CSLDuplicate (data.m_options);
-//    m_progressFunc = data.m_progressFunc;
-//    m_progressArguments = data.m_progressArguments;
-//    m_status = data.m_status;
-//    return *this;
-//}
-
-//const char *LoadData::path() const
-//{
-//    return m_path;
-//}
-
-//CPLString LoadData::srcSubDatasetName() const
-//{
-//    return m_srcSubDatasetName;
-//}
-
-//void LoadData::addNewName(const CPLString &name)
-//{
-//    if(m_newNames.empty ())
-//        m_newNames += name;
-//    else
-//        m_newNames += ";" + name;
-//}
-
-//const char *LoadData::getNewNames() const
-//{
-//    return m_newNames;
-//}
-
-//const char *LoadData::getDestinationName() const
-//{
-//    return m_dstDatasetName;
 //}
 
 //DatasetContainer::DatasetContainer(ObjectContainer * const parent,

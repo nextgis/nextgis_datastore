@@ -33,14 +33,11 @@
 
 namespace ngs {
 
-#define ngsFeatureLoadSkipType(x) static_cast<unsigned int>( FeatureClass::SkipType::x )
-
 FeatureClass::FeatureClass(OGRLayer *layer,
                                ObjectContainer * const parent,
                                const ngsCatalogObjectType type,
-                               const CPLString &name,
-                               const CPLString &path) :
-    Table(layer, parent, type, name, path)
+                               const CPLString &name) :
+    Table(layer, parent, type, name)
 {
 }
 
@@ -90,11 +87,9 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                        _("Start copy features from '%s' to '%s'"),
                        srcFClass->getName().c_str(), m_name.c_str());
 
-    unsigned int flags = 0;
-    if(options.getBoolOption("SKIP_EMPTY_GEOMETRY"))
-        flags |= ngsFeatureLoadSkipType(EMPTYGEOMETRY);
-    if(options.getBoolOption("SKIP_INVALID_GEOMETRY"))
-        flags |= ngsFeatureLoadSkipType(INVALIDGEOMETRY);
+    bool skipEmpty = options.getBoolOption("SKIP_EMPTY_GEOMETRY", false);
+    bool skipInvalid = options.getBoolOption("SKIP_INVALID_GEOMETRY", false);
+    bool toMulti = options.getBoolOption("FORCE_GEOMETRY_TO_MULTI", false);
 
     OGRSpatialReference *srcSRS = srcFClass->getSpatialReference();
     OGRSpatialReference *dstSRS = getSpatialReference();
@@ -111,26 +106,23 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
         OGRGeometry * geom = feature->GetGeometryRef();
         OGRGeometry *newGeom = nullptr;
-        if(nullptr == geom) {
-            if(flags & ngsFeatureLoadSkipType(EMPTYGEOMETRY))
-                continue;
+        if(nullptr == geom && skipEmpty) {
+            continue;
         }
         else {
-            if((flags & ngsFeatureLoadSkipType(EMPTYGEOMETRY)) &&
-                    geom->IsEmpty())
+            if(skipEmpty && geom->IsEmpty()) {
                 continue;
-            if((flags & ngsFeatureLoadSkipType(INVALIDGEOMETRY)) &&
-                    !geom->IsValid())
-                continue;
-
-
-            OGRwkbGeometryType geomType = geom->getGeometryType ();
-            OGRwkbGeometryType nonMultiGeomType = geomType;
-            if (OGR_GT_Flatten(geomType) > wkbPolygon &&
-                    OGR_GT_Flatten(geomType) < wkbGeometryCollection) {
-                nonMultiGeomType = static_cast<OGRwkbGeometryType>(geomType - 3);
             }
-            if (filterGeomType != wkbUnknown && filterGeomType != nonMultiGeomType) {
+            if(skipInvalid && !geom->IsValid()) {
+                continue;
+            }
+
+            OGRwkbGeometryType geomType = geom->getGeometryType();
+            OGRwkbGeometryType multiGeomType = geomType;
+            if (OGR_GT_Flatten(geomType) < wkbPolygon && toMulti) {
+                multiGeomType = static_cast<OGRwkbGeometryType>(geomType + 3);
+            }
+            if (filterGeomType != wkbUnknown && filterGeomType != multiGeomType) {
                 continue;
             }
 
@@ -145,8 +137,9 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
         }
 
         FeaturePtr dstFeature = createFeature();
-        if(nullptr != newGeom)
+        if(nullptr != newGeom) {
             dstFeature->SetGeometryDirectly(newGeom);
+        }
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
@@ -226,6 +219,25 @@ const char* FeatureClass::getGeometryTypeName(OGRwkbGeometryType type,
     default:
         return "any";
     }
+}
+
+OGRwkbGeometryType FeatureClass::getGeometryTypeFromName(const char* name)
+{
+    if(nullptr == name || EQUAL(name, ""))
+        return wkbUnknown;
+    if(EQUAL(name, "POINT"))
+        return wkbPoint;
+    if(EQUAL(name, "LINESTRING"))
+        return wkbLineString;
+    if(EQUAL(name, "POLYGON"))
+        return wkbPolygon;
+    if(EQUAL(name, "MULTIPOINT"))
+        return wkbMultiPoint;
+    if(EQUAL(name, "MULTILINESTRING"))
+        return wkbMultiLineString;
+    if(EQUAL(name, "MULTIPOLYGON"))
+        return wkbMultiPolygon;
+    return wkbUnknown;
 }
 
 std::vector<OGRwkbGeometryType> FeatureClass::getGeometryTypes()

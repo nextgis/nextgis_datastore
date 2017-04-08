@@ -76,9 +76,8 @@ FeaturePtr& FeaturePtr::operator=(OGRFeature* feature) {
 Table::Table(OGRLayer *layer,
              ObjectContainer * const parent,
              const ngsCatalogObjectType type,
-             const CPLString &name,
-             const CPLString &path) :
-    Object(parent, type, name, path), m_layer(layer)
+             const CPLString &name) :
+    Object(parent, type, name, ""), m_layer(layer)
 {
 }
 

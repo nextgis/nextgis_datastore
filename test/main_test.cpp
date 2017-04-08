@@ -38,7 +38,8 @@ void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCodes /*operation*/) {
     counter++;
 }
 
-int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
+int ngsTestProgressFunc(enum ngsErrorCodes /*status*/,
+                        double /*complete*/, const char* /*message*/,
                         void* /*progressArguments*/) {
     counter++;
     return 1;
@@ -277,17 +278,27 @@ TEST(BasicTests, TestDeleteDataStore) {
     ngsUnInit();
 }
 
-
-/*
- * TestLoadDs
-TEST(BasicTests, TestLoad) {
+TEST(BasicTests, TestLoadDataStore) {
     counter = 0;
-    EXPECT_EQ(ngsDataStoreLoad("test" ,"./data/bld.shp", "", nullptr, ngsTestProgressFunc,
-                      nullptr), 1);
-    CPLSleep(0.6);
+
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+
+    CSLDestroy(options);
+
+    CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
+    CPLString storePath = catalogPath + "/tmp/main.ngst";
+    CPLString shapePath = catalogPath + "/data/bld.shp";
+
+    EXPECT_EQ(ngsCatalogObjectLoad(shapePath, storePath, nullptr,
+                                   ngsTestProgressFunc, nullptr),
+              ngsErrorCodes::EC_SUCCESS);
     EXPECT_GE(counter, 1);
 }
-
+/*
 TEST(BasicTests, TestCreateTMS) {
     counter = 0;
     EXPECT_EQ(ngsCreateRemoteTMSRaster(TMS_URL, TMS_NAME, TMS_ALIAS, TMS_COPYING,
