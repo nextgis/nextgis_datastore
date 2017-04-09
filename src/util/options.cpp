@@ -93,7 +93,8 @@ OptionsArrayUPtr Options::getOptions() const
 void Options::removeOption(const char *key)
 {
     auto it = m_options.find(key);
-    m_options.erase(it);
+    if(it != m_options.end())
+        m_options.erase(it);
 }
 
 }

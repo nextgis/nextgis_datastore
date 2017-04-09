@@ -326,8 +326,11 @@ const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
 
 bool Dataset::hasChildren()
 {
+    if(m_childrenLoaded)
+        return ObjectContainer::hasChildren();
+
     if(!isOpened()) {
-        if(!open(GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR, nullptr)) {
+        if(!open(GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR)) {
             return false;
         }
     }

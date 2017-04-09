@@ -25,6 +25,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
+#include "ds/simpledataset.h"
 #include "map/mapstore.h"
 #include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
@@ -318,8 +319,7 @@ const char *ngsCatalogPathFromSystem(const char *path)
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObjectByLocalPath(path);
     if(object) {
-        static CPLString fullName = object->getFullName();
-        return fullName;
+        return object->getFullName();
     }
     return "";
 }
@@ -347,26 +347,41 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
     bool move = loadOptions.getBoolOption("MOVE", false);
     loadOptions.removeOption("MOVE");
     ObjectPtr srcObject = catalog->getObject(srcPath);
-    if(!srcObject)
+    if(!srcObject) {
         return errorMessage(ngsErrorCodes::EC_INVALID,
                             _("Source dataset '%s' not found"), srcPath);
+    }
 
-    if(move && !srcObject->canDestroy())
+    if(move && !srcObject->canDestroy()) {
         return  errorMessage(ngsErrorCodes::EC_MOVE_FAILED,
                              _("Cannot move source dataset '%s'"), srcPath);
+    }
+
+    if(srcObject->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const dataset = ngsDynamicCast(SimpleDataset, srcObject);
+        dataset->hasChildren();
+        srcObject = dataset->getInternalObject();
+    }
+
+    if(!srcObject) {
+        return errorMessage(ngsErrorCodes::EC_INVALID,
+                            _("Source dataset '%s' type is incompatible"), srcPath);
+    }
 
     ObjectPtr dstObject = catalog->getObject(dstPath);
-    if(!dstObject)
+    if(!dstObject) {
         return errorMessage(ngsErrorCodes::EC_INVALID,
                             _("Destination dataset '%s' not found"), dstPath);
+    }
 
     ObjectContainer * const container = ngsDynamicCast(ObjectContainer, dstObject);
     // Check can paster
-    if(nullptr != container && container->canPaste(srcObject->getType()))
+    if(nullptr != container && container->canPaste(srcObject->getType())) {
         return container->paste(srcObject, move, loadOptions, progress) ?
                     ngsErrorCodes::EC_SUCCESS :
                     move ? ngsErrorCodes::EC_MOVE_FAILED :
                            ngsErrorCodes::EC_COPY_FAILED;
+    }
 
     return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
                                ngsErrorCodes::EC_COPY_FAILED,

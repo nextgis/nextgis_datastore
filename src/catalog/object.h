@@ -42,19 +42,19 @@ public:
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Object() = default;
-    const CPLString &getName() const;
-    const CPLString &getPath() const;
-    ngsCatalogObjectType getType() const;
+    const CPLString &getName() const { return m_name; }
+    const CPLString &getPath() const { return m_path; }
+    ngsCatalogObjectType getType() const { return m_type; }
     virtual CPLString getFullName() const;
     virtual bool destroy() { return false; }
     virtual bool canDestroy() const { return false; }
     virtual bool rename(const CPLString &/*newName*/)  { return false; }
     virtual bool canRename() const  { return false; }
-    const ObjectContainer *getParent() const;
+    const ObjectContainer *getParent() const { return m_parent; }
 
 protected:
-    void setName(const CPLString &value);
-    void setPath(const CPLString &value);
+    void setName(const CPLString &value) { m_name = value; }
+    void setPath(const CPLString &value) { m_path = value; }
 
 private:
     Object(Object const&) = delete;

@@ -120,6 +120,7 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_KMZ,
     CAT_CONTAINER_SXF,
     CAT_CONTAINER_GPKG,
+    CAT_CONTAINER_SIMPLE,       /** For one layer containers */
     CAT_CONTAINER_ALL,
     CAT_FC_ANY,                 /** Any Feature class */
     CAT_FC_ESRI_SHAPEFILE,

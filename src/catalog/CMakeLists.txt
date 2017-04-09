@@ -37,6 +37,7 @@ set(HHEADERS
     factories/folderfactory.h
     factories/filefactory.h
     factories/datastorefactory.h
+    factories/simpledatasetfactory.h
 )
 
 set(CSOURCES
@@ -52,6 +53,7 @@ set(CSOURCES
     factories/folderfactory.cpp
     factories/filefactory.cpp
     factories/datastorefactory.cpp
+    factories/simpledatasetfactory.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

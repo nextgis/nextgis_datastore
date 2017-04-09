@@ -18,31 +18,25 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "object.h"
-
-#include "catalog.h"
+#include "simpledatasetfactory.h"
 
 namespace ngs {
 
-Object::Object(ObjectContainer *const parent, const ngsCatalogObjectType type,
-               const CPLString & name,
-               const CPLString & path) :
-    m_name(name),
-    m_path(path),
-    m_parent(parent),
-    m_type(type)
+
+SimpleDatasetFactory::SimpleDatasetFactory() : ObjectFactory()
 {
 
 }
 
-CPLString Object::getFullName() const
+const char *SimpleDatasetFactory::getName() const
 {
-    CPLString out;
-    if(nullptr != m_parent)
-        out = m_parent->getFullName();
-    out += Catalog::getSeparator() + m_name;
+    return _("Feature classes and tables");
+}
 
-    return out;
+void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
+                                         std::vector<const char *> * const names)
+{
 }
 
 } // namespace ngs
+

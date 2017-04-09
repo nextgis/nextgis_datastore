@@ -18,31 +18,37 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "object.h"
-
-#include "catalog.h"
+#include "simpledataset.h"
 
 namespace ngs {
 
-Object::Object(ObjectContainer *const parent, const ngsCatalogObjectType type,
-               const CPLString & name,
-               const CPLString & path) :
-    m_name(name),
-    m_path(path),
-    m_parent(parent),
-    m_type(type)
+SimpleDataset::SimpleDataset(ObjectContainer * const parent,
+                             const CPLString &name,
+                             const CPLString &path) :
+    Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_SIMPLE, name, path)
 {
 
 }
 
-CPLString Object::getFullName() const
+ObjectPtr SimpleDataset::getInternalObject() const
 {
-    CPLString out;
-    if(nullptr != m_parent)
-        out = m_parent->getFullName();
-    out += Catalog::getSeparator() + m_name;
-
-    return out;
+    if(m_children.empty())
+        return ObjectPtr();
+    return m_children[0];
 }
 
-} // namespace ngs
+bool SimpleDataset::hasChildren()
+{
+    if(m_childrenLoaded)
+        return false;
+
+    Dataset::hasChildren();
+
+    return false;
+}
+
+}
+
+
+
+

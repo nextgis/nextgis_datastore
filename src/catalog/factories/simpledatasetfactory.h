@@ -18,31 +18,25 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "object.h"
+#ifndef NGSSIMPLEDATASETFACTORY_H
+#define NGSSIMPLEDATASETFACTORY_H
 
-#include "catalog.h"
+#include "objectfactory.h"
 
 namespace ngs {
 
-Object::Object(ObjectContainer *const parent, const ngsCatalogObjectType type,
-               const CPLString & name,
-               const CPLString & path) :
-    m_name(name),
-    m_path(path),
-    m_parent(parent),
-    m_type(type)
+class SimpleDatasetFactory : public ObjectFactory
 {
+public:
+    SimpleDatasetFactory();
 
-}
-
-CPLString Object::getFullName() const
-{
-    CPLString out;
-    if(nullptr != m_parent)
-        out = m_parent->getFullName();
-    out += Catalog::getSeparator() + m_name;
-
-    return out;
-}
+    // ObjectFactory interface
+public:
+    virtual const char *getName() const override;
+    virtual void createObjects(ObjectContainer * const container,
+                               std::vector<const char *> * const names) override;
+};
 
 } // namespace ngs
+
+#endif // NGSSIMPLEDATASETFACTORY_H

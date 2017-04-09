@@ -289,7 +289,8 @@ TEST(BasicTests, TestLoadDataStore) {
 
     CSLDestroy(options);
 
-    CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
+    CPLString testPath = CPLGetCurrentDir();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
     CPLString storePath = catalogPath + "/tmp/main.ngst";
     CPLString shapePath = catalogPath + "/data/bld.shp";
 

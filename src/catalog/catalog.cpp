@@ -35,6 +35,7 @@
 #include "factories/datastorefactory.h"
 #include "factories/folderfactory.h"
 #include "factories/filefactory.h"
+#include "factories/simpledatasetfactory.h"
 
 namespace ngs {
 
@@ -128,8 +129,8 @@ bool Catalog::hasChildren()
             return false;
     }
     // 1. Load factories
-    // TODO: Add NextGIS Map document factory
     m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
+    m_factories.push_back(ObjectFactoryUPtr(new SimpleDatasetFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new FileFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
 
@@ -157,7 +158,7 @@ unsigned short Catalog::getMaxPathLength()
 }
 
 #ifdef _WIN32
-bool Catalog::isFileHidden(const CPLString &filePath, const char *fileName)
+bool Catalog::isFileHidden(const CPLString &path, const char *name)
 #else
 bool Catalog::isFileHidden(const CPLString &/*path*/, const char *name)
 #endif
@@ -169,7 +170,7 @@ bool Catalog::isFileHidden(const CPLString &/*path*/, const char *name)
         return true;
 
 #ifdef _WIN32
-    DWORD attrs = GetFileAttributes(CPLFormFilename(filePath, fileName, NULL));
+    DWORD attrs = GetFileAttributes(CPLFormFilename(path, name, NULL));
     if (attrs != INVALID_FILE_ATTRIBUTES)
         return attrs & FILE_ATTRIBUTE_HIDDEN;
 #endif

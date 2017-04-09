@@ -23,13 +23,10 @@
 
 #include <memory>
 
-#include "ogrsf_frmts.h"
-
 #include "api_priv.h"
 #include "geometry.h"
 #include "featureclass.h"
 #include "raster.h"
-#include "table.h"
 #include "catalog/objectcontainer.h"
 
 namespace ngs {
@@ -85,6 +82,7 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
+    virtual bool canDestroy() const override { return !m_readonly; }
 
     // ObjectContainer interface
 public:

@@ -244,8 +244,8 @@ bool Table::destroy()
         return errorMessage(_("GDALDataset is null"));
 
     for(int i = 0; i < DS->GetLayerCount (); ++i){
-        if(DS->GetLayer (i) == m_layer) {
-            if(DS->DeleteLayer (i) == OGRERR_NONE) {
+        if(DS->GetLayer(i) == m_layer) {
+            if(DS->DeleteLayer(i) == OGRERR_NONE) {
                 m_layer = nullptr;
                 if(m_parent)
                     m_parent->notifyChanges();
