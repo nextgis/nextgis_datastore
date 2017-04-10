@@ -22,10 +22,14 @@
 #ifndef NGSVERSION_H
 #define NGSVERSION_H
 
-#define NGS_VERSION    "0.1.1"
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 #define NGS_VERSION_MAJOR 0
-#define NGS_VERSION_MINOR 1
-#define NGS_VERSION_REV   1
+#define NGS_VERSION_MINOR 2
+#define NGS_VERSION_REV   0
+#define NGS_VERSION  STR(NGS_VERSION_MAJOR) "." STR(NGS_VERSION_MINOR) "." \
+    STR(NGS_VERSION_REV)
 
 #ifndef NGS_ABI
 #define NGS_ABI "Unknown"

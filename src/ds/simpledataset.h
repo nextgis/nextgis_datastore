@@ -35,12 +35,19 @@ public:
                   const CPLString & path = "");
     ObjectPtr getInternalObject() const;
 
+    // Object interface
+public:
+    virtual bool destroy() override;
 
     // ObjectContainer interface
 public:
     virtual bool hasChildren() override;
     virtual bool canCreate(const ngsCatalogObjectType) const override { return false; }
-    virtual bool canPaste(const ngsCatalogObjectType) override { return false; }
+    virtual bool canPaste(const ngsCatalogObjectType) const override { return false; }
+
+    // Dataset interface
+protected:
+    virtual void fillFeatureClasses() override;
 
 private:
     ngsCatalogObjectType m_subType;

@@ -396,10 +396,16 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
                             _("Destination dataset '%s' not found"), dstPath);
     }
 
-    ObjectContainer * const container = ngsDynamicCast(ObjectContainer, dstObject);
+    Dataset * const dstDataset = ngsDynamicCast(Dataset, dstObject);
+    if(nullptr == dstDataset) {
+        return move ? ngsErrorCodes::EC_MOVE_FAILED :
+                      ngsErrorCodes::EC_COPY_FAILED;
+    }
+    dstDataset->hasChildren();
+
     // Check can paster
-    if(nullptr != container && container->canPaste(srcObject->getType())) {
-        return container->paste(srcObject, move, loadOptions, progress) ?
+    if(dstDataset->canPaste(srcObject->getType())) {
+        return dstDataset->paste(srcObject, move, loadOptions, progress) ?
                     ngsErrorCodes::EC_SUCCESS :
                     move ? ngsErrorCodes::EC_MOVE_FAILED :
                            ngsErrorCodes::EC_COPY_FAILED;

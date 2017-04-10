@@ -20,6 +20,9 @@
  ****************************************************************************/
 #include "simpledataset.h"
 
+#include "catalog/file.h"
+#include "util/notify.h"
+
 namespace ngs {
 
 SimpleDataset::SimpleDataset(ngsCatalogObjectType subType,
@@ -50,7 +53,53 @@ bool SimpleDataset::hasChildren()
     return false;
 }
 
+bool SimpleDataset::destroy()
+{
+    clear();
+    GDALClose(m_DS);
+    m_DS = nullptr;
+    if(!File::deleteFile(m_path)) {
+        return false;
+    }
+
+    for(const auto &siblingFile : m_siblingFiles) {
+        const char* path = CPLFormFilename(m_parent->getPath(), siblingFile, nullptr);
+        File::deleteFile(path);
+    }
+
+    if(m_parent) {
+        m_parent->notifyChanges();
+    }
+
+    Notify::instance().onNotify(getFullName(), ngsChangeCodes::CC_DELETE_OBJECT);
+
+    return true;
 }
+
+void SimpleDataset::fillFeatureClasses()
+{
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i){
+        OGRLayer* layer = m_DS->GetLayer(i);
+        if(nullptr != layer) {
+            OGRwkbGeometryType geometryType = layer->GetGeomType();
+            const char* layerName = layer->GetName();
+            // layer->GetLayerDefn()->GetGeomFieldCount() == 0
+            if(geometryType == wkbNone) {
+                m_children.push_back(ObjectPtr(new Table(layer, this,m_subType,
+                                                         layerName)));
+            }
+            else {
+                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
+                                                                m_subType,
+                                                                layerName)));
+            }
+        }
+    }
+}
+
+}
+
+
 
 
 

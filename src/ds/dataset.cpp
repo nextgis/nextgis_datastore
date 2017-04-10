@@ -144,6 +144,9 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
                                           const Options &options,
                                           const Progress &progress)
 {
+    if(nullptr == m_DS)
+        return nullptr;
+
     OGRLayer *layer = m_DS->CreateLayer(name,
                     const_cast<OGRSpatialReference*>(spatialRef), type,
                                         options.getOptions().get());
@@ -464,6 +467,20 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
     return true;
 }
 
+bool Dataset::canPaste(const ngsCatalogObjectType type) const
+{
+    if(!isOpened() || isReadOnly())
+        return false;
+    return Filter::isFeatureClass(type) || Filter::isTable(type);
+}
+
+bool Dataset::canCreate(const ngsCatalogObjectType type) const
+{
+    if(!isOpened() || isReadOnly())
+        return false;
+    return Filter::isFeatureClass(type) || Filter::isTable(type);
+}
+
 TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
 {
     if(nullptr == m_DS)
@@ -496,6 +513,8 @@ TablePtr Dataset::executeSQL(const char *statement,
                                          ngsCatalogObjectType::CAT_QUERY_RESULT_FC));
 
 }
+
+
 
 //unsigned int DatasetContainer::loadDataset(const CPLString &name,
 //                                           const CPLString& path, const
@@ -672,4 +691,5 @@ TablePtr Dataset::executeSQL(const char *statement,
 
 
 } // namespace ngs
+
 

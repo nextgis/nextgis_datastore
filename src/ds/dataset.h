@@ -90,6 +90,8 @@ public:
     virtual bool paste(ObjectPtr child, bool move = false,
                        const Options & options = Options(),
                        const Progress &progress = Progress()) override;
+    virtual bool canPaste(const ngsCatalogObjectType type) const override;
+    virtual bool canCreate(const ngsCatalogObjectType type) const override;
 
 protected:
     virtual bool isNameValid(const char *name) const;

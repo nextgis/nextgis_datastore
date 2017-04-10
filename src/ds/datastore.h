@@ -85,7 +85,6 @@ protected:
 protected:
     unsigned char m_disableJournalCounter;
     OGRSpatialReference m_storeSpatialRef;
-
 };
 
 }
