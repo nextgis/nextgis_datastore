@@ -137,6 +137,7 @@ enum ngsCatalogObjectType {
     CAT_FC_S57,
     CAT_FC_GDB,
     CAT_FC_CSV,
+    CAT_FC_GPKG,
     CAT_FC_ALL,
     CAT_RASTER_ANY,             /** Any raster */
     CAT_RASTER_BMP,
@@ -152,6 +153,7 @@ enum ngsCatalogObjectType {
     CAT_RASTER_TMS,
     CAT_RASTER_POSTGIS,
     CAT_RASTER_GDB,
+    CAT_RASTER_GPKG,
     CAT_RASTER_ALL,
     CAT_TABLE_ANY,              /** Any table */
     CAT_TABLE_POSTGRES,
@@ -159,6 +161,8 @@ enum ngsCatalogObjectType {
     CAT_TABLE_MAPINFO_MIF,
     CAT_TABLE_CSV,
     CAT_TABLE_GDB,
+    CAT_TABLE_DBF,
+    CAT_TABLE_GPKG,
     CAT_TABLE_ODS,
     CAT_TABLE_XLS,
     CAT_TABLE_XLSX,

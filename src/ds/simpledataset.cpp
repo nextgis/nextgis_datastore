@@ -22,10 +22,13 @@
 
 namespace ngs {
 
-SimpleDataset::SimpleDataset(ObjectContainer * const parent,
+SimpleDataset::SimpleDataset(ngsCatalogObjectType subType,
+                             std::vector<CPLString> siblingFiles,
+                             ObjectContainer * const parent,
                              const CPLString &name,
                              const CPLString &path) :
-    Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_SIMPLE, name, path)
+    Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_SIMPLE, name, path),
+    m_subType(subType), m_siblingFiles(siblingFiles)
 {
 
 }

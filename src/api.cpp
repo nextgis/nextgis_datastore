@@ -231,8 +231,10 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
     size_t outputSize = 0;
     ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
     if(!container) {
-        if(!objectFilter.canDisplay(object))
+        if(!objectFilter.canDisplay(object)) {
             return nullptr;
+        }
+
         output = static_cast<ngsCatalogObjectInfo*>(
                     CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
         output[0] = {object->getName(), object->getType()};
@@ -240,20 +242,40 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
         return output;
     }
 
-    if(!container->hasChildren())
+    if(!container->hasChildren()) {
+        if(container->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+            SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
+            ObjectPtr internalObject = simpleDS->getInternalObject();
+            output = static_cast<ngsCatalogObjectInfo*>(
+                        CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
+            output[0] = {object->getName(), internalObject->getType()};
+            output[1] = {nullptr, -1};
+            return output;
+        }
         return nullptr;
+    }
 
     auto children = container->getChildren();
-    if(children.empty())
+    if(children.empty()) {
         return nullptr;
+    }
 
     for(const auto &child : children) {
         if(objectFilter.canDisplay(child)) {
             outputSize++;
             output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
-            output[outputSize - 1] = {
-                    child->getName(), child->getType()};
+
+            if(child->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+                SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
+                ObjectPtr internalObject = simpleDS->getInternalObject();
+                output[outputSize - 1] = {child->getName(),
+                                          internalObject->getType()};
+            }
+            else {
+                output[outputSize - 1] = {child->getName(),
+                                          child->getType()};
+            }
         }
     }
     if(outputSize > 0) {

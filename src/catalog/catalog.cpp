@@ -136,7 +136,7 @@ bool Catalog::hasChildren()
 
     // 2. Load root objects
     const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
-                                                  "");
+                                                  nullptr);
     if(!Folder::isExists(connectionsPath)) {
         if(!Folder::mkDir(connectionsPath))
             return false;
@@ -170,7 +170,7 @@ bool Catalog::isFileHidden(const CPLString &/*path*/, const char *name)
         return true;
 
 #ifdef _WIN32
-    DWORD attrs = GetFileAttributes(CPLFormFilename(path, name, NULL));
+    DWORD attrs = GetFileAttributes(CPLFormFilename(path, name, nullptr));
     if (attrs != INVALID_FILE_ATTRIBUTES)
         return attrs & FILE_ATTRIBUTE_HIDDEN;
 #endif

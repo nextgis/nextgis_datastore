@@ -241,14 +241,14 @@ CPLString Folder::createUniquePath(const CPLString &path, const CPLString &name,
         newAdd.Printf("%s(%d)", add.c_str(), counter);
         CPLString tmpName = CPLGetBasename(name) + newAdd;
         if(isFolder) {
-            resultPath = CPLFormFilename(path, tmpName, "");
+            resultPath = CPLFormFilename(path, tmpName, nullptr);
         }
         else {
             resultPath = CPLFormFilename(path, tmpName, CPLGetExtension(name));
         }
     }
     else {
-        resultPath = CPLFormFilename(path, name, "");
+        resultPath = CPLFormFilename(path, name, nullptr);
     }
 
     if(isExists(resultPath))

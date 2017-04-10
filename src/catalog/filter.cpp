@@ -89,15 +89,28 @@ GDALDriver *Filter::getGDALDriver(const ngsCatalogObjectType type)
 {
 
     switch (type) {
+    case CAT_CONTAINER_GPKG:
+    case CAT_TABLE_GPKG:
+    case CAT_FC_GPKG:
+    case CAT_RASTER_GPKG:
     case CAT_CONTAINER_NGS:
         return GetGDALDriverManager()->GetDriverByName("GPKG");
     case CAT_CONTAINER_GDB:
+    case CAT_TABLE_GDB:
+    case CAT_FC_GDB:
+    case CAT_RASTER_GDB:
         return GetGDALDriverManager()->GetDriverByName("OpenFileGDB");
     case CAT_CONTAINER_POSTGRES:
+    case CAT_FC_POSTGIS:
+    case CAT_RASTER_POSTGIS:
+    case CAT_TABLE_POSTGRES:
         return GetGDALDriverManager()->GetDriverByName("PostgreSQL");
     case CAT_CONTAINER_WFS:
+    case CAT_FC_WFS:
         return GetGDALDriverManager()->GetDriverByName("WFS");
     case CAT_CONTAINER_WMS:
+    case CAT_RASTER_WMS:
+    case CAT_RASTER_TMS:
         return GetGDALDriverManager()->GetDriverByName("WMS");
     case CAT_CONTAINER_KML:
         return GetGDALDriverManager()->GetDriverByName("KML");
@@ -109,6 +122,8 @@ GDALDriver *Filter::getGDALDriver(const ngsCatalogObjectType type)
         return GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
     case CAT_FC_MAPINFO_TAB:
     case CAT_FC_MAPINFO_MIF:
+    case CAT_TABLE_MAPINFO_TAB:
+    case CAT_TABLE_MAPINFO_MIF:
         return GetGDALDriverManager()->GetDriverByName("MapInfo File");
     case CAT_FC_DXF:
         return GetGDALDriverManager()->GetDriverByName("DXF");
@@ -138,29 +153,14 @@ GDALDriver *Filter::getGDALDriver(const ngsCatalogObjectType type)
         return GetGDALDriverManager()->GetDriverByName("SAGA");
     case CAT_RASTER_VRT:
         return GetGDALDriverManager()->GetDriverByName("VRT");
-    case CAT_RASTER_WMS:
-        return GetGDALDriverManager()->GetDriverByName("WMS");
-    case CAT_RASTER_TMS:
-        return GetGDALDriverManager()->GetDriverByName("WMS");
-    case CAT_RASTER_POSTGIS:
-        return GetGDALDriverManager()->GetDriverByName("PostgreSQL");
-    case CAT_RASTER_GDB:
-        return GetGDALDriverManager()->GetDriverByName("OpenFileGDB");
-    case CAT_TABLE_POSTGRES:
-        return GetGDALDriverManager()->GetDriverByName("PostgreSQL");
-    case CAT_TABLE_MAPINFO_TAB:
-    case CAT_TABLE_MAPINFO_MIF:
-        return GetGDALDriverManager()->GetDriverByName("MapInfo File");
     case CAT_TABLE_CSV:
         return GetGDALDriverManager()->GetDriverByName("CSV");
-    case CAT_TABLE_GDB:
-        return GetGDALDriverManager()->GetDriverByName("OpenFileGDB");
     case CAT_TABLE_ODS:
         return GetGDALDriverManager()->GetDriverByName("ODS");
     case CAT_TABLE_XLS:
         return GetGDALDriverManager()->GetDriverByName("XLS");
     case CAT_TABLE_XLSX:
-        return GetGDALDriverManager()->GetDriverByName("GeoJSON");
+        return GetGDALDriverManager()->GetDriverByName("XLSX");
     default:
         return nullptr;
     }

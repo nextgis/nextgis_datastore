@@ -25,6 +25,13 @@
 
 namespace ngs {
 
+typedef std::map<CPLString, std::vector<CPLString>> nameExtMap;
+typedef struct _formatExt {
+    const char *mainExt;
+    const char **mainExts;
+    const char **extraExts;
+} FORMAT_EXT;
+
 class SimpleDatasetFactory : public ObjectFactory
 {
 public:
@@ -35,6 +42,22 @@ public:
     virtual const char *getName() const override;
     virtual void createObjects(ObjectContainer * const container,
                                std::vector<const char *> * const names) override;
+
+private:
+    void addChild(ObjectContainer * const container, const CPLString& name,
+                  const CPLString& path, ngsCatalogObjectType subType,
+                  const std::vector<CPLString> &siblingFiles,
+                  std::vector<const char *> * const names);
+
+    typedef struct _formatResult {
+        bool isSupported;
+        CPLString name;
+        std::vector<CPLString> siblingFiles;
+    } FORMAT_RESULT;
+
+    FORMAT_RESULT isFormatSupported(const CPLString& name,
+                           std::vector<CPLString> extensions,
+                           FORMAT_EXT testExts);
 };
 
 } // namespace ngs

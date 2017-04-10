@@ -25,6 +25,7 @@
 
 namespace ngs {
 
+
 class DataStoreFactory : public ObjectFactory
 {
 public:
