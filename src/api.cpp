@@ -277,10 +277,13 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
 
             if(child->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
-                SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
+                SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
+                simpleDS->hasChildren();
                 ObjectPtr internalObject = simpleDS->getInternalObject();
-                output[outputSize - 1] = {child->getName(),
-                                          internalObject->getType()};
+                if(internalObject) {
+                    output[outputSize - 1] = {child->getName(),
+                                              internalObject->getType()};
+                }
             }
             else {
                 output[outputSize - 1] = {child->getName(),

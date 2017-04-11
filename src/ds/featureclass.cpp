@@ -99,15 +99,17 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     double counter = 0;
     srcFClass->reset();
     FeaturePtr feature;
-    while((feature = srcFClass->nextFeature()) != nullptr) {
+    while((feature = srcFClass->nextFeature())) {
         double complete = counter / featureCount;
         progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
                            _("Copy in process ..."));
 
         OGRGeometry * geom = feature->GetGeometryRef();
         OGRGeometry *newGeom = nullptr;
-        if(nullptr == geom && skipEmpty) {
-            continue;
+        if(nullptr == geom) {
+            if(skipEmpty) {
+                continue;
+            }
         }
         else {
             if(skipEmpty && geom->IsEmpty()) {
@@ -126,11 +128,9 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                 continue;
             }
 
+            newGeom = geom->clone();
             if (dstGeomType != geomType) {
-                newGeom = OGRGeometryFactory::forceTo(geom, dstGeomType);
-            }
-            else {
-                newGeom = geom->clone();
+                newGeom = OGRGeometryFactory::forceTo(newGeom, dstGeomType);
             }
 
             CT.transform(newGeom);
@@ -259,7 +259,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::getGeometryTypes()
         reset();
         std::map<OGRwkbGeometryType, int> counts;
         FeaturePtr feature;
-        while((feature = nextFeature()) != nullptr) {
+        while((feature = nextFeature())) {
             OGRGeometry * const geom = feature->GetGeometryRef();
             if (nullptr != geom) {
                 OGRwkbGeometryType geomType = geom->getGeometryType();

@@ -30,6 +30,7 @@ set(HHEADERS
     catalog.h
     file.h
     folder.h
+    archive.h
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
     localconnections.h
     mapfile.h
@@ -46,6 +47,7 @@ set(CSOURCES
     catalog.cpp
     file.cpp
     folder.cpp
+    archive.cpp
     filter.cpp
     localconnections.cpp
     mapfile.cpp

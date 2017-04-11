@@ -59,7 +59,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
     srcDataset->reset ();
     FeaturePtr feature;
 
-    while((feature = srcDataset->nextFeature ()) != nullptr) {
+    while((feature = srcDataset->nextFeature ())) {
         if(progressInfo)
             progressInfo->onProgress (counter / featureCount, "copying...");
 

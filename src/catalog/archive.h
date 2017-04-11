@@ -18,27 +18,50 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef FOLDERFACTORY_H
-#define FOLDERFACTORY_H
+#ifndef NGSARCHIVE_H
+#define NGSARCHIVE_H
 
-#include "objectfactory.h"
+#include "folder.h"
 
 namespace ngs {
 
-class FolderFactory : public ObjectFactory
+class ArchiveFolder : public Folder
 {
 public:
-    FolderFactory();
-
-    // ObjectFactory interface
+    ArchiveFolder(ObjectContainer * const parent = nullptr,
+                  const CPLString & name = "",
+                  const CPLString & path = "");
+    // ObjectContainer interface
 public:
-    virtual const char *getName() const override;
-    virtual void createObjects(ObjectContainer * const container,
-                               std::vector<const char *> * const names) override;
-private:
-    bool m_zipSupported;
+    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const override {
+        return false;
+    }
+
+    // Object interface
+public:
+    virtual bool canDestroy() const override { return false; }
+
+};
+
+class Archive : public ArchiveFolder
+{
+public:
+    Archive(ObjectContainer * const parent = nullptr,
+            const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE,
+            const CPLString & name = "",
+            const CPLString & path = "");
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+    virtual bool canDestroy() const override { return Folder::canDestroy(); }
+
+    // Static
+    static const char* getExtension(const ngsCatalogObjectType type);
+    static const char* getPathPrefix(const ngsCatalogObjectType type);
+
 };
 
 }
 
-#endif // FOLDERFACTORY_H
+#endif // NGSARCHIVE_H

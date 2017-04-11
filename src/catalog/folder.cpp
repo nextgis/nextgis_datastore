@@ -30,7 +30,8 @@
 namespace ngs {
 
 Folder::Folder(ObjectContainer * const parent,
-               const CPLString & name, const CPLString & path) :
+               const CPLString & name,
+               const CPLString & path) :
     ObjectContainer(parent, CAT_CONTAINER_DIR, name, path)
 {
 

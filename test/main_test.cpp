@@ -143,6 +143,18 @@ TEST(BasicTests, TestCatalogQuery) {
     EXPECT_GE(count, 1);
     CPLFree(pathInfo);
 
+    // Test zip support
+    CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
+    CPLString zipPath = catalogPath + "/data/railway.zip";
+    pathInfo = ngsCatalogObjectQuery(zipPath);
+    count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << zipPath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 1);
+    CPLFree(pathInfo);
+
     ngsUnInit();
 }
 
@@ -282,6 +294,30 @@ TEST(BasicTests, TestLoadDataStore) {
                                    ngsTestProgressFunc, nullptr),
               ngsErrorCodes::EC_SUCCESS);
     EXPECT_GE(counter, 1);
+
+    ngsUnInit();
+}
+
+TEST(BasicTests, TestLoadDataStoreZippedShapefile) {
+    counter = 0;
+
+    char** options = nullptr;
+    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
+    options = CSLAddNameValue(options, "SETTINGS_DIR",
+                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
+
+    CSLDestroy(options);
+
+    CPLString testPath = CPLGetCurrentDir();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString storePath = catalogPath + "/tmp/main.ngst";
+    CPLString shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
+    EXPECT_EQ(ngsCatalogObjectLoad(shapePath, storePath, nullptr,
+                                   ngsTestProgressFunc, nullptr),
+              ngsErrorCodes::EC_SUCCESS);
+    EXPECT_GE(counter, 1);
+    ngsUnInit();
 }
 
 TEST(BasicTests, TestDeleteDataStore) {

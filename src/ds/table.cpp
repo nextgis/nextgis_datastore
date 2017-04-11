@@ -53,13 +53,13 @@ const int &FieldMapPtr::operator[](int key) const
 //------------------------------------------------------------------------------
 
 FeaturePtr::FeaturePtr(OGRFeature* feature) :
-    shared_ptr(feature, OGRFeature::DestroyFeature )
+    shared_ptr( feature, OGRFeature::DestroyFeature )
 {
 
 }
 
 FeaturePtr:: FeaturePtr() :
-    shared_ptr(nullptr, OGRFeature::DestroyFeature )
+    shared_ptr( nullptr, OGRFeature::DestroyFeature )
 {
 
 }
@@ -166,20 +166,20 @@ GIntBig Table::featureCount(bool force) const
     if(nullptr == m_layer)
         return 0;
 
-    return m_layer->GetFeatureCount (force ? TRUE : FALSE);
+    return m_layer->GetFeatureCount(force ? TRUE : FALSE);
 }
 
 void Table::reset() const
 {
     if(nullptr != m_layer)
-        m_layer->ResetReading ();
+        m_layer->ResetReading();
 }
 
 FeaturePtr Table::nextFeature() const
 {
     if(nullptr == m_layer)
         return FeaturePtr();
-    return m_layer->GetNextFeature ();
+    return m_layer->GetNextFeature();
 }
 
 bool Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
@@ -197,7 +197,7 @@ bool Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     double counter = 0;
     srcTable->reset();
     FeaturePtr feature;
-    while((feature = srcTable->nextFeature ()) != nullptr) {
+    while((feature = srcTable->nextFeature ())) {
         double complete = counter / featureCount;
         progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
                            _("Copy in process ..."));
