@@ -33,6 +33,7 @@ public:
            const CPLString & path = "");
     virtual bool hasChildren() override;
 
+    // Static functions
 public:
     static bool isExists(const char* path);
     static bool mkDir(const char* path);

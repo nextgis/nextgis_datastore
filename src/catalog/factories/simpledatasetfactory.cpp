@@ -23,6 +23,7 @@
 #include <array>
 
 #include "ds/simpledataset.h"
+#include "ngstore/catalog/filter.h"
 
 namespace ngs {
 
@@ -40,7 +41,10 @@ constexpr FORMAT_EXT mifExt = {"mif", mifMainExts, mifExtraExts};
 
 SimpleDatasetFactory::SimpleDatasetFactory() : ObjectFactory()
 {
-
+    m_shpSupported = Filter::getGDALDriver(
+                ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE);
+    m_miSupported = Filter::getGDALDriver(
+                ngsCatalogObjectType::CAT_FC_MAPINFO_TAB);
 }
 
 const char *SimpleDatasetFactory::getName() const
@@ -63,6 +67,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
     for(const auto& nameExtsItem : nameExts) {
 
         // Check if ESRI Shapefile
+        if(m_shpSupported) {
         SimpleDatasetFactory::FORMAT_RESULT result = isFormatSupported(
                     nameExtsItem.first, nameExtsItem.second, shpExt);
         if(result.isSupported) {
@@ -72,9 +77,11 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
                      ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE,
                      result.siblingFiles, names);
         }
+        }
 
         // Check if MapInfo tab
-        result = isFormatSupported(
+        if(m_miSupported) {
+        SimpleDatasetFactory::FORMAT_RESULT result = isFormatSupported(
                             nameExtsItem.first, nameExtsItem.second, tabExt);
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->getPath(), result.name,
@@ -93,6 +100,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_FC_MAPINFO_MIF,
                      result.siblingFiles, names);
+        }
         }
     }
 }

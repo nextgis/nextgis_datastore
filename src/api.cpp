@@ -30,6 +30,7 @@
 #include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
+#include "util/settings.h"
 #include "util/versionutil.h"
 
 
@@ -62,21 +63,30 @@ static const char *CSVFileOverride( const char * pszInput )
 
 void initGDAL(const char* dataPath, const char* cachePath)
 {
+    Settings& settings = Settings::instance();
     // set config options
     if(dataPath)
         CPLSetConfigOption("GDAL_DATA", dataPath);
-    CPLSetConfigOption("GDAL_CACHEMAX", CACHEMAX);
-    CPLSetConfigOption("GDAL_HTTP_USERAGENT", NGS_USERAGENT);
-    CPLSetConfigOption("CPL_CURL_GZIP", HTTP_USE_GZIP);
-    CPLSetConfigOption("GDAL_HTTP_TIMEOUT", HTTP_TIMEOUT);
+    CPLSetConfigOption("GDAL_CACHEMAX",
+                       settings.getString("common/cachemax", CACHEMAX));
+    CPLSetConfigOption("GDAL_HTTP_USERAGENT",
+                       settings.getString("http/useragent", NGS_USERAGENT));
+    CPLSetConfigOption("CPL_CURL_GZIP",
+                       settings.getString("http/use_gzip", HTTP_USE_GZIP));
+    CPLSetConfigOption("GDAL_HTTP_TIMEOUT",
+                       settings.getString("http/timeout", HTTP_TIMEOUT));
     CPLSetConfigOption("GDAL_DRIVER_PATH", "disabled");
 #ifdef NGS_MOBILE // for mobile devices
-    CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk");
+    CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
+                       settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk"));
 #endif
     if(cachePath)
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
     if(isDebugMode())
         CPLSetConfigOption("CPL_DEBUG", "ON");
+
+    CPLSetConfigOption("CPL_ZIP_ENCODING",
+                       settings.getString("common/zip_encoding", "CP866"));
 
 #ifdef _DEBUG
     std::cout << "HTTP user agent set to: " << NGS_USERAGENT << "\n"

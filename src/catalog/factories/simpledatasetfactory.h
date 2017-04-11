@@ -58,6 +58,9 @@ private:
     FORMAT_RESULT isFormatSupported(const CPLString& name,
                            std::vector<CPLString> extensions,
                            FORMAT_EXT testExts);
+
+private:
+    bool m_shpSupported, m_miSupported;
 };
 
 } // namespace ngs
