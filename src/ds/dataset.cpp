@@ -21,6 +21,7 @@
 #include "dataset.h"
 
 // stl
+#include <algorithm>
 #include <array>
 
 #include "featureclass.h"

@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "folder.h"
 
+#include <algorithm>
+
 #include "catalog.h"
 #include "file.h"
 #include "ds/datastore.h"
@@ -62,8 +64,8 @@ bool Folder::hasChildren()
 
 bool Folder::isExists(const char *path)
 {
-    VSIStatBuf sbuf;
-    return VSIStat(path, &sbuf) == 0;
+    VSIStatBufL sbuf;
+    return VSIStatL(path, &sbuf) == 0;
 }
 
 bool Folder::mkDir(const char *path)
@@ -81,13 +83,13 @@ bool Folder::mkDir(const char *path)
 
 bool Folder::isDir(const char *path)
 {
-    VSIStatBuf sbuf;
+    VSIStatBufL sbuf;
     return VSIStatL(path, &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
 }
 
 bool Folder::isSymlink(const char *path)
 {
-    VSIStatBuf sbuf;
+    VSIStatBufL sbuf;
     return VSIStatL(path, &sbuf) == 0 && VSI_ISLNK(sbuf.st_mode);
 }
 

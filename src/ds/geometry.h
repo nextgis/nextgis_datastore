@@ -23,6 +23,8 @@
 
 #include "ogrsf_frmts.h"
 
+#include <memory>
+
 namespace ngs {
 
 typedef std::shared_ptr< OGRGeometry > GeometryPtr;

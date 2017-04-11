@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "stringutil.h"
 
+// stl
+#include <algorithm>
 #include <map>
 
 namespace ngs {
@@ -46,7 +48,7 @@ bool invalidChar (char c)
 CPLString stripUnicode(const CPLString &str, const char replaceChar)
 {
     CPLString out = str;
-    replace_if(out.begin (), out.end (), invalidChar, replaceChar);
+    std::replace_if(out.begin (), out.end (), invalidChar, replaceChar);
 
     return out;
 }
