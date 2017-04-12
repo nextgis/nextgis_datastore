@@ -23,7 +23,7 @@
 namespace ngs {
 
 Raster::Raster(ObjectContainer * const parent,
-               const ngsCatalogObjectType type,
+               const enum ngsCatalogObjectType type,
                const CPLString &name,
                const CPLString &path) :
   Object(parent, type, name, path), m_DS(nullptr)

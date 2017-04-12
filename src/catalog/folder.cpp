@@ -181,7 +181,7 @@ void Folder::refresh()
     }
 }
 
-bool Folder::canCreate(const ngsCatalogObjectType type) const
+bool Folder::canCreate(const enum ngsCatalogObjectType type) const
 {
     switch (type) {
     case CAT_CONTAINER_DIR:
@@ -192,7 +192,7 @@ bool Folder::canCreate(const ngsCatalogObjectType type) const
     }
 }
 
-bool Folder::create(const ngsCatalogObjectType type, const CPLString &name,
+bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
                          const Options & options)
 {
     bool result = false;

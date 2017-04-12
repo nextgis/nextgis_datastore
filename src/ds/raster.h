@@ -33,7 +33,7 @@ class Raster : public Object, public ISpatialDataset
 {
 public:
     Raster(ObjectContainer * const parent = nullptr,
-           const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
+           const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Raster();

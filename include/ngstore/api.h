@@ -96,10 +96,12 @@ NGS_EXTERNC char** ngsAddNameValue(char** list, const char *name,
 NGS_EXTERNC void ngsDestroyList(char** list);
 NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension);
+NGS_EXTERNC void ngsFree(void *pointer);
 
 /**
  * Catalog functions
  */
+typedef void *CatalogObjectH;
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char* path,
                                                         int filter = 0);
 NGS_EXTERNC int ngsCatalogObjectDelete(const char* path);
@@ -112,7 +114,8 @@ NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
                                      void* callbackData = nullptr);
 NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
 NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, int optionType);
-NGS_EXTERNC void ngsFree(void *pointer);
+NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
+NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 
 /*
 mapCreate

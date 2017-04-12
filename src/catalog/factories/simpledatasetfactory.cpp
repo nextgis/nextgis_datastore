@@ -108,7 +108,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
 void SimpleDatasetFactory::addChild(ObjectContainer * const container,
                                     const CPLString &name,
                                     const CPLString &path,
-                                    ngsCatalogObjectType subType,
+                                    enum ngsCatalogObjectType subType,
                                     const std::vector<CPLString> &siblingFiles,
                                     std::vector<const char *> * const names)
 {

@@ -42,7 +42,7 @@ public:
 public:
     FeatureClass(OGRLayer * layer,
                  ObjectContainer * const parent = nullptr,
-                 const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
+                 const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
                  const CPLString & name = "");
     virtual ~FeatureClass() = default;
 

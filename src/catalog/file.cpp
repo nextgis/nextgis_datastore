@@ -26,7 +26,7 @@
 namespace ngs {
 
 File::File(ObjectContainer * const parent,
-           const ngsCatalogObjectType type,
+           const enum ngsCatalogObjectType type,
            const CPLString &name,
            const CPLString &path) :
     Object(parent, type, name, path)

@@ -28,7 +28,7 @@ namespace ngs {
 class SimpleDataset : public Dataset
 {
 public:
-    SimpleDataset(ngsCatalogObjectType subType,
+    SimpleDataset(enum ngsCatalogObjectType subType,
                   std::vector<CPLString> siblingFiles,
                   ObjectContainer * const parent = nullptr,
                   const CPLString & name = "",
@@ -42,15 +42,15 @@ public:
     // ObjectContainer interface
 public:
     virtual bool hasChildren() override;
-    virtual bool canCreate(const ngsCatalogObjectType) const override { return false; }
-    virtual bool canPaste(const ngsCatalogObjectType) const override { return false; }
+    virtual bool canCreate(const enum ngsCatalogObjectType) const override { return false; }
+    virtual bool canPaste(const enum ngsCatalogObjectType) const override { return false; }
 
     // Dataset interface
 protected:
     virtual void fillFeatureClasses() override;
 
 private:
-    ngsCatalogObjectType m_subType;
+    enum ngsCatalogObjectType m_subType;
     std::vector<CPLString> m_siblingFiles;
 };
 

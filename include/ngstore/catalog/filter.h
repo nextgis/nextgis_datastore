@@ -35,18 +35,18 @@ namespace ngs {
 class Filter
 {
 public:
-    Filter(const ngsCatalogObjectType type = CAT_UNKNOWN);
+    Filter(const enum ngsCatalogObjectType type = CAT_UNKNOWN);
     virtual ~Filter() = default;
     virtual bool canDisplay(ObjectPtr object) const;
 
 public:
-    static bool isFeatureClass(const ngsCatalogObjectType type);
-    static bool isRaster(const ngsCatalogObjectType type);
-    static bool isTable(const ngsCatalogObjectType type);
-    static bool isContainer(const ngsCatalogObjectType type);
-    static bool isDatabase(const ngsCatalogObjectType type);
-    static GDALDriver *getGDALDriver(const ngsCatalogObjectType type);
-    static const char* getExtension(const ngsCatalogObjectType type);
+    static bool isFeatureClass(const enum ngsCatalogObjectType type);
+    static bool isRaster(const enum ngsCatalogObjectType type);
+    static bool isTable(const enum ngsCatalogObjectType type);
+    static bool isContainer(const enum ngsCatalogObjectType type);
+    static bool isDatabase(const enum ngsCatalogObjectType type);
+    static GDALDriver *getGDALDriver(const enum ngsCatalogObjectType type);
+    static const char* getExtension(const enum ngsCatalogObjectType type);
 protected:
     enum ngsCatalogObjectType type;
 };

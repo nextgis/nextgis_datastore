@@ -44,8 +44,10 @@ public:
                                std::vector<const char *> * const names) override;
 
 private:
-    void addChild(ObjectContainer * const container, const CPLString& name,
-                  const CPLString& path, ngsCatalogObjectType subType,
+    void addChild(ObjectContainer * const container,
+                  const CPLString& name,
+                  const CPLString& path,
+                  enum ngsCatalogObjectType subType,
                   const std::vector<CPLString> &siblingFiles,
                   std::vector<const char *> * const names);
 

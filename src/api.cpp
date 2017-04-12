@@ -1008,3 +1008,22 @@ void ngsFree(void *pointer)
 {
     CPLFree(pointer);
 }
+
+/**
+ * @brief ngsCatalogObjectGet Get catalog object handle by path
+ * @param path Path to the catalog object
+ * @return handel or null
+ */
+CatalogObjectH ngsCatalogObjectGet(const char *path)
+{
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
+    return object.get();
+}
+
+enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
+{
+    if(nullptr == object)
+        return ngsCatalogObjectType::CAT_UNKNOWN;
+    return static_cast<Object*>(object)->getType();
+}

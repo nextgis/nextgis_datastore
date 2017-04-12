@@ -35,7 +35,7 @@ namespace ngs {
 
 FeatureClass::FeatureClass(OGRLayer *layer,
                                ObjectContainer * const parent,
-                               const ngsCatalogObjectType type,
+                               const enum ngsCatalogObjectType type,
                                const CPLString &name) :
     Table(layer, parent, type, name)
 {

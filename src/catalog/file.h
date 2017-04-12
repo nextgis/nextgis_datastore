@@ -29,7 +29,7 @@ class File : public Object
 {
 public:
     File(ObjectContainer * const parent = nullptr,
-         const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FILE_ANY,
+         const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FILE_ANY,
          const CPLString & name = "",
          const CPLString & path = "");
 

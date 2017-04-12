@@ -34,7 +34,7 @@ ArchiveFolder::ArchiveFolder(ObjectContainer * const parent,
 }
 
 Archive::Archive(ObjectContainer * const parent,
-                 const ngsCatalogObjectType type,
+                 const enum ngsCatalogObjectType type,
                  const CPLString &name,
                  const CPLString &path) :
     ArchiveFolder(parent, name, path)
@@ -58,7 +58,7 @@ bool Archive::destroy()
     return true;
 }
 
-const char *Archive::getExtension(const ngsCatalogObjectType type)
+const char *Archive::getExtension(const enum ngsCatalogObjectType type)
 {
     switch (type) {
     case ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP:
@@ -68,7 +68,7 @@ const char *Archive::getExtension(const ngsCatalogObjectType type)
     }
 }
 
-const char *Archive::getPathPrefix(const ngsCatalogObjectType type)
+const char *Archive::getPathPrefix(const enum ngsCatalogObjectType type)
 {
     switch (type) {
     case ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP:

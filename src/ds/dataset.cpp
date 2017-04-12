@@ -92,7 +92,7 @@ GDALDatasetPtr::operator GDALDataset *() const
 //------------------------------------------------------------------------------
 
 Dataset::Dataset(ObjectContainer * const parent,
-                 const ngsCatalogObjectType type,
+                 const enum ngsCatalogObjectType type,
                  const CPLString &name,
                  const CPLString &path) :
     ObjectContainer(parent, type, name, path),
@@ -468,14 +468,14 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
     return true;
 }
 
-bool Dataset::canPaste(const ngsCatalogObjectType type) const
+bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
 {
     if(!isOpened() || isReadOnly())
         return false;
     return Filter::isFeatureClass(type) || Filter::isTable(type);
 }
 
-bool Dataset::canCreate(const ngsCatalogObjectType type) const
+bool Dataset::canCreate(const enum ngsCatalogObjectType type) const
 {
     if(!isOpened() || isReadOnly())
         return false;

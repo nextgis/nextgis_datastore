@@ -53,7 +53,7 @@ class Dataset : public ObjectContainer
 {
 public:
     Dataset(ObjectContainer * const parent = nullptr,
-            const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
+            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");
     virtual ~Dataset();
@@ -90,8 +90,8 @@ public:
     virtual bool paste(ObjectPtr child, bool move = false,
                        const Options & options = Options(),
                        const Progress &progress = Progress()) override;
-    virtual bool canPaste(const ngsCatalogObjectType type) const override;
-    virtual bool canCreate(const ngsCatalogObjectType type) const override;
+    virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
 
 protected:
     virtual bool isNameValid(const char *name) const;

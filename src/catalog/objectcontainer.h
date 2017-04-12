@@ -34,7 +34,7 @@ class ObjectContainer : public Object
     friend class ObjectFactory;
 public:
     ObjectContainer(ObjectContainer * const parent = nullptr,
-                    const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
+                    const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
                     const CPLString & name = "",
                     const CPLString & path = "");
     virtual ~ObjectContainer() = default;
@@ -42,15 +42,15 @@ public:
     virtual void clear();
     virtual void refresh() {}
     virtual bool hasChildren() { return !m_children.empty(); }
-    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const {
+    virtual bool canCreate(const enum ngsCatalogObjectType /*type*/) const {
         return false;
     }
-    virtual bool create(const ngsCatalogObjectType /*type*/,
+    virtual bool create(const enum ngsCatalogObjectType /*type*/,
                         const CPLString & /*name*/,
                         const Options& /*options*/ = Options()) {
         return false;
     }
-    virtual bool canPaste(const ngsCatalogObjectType /*type*/) const {
+    virtual bool canPaste(const enum ngsCatalogObjectType /*type*/) const {
         return false;
     }
     virtual bool paste(ObjectPtr /*child*/, bool /*move*/ = false,

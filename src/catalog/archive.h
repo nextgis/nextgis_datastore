@@ -33,7 +33,7 @@ public:
                   const CPLString & path = "");
     // ObjectContainer interface
 public:
-    virtual bool canCreate(const ngsCatalogObjectType /*type*/) const override {
+    virtual bool canCreate(const enum ngsCatalogObjectType /*type*/) const override {
         return false;
     }
 
@@ -47,7 +47,7 @@ class Archive : public ArchiveFolder
 {
 public:
     Archive(ObjectContainer * const parent = nullptr,
-            const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE,
+            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE,
             const CPLString & name = "",
             const CPLString & path = "");
 
@@ -57,8 +57,8 @@ public:
     virtual bool canDestroy() const override { return Folder::canDestroy(); }
 
     // Static
-    static const char* getExtension(const ngsCatalogObjectType type);
-    static const char* getPathPrefix(const ngsCatalogObjectType type);
+    static const char* getExtension(const enum ngsCatalogObjectType type);
+    static const char* getPathPrefix(const enum ngsCatalogObjectType type);
 
 };
 

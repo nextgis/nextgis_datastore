@@ -43,9 +43,10 @@ public:
 
     // ObjectContainer interface
 public:
-    virtual bool canCreate(const ngsCatalogObjectType type) const override;
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual void refresh() override;
-    virtual bool create(const ngsCatalogObjectType type, const CPLString & name,
+    virtual bool create(const enum ngsCatalogObjectType type,
+                        const CPLString & name,
                         const Options &options) override;
 
     // Object interface

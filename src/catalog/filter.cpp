@@ -29,7 +29,7 @@ namespace ngs {
 // Filter
 //-----------------------------------------------------------------------------
 
-Filter::Filter(const ngsCatalogObjectType type) : type(type)
+Filter::Filter(const enum ngsCatalogObjectType type) : type(type)
 {
 }
 
@@ -60,32 +60,32 @@ bool Filter::canDisplay(ObjectPtr object) const
     return false;
 }
 
-bool Filter::isFeatureClass(const ngsCatalogObjectType type)
+bool Filter::isFeatureClass(const enum ngsCatalogObjectType type)
 {
     return type >= CAT_FC_ANY && type < CAT_FC_ALL;
 }
 
-bool Filter::isContainer(const ngsCatalogObjectType type)
+bool Filter::isContainer(const enum ngsCatalogObjectType type)
 {
     return type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL;
 }
 
-bool Filter::isRaster(const ngsCatalogObjectType type)
+bool Filter::isRaster(const enum ngsCatalogObjectType type)
 {
     return type >= CAT_RASTER_ANY && type < CAT_RASTER_ALL;
 }
 
-bool Filter::isTable(const ngsCatalogObjectType type)
+bool Filter::isTable(const enum ngsCatalogObjectType type)
 {
     return type >= CAT_TABLE_ANY && type < CAT_TABLE_ALL;
 }
 
-bool Filter::isDatabase(const ngsCatalogObjectType type)
+bool Filter::isDatabase(const enum ngsCatalogObjectType type)
 {
     return type == CAT_CONTAINER_GDB || type == CAT_CONTAINER_POSTGRES;
 }
 
-GDALDriver *Filter::getGDALDriver(const ngsCatalogObjectType type)
+GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
 {
 
     switch (type) {
@@ -166,7 +166,7 @@ GDALDriver *Filter::getGDALDriver(const ngsCatalogObjectType type)
     }
 }
 
-const char *Filter::getExtension(const ngsCatalogObjectType type)
+const char *Filter::getExtension(const enum ngsCatalogObjectType type)
 {
     GDALDriver *driver = getGDALDriver(type);
     switch (type) {
@@ -230,7 +230,7 @@ MultiFilter::MultiFilter() : Filter(CAT_UNKNOWN)
 
 bool MultiFilter::canDisplay(ObjectPtr object) const
 {
-    for(const enum ngsCatalogObjectType thisType : types) {
+    for(const auto thisType : types) {
         if(object->getType() == thisType)
             return true;
 
@@ -249,7 +249,7 @@ bool MultiFilter::canDisplay(ObjectPtr object) const
             return false;
 }
 
-void MultiFilter::addType(ngsCatalogObjectType newType)
+void MultiFilter::addType(enum ngsCatalogObjectType newType)
 {
     types.push_back(newType);
 }

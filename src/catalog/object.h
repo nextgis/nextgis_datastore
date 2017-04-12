@@ -38,13 +38,13 @@ class Object
 {
 public:
     Object(ObjectContainer * const parent = nullptr,
-           const ngsCatalogObjectType type = ngsCatalogObjectType::CAT_UNKNOWN,
+           const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_UNKNOWN,
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Object() = default;
     const CPLString &getName() const { return m_name; }
     const CPLString &getPath() const { return m_path; }
-    ngsCatalogObjectType getType() const { return m_type; }
+    enum ngsCatalogObjectType getType() const { return m_type; }
     virtual CPLString getFullName() const;
     virtual bool destroy() { return false; }
     virtual bool canDestroy() const { return false; }
@@ -63,7 +63,7 @@ private:
 protected:
     CPLString m_name, m_path;
     ObjectContainer * const m_parent;
-    ngsCatalogObjectType m_type;
+    enum ngsCatalogObjectType m_type;
 };
 
 typedef std::shared_ptr< Object > ObjectPtr;
