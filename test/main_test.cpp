@@ -106,12 +106,13 @@ TEST(BasicTests, TestInlines) {
 
 TEST(BasicTests, TestCatalogQuery) {
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
 
-    CSLDestroy(options);
+    ngsDestroyList(options);
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery("ngc://");
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
@@ -120,7 +121,7 @@ TEST(BasicTests, TestCatalogQuery) {
     }
     ASSERT_GE(count, 1);
     CPLString path2test = CPLSPrintf("ngc://%s", pathInfo[0].name);
-    CPLFree(pathInfo);
+    ngsFree(pathInfo);
 
     pathInfo = ngsCatalogObjectQuery(path2test);
     ASSERT_NE(pathInfo, nullptr);
@@ -131,7 +132,7 @@ TEST(BasicTests, TestCatalogQuery) {
     }
     EXPECT_GE(count, 1);
     path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[0].name);
-    CPLFree(pathInfo);
+    ngsFree(pathInfo);
 
     pathInfo = ngsCatalogObjectQuery(path2test);
     ASSERT_NE(pathInfo, nullptr);
@@ -141,7 +142,7 @@ TEST(BasicTests, TestCatalogQuery) {
         count++;
     }
     EXPECT_GE(count, 1);
-    CPLFree(pathInfo);
+    ngsFree(pathInfo);
 
     // Test zip support
     CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
@@ -153,33 +154,36 @@ TEST(BasicTests, TestCatalogQuery) {
         count++;
     }
     EXPECT_GE(count, 1);
-    CPLFree(pathInfo);
+    ngsFree(pathInfo);
 
     ngsUnInit();
 }
 
 TEST(BasicTests, TestCreate) {
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     // TODO: CACHE_DIR, GDAL_DATA, LOCALE
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
-    CSLDestroy(options);
+    ngsDestroyList(options);
     options = nullptr;
 
-    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
 
-    options = CSLAddNameValue(options, "TYPE",
+    options = ngsAddNameValue(options, "TYPE",
                               std::to_string(CAT_CONTAINER_DIR).c_str());
-    options = CSLAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "test_dir1", options),
               ngsErrorCodes::EC_SUCCESS);
     EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "test_dir1", options),
               ngsErrorCodes::EC_SUCCESS);
+    ngsDestroyList(options);
+    options = nullptr;
 
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
     ASSERT_NE(pathInfo, nullptr);
@@ -189,22 +193,24 @@ TEST(BasicTests, TestCreate) {
         count++;
     }
     EXPECT_GE(count, 2);
+    ngsFree(pathInfo);
 
     ngsUnInit();
 }
 
 TEST(BasicTests, TestDelete) {
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
-    CSLDestroy(options);
+    ngsDestroyList(options);
 
-    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
-    CPLString delPath = CPLFormFilename(catalogPath, "test_dir1", nullptr);
+    CPLString delPath = ngsFormFileName(catalogPath, "test_dir1", nullptr);
     EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsErrorCodes::EC_SUCCESS);
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
     ASSERT_NE(pathInfo, nullptr);
@@ -214,25 +220,27 @@ TEST(BasicTests, TestDelete) {
         count++;
     }
     EXPECT_GE(count, 2);
+    ngsFree(pathInfo);
     ngsUnInit();
 }
 
 TEST(BasicTests, TestCreateDataStore) {
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
-    CSLDestroy(options);
+    ngsDestroyList(options);
     options = nullptr;
 
-    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
 
-    options = CSLAddNameValue(options, "TYPE",
+    options = ngsAddNameValue(options, "TYPE",
                               std::to_string(CAT_CONTAINER_NGS).c_str());
-    options = CSLAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "main", options),
               ngsErrorCodes::EC_SUCCESS);
@@ -244,21 +252,23 @@ TEST(BasicTests, TestCreateDataStore) {
         count++;
     }
     EXPECT_GE(count, 3);
+    ngsFree(pathInfo);
     ngsUnInit();
 }
 
 TEST(BasicTests, TestOpenDataStore) {
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
 
-    CSLDestroy(options);
-    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    ngsDestroyList(options);
+    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
-    CPLString storePath = CPLFormFilename(catalogPath, "main", "ngst");
+    CPLString storePath = ngsFormFileName(catalogPath, "main", "ngst");
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(storePath);
 
     size_t count = 0;
@@ -269,7 +279,7 @@ TEST(BasicTests, TestOpenDataStore) {
         }
     }
     ASSERT_GE(count, 0);
-    CPLFree(pathInfo);
+    ngsFree(pathInfo);
 
     ngsUnInit();
 }
@@ -278,14 +288,15 @@ TEST(BasicTests, TestLoadDataStore) {
     counter = 0;
 
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
 
-    CSLDestroy(options);
+    ngsDestroyList(options);
 
-    CPLString testPath = CPLGetCurrentDir();
+    CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
     CPLString storePath = catalogPath + "/tmp/main.ngst";
     CPLString shapePath = catalogPath + "/data/bld.shp";
@@ -302,14 +313,15 @@ TEST(BasicTests, TestLoadDataStoreZippedShapefile) {
     counter = 0;
 
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
 
-    CSLDestroy(options);
+    ngsDestroyList(options);
 
-    CPLString testPath = CPLGetCurrentDir();
+    CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
     CPLString storePath = catalogPath + "/tmp/main.ngst";
     CPLString shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
@@ -322,16 +334,17 @@ TEST(BasicTests, TestLoadDataStoreZippedShapefile) {
 
 TEST(BasicTests, TestDeleteDataStore) {
     char** options = nullptr;
-    options = CSLAddNameValue(options, "DEBUG_MODE", "ON");
-    options = CSLAddNameValue(options, "SETTINGS_DIR",
-                              CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr));
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), ngsErrorCodes::EC_SUCCESS);
-    CSLDestroy(options);
+    ngsDestroyList(options);
 
-    CPLString path = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
-    CPLString delPath = CPLFormFilename(catalogPath, "main", "ngst");
+    CPLString delPath = ngsFormFileName(catalogPath, "main", "ngst");
     EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsErrorCodes::EC_SUCCESS);
     ngsUnInit();
 }

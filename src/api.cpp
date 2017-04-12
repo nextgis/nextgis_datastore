@@ -982,3 +982,29 @@ int ngsMapClose(unsigned char mapId)
 
 //    return gFilters;
 //}
+
+const char *ngsGetCurrentDirectory()
+{
+    return CPLGetCurrentDir();
+}
+
+char **ngsAddNameValue(char **list, const char *name, const char *value)
+{
+    return CSLAddNameValue(list, name, value);
+}
+
+void ngsDestroyList(char **list)
+{
+    CSLDestroy(list);
+}
+
+const char *ngsFormFileName(const char *path, const char *name,
+                            const char *extension)
+{
+    return CPLFormFilename(path, name, extension);
+}
+
+void ngsFree(void *pointer)
+{
+    CPLFree(pointer);
+}

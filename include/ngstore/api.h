@@ -87,6 +87,17 @@ NGS_EXTERNC void ngsFreeResources(bool full = false);
 NGS_EXTERNC const char* ngsGetLastErrorMessage();
 
 /**
+ * Proxy to GDAL functions
+ */
+
+NGS_EXTERNC const char* ngsGetCurrentDirectory();
+NGS_EXTERNC char** ngsAddNameValue(char** list, const char *name,
+                                   const char *value);
+NGS_EXTERNC void ngsDestroyList(char** list);
+NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
+                                        const char *extension);
+
+/**
  * Catalog functions
  */
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char* path,
@@ -101,6 +112,7 @@ NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
                                      void* callbackData = nullptr);
 NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
 NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, int optionType);
+NGS_EXTERNC void ngsFree(void *pointer);
 
 /*
 mapCreate
@@ -166,5 +178,7 @@ NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
+
+
 
 #endif // NGSAPI_H
