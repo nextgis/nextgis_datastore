@@ -22,15 +22,11 @@
 #include "test.h"
 
 // gdal
-#include "cpl_multiproc.h"
-#include "cpl_vsi.h"
 #include "cpl_string.h"
 
 #include "api_priv.h"
 #include "ngstore/api.h"
 #include "ngstore/version.h"
-#include "ngstore/util/constants.h"
-
 
 static int counter = 0;
 
