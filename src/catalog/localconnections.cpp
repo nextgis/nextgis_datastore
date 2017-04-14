@@ -45,6 +45,9 @@ LocalConnections::LocalConnections(ObjectContainer * const parent,
 
 bool LocalConnections::hasChildren()
 {
+    if(m_childrenLoaded)
+        return ObjectContainer::hasChildren();
+
     JSONDocument doc;
     if(doc.load (m_path)) {
         JSONObject root = doc.getRoot ();
@@ -109,6 +112,8 @@ bool LocalConnections::hasChildren()
        root.add("connections", connections);
        doc.save(m_path);
     }
+
+    m_childrenLoaded = true;
 
     return ObjectContainer::hasChildren();
 }
