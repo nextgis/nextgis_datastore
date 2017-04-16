@@ -24,7 +24,7 @@
 /**
  * @brief The NextGIS store and visualisation library error codes enum
  */
-enum ngsErrorCodes {
+enum ngsErrorCode {
     EC_SUCCESS = 200,      /**< Success */
     EC_IN_PROCESS,         /**< In process */
     EC_PENDING,            /**< Pending */
@@ -52,7 +52,7 @@ enum ngsErrorCodes {
 /**
  * @brief The table, datasource, map and etc. change codes enum
  */
-enum ngsChangeCodes {
+enum ngsChangeCode {
     CC_NOP                  = 0 << 1,
     CC_CREATE_OBJECT        = 1 << 1,
     CC_DELETE_OBJECT        = 2 << 1,
@@ -79,7 +79,7 @@ enum ngsDrawState {
 /**
  * @brief The ngsDataStoreOptionsTypes enum
  */
-enum ngsOptionTypes {
+enum ngsOptionType {
     OT_CREATE_DATASOURCE,
     OT_CREATE_RASTER,
     OT_CREATE_LAYER,

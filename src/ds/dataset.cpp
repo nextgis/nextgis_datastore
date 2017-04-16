@@ -109,7 +109,7 @@ Dataset::~Dataset()
 bool Dataset::open(unsigned int openFlags, const Options &options)
 {
     if(nullptr == m_path || EQUAL(m_path, "")) {
-        return errorMessage(ngsErrorCodes::EC_OPEN_FAILED, _("The path is empty"));
+        return errorMessage(ngsErrorCode::EC_OPEN_FAILED, _("The path is empty"));
     }
 
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
@@ -168,7 +168,7 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
 
         CPLString newFieldName = normalizeFieldName(srcField->GetNameRef());
         if(!EQUAL(newFieldName, srcField->GetNameRef())) {
-            progress.onProgress(ngsErrorCodes::EC_WARNING, 0.0, _("Field %s of source table was renamed to %s in destination tables"), srcField->GetNameRef(), newFieldName.c_str());
+            progress.onProgress(ngsErrorCode::EC_WARNING, 0.0, _("Field %s of source table was renamed to %s in destination tables"), srcField->GetNameRef(), newFieldName.c_str());
         }
 
         dstField.SetName(newFieldName);
@@ -184,7 +184,7 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
     if(m_parent)
         m_parent->notifyChanges();
 
-    Notify::instance().onNotify(out->getFullName(), ngsChangeCodes::CC_CREATE_OBJECT);
+    Notify::instance().onNotify(out->getFullName(), ngsChangeCode::CC_CREATE_OBJECT);
 
     return out;
 }
@@ -209,7 +209,7 @@ bool Dataset::destroy()
     if(m_parent)
         m_parent->notifyChanges();
 
-    Notify::instance().onNotify(getFullName(), ngsChangeCodes::CC_DELETE_OBJECT);
+    Notify::instance().onNotify(getFullName(), ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
 }
@@ -292,7 +292,7 @@ void Dataset::fillFeatureClasses()
     }
 }
 
-const char *Dataset::getOptions(enum ngsOptionTypes optionType) const
+const char *Dataset::getOptions(enum ngsOptionType optionType) const
 {
     GDALDriver *poDriver = Filter::getGDALDriver(m_type);
     switch (optionType) {
@@ -384,12 +384,12 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                                 CPLGetBasename(child->getName()));
     newName = normalizeDatasetName(newName);
     if(move) {
-        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+        progress.onProgress(ngsErrorCode::EC_IN_PROCESS, 0.0,
                         _("Move '%s' to '%s'"), newName.c_str (),
                             m_name.c_str ());
     }
     else {
-        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+        progress.onProgress(ngsErrorCode::EC_IN_PROCESS, 0.0,
                         _("Copy '%s' to '%s'"), newName.c_str (),
                             m_name.c_str ());
     }
@@ -397,8 +397,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     if(Filter::isTable(child->getType())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
-            return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
-                                       ngsErrorCodes::EC_COPY_FAILED,
+            return errorMessage(move ? ngsErrorCode::EC_MOVE_FAILED :
+                                       ngsErrorCode::EC_COPY_FAILED,
                                 _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->getName().c_str());
         }
@@ -406,8 +406,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         std::unique_ptr<Table> dstTable(createTable(newName, srcDefinition,
                                                     options));
         if(nullptr == dstTable) {
-            return move ? ngsErrorCodes::EC_MOVE_FAILED :
-                          ngsErrorCodes::EC_COPY_FAILED;
+            return move ? ngsErrorCode::EC_MOVE_FAILED :
+                          ngsErrorCode::EC_COPY_FAILED;
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition();
         // Create fields map. We expected equal count of fields
@@ -423,8 +423,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     else if(Filter::isFeatureClass(child->getType())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
-            return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
-                                       ngsErrorCodes::EC_COPY_FAILED,
+            return errorMessage(move ? ngsErrorCode::EC_MOVE_FAILED :
+                                       ngsErrorCode::EC_COPY_FAILED,
                                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->getName().c_str());
         }
@@ -456,8 +456,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                 srcDefinition, srcFClass->getSpatialReference(), geometryType,
                 options));
             if(nullptr == dstFClass) {
-                return move ? ngsErrorCodes::EC_MOVE_FAILED :
-                              ngsErrorCodes::EC_COPY_FAILED;
+                return move ? ngsErrorCode::EC_MOVE_FAILED :
+                              ngsErrorCode::EC_COPY_FAILED;
             }
             OGRFeatureDefn* const dstDefinition = dstFClass->getDefinition();
             // Create fields map. We expected equal count of fields
@@ -470,22 +470,22 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             int result = dstFClass->copyFeatures(srcFClass, fieldMap,
                                                  filterFeometryType,
                                                  progress, options);
-            if(result != ngsErrorCodes::EC_SUCCESS) {
+            if(result != ngsErrorCode::EC_SUCCESS) {
                 return result;
             }
         }
     }
     else {
         // TODO: raster and container support
-        return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
+        return errorMessage(ngsErrorCode::EC_UNSUPPORTED,
                             _("'%s' has unsuported type"), child->getName().c_str());
     }
 
     if(move) {
-        return child->destroy() ? ngsErrorCodes::EC_SUCCESS :
-                                  ngsErrorCodes::EC_DELETE_FAILED;
+        return child->destroy() ? ngsErrorCode::EC_SUCCESS :
+                                  ngsErrorCode::EC_DELETE_FAILED;
     }
-    return ngsErrorCodes::EC_SUCCESS;
+    return ngsErrorCode::EC_SUCCESS;
 }
 
 bool Dataset::canPaste(const enum ngsCatalogObjectType type) const

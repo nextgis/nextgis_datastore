@@ -63,7 +63,7 @@ typedef struct _ngsCatalogObjectInfo {
  * @param progressArguments Some user data or null pointer
  * @return 1 to continue execute process or 0 - to cancel
  */
-typedef int (*ngsProgressFunc)(enum ngsErrorCodes status,
+typedef int (*ngsProgressFunc)(enum ngsErrorCode status,
                                double complete,
                                const char* message,
                                void* progressArguments);
@@ -73,7 +73,7 @@ typedef int (*ngsProgressFunc)(enum ngsErrorCodes status,
  * attachments ended with attachments/{int:id}).
  * @param operation Operation which trigger notification.
  */
-typedef void (*ngsNotifyFunc)(const char* uri, enum ngsChangeCodes operation);
+typedef void (*ngsNotifyFunc)(const char* uri, enum ngsChangeCode operation);
 
 /**
  * Common functions
@@ -117,6 +117,21 @@ NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, int optionType
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 
+
+//NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
+//NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
+//                                         const char* alias, const char* copyright,
+//                                         int epsg, int z_min, int z_max,
+//                                         bool y_origin_top);
+//NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
+
+/**
+ * Map functions
+ *
+ *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
+ *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
+ */
+
 /*
 mapCreate
 mapOpen
@@ -127,35 +142,10 @@ mapSet/GetProperties - backgroud, center, scale, rotate
 mapGet coordinate, distance
 dispalyGet position, length
 */
-//NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
-//NGS_EXTERNC const char* ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator);
-
-/**
- * Storage functions
- */
-
-//NGS_EXTERNC int ngsDataStoreInit(const char* path);
-//NGS_EXTERNC int ngsDataStoreDestroy(const char* path, const char* cachePath);
-//NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
-//                                         const char* alias, const char* copyright,
-//                                         int epsg, int z_min, int z_max,
-//                                         bool y_origin_top);
-//NGS_EXTERNC unsigned int ngsDataStoreLoad(const char* name, const char* path,
-//                        const char *subDatasetName, const char** options,
-//                        ngsProgressFunc callback, void* callbackData);
-//NGS_EXTERNC ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId);
-//NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
-
-/**
- * Map functions
- *
- *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
- *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
- */
 //NGS_EXTERNC int ngsMapInit(unsigned char mapId);
-//NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
-//                             unsigned short epsg, double minX, double minY,
-//                             double maxX, double maxY);
+NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
+                             unsigned short epsg, double minX, double minY,
+                             double maxX, double maxY);
 NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
 NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
 NGS_EXTERNC int ngsMapClose(unsigned char mapId);
@@ -181,7 +171,5 @@ NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
-
-
 
 #endif // NGSAPI_H

@@ -49,7 +49,7 @@ bool File::destroy()
     if(m_parent)
         m_parent->notifyChanges();
 
-    Notify::instance().onNotify(getFullName(), ngsChangeCodes::CC_DELETE_OBJECT);
+    Notify::instance().onNotify(getFullName(), ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
 }

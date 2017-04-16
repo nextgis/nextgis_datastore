@@ -31,7 +31,7 @@ public:
     Progress(ngsProgressFunc progressFunc = nullptr,
              void *progressArguments = nullptr);
     virtual ~Progress() = default;
-    virtual bool onProgress(enum ngsErrorCodes status,
+    virtual bool onProgress(enum ngsErrorCode status,
                             double complete,
                             const char *format, ...) const;
 protected:

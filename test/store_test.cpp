@@ -29,11 +29,11 @@
 
 static int counter = 0;
 
-void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCodes /*operation*/) {
+void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCode /*operation*/) {
     counter++;
 }
 
-int ngsTestProgressFunc(enum ngsErrorCodes /*status*/, double /*complete*/,
+int ngsTestProgressFunc(enum ngsErrorCode /*status*/, double /*complete*/,
                         const char* /*message*/, void* /*progressArguments*/) {
     counter++;
     return TRUE;

@@ -126,7 +126,7 @@ bool Table::insertFeature(const FeaturePtr &feature)
 
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
         Notify::instance().onNotify(getFullName(),
-                                    ngsChangeCodes::CC_CREATE_FEATURE);
+                                    ngsChangeCode::CC_CREATE_FEATURE);
         return true;
     }
 
@@ -140,7 +140,7 @@ bool Table::updateFeature(const FeaturePtr &feature)
 
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
         Notify::instance().onNotify(getFullName(),
-                                    ngsChangeCodes::CC_CHANGE_FEATURE);
+                                    ngsChangeCode::CC_CHANGE_FEATURE);
         return true;
     }
 
@@ -154,7 +154,7 @@ bool Table::deleteFeature(GIntBig id)
 
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         Notify::instance().onNotify(getFullName(),
-                                    ngsChangeCodes::CC_DELETE_FEATURE);
+                                    ngsChangeCode::CC_DELETE_FEATURE);
         return true;
     }
 
@@ -186,10 +186,10 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
                      const Progress& progress)
 {
     if(!srcTable) {
-        return errorMessage(ngsErrorCodes::EC_COPY_FAILED, _("Source table is invalid"));
+        return errorMessage(ngsErrorCode::EC_COPY_FAILED, _("Source table is invalid"));
     }
 
-    progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
+    progress.onProgress(ngsErrorCode::EC_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
                        srcTable->getName().c_str(), m_name.c_str());
 
@@ -199,28 +199,28 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     FeaturePtr feature;
     while((feature = srcTable->nextFeature ())) {
         double complete = counter / featureCount;
-        if(!progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
+        if(!progress.onProgress(ngsErrorCode::EC_IN_PROCESS, complete,
                            _("Copy in process ..."))) {
-            return  ngsErrorCodes::EC_CANCELED;
+            return  ngsErrorCode::EC_CANCELED;
         }
 
         FeaturePtr dstFeature = createFeature();
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            if(!progress.onProgress(ngsErrorCodes::EC_WARNING, complete,
+            if(!progress.onProgress(ngsErrorCode::EC_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
                                feature->GetFID ())) {
-               return  ngsErrorCodes::EC_CANCELED;
+               return  ngsErrorCode::EC_CANCELED;
             }
         }
         counter++;
     }
 
-    progress.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d rows"),
+    progress.onProgress(ngsErrorCode::EC_FINISHED, 1.0, _("Done. Copied %d rows"),
                        int(counter));
 
-    return ngsErrorCodes::EC_SUCCESS;
+    return ngsErrorCode::EC_SUCCESS;
 }
 
 OGRFeatureDefn *Table::getDefinition() const
@@ -254,7 +254,7 @@ bool Table::destroy()
                 if(m_parent)
                     m_parent->notifyChanges();
                 Notify::instance().onNotify(getFullName(),
-                                            ngsChangeCodes::CC_DELETE_OBJECT);
+                                            ngsChangeCode::CC_DELETE_OBJECT);
                 return true;
             }
         }

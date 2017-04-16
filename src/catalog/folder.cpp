@@ -121,7 +121,7 @@ bool Folder::destroy()
     if(m_parent)
         m_parent->notifyChanges();
     
-    Notify::instance().onNotify(getFullName(), ngsChangeCodes::CC_DELETE_OBJECT);
+    Notify::instance().onNotify(getFullName(), ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
 }
@@ -228,7 +228,7 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
 
     if(result) {
         CPLString fullName = getFullName() + Catalog::getSeparator() + newName;
-        Notify::instance().onNotify(fullName, ngsChangeCodes::CC_CREATE_OBJECT);
+        Notify::instance().onNotify(fullName, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     return result;

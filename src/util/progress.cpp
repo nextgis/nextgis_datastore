@@ -31,7 +31,7 @@ Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
 
 }
 
-bool Progress::onProgress(ngsErrorCodes status, double complete,
+bool Progress::onProgress(ngsErrorCode status, double complete,
                           const char *format, ...) const
 {
     if(nullptr == m_progressFunc)

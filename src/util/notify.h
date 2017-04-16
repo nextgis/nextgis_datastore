@@ -35,7 +35,7 @@ public:
 public:
     void addNotifyReceiver(ngsNotifyFunc function, int notifyTypes);
     void deleteNotifyReceiver(ngsNotifyFunc function);
-    void onNotify(const char* uri, enum ngsChangeCodes operation) const;
+    void onNotify(const char* uri, enum ngsChangeCode operation) const;
 
 private:
     Notify() = default;

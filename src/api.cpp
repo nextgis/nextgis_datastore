@@ -174,7 +174,7 @@ int ngsInit(char **options)
     Catalog::setInstance(new Catalog());
     MapStore::setInstance(new MapStore());
 
-    return ngsErrorCodes::EC_SUCCESS;
+    return ngsErrorCode::EC_SUCCESS;
 }
 
 /**
@@ -308,9 +308,9 @@ int ngsCatalogObjectDelete(const char *path)
     ObjectPtr object = catalog->getObject(path);
     // Check can delete
     if(object && object->canDestroy())
-        return object->destroy() ? ngsErrorCodes::EC_SUCCESS :
-                                   ngsErrorCodes::EC_DELETE_FAILED;
-    return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
+        return object->destroy() ? ngsErrorCode::EC_SUCCESS :
+                                   ngsErrorCode::EC_DELETE_FAILED;
+    return errorMessage(ngsErrorCode::EC_UNSUPPORTED,
                        _("The path cannot be deleted (write protected, locked, etc.)"));
 }
 
@@ -336,9 +336,9 @@ int ngsCatalogObjectCreate(const char *path, const char* name, char **options)
     // Check can create
     if(nullptr != container && container->canCreate(type))
         return container->create(type, name, createOptions) ?
-                    ngsErrorCodes::EC_SUCCESS : ngsErrorCodes::EC_CREATE_FAILED;
+                    ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_CREATE_FAILED;
 
-    return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
+    return errorMessage(ngsErrorCode::EC_UNSUPPORTED,
                         _("Cannot create such object type (%d) in path: %s"),
                         type, path);
 }
@@ -383,12 +383,12 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
     loadOptions.removeOption("MOVE");
     ObjectPtr srcObject = catalog->getObject(srcPath);
     if(!srcObject) {
-        return errorMessage(ngsErrorCodes::EC_INVALID,
+        return errorMessage(ngsErrorCode::EC_INVALID,
                             _("Source dataset '%s' not found"), srcPath);
     }
 
     if(move && !srcObject->canDestroy()) {
-        return  errorMessage(ngsErrorCodes::EC_MOVE_FAILED,
+        return  errorMessage(ngsErrorCode::EC_MOVE_FAILED,
                              _("Cannot move source dataset '%s'"), srcPath);
     }
 
@@ -399,20 +399,20 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
     }
 
     if(!srcObject) {
-        return errorMessage(ngsErrorCodes::EC_INVALID,
+        return errorMessage(ngsErrorCode::EC_INVALID,
                             _("Source dataset '%s' type is incompatible"), srcPath);
     }
 
     ObjectPtr dstObject = catalog->getObject(dstPath);
     if(!dstObject) {
-        return errorMessage(ngsErrorCodes::EC_INVALID,
+        return errorMessage(ngsErrorCode::EC_INVALID,
                             _("Destination dataset '%s' not found"), dstPath);
     }
 
     Dataset * const dstDataset = ngsDynamicCast(Dataset, dstObject);
     if(nullptr == dstDataset) {
-        return move ? ngsErrorCodes::EC_MOVE_FAILED :
-                      ngsErrorCodes::EC_COPY_FAILED;
+        return move ? ngsErrorCode::EC_MOVE_FAILED :
+                      ngsErrorCode::EC_COPY_FAILED;
     }
     dstDataset->hasChildren();
 
@@ -421,8 +421,8 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
         return dstDataset->paste(srcObject, move, loadOptions, progress);
     }
 
-    return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
-                               ngsErrorCodes::EC_COPY_FAILED,
+    return errorMessage(move ? ngsErrorCode::EC_MOVE_FAILED :
+                               ngsErrorCode::EC_COPY_FAILED,
                         _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
                         dstPath, srcPath);
 
@@ -440,16 +440,16 @@ int ngsCatalogObjectRename(const char *path, const char *newName)
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObject(path);
     if(!object)
-        return errorMessage(ngsErrorCodes::EC_INVALID,
+        return errorMessage(ngsErrorCode::EC_INVALID,
                             _("Source dataset '%s' not found"), path);
 
     if(!object->canRename())
-        return errorMessage(ngsErrorCodes::EC_RENAME_FAILED,
+        return errorMessage(ngsErrorCode::EC_RENAME_FAILED,
                             _("Cannot rename dataset '%s' to '%s'"),
                             path, newName);
 
-    return object->rename(newName) ? ngsErrorCodes::EC_SUCCESS :
-                                     ngsErrorCodes::EC_RENAME_FAILED;
+    return object->rename(newName) ? ngsErrorCode::EC_SUCCESS :
+                                     ngsErrorCode::EC_RENAME_FAILED;
 }
 
 /**
@@ -465,17 +465,17 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObject(path);
     if(!object) {
-        errorMessage(ngsErrorCodes::EC_INVALID,
+        errorMessage(ngsErrorCode::EC_INVALID,
                             _("Source dataset '%s' not found"), path);
         return "";
     }
     Dataset * const dataset = ngsDynamicCast(Dataset, object);
     if(nullptr != dataset) {
-        errorMessage(ngsErrorCodes::EC_INVALID,
+        errorMessage(ngsErrorCode::EC_INVALID,
                             _("The '%s' not a dataset. Options query not supported"), path);
         return "";
     }
-    enum ngsOptionTypes enumOptionType = static_cast<enum ngsOptionTypes>(optionType);
+    enum ngsOptionType enumOptionType = static_cast<enum ngsOptionType>(optionType);
 
     return dataset->getOptions(enumOptionType);
 }
@@ -495,17 +495,15 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
  * @param maxY maximum Y coordinate
  * @return 0 if create failed or map id.
  */
-//int ngsMapCreate(const char* name, const char* description,
-//                 unsigned short epsg, double minX, double minY,
-//                 double maxX, double maxY)
-//{
-//    // for this API before work with map datastore must be open
-//    if(nullptr == gDataStore)
-//        return ngsErrorCodes::EC_CREATE_FAILED; // FIXME: must return 0
-//    initMapStore();
-//    return gMapStore->createMap (name, description, epsg,
-//                                 minX, minY, maxX, maxY, gDataStore);
-//}
+int ngsMapCreate(const char* name, const char* description,
+                 unsigned short epsg, double minX, double minY,
+                 double maxX, double maxY)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore)
+        return MapStore::invalidMapId();
+    return mapStore->createMap(name, description, epsg, minX, minY, maxX, maxY);
+}
 
 /**
  * @brief ngsOpenMap Open existing map from file
@@ -553,10 +551,10 @@ int ngsMapSave(unsigned char mapId, const char *path)
     }
 
     if(!mapStore->saveMap(mapId, mapFile)) {
-        return ngsErrorCodes::EC_SAVE_FAILED;
+        return ngsErrorCode::EC_SAVE_FAILED;
     }
 
-    return ngsErrorCodes::EC_SUCCESS;
+    return ngsErrorCode::EC_SUCCESS;
 }
 
 /**
@@ -568,10 +566,10 @@ int ngsMapClose(unsigned char mapId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
-        return errorMessage(ngsErrorCodes::EC_CLOSE_FAILED,
+        return errorMessage(ngsErrorCode::EC_CLOSE_FAILED,
                             _("MapStore is not initialized"));
-    return mapStore->closeMap(mapId) ? ngsErrorCodes::EC_SUCCESS :
-                                       ngsErrorCodes::EC_CLOSE_FAILED;
+    return mapStore->closeMap(mapId) ? ngsErrorCode::EC_SUCCESS :
+                                       ngsErrorCode::EC_CLOSE_FAILED;
 }
 
 /**
@@ -764,32 +762,6 @@ int ngsMapClose(unsigned char mapId)
 //    return gMapStore->getMapScale(mapId);
 //}
 
-/**
- * @brief ngsLoad
- * @param name Destination dataset name
- * @param path Path to file in OS
- * @param subDatasetName Layer name, if datasource on path has several layers
- * @param options various options dependent on destionation datasource and other
- * things. Options can be get by executing @ngsDataStoreGetOptions function.
- * @param callback Progress function
- * @param callbackData Progress function arguments
- * @return  Load task id or 0 if error occured. This id can be used to get some
- * additional information about the task.
- */
-//unsigned int ngsDataStoreLoad(const char* name, const char *path,
-//                              const char *subDatasetName, const char** options,
-//                              ngsProgressFunc callback, void *callbackData)
-//{
-//    if(nullptr != gDataStore) {
-//        CPLString sName(name);
-//        CPLString sPath(path);
-//        CPLString sSubDatasetName(subDatasetName);
-//        return gDataStore->loadDataset(
-//                sName, sPath, sSubDatasetName, options, callback, callbackData);
-//    }
-//    return 0;
-//}
-
 //int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
 //{
 //    ngsDataStoreInit ( CPLGetDirname (path) );
@@ -905,81 +877,6 @@ int ngsMapClose(unsigned char mapId)
 //    return nullptr;
 //}
 
-//const char *ngsGetFilters(unsigned int flags, unsigned int mode, const char *separator)
-//{
-//    gFilters.Clear ();
-
-//    // cannot combine DT_*_ALL with othe flags
-//    if(flags & DT_VECTOR_ALL && flags != DT_VECTOR_ALL)
-//        return gFilters;
-//    if(flags & DT_RASTER_ALL && flags != DT_RASTER_ALL)
-//        return gFilters;
-//    if(flags & DT_VECTOR_ALL)
-//        gFilters = "Vector datasets (";
-//    if(flags & DT_RASTER_ALL)
-//        gFilters = "Raster datasets (";
-
-//    for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ )
-//    {
-//        GDALDriverH hDriver = GDALGetDriver(iDr);
-
-//        char** papszMD = GDALGetMetadata( hDriver, NULL );
-
-//        if( (flags & DT_RASTER &&
-//            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) ) &&
-//            (flags & DT_VECTOR &&
-//            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) ) &&
-//            (flags & DT_GNM &&
-//            !CSLFetchBoolean( papszMD, GDAL_DCAP_GNM, FALSE ) ) )
-//            continue;
-
-//        if( flags & DT_RASTER_ALL &&
-//            !CSLFetchBoolean( papszMD, GDAL_DCAP_RASTER, FALSE ) )
-//            continue;
-
-//        if( flags & DT_VECTOR_ALL &&
-//            !CSLFetchBoolean( papszMD, GDAL_DCAP_VECTOR, FALSE ) )
-//            continue;
-
-//        if( mode & FM_WRITE &&
-//            (!CSLFetchBoolean( papszMD, GDAL_DCAP_CREATE, FALSE ) ||
-//             !CSLFetchBoolean( papszMD, GDAL_DCAP_CREATECOPY, FALSE )) )
-//            continue;
-
-//        if( flags & DT_SERVICE &&
-//                EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
-//                                           ""), "") )
-//            continue;
-
-//        if(! (flags & DT_SERVICE) &&
-//                !EQUAL(CSLFetchNameValueDef(papszMD, GDAL_DMD_CONNECTION_PREFIX,
-//                                           ""), "") )
-//            continue;
-
-//        const char* longName = CSLFetchNameValue(papszMD, GDAL_DMD_LONGNAME);
-//        const char* ext = CSLFetchNameValue(papszMD, GDAL_DMD_EXTENSION);
-
-//        if( (flags & DT_VECTOR_ALL || flags & DT_RASTER_ALL) && nullptr != ext &&
-//                !EQUAL(ext, "")) {
-//            gFilters += " *." + CPLString(ext);
-//        }
-//        else if(nullptr != longName && nullptr != ext && !EQUAL(longName, "") &&
-//                !EQUAL(ext, ""))
-//        {
-//            if(gFilters.empty ())
-//                gFilters += CPLString(longName) + " (*." + CPLString(ext) + ")";
-//            else
-//                gFilters += separator + CPLString(longName) + " (*." + CPLString(ext) + ")";
-//        }
-//    }
-
-//    if( flags & DT_VECTOR_ALL || flags & DT_RASTER_ALL) {
-//        gFilters += ")";
-//    }
-
-//    return gFilters;
-//}
-
 const char *ngsGetCurrentDirectory()
 {
     return CPLGetCurrentDir();
@@ -1018,6 +915,11 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
     return object.get();
 }
 
+/**
+ * @brief ngsCatalogObjectType Return input object handler type
+ * @param object Object handler
+ * @return Object type - the value from ngsCatalogObjectType
+ */
 enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
 {
     if(nullptr == object)

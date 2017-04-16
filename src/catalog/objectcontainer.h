@@ -56,7 +56,7 @@ public:
     virtual int paste(ObjectPtr /*child*/, bool /*move*/ = false,
                       const Options& /*options*/ = Options(),
                       const Progress &/*progress*/ = Progress()) {
-        return ngsErrorCodes::EC_UNSUPPORTED;
+        return ngsErrorCode::EC_UNSUPPORTED;
     }
 
     std::vector<ObjectPtr> getChildren() const;

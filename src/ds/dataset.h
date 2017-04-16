@@ -57,7 +57,7 @@ public:
             const CPLString & name = "",
             const CPLString & path = "");
     virtual ~Dataset();
-    virtual const char* getOptions(enum ngsOptionTypes optionType) const;
+    virtual const char* getOptions(enum ngsOptionType optionType) const;
     virtual GDALDataset * getGDALDataset() const { return m_DS; }
 
     TablePtr executeSQL(const char* statement, const char* dialect = "");

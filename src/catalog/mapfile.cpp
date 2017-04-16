@@ -61,10 +61,10 @@ bool MapFile::save(MapViewPtr mapView)
     }
 
     if(change) {
-        Notify::instance().onNotify(m_path, ngsChangeCodes::CC_CHANGE_OBJECT);
+        Notify::instance().onNotify(m_path, ngsChangeCode::CC_CHANGE_OBJECT);
     }
     else {
-        Notify::instance().onNotify(m_path, ngsChangeCodes::CC_CREATE_OBJECT);
+        Notify::instance().onNotify(m_path, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     return result;
