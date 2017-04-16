@@ -261,6 +261,7 @@ bool DataStore::create(const char *path)
 
     GDALDataset* DS = poDriver->Create(path, 0, 0, 0, GDT_Unknown, nullptr);
     if(DS == nullptr) {
+        errorMessage(CPLGetLastErrorMsg());
         return false;
     }
 

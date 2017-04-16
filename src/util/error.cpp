@@ -21,8 +21,13 @@
 #include "error.h"
 
 #include "cpl_error.h"
+#include "cpl_multiproc.h"
+#include "cpl_string.h"
 
 namespace ngs {
+
+static CPLLock *hAtomicOpLock = nullptr;
+static CPLString lastMgs;
 
 int errorMessage(enum ngsErrorCodes errorCode, const char *fmt, ...)
 {
@@ -34,6 +39,8 @@ int errorMessage(enum ngsErrorCodes errorCode, const char *fmt, ...)
         CPLErrorV(CE_Failure, CPLE_AppDefined, fmt, args);
         va_end(args);
     }
+    CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
+    lastMgs = CPLGetLastErrorMsg();
     return errorCode;
 }
 
@@ -47,6 +54,8 @@ int warningMessage(enum ngsErrorCodes errorCode, const char *fmt, ...)
         CPLErrorV(CE_Warning, CPLE_AppDefined, fmt, args);
         va_end(args);
     }
+    CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
+    lastMgs = CPLGetLastErrorMsg();
     return errorCode;
 }
 
@@ -58,7 +67,15 @@ bool errorMessage(const char *fmt, ...)
     va_start(args, fmt);
     CPLErrorV(CE_Failure, CPLE_AppDefined, fmt, args);
     va_end(args);
+    CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
+    lastMgs = CPLGetLastErrorMsg();
     return false;
+}
+
+const char *getLastError()
+{
+    CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
+    return lastMgs;
 }
 
 }

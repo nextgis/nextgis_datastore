@@ -34,7 +34,6 @@ public:
     virtual bool onProgress(enum ngsErrorCodes status,
                             double complete,
                             const char *format, ...) const;
-
 protected:
     ngsProgressFunc m_progressFunc;
     void *m_progressArguments;

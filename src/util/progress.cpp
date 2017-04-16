@@ -25,7 +25,8 @@
 namespace ngs {
 
 Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
-    m_progressFunc(progressFunc), m_progressArguments(progressArguments)
+    m_progressFunc(progressFunc),
+    m_progressArguments(progressArguments)
 {
 
 }

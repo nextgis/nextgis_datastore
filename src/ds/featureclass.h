@@ -52,11 +52,11 @@ public:
     std::vector<const char*> getGeometryColumns() const;
     bool setIgnoredFields(const std::vector<const char*> fields =
             std::vector<const char*>());
-    virtual bool copyFeatures(const FeatureClassPtr srcFClass,
-                              const FieldMapPtr fieldMap,
-                              OGRwkbGeometryType filterGeomType,
-                              const Progress& progress = Progress(),
-                              const Options& options = Options());
+    virtual int copyFeatures(const FeatureClassPtr srcFClass,
+                             const FieldMapPtr fieldMap,
+                             OGRwkbGeometryType filterGeomType,
+                             const Progress& progress = Progress(),
+                             const Options& options = Options());
     // static
     static const char *getGeometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);

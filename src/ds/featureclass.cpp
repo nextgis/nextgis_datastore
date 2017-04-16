@@ -74,13 +74,13 @@ std::vector<const char*> FeatureClass::getGeometryColumns() const
 }
 
 
-bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
+int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                                const FieldMapPtr fieldMap,
                                OGRwkbGeometryType filterGeomType,
                                const Progress& progress, const Options &options)
 {
     if(!srcFClass) {
-        return errorMessage(_("Source feature class is invalid"));
+        return errorMessage(ngsErrorCodes::EC_COPY_FAILED, _("Source feature class is invalid"));
     }
 
     progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, 0.0,
@@ -101,8 +101,10 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     FeaturePtr feature;
     while((feature = srcFClass->nextFeature())) {
         double complete = counter / featureCount;
-        progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
-                           _("Copy in process ..."));
+        if(!progress.onProgress(ngsErrorCodes::EC_IN_PROCESS, complete,
+                           _("Copy in process ..."))) {
+            return ngsErrorCodes::EC_CANCELED;
+        }
 
         OGRGeometry * geom = feature->GetGeometryRef();
         OGRGeometry *newGeom = nullptr;
@@ -143,16 +145,18 @@ bool FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            progress.onProgress(ngsErrorCodes::EC_WARNING, complete,
+            if(!progress.onProgress(ngsErrorCodes::EC_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
-                               feature->GetFID ());
+                               feature->GetFID ())) {
+                return ngsErrorCodes::EC_CANCELED;
+            }
         }
         counter++;
     }
     progress.onProgress(ngsErrorCodes::EC_FINISHED, 1.0, _("Done. Copied %d features"),
                        int(counter));
 
-    return true;
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)

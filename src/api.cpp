@@ -211,7 +211,7 @@ void ngsFreeResources(bool full)
  */
 const char *ngsGetLastErrorMessage()
 {
-    return CPLGetLastErrorMsg();
+    return getLastError();
 }
 
 //------------------------------------------------------------------------------
@@ -418,10 +418,7 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 
     // Check can paster
     if(dstDataset->canPaste(srcObject->getType())) {
-        return dstDataset->paste(srcObject, move, loadOptions, progress) ?
-                    ngsErrorCodes::EC_SUCCESS :
-                    move ? ngsErrorCodes::EC_MOVE_FAILED :
-                           ngsErrorCodes::EC_COPY_FAILED;
+        return dstDataset->paste(srcObject, move, loadOptions, progress);
     }
 
     return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :

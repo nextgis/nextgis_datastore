@@ -119,17 +119,21 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
     m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
                                                  openOptions.get(), nullptr));
 
-    if(m_DS == nullptr) {
+    if(m_DS == nullptr) {        
+        errorMessage(CPLGetLastErrorMsg());
         if(openFlags & GDAL_OF_UPDATE) {
             // Try to open read-only
             openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
             openFlags |= GDAL_OF_READONLY;
             m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags,
                                           nullptr, openOptions.get(), nullptr));
-            if(nullptr == m_DS)
+            if(nullptr == m_DS) {
+                errorMessage(CPLGetLastErrorMsg());
                 return false; // Error message comes from GDALOpenEx
-            else
+            }
+            else {
                 m_readonly = true;
+            }
         }
         else {
             return false;
@@ -145,13 +149,16 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
                                           const Options &options,
                                           const Progress &progress)
 {
-    if(nullptr == m_DS)
+    if(nullptr == m_DS) {
+        errorMessage(_("Not opened."));
         return nullptr;
+    }
 
     OGRLayer *layer = m_DS->CreateLayer(name,
                     const_cast<OGRSpatialReference*>(spatialRef), type,
                                         options.getOptions().get());
     if(layer == nullptr) {
+        errorMessage(CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -166,6 +173,7 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
 
         dstField.SetName(newFieldName);
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
+            errorMessage(CPLGetLastErrorMsg());
             return nullptr;
         }
     }
@@ -369,7 +377,7 @@ bool Dataset::hasChildren()
     return ObjectContainer::hasChildren();
 }
 
-bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
+int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                     const Progress &progress)
 {
     CPLString newName = options.getStringOption("NEW_NAME",
@@ -389,14 +397,17 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
     if(Filter::isTable(child->getType())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
-            return errorMessage(_("Source object '%s' report type TABLE, but it is not a table"),
+            return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
+                                       ngsErrorCodes::EC_COPY_FAILED,
+                                _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->getName().c_str());
         }
         OGRFeatureDefn* const srcDefinition = srcTable->getDefinition();
         std::unique_ptr<Table> dstTable(createTable(newName, srcDefinition,
                                                     options));
         if(nullptr == dstTable) {
-            return false;
+            return move ? ngsErrorCodes::EC_MOVE_FAILED :
+                          ngsErrorCodes::EC_COPY_FAILED;
         }
         OGRFeatureDefn* const dstDefinition = dstTable->getDefinition();
         // Create fields map. We expected equal count of fields
@@ -412,7 +423,9 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
     else if(Filter::isFeatureClass(child->getType())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
-            return errorMessage(_("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
+            return errorMessage(move ? ngsErrorCodes::EC_MOVE_FAILED :
+                                       ngsErrorCodes::EC_COPY_FAILED,
+                                _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->getName().c_str());
         }
         bool toMulti = options.getBoolOption("FORCE_GEOMETRY_TO_MULTI", false);
@@ -443,7 +456,8 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
                 srcDefinition, srcFClass->getSpatialReference(), geometryType,
                 options));
             if(nullptr == dstFClass) {
-                return false;
+                return move ? ngsErrorCodes::EC_MOVE_FAILED :
+                              ngsErrorCodes::EC_COPY_FAILED;
             }
             OGRFeatureDefn* const dstDefinition = dstFClass->getDefinition();
             // Create fields map. We expected equal count of fields
@@ -452,20 +466,26 @@ bool Dataset::paste(ObjectPtr child, bool move, const Options &options,
             for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
                 fieldMap[i] = i;
             }
-            if(!dstFClass->copyFeatures(srcFClass, fieldMap, filterFeometryType,
-                                        progress, options)) {
-                return false;
+
+            int result = dstFClass->copyFeatures(srcFClass, fieldMap,
+                                                 filterFeometryType,
+                                                 progress, options);
+            if(result != ngsErrorCodes::EC_SUCCESS) {
+                return result;
             }
         }
     }
     else {
         // TODO: raster and container support
-        return errorMessage(_("'%s' has unsuported type"), child->getName().c_str());
+        return errorMessage(ngsErrorCodes::EC_UNSUPPORTED,
+                            _("'%s' has unsuported type"), child->getName().c_str());
     }
 
-    if(move)
-        return child->destroy();
-    return true;
+    if(move) {
+        return child->destroy() ? ngsErrorCodes::EC_SUCCESS :
+                                  ngsErrorCodes::EC_DELETE_FAILED;
+    }
+    return ngsErrorCodes::EC_SUCCESS;
 }
 
 bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
@@ -484,11 +504,15 @@ bool Dataset::canCreate(const enum ngsCatalogObjectType type) const
 
 TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
 {
-    if(nullptr == m_DS)
+    if(nullptr == m_DS) {
+        errorMessage(_("Not opened."));
         return TablePtr();
+    }
     OGRLayer * layer = m_DS->ExecuteSQL(statement, nullptr, dialect);
-    if(nullptr == layer)
+    if(nullptr == layer) {
+        errorMessage(CPLGetLastErrorMsg());
         return TablePtr();
+    }
     if(layer->GetGeomType() == wkbNone)
         return TablePtr(new Table(layer, this,
                                   ngsCatalogObjectType::CAT_QUERY_RESULT));
@@ -501,11 +525,15 @@ TablePtr Dataset::executeSQL(const char *statement,
                                     GeometryPtr spatialFilter,
                                     const char *dialect)
 {
-    if(nullptr == m_DS)
+    if(nullptr == m_DS) {
+        errorMessage(_("Not opened."));
         return TablePtr();
+    }
     OGRLayer * layer = m_DS->ExecuteSQL(statement, spatialFilter.get(), dialect);
-    if(nullptr == layer)
+    if(nullptr == layer) {
+        errorMessage(CPLGetLastErrorMsg());
         return TablePtr();
+    }
     if(layer->GetGeomType() == wkbNone)
         return TablePtr(new Table(layer, this,
                                   ngsCatalogObjectType::CAT_QUERY_RESULT));

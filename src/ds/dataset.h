@@ -87,9 +87,9 @@ public:
     // ObjectContainer interface
 public:
     virtual bool hasChildren() override;
-    virtual bool paste(ObjectPtr child, bool move = false,
-                       const Options & options = Options(),
-                       const Progress &progress = Progress()) override;
+    virtual int paste(ObjectPtr child, bool move = false,
+                      const Options & options = Options(),
+                      const Progress &progress = Progress()) override;
     virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
 

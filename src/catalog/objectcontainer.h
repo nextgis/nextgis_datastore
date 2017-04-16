@@ -53,10 +53,10 @@ public:
     virtual bool canPaste(const enum ngsCatalogObjectType /*type*/) const {
         return false;
     }
-    virtual bool paste(ObjectPtr /*child*/, bool /*move*/ = false,
-                       const Options& /*options*/ = Options(),
-                       const Progress &/*progress*/ = Progress()) {
-        return false;
+    virtual int paste(ObjectPtr /*child*/, bool /*move*/ = false,
+                      const Options& /*options*/ = Options(),
+                      const Progress &/*progress*/ = Progress()) {
+        return ngsErrorCodes::EC_UNSUPPORTED;
     }
 
     std::vector<ObjectPtr> getChildren() const;
