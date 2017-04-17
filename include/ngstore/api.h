@@ -132,23 +132,29 @@ NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object
  *  ngsLoadMap -> ngsInitMap -> ngsSaveMap [optional]
  */
 
+typedef void *LayerH;
 /*
-mapCreate
-mapOpen
-mapSave
-mapClose
 mapDraw
 mapSet/GetProperties - backgroud, center, scale, rotate
 mapGet coordinate, distance
 dispalyGet position, length
 */
 //NGS_EXTERNC int ngsMapInit(unsigned char mapId);
-NGS_EXTERNC int ngsMapCreate(const char* name, const char* description,
+NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);
 NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
 NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
 NGS_EXTERNC int ngsMapClose(unsigned char mapId);
+NGS_EXTERNC int ngsMapLayerCount(unsigned char mapId);
+NGS_EXTERNC LayerH ngsMapLayerGet(unsigned char mapId, int layerId);
+
+/**
+ * Layer functions
+ */
+NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
+NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
+
 //NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
 //                           int isYAxisInverted);
 //NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,

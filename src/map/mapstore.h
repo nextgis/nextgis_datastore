@@ -78,6 +78,7 @@ public:
     ngsCoordinate getMapDistance(unsigned char mapId, double w, double h);
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
 
+
     // static
 public:
     static unsigned char invalidMapId();

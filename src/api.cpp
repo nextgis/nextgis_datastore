@@ -495,7 +495,7 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
  * @param maxY maximum Y coordinate
  * @return 0 if create failed or map id.
  */
-int ngsMapCreate(const char* name, const char* description,
+unsigned char  ngsMapCreate(const char* name, const char* description,
                  unsigned short epsg, double minX, double minY,
                  double maxX, double maxY)
 {
@@ -925,4 +925,24 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
     if(nullptr == object)
         return ngsCatalogObjectType::CAT_UNKNOWN;
     return static_cast<Object*>(object)->getType();
+}
+
+int ngsMapLayerCount(unsigned char mapId)
+{
+    return 0; // FIXME: release it
+}
+
+LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
+{
+    return nullptr; // FIXME: release it
+}
+
+const char *ngsLayerGetName(LayerH layer)
+{
+    return ""; // FIXME: release it
+}
+
+int ngsLayerSetName(LayerH layer, const char *name)
+{
+    return ngsErrorCode::EC_SUCCESS; // FIXME: release it
 }

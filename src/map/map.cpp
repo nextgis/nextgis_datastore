@@ -71,7 +71,7 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
 bool Map::open(MapFile * const mapFile)
 {
     JSONDocument doc;
-    if(doc.load(mapFile->getPath())) {
+    if(!doc.load(mapFile->getPath())) {
         return false;
     }
 

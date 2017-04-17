@@ -85,13 +85,14 @@ bool JSONDocument::load(const char *path)
     json_tokener* jstok = json_tokener_new();
     m_rootJsonObject = json_tokener_parse_ex(jstok,
                                     reinterpret_cast<const char*>(pabyOut), -1);
-    json_tokener_free(jstok);
-    if( jstok->err != json_tokener_success) {
-        return errorMessage(_("JSON parsing error: %s (at offset %d)"),
+    bool parsed = jstok->err == json_tokener_success;
+    if(!parsed) {
+        errorMessage(_("JSON parsing error: %s (at offset %d)"),
                             json_tokener_error_desc(jstok->err),
                             jstok->char_offset);
     }
-    return true;
+    json_tokener_free(jstok);
+    return parsed;
 }
 
 //------------------------------------------------------------------------------
