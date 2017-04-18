@@ -39,6 +39,7 @@ enum ngsErrorCode {
     EC_DELETE_FAILED,      /**< Failed to delete file, folder or something else */
     EC_SAVE_FAILED,        /**< Failed to save file, folder or something else */
     EC_SET_FAILED,         /**< Failed to set value */
+    EC_GET_FAILED,         /**< Failed to get value */
     EC_OPEN_FAILED,        /**< Failed to open file, folder or something else */
     EC_INSERT_FAILED,      /**< Insert new feature failed */
     EC_UPDATE_FAILED,      /**< Update feature failed */
@@ -46,7 +47,8 @@ enum ngsErrorCode {
     EC_COPY_FAILED,        /**< Copy failed */
     EC_MOVE_FAILED,        /**< Move failed */
     EC_CLOSE_FAILED,       /**< Close failed */
-    EC_RENAME_FAILED       /**< Rename failed */
+    EC_RENAME_FAILED,      /**< Rename failed */
+    EC_DRAW_FAILED         /**< Draw failed */
 };
 
 /**

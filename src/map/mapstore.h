@@ -56,17 +56,16 @@ public:
     virtual MapViewPtr getMap(unsigned char mapId);
 
     //
-    void freeResources() {m_maps.clear ();}
+    void freeResources() { m_maps.clear (); }
 
     // Map manipulation
-    //    int initMap(unsigned char mapId);
-    //    int drawMap(unsigned char mapId, enum ngsDrawState state,
-    //                ngsProgressFunc progressFunc, void* progressArguments = nullptr);
+    bool drawMap(unsigned char mapId, enum ngsDrawState state,
+                const Progress &progress = Progress());
 
     void setMapSize(unsigned char mapId, int width, int height,
-                   bool isYAxisInverted);
+                   bool YAxisInverted);
     ngsRGBA getMapBackgroundColor(unsigned char mapId);
-    void setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
+    bool setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
     bool setMapCenter(unsigned char mapId, double x, double y);
     ngsCoordinate getMapCenter(unsigned char mapId);
     bool setMapScale(unsigned char mapId, double scale);

@@ -30,22 +30,23 @@
 #include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
+#include "util/notify.h"
 #include "util/settings.h"
 #include "util/versionutil.h"
+
+
 
 
 using namespace ngs;
 
 // TODO: Tile vector data on load
 // TODO: Update/Fix unit test. Add GL offscreen rendering GL test
-// TODO: Add support to Framebuffer Objects rendering
+// TODO: Add support to Framebuffer Objects rendering & Renderbuffer Objects
 
 
 constexpr const char* HTTP_TIMEOUT = "5";
 constexpr const char* HTTP_USE_GZIP = "ON";
 constexpr const char* CACHEMAX = "24";
-
-//static CPLString gFilters;
 
 static bool gDebugMode = false;
 
@@ -480,6 +481,32 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
     return dataset->getOptions(enumOptionType);
 }
 
+/**
+ * @brief Create remote TMS Raster
+ * @param url URL to TMS tiles with replacement variables, of the format ${x}, ${y}, etc.
+ * @param name Layer name, only alpha, numeric and underline
+ * @param alias Layer alias name. User readable text
+ * @param copyright Copyright text, link, etc. (optional)
+ * @param epsg EPSG code
+ * @param z_min Minimum zoom level
+ * @param z_max Maximum zoom level. If equal 0 will be set to 18
+ * @param y_origin_top If true - OSGeo TMS, else - Slippy map
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+//int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
+//                             const char *copyright, int epsg, int z_min, int z_max,
+//                             bool y_origin_top)
+//{
+//    if(z_max == 0)
+//        z_max = 18;
+
+//    if(gDataStore)
+//        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
+//                                            epsg, z_min, z_max, y_origin_top);
+
+//    return ngsErrorCodes::EC_CREATE_FAILED;
+//}
+
 //------------------------------------------------------------------------------
 // Map
 //------------------------------------------------------------------------------
@@ -572,80 +599,6 @@ int ngsMapClose(unsigned char mapId)
                                        ngsErrorCode::EC_CLOSE_FAILED;
 }
 
-/**
- * @brief ngsMapInit Initialize map. It depends on map what to initialize.
- * @param mapId Map id
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
- */
-//int ngsMapInit(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->initMap (mapId);
-//}
-
-
-/**
- * @brief ngsInitDataStore Open or create data store. All datastore functgions
- * will work with this datastore object until new one willn ot open.
- * @param path Path to create datastore (geopackage database name)
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
- */
-//int ngsDataStoreInit(const char *path)
-//{
-//    if(gDataStore && gDataStore->path().compare (path) == 0)
-//        return ngsErrorCodes::EC_SUCCESS;
-//    gDataStore = DataStore::openOrCreate(path);
-//    if(nullptr == gDataStore)
-//        return ngsErrorCodes::EC_OPEN_FAILED;
-//    return ngsErrorCodes::EC_SUCCESS;
-//}
-
-
-/**
- * @brief Delete storage directory and cache (optional)
- * @param path Path to storage
- * @param cachePath Path to cache (may be NULL)
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
- */
-//int ngsDataStoreDestroy(const char *path, const char *cachePath)
-//{
-//    if(nullptr == path)
-//        return ngsErrorCodes::EC_INVALID;
-//    gMapStore.reset ();
-//    if(cachePath){
-//        if(CPLUnlinkTree(cachePath) != 0){
-//            return ngsErrorCodes::EC_DELETE_FAILED;
-//        }
-//    }
-//    ngsDataStoreInit(path);
-//    return gDataStore->destroy ();
-//}
-
-/**
- * @brief Create remote TMS Raster
- * @param url URL to TMS tiles with replacement variables, of the format ${x}, ${y}, etc.
- * @param name Layer name, only alpha, numeric and underline
- * @param alias Layer alias name. User readable text
- * @param copyright Copyright text, link, etc. (optional)
- * @param epsg EPSG code
- * @param z_min Minimum zoom level
- * @param z_max Maximum zoom level. If equal 0 will be set to 18
- * @param y_origin_top If true - OSGeo TMS, else - Slippy map
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
- */
-//int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
-//                             const char *copyright, int epsg, int z_min, int z_max,
-//                             bool y_origin_top)
-//{
-//    if(z_max == 0)
-//        z_max = 18;
-
-//    if(gDataStore)
-//        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
-//                                            epsg, z_min, z_max, y_origin_top);
-
-//    return ngsErrorCodes::EC_CREATE_FAILED;
-//}
 
 /**
  * @brief Sete map size in pixels
@@ -660,19 +613,6 @@ int ngsMapClose(unsigned char mapId)
 //    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
 //}
 
-
-/**
- * @brief Set notify function executed on some library events
- * @param Callback function pointer (not free by library)
- */
-//void ngsSetNotifyFunction(ngsNotifyFunc callback)
-//{
-//    if(nullptr != gDataStore)
-//        gDataStore->setNotifyFunc (callback);
-//    initMapStore();
-//    gMapStore->setNotifyFunc (callback);
-//}
-
 /**
  * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
  * @param mapId Map id received from create or open map functions
@@ -681,39 +621,50 @@ int ngsMapClose(unsigned char mapId)
  * @param callbackData Progress function arguments
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
-//               ngsProgressFunc callback, void* callbackData)
-//{
-//    initMapStore();
-//    return gMapStore->drawMap (mapId, state, callback, callbackData);
-//}
+int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+               ngsProgressFunc callback, void* callbackData)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore)
+        return errorMessage(ngsErrorCode::EC_DRAW_FAILED,
+                            _("MapStore is not initialized"));
+    Progress progress(callback, callbackData);
+    return mapStore->drawMap(mapId, state, progress) ? ngsErrorCode::EC_SUCCESS :
+                                                       ngsErrorCode::EC_DRAW_FAILED;
+}
 
 /**
  * @brief ngsGetMapBackgroundColor Map background color
  * @param mapId Map id received from create or open map functions
  * @return map background color struct
  */
-//ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->getMapBackgroundColor (mapId);
-//}
+ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsErrorCode::EC_GET_FAILED,
+                            _("MapStore is not initialized"));
+        return {0,0,0,0};
+    }
+    return mapStore->getMapBackgroundColor(mapId);
+}
 
 /**
- * @brief ngsSetMapBackgroundColor set specified by name map background color
+ * @brief ngsSetMapBackgroundColor Set specified by id map background color
  * @param mapId Map id received from create or open map functions
- * @param R red
- * @param G green
- * @param B blue
- * @param A alpha
+ * @param color Background color
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R, unsigned char G,
-//                             unsigned char B, unsigned char A)
-//{
-//    initMapStore();
-//    return gMapStore->setMapBackgroundColor (mapId, {R, G, B, A});
-//}
+int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsErrorCode::EC_SET_FAILED,
+                            _("MapStore is not initialized"));
+    }
+    return mapStore->setMapBackgroundColor(mapId, color) ? ngsErrorCode::EC_SUCCESS :
+                                                           ngsErrorCode::EC_GET_FAILED;
+}
 
 /**
  * @brief ngsMapSetCenter Set new map center coordinates
@@ -854,18 +805,6 @@ int ngsMapClose(unsigned char mapId)
 //}
 
 /**
- * @brief ngsDataStoreGetLoadTaskInfo Report loading task status
- * @param taskId Task id
- * @return ngsLoadTaskInfo structure
- */
-//ngsLoadTaskInfo ngsDataStoreGetLoadTaskInfo(unsigned int taskId)
-//{
-//    if(nullptr != gDataStore)
-//        return gDataStore->getLoadTaskInfo (taskId);
-//    return {nullptr, nullptr, nullptr, ngsErrorCodes::EC_INVALID};
-//}
-
-/**
  * @brief ngsDataStoreGetOptions Report supported options in xml string
  * @param optionType Option to report
  * @return xml string or nullptr
@@ -945,4 +884,23 @@ const char *ngsLayerGetName(LayerH layer)
 int ngsLayerSetName(LayerH layer, const char *name)
 {
     return ngsErrorCode::EC_SUCCESS; // FIXME: release it
+}
+
+/**
+ * @brief ngsAddNotifyFunction Add function triggered on some events
+ * @param function Function executed on event occured
+ * @param notifyTypes The OR combination of ngsChangeCode
+ */
+void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes)
+{
+    Notify::instance().addNotifyReceiver(function, notifyTypes);
+}
+
+/**
+ * @brief ngsRemoveNotifyFunction Remove function. No events will be occured.
+ * @param function The function to remove
+ */
+void ngsRemoveNotifyFunction(ngsNotifyFunc function)
+{
+    Notify::instance().deleteNotifyReceiver(function);
 }

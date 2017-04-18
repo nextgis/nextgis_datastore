@@ -25,7 +25,7 @@
 #include "ngstore/api.h"
 #include "ngstore/util/constants.h"
 
-using namespace ngs;
+namespace ngs {
 
 Matrix4::Matrix4()
 {
@@ -147,11 +147,6 @@ void Matrix4::perspective(double fovy, double aspect, double near, double far)
     m_values[13] = 0.0;
     m_values[14] = (2.0 * far * near) * nf;
     m_values[15] = 0.0;
-}
-
-Matrix4 Matrix4::copy() const
-{
-    return Matrix4(*this);
 }
 
 void Matrix4::clear()
@@ -290,7 +285,8 @@ void Matrix4::rotate(double x, double y, double z)
     mat.m_values[9]  = -AD * F + B * E;
     mat.m_values[10] =   A * C;
 
-    mat.m_values[3]  =  mat.m_values[7] = mat.m_values[11] = mat.m_values[12] = mat.m_values[13] = mat.m_values[14] = 0;
+    mat.m_values[3]  =  mat.m_values[7] = mat.m_values[11] = mat.m_values[12] =
+            mat.m_values[13] = mat.m_values[14] = 0;
     mat.m_values[15] =  1;
 
     multiply (mat);
@@ -366,11 +362,13 @@ OGRRawPoint Matrix4::project(const OGRRawPoint &pt) const
     return outPt;
 }
 
-array<float, 16> Matrix4::dataF() const
+std::array<float, 16> Matrix4::dataF() const
 {
-    array<float, 16> out;
+    std::array<float, 16> out;
     for(size_t i = 0; i < 16; ++i){
         out[i] = static_cast<float>(m_values[i]);
     }
     return out;
 }
+
+} // namespace ngs

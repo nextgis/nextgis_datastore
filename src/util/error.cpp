@@ -27,7 +27,7 @@
 namespace ngs {
 
 static CPLLock *hAtomicOpLock = nullptr;
-static CPLString lastMgs;
+static CPLString lastMsg;
 
 int errorMessage(enum ngsErrorCode errorCode, const char *fmt, ...)
 {
@@ -40,7 +40,7 @@ int errorMessage(enum ngsErrorCode errorCode, const char *fmt, ...)
         va_end(args);
     }
     CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
-    lastMgs = CPLGetLastErrorMsg();
+    lastMsg = CPLGetLastErrorMsg();
     return errorCode;
 }
 
@@ -55,7 +55,7 @@ int warningMessage(enum ngsErrorCode errorCode, const char *fmt, ...)
         va_end(args);
     }
     CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
-    lastMgs = CPLGetLastErrorMsg();
+    lastMsg = CPLGetLastErrorMsg();
     return errorCode;
 }
 
@@ -68,14 +68,26 @@ bool errorMessage(const char *fmt, ...)
     CPLErrorV(CE_Failure, CPLE_AppDefined, fmt, args);
     va_end(args);
     CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
-    lastMgs = CPLGetLastErrorMsg();
+    lastMsg = CPLGetLastErrorMsg();
     return false;
+}
+
+void warningMessage(const char *fmt, ...)
+{
+    va_list args;
+
+    // Expand the error message
+    va_start(args, fmt);
+    CPLErrorV(CE_Warning, CPLE_AppDefined, fmt, args);
+    va_end(args);
+    CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
+    lastMsg = CPLGetLastErrorMsg();
 }
 
 const char *getLastError()
 {
     CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
-    return lastMgs;
+    return lastMsg;
 }
 
 }

@@ -35,28 +35,30 @@ public:
     MapTransform(int width, int height);
     virtual ~MapTransform() = default;
 
-    int getDisplayWidht() const {return m_displayHeight;}
-    int getDisplayHeight() const {return m_displayWidht;}
-    double getRotate(enum ngsDirection dir) const {return m_rotate[dir];}
+    int getDisplayWidht() const { return m_displayHeight; }
+    int getDisplayHeight() const { return m_displayWidht; }
+    double getRotate(enum ngsDirection dir) const { return m_rotate[dir]; }
     bool setRotate(enum ngsDirection dir, double rotate);
 
-    Envelope getExtent() const {return m_rotateExtent;}
-    OGRRawPoint getCenter() const {return m_center;}
+    Envelope getExtent() const { return m_rotateExtent; }
+    OGRRawPoint getCenter() const { return m_center; }
     OGRRawPoint worldToDisplay(const OGRRawPoint &pt) {
-        return m_worldToDisplayMatrix.project(pt);}
+        return m_worldToDisplayMatrix.project(pt);
+    }
     OGRRawPoint displayToWorld(const OGRRawPoint &pt) {
-        return m_invWorldToDisplayMatrix.project(pt);}
+        return m_invWorldToDisplayMatrix.project(pt);
+    }
     void setDisplaySize(int width, int height, bool isYAxisInverted);
     bool setScale(double scale);
     bool setCenter(double x, double y);
     bool setScaleAndCenter(double scale, double x, double y);
     bool setExtent(const Envelope &env);
     double getZoom() const;
-    double getScale() const {return m_scale;}
-    Matrix4 getSceneMatrix() const {return m_sceneMatrix;}
-    Matrix4 getInvViewMatrix() const {return m_invViewMatrix;}
+    double getScale() const { return m_scale; }
+    Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
+    Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
 
-    bool getXAxisLooped() const {return m_XAxisLooped;}
+    bool getXAxisLooped() const { return m_XAxisLooped; }
 
 protected:
     bool updateExtent();

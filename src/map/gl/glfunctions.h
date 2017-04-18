@@ -1,40 +1,30 @@
 /******************************************************************************
-*  Project: NextGIS GL Viewer
-*  Purpose: GUI viewer for spatial data.
-*  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*  Author: NikitaFeodonit, nfeodonit@yandex.com
-*******************************************************************************
-*  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
-*
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 2 of the License, or
-*   (at your option) any later version.
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-******************************************************************************/
-
-#ifndef NGSGLVIEW_H
-#define NGSGLVIEW_H
-
-#include "api_priv.h"
-#include "vector.h"
-
-// stl
-#include <atomic>
-#include <list>
-#include <memory>
-#include <set>
-#include <vector>
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ ******************************************************************************
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+#ifndef NGSGLFUNCTIONS_H
+#define NGSGLFUNCTIONS_H
 
 #if __APPLE__
     #include "TargetConditionals.h"
     #if TARGET_OS_IPHONE
+        #define GLES
         #include <OpenGLES/ES2/gl.h>
         #include <OpenGLES/ES2/glext.h>
     #elif TARGET_IPHONE_SIMULATOR
@@ -58,6 +48,12 @@
 //    #include <GL/glext.h>
 #endif
 
+#ifdef USE_EGL // need for headless desktop drawing (i.e. some preview generation)
+#include "EGL/egl.h"
+#endif // USE_EGL
+
+namespace ngs {
+
 #if defined(_DEBUG)
 #define ngsCheckGLEerror(cmd) {cmd; checkGLError(#cmd);}
 #define ngsCheckEGLEerror(cmd) {cmd; checkEGLError(#cmd);}
@@ -66,119 +62,29 @@
 #define ngsCheckEGLEerror(cmd) (cmd)
 #endif
 
-#define GL_BUFFERS_COUNT 3
-#define VERTEX_SIZE 3
-#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
-
-#ifdef OFFSCREEN_GL // need for headless desktop drawing (i.e. some preview gerneartion)
-#include "EGL/egl.h"
-#endif // OFFSCREEN_GL
-
-namespace ngs {
-
-class Style;
-
-typedef struct _glrgb {
-    float r;
-    float g;
-    float b;
-    float a;
-} GlColor;
+#ifdef USE_EGL
+bool checkEGLError(const char *cmd);
+#endif // USE_EGL
 
 bool checkGLError(const char *cmd);
 void reportGlStatus(GLuint obj);
 
+}
+
+#endif // NGSGLFUNCTIONS_H
+
+/*
+
+#define GL_BUFFERS_COUNT 3
+#define VERTEX_SIZE 3
+#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
+
+class Style;
+
 
 /*typedef int (*ngsBindVertexArray)(GLuint array);
 typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
-typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*/
-
-#ifdef OFFSCREEN_GL
-
-bool checkEGLError(const char *cmd);
-using namespace std;
-class GlDisplay
-{
-public:
-    GlDisplay();
-    ~GlDisplay();
-    bool init();
-    EGLDisplay eglDisplay() const;
-
-    EGLConfig eglConf() const;
-
-protected:
-
-    EGLDisplay m_eglDisplay;
-    EGLConfig m_eglConf;
-};
-
-typedef shared_ptr<GlDisplay> GlDisplayPtr;
-GlDisplayPtr getGlDisplay();
-
-class GlView
-{
-public:
-    GlView();
-    virtual ~GlView();
-    bool init();
-    void setSize(int width, int height);
-    bool isOk() const;
-    void setBackgroundColor(const ngsRGBA &color);
-    void fillBuffer(void* buffer) const;
-    void clearBackground();
-    void prepare(const Matrix4& mat);
-    // Draw functions
-    void draw() const;
-    void drawPolygons(const vector<GLfloat> &vertices,
-                      const vector<GLushort> &indices) const;
-protected:
-    virtual void loadProgram();
-    virtual GLuint prepareProgram();
-    bool checkProgramLinkStatus(GLuint obj) const;
-    bool checkShaderCompileStatus(GLuint obj) const;
-    GLuint loadShader(GLenum type, const char *shaderSrc);
-    virtual void loadExtensions();
-    virtual bool createSurface() = 0;
-
-protected:
-    GlDisplayPtr m_glDisplay;
-    EGLContext m_eglCtx;
-    EGLSurface m_eglSurface;
-
-    GlColor m_bkColor;
-    int m_displayWidth, m_displayHeight;
-
-    bool m_extensionLoad, m_programLoad;
-
-/*    ngsBindVertexArray bindVertexArrayFn;
-    ngsDeleteVertexArrays deleteVertexArraysFn;
-    ngsGenVertexArrays genVertexArraysFn;*/
-
-// shaders
-protected:
-    GLuint m_programId;
-
-
-};
-
-class GlOffScreenView : public GlView
-{
-public:
-    GlOffScreenView();
-    virtual ~GlOffScreenView();
-
-protected:
-    virtual bool createSurface() override;
-    bool createFBO(int width, int height);
-    void destroyFBO();
-//FBO
-protected:
-    GLuint m_defaultFramebuffer;
-    GLuint m_renderbuffers[2];
-};
-
-#endif // OFFSCREEN_GL
+typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*//*
 
 #define GL_BUFFER_UNKNOWN 0
 
@@ -361,27 +267,6 @@ GlBufferBucketSharedPtr makeSharedGlBufferBucket(Args&&... args)
     return std::make_shared<GlBufferBucket>(std::forward<Args>(args)...);
 }
 
-class GlProgram
-{
-public:
-    GlProgram();
-    ~GlProgram();
-    bool load(const GLchar * const vertexShader,
-              const GLchar * const fragmentShader);
-
-    GLuint id() const;
-    void use() const;
-
-protected:
-    bool checkLinkStatus(GLuint obj) const;
-    bool checkShaderCompileStatus(GLuint obj) const;
-    GLuint loadShader(GLenum type, const char *shaderSrc);
-protected:
-    GLuint m_id;
-};
-
-typedef std::unique_ptr<GlProgram> GlProgramUPtr;
-
 class GlFuctions
 {
 public:
@@ -390,8 +275,6 @@ public:
 
     bool init();
     bool isOk() const;
-    void setBackgroundColor(const ngsRGBA &color);
-    void clearBackground();
 
     // Draw functions
     void testDraw(int colorId) const;
@@ -402,10 +285,6 @@ protected:
     bool loadExtensions();
 
 protected:
-    GlColor m_bkColor;
-    bool m_extensionLoad, m_pBkChanged;
+    bool m_extensionLoad;
 };
-
-}  // namespace ngs
-
-#endif  // NGSGLVIEW_H
+*/

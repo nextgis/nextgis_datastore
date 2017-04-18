@@ -34,17 +34,15 @@
 namespace ngs {
 
 
-MapView::MapView() : Map(), MapTransform(480, 640)/*, m_displayInit(false)*/
+MapView::MapView() : Map(), MapTransform(480, 640)
 {
-    }
+}
 
 MapView::MapView(const CPLString &name, const CPLString &description,
-                 unsigned short epsg, double minX, double minY, double maxX,
-                 double maxY) : Map(name, description, epsg, minX, minY, maxX,
-                                    maxY), MapTransform(480, 640)/*,
-    m_displayInit(false), m_progressFunc(nullptr)*/
+                 unsigned short epsg, const Envelope &bounds) :
+    Map(name, description, epsg, bounds), MapTransform(480, 640)
 {
-        }
+}
 
 //bool MapView::isDisplayInit() const
 //{
@@ -165,11 +163,5 @@ LayerPtr MapView::createLayer(Layer::Type /*type*/)
 //        return Map::createLayer (type);
 //    }
 }
-
-//int ngs::MapView::setBackgroundColor(const ngsRGBA &color)
-//{
-//    m_glFunctions.setBackgroundColor(color);
-//    return Map::setBackgroundColor (color);
-//}
 
 }

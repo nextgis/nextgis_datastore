@@ -35,7 +35,7 @@ class Map
 public:
     Map();
     Map(const CPLString& name, const CPLString& description, unsigned short epsg,
-        double minX, double minY, double maxX, double maxY);
+        const Envelope &bounds);
     virtual ~Map() = default;
 
     const CPLString &getName() const { return m_name; }
@@ -46,27 +46,21 @@ public:
     }
     unsigned short getEpsg() const { return m_epsg; }
     void setEpsg(unsigned short epsg) { m_epsg = epsg; }
-    void setBounds(double minX, double minY, double maxX, double maxY) {
-        m_minX = minX;
-        m_minY = minY;
-        m_maxX = maxX;
-        m_maxY = maxY;
+    void setBounds(const Envelope& bounds) {
+        m_bounds = bounds;
     }
-    double getMinX() const { return m_minX; }
-    double getMinY() const { return m_minY; }
-    double getMaxX() const { return m_maxX; }
-    double getMaxY() const { return m_maxY; }
-    ngsRGBA getBackgroundColor() const { return  m_bkColor; }
-    void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
+    Envelope getBounds() const { return m_bounds; }
     bool getRelativePaths() const { return m_relativePaths; }
     void setRelativePaths(bool relativePaths) { m_relativePaths = relativePaths; }
 
     virtual bool open(MapFile * const mapFile);
     virtual bool save(MapFile * const mapFile);
     virtual bool close();
+    virtual ngsRGBA getBackgroundColor() const { return  m_bkColor; }
+    virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
 
 //    virtual int createLayer(const CPLString &name, DatasetPtr dataset);
-    size_t layerCount() const {return m_layers.size();}
+    size_t layerCount() const { return m_layers.size(); }
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);
@@ -75,7 +69,7 @@ protected:
     CPLString m_name;
     CPLString m_description;
     unsigned short m_epsg;
-    double m_minX, m_minY, m_maxX, m_maxY;
+    Envelope m_bounds;
     std::vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
     bool m_relativePaths;

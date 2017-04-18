@@ -45,24 +45,18 @@ constexpr const char* MAP_BKCOLOR = "bk_color";
 Map::Map() :
     m_name(DEFAULT_MAP_NAME),
     m_epsg(DEFAULT_EPSG),
-    m_minX(DEFAULT_BOUNDS.getMinX()),
-    m_minY(DEFAULT_BOUNDS.getMinY()),
-    m_maxX(DEFAULT_BOUNDS.getMaxX()),
-    m_maxY(DEFAULT_BOUNDS.getMaxY()),
+    m_bounds(DEFAULT_BOUNDS),
     m_bkColor(DEFAULT_MAP_BK),
     m_relativePaths(true)
 {
 }
 
 Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
-         double minX, double minY, double maxX, double maxY) :
+         const Envelope &bounds) :
     m_name(name),
     m_description(description),
     m_epsg(epsg),
-    m_minX(minX),
-    m_minY(minY),
-    m_maxX(maxX),
-    m_maxY(maxY),
+    m_bounds(bounds),
     m_bkColor(DEFAULT_MAP_BK),
     m_relativePaths(true)
 {
@@ -82,12 +76,12 @@ bool Map::open(MapFile * const mapFile)
         m_relativePaths = root.getBool (MAP_RELATIVEPATHS, true);
         m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,
                                                               DEFAULT_EPSG));
-        m_minX = root.getDouble(MAP_MIN_X, DEFAULT_BOUNDS.getMinX());
-        m_minY = root.getDouble(MAP_MIN_Y, DEFAULT_BOUNDS.getMinY());
-        m_maxX = root.getDouble(MAP_MAX_X, DEFAULT_BOUNDS.getMaxX());
-        m_maxY = root.getDouble(MAP_MAX_Y, DEFAULT_BOUNDS.getMaxY());
-        m_bkColor = ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR,
-                                                 ngsRGBA2HEX(m_bkColor)));
+        m_bounds.setMinX(root.getDouble(MAP_MIN_X, DEFAULT_BOUNDS.getMinX()));
+        m_bounds.setMinY(root.getDouble(MAP_MIN_Y, DEFAULT_BOUNDS.getMinY()));
+        m_bounds.setMaxX(root.getDouble(MAP_MAX_X, DEFAULT_BOUNDS.getMaxX()));
+        m_bounds.setMaxY(root.getDouble(MAP_MAX_Y, DEFAULT_BOUNDS.getMaxY()));
+        setBackgroundColor(ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR,
+                                                 ngsRGBA2HEX(m_bkColor))));
 
         JSONArray layers = root.getArray("layers");
         for(int i = 0; i < layers.size(); ++i) {
@@ -116,10 +110,10 @@ bool Map::save(MapFile * const mapFile)
     root.add(MAP_DESCRIPTION, m_description);
     root.add(MAP_RELATIVEPATHS, m_relativePaths);
     root.add(MAP_EPSG, m_epsg);
-    root.add(MAP_MIN_X, m_minX);
-    root.add(MAP_MIN_Y, m_minY);
-    root.add(MAP_MAX_X, m_maxX);
-    root.add(MAP_MAX_Y, m_maxY);
+    root.add(MAP_MIN_X, m_bounds.getMinX());
+    root.add(MAP_MIN_Y, m_bounds.getMinY());
+    root.add(MAP_MAX_X, m_bounds.getMaxX());
+    root.add(MAP_MAX_Y, m_bounds.getMaxY());
     root.add(MAP_BKCOLOR, ngsRGBA2HEX(m_bkColor));
 
     JSONArray layers;

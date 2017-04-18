@@ -18,19 +18,34 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSERROR_H
-#define NGSERROR_H
+#ifndef NGSGLPROGRAM_H
+#define NGSGLPROGRAM_H
 
-#include "ngstore/codes.h"
+#include "glfunctions.h"
 
 namespace ngs {
 
-int errorMessage(enum ngsErrorCode errorCode, const char *fmt, ...);
-bool errorMessage(const char *fmt, ...);
-int warningMessage(enum ngsErrorCode errorCode, const char *fmt, ...);
-void warningMessage(const char *fmt, ...);
-const char* getLastError();
+class GlProgram
+{
+public:
+    GlProgram();
+    ~GlProgram();
+    bool load(const GLchar * const vertexShader,
+              const GLchar * const fragmentShader);
+
+    GLuint id() const { return m_id; }
+    void use() const { ngsCheckGLEerror(glUseProgram(m_id)); }
+
+protected:
+    bool checkLinkStatus(GLuint obj) const;
+    bool checkShaderCompileStatus(GLuint obj) const;
+    GLuint loadShader(GLenum type, const char *shaderSrc);
+protected:
+    GLuint m_id;
+};
+
+//typedef std::unique_ptr<GlProgram> GlProgramUPtr;
 
 }
 
-#endif // NGSERROR_H
+#endif // NGSGLPROGRAM_H

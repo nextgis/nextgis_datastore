@@ -24,7 +24,6 @@
 #include "map.h"
 
 #include "maptransform.h"
-#include "glview.h"
 
 namespace ngs {
 
@@ -33,8 +32,7 @@ class MapView : public Map, public MapTransform
 public:
     MapView();
     MapView(const CPLString& name, const CPLString& description,
-            unsigned short epsg,
-            double minX, double minY, double maxX, double maxY);
+            unsigned short epsg, const Envelope& bounds);
     virtual ~MapView() = default;
 //    bool isDisplayInit() const;
 //    int initDisplay();
@@ -45,14 +43,12 @@ public:
     // Map interface
 public:
 //    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
-//    virtual int setBackgroundColor(const ngsRGBA &color) override;
 
 //protected:
 //    bool m_displayInit;
-//    ngsProgressFunc m_progressFunc;
-//    void* m_progressArguments;
 //    GlFuctions m_glFunctions;
 
+    // Map interface
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type) override;
 };

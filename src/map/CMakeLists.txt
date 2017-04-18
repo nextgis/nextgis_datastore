@@ -26,7 +26,6 @@ set(LIB_NAME map)
 
 set(HHEADERS
 #    glfillers.h
-#    glview.h
     layer.h
     map.h
     mapstore.h
@@ -36,11 +35,12 @@ set(HHEADERS
     renderlayer.h
 #    style.h
 #    vector.h
+    gl/glview.h
+    gl/glprogram.h
 )
 
 set(CSOURCES
 #    glfillers.cpp
-#    glview.cpp
     layer.cpp
     map.cpp
     mapstore.cpp
@@ -49,6 +49,8 @@ set(CSOURCES
     matrix.cpp
     renderlayer.cpp
 #    style.cpp
+    gl/glview.cpp
+    gl/glprogram.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

@@ -23,9 +23,8 @@
 #define NGSMATRIX_H
 
 #include <array>
-#include "ogr_geometry.h"
 
-using namespace std;
+#include "ogr_geometry.h"
 
 namespace ngs {
 
@@ -39,7 +38,7 @@ public:
     void ortho(double left, double right, double bottom, double top, double near,
                double far);
     void perspective(double fovy, double aspect, double near, double far);
-    Matrix4 copy() const;
+    Matrix4 copy() const { return Matrix4(*this); }
     void clear();
     void translate(double x, double y, double z);
     void rotateX(double rad);
@@ -49,10 +48,10 @@ public:
     void rotate(double x, double y, double z);
     void multiply(const Matrix4& other);
     OGRRawPoint project(const OGRRawPoint &pt) const;
-    array<float, 16> dataF() const;
+    std::array<float, 16> dataF() const;
 
 private:
-    array<double, 16> m_values;
+    std::array<double, 16> m_values;
 };
 
 }

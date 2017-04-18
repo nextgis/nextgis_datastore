@@ -59,7 +59,7 @@ void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
     double scaleX = fabs(double(m_displayWidht)) * .5;
     double scaleY = fabs(double(m_displayHeight)) * .5;
 
-    m_scaleView = min(scaleX, scaleY);
+    m_scaleView = std::min(scaleX, scaleY);
 
     m_ratio = double(width) / height;
 
@@ -270,4 +270,4 @@ double MapTransform::getZoom() const {
     return retVal < 0 ? 0 : retVal;
 }
 
-}
+} // namespace ngs

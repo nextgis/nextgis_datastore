@@ -85,6 +85,8 @@ NGS_EXTERNC int ngsInit(char **options = nullptr);
 NGS_EXTERNC void ngsUnInit();
 NGS_EXTERNC void ngsFreeResources(bool full = false);
 NGS_EXTERNC const char* ngsGetLastErrorMessage();
+NGS_EXTERNC void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes);
+NGS_EXTERNC void ngsRemoveNotifyFunction(ngsNotifyFunc function);
 
 /**
  * Proxy to GDAL functions
@@ -118,7 +120,6 @@ NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 
 
-//NGS_EXTERNC void ngsSetNotifyFunction(ngsNotifyFunc callback);
 //NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
 //                                         const char* alias, const char* copyright,
 //                                         int epsg, int z_min, int z_max,
@@ -139,7 +140,6 @@ mapSet/GetProperties - backgroud, center, scale, rotate
 mapGet coordinate, distance
 dispalyGet position, length
 */
-//NGS_EXTERNC int ngsMapInit(unsigned char mapId);
 NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);
@@ -148,6 +148,12 @@ NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
 NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 NGS_EXTERNC int ngsMapLayerCount(unsigned char mapId);
 NGS_EXTERNC LayerH ngsMapLayerGet(unsigned char mapId, int layerId);
+NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
+                           int YAxisInverted);
+NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
+                           ngsProgressFunc callback, void* callbackData);
+NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color);
+NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
 
 /**
  * Layer functions
@@ -155,14 +161,7 @@ NGS_EXTERNC LayerH ngsMapLayerGet(unsigned char mapId, int layerId);
 NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 
-//NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
-//                           int isYAxisInverted);
-//NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
-//                           ngsProgressFunc callback, void* callbackData);
-//NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, unsigned char R,
-//                                    unsigned char G, unsigned char B,
-//                                    unsigned char A);
-//NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
+
 //NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
 //                               const char* path);
 //NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);

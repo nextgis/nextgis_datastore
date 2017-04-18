@@ -109,21 +109,23 @@ ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId)
     return map->getBackgroundColor ();
 }
 
-void MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
+bool MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 {
     MapViewPtr map = getMap(mapId);
     if(!map)
-        return;
+        return false;
     map->setBackgroundColor(color);
+
+    return true;
 }
 
 void MapStore::setMapSize(unsigned char mapId, int width, int height,
-                      bool isYAxisInverted)
+                      bool YAxisInverted)
 {
     MapViewPtr map = getMap(mapId);
     if(!map)
         return;
-    map->setDisplaySize(width, height, isYAxisInverted);
+    map->setDisplaySize(width, height, YAxisInverted);
 }
 
 bool MapStore::setMapCenter(unsigned char mapId, double x, double y)
