@@ -48,8 +48,7 @@ public:
      * @return 0 if some error occures or new map identificator if success.
      */
     virtual unsigned char createMap(const CPLString& name, const CPLString& description,
-                          unsigned short epsg, double minX, double minY,
-                          double maxX, double maxY);
+                          unsigned short epsg, const Envelope& bounds);
     virtual unsigned char openMap(MapFile * const file);
     virtual bool saveMap(unsigned char mapId, MapFile * const file);
     virtual bool closeMap(unsigned char mapId);
@@ -62,7 +61,7 @@ public:
     bool drawMap(unsigned char mapId, enum ngsDrawState state,
                 const Progress &progress = Progress());
 
-    void setMapSize(unsigned char mapId, int width, int height,
+    bool setMapSize(unsigned char mapId, int width, int height,
                    bool YAxisInverted);
     ngsRGBA getMapBackgroundColor(unsigned char mapId);
     bool setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
@@ -81,6 +80,7 @@ public:
     // static
 public:
     static unsigned char invalidMapId();
+    static MapViewPtr initMap();
 
 public:
     static void setInstance(MapStore* pointer);

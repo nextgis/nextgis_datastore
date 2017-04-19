@@ -154,6 +154,8 @@ NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
                            ngsProgressFunc callback, void* callbackData);
 NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color);
 NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
+NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
+NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
 
 /**
  * Layer functions
@@ -164,8 +166,6 @@ NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 
 //NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
 //                               const char* path);
-//NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
-//NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
 //NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
 //NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 //NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,

@@ -38,17 +38,22 @@ public:
 public:
     virtual void setBackgroundColor(const ngsRGBA &color) override;
 
+    // MapView interface
+public:
+    virtual bool draw(ngsDrawState state, const Progress &progress) override;
+
 private:
     void clearBackground();
 
 private:
-    typedef struct _glrgb {
+    typedef struct _glcolor {
         float r;
         float g;
         float b;
         float a;
     } GlColor;
     GlColor m_glBkColor;
+
 };
 
 }  // namespace ngs

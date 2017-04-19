@@ -34,19 +34,11 @@ public:
     MapView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope& bounds);
     virtual ~MapView() = default;
-//    bool isDisplayInit() const;
-//    int initDisplay();
-//    int draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
-//             void* progressArguments = nullptr);
-//    int notify();
+    virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress()) = 0;
 
     // Map interface
 public:
 //    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
-
-//protected:
-//    bool m_displayInit;
-//    GlFuctions m_glFunctions;
 
     // Map interface
 protected:
@@ -54,5 +46,6 @@ protected:
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;
+
 }
 #endif // NGSMAPVIEW_H

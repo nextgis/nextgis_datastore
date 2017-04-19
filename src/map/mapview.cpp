@@ -44,22 +44,6 @@ MapView::MapView(const CPLString &name, const CPLString &description,
 {
 }
 
-//bool MapView::isDisplayInit() const
-//{
-//    return m_displayInit;
-//}
-
-//int MapView::initDisplay()
-//{
-//    if(m_displayInit)
-//        return ngsErrorCodes::EC_SUCCESS;
-//    if(m_glFunctions.init ()) {
-//        m_displayInit = true;
-//        return ngsErrorCodes::EC_SUCCESS;
-//    }
-//    return ngsErrorCodes::EC_INIT_FAILED;
-//}
-
 //int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
 //                  void* progressArguments)
 //{

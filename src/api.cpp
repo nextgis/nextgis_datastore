@@ -529,7 +529,8 @@ unsigned char  ngsMapCreate(const char* name, const char* description,
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
         return MapStore::invalidMapId();
-    return mapStore->createMap(name, description, epsg, minX, minY, maxX, maxY);
+    Envelope bound(minX, minY, maxX, maxY);
+    return mapStore->createMap(name, description, epsg, bound);
 }
 
 /**
@@ -607,11 +608,16 @@ int ngsMapClose(unsigned char mapId)
  * @param height Output image height
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
-//{
-//    initMapStore();
-//    return gMapStore->setMapSize (mapId, width, height, isYAxisInverted);
-//}
+int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore)
+        return errorMessage(ngsErrorCode::EC_CLOSE_FAILED,
+                            _("MapStore is not initialized"));
+    return mapStore->setMapSize(mapId, width, height, isYAxisInverted == 1 ?
+                                    true : false) ? ngsErrorCode::EC_SUCCESS :
+                                                    ngsErrorCode::EC_SET_FAILED;
+}
 
 /**
  * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
@@ -662,8 +668,8 @@ int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
         return errorMessage(ngsErrorCode::EC_SET_FAILED,
                             _("MapStore is not initialized"));
     }
-    return mapStore->setMapBackgroundColor(mapId, color) ? ngsErrorCode::EC_SUCCESS :
-                                                           ngsErrorCode::EC_GET_FAILED;
+    return mapStore->setMapBackgroundColor(mapId, color) ?
+                ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_SET_FAILED;
 }
 
 /**
@@ -673,22 +679,32 @@ int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
  * @param y Y coordinate
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapSetCenter(unsigned char mapId, double x, double y)
-//{
-//    initMapStore();
-//    return gMapStore->setMapCenter(mapId, x, y);
-//}
+int ngsMapSetCenter(unsigned char mapId, double x, double y)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsErrorCode::EC_SET_FAILED,
+                            _("MapStore is not initialized"));
+    }
+    return mapStore->setMapCenter(mapId, x, y) ?
+                ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_SET_FAILED;
+}
 
 /**
  * @brief ngsMapGetCenter Get map center for current view (extent)
  * @param mapId Map id
  * @return Coordintate structure. If error occured all coordinates set to 0.0
  */
-//ngsCoordinate ngsMapGetCenter(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->getMapCenter(mapId);
-//}
+ngsCoordinate ngsMapGetCenter(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsErrorCode::EC_GET_FAILED,
+                            _("MapStore is not initialized"));
+        return {0, 0, 0};
+    }
+    return mapStore->getMapCenter(mapId);
+}
 
 /**
  * @brief ngsMapSetScale Set current map scale

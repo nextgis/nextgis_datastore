@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "mapfile.h"
 
+#include "map/mapstore.h"
 #include "util/notify.h"
 #include "util/stringutil.h"
 
@@ -40,7 +41,7 @@ bool MapFile::open()
 {
     if(m_mapView)
         return true;
-    m_mapView = MapViewPtr(new MapView);
+    m_mapView = MapStore::initMap();
     return m_mapView->open(this);
 }
 

@@ -55,5 +55,16 @@ void GlView::clearBackground()
 }
 
 
+bool GlView::draw(ngsDrawState state, const Progress &progress)
+{
+    clearBackground();
+
+    if(m_layers.empty()) {
+        return true;
+    }
+    return true;
 }
+
+} // namespace ngs
+
 

@@ -37,6 +37,7 @@ set(HHEADERS
 #    vector.h
     gl/glview.h
     gl/glprogram.h
+    gl/glfunctions.h
 )
 
 set(CSOURCES
@@ -51,6 +52,7 @@ set(CSOURCES
 #    style.cpp
     gl/glview.cpp
     gl/glprogram.cpp
+    gl/glfunctions.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

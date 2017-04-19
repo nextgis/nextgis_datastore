@@ -23,6 +23,8 @@
 // stl
 #include <limits>
 
+#include "gl/glview.h"
+
 namespace ngs {
 
 constexpr unsigned char INVALID_MAPID = 0;
@@ -41,13 +43,11 @@ MapStore::MapStore()
 }
 
 unsigned char MapStore::createMap(const CPLString &name, const CPLString &description,
-                        unsigned short epsg, double minX, double minY,
-                        double maxX, double maxY)
+                        unsigned short epsg, const Envelope &bounds)
 {
     if(m_maps.size() >= std::numeric_limits<unsigned char>::max())
         return INVALID_MAPID;
-    m_maps.push_back(MapViewPtr(new MapView(name, description, epsg, minX, minY,
-                                        maxX, maxY)));
+    m_maps.push_back(MapViewPtr(new GlView(name, description, epsg, bounds)));
     return static_cast<unsigned char>(m_maps.size() - 1);
 }
 
@@ -101,6 +101,14 @@ MapViewPtr MapStore::getMap(unsigned char mapId)
     return m_maps[mapId];
 }
 
+bool MapStore::drawMap(unsigned char mapId, ngsDrawState state, const Progress &progress)
+{
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return false;
+    return map->draw(state, progress);
+}
+
 ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId)
 {
     MapViewPtr map = getMap(mapId);
@@ -119,13 +127,14 @@ bool MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
     return true;
 }
 
-void MapStore::setMapSize(unsigned char mapId, int width, int height,
+bool MapStore::setMapSize(unsigned char mapId, int width, int height,
                       bool YAxisInverted)
 {
     MapViewPtr map = getMap(mapId);
     if(!map)
-        return;
+        return false;
     map->setDisplaySize(width, height, YAxisInverted);
+    return true;
 }
 
 bool MapStore::setMapCenter(unsigned char mapId, double x, double y)
@@ -247,6 +256,11 @@ unsigned char MapStore::invalidMapId()
     return INVALID_MAPID;
 }
 
+MapViewPtr MapStore::initMap()
+{
+    return MapViewPtr(new GlView);
+}
+
 void MapStore::setInstance(MapStore *pointer)
 {
     if(gMapStore && nullptr != pointer) // Can be initialized only once.
@@ -258,27 +272,5 @@ MapStore* MapStore::getInstance()
 {
     return gMapStore.get();
 }
-
-//int MapStore::initMap(unsigned char mapId)
-//{
-//    if(!m_maps[mapId])
-//        return ngsErrorCodes::EC_INVALID;
-//    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
-//    if(nullptr == pMapView)
-//        return ngsErrorCodes::EC_INVALID;
-//    return pMapView->initDisplay ();
-//}
-
-//int MapStore::drawMap(unsigned char mapId, ngsDrawState state, ngsProgressFunc progressFunc,
-//                      void *progressArguments)
-//{
-//    if(!m_maps[mapId])
-//        return ngsErrorCodes::EC_INVALID;
-//    MapView* pMapView = static_cast<MapView*>(m_maps[mapId].get ());
-//    if(nullptr == pMapView)
-//        return ngsErrorCodes::EC_INVALID;
-
-//    return pMapView->draw (state, progressFunc, progressArguments);
-//}
 
 }
