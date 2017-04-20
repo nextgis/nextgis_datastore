@@ -23,7 +23,7 @@
 // stl
 #include <limits>
 
-#include "gl/glview.h"
+#include "gl/view.h"
 
 namespace ngs {
 

@@ -33,11 +33,12 @@ set(HHEADERS
     mapview.h
     matrix.h
     renderlayer.h
-#    style.h
 #    vector.h
-    gl/glview.h
-    gl/glprogram.h
-    gl/glfunctions.h
+    gl/view.h
+    gl/program.h
+    gl/functions.h
+    gl/style.h
+    gl/buffer.h
 )
 
 set(CSOURCES
@@ -49,10 +50,11 @@ set(CSOURCES
     mapview.cpp
     matrix.cpp
     renderlayer.cpp
-#    style.cpp
-    gl/glview.cpp
-    gl/glprogram.cpp
-    gl/glfunctions.cpp
+    gl/view.cpp
+    gl/program.cpp
+    gl/functions.cpp
+    gl/style.cpp
+    gl/buffer.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

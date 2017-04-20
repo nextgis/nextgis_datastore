@@ -18,280 +18,80 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "glfunctions.h"
-
-#include "util/error.h"
-
-/* Links:
-//https://mkonrad.net/2014/12/08/android-off-screen-rendering-using-egl-pixelbuffers.html
-//http://stackoverflow.com/questions/214437/opengl-fast-off-screen-rendering
-//http://stackoverflow.com/questions/14785007/can-i-use-opengl-for-off-screen-rendering/14796456#14796456
-//https://gist.github.com/CartBlanche/1271517
-//http://stackoverflow.com/questions/21151259/replacing-glreadpixels-with-egl-khr-image-base-for-faster-pixel-copy
-//https://vec.io/posts/faster-alternatives-to-glreadpixels-and-glteximage2d-in-opengl-es
-//https://www.khronos.org/registry/egl/sdk/docs/man/html/eglIntro.xhtml
-//https://wiki.maemo.org/SimpleGL_example
-//http://stackoverflow.com/questions/12906971/difference-from-eglcreatepbuffersurface-and-eglcreatepixmapsurface-with-opengl-e
-//http://stackoverflow.com/questions/25504188/is-it-possible-to-use-pixmaps-on-android-via-java-api-for-gles
-
-//https://solarianprogrammer.com/2013/05/13/opengl-101-drawing-primitives/
-//http://www.glprogramming.com/red/chapter02.html
-//https://www3.ntu.edu.sg/home/ehchua/programming/opengl/CG_Introduction.html
-//https://www3.ntu.edu.sg/home/ehchua/programming/android/Android_3D.html
-//https://www.opengl.org/sdk/docs/man2/xhtml/gluUnProject.xml
-//https://www.opengl.org/sdk/docs/man2/xhtml/gluProject.xml
-
-//https://github.com/libmx3/mx3/blob/master/src/event_loop.cpp
-
-//https://www.mapbox.com/blog/drawing-antialiased-lines/
-//https://github.com/afiskon/cpp-opengl-vbo-vao-shaders/blob/master/main.cpp
-*/
+#include "buffer.h"
 
 namespace ngs {
 
-bool checkGLError(const char *cmd) {
-    const GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        const char *error = nullptr;
-        switch (err) {
-            case GL_INVALID_ENUM:
-                error = "INVALID_ENUM";
-            break;
-            case GL_INVALID_VALUE:
-                error = "INVALID_VALUE";
-            break;
-            case GL_INVALID_OPERATION:
-                error = "INVALID_OPERATION";
-            break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION:
-                error = "INVALID_FRAMEBUFFER_OPERATION";
-            break;
-            case GL_OUT_OF_MEMORY:
-                error = "OUT_OF_MEMORY";
-            break;
-#ifdef GL_STACK_UNDERFLOW
-            case GL_STACK_UNDERFLOW:
-                error = "STACK_UNDERFLOW";
-            break;
-#endif
-#ifdef GL_STACK_OVERFLOW
-            case GL_STACK_OVERFLOW:
-                error = "STACK_OVERFLOW";
-            break;
-#endif
-            default:
-                error = "(unknown)";
-        }
+constexpr GLuint GL_BUFFER_IVALID = 0;
+constexpr unsigned short MAX_INDEX_BUFFER_SIZE = 65535;
 
-        return !errorMessage("%s: Error GL_%s", cmd, error);
+GlBuffer::GlBuffer() :
+    m_bufferIds{{GL_BUFFER_IVALID,GL_BUFFER_IVALID,GL_BUFFER_IVALID}},
+    m_bound(false)
+{
+    m_vertices.reserve(MAX_VERTEX_BUFFER_SIZE);
+    m_indices.reserve(MAX_INDEX_BUFFER_SIZE);
+    m_borderIndices.reserve(MAX_INDEX_BUFFER_SIZE);
+    // TODO: Create struct of FID, indices, borderIndices
+    // Form m_indices from indices
+    // Form m_borderIndices from borderIndices
+    // Delete FID
+    // Pack arrays on save
+    // Remove FID from drawing
+}
+
+GlBuffer::~GlBuffer()
+{
+    if (m_bound) {
+        ngsCheckGLError(glDeleteBuffers(GL_BUFFERS_COUNT, m_bufferIds.data()));
     }
-    return false;
 }
 
-void reportGlStatus(GLuint obj) {
-    GLint length;
-    ngsCheckGLEerror(glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &length));
-    GLchar *log = new GLchar[length];
-    ngsCheckGLEerror(glGetShaderInfoLog(obj, length, &length, log));
-    warningMessage(log);
-    delete [] log;
-}
-
-#ifdef USE_EGL
-bool checkEGLError(const char *cmd) {
-    EGLint err = eglGetError();
-    if(err != EGL_SUCCESS){
-        const char *error = nullptr;
-        switch (err) {
-        case EGL_NOT_INITIALIZED:
-            error = "NOT_INITIALIZED";
-            break;
-        case EGL_BAD_ACCESS:
-            error = "BAD_ACCESS";
-        break;
-        case EGL_BAD_ALLOC:
-            error = "BAD_ALLOC";
-            break;
-        case EGL_BAD_ATTRIBUTE:
-            error = "BAD_ATTRIBUTE";
-            break;
-        case EGL_BAD_CONTEXT:
-            error = "BAD_CONTEXT";
-            break;
-        case EGL_BAD_CONFIG:
-            error = "BAD_CONFIG";
-            break;
-        case EGL_BAD_CURRENT_SURFACE:
-            error = "BAD_CURRENT_SURFACE";
-            break;
-        case EGL_BAD_DISPLAY:
-            error = "BAD_DISPLAY";
-            break;
-        case EGL_BAD_SURFACE:
-            error = "BAD_SURFACE";
-            break;
-        case EGL_BAD_MATCH:
-            error = "BAD_MATCH";
-            break;
-        case EGL_BAD_PARAMETER:
-            error = "BAD_PARAMETER";
-            break;
-        case EGL_BAD_NATIVE_PIXMAP:
-            error = "BAD_NATIVE_PIXMAP";
-            break;
-        case EGL_BAD_NATIVE_WINDOW:
-            error = "BAD_NATIVE_WINDOW";
-            break;
-        case EGL_CONTEXT_LOST:
-            error = "CONTEXT_LOST";
-            break;
-        }
-        return !errorMessage("%s: Error EGL_%s", cmd, error);
+GLuint GlBuffer::getGlBufferId(GlBuffer::BufferType type) const
+{
+    switch (type) {
+        case BF_VERTICES:
+            return m_bufferIds[0];
+        case BF_INDICES:
+            return m_bufferIds[1];
+        case BF_BORDER_INDICES:
+            return m_bufferIds[2];
     }
-    return false;
+    return GL_BUFFER_IVALID;
 }
-#endif // USE_EGL
 
+void GlBuffer::bind()
+{
+    if (m_bound || m_vertices.empty() || m_indices.empty())
+        return;
+
+    ngsCheckGLError(glGenBuffers(GL_BUFFERS_COUNT, m_bufferIds.data()));
+
+    ngsCheckGLError(glBindBuffer(GL_ARRAY_BUFFER, getGlBufferId(BF_VERTICES)));
+    GLsizeiptr size = static_cast<GLsizeiptr>(sizeof(GLfloat) * m_vertices.size());
+    ngsCheckGLError(glBufferData(GL_ARRAY_BUFFER, size, m_vertices.data(),
+            GL_STATIC_DRAW));
+
+    ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getGlBufferId(BF_INDICES)));
+    size = static_cast<GLsizeiptr>(sizeof(GLushort) * m_indices.size());
+    ngsCheckGLError(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, m_indices.data(),
+            GL_STATIC_DRAW));
+
+    if (!m_borderIndices.empty()) {
+        ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
+                                     getGlBufferId(BF_BORDER_INDICES)));
+        size = static_cast<GLsizeiptr>(sizeof(GLushort) * m_borderIndices.size());
+        ngsCheckGLError(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size,
+                m_borderIndices.data(), GL_STATIC_DRAW));
+        m_borderIndices.clear();
+    }
+    m_bound = true;
+}
 
 } // namespace ngs
 
 
 /*
-#include <algorithm>
-#include "cpl_error.h"
-#include "cpl_string.h"
-#include "glview.h"
-#include <iostream>
-#include "map/glfillers.h"
-#include "style.h"
-#include "ngstore/util/constants.h"
-
-#define MAX_VERTEX_BUFFER_SIZE 16383
-#define MAX_INDEX_BUFFER_SIZE 16383
-#define MAX_GLOBAL_VERTEX_BUFFER_SIZE 327180000
-#define MAX_GLOBAL_INDEX_BUFFER_SIZE 327180000
-
-
-//------------------------------------------------------------------------------
-// GlFuctions
-//------------------------------------------------------------------------------
-
-GlFuctions::GlFuctions() : m_extensionLoad(false), m_pBkChanged(true)
-{
-}
-
-GlFuctions::~GlFuctions()
-{
-    // TODO: unload extensions
-}
-
-bool GlFuctions::init()
-{
-    if(!loadExtensions ())
-        return false;
-    return true;
-}
-
-bool GlFuctions::isOk() const
-{
-    return m_extensionLoad;
-}
-
-void GlFuctions::testDrawPreserved(int colorId) const
-{
-    static bool isBuffersFilled = false;
-    static GLuint    buffers[2];
-    if(!isBuffersFilled) {
-        isBuffersFilled = true;
-        ngsCheckGLEerror(glGenBuffers(2, buffers)); // TODO: glDeleteBuffers
-
-        ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
-
-        GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
-                               -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
-                                4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
-                              };
-
-        ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER, sizeof(vVertices), vVertices, GL_STATIC_DRAW));
-
-        ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[1]));
-
-        GLfloat vVertices2[] = {  1000000.0f,  -500000.0f, -0.5f,
-                               -2236992.0f, 3972353.0f, 0.5f,
-                                5187591.0f, 4509961.0f, 0.5f
-                              };
-
-        ngsCheckGLEerror(glBufferData(GL_ARRAY_BUFFER, sizeof(vVertices2), vVertices2, GL_STATIC_DRAW));
-    }
-
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
-
-    ngsCheckGLEerror(glUniform4f(colorId, 1.0f, 0.0f, 0.0f, 1.0f));
-
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
-
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
-
-    ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
-
-    ngsCheckGLEerror(glBindBuffer(GL_ARRAY_BUFFER, buffers[1]));
-
-    ngsCheckGLEerror(glUniform4f(colorId, 0.0f, 0.0f, 1.0f, 1.0f));
-
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 ));
-
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
-
-    ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
-
-}
-
-void GlFuctions::testDraw(int colorId) const
-{
-    GLfloat vVertices[] = {  0.0f,  0.0f, 0.0f,
-                           -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
-                            4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
-                          };
-
-    ngsCheckGLEerror(glUniform4f(colorId, 1.0f, 0.0f, 0.0f, 1.0f));
-
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
-                                             vVertices ));
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
-
-    ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
-
-    GLfloat vVertices2[] = {  1000000.0f,  -500000.0f, -0.5f,
-                           -2236992.0f, 3972353.0f, 0.5f,
-                            5187591.0f, 4509961.0f, 0.5f
-                          };
-
-    ngsCheckGLEerror(glUniform4f(colorId, 0.0f, 0.0f, 1.0f, 1.0f));
-
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
-                                             vVertices2 ));
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
-
-    ngsCheckGLEerror(glDrawArrays ( GL_TRIANGLES, 0, 3 ));
-}
-
-void GlFuctions::drawPolygons(const vector<GLfloat> &vertices,
-                              const vector<GLushort> &indices) const
-{
-    if(vertices.empty() || indices.empty ())
-        return;
-    ngsCheckGLEerror(glEnableVertexAttribArray ( 0 ));
-    ngsCheckGLEerror(glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0,
-                                            vertices.data ()));
-    ngsCheckGLEerror(glDrawElements(GL_TRIANGLES, indices.size (),
-                                    GL_UNSIGNED_SHORT, indices.data ()));
-}
-
-bool GlFuctions::loadExtensions()
-{
-    m_extensionLoad = true;
-    return true;
-}
 
 //------------------------------------------------------------------------------
 // GlBuffer
@@ -306,23 +106,6 @@ std::atomic_int_fast32_t GlBuffer::m_globalBorderIndexBufferSize;
 // static
 std::atomic_int_fast32_t GlBuffer::m_globalHardBuffersCount;
 
-GlBuffer::GlBuffer()
-        : m_bound(false)
-        , m_finalVertexBufferSize(0)
-        , m_finalIndexBufferSize(0)
-        , m_finalBorderIndexBufferSize(0)
-        , m_glHardBufferIds{
-                  GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN, GL_BUFFER_UNKNOWN}
-{
-    m_vertices.reserve(MAX_VERTEX_BUFFER_SIZE);
-    m_indices.reserve(MAX_INDEX_BUFFER_SIZE);
-    m_borderIndices.reserve(MAX_INDEX_BUFFER_SIZE);
-}
-
-GlBuffer::GlBuffer(GlBuffer&& other)
-{
-    *this = std::move(other);
-}
 
 GlBuffer::~GlBuffer()
 {
@@ -420,11 +203,6 @@ void GlBuffer::bind()
     }
 
     m_bound = true;
-}
-
-bool GlBuffer::bound() const
-{
-    return m_bound;
 }
 
 // static
@@ -603,18 +381,7 @@ std::int_fast32_t GlBuffer::getGlobalHardBuffersCount()
     return m_globalHardBuffersCount.load();
 }
 
-GLuint GlBuffer::getGlHardBufferId(ngsBufferType type) const
-{
-    switch (type) {
-        case BF_VERTICES:
-            return m_glHardBufferIds[0];
-        case BF_INDICES:
-            return m_glHardBufferIds[1];
-        case BF_BORDER_INDICES:
-            return m_glHardBufferIds[2];
-    }
-    return GL_BUFFER_UNKNOWN;
-}
+
 
 //------------------------------------------------------------------------------
 // GlBufferBucket

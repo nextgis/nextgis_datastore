@@ -18,104 +18,64 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSGLFUNCTIONS_H
-#define NGSGLFUNCTIONS_H
+#ifndef NGSBUFFER_H
+#define NGSBUFFER_H
 
-#if __APPLE__
-    #include "TargetConditionals.h"
-    #if TARGET_OS_IPHONE
-        #define GLES
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
-    #elif TARGET_IPHONE_SIMULATOR
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
-    #elif TARGET_OS_MAC
-        #include <OpenGL/OpenGL.h>
-        #include <OpenGL/gl.h>
-    #else
-        #error Unsupported Apple platform
-    #endif
-#elif __ANDROID__
-    #define GL_GLEXT_PROTOTYPES
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
-#else
-    #define GL_GLEXT_PROTOTYPES
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
-//    #include <GL/gl.h>
-//    #include <GL/glext.h>
-#endif
+#include "functions.h"
 
-#ifdef USE_EGL // need for headless desktop drawing (i.e. some preview generation)
-#include "EGL/egl.h"
-#endif // USE_EGL
+#include <array>
+#include <vector>
 
 namespace ngs {
 
-#if defined(_DEBUG)
-#define ngsCheckGLEerror(cmd) {cmd; checkGLError(#cmd);}
-#define ngsCheckEGLEerror(cmd) {cmd; checkEGLError(#cmd);}
-#else
-#define ngsCheckGLEerror(cmd) (cmd)
-#define ngsCheckEGLEerror(cmd) (cmd)
-#endif
+constexpr GLsizei GL_BUFFERS_COUNT = 3;
+constexpr unsigned char VERTEX_SIZE = 3;
+// 5 = 3 for vertex + 2 for normal
+constexpr unsigned char VERTEX_WITH_NORMAL_SIZE = 5;
+//GL_UNSIGNED_BYTE, with a maximum value of 255.
+//GL_UNSIGNED_SHORT, with a maximum value of 65,535
+constexpr unsigned short MAX_VERTEX_BUFFER_SIZE = 65535;
 
-#ifdef USE_EGL
-bool checkEGLError(const char *cmd);
-#endif // USE_EGL
+class GlBuffer
+{
+public:
+    enum BufferType {
+        BF_VERTICES = 0,
+        BF_INDICES,
+        BF_BORDER_INDICES
+    };
+public:
+    GlBuffer();
+    ~GlBuffer();
 
-bool checkGLError(const char *cmd);
-void reportGlStatus(GLuint obj);
+    void bind();
+    bool bound() const { return m_bound; }
+    bool canStoreVertices(size_t amount, bool withNormals = false) const {
+        return (m_vertices.size()
+                + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE :
+                                          VERTEX_SIZE)) < MAX_VERTEX_BUFFER_SIZE;
+    }
+    GLuint getGlBufferId(GlBuffer::BufferType type) const;
+    GLsizei getIndexSize(GlBuffer::BufferType type = BF_INDICES) const {
+        if(type == BF_INDICES)
+            return static_cast<GLsizei>(m_indices.size());
+        else
+            return static_cast<GLsizei>(m_borderIndices.size());
+    }
 
-}
+private:
+    std::vector<GLfloat> m_vertices;
+    std::vector<GLushort> m_indices;
+    std::vector<GLushort> m_borderIndices;
+    std::array<GLuint, GL_BUFFERS_COUNT> m_bufferIds;
+    bool m_bound;
+};
 
-#endif // NGSGLFUNCTIONS_H
+} // namespace ngs
+
+#endif // NGSBUFFER_H
 
 /*
-
-#define GL_BUFFERS_COUNT 3
-#define VERTEX_SIZE 3
-#define VERTEX_WITH_NORMAL_SIZE 5  // 5 = 3 for vertex + 2 for normal
-
-class Style;
-
-
-/*typedef int (*ngsBindVertexArray)(GLuint array);
-typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
-typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*//*
-
-#define GL_BUFFER_UNKNOWN 0
-
-enum ngsShaderType {
-    SH_VERTEX,
-    SH_FRAGMENT
-};
-
-enum ngsBufferType {
-    BF_VERTICES = 0,
-    BF_INDICES,
-    BF_BORDER_INDICES
-};
-
-enum class LineCapType : uint8_t {
-    Butt,
-    Square,
-    Round,
-    // the following type is for internal use only
-    FakeRound // TODO: remove it and switch to Round
-};
-
-enum class LineJoinType : uint8_t {
-    Miter,
-    Bevel,
-    Round,
-    // the following two types are for internal use only
-    FlipBevel,
-    FakeRound
-};
-
 class GlBuffer
 {
 public:
@@ -128,7 +88,6 @@ public:
     GlBuffer& operator=(GlBuffer&& other);
 
     void bind();
-    bool bound() const;
 
     static bool canGlobalStoreVertices(size_t amount, bool withNormals = false);
     static bool canGlobalStoreIndices(
@@ -158,8 +117,6 @@ public:
     static std::int_fast32_t getGlobalIndexBufferSize(
             enum ngsBufferType indexType = BF_INDICES);
     static std::int_fast32_t getGlobalHardBuffersCount();
-
-    GLuint getGlHardBufferId(enum ngsBufferType type) const;
 
 protected:
     bool m_bound;
@@ -267,24 +224,4 @@ GlBufferBucketSharedPtr makeSharedGlBufferBucket(Args&&... args)
     return std::make_shared<GlBufferBucket>(std::forward<Args>(args)...);
 }
 
-class GlFuctions
-{
-public:
-    GlFuctions();
-    ~GlFuctions();
-
-    bool init();
-    bool isOk() const;
-
-    // Draw functions
-    void testDraw(int colorId) const;
-    void testDrawPreserved(int colorId) const;
-    void drawPolygons(const std::vector<GLfloat> &vertices,
-                      const std::vector<GLushort> &indices) const;
-protected:
-    bool loadExtensions();
-
-protected:
-    bool m_extensionLoad;
-};
 */
