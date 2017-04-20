@@ -42,6 +42,13 @@ GlBuffer::GlBuffer() :
 
 GlBuffer::~GlBuffer()
 {
+// FIXME: Delete buffer must be in GL context
+//    destroy();
+}
+
+
+void GlBuffer::destroy()
+{
     if (m_bound) {
         ngsCheckGLError(glDeleteBuffers(GL_BUFFERS_COUNT, m_bufferIds.data()));
     }
@@ -87,6 +94,7 @@ void GlBuffer::bind()
     }
     m_bound = true;
 }
+
 
 } // namespace ngs
 
