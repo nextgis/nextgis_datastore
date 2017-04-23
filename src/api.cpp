@@ -707,6 +707,24 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 }
 
 /**
+ * @brief ngsMapGetCoordinate Georpaphic coordinates for display positon
+ * @param mapId Map id
+ * @param x X position
+ * @param y Y position
+ * @return Georpaphic coordinates
+ */
+ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsErrorCode::EC_GET_FAILED,
+                            _("MapStore is not initialized"));
+        return {0, 0, 0};
+    }
+    return mapStore->getMapCoordinate(mapId, x, y);
+}
+
+/**
  * @brief ngsMapSetScale Set current map scale
  * @param mapId Map id
  * @param scale value to set
@@ -768,18 +786,6 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 //    return gMapStore->getMapRotate (mapId, dir);
 //}
 
-/**
- * @brief ngsMapGetCoordinate Georpaphic coordinates for display positon
- * @param mapId Map id
- * @param x X position
- * @param y Y position
- * @return Georpaphic coordinates
- */
-//ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
-//{
-//    initMapStore();
-//    return gMapStore->getMapCoordinate (mapId, x, y);
-//}
 
 /**
  * @brief ngsDisplayGetPosition Display position for geographic coordinates

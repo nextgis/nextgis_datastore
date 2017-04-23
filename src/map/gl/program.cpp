@@ -92,6 +92,14 @@ bool GlProgram::load(const GLchar * const vertexShader,
     warningMessage("Number of active uniforms: %d", numActiveUniforms);
 #endif //_DEBUG
 
+    // FIXME: Is this Mac OS X specific?
+    ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
+    ngsCheckGLError(glEnable(GL_MULTISAMPLE));
+// NOTE: In usual cases no need in depth test
+//    ngsCheckGLError(glEnable(GL_DEPTH_TEST));
+//    ngsCheckGLError(glDepthFunc(GL_LEQUAL));
+//    ngsCheckGLError(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
+
     m_id = programId;
     m_loaded = true;
 
@@ -140,6 +148,7 @@ void GlProgram::setVertexAttribPointer(const char *varName, GLint size,
 {
     if(m_loaded) {
         GLuint index = static_cast<GLuint>(getAttributeId(varName));
+        ngsCheckGLError(glEnableVertexAttribArray(index));
         ngsCheckGLError(glVertexAttribPointer(index, size, GL_FLOAT, GL_FALSE,
                                               stride, pointer));
     }

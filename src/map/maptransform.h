@@ -59,6 +59,7 @@ public:
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
 
     bool getXAxisLooped() const { return m_XAxisLooped; }
+    bool getYAxisInverted() const { return m_YAxisInverted; }
 
 protected:
     bool updateExtent();

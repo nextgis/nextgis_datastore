@@ -54,7 +54,9 @@ private:
 #ifdef NGS_GL_DEBUG
     // Test functions
 private:
-    void testPointsDraw() const;
+    void testDrawPoints() const;
+    void testDrawPolygons() const;
+    void testDrawLines() const;
 #endif // NGS_GL_DEBUG
 
 private:

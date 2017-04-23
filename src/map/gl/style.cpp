@@ -173,7 +173,7 @@ constexpr const GLchar* const pointFragmentShaderSource = R"(
     void drawTriangle()
     {
         if(!isInTriangle(vec2(gl_PointCoord),
-                vec2(0.0, 0.933), vec2(1.0, 0.933), vec2(0.5, 0.066)))
+                vec2(0.0, 0.066), vec2(1.0, 0.066), vec2(0.5, 0.933)))
            discard;
         else
            gl_FragColor = u_color;
@@ -300,7 +300,7 @@ SimpleLineStyle::SimpleLineStyle()
 
 bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 {
-    if (!Style::prepare(msMatrix, vsMatrix))
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
         return false;
 
     m_program.setFloat("u_vLineWidth", m_lineWidth);
@@ -313,7 +313,6 @@ bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 void SimpleLineStyle::draw(const GlBuffer& buffer) const
 {
     SimpleVectorStyle::draw(buffer);
-
     ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.getIndexSize(),
             GL_UNSIGNED_SHORT, nullptr));
 }
@@ -350,7 +349,8 @@ SimpleFillStyle::SimpleFillStyle()
 
 bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
 {
-    SimpleVectorStyle::prepare(msMatrix, vsMatrix);
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
+        return false;
     m_program.setVertexAttribPointer("a_mPosition", 3, 0, 0);
 
     return true;
@@ -422,7 +422,7 @@ void SimpleFillBorderedStyle::setBorderColor(const ngsRGBA& color)
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
                                       const Matrix4& vsMatrix)
 {
-    if (!Style::prepare(msMatrix, vsMatrix))
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
         return false;
 
     m_program.setFloat("u_vBorderWidth", m_borderWidth);

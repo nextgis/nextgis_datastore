@@ -23,6 +23,7 @@
 
 #include "ogrsf_frmts.h"
 
+#include <array>
 #include <memory>
 
 namespace ngs {
@@ -73,6 +74,16 @@ constexpr Envelope DEFAULT_BOUNDS_X2 = Envelope(DEFAULT_BOUNDS.getMinX() * 2,
                                           DEFAULT_BOUNDS.getMaxY() * 2);
 
 //    OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
+
+typedef struct _normal {
+    float x, y;
+} Normal;
+
+typedef struct _normals {
+    Normal left, right;
+} Normals;
+
+Normals ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
 
 }
 
