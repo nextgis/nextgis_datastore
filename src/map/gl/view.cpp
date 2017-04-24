@@ -204,7 +204,6 @@ void GlView::testDrawLines() const
 {
     OGRPoint pt1(0.0, 0.0);
     OGRPoint pt2(-8236992.95426, 4972353.09638);
-//    OGRPoint pt2(1000000.0, 1000000.0);
     Normal normal = ngsGetNormals(pt1, pt2);
 
     GlBuffer buffer1;
@@ -242,6 +241,44 @@ void GlView::testDrawLines() const
     buffer1.addIndex(1);
     buffer1.addIndex(2);
     buffer1.addIndex(3);
+
+    OGRPoint pt3(4187591.86613, 7509961.73580);
+    normal = ngsGetNormals(pt2, pt3);
+
+    // 4
+    buffer1.addVertex(-8236992.95426f);
+    buffer1.addVertex(4972353.09638f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(-normal.x);
+    buffer1.addVertex(-normal.y);
+    buffer1.addIndex(4);
+
+    // 5
+    buffer1.addVertex(4187591.86613f);
+    buffer1.addVertex(7509961.73580f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(-normal.x);
+    buffer1.addVertex(-normal.y);
+    buffer1.addIndex(5);
+
+    // 6
+    buffer1.addVertex(4187591.86613f);
+    buffer1.addVertex(7509961.73580f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(normal.x);
+    buffer1.addVertex(normal.y);
+    buffer1.addIndex(6);
+
+    // 7
+    buffer1.addVertex(-8236992.95426f);
+    buffer1.addVertex(4972353.09638f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(normal.x);
+    buffer1.addVertex(normal.y);
+
+    buffer1.addIndex(4);
+    buffer1.addIndex(6);
+    buffer1.addIndex(7);
 
 /*  // Test Round cap
     int parts = 6;
