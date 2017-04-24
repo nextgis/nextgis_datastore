@@ -123,7 +123,7 @@ public:
     SimpleLineStyle();
 
     float getLineWidth() const { return m_lineWidth; }
-    void setLineWidth(float lineWidth) { m_lineWidth = lineWidth; }
+    void setLineWidth(float lineWidth) { m_lineWidth = lineWidth * 0.25f; }
 
     // Style interface
 public:

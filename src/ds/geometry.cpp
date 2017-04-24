@@ -153,7 +153,7 @@ OGREnvelope Envelope::getOgrEnvelope() const
     return env;
 }
 
-Normals ngsGetNormals(const OGRPoint &beg, const OGRPoint &end)
+Normal ngsGetNormals(const OGRPoint &beg, const OGRPoint &end)
 {
     float deltaX = static_cast<float>(end.getX() - beg.getX());
     float deltaY = static_cast<float>(end.getY() - beg.getY());
@@ -163,7 +163,6 @@ Normals ngsGetNormals(const OGRPoint &beg, const OGRPoint &end)
 
     float norm_length = std::sqrt(normX * normX + normY * normY);
 
-    Normals out;
     if(norm_length == 0.0f)
         norm_length = 0.01f;
 
@@ -171,10 +170,7 @@ Normals ngsGetNormals(const OGRPoint &beg, const OGRPoint &end)
     normX /= norm_length;
     normY /= norm_length;
 
-    out.left = {normX, normY};
-    out.right = {-normX, -normY};
-
-    return out;
+    return {normX, normY};
 }
 
 } // namespace ngs

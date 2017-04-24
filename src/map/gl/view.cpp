@@ -205,74 +205,124 @@ void GlView::testDrawLines() const
     OGRPoint pt1(0.0, 0.0);
     OGRPoint pt2(-8236992.95426, 4972353.09638);
 //    OGRPoint pt2(1000000.0, 1000000.0);
-    Normals normals = ngsGetNormals(pt1, pt2);
+    Normal normal = ngsGetNormals(pt1, pt2);
 
     GlBuffer buffer1;
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(normals[1].x);
-//    buffer1.addVertex(normals[1].y);
-//    buffer1.addIndex(0);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(normals[0].x);
-//    buffer1.addVertex(normals[0].y);
-//    buffer1.addIndex(1);
-
-//    buffer1.addVertex(1000000.0f);
-//    buffer1.addVertex(1000000.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(normals[1].x);
-//    buffer1.addVertex(normals[1].y);
-//    buffer1.addIndex(2);
-
-//    buffer1.addVertex(1000000.0f);
-//    buffer1.addVertex(1000000.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(normals[0].x);
-//    buffer1.addVertex(normals[0].y);
-//    buffer1.addIndex(1);
-//    buffer1.addIndex(2);
-//    buffer1.addIndex(3);
-
-//    buffer1.addVertex(10000.0f);
-//    buffer1.addVertex(10000.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(normals[3].x);
-//    buffer1.addVertex(normals[3].y);
-//    buffer1.addIndex(1);
-//    buffer1.addIndex(2);
-//    buffer1.addIndex(3);
-
+    // 0
     buffer1.addVertex(0.0f);
     buffer1.addVertex(0.0f);
     buffer1.addVertex(0.0f);
-    buffer1.addVertex(normals.right.x);
-    buffer1.addVertex(normals.right.y);
+    buffer1.addVertex(-normal.x);
+    buffer1.addVertex(-normal.y);
     buffer1.addIndex(0);
+
+    // 1
     buffer1.addVertex(-8236992.95426f);
     buffer1.addVertex(4972353.09638f);
     buffer1.addVertex(0.0f);
-    buffer1.addVertex(normals.right.x);
-    buffer1.addVertex(normals.right.y);
+    buffer1.addVertex(-normal.x);
+    buffer1.addVertex(-normal.y);
     buffer1.addIndex(1);
+
+    // 2
     buffer1.addVertex(0.0f);
     buffer1.addVertex(0.0f);
     buffer1.addVertex(0.0f);
-    buffer1.addVertex(normals.left.x);
-    buffer1.addVertex(normals.left.y);
+    buffer1.addVertex(normal.x);
+    buffer1.addVertex(normal.y);
     buffer1.addIndex(2);
+
+    // 3
     buffer1.addVertex(-8236992.95426f);
     buffer1.addVertex(4972353.09638f);
     buffer1.addVertex(0.0f);
-    buffer1.addVertex(normals.left.x);
-    buffer1.addVertex(normals.left.y);
+    buffer1.addVertex(normal.x);
+    buffer1.addVertex(normal.y);
+
     buffer1.addIndex(1);
     buffer1.addIndex(2);
     buffer1.addIndex(3);
 
+/*  // Test Round cap
+    int parts = 6;
+    float start = std::asinf(normal.y);
+    if(normal.x < 0 && normal.y < 0)
+        start = M_PI + -(start);
+    else if(normal.x < 0 && normal.y > 0)
+        start = M_PI_2 + start;
+    else if(normal.x > 0 && normal.y < 0)
+        start = M_PI + M_PI + start;
+
+    float end = M_PI + start;
+    float step = (end - start) / parts;
+    float current = start;
+    int index = 4;
+    for(int i = 0 ; i < parts; ++i) {
+        float x = std::cosf(current);
+        float y = std::sinf(current);
+        current += step;
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(x);
+        buffer1.addVertex(y);
+
+        x = std::cosf(current);
+        y = std::sinf(current);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(x);
+        buffer1.addVertex(y);
+
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(0.0f);
+        buffer1.addIndex(index++);
+        buffer1.addIndex(index++);
+        buffer1.addIndex(index++);
+    }
+*/
+
+/*    // Test Square cap
+    // 4
+    float scX1 = -(normal.y + normal.x);
+    float scY1 = -(normal.y - normal.x);
+    float scX2 = normal.x - normal.y;
+    float scY2 = normal.x + normal.y;
+
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(scX1);
+    buffer1.addVertex(scY1);
+
+    // 5
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(scX2);
+    buffer1.addVertex(scY2);
+
+    buffer1.addIndex(0);
+    buffer1.addIndex(2);
+    buffer1.addIndex(5);
+
+    buffer1.addIndex(5);
+    buffer1.addIndex(4);
+    buffer1.addIndex(0);
+*/
+    // No test Butt cap
+
+    // Add seond segment
+
+    // Test Miter join
+
+    // Test Round joim
+
+    // Test Beveled join
 
     //    buffer1.addVertex(4187591.86613f);
     //    buffer1.addVertex(7509961.73580f);
@@ -305,7 +355,7 @@ void GlView::testDrawLines() const
 
 
     SimpleLineStyle style;
-    style.setLineWidth(15.0f);
+    style.setLineWidth(25.0f);
     style.setColor({255, 0, 0, 255});
 //    buffer2.bind();
 //    style.prepare(getSceneMatrix(), getInvViewMatrix());

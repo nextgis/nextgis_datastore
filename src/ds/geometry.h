@@ -79,11 +79,7 @@ typedef struct _normal {
     float x, y;
 } Normal;
 
-typedef struct _normals {
-    Normal left, right;
-} Normals;
-
-Normals ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
+Normal ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
 
 }
 
