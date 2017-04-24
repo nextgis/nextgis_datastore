@@ -139,6 +139,17 @@ int Map::createLayer(const char * name, Dataset const * /*dataset*/)
     return static_cast<int>(m_layers.size() - 1);
 }
 
+bool Map::deleteLayer(Layer *layer)
+{
+    for(auto it = m_layers.begin(); it != m_layers.end(); ++it) {
+        if((*it).get() == layer) {
+            m_layers.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
 LayerPtr Map::createLayer(Layer::Type /*type*/)
 {
     return LayerPtr(new Layer);

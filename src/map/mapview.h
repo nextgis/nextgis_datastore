@@ -36,13 +36,6 @@ public:
     virtual ~MapView() = default;
     virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress()) = 0;
 
-    // Map interface
-public:
-    virtual int createLayer(const char* name, Dataset const * dataset) override;
-
-    // Map interface
-protected:
-    virtual LayerPtr createLayer(enum Layer::Type type) override;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;

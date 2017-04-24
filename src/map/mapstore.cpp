@@ -302,6 +302,14 @@ int MapStore::createLayer(unsigned char mapId, const char *name,
     return result;
 }
 
+bool MapStore::deleteLayer(unsigned char mapId, Layer *layer)
+{
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return false;
+    return map->deleteLayer(layer);
+}
+
 unsigned char MapStore::invalidMapId()
 {
     return INVALID_MAPID;

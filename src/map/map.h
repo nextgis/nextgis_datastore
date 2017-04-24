@@ -64,10 +64,10 @@ public:
     LayerPtr getLayer(int layerId) const {
         if(layerId < 0) return nullptr;
         size_t layerIndex = static_cast<size_t>(layerId);
-        if(layerIndex >= m_layers.size())
-            return nullptr;
+        if(layerIndex >= m_layers.size()) return nullptr;
         return m_layers[layerIndex];
     }
+    virtual bool deleteLayer(Layer* layer);
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);

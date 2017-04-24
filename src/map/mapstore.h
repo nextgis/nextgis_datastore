@@ -79,6 +79,7 @@ public:
     size_t getLayerCount(unsigned char mapId) const;
     LayerPtr getLayer(unsigned char mapId, int layerId) const;
     int createLayer(unsigned char mapId, const char* name, Dataset const * dataset);
+    bool deleteLayer(unsigned char mapId, Layer* layer);
 
     // static
 public:

@@ -934,6 +934,17 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
     return mapStore->getLayer(mapId, layerId).get();
 }
 
+int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsErrorCode::EC_DELETE_FAILED,
+                     _("MapStore is not initialized"));
+    }
+    return mapStore->deleteLayer(mapId, static_cast<Layer*>(layer)) ?
+                ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_DELETE_FAILED;
+}
+
 const char *ngsLayerGetName(LayerH layer)
 {
     if(nullptr == layer) {
@@ -971,3 +982,4 @@ void ngsRemoveNotifyFunction(ngsNotifyFunc function)
 {
     Notify::instance().deleteNotifyReceiver(function);
 }
+

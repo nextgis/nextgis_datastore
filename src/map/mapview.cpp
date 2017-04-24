@@ -130,16 +130,11 @@ MapView::MapView(const CPLString &name, const CPLString &description,
 //    return ngsErrorCodes::EC_SUCCESS;
 //}
 
-int MapView::createLayer(const char *name, const Dataset *dataset)
-{
-    return Map::createLayer(name, dataset);
-}
-
-LayerPtr MapView::createLayer(Layer::Type /*type*/)
-{
+//LayerPtr MapView::createLayer(Layer::Type /*type*/)
+//{
 //    switch (type) {
 //    case Layer::Type::Invalid:
-        return LayerPtr();
+//        return LayerPtr();
 //    case Layer::Type::Vector:
 //    {
 //        RenderLayer* renderLayer = new FeatureRenderLayer;
@@ -151,6 +146,6 @@ LayerPtr MapView::createLayer(Layer::Type /*type*/)
 //        // TODO: add raster and group layers create
 //        return Map::createLayer (type);
 //    }
-}
+//}
 
 }

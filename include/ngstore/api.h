@@ -149,6 +149,7 @@ NGS_EXTERNC int ngsMapLayerCount(unsigned char mapId);
 NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
                                   const char* path);
 NGS_EXTERNC LayerH ngsMapLayerGet(unsigned char mapId, int layerId);
+NGS_EXTERNC int ngsMapLayerDelete(unsigned char mapId, LayerH layer);
 NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
                            int YAxisInverted);
 NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
@@ -165,6 +166,7 @@ NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x,
  */
 NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
+
 
 
 //NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
