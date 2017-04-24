@@ -923,6 +923,12 @@ int ngsMapLayerCount(unsigned char mapId)
     return static_cast<int>(mapStore->getLayerCount(mapId));
 }
 
+/**
+ * @brief ngsMapLayerGet Returns map layer handle
+ * @param mapId Map id
+ * @param layerId Layer index
+ * @return Layer handle. The caller should not delete it.
+ */
 LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
 {
     MapStore* const mapStore = MapStore::getInstance();
@@ -934,6 +940,12 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
     return mapStore->getLayer(mapId, layerId).get();
 }
 
+/**
+ * @brief ngsMapLayerDelete Deletes layer from map
+ * @param mapId Map id
+ * @param layer Layer handler get from ngsMapLayerGet() function.
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
 int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
 {
     MapStore* const mapStore = MapStore::getInstance();
@@ -945,6 +957,11 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
                 ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_DELETE_FAILED;
 }
 
+/**
+ * @brief ngsLayerGetName Returns layer name
+ * @param layer Layer handler
+ * @return Layer name
+ */
 const char *ngsLayerGetName(LayerH layer)
 {
     if(nullptr == layer) {
@@ -954,6 +971,12 @@ const char *ngsLayerGetName(LayerH layer)
     return (static_cast<Layer*>(layer))->getName();
 }
 
+/**
+ * @brief ngsLayerSetName Sets new layer name
+ * @param layer Layer handler
+ * @param name New name
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
 int ngsLayerSetName(LayerH layer, const char *name)
 {
     if(nullptr == layer) {
