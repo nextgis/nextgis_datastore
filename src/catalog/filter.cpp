@@ -45,13 +45,16 @@ bool Filter::canDisplay(ObjectPtr object) const
     if(object->getType() == type)
         return true;
 
-    if(isFeatureClass(object->getType()) && type == CAT_FC_ANY)
+    if(isFeatureClass(object->getType()) && (type == CAT_FC_ANY ||
+                                             type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isRaster(object->getType()) && type == CAT_RASTER_ANY)
+    if(isRaster(object->getType()) && (type == CAT_RASTER_ANY ||
+                                       type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isRaster(object->getType()) && type == CAT_RASTER_ANY)
+    if(isDatabase(object->getType()) && (type == CAT_CONTAINER_GDB ||
+                                         type == CAT_CONTAINER_POSTGRES))
         return true;
 
     if(isTable(object->getType()) && type == CAT_TABLE_ANY)

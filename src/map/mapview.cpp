@@ -130,6 +130,11 @@ MapView::MapView(const CPLString &name, const CPLString &description,
 //    return ngsErrorCodes::EC_SUCCESS;
 //}
 
+int MapView::createLayer(const char *name, const Dataset *dataset)
+{
+    return Map::createLayer(name, dataset);
+}
+
 LayerPtr MapView::createLayer(Layer::Type /*type*/)
 {
 //    switch (type) {

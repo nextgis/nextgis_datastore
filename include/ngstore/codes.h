@@ -66,7 +66,12 @@ enum ngsChangeCode {
     CC_CREATE_ATTACHMENT    = 8 << 1,
     CC_CHANGE_ATTACHMENT    = 9 << 1,
     CC_DELETE_ATTACHMENT    = 10 << 1,
-    CC_DELETEALL_ATTACHMENTS = 11 << 1
+    CC_DELETEALL_ATTACHMENTS = 11 << 1,
+    CC_CREATE_MAP           = 12 << 1,
+    CC_CHANGE_MAP           = 13 << 1,
+    CC_CREATE_LAYER         = 14 << 1,
+    CC_DELETE_LAYER         = 15 << 1,
+    CC_CHANGE_LAYER         = 16 << 1
 };
 
 /**
@@ -176,7 +181,8 @@ enum ngsCatalogObjectType {
     CAT_FILE_NGMAPDOCUMENT,
     CAT_FILE_ALL,
     CAT_QUERY_RESULT,
-    CAT_QUERY_RESULT_FC
+    CAT_QUERY_RESULT_FC,
+    CAT_RASTER_FC_ANY
 };
 
 #endif // NGSCODES_H

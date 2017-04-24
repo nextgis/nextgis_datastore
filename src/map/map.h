@@ -59,8 +59,15 @@ public:
     virtual ngsRGBA getBackgroundColor() const { return  m_bkColor; }
     virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
 
-//    virtual int createLayer(const CPLString &name, DatasetPtr dataset);
+    virtual int createLayer(const char* name, Dataset const * dataset);
     size_t layerCount() const { return m_layers.size(); }
+    LayerPtr getLayer(int layerId) const {
+        if(layerId < 0) return nullptr;
+        size_t layerIndex = static_cast<size_t>(layerId);
+        if(layerIndex >= m_layers.size())
+            return nullptr;
+        return m_layers[layerIndex];
+    }
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);

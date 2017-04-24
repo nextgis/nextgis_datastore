@@ -47,12 +47,13 @@ public:
      * @param maxY maximum y
      * @return 0 if some error occures or new map identificator if success.
      */
-    virtual unsigned char createMap(const CPLString& name, const CPLString& description,
-                          unsigned short epsg, const Envelope& bounds);
+    virtual unsigned char createMap(const CPLString& name,
+                                    const CPLString& description,
+                                    unsigned short epsg, const Envelope& bounds);
     virtual unsigned char openMap(MapFile * const file);
     virtual bool saveMap(unsigned char mapId, MapFile * const file);
     virtual bool closeMap(unsigned char mapId);
-    virtual MapViewPtr getMap(unsigned char mapId);
+    virtual MapViewPtr getMap(unsigned char mapId) const;
 
     //
     void freeResources() { m_maps.clear (); }
@@ -63,19 +64,21 @@ public:
 
     bool setMapSize(unsigned char mapId, int width, int height,
                    bool YAxisInverted);
-    ngsRGBA getMapBackgroundColor(unsigned char mapId);
+    ngsRGBA getMapBackgroundColor(unsigned char mapId) const;
     bool setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
     bool setMapCenter(unsigned char mapId, double x, double y);
-    ngsCoordinate getMapCenter(unsigned char mapId);
+    ngsCoordinate getMapCenter(unsigned char mapId) const;
     bool setMapScale(unsigned char mapId, double scale);
-    double getMapScale(unsigned char mapId);
+    double getMapScale(unsigned char mapId) const;
     bool setMapRotate(unsigned char mapId, enum ngsDirection dir, double rotate);
-    double getMapRotate(unsigned char mapId, enum ngsDirection dir);
-    ngsCoordinate getMapCoordinate(unsigned char mapId, double x, double y);
-    ngsPosition getDisplayPosition(unsigned char mapId, double x, double y);
-    ngsCoordinate getMapDistance(unsigned char mapId, double w, double h);
-    ngsPosition getDisplayLength(unsigned char mapId, double w, double h);
-
+    double getMapRotate(unsigned char mapId, enum ngsDirection dir) const;
+    ngsCoordinate getMapCoordinate(unsigned char mapId, double x, double y) const;
+    ngsPosition getDisplayPosition(unsigned char mapId, double x, double y) const;
+    ngsCoordinate getMapDistance(unsigned char mapId, double w, double h) const;
+    ngsPosition getDisplayLength(unsigned char mapId, double w, double h) const;
+    size_t getLayerCount(unsigned char mapId) const;
+    LayerPtr getLayer(unsigned char mapId, int layerId) const;
+    int createLayer(unsigned char mapId, const char* name, Dataset const * dataset);
 
     // static
 public:

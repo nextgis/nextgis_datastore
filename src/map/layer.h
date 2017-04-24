@@ -48,11 +48,13 @@ public:
 
 public:
     Layer();
-    Layer(const CPLString& name, enum Type type);
     virtual ~Layer() = default;
     virtual bool load(const JSONObject& store,
                       const ObjectContainer *objectContainer = nullptr);
     virtual JSONObject save(const ObjectContainer * objectContainer = nullptr) const;
+    const CPLString &getName() const { return m_name; }
+    void setName(const CPLString &name) { m_name = name; }
+
 protected:
     CPLString m_name;
     enum Type m_type;

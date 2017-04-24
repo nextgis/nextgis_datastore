@@ -202,6 +202,7 @@ void GlView::testDrawPolygons() const
 
 void GlView::testDrawLines() const
 {
+    // Line cap and join http://archive.xaraxone.com/webxealot/workbook63/a-line-gallery-02.png
     OGRPoint pt1(0.0, 0.0);
     OGRPoint pt2(-8236992.95426, 4972353.09638);
     Normal normal = ngsGetNormals(pt1, pt2);

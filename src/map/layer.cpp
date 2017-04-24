@@ -35,11 +35,6 @@ Layer::Layer() : m_name(DEFAULT_LAYER_NAME), m_type(Layer::Type::Invalid)
 {
 }
 
-Layer::Layer(const CPLString &name, Type type) : m_name(name),
-    m_type(type)
-{
-}
-
 bool Layer::load(const JSONObject& store, const ObjectContainer * /*objectContainer*/)
 {
     m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);

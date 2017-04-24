@@ -27,15 +27,13 @@
 #include "catalog/mapfile.h"
 #include "ds/simpledataset.h"
 #include "map/mapstore.h"
-#include "ngstore/version.h"
 #include "ngstore/catalog/filter.h"
+#include "ngstore/version.h"
+#include "ngstore/util/constants.h"
 #include "util/error.h"
 #include "util/notify.h"
 #include "util/settings.h"
 #include "util/versionutil.h"
-
-
-
 
 using namespace ngs;
 
@@ -120,7 +118,7 @@ void initGDAL(const char* dataPath, const char* cachePath)
 }
 
 /**
- * @brief Get library version number as major * 10000 + minor * 100 + rev
+ * @brief ngsGetVersion Get library version number as major * 10000 + minor * 100 + rev
  * @param request may be gdal, proj, geos, curl, jpeg, png, zlib, iconv, sqlite3,
  *        openssl, expat, jsonc, tiff, geotiff
  * @return library version number
@@ -131,7 +129,7 @@ int ngsGetVersion(const char* request)
 }
 
 /**
- * @brief Get library version string
+ * @brief ngsGetVersionString Get library version string
  * @param request may be gdal, proj, geos, curl, jpeg, png, zlib, iconv, sqlite3,
  *        openssl, expat, jsonc, tiff, geotiff
  * @return library version string
@@ -142,7 +140,7 @@ const char* ngsGetVersionString(const char* request)
 }
 
 /**
- * @brief init library structures
+ * @brief ngsInit Init library structures
  * @param options Init library options list:
  * - CACHE_DIR - path to cache directory (mainly for TMS/WMS cache)
  * - SETTINGS_DIR - path to settings directory
@@ -179,7 +177,7 @@ int ngsInit(char **options)
 }
 
 /**
- * @brief Clean up library structures
+ * @brief ngsUnInit Clean up library structures
  */
 void ngsUnInit()
 {
@@ -207,7 +205,8 @@ void ngsFreeResources(bool full)
 }
 
 /**
- * @brief Fetches the last error message posted with returnError, CPLError, etc.
+ * @brief ngsGetLastErrorMessage Fetches the last error message posted with
+ * returnError, CPLError, etc.
  * @return last error message or NULL if no error message present.
  */
 const char *ngsGetLastErrorMessage()
@@ -220,13 +219,12 @@ const char *ngsGetLastErrorMessage()
 //------------------------------------------------------------------------------
 
 /**
- * @brief Query name and type of child objects for provided path and filter.
+ * @brief ngsCatalogObjectQuery Queries name and type of child objects for
+ * provided path and filter.
  * @param path The path inside catalog in form ngc://Local connections/tmp
  * @param filter Only objects correspondent to provided filter will be return.
- * The filter is combination of enum ngsCatalogObjectType and subtype according
- * object type.
  * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
- * after using with free or CPLFree method.
+ * after using with ngsFree method.
  */
 ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
 {
@@ -299,7 +297,7 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
 }
 
 /**
- * @brief Delete catalog object on specified path
+ * @brief ngsCatalogObjectDelete Deletes catalog object on specified path
  * @param path The path inside catalog in form ngc://Local connections/tmp
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
@@ -316,7 +314,7 @@ int ngsCatalogObjectDelete(const char *path)
 }
 
 /**
- * @brief Create new catalog object
+ * @brief ngsCatalogObjectCreate Creates new catalog object
  * @param path The path inside catalog in form ngc://Local connections/tmp
  * @param name The new object name
  * @param options The array of create object options. Caller mast free this
@@ -345,8 +343,8 @@ int ngsCatalogObjectCreate(const char *path, const char* name, char **options)
 }
 
 /**
- * @brief Find catalog path (i.e. ngc://Local connections/tmp) correspondent
- * system path (i.e. /home/user/tmp
+ * @brief ngsCatalogPathFromSystem Finds catalog path
+ * (i.e. ngc://Local connections/tmp) correspondent system path (i.e. /home/user/tmp
  * @param path System path
  * @return Catalog path
  */
@@ -361,7 +359,7 @@ const char *ngsCatalogPathFromSystem(const char *path)
 }
 
 /**
- * @brief Copy or move source dataset to destination dataset
+ * @brief ngsCatalogObjectLoad Copies or move source dataset to destination dataset
  * @param srcPath The part to source dataset
  * @param dstPath The path to destination dataset. Should be container which
  * is ready to accept source dataset types.
@@ -430,7 +428,7 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
 }
 
 /**
- * @brief Rename catalog object
+ * @brief ngsCatalogObjectRename Renames catalog object
  * @param path The path inside catalog in form ngc://Local connections/tmp
  * @param newName The new object name. The name should be unique inside object
  * parent container
@@ -454,7 +452,7 @@ int ngsCatalogObjectRename(const char *path, const char *newName)
 }
 
 /**
- * @brief ngsCatalogObjectOptions Query dataset options.
+ * @brief ngsCatalogObjectOptions Queries dataset options.
  * @param path The path inside catalog in form ngc://Local connections/tmp
  * @param optionType The one of ngsOptionTypes enum values:
  * OT_CREATE_DATASOURCE, OT_CREATE_RASTER, OT_CREATE_LAYER,
@@ -512,7 +510,7 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
 //------------------------------------------------------------------------------
 
 /**
- * @brief ngsCreateMap Create new empty map
+ * @brief ngsMapCreate Creates new empty map
  * @param name Map name
  * @param description Map description
  * @param epsg EPSG code
@@ -522,7 +520,7 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
  * @param maxY maximum Y coordinate
  * @return 0 if create failed or map id.
  */
-unsigned char  ngsMapCreate(const char* name, const char* description,
+unsigned char ngsMapCreate(const char* name, const char* description,
                  unsigned short epsg, double minX, double minY,
                  double maxX, double maxY)
 {
@@ -534,7 +532,7 @@ unsigned char  ngsMapCreate(const char* name, const char* description,
 }
 
 /**
- * @brief ngsOpenMap Open existing map from file
+ * @brief ngsMapOpen Opens existing map from file
  * @param path Path to map file inside catalog in form ngc://some path/
  * @return 0 if open failed or map id.
  */
@@ -550,7 +548,7 @@ unsigned char ngsMapOpen(const char *path)
 }
 
 /**
- * @brief ngsSaveMap Save map to file
+ * @brief ngsMapSave Saves map to file
  * @param mapId Map id to save
  * @param path Path to store map data
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
@@ -586,7 +584,7 @@ int ngsMapSave(unsigned char mapId, const char *path)
 }
 
 /**
- * @brief ngsMapClose Close map and free resources
+ * @brief ngsMapClose Closes map and free resources
  * @param mapId Map id to close
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
@@ -602,7 +600,7 @@ int ngsMapClose(unsigned char mapId)
 
 
 /**
- * @brief Sete map size in pixels
+ * @brief ngsMapSetSize Sets map size in pixels
  * @param mapId Map id received from create or open map functions
  * @param width Output image width
  * @param height Output image height
@@ -620,7 +618,7 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
 }
 
 /**
- * @brief ngsDrawMap Start drawing map in specified (in ngsInitMap) extent
+ * @brief ngsDrawMap Starts drawing map in specified (in ngsInitMap) extent
  * @param mapId Map id received from create or open map functions
  * @param state Draw state (NORMAL, PRESERVED, REDRAW)
  * @param callback Progress function
@@ -656,7 +654,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
 }
 
 /**
- * @brief ngsSetMapBackgroundColor Set specified by id map background color
+ * @brief ngsSetMapBackgroundColor Sets map background color
  * @param mapId Map id received from create or open map functions
  * @param color Background color
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
@@ -673,7 +671,7 @@ int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 }
 
 /**
- * @brief ngsMapSetCenter Set new map center coordinates
+ * @brief ngsMapSetCenter Sets new map center coordinates
  * @param mapId Map id
  * @param x X coordinate
  * @param y Y coordinate
@@ -691,7 +689,7 @@ int ngsMapSetCenter(unsigned char mapId, double x, double y)
 }
 
 /**
- * @brief ngsMapGetCenter Get map center for current view (extent)
+ * @brief ngsMapGetCenter Gets map center for current view (extent)
  * @param mapId Map id
  * @return Coordintate structure. If error occured all coordinates set to 0.0
  */
@@ -747,19 +745,40 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
 //    return gMapStore->getMapScale(mapId);
 //}
 
-//int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
-//{
-//    ngsDataStoreInit ( CPLGetDirname (path) );
-//    if(nullptr == gDataStore)
-//        return ngsErrorCodes::EC_CREATE_FAILED;
-//    DatasetPtr dataset = gDataStore->getDataset ( CPLGetBasename (path) );
-//    initMapStore();
-//    MapPtr map = gMapStore->getMap (mapId);
-//    if(nullptr == map || nullptr == dataset)
-//        return ngsErrorCodes::EC_CREATE_FAILED;
-//    return map->createLayer (name, dataset);
+/**
+ * @brief ngsMapCreateLayer Creates new layer in map
+ * @param mapId Map id
+ * @param name Layer name
+ * @param path Path to map file inside catalog in form ngc://some path/
+ * @return Layer Id or -1
+ */
+int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsErrorCode::EC_CREATE_FAILED,
+                     _("MapStore is not initialized"));
+        return NOT_FOUND;
+    }
 
-//}
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
+    if(!object) {
+        errorMessage(ngsErrorCode::EC_INVALID,
+                            _("Source dataset '%s' not found"), path);
+        return NOT_FOUND;
+    }
+
+    Dataset * const dataset = ngsDynamicCast(Dataset, object);
+    if(nullptr == dataset) {
+        errorMessage(ngsErrorCode::EC_INVALID,
+                            _("Source '%s' is not valid dataset"), path);
+        return NOT_FOUND;
+    }
+
+    return mapStore->createLayer(mapId, name, dataset);
+
+}
 
 /**
  * @brief ngsMapSetRotate Set map rotate
@@ -865,7 +884,7 @@ void ngsFree(void *pointer)
 }
 
 /**
- * @brief ngsCatalogObjectGet Get catalog object handle by path
+ * @brief ngsCatalogObjectGet Gets catalog object handle by path
  * @param path Path to the catalog object
  * @return handel or null
  */
@@ -877,7 +896,7 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
 }
 
 /**
- * @brief ngsCatalogObjectType Return input object handler type
+ * @brief ngsCatalogObjectType Returns input object handler type
  * @param object Object handler
  * @return Object type - the value from ngsCatalogObjectType
  */
@@ -888,24 +907,50 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
     return static_cast<Object*>(object)->getType();
 }
 
+/**
+ * @brief ngsMapLayerCount Returns layer count in map
+ * @param mapId Map id
+ * @return Layer count in map
+ */
 int ngsMapLayerCount(unsigned char mapId)
 {
-    return 0; // FIXME: release it
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsErrorCode::EC_GET_FAILED,
+                     _("MapStore is not initialized"));
+        return 0;
+    }
+    return static_cast<int>(mapStore->getLayerCount(mapId));
 }
 
 LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
 {
-    return nullptr; // FIXME: release it
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsErrorCode::EC_GET_FAILED,
+                     _("MapStore is not initialized"));
+        return nullptr;
+    }
+    return mapStore->getLayer(mapId, layerId).get();
 }
 
 const char *ngsLayerGetName(LayerH layer)
 {
-    return ""; // FIXME: release it
+    if(nullptr == layer) {
+        errorMessage(ngsErrorCode::EC_GET_FAILED, _("Layer pointer is null"));
+            return "";
+    }
+    return (static_cast<Layer*>(layer))->getName();
 }
 
 int ngsLayerSetName(LayerH layer, const char *name)
 {
-    return ngsErrorCode::EC_SUCCESS; // FIXME: release it
+    if(nullptr == layer) {
+        return errorMessage(ngsErrorCode::EC_SET_FAILED,
+                            _("Layer pointer is null"));
+    }
+    (static_cast<Layer*>(layer))->setName(name);
+    return ngsErrorCode::EC_SUCCESS;
 }
 
 /**

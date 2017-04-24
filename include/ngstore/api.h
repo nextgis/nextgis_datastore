@@ -135,9 +135,8 @@ NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object
 
 typedef void *LayerH;
 /*
-mapDraw
-mapSet/GetProperties - backgroud, center, scale, rotate
-mapGet coordinate, distance
+mapSet/GetProperties - scale, rotate
+mapGet distance
 dispalyGet position, length
 */
 NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
@@ -147,6 +146,8 @@ NGS_EXTERNC unsigned char ngsMapOpen(const char* path);
 NGS_EXTERNC int ngsMapSave(unsigned char mapId, const char* path);
 NGS_EXTERNC int ngsMapClose(unsigned char mapId);
 NGS_EXTERNC int ngsMapLayerCount(unsigned char mapId);
+NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
+                                  const char* path);
 NGS_EXTERNC LayerH ngsMapLayerGet(unsigned char mapId, int layerId);
 NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
                            int YAxisInverted);
@@ -166,8 +167,6 @@ NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 
 
-//NGS_EXTERNC int ngsMapCreateLayer(unsigned char mapId, const char* name,
-//                               const char* path);
 //NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
 //NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 //NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,

@@ -38,7 +38,7 @@ public:
 
     // Map interface
 public:
-//    virtual int createLayer(const CPLString &name, DatasetPtr dataset) override;
+    virtual int createLayer(const char* name, Dataset const * dataset) override;
 
     // Map interface
 protected:

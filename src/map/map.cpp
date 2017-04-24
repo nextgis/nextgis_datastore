@@ -71,11 +71,11 @@ bool Map::open(MapFile * const mapFile)
 
     JSONObject root = doc.getRoot();
     if(root.getType() == JSONObject::Type::Object) {
-        m_name = root.getString (MAP_NAME, DEFAULT_MAP_NAME);
-        m_description = root.getString (MAP_DESCRIPTION, "");
-        m_relativePaths = root.getBool (MAP_RELATIVEPATHS, true);
-        m_epsg = static_cast<unsigned short>(root.getInteger (MAP_EPSG,
-                                                              DEFAULT_EPSG));
+        m_name = root.getString(MAP_NAME, DEFAULT_MAP_NAME);
+        m_description = root.getString(MAP_DESCRIPTION, "");
+        m_relativePaths = root.getBool(MAP_RELATIVEPATHS, true);
+        m_epsg = static_cast<unsigned short>(root.getInteger(MAP_EPSG,
+                                                             DEFAULT_EPSG));
         m_bounds.setMinX(root.getDouble(MAP_MIN_X, DEFAULT_BOUNDS.getMinX()));
         m_bounds.setMinY(root.getDouble(MAP_MIN_Y, DEFAULT_BOUNDS.getMinY()));
         m_bounds.setMaxX(root.getDouble(MAP_MAX_X, DEFAULT_BOUNDS.getMaxX()));
@@ -131,12 +131,13 @@ bool Map::close()
     return true;
 }
 
-//int Map::createLayer(const CPLString &name, DatasetPtr dataset)
-//{
-//    LayerPtr layer (new Layer(name, dataset));
-//    m_layers.push_back (layer);
-//    return ngsErrorCodes::EC_SUCCESS;
-//}
+int Map::createLayer(const char * name, Dataset const * /*dataset*/)
+{
+    LayerPtr layer (new Layer());
+    layer->setName(name);
+    m_layers.push_back (layer);
+    return static_cast<int>(m_layers.size() - 1);
+}
 
 LayerPtr Map::createLayer(Layer::Type /*type*/)
 {
