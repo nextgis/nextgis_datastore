@@ -68,6 +68,7 @@ public:
         return m_layers[layerIndex];
     }
     virtual bool deleteLayer(Layer* layer);
+    virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);

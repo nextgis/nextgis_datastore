@@ -80,6 +80,7 @@ public:
     LayerPtr getLayer(unsigned char mapId, int layerId) const;
     int createLayer(unsigned char mapId, const char* name, Dataset const * dataset);
     bool deleteLayer(unsigned char mapId, Layer* layer);
+    bool reorderLayers(unsigned char mapId, Layer* beforeLayer, Layer* movedLayer);
 
     // static
 public:

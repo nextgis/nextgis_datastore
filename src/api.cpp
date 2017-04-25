@@ -214,6 +214,55 @@ const char *ngsGetLastErrorMessage()
     return getLastError();
 }
 
+/**
+ * @brief ngsAddNotifyFunction Add function triggered on some events
+ * @param function Function executed on event occured
+ * @param notifyTypes The OR combination of ngsChangeCode
+ */
+void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes)
+{
+    Notify::instance().addNotifyReceiver(function, notifyTypes);
+}
+
+/**
+ * @brief ngsRemoveNotifyFunction Remove function. No events will be occured.
+ * @param function The function to remove
+ */
+void ngsRemoveNotifyFunction(ngsNotifyFunc function)
+{
+    Notify::instance().deleteNotifyReceiver(function);
+}
+
+//------------------------------------------------------------------------------
+// GDAL proxy functions
+//------------------------------------------------------------------------------
+
+const char *ngsGetCurrentDirectory()
+{
+    return CPLGetCurrentDir();
+}
+
+char **ngsAddNameValue(char **list, const char *name, const char *value)
+{
+    return CSLAddNameValue(list, name, value);
+}
+
+void ngsDestroyList(char **list)
+{
+    CSLDestroy(list);
+}
+
+const char *ngsFormFileName(const char *path, const char *name,
+                            const char *extension)
+{
+    return CPLFormFilename(path, name, extension);
+}
+
+void ngsFree(void *pointer)
+{
+    CPLFree(pointer);
+}
+
 //------------------------------------------------------------------------------
 // Catalog
 //------------------------------------------------------------------------------
@@ -478,6 +527,31 @@ const char* ngsCatalogObjectOptions(const char* path, int optionType)
 
     return dataset->getOptions(enumOptionType);
 }
+
+/**
+ * @brief ngsCatalogObjectGet Gets catalog object handle by path
+ * @param path Path to the catalog object
+ * @return handel or null
+ */
+CatalogObjectH ngsCatalogObjectGet(const char *path)
+{
+    CatalogPtr catalog = Catalog::getInstance();
+    ObjectPtr object = catalog->getObject(path);
+    return object.get();
+}
+
+/**
+ * @brief ngsCatalogObjectType Returns input object handler type
+ * @param object Object handler
+ * @return Object type - the value from ngsCatalogObjectType
+ */
+enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
+{
+    if(nullptr == object)
+        return ngsCatalogObjectType::CAT_UNKNOWN;
+    return static_cast<Object*>(object)->getType();
+}
+
 
 /**
  * @brief Create remote TMS Raster
@@ -777,8 +851,29 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
     }
 
     return mapStore->createLayer(mapId, name, dataset);
-
 }
+
+/**
+ * @brief ngsMapLayerReorder Reorder layers in map
+ * @param mapId Map id
+ * @param beforeLayer Before this layer insert movedLayer. May be null. In that case layer will be moved to the end of map
+ * @param movedLayer Layer to move
+ * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ */
+int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLayer)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsErrorCode::EC_INVALID,
+                     _("MapStore is not initialized"));
+    }
+
+    return mapStore->reorderLayers(mapId, static_cast<Layer*>(beforeLayer),
+                                   static_cast<Layer*>(movedLayer)) ?
+                ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_MOVE_FAILED;
+}
+
+
 
 /**
  * @brief ngsMapSetRotate Set map rotate
@@ -857,56 +952,6 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
 //    return nullptr;
 //}
 
-const char *ngsGetCurrentDirectory()
-{
-    return CPLGetCurrentDir();
-}
-
-char **ngsAddNameValue(char **list, const char *name, const char *value)
-{
-    return CSLAddNameValue(list, name, value);
-}
-
-void ngsDestroyList(char **list)
-{
-    CSLDestroy(list);
-}
-
-const char *ngsFormFileName(const char *path, const char *name,
-                            const char *extension)
-{
-    return CPLFormFilename(path, name, extension);
-}
-
-void ngsFree(void *pointer)
-{
-    CPLFree(pointer);
-}
-
-/**
- * @brief ngsCatalogObjectGet Gets catalog object handle by path
- * @param path Path to the catalog object
- * @return handel or null
- */
-CatalogObjectH ngsCatalogObjectGet(const char *path)
-{
-    CatalogPtr catalog = Catalog::getInstance();
-    ObjectPtr object = catalog->getObject(path);
-    return object.get();
-}
-
-/**
- * @brief ngsCatalogObjectType Returns input object handler type
- * @param object Object handler
- * @return Object type - the value from ngsCatalogObjectType
- */
-enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
-{
-    if(nullptr == object)
-        return ngsCatalogObjectType::CAT_UNKNOWN;
-    return static_cast<Object*>(object)->getType();
-}
-
 /**
  * @brief ngsMapLayerCount Returns layer count in map
  * @param mapId Map id
@@ -957,6 +1002,10 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
                 ngsErrorCode::EC_SUCCESS : ngsErrorCode::EC_DELETE_FAILED;
 }
 
+//------------------------------------------------------------------------------
+// Layer
+//------------------------------------------------------------------------------
+
 /**
  * @brief ngsLayerGetName Returns layer name
  * @param layer Layer handler
@@ -986,23 +1035,3 @@ int ngsLayerSetName(LayerH layer, const char *name)
     (static_cast<Layer*>(layer))->setName(name);
     return ngsErrorCode::EC_SUCCESS;
 }
-
-/**
- * @brief ngsAddNotifyFunction Add function triggered on some events
- * @param function Function executed on event occured
- * @param notifyTypes The OR combination of ngsChangeCode
- */
-void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes)
-{
-    Notify::instance().addNotifyReceiver(function, notifyTypes);
-}
-
-/**
- * @brief ngsRemoveNotifyFunction Remove function. No events will be occured.
- * @param function The function to remove
- */
-void ngsRemoveNotifyFunction(ngsNotifyFunc function)
-{
-    Notify::instance().deleteNotifyReceiver(function);
-}
-

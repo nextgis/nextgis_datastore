@@ -310,6 +310,19 @@ bool MapStore::deleteLayer(unsigned char mapId, Layer *layer)
     return map->deleteLayer(layer);
 }
 
+bool MapStore::reorderLayers(unsigned char mapId, Layer *beforeLayer, Layer *movedLayer)
+{
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return false;
+    bool result = map->reorderLayers(beforeLayer, movedLayer);
+    if(result) {
+        Notify::instance().onNotify(CPLSPrintf("%d", mapId),
+                                    ngsChangeCode::CC_CHANGE_MAP);
+    }
+    return result;
+}
+
 unsigned char MapStore::invalidMapId()
 {
     return INVALID_MAPID;

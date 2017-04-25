@@ -150,6 +150,41 @@ bool Map::deleteLayer(Layer *layer)
     return false;
 }
 
+bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
+{
+    LayerPtr movedLayerPtr;
+    auto it = m_layers.begin(), before = m_layers.end();
+    while(it != m_layers.end()) {
+        if((*it).get() == beforeLayer) {
+            before = it;
+        }
+
+        if((*it).get() == movedLayer) {
+            movedLayerPtr = *it;
+            bool invalidBefore = before == m_layers.end();
+            it = m_layers.erase(it); // Changed m_layers.end() iterator (before) here.
+            if(invalidBefore) {
+                before = m_layers.end(); // Restore iterator if it has changed
+            }
+
+            if(!invalidBefore || beforeLayer == nullptr) { // Already have botch iterators or just push_back
+                break;
+            }
+        }
+        else {
+            ++it;
+        }
+    }
+
+    if(before != m_layers.end()) {
+        m_layers.insert(before, movedLayerPtr);
+     }
+    else {
+        m_layers.push_back(movedLayerPtr);
+    }
+    return true;
+}
+
 LayerPtr Map::createLayer(Layer::Type /*type*/)
 {
     return LayerPtr(new Layer);
