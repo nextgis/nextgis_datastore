@@ -81,7 +81,7 @@ typedef struct _normal {
 
 Normal ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
 
-}
+} // namespace ngs
 
 
 #endif // NGSGEOMETRY_H

@@ -25,6 +25,7 @@
 #include "cpl_string.h"
 
 #include "api_priv.h"
+#include "ds/geometry.h"
 #include "ngstore/api.h"
 #include "ngstore/version.h"
 
@@ -100,7 +101,7 @@ TEST(BasicTests, TestInlines) {
     EXPECT_EQ(color.A, newColor.A);
 }
 
-TEST(BasicTests, TestCatalogQuery) {
+TEST(CatalogTests, TestCatalogQuery) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
@@ -155,7 +156,7 @@ TEST(BasicTests, TestCatalogQuery) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestCreate) {
+TEST(CatalogTests, TestCreate) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
@@ -194,7 +195,7 @@ TEST(BasicTests, TestCreate) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestDelete) {
+TEST(CatalogTests, TestDelete) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
@@ -220,7 +221,7 @@ TEST(BasicTests, TestDelete) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestCreateDataStore) {
+TEST(DataStoreTests, TestCreateDataStore) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
@@ -252,7 +253,7 @@ TEST(BasicTests, TestCreateDataStore) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestOpenDataStore) {
+TEST(DataStoreTests, TestOpenDataStore) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
@@ -280,7 +281,7 @@ TEST(BasicTests, TestOpenDataStore) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestLoadDataStore) {
+TEST(DataStoreTests, TestLoadDataStore) {
     counter = 0;
 
     char** options = nullptr;
@@ -305,7 +306,7 @@ TEST(BasicTests, TestLoadDataStore) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestLoadDataStoreZippedShapefile) {
+TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     counter = 0;
 
     char** options = nullptr;
@@ -328,7 +329,7 @@ TEST(BasicTests, TestLoadDataStoreZippedShapefile) {
     ngsUnInit();
 }
 
-TEST(BasicTests, TestDeleteDataStore) {
+TEST(DataStoreTests, TestDeleteDataStore) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
@@ -345,6 +346,89 @@ TEST(BasicTests, TestDeleteDataStore) {
     ngsUnInit();
 }
 
+constexpr ngsRGBA DEFAULT_MAP_BK = {199, 199, 199, 199};
+constexpr const char* DEFAULT_MAP_NAME = "new map";
+
+TEST(MapTests, MapSave) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCode::EC_SUCCESS);
+    ngsDestroyList(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString shapePath = catalogPath + "/data/bld.shp";
+    CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
+
+    unsigned char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
+                                       ngs::DEFAULT_BOUNDS.getMinX(),
+                                       ngs::DEFAULT_BOUNDS.getMinY(),
+                                       ngs::DEFAULT_BOUNDS.getMaxX(),
+                                       ngs::DEFAULT_BOUNDS.getMaxY());
+    ASSERT_NE(mapId, 0);
+    EXPECT_EQ(ngsMapLayerCount(mapId), 0);
+
+    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 0", shapePath),
+              ngsErrorCode::EC_SUCCESS);
+
+    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 1", shapePath),
+              ngsErrorCode::EC_SUCCESS);
+
+    EXPECT_EQ(ngsMapLayerCount(mapId), 2);
+
+    EXPECT_EQ(ngsMapSetBackgroundColor(mapId, DEFAULT_MAP_BK),
+              ngsErrorCode::EC_SUCCESS);
+
+    EXPECT_EQ(ngsMapSave(mapId, mapPath), ngsErrorCode::EC_SUCCESS);
+
+    ngsUnInit();
+}
+
+TEST(MapTests, MapOpen) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), ngsErrorCode::EC_SUCCESS);
+    ngsDestroyList(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
+
+    unsigned char mapId = ngsMapOpen(mapPath);
+    ASSERT_NE(mapId, 0);
+
+    EXPECT_EQ(ngsMapLayerCount(mapId), 2);
+
+    ngsRGBA bk = ngsMapGetBackgroundColor(mapId);
+
+    EXPECT_EQ(bk.R, DEFAULT_MAP_BK.R);
+    EXPECT_EQ(bk.A, DEFAULT_MAP_BK.A);
+
+    LayerH layer0 = ngsMapLayerGet(mapId, 0);
+    LayerH layer1 = ngsMapLayerGet(mapId, 1);
+
+    CPLString layer0Name = ngsLayerGetName(layer0);
+
+    EXPECT_EQ(ngsMapLayerReorder(mapId, layer0, layer1),
+              ngsErrorCode::EC_SUCCESS);
+
+    LayerH layerTest = ngsMapLayerGet(mapId, 0);
+    CPLString layerTestName = ngsLayerGetName(layerTest);
+    EXPECT_STREQ(layer0Name, layerTestName);
+
+    EXPECT_EQ(ngsMapLayerDelete(mapId, layerTest),
+              ngsErrorCode::EC_SUCCESS);
+
+    EXPECT_EQ(ngsMapLayerCount(mapId), 1);
+
+    ngsUnInit();
+}
 
 /*
 TEST(BasicTests, TestCreateTMS) {
