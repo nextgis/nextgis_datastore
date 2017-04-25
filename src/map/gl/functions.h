@@ -82,9 +82,9 @@ void reportGlStatus(GLuint obj);
 
 /*
 
-/*typedef int (*ngsBindVertexArray)(GLuint array);
+typedef int (*ngsBindVertexArray)(GLuint array);
 typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
-typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);*//*
+typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);
 
 enum ngsShaderType {
     SH_VERTEX,
