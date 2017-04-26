@@ -329,6 +329,18 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     ngsUnInit();
 }
 
+
+/*
+TEST(BasicTests, TestCreateTMS) {
+    counter = 0;
+    EXPECT_EQ(ngsCreateRemoteTMSRaster(TMS_URL, TMS_NAME, TMS_ALIAS, TMS_COPYING,
+                                       TMS_EPSG, TMS_MIN_Z, TMS_MAX_Z,
+                                       TMS_YORIG_TOP), ngsErrorCodes::EC_SUCCESS);
+    CPLSleep(0.1);
+    EXPECT_GE(counter, 1);
+}
+*/
+
 TEST(DataStoreTests, TestDeleteDataStore) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
@@ -371,11 +383,9 @@ TEST(MapTests, MapSave) {
     ASSERT_NE(mapId, 0);
     EXPECT_EQ(ngsMapLayerCount(mapId), 0);
 
-    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 0", shapePath),
-              ngsErrorCode::EC_SUCCESS);
+    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 0", shapePath), 0);
 
-    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 1", shapePath),
-              ngsErrorCode::EC_SUCCESS);
+    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 1", shapePath), 1);
 
     EXPECT_EQ(ngsMapLayerCount(mapId), 2);
 
@@ -413,14 +423,14 @@ TEST(MapTests, MapOpen) {
     LayerH layer0 = ngsMapLayerGet(mapId, 0);
     LayerH layer1 = ngsMapLayerGet(mapId, 1);
 
-    CPLString layer0Name = ngsLayerGetName(layer0);
+    CPLString layer1Name = ngsLayerGetName(layer1);
 
     EXPECT_EQ(ngsMapLayerReorder(mapId, layer0, layer1),
               ngsErrorCode::EC_SUCCESS);
 
     LayerH layerTest = ngsMapLayerGet(mapId, 0);
     CPLString layerTestName = ngsLayerGetName(layerTest);
-    EXPECT_STREQ(layer0Name, layerTestName);
+    EXPECT_STREQ(layer1Name, layerTestName);
 
     EXPECT_EQ(ngsMapLayerDelete(mapId, layerTest),
               ngsErrorCode::EC_SUCCESS);
@@ -429,29 +439,3 @@ TEST(MapTests, MapOpen) {
 
     ngsUnInit();
 }
-
-/*
-TEST(BasicTests, TestCreateTMS) {
-    counter = 0;
-    EXPECT_EQ(ngsCreateRemoteTMSRaster(TMS_URL, TMS_NAME, TMS_ALIAS, TMS_COPYING,
-                                       TMS_EPSG, TMS_MIN_Z, TMS_MAX_Z,
-                                       TMS_YORIG_TOP), ngsErrorCodes::EC_SUCCESS);
-    CPLSleep(0.1);
-    EXPECT_GE(counter, 1);
-}
-
-TEST(BasicTests, TestInitMap) {
-    unsigned char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
-                             DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
-                             DEFAULT_MAX_Y);
-    EXPECT_GE(mapId, 1);
-    EXPECT_NE(ngsMapInit (2), ngsErrorCodes::EC_SUCCESS);
-    EXPECT_EQ(ngsMapInit (mapId), ngsErrorCodes::EC_SUCCESS);
-    /*no layers so function not executed
-    counter = 0;
-    EXPECT_EQ(ngsMapDraw(1, DS_NORMAL, ngsTestProgressFunc, nullptr), ngsErrorCodes::EC_SUCCESS);
-    CPLSleep(0.2);
-    EXPECT_GE(counter, 1);*//*
-}
-
-*/
