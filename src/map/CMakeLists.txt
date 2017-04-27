@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016,2017 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -32,13 +32,13 @@ set(HHEADERS
     maptransform.h
     mapview.h
     matrix.h
-    renderlayer.h
 #    vector.h
     gl/view.h
     gl/program.h
     gl/functions.h
     gl/style.h
     gl/buffer.h
+    gl/layer.h
 )
 
 set(CSOURCES
@@ -49,12 +49,12 @@ set(CSOURCES
     maptransform.cpp
     mapview.cpp
     matrix.cpp
-    renderlayer.cpp
     gl/view.cpp
     gl/program.cpp
     gl/functions.cpp
     gl/style.cpp
     gl/buffer.cpp
+    gl/layer.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
