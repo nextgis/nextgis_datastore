@@ -20,23 +20,20 @@
  ****************************************************************************/
 
 #include "map.h"
-#include "mapstore.h"
-#include "ngstore/util/constants.h"
+#include "catalog/mapfile.h"
 
 namespace ngs {
 
 constexpr ngsRGBA DEFAULT_MAP_BK = {210, 245, 255, 255};
 constexpr const char* DEFAULT_MAP_NAME = "new map";
-constexpr const char* MAP_NAME = "name";
-constexpr const char* MAP_DESCRIPTION = "descript";
-constexpr const char* MAP_LAYERS = "layers";
-constexpr const char* MAP_RELATIVEPATHS = "relative_paths";
-constexpr const char* MAP_EPSG = "epsg";
-constexpr const char* MAP_MIN_X = "min_x";
-constexpr const char* MAP_MIN_Y = "min_y";
-constexpr const char* MAP_MAX_X = "max_x";
-constexpr const char* MAP_MAX_Y = "max_y";
-constexpr const char* MAP_BKCOLOR = "bk_color";
+
+constexpr const char* MAP_NAME_KEY = "name";
+constexpr const char* MAP_DESCRIPTION_KEY = "descript";
+constexpr const char* MAP_LAYERS_KEY = "layers";
+constexpr const char* MAP_RELATIVEPATHS_KEY = "relative_paths";
+constexpr const char* MAP_EPSG_KEY = "epsg";
+constexpr const char* MAP_BKCOLOR_KEY = "bk_color";
+constexpr const char* MAP_BOUNDS_KEY = "bounds";
 
 //------------------------------------------------------------------------------
 // Map
@@ -62,6 +59,52 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
 {
 }
 
+bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
+{
+    m_name = root.getString(MAP_NAME_KEY, DEFAULT_MAP_NAME);
+    m_description = root.getString(MAP_DESCRIPTION_KEY, "");
+    m_relativePaths = root.getBool(MAP_RELATIVEPATHS_KEY, true);
+    m_epsg = static_cast<unsigned short>(root.getInteger(MAP_EPSG_KEY,
+                                                         DEFAULT_EPSG));
+    m_bounds.load(root.getObject(MAP_BOUNDS_KEY), DEFAULT_BOUNDS);
+    setBackgroundColor(ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR_KEY,
+                                             ngsRGBA2HEX(m_bkColor))));
+
+    JSONArray layers = root.getArray("layers");
+    for(int i = 0; i < layers.size(); ++i) {
+        JSONObject layerConfig = layers[i];
+        Layer::Type type = static_cast<Layer::Type>(
+                    layerConfig.getInteger(LAYER_TYPE_KEY, 0));
+        // load layer
+        LayerPtr layer = createLayer(type);
+        if(nullptr != layer) {
+            if(layer->load(layerConfig, m_relativePaths ?
+                           mapFile->getParent() : nullptr))
+                m_layers.push_back(layer);
+        }
+    }
+
+    return true;
+}
+
+bool Map::saveInternal(JSONObject& root, MapFile * const mapFile)
+{
+    root.add(MAP_NAME_KEY, m_name);
+    root.add(MAP_DESCRIPTION_KEY, m_description);
+    root.add(MAP_RELATIVEPATHS_KEY, m_relativePaths);
+    root.add(MAP_EPSG_KEY, m_epsg);
+    root.add(MAP_BOUNDS_KEY, m_bounds.save());
+    root.add(MAP_BKCOLOR_KEY, ngsRGBA2HEX(m_bkColor));
+
+    JSONArray layers;
+    for(LayerPtr layer : m_layers) {
+        layers.add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
+    }
+    root.add(MAP_LAYERS_KEY, layers);
+
+    return true;
+}
+
 bool Map::open(MapFile * const mapFile)
 {
     JSONDocument doc;
@@ -70,35 +113,7 @@ bool Map::open(MapFile * const mapFile)
     }
 
     JSONObject root = doc.getRoot();
-    if(root.getType() == JSONObject::Type::Object) {
-        m_name = root.getString(MAP_NAME, DEFAULT_MAP_NAME);
-        m_description = root.getString(MAP_DESCRIPTION, "");
-        m_relativePaths = root.getBool(MAP_RELATIVEPATHS, true);
-        m_epsg = static_cast<unsigned short>(root.getInteger(MAP_EPSG,
-                                                             DEFAULT_EPSG));
-        m_bounds.setMinX(root.getDouble(MAP_MIN_X, DEFAULT_BOUNDS.getMinX()));
-        m_bounds.setMinY(root.getDouble(MAP_MIN_Y, DEFAULT_BOUNDS.getMinY()));
-        m_bounds.setMaxX(root.getDouble(MAP_MAX_X, DEFAULT_BOUNDS.getMaxX()));
-        m_bounds.setMaxY(root.getDouble(MAP_MAX_Y, DEFAULT_BOUNDS.getMaxY()));
-        setBackgroundColor(ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR,
-                                                 ngsRGBA2HEX(m_bkColor))));
-
-        JSONArray layers = root.getArray("layers");
-        for(int i = 0; i < layers.size(); ++i) {
-            JSONObject layerConfig = layers[i];
-            Layer::Type type = static_cast<Layer::Type>(
-                        layerConfig.getInteger(LAYER_TYPE, 0));
-            // load layer
-            LayerPtr layer = createLayer(type);
-            if(nullptr != layer) {
-                if(layer->load(layerConfig, m_relativePaths ?
-                               mapFile->getParent() : nullptr))
-                    m_layers.push_back(layer);
-            }
-        }
-    }
-
-    return true;
+    return openInternal(root, mapFile);
 }
 
 bool Map::save(MapFile * const mapFile)
@@ -106,21 +121,8 @@ bool Map::save(MapFile * const mapFile)
     JSONDocument doc;
     JSONObject root = doc.getRoot();
 
-    root.add(MAP_NAME, m_name);
-    root.add(MAP_DESCRIPTION, m_description);
-    root.add(MAP_RELATIVEPATHS, m_relativePaths);
-    root.add(MAP_EPSG, m_epsg);
-    root.add(MAP_MIN_X, m_bounds.getMinX());
-    root.add(MAP_MIN_Y, m_bounds.getMinY());
-    root.add(MAP_MAX_X, m_bounds.getMaxX());
-    root.add(MAP_MAX_Y, m_bounds.getMaxY());
-    root.add(MAP_BKCOLOR, ngsRGBA2HEX(m_bkColor));
-
-    JSONArray layers;
-    for(LayerPtr layer : m_layers) {
-        layers.add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
-    }
-    root.add(MAP_LAYERS, layers);
+    if(!saveInternal(root, mapFile))
+        return false;
 
     return doc.save(mapFile->getPath());
 }

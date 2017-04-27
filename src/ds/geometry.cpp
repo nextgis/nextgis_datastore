@@ -28,6 +28,11 @@ namespace ngs {
 constexpr double BIG_VALUE = 10000000.0;
 constexpr double DBLNAN = 0.0;
 
+constexpr const char* MAP_MIN_X_KEY = "min_x";
+constexpr const char* MAP_MIN_Y_KEY = "min_y";
+constexpr const char* MAP_MAX_X_KEY = "max_x";
+constexpr const char* MAP_MAX_Y_KEY = "max_y";
+
 Envelope::Envelope() :
     m_minX(DBLNAN),
     m_minY(DBLNAN),
@@ -151,6 +156,25 @@ OGREnvelope Envelope::getOgrEnvelope() const
     env.MinX = m_minX;
     env.MinY = m_minY;
     return env;
+}
+
+bool Envelope::load(const JSONObject &store, const Envelope& defaultValue)
+{
+    m_minX = store.getDouble(MAP_MIN_X_KEY, defaultValue.getMinX());
+    m_minY = store.getDouble(MAP_MIN_Y_KEY, defaultValue.getMinY());
+    m_maxX = store.getDouble(MAP_MAX_X_KEY, defaultValue.getMaxX());
+    m_maxY = store.getDouble(MAP_MAX_Y_KEY, defaultValue.getMaxY());
+    return true;
+}
+
+JSONObject Envelope::save() const
+{
+    JSONObject out;
+    out.add(MAP_MIN_X_KEY, m_minX);
+    out.add(MAP_MIN_Y_KEY, m_minY);
+    out.add(MAP_MAX_X_KEY, m_maxX);
+    out.add(MAP_MAX_Y_KEY, m_maxY);
+    return out;
 }
 
 Normal ngsGetNormals(const OGRPoint &beg, const OGRPoint &end)

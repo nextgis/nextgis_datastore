@@ -31,7 +31,7 @@
 
 namespace ngs {
 
-constexpr const char* LAYER_TYPE = "type";
+constexpr const char* LAYER_TYPE_KEY = "type";
 
 /**
  * @brief The Layer class - base class for any map layer.

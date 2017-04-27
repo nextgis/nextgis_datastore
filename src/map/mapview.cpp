@@ -20,19 +20,16 @@
  ****************************************************************************/
 #include "mapview.h"
 
-#include <iostream>
-#include <string>
-
 #include "api_priv.h"
-#include "renderlayer.h"
-#include "ngstore/util/constants.h"
-
-#ifdef _DEBUG
-#   include <chrono>
-#endif //DEBUG
+#include "catalog/mapfile.h"
 
 namespace ngs {
 
+constexpr const char* MAP_EXTENT_KEY = "extent";
+constexpr const char* MAP_ROTATE_X_KEY = "rotate_x";
+constexpr const char* MAP_ROTATE_Y_KEY = "rotate_y";
+constexpr const char* MAP_ROTATE_Z_KEY = "rotate_z";
+constexpr const char* MAP_X_LOOP_KEY = "x_looped";
 
 MapView::MapView() : Map(), MapTransform(480, 640)
 {
@@ -42,6 +39,38 @@ MapView::MapView(const CPLString &name, const CPLString &description,
                  unsigned short epsg, const Envelope &bounds) :
     Map(name, description, epsg, bounds), MapTransform(480, 640)
 {
+}
+
+bool MapView::openInternal(const JSONObject &root, MapFile * const mapFile)
+{
+    if(!Map::openInternal(root, mapFile))
+        return false;
+
+    setRotate(ngsDirection::DIR_X, root.getDouble(MAP_ROTATE_X_KEY, 0));
+    setRotate(ngsDirection::DIR_Y, root.getDouble(MAP_ROTATE_Y_KEY, 0));
+    setRotate(ngsDirection::DIR_Z, root.getDouble(MAP_ROTATE_Z_KEY, 0));
+
+    Envelope env;
+    env.load(root.getObject(MAP_EXTENT_KEY), DEFAULT_BOUNDS);
+    setExtent(env);
+
+    m_XAxisLooped = root.getBool(MAP_X_LOOP_KEY, true);
+
+    return true;
+}
+
+bool MapView::saveInternal(JSONObject &root, MapFile * const mapFile)
+{
+    if(!Map::saveInternal(root, mapFile))
+        return false;
+
+    root.add(MAP_EXTENT_KEY, getExtent().save());
+    root.add(MAP_ROTATE_X_KEY, getRotate(ngsDirection::DIR_X));
+    root.add(MAP_ROTATE_Y_KEY, getRotate(ngsDirection::DIR_Y));
+    root.add(MAP_ROTATE_Z_KEY, getRotate(ngsDirection::DIR_Z));
+
+    root.add(MAP_X_LOOP_KEY, m_XAxisLooped);
+    return true;
 }
 
 //int MapView::draw(enum ngsDrawState state, const ngsProgressFunc &progressFunc,
@@ -148,4 +177,4 @@ MapView::MapView(const CPLString &name, const CPLString &description,
 //    }
 //}
 
-}
+} // namespace ngs

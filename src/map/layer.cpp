@@ -24,7 +24,7 @@
 
 namespace ngs {
 
-constexpr const char* LAYER_NAME = "name";
+constexpr const char* LAYER_NAME_KEY = "name";
 constexpr const char* DEFAULT_LAYER_NAME = "new layer";
 
 //------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ Layer::Layer() : m_name(DEFAULT_LAYER_NAME), m_type(Layer::Type::Invalid)
 
 bool Layer::load(const JSONObject& store, const ObjectContainer * /*objectContainer*/)
 {
-    m_name = store.getString(LAYER_NAME, DEFAULT_LAYER_NAME);
+    m_name = store.getString(LAYER_NAME_KEY, DEFAULT_LAYER_NAME);
 // TODO: Check absolute or relative catalog path
 //    if(type & ngsDatasetType (Store)) {
 //        CPLString path = store.getString (LAYER_SOURCE, "");
@@ -64,8 +64,8 @@ bool Layer::load(const JSONObject& store, const ObjectContainer * /*objectContai
 JSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
 {
     JSONObject out;
-    out.add(LAYER_NAME, m_name);
-    out.add(LAYER_TYPE, static_cast<int>(m_type));
+    out.add(LAYER_NAME_KEY, m_name);
+    out.add(LAYER_TYPE_KEY, static_cast<int>(m_type));
 // TODO: Check absolute or relative catalog path
 //    if(nullptr != m_dataset) {
 //        // relative or absolute path

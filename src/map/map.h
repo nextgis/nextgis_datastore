@@ -53,8 +53,9 @@ public:
     bool getRelativePaths() const { return m_relativePaths; }
     void setRelativePaths(bool relativePaths) { m_relativePaths = relativePaths; }
 
-    virtual bool open(MapFile * const mapFile);
-    virtual bool save(MapFile * const mapFile);
+    bool open(MapFile * const mapFile);
+    bool save(MapFile * const mapFile);
+
     virtual bool close();
     virtual ngsRGBA getBackgroundColor() const { return  m_bkColor; }
     virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
@@ -72,6 +73,8 @@ public:
 
 protected:
     virtual LayerPtr createLayer(enum Layer::Type type);
+    virtual bool openInternal(const JSONObject& root, MapFile * const mapFile);
+    virtual bool saveInternal(JSONObject &root, MapFile * const mapFile);
 
 protected:
     CPLString m_name;

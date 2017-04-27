@@ -26,6 +26,8 @@
 #include <array>
 #include <memory>
 
+#include "util/jsondocument.h"
+
 namespace ngs {
 
 typedef std::shared_ptr< OGRGeometry > GeometryPtr;
@@ -59,6 +61,9 @@ public:
     void setMinY(double minY) {m_minY = minY;}
     void setMaxX(double maxX) {m_maxX = maxX;}
     void setMaxY(double maxY) {m_maxY = maxY;}
+
+    bool load(const JSONObject& store, const Envelope& defaultValue);
+    JSONObject save() const;
 
 protected:
     double m_minX, m_minY, m_maxX, m_maxY;

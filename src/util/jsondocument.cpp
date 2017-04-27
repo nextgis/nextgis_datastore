@@ -122,7 +122,7 @@ void JSONObject::add(const char *name, const char *val)
     char objectName[JSON_NAME_MAX_SIZE];
     JSONObject object = getObjectByPath(name, &objectName[0]);
     if(object.isValid()) {
-        json_object *poVal = json_object_new_string (val);
+        json_object *poVal = json_object_new_string(val);
         json_object_object_add(object.m_jsonObject, objectName, poVal);
     }
 }
@@ -134,7 +134,7 @@ void JSONObject::add(const char *name, double val)
     char objectName[JSON_NAME_MAX_SIZE];
     JSONObject object = getObjectByPath(name, &objectName[0]);
     if(object.isValid()) {
-        json_object *poVal = json_object_new_double (val);
+        json_object *poVal = json_object_new_double(val);
         json_object_object_add(object.m_jsonObject, objectName, poVal);
     }
 }
@@ -146,7 +146,7 @@ void JSONObject::add(const char *name, int val)
     char objectName[JSON_NAME_MAX_SIZE];
     JSONObject object = getObjectByPath(name, &objectName[0]);
     if(object.isValid()) {
-        json_object *poVal = json_object_new_int (val);
+        json_object *poVal = json_object_new_int(val);
         json_object_object_add(object.m_jsonObject, objectName, poVal);
     }
 }
@@ -158,12 +158,23 @@ void JSONObject::add(const char *name, long val)
     char objectName[JSON_NAME_MAX_SIZE];
     JSONObject object = getObjectByPath(name, &objectName[0]);
     if(object.isValid()) {
-        json_object *poVal = json_object_new_int64 (val);
+        json_object *poVal = json_object_new_int64(val);
         json_object_object_add(object.m_jsonObject, objectName, poVal);
     }
 }
 
 void JSONObject::add(const char *name, const JSONArray &val)
+{
+    if(nullptr == name)
+        return;
+    char objectName[JSON_NAME_MAX_SIZE];
+    JSONObject object = getObjectByPath(name, &objectName[0]);
+    if(object.isValid()) {
+        json_object_object_add(object.m_jsonObject, objectName, val.m_jsonObject);
+    }
+}
+
+void JSONObject::add(const char *name, const JSONObject &val)
 {
     if(nullptr == name)
         return;
@@ -181,7 +192,7 @@ void JSONObject::add(const char *name, bool val)
     char objectName[JSON_NAME_MAX_SIZE];
     JSONObject object = getObjectByPath(name, &objectName[0]);
     if(object.isValid()) {
-        json_object *poVal = json_object_new_boolean (val);
+        json_object *poVal = json_object_new_boolean(val);
         json_object_object_add(object.m_jsonObject, objectName, poVal);
     }
 }

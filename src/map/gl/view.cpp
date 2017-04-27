@@ -23,6 +23,11 @@
 
 #include "style.h"
 
+#ifdef _DEBUG
+#   include <chrono>
+#endif //DEBUG
+
+
 namespace ngs {
 
 GlView::GlView() : MapView()

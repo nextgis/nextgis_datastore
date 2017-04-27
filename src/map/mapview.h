@@ -36,6 +36,11 @@ public:
     virtual ~MapView() = default;
     virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress()) = 0;
 
+
+    // Map interface
+protected:
+    virtual bool openInternal(const JSONObject& root, MapFile * const mapFile) override;
+    virtual bool saveInternal(JSONObject &root, MapFile * const mapFile) override;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;
