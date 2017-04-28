@@ -97,7 +97,7 @@ void SimpleDataset::fillFeatureClasses()
     }
 }
 
-}
+} // namespace ngs
 
 
 

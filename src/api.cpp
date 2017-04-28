@@ -294,10 +294,9 @@ ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
     if(!container->hasChildren()) {
         if(container->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
             SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
-            ObjectPtr internalObject = simpleDS->getInternalObject();
             output = static_cast<ngsCatalogObjectInfo*>(
                         CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-            output[0] = {object->getName(), internalObject->getType()};
+            output[0] = {object->getName(), simpleDS->getSubType()};
             output[1] = {nullptr, -1};
             return output;
         }
@@ -317,12 +316,7 @@ ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
 
             if(child->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
                 SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
-                simpleDS->hasChildren();
-                ObjectPtr internalObject = simpleDS->getInternalObject();
-                if(internalObject) {
-                    output[outputSize - 1] = {child->getName(),
-                                              internalObject->getType()};
-                }
+                output[outputSize - 1] = {child->getName(), simpleDS->getSubType()};
             }
             else {
                 output[outputSize - 1] = {child->getName(),

@@ -46,6 +46,8 @@ public:
     virtual bool canPaste(const enum ngsCatalogObjectType) const override { return false; }
 
     // Dataset interface
+    enum ngsCatalogObjectType getSubType() const { return m_subType; }
+
 protected:
     virtual void fillFeatureClasses() override;
 

@@ -78,16 +78,7 @@ bool FeatureLayer::load(const JSONObject &store, ObjectContainer *objectContaine
         fcObject = Catalog::fromRelativePath(path, objectContainer);
     }
 
-    if(fcObject->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, fcObject);
-        simpleDS->hasChildren();
-        m_featureClass = std::dynamic_pointer_cast<FeatureClass>(
-                    simpleDS->getInternalObject());
-    }
-    else {
-        m_featureClass = std::dynamic_pointer_cast<FeatureClass>(fcObject);
-    }
-
+    m_featureClass = std::dynamic_pointer_cast<FeatureClass>(fcObject);
     if(m_featureClass)
         return true;
     return false;
@@ -96,25 +87,13 @@ bool FeatureLayer::load(const JSONObject &store, ObjectContainer *objectContaine
 JSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
 {
     JSONObject out = Layer::save(objectContainer);
-    ObjectContainer* parent = m_featureClass->getParent();
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        if(parent->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
-            out.add(LAYER_SOURCE_KEY, parent->getPath());
-        }
-        else {
-            out.add(LAYER_SOURCE_KEY, m_featureClass->getPath());
-        }
+        out.add(LAYER_SOURCE_KEY, m_featureClass->getPath());
     }
     else { // relative path
-        if(parent->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
-            out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(parent,
-                                                              objectContainer));
-        }
-        else {
-            out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(
-                        m_featureClass.get(), objectContainer));
-        }
+        out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_featureClass.get(),
+                                                          objectContainer));
     }
     return out;
 }
