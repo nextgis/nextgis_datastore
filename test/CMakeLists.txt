@@ -56,12 +56,16 @@ if(BUILD_TESTS)
     set(TEST_DATA_URL "https://raw.githubusercontent.com/nextgis/testdata/master")
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/download.cmake
-"file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/bld.shp ${CMAKE_CURRENT_BINARY_DIR}/data/bld.shp)
+"if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/data/bld.shp)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/bld.shp ${CMAKE_CURRENT_BINARY_DIR}/data/bld.shp)
 file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/bld.cpg ${CMAKE_CURRENT_BINARY_DIR}/data/bld.cpg)
 file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/bld.dbf ${CMAKE_CURRENT_BINARY_DIR}/data/bld.dbf)
 file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/bld.prj ${CMAKE_CURRENT_BINARY_DIR}/data/bld.prj)
 file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/bld.shx ${CMAKE_CURRENT_BINARY_DIR}/data/bld.shx)
-file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/railway.zip ${CMAKE_CURRENT_BINARY_DIR}/data/railway.zip)"
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/data/railway.zip)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/railway.zip ${CMAKE_CURRENT_BINARY_DIR}/data/railway.zip)
+endif()"
     )
 
     add_custom_target (clean_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/tmp" )
