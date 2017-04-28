@@ -78,7 +78,7 @@ public:
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h) const;
     size_t getLayerCount(unsigned char mapId) const;
     LayerPtr getLayer(unsigned char mapId, int layerId) const;
-    int createLayer(unsigned char mapId, const char* name, Dataset const * dataset);
+    int createLayer(unsigned char mapId, const char* name, const ObjectPtr &object);
     bool deleteLayer(unsigned char mapId, Layer* layer);
     bool reorderLayers(unsigned char mapId, Layer* beforeLayer, Layer* movedLayer);
 

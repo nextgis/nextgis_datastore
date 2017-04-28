@@ -289,12 +289,12 @@ LayerPtr MapStore::getLayer(unsigned char mapId, int layerId) const
 }
 
 int MapStore::createLayer(unsigned char mapId, const char *name,
-                          Dataset const * dataset)
+                          const ObjectPtr &object)
 {
     MapViewPtr map = getMap(mapId);
     if(!map)
         return NOT_FOUND;
-    int result = map->createLayer(name, dataset);
+    int result = map->createLayer(name, object);
     if(result != NOT_FOUND) {
         Notify::instance().onNotify(CPLSPrintf("%d#%d", mapId, result),
                                     ngsChangeCode::CC_CREATE_LAYER);

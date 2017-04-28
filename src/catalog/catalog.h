@@ -47,11 +47,16 @@ public:
     bool isFileHidden(const CPLString& path, const char* name);
     void setShowHidden(bool value);
 
+    // static
 public:
     static void setInstance(Catalog* pointer);
     static CatalogPtr getInstance();
     static CPLString getSeparator();
     static unsigned short getMaxPathLength();
+    static CPLString toRelativePath(const Object* object,
+                                    const ObjectContainer *objectContainer);
+    static ObjectPtr fromRelativePath(const char* path,
+                                      ObjectContainer *objectContainer);
 
 private:
     Catalog(Catalog const&) = delete;

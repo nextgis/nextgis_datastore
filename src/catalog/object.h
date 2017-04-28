@@ -50,7 +50,7 @@ public:
     virtual bool canDestroy() const { return false; }
     virtual bool rename(const CPLString &/*newName*/)  { return false; }
     virtual bool canRename() const  { return false; }
-    const ObjectContainer *getParent() const { return m_parent; }
+    ObjectContainer *getParent() const { return m_parent; }
 
 protected:
     void setName(const CPLString &value) { m_name = value; }

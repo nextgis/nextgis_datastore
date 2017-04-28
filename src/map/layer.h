@@ -28,10 +28,12 @@
 #include <vector>
 
 #include "catalog/objectcontainer.h"
+#include "ds/featureclass.h"
 
 namespace ngs {
 
 constexpr const char* LAYER_TYPE_KEY = "type";
+constexpr const char* DEFAULT_LAYER_NAME = "new layer";
 
 /**
  * @brief The Layer class - base class for any map layer.
@@ -47,10 +49,10 @@ public:
     };
 
 public:
-    Layer();
+    Layer(const CPLString& name = DEFAULT_LAYER_NAME, enum Type type = Type::Invalid);
     virtual ~Layer() = default;
     virtual bool load(const JSONObject& store,
-                      const ObjectContainer *objectContainer = nullptr);
+                      ObjectContainer *objectContainer = nullptr);
     virtual JSONObject save(const ObjectContainer * objectContainer = nullptr) const;
     const CPLString &getName() const { return m_name; }
     void setName(const CPLString &name) { m_name = name; }
@@ -61,6 +63,27 @@ protected:
 };
 
 typedef std::shared_ptr<Layer> LayerPtr;
+
+/**
+ * @brief The FeatureLayer class Layer with vector features
+ */
+class FeatureLayer : public Layer
+{
+public:
+    FeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+
+    void setFeatureClass(const FeatureClassPtr &featureClass) {
+        m_featureClass = featureClass;
+    }
+
+    // Layer interface
+public:
+    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
+    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+
+protected:
+    FeatureClassPtr m_featureClass;
+};
 
 }
 

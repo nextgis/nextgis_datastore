@@ -20,7 +20,13 @@
  ****************************************************************************/
 
 #include "map.h"
+
 #include "catalog/mapfile.h"
+#include "ds/simpledataset.h"
+#include "ngstore/catalog/filter.h"
+#include "ngstore/util/constants.h"
+#include "util/error.h"
+
 
 namespace ngs {
 
@@ -133,12 +139,38 @@ bool Map::close()
     return true;
 }
 
-int Map::createLayer(const char * name, Dataset const * /*dataset*/)
+int Map::createLayer(const char * name, const ObjectPtr &object)
 {
-    LayerPtr layer (new Layer());
-    layer->setName(name);
-    m_layers.push_back (layer);
-    return static_cast<int>(m_layers.size() - 1);
+    LayerPtr layer;
+    if(object->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
+        simpleDS->hasChildren();
+        ObjectPtr internalObject = simpleDS->getInternalObject();
+        if(internalObject) {
+            return createLayer(name, internalObject);
+        }
+    }
+
+
+    if(Filter::isFeatureClass(object->getType())) {
+        FeatureLayer* newLayer = new FeatureLayer(name);
+        FeatureClassPtr fc = std::dynamic_pointer_cast<FeatureClass>(object);
+        newLayer->setFeatureClass(fc);
+        layer.reset(newLayer);
+    }
+    else if(Filter::isRaster(object->getType())) {
+        // TODO: Add raster layer support
+    }
+
+    if(layer) {
+        m_layers.push_back(layer);
+        return static_cast<int>(m_layers.size() - 1);
+    }
+
+    errorMessage(ngsErrorCode::EC_INVALID,
+                 _("Source '%s' is not valid dataset"), object->getPath().c_str());
+
+    return NOT_FOUND;
 }
 
 bool Map::deleteLayer(Layer *layer)
@@ -187,9 +219,14 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
     return true;
 }
 
-LayerPtr Map::createLayer(Layer::Type /*type*/)
+LayerPtr Map::createLayer(Layer::Type type)
 {
-    return LayerPtr(new Layer);
+    switch (type) {
+    case Layer::Type::Vector:
+        return LayerPtr(new FeatureLayer());
+    default:
+        return LayerPtr(new Layer);
+    }
 }
 
 }

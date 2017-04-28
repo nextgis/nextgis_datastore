@@ -36,11 +36,15 @@ ObjectContainer::ObjectContainer(ObjectContainer * const parent,
 
 ObjectPtr ObjectContainer::getObject(const char *path)
 {
+    CPLString separator = Catalog::getSeparator();
+    // check relative paths
+    if(EQUALN("..", path, 2))
+        return m_parent->getObject(path + 2 + separator.size());
+
     hasChildren();
 
     CPLString searchName;
     size_t pathLen = CPLStrnlen(path, Catalog::getMaxPathLength());
-    CPLString separator = Catalog::getSeparator();
 
     // Get first element
     for(size_t i = 0; i < pathLen; ++i) {

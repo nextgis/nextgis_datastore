@@ -20,6 +20,9 @@
  ****************************************************************************/
 #include "catalog.h"
 
+// stl
+#include <algorithm>
+
 // gdal
 #include "cpl_conv.h"
 #include "api_priv.h"
@@ -155,6 +158,60 @@ CPLString Catalog::getSeparator()
 unsigned short Catalog::getMaxPathLength()
 {
     return 1024;
+}
+
+CPLString Catalog::toRelativePath(const Object *object,
+                                  const ObjectContainer *objectContainer)
+{
+    CPLString sep = getSeparator();
+    if(nullptr == object || nullptr == objectContainer)
+        return "";
+
+    std::vector<ObjectContainer*> parents;
+    ObjectContainer* parent = object->getParent();
+    if(parent == objectContainer) {
+        return "." + sep + object->getName();
+    }
+
+    while(parent != nullptr) {
+        parents.push_back(parent);
+        parent = parent->getParent();
+    }
+
+    CPLString prefix("..");
+    parent = objectContainer->getParent();
+    while(parent != nullptr) {
+        auto it = std::find(parents.begin(), parents.end(), parent);
+        if(it != parents.end()) {
+            --it; // skip common container
+            while(it != parents.begin()) {
+                prefix += sep + (*it)->getName();
+                --it;
+            }
+            prefix += sep + (*it)->getName();
+            return prefix += sep + object->getName();
+        }
+        prefix += sep + "..";
+        parent = parent->getParent();
+    }
+
+    return "";
+}
+
+ObjectPtr Catalog::fromRelativePath(const char *path,
+                                    ObjectContainer *objectContainer)
+{
+    CPLString sep = getSeparator();
+    // Remove separator from begining
+    if(EQUALN(sep, path, sep.size()))
+        path += sep.size();
+
+    if(EQUALN(".", path, 1) && EQUALN(sep, path + 1, sep.size())) {
+        return objectContainer->getObject(path + 1 + sep.size());
+    }
+    else {
+        return objectContainer->getObject(path);
+    }
 }
 
 #ifdef _WIN32

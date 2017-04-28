@@ -20,44 +20,28 @@
  ****************************************************************************/
 #include "layer.h"
 
+#include "catalog/catalog.h"
+#include "ds/simpledataset.h"
 #include "ngstore/util/constants.h"
 
 namespace ngs {
 
 constexpr const char* LAYER_NAME_KEY = "name";
-constexpr const char* DEFAULT_LAYER_NAME = "new layer";
+constexpr const char* LAYER_SOURCE_KEY = "src";
 
 //------------------------------------------------------------------------------
 // Layer
 //------------------------------------------------------------------------------
 
-Layer::Layer() : m_name(DEFAULT_LAYER_NAME), m_type(Layer::Type::Invalid)
+Layer::Layer(const CPLString &name, Type type) :
+    m_name(name),
+    m_type(type)
 {
 }
 
-bool Layer::load(const JSONObject& store, const ObjectContainer * /*objectContainer*/)
+bool Layer::load(const JSONObject& store, ObjectContainer * /*objectContainer*/)
 {
     m_name = store.getString(LAYER_NAME_KEY, DEFAULT_LAYER_NAME);
-// TODO: Check absolute or relative catalog path
-//    if(type & ngsDatasetType (Store)) {
-//        CPLString path = store.getString (LAYER_SOURCE, "");
-//        CPLString datasetName = CPLGetBasename (path);
-//        if(dataStore) {
-//            m_dataset = dataStore->getDataset (datasetName);
-//        }
-//        else {
-//            path = CPLGetDirname (path);
-//            // load dataset by path and name
-//            dataStore = DataStore::open (path);
-//            if(nullptr != dataStore) {
-//                if(mapPath.empty ())
-//                    m_dataset = dataStore->getDataset (datasetName);
-//                else
-//                    m_dataset = dataStore->getDataset (CPLFormFilename(mapPath,
-//                                                           datasetName, NULL));
-//            }
-//        }
-//    }
     return true;
 }
 
@@ -66,21 +50,73 @@ JSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
     JSONObject out;
     out.add(LAYER_NAME_KEY, m_name);
     out.add(LAYER_TYPE_KEY, static_cast<int>(m_type));
-// TODO: Check absolute or relative catalog path
-//    if(nullptr != m_dataset) {
-//        // relative or absolute path
-//        if(mapPath.empty ()) {
-//            out.add(LAYER_SOURCE, m_dataset->path ());
-//        }
-//        else {
-//            CPLString relPath = CPLExtractRelativePath(mapPath,
-//                                                       m_dataset->path (), NULL);
-//            if(relPath.empty ())
-//                relPath = m_dataset->path ();
-//            out.add(LAYER_SOURCE, relPath);
-//        }
-//    }
     return out;
 }
 
+//------------------------------------------------------------------------------
+// FeatureLayer
+//------------------------------------------------------------------------------
+
+FeatureLayer::FeatureLayer(const CPLString& name) : Layer(name, Type::Vector)
+{
 }
+
+
+bool FeatureLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+{
+    if(!Layer::load(store, objectContainer))
+        return false;
+
+    const char* path = store.getString(LAYER_SOURCE_KEY, "");
+    ObjectPtr fcObject;
+    // Check absolute or relative catalog path
+    if(nullptr == objectContainer) { // absolute path
+        CatalogPtr catalog = Catalog::getInstance();
+        fcObject = catalog->getObject(path);
+    }
+    else { // relative path
+        fcObject = Catalog::fromRelativePath(path, objectContainer);
+    }
+
+    if(fcObject->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, fcObject);
+        simpleDS->hasChildren();
+        m_featureClass = std::dynamic_pointer_cast<FeatureClass>(
+                    simpleDS->getInternalObject());
+    }
+    else {
+        m_featureClass = std::dynamic_pointer_cast<FeatureClass>(fcObject);
+    }
+
+    if(m_featureClass)
+        return true;
+    return false;
+}
+
+JSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
+{
+    JSONObject out = Layer::save(objectContainer);
+    ObjectContainer* parent = m_featureClass->getParent();
+    // Check absolute or relative catalog path
+    if(nullptr == objectContainer) { // absolute path
+        if(parent->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+            out.add(LAYER_SOURCE_KEY, parent->getPath());
+        }
+        else {
+            out.add(LAYER_SOURCE_KEY, m_featureClass->getPath());
+        }
+    }
+    else { // relative path
+        if(parent->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+            out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(parent,
+                                                              objectContainer));
+        }
+        else {
+            out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(
+                        m_featureClass.get(), objectContainer));
+        }
+    }
+    return out;
+}
+
+} // namespace ngs

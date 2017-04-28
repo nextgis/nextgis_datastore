@@ -267,19 +267,10 @@ void ngsFree(void *pointer)
 // Catalog
 //------------------------------------------------------------------------------
 
-/**
- * @brief ngsCatalogObjectQuery Queries name and type of child objects for
- * provided path and filter.
- * @param path The path inside catalog in form ngc://Local connections/tmp
- * @param filter Only objects correspondent to provided filter will be return.
- * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
- * after using with ngsFree method.
- */
-ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
+ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
+                                         const Filter& objectFilter)
 {
     CatalogPtr catalog = Catalog::getInstance();
-    // Create filter class from filter value.
-    Filter objectFilter(static_cast<enum ngsCatalogObjectType>(filter));
     ObjectPtr object = catalog->getObject(path);
     if(!object) {
         return nullptr;
@@ -343,6 +334,45 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
         output[outputSize] = {nullptr, -1};
     }
     return output;
+}
+
+/**
+ * @brief ngsCatalogObjectQuery Queries name and type of child objects for
+ * provided path and filter
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param filter Only objects correspondent to provided filter will be return
+ * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
+ * after using with ngsFree method
+ */
+ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
+{
+    // Create filter class from filter value.
+    Filter objectFilter(static_cast<enum ngsCatalogObjectType>(filter));
+
+    return catalogObjectQuery(path, objectFilter);
+}
+
+/**
+ * @brief ngsCatalogObjectQueryMultiFilter Queries name and type of child objects for
+ * provided path and filters
+ * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param filter Only objects correspondent to provided filters will be return.
+ * User mast delete filters array manually
+ * @param filterCount The filters count
+ * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
+ * after using with ngsFree method
+ */
+ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(const char *path,
+                                                       int *filters,
+                                                       int filterCount)
+{
+    // Create filter class from filter value.
+    MultiFilter objectFilter;
+    for(int i = 0; i < filterCount; ++i) {
+        objectFilter.addType(static_cast<enum ngsCatalogObjectType>(filters[i]));
+    }
+
+    return catalogObjectQuery(path, objectFilter);
 }
 
 /**
@@ -843,20 +873,14 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
         return NOT_FOUND;
     }
 
-    Dataset * const dataset = ngsDynamicCast(Dataset, object);
-    if(nullptr == dataset) {
-        errorMessage(ngsErrorCode::EC_INVALID,
-                            _("Source '%s' is not valid dataset"), path);
-        return NOT_FOUND;
-    }
-
-    return mapStore->createLayer(mapId, name, dataset);
+    return mapStore->createLayer(mapId, name, object);
 }
 
 /**
  * @brief ngsMapLayerReorder Reorder layers in map
  * @param mapId Map id
- * @param beforeLayer Before this layer insert movedLayer. May be null. In that case layer will be moved to the end of map
+ * @param beforeLayer Before this layer insert movedLayer. May be null. In that
+ * case layer will be moved to the end of map
  * @param movedLayer Layer to move
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
