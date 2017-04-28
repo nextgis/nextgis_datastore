@@ -20,17 +20,25 @@
  ****************************************************************************/
 #ifndef NGSGLMAPLAYER_H
 #define NGSGLMAPLAYER_H
-/*
-#include "mapview.h"
-#include "style.h"
+
+#include "map/layer.h"
+#include "map/mapview.h"
 
 namespace ngs {
 
-void FillGLBufferThread(void * layer);
+class GlFeatureLayer : public FeatureLayer, public IRenderLayer
+{
+public:
+    GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
 
-/**
- * @brief The RenderLayer class Base for renderable map layers
- *//*
+    // IRenderLayer interface
+public:
+    virtual void draw(ngsDrawState state, const Envelope &extent, double zoom,
+                      float level, const Progress &progress) override;
+};
+
+/*
+void FillGLBufferThread(void * layer);
 class RenderLayer : public Layer
 {
     friend class MapView;
@@ -112,7 +120,8 @@ public:
     RasterRenderLayer(const CPLString& name, DatasetPtr dataset);
     virtual ~RasterRenderLayer();
 };
-
-}
 */
+
+} // namespace ngs
+
 #endif // NGSGLMAPLAYER_H

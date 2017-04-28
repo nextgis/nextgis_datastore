@@ -41,7 +41,7 @@ Layer::Layer(const CPLString &name, Type type) :
 
 bool Layer::load(const JSONObject& store, ObjectContainer * /*objectContainer*/)
 {
-    m_name = store.getString(LAYER_NAME_KEY, DEFAULT_LAYER_NAME);
+    m_name = store.getString(LAYER_NAME_KEY, m_name);
     return true;
 }
 

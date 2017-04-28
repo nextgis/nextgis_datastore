@@ -44,12 +44,17 @@ public:
 public:
     virtual void setBackgroundColor(const ngsRGBA &color) override;
 
+    // Map interface
+protected:
+    virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
+                                 Layer::Type type = Layer::Type::Invalid) override;
+
     // MapView interface
 public:
     virtual bool draw(ngsDrawState state, const Progress &progress) override;
 
-private:
-    void clearBackground();
+protected:
+    virtual void clearBackground() override;
 
 #ifdef NGS_GL_DEBUG
     // Test functions

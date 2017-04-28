@@ -21,6 +21,7 @@
 
 #include "view.h"
 
+#include "layer.h"
 #include "style.h"
 
 #ifdef _DEBUG
@@ -59,22 +60,34 @@ void GlView::clearBackground()
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-
-bool GlView::draw(ngsDrawState state, const Progress &progress)
+LayerPtr GlView::createLayer(const char *name, Layer::Type type)
 {
-    clearBackground();
+    switch (type) {
+    case Layer::Type::Vector:
+        return LayerPtr(new GlFeatureLayer(name));
+    default:
+        return MapView::createLayer(name, type);
+    }
+
+}
 
 #ifdef NGS_GL_DEBUG
+bool GlView::draw(ngsDrawState /*state*/, const Progress &/*progress*/)
+#else
+bool GlView::draw(ngsDrawState state, const Progress &progress)
+#endif // NGS_GL_DEBUG
+{
+
+#ifdef NGS_GL_DEBUG
+    clearBackground();
     // Test drawing without layers
 //    testDrawPolygons();
 //    testDrawPoints();
     testDrawLines();
-#else
-    if(m_layers.empty()) {
-        return true;
-    }
-#endif // NGS_GL_DEBUG
     return true;
+#else
+    return MapView::draw(state, progress);
+#endif // NGS_GL_DEBUG
 }
 
 #ifdef NGS_GL_DEBUG
@@ -413,9 +426,10 @@ void GlView::testDrawLines() const
     buffer1.destroy();
 }
 
-
 #endif // NGS_GL_DEBUG
 
 } // namespace ngs
+
+
 
 

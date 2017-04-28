@@ -27,6 +27,21 @@
 
 namespace ngs {
 
+/**
+ * @brief The IRenderLayer class Interface for renderable map layers
+ */
+class IRenderLayer
+{
+public:
+    virtual ~IRenderLayer() = default;
+    virtual void draw(enum ngsDrawState state, const Envelope& extent,
+                      double zoom, float level,
+                      const Progress& progress = Progress()) = 0;
+};
+
+/**
+ * @brief The MapView class Base class for map with render support
+ */
 class MapView : public Map, public MapTransform
 {
 public:
@@ -34,13 +49,15 @@ public:
     MapView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope& bounds);
     virtual ~MapView() = default;
-    virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress()) = 0;
-
+    virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress());
 
     // Map interface
 protected:
     virtual bool openInternal(const JSONObject& root, MapFile * const mapFile) override;
     virtual bool saveInternal(JSONObject &root, MapFile * const mapFile) override;
+
+protected:
+    virtual void clearBackground() = 0;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;

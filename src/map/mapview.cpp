@@ -41,6 +41,24 @@ MapView::MapView(const CPLString &name, const CPLString &description,
 {
 }
 
+bool MapView::draw(ngsDrawState state, const Progress &progress)
+{
+    clearBackground();
+
+    if(m_layers.empty()) {
+        return true;
+    }
+
+    float level = 0;
+    for(auto it = m_layers.rbegin (); it != m_layers.rend (); ++it) {
+        LayerPtr layer = *it;
+        IRenderLayer* const renderLayer = ngsDynamicCast(IRenderLayer, layer);
+        renderLayer->draw(state, getExtent(), getZoom(), level++, progress);
+    }
+
+    return true;
+}
+
 bool MapView::openInternal(const JSONObject &root, MapFile * const mapFile)
 {
     if(!Map::openInternal(root, mapFile))

@@ -82,7 +82,7 @@ bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
         Layer::Type type = static_cast<Layer::Type>(
                     layerConfig.getInteger(LAYER_TYPE_KEY, 0));
         // load layer
-        LayerPtr layer = createLayer(type);
+        LayerPtr layer = createLayer(DEFAULT_LAYER_NAME, type);
         if(nullptr != layer) {
             if(layer->load(layerConfig, m_relativePaths ?
                            mapFile->getParent() : nullptr))
@@ -153,10 +153,10 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
 
 
     if(Filter::isFeatureClass(object->getType())) {
-        FeatureLayer* newLayer = new FeatureLayer(name);
+        layer = createLayer(name, Layer::Type::Vector);
+        FeatureLayer* newFCLayer = ngsStaticCast(FeatureLayer, layer);
         FeatureClassPtr fc = std::dynamic_pointer_cast<FeatureClass>(object);
-        newLayer->setFeatureClass(fc);
-        layer.reset(newLayer);
+        newFCLayer->setFeatureClass(fc);
     }
     else if(Filter::isRaster(object->getType())) {
         // TODO: Add raster layer support
@@ -219,12 +219,14 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
     return true;
 }
 
-LayerPtr Map::createLayer(Layer::Type type)
+LayerPtr Map::createLayer(const char* name, Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Vector:
-        return LayerPtr(new FeatureLayer());
-    default:
+        return LayerPtr(new FeatureLayer(name));
+    case Layer::Type::Raster:
+    case Layer::Type::Group:
+    case Layer::Type::Invalid:
         return LayerPtr(new Layer);
     }
 }

@@ -19,6 +19,22 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "layer.h"
+
+namespace ngs {
+
+GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
+{
+}
+
+
+void GlFeatureLayer::draw(ngsDrawState /*state*/, const Envelope &/*extent*/,
+                          double /*zoom*/, float /*level*/, const ngs::Progress &/*progress*/)
+{
+}
+
+} // namespace ngs
+
+
 /*
 #include <algorithm>
 #include <iostream>
@@ -457,3 +473,4 @@ int FeatureRenderLayer::getFidCount() const
     return fidCount;
 }
 */
+

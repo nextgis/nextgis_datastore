@@ -72,7 +72,8 @@ public:
     virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);
 
 protected:
-    virtual LayerPtr createLayer(enum Layer::Type type);
+    virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
+                                 enum Layer::Type type = Layer::Type::Invalid);
     virtual bool openInternal(const JSONObject& root, MapFile * const mapFile);
     virtual bool saveInternal(JSONObject &root, MapFile * const mapFile);
 
