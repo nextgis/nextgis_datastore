@@ -40,7 +40,6 @@ GlView::GlView(const CPLString &name, const CPLString &description,
                unsigned short epsg, const Envelope &bounds) :
     MapView(name, description, epsg, bounds)
 {
-
 }
 
 void GlView::setBackgroundColor(const ngsRGBA &color)
@@ -83,9 +82,12 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     // Test drawing without layers
 //    testDrawPolygons();
 //    testDrawPoints();
-    testDrawLines();
+//    testDrawLines();
+    testDrawTiledPolygons();
     return true;
 #else
+    //TODO: Free unnecessary Gl objects as this is call in Gl context
+
     return MapView::draw(state, progress);
 #endif // NGS_GL_DEBUG
 }
@@ -200,7 +202,6 @@ void GlView::testDrawPolygons() const
 //                            -2236992.0f, 3972353.0f, 0.5f,
 //                             5187591.0f, 4509961.0f, 0.5f
 //                           };
-
 
     SimpleFillStyle style;
 
@@ -424,6 +425,79 @@ void GlView::testDrawLines() const
 
 //    buffer2.destroy();
     buffer1.destroy();
+}
+
+void GlView::testDrawTiledPolygons() const
+{
+    CPLDebug("GlView", "Zoom is %d", getZoom());
+    std::vector<TileItem> tiles = getTilesForExtent(getExtent(), getZoom(),
+                                                    getYAxisInverted(), false);
+
+    TileItem tile = tiles[0];
+    GlBuffer tile0;
+    tile0.addVertex(tile.env.getMinX());
+    tile0.addVertex(tile.env.getMinY());
+    tile0.addVertex(0.0f);
+    tile0.addIndex(0);
+    tile0.addVertex(tile.env.getMinX());
+    tile0.addVertex(tile.env.getMaxY());
+    tile0.addVertex(0.0f);
+    tile0.addIndex(1);
+    tile0.addVertex(tile.env.getMaxX());
+    tile0.addVertex(tile.env.getMaxY());
+    tile0.addVertex(0.0f);
+    tile0.addIndex(2);
+    tile0.addVertex(tile.env.getMaxX());
+    tile0.addVertex(tile.env.getMinY());
+    tile0.addVertex(0.0f);
+    tile0.addIndex(0);
+    tile0.addIndex(2);
+    tile0.addIndex(3);
+
+
+//    GlBuffer buffer1;
+//    buffer1.addVertex(0.0f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addIndex(0);
+//    buffer1.addVertex(-8236992.95426f);
+//    buffer1.addVertex(4972353.09638f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addIndex(1);
+//    buffer1.addVertex(4187591.86613f);
+//    buffer1.addVertex(7509961.73580f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addIndex(2);
+
+//    GlBuffer buffer2;
+//    buffer2.addVertex(1000000.0f);
+//    buffer2.addVertex(-500000.0f);
+//    buffer2.addVertex(-0.5f);
+//    buffer2.addIndex(0);
+//    buffer2.addVertex(-2236992.0f);
+//    buffer2.addVertex(3972353.0f);
+//    buffer2.addVertex(0.5f);
+//    buffer2.addIndex(1);
+//    buffer2.addVertex(5187591.0f);
+//    buffer2.addVertex(4509961.0f);
+//    buffer2.addVertex(0.5f);
+//    buffer2.addIndex(2);
+
+//    // Draw in first tile
+
+//    // Draw tile in view
+
+    SimpleFillStyle style;
+
+    style.setColor({255, 0, 0, 255});
+    tile0.bind();
+    style.prepare(getSceneMatrix(), getInvViewMatrix());
+    style.draw(tile0);
+
+
+//    buffer2.destroy();
+//    buffer1.destroy();
+    tile0.destroy();
 }
 
 #endif // NGS_GL_DEBUG

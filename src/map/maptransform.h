@@ -53,7 +53,7 @@ public:
     bool setCenter(double x, double y);
     bool setScaleAndCenter(double scale, double x, double y);
     bool setExtent(const Envelope &env);
-    double getZoom() const;
+    unsigned char getZoom() const;
     double getScale() const { return m_scale; }
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
@@ -61,16 +61,33 @@ public:
     bool getXAxisLooped() const { return m_XAxisLooped; }
     bool getYAxisInverted() const { return m_YAxisInverted; }
 
+    // static
+public:
+    typedef struct _tile {
+        int x, y;
+        unsigned char z;
+        Envelope env;
+        char crossExtent;
+    } TileItem;
+    static std::vector<TileItem> getTilesForExtent(const Envelope &extent,
+                                                   unsigned char zoom,
+                                                   bool reverseY,
+                                                   bool unlimitX);
+
 protected:
     bool updateExtent();
     void initMatrices();
     void setRotateExtent();
 
 protected:
+    inline static double lg(double x) { return log(x) / M_LN2; }
+
+protected:
     int m_displayWidht, m_displayHeight;
+    double m_iniZoom;
     OGRRawPoint m_center;
     double m_rotate[3];
-    double m_scale, m_scaleScene, m_scaleView, m_scaleWorld;
+    double m_scale, m_scaleWorld; //m_scaleScene, m_scaleView,
     Envelope m_extent, m_rotateExtent;
     double m_ratio;
     bool m_YAxisInverted, m_XAxisLooped;

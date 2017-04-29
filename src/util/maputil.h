@@ -26,7 +26,7 @@
 
 #include "ogr_core.h"
 
-constexpr double LOG2 = 0.30102999566;
+constexpr double LOG2 = 0.30102999566; <-- Log10(2) - Error
 
 namespace ngs {
 

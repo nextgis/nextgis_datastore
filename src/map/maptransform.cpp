@@ -29,11 +29,14 @@
 namespace ngs {
 
 constexpr double DEFAULT_RATIO = 1.0;
+constexpr unsigned short TILE_ZIE = 256;
+constexpr unsigned short MAX_TILES_COUNT = 4096; // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
 
 MapTransform::MapTransform(int width, int height) :
     m_displayWidht(width),
     m_displayHeight(height),
-    m_rotate{0},
+    m_iniZoom(0.0),
+    m_rotate{0.0},
     m_ratio(DEFAULT_RATIO),
     m_YAxisInverted(false),
     m_XAxisLooped(true)
@@ -54,12 +57,14 @@ void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
     m_displayWidht = width;
     m_displayHeight = height;
+    m_iniZoom = std::min(double(m_displayWidht) / TILE_ZIE,
+                         double(m_displayHeight) / TILE_ZIE);
+
     m_YAxisInverted = isYAxisInverted;
 
-    double scaleX = fabs(double(m_displayWidht)) * .5;
-    double scaleY = fabs(double(m_displayHeight)) * .5;
-
-    m_scaleView = std::min(scaleX, scaleY);
+//    double scaleX = fabs(double(m_displayWidht)) * .5;
+//    double scaleY = fabs(double(m_displayHeight)) * .5;
+//    m_scaleView = std::min(scaleX, scaleY);
 
     m_ratio = double(width) / height;
 
@@ -110,9 +115,9 @@ bool MapTransform::setExtent(const Envelope &env)
     double scaleY = std::fabs(double(m_displayHeight) / h);
     m_scale = std::min(scaleX, scaleY);
 
-    scaleX = 1.0 / w;
-    scaleY = 1.0 / h;
-    m_scaleScene = std::min(scaleX, scaleY);
+//    scaleX = 1.0 / w;
+//    scaleY = 1.0 / h;
+//    m_scaleScene = std::min(scaleX, scaleY);
 
     scaleX = w / DEFAULT_BOUNDS_X2.getMaxX();
     scaleY = h / DEFAULT_BOUNDS_X2.getMaxY();
@@ -141,12 +146,12 @@ bool MapTransform::updateExtent()
     m_extent.setMinY(m_center.y - halfHeight);
     m_extent.setMaxY(m_center.y + halfHeight);
 
-    double scaleX = 1.0 / (halfWidth + halfWidth);
-    double scaleY = 1.0 / (halfHeight + halfHeight);
-    m_scaleScene = std::min(scaleX, scaleY);
+//    double scaleX = 1.0 / (halfWidth + halfWidth);
+//    double scaleY = 1.0 / (halfHeight + halfHeight);
+//    m_scaleScene = std::min(scaleX, scaleY);
 
-    scaleX = halfWidth / DEFAULT_BOUNDS.getMaxX();
-    scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
+    double scaleX = halfWidth / DEFAULT_BOUNDS.getMaxX();
+    double scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
     m_scaleWorld = 1 / std::min(scaleX, scaleY);
 
     if(m_XAxisLooped) {
@@ -176,7 +181,7 @@ bool MapTransform::updateExtent()
 void MapTransform::initMatrices()
 {
     // world -> scene matrix
-    m_sceneMatrix.clear ();
+    m_sceneMatrix.clear();
 
     if (m_YAxisInverted) {
         m_sceneMatrix.ortho(m_extent.getMinX(), m_extent.getMaxX(),
@@ -208,7 +213,7 @@ void MapTransform::initMatrices()
 
     double maxDeep = std::max(m_displayWidht, m_displayHeight);
 
-    m_invViewMatrix.ortho (0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);
+    m_invViewMatrix.ortho(0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);
 
     if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
         m_invViewMatrix.rotateX(-m_rotate[ngsDirection::DIR_X]);
@@ -265,9 +270,104 @@ void MapTransform::setRotateExtent()
     }
 }
 
-double MapTransform::getZoom() const {
-    double retVal = log(m_scaleWorld) / M_LN2;
-    return retVal < 0 ? 0 : retVal;
+unsigned char MapTransform::getZoom() const {
+    double retVal = m_iniZoom;
+    if (m_scaleWorld > 1) {
+        retVal += lg(m_scaleWorld);
+    } else if (m_scaleWorld < 1) {
+        retVal -= lg(1.0 / m_scaleWorld);
+    }
+    return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5);
+}
+
+std::vector<MapTransform::TileItem> MapTransform::getTilesForExtent(
+        const Envelope &extent, unsigned char zoom, bool reverseY, bool unlimitX)
+{
+    Envelope env;
+    std::vector<TileItem> result;
+    if(zoom == 0) { // If zoom 0 - return one tile
+        env = DEFAULT_BOUNDS;
+        TileItem item = { 0, 0, zoom, env, 0 };
+        result.push_back (item);
+        return result;
+    }
+    int tilesInMapOneDim = 1 << zoom;
+    double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
+    double tilesSizeOneDim = DEFAULT_BOUNDS.getMaxX() / halfTilesInMapOneDim;
+    int begX = static_cast<int>( floor(extent.getMinX() / tilesSizeOneDim +
+                                       halfTilesInMapOneDim) );
+    int begY = static_cast<int>( floor(extent.getMinY() / tilesSizeOneDim +
+                                       halfTilesInMapOneDim) );
+    int endX = static_cast<int>( ceil(extent.getMaxX() / tilesSizeOneDim +
+                                      halfTilesInMapOneDim) ) + 1;
+    int endY = static_cast<int>( ceil(extent.getMaxY() / tilesSizeOneDim +
+                                      halfTilesInMapOneDim) ) + 1;
+    if(begY == endY) {
+        endY++;
+    }
+    if(begX == endX) {
+        endX++;
+    }
+    if (begY < 0) {
+        begY = 0;
+    }
+    if (endY > tilesInMapOneDim) {
+        endY = tilesInMapOneDim;
+    }
+
+    // This block unlimited X scroll of the map
+    if(!unlimitX) {
+        if (begX < 0) {
+            begX = 0;
+        }
+        if (endX > tilesInMapOneDim) {
+            endX = tilesInMapOneDim;
+        }
+    }
+
+    // Normal fill from left bottom corner
+    int realX, realY;
+    char crossExt;
+    result.reserve(static_cast<size_t>((endX - begX) * (endY - begY)));
+    double fullBoundsMinX = DEFAULT_BOUNDS.getMinX();
+    double fullBoundsMinY = DEFAULT_BOUNDS.getMinY();
+    for (int x = begX; x < endX; ++x) {
+        for (int y = begY; y < endY; ++y) {
+            realX = x;
+            crossExt = 0;
+            if (realX < 0) {
+                crossExt = -1;
+                realX += tilesInMapOneDim;
+            } else if (realX >= tilesInMapOneDim) {
+                crossExt = 1;
+                realX -= tilesInMapOneDim;
+            }
+
+            realY = y;
+            if (reverseY) {
+                realY = tilesInMapOneDim - y - 1;
+            }
+
+            if (realY < 0 || realY >= tilesInMapOneDim) {
+                continue;
+            }
+
+            double minX = fullBoundsMinX + realX * tilesSizeOneDim;
+            double minY = fullBoundsMinY + realY * tilesSizeOneDim;
+            env.setMinX(minX);
+            env.setMaxX(minX + tilesSizeOneDim);
+            env.setMinY(minY);
+            env.setMaxY(minY + tilesSizeOneDim);
+            TileItem item = { realX, realY, zoom, env, crossExt };
+            result.push_back(item);
+
+            if(result.size() > MAX_TILES_COUNT) { // Limit for tiles array size
+                return result;
+            }
+        }
+    }
+
+    return result;
 }
 
 } // namespace ngs

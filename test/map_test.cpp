@@ -25,7 +25,7 @@
 #include "ds/datastore.h"
 #include "ngstore/util/constants.h"
 
-
+// TODO: Update/Fix unit test. Add GL offscreen rendering GL test
 static int counter = 0;
 
 int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,

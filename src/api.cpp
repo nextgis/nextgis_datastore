@@ -38,7 +38,6 @@
 using namespace ngs;
 
 // TODO: Tile vector data on load
-// TODO: Update/Fix unit test. Add GL offscreen rendering GL test
 // TODO: Add support to Framebuffer Objects rendering & Renderbuffer Objects
 
 
