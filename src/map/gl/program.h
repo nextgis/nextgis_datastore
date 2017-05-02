@@ -36,7 +36,7 @@ public:
     bool load(const GLchar * const vertexShader,
               const GLchar * const fragmentShader);
 
-    bool isLoad() const { return m_loaded; }
+    bool loaded() const { return m_loaded; }
     void use() const { ngsCheckGLError(glUseProgram(m_id)); }
     void setMatrix(const char* varName, std::array<GLfloat, 16> mat4f);
     void setColor(const char *varName, const GlColor& color);
@@ -60,8 +60,6 @@ protected:
     std::map<const char*, GLint> m_variables;
 };
 
-//typedef std::unique_ptr<GlProgram> GlProgramUPtr;
-
-}
+} // namespace ngs
 
 #endif // NGSGLPROGRAM_H

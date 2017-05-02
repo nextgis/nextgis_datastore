@@ -49,7 +49,7 @@ const GLchar* Style::getShaderSource(ShaderType type)
 
 bool Style::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 {
-    if (!m_program.isLoad()) {
+    if (!m_program.loaded()) {
         bool result = m_program.load(getShaderSource(Style::SH_VERTEX),
                                      getShaderSource(Style::SH_FRAGMENT));
         if(!result) {
@@ -71,9 +71,9 @@ void Style::draw(const GlBuffer& buffer) const
         return;
 
     ngsCheckGLError(glBindBuffer(
-            GL_ARRAY_BUFFER, buffer.getGlBufferId(GlBuffer::BF_VERTICES)));
+            GL_ARRAY_BUFFER, buffer.id(GlBuffer::BF_VERTICES)));
     ngsCheckGLError(glBindBuffer(
-            GL_ELEMENT_ARRAY_BUFFER, buffer.getGlBufferId(GlBuffer::BF_INDICES)));
+            GL_ELEMENT_ARRAY_BUFFER, buffer.id(GlBuffer::BF_INDICES)));
 }
 
 
@@ -256,7 +256,7 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
 {
     SimpleVectorStyle::draw(buffer);
 
-    ngsCheckGLError(glDrawElements(GL_POINTS, buffer.getIndexSize(),
+    ngsCheckGLError(glDrawElements(GL_POINTS, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));
 }
 
@@ -313,7 +313,7 @@ bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 void SimpleLineStyle::draw(const GlBuffer& buffer) const
 {
     SimpleVectorStyle::draw(buffer);
-    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.getIndexSize(),
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));
 }
 
@@ -359,7 +359,7 @@ bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
 void SimpleFillStyle::draw(const GlBuffer& buffer) const
 {
     SimpleVectorStyle::draw(buffer);
-    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.getIndexSize(),
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));
 }
 
@@ -441,16 +441,16 @@ void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
     SimpleVectorStyle::draw(buffer);
 
     ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                 buffer.getGlBufferId(GlBuffer::BF_INDICES)));
-    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.getIndexSize(),
+                                 buffer.id(GlBuffer::BF_INDICES)));
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
                                    GL_UNSIGNED_SHORT, 0));
 
     ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                 buffer.getGlBufferId(GlBuffer::BF_BORDER_INDICES)));
+                                 buffer.id(GlBuffer::BF_BORDER_INDICES)));
     m_program.setInt("u_isBorder", true);
 
     ngsCheckGLError(glDrawElements(GL_TRIANGLES,
-                                   buffer.getIndexSize(GlBuffer::BF_BORDER_INDICES),
+                                   buffer.indexSize(GlBuffer::BF_BORDER_INDICES),
                                    GL_UNSIGNED_SHORT, 0));
 }
 
@@ -461,7 +461,7 @@ constexpr const GLchar* const imageVertexShaderSource = R"(
     attribute vec3 a_mPosition;
 
     uniform mat4 u_msMatrix;
-    attribute vec2 a_texCoord;"
+    attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
 
     void main()
@@ -481,10 +481,7 @@ constexpr const GLchar* const imageFragmentShaderSource = R"(
     }
 )";
 
-SimpleImageStyle::SimpleImageStyle() : Style(),
-    m_imageData(nullptr),
-    m_width(0),
-    m_height(0)
+SimpleImageStyle::SimpleImageStyle() : Style()
 {
     m_vertexShaderSource = imageVertexShaderSource;
     m_fragmentShaderSource = imageFragmentShaderSource;
@@ -495,7 +492,11 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
     if (!Style::prepare(msMatrix, vsMatrix))
         return false;
 
-    m_program.setVertexAttribPointer("a_mPosition", 3, 0, 0);
+    m_image.bind();
+    m_program.setInt("s_texture", 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_texCoord", 2, 5 * sizeof(float),
+                            reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
 
     return true;
 }
@@ -503,8 +504,15 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 
 void SimpleImageStyle::draw(const GlBuffer& buffer) const
 {
+    if(!m_image.bound())
+        return;
+
     Style::draw(buffer);
-    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.getIndexSize(),
+
+    ngsCheckGLError(glActiveTexture(GL_TEXTURE0));
+    ngsCheckGLError(glBindTexture(GL_TEXTURE_2D, m_image.id()));
+
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));
 }
 

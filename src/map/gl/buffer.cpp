@@ -53,7 +53,7 @@ void GlBuffer::destroy()
     }
 }
 
-GLuint GlBuffer::getGlBufferId(GlBuffer::BufferType type) const
+GLuint GlBuffer::id(GlBuffer::BufferType type) const
 {
     switch (type) {
         case BF_VERTICES:
@@ -73,19 +73,19 @@ void GlBuffer::bind()
 
     ngsCheckGLError(glGenBuffers(GL_BUFFERS_COUNT, m_bufferIds.data()));
 
-    ngsCheckGLError(glBindBuffer(GL_ARRAY_BUFFER, getGlBufferId(BF_VERTICES)));
+    ngsCheckGLError(glBindBuffer(GL_ARRAY_BUFFER, id(BF_VERTICES)));
     GLsizeiptr size = static_cast<GLsizeiptr>(sizeof(GLfloat) * m_vertices.size());
     ngsCheckGLError(glBufferData(GL_ARRAY_BUFFER, size, m_vertices.data(),
             GL_STATIC_DRAW));
 
-    ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getGlBufferId(BF_INDICES)));
+    ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id(BF_INDICES)));
     size = static_cast<GLsizeiptr>(sizeof(GLushort) * m_indices.size());
     ngsCheckGLError(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, m_indices.data(),
             GL_STATIC_DRAW));
 
     if (!m_borderIndices.empty()) {
         ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                     getGlBufferId(BF_BORDER_INDICES)));
+                                     id(BF_BORDER_INDICES)));
         size = static_cast<GLsizeiptr>(sizeof(GLushort) * m_borderIndices.size());
         ngsCheckGLError(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size,
                 m_borderIndices.data(), GL_STATIC_DRAW));

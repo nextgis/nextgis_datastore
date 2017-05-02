@@ -39,6 +39,7 @@ set(HHEADERS
     gl/style.h
     gl/buffer.h
     gl/layer.h
+    gl/image.h
 )
 
 set(CSOURCES
@@ -55,6 +56,7 @@ set(CSOURCES
     gl/style.cpp
     gl/buffer.cpp
     gl/layer.cpp
+    gl/image.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

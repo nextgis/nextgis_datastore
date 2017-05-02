@@ -53,8 +53,8 @@ public:
                 + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE :
                                           VERTEX_SIZE)) < MAX_VERTEX_BUFFER_SIZE;
     }
-    GLuint getGlBufferId(GlBuffer::BufferType type) const;
-    GLsizei getIndexSize(GlBuffer::BufferType type = BF_INDICES) const {
+    GLuint id(GlBuffer::BufferType type) const;
+    GLsizei indexSize(GlBuffer::BufferType type = BF_INDICES) const {
         if(type == BF_INDICES)
             return static_cast<GLsizei>(m_indices.size());
         else

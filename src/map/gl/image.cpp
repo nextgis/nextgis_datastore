@@ -20,18 +20,41 @@
  ****************************************************************************/
 #include "image.h"
 
+#include "cpl_conv.h"
+
 namespace ngs {
 
-GlImage::GlImage() : GlObject()
+GlImage::GlImage() : GlObject(),
+    m_id(0)
 {
 }
 
 void GlImage::bind()
 {
+    if (m_bound)
+        return;
+    ngsCheckGLError(glGenTextures(1, &m_id));
+    ngsCheckGLError(glBindTexture(GL_TEXTURE_2D, m_id));
+    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+
+    ngsCheckGLError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0,
+                    GL_RGBA, GL_UNSIGNED_BYTE, m_imageData));
+    CPLFree(m_imageData);
+    m_imageData = nullptr;
+    m_bound = true;
 }
 
 void GlImage::destroy()
 {
+    if (m_bound) {
+        ngsCheckGLError(glDeleteTextures(1, &m_id));
+    }
+    else if(m_imageData) {
+        CPLFree(m_imageData);
+    }
 }
 
 } // namespace ngs

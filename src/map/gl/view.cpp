@@ -430,38 +430,117 @@ void GlView::testDrawLines() const
 
 void GlView::testDrawIcons() const
 {
+    GLubyte* chessData = static_cast<GLubyte*>(CPLMalloc(3 * 3 *
+                                                         sizeof(GLubyte) * 4));
+// 0
+    chessData[0] = 255;
+    chessData[1] = 255;
+    chessData[2] = 255;
+    chessData[3] = 255;
+// 1
+    chessData[4] = 0;
+    chessData[5] = 0;
+    chessData[6] = 0;
+    chessData[7] = 255;
+// 2
+    chessData[8] = 255;
+    chessData[9] = 255;
+    chessData[10] = 255;
+    chessData[11] = 255;
+// 3
+    chessData[12] = 0;
+    chessData[13] = 0;
+    chessData[14] = 0;
+    chessData[15] = 255;
+// 4
+    chessData[16] = 255;
+    chessData[17] = 255;
+    chessData[18] = 255;
+    chessData[19] = 255;
+// 5
+    chessData[20] = 0;
+    chessData[21] = 0;
+    chessData[22] = 0;
+    chessData[23] = 255;
+// 6
+    chessData[24] = 255;
+    chessData[25] = 255;
+    chessData[26] = 255;
+    chessData[27] = 255;
+// 7
+    chessData[28] = 0;
+    chessData[29] = 0;
+    chessData[30] = 0;
+    chessData[31] = 255;
+// 8
+    chessData[32] = 255;
+    chessData[33] = 255;
+    chessData[34] = 255;
+    chessData[35] = 255;
+
+    GlImage image;
+    image.setImage(chessData, 3, 3);
+
     GlBuffer buffer1;
     buffer1.addVertex(0.0f);
     buffer1.addVertex(0.0f);
     buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
     buffer1.addIndex(0);
-    buffer1.addVertex(-8236992.95426f);
-    buffer1.addVertex(4972353.09638f);
     buffer1.addVertex(0.0f);
+    buffer1.addVertex(5000000.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(1.0f);
     buffer1.addIndex(1);
-    buffer1.addVertex(4187591.86613f);
-    buffer1.addVertex(7509961.73580f);
+    buffer1.addVertex(5000000.0f);
+    buffer1.addVertex(5000000.0f);
     buffer1.addVertex(0.0f);
+    buffer1.addVertex(1.0f);
+    buffer1.addVertex(1.0f);
     buffer1.addIndex(2);
+    buffer1.addVertex(5000000.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(1.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addIndex(0);
+    buffer1.addIndex(2);
+    buffer1.addIndex(3);
+
+
+//    buffer1.addVertex(0.0f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addIndex(0);
+//    buffer1.addVertex(-8236992.95426f);
+//    buffer1.addVertex(4972353.09638f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addIndex(1);
+//    buffer1.addVertex(4187591.86613f);
+//    buffer1.addVertex(7509961.73580f);
+//    buffer1.addVertex(0.0f);
+//    buffer1.addIndex(2);
 
 //    GLfloat vVertices[] = { 0.0f,  0.0f, 0.0f,
 //                           -8236992.95426f, 4972353.09638f, 0.0f, // New York //-73.99416666f, 40.72833333f //
 //                            4187591.86613f, 7509961.73580f, 0.0f  // Moscow   //37.61777777f, 55.75583333f //
 //                          };
 
-    GlBuffer buffer2;
-    buffer2.addVertex(1000000.0f);
-    buffer2.addVertex(-500000.0f);
-    buffer2.addVertex(-0.5f);
-    buffer2.addIndex(0);
-    buffer2.addVertex(-2236992.0f);
-    buffer2.addVertex(3972353.0f);
-    buffer2.addVertex(0.5f);
-    buffer2.addIndex(1);
-    buffer2.addVertex(5187591.0f);
-    buffer2.addVertex(4509961.0f);
-    buffer2.addVertex(0.5f);
-    buffer2.addIndex(2);
+//    GlBuffer buffer2;
+//    buffer2.addVertex(1000000.0f);
+//    buffer2.addVertex(-500000.0f);
+//    buffer2.addVertex(-0.5f);
+//    buffer2.addIndex(0);
+//    buffer2.addVertex(-2236992.0f);
+//    buffer2.addVertex(3972353.0f);
+//    buffer2.addVertex(0.5f);
+//    buffer2.addIndex(1);
+//    buffer2.addVertex(5187591.0f);
+//    buffer2.addVertex(4509961.0f);
+//    buffer2.addVertex(0.5f);
+//    buffer2.addIndex(2);
 
 //    GLfloat vVertices2[] = { 1000000.0f,  -500000.0f, -0.5f,
 //                            -2236992.0f, 3972353.0f, 0.5f,
@@ -469,32 +548,19 @@ void GlView::testDrawIcons() const
 //                           };
 
 
-    SimplePointStyle style(SimplePointStyle::PT_CIRCLE);
+    SimpleImageStyle style;
+    style.setImage(image);
 
 
-    buffer2.bind();
-    style.setColor({0, 0, 0, 255});
-    style.setSize(27.5f);
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
-    style.draw(buffer2);
-    style.setColor({255, 0, 0, 255});
-    style.setSize(25.0f);
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
-    style.draw(buffer2);
+//    buffer2.bind();
+//    style.prepare(getSceneMatrix(), getInvViewMatrix());
+//    style.draw(buffer2);
 
-
-    style.setColor({0, 0, 0, 255});
-    style.setSize(18.5f);
-    style.setType(SimplePointStyle::PT_TRIANGLE);
     buffer1.bind();
     style.prepare(getSceneMatrix(), getInvViewMatrix());
     style.draw(buffer1);
-    style.setColor({0, 0, 255, 255});
-    style.setSize(16.0f);
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
-    style.draw(buffer1);
 
-    buffer2.destroy();
+//    buffer2.destroy();
     buffer1.destroy();
 }
 

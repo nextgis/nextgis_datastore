@@ -24,6 +24,7 @@
 #define NGSSTYLE_H
 
 #include "buffer.h"
+#include "image.h"
 #include "matrix.h"
 #include "program.h"
 
@@ -182,18 +183,15 @@ class SimpleImageStyle : public Style
 {
 public:
     SimpleImageStyle();
-    void setImage(GLubyte * imageData, GLsizei width, GLsizei height) {
-        m_imageData = imageData;
-        m_width = width;
-        m_height = height;
-    }
+    void setImage(const GlImage & image) { m_image = image; }
 
     // Style interface
 public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
     virtual void draw(const GlBuffer& buffer) const override;
 
-
+protected:
+    GlImage m_image;
 };
 
 

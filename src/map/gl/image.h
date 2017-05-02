@@ -29,15 +29,23 @@ class GlImage : public GlObject
 {
 public:
     GlImage();
+    void setImage(GLubyte * imageData, GLsizei width, GLsizei height) {
+        m_imageData = imageData;
+        m_width = width;
+        m_height = height;
+    }
 
     // GlObject interface
 public:
     virtual void bind() override;
     virtual void destroy() override;
 
+    GLuint id() const { return m_id; }
+
 protected:
     GLubyte * m_imageData;
     GLsizei m_width, m_height;
+    GLuint m_id;
 };
 
 } // namespace ngs
