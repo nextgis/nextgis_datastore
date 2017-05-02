@@ -76,6 +76,22 @@ typedef struct _glcolor {
 bool checkGLError(const char *cmd);
 void reportGlStatus(GLuint obj);
 
+/**
+ * @brief The GlObject class Base class for Gl objects
+ */
+class GlObject
+{
+public:
+    GlObject();
+    virtual ~GlObject() = default;
+    virtual void bind() = 0;
+    virtual bool bound() const { return m_bound; }
+    virtual void destroy() = 0;
+
+protected:
+    bool m_bound;
+};
+
 }
 
 #endif // NGSGLFUNCTIONS_H

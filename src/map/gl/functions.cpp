@@ -152,4 +152,8 @@ bool checkEGLError(const char *cmd) {
 }
 #endif // USE_EGL
 
+GlObject::GlObject() : m_bound(false)
+{
+}
+
 } // namespace ngs

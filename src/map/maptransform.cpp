@@ -277,7 +277,7 @@ unsigned char MapTransform::getZoom() const {
     } else if (m_scaleWorld < 1) {
         retVal -= lg(1.0 / m_scaleWorld);
     }
-    return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5);
+    return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5) - 1;
 }
 
 std::vector<MapTransform::TileItem> MapTransform::getTilesForExtent(

@@ -58,8 +58,6 @@ protected:
     GlProgram m_program;
 };
 
-using StyleUPtr = std::unique_ptr<Style>;
-
 //------------------------------------------------------------------------------
 // SimpleVectorStyle
 //------------------------------------------------------------------------------
@@ -164,7 +162,7 @@ public:
     float getBorderWidth() const { return m_borderWidth; }
     void setBorderWidth(float borderWidth) { m_borderWidth = borderWidth; }
     void setBorderColor(const ngsRGBA& color);
-//    void setBorderInicesCount(size_t count);
+//    void setBorderIndicesCount(size_t count);
 
     // Style interface
 public:
@@ -177,15 +175,27 @@ protected:
 };
 
 //------------------------------------------------------------------------------
-// SimpleRasterStyle
+// SimpleImageStyle
 //------------------------------------------------------------------------------
 
-class SimpleRasterStyle : public Style
+class SimpleImageStyle : public Style
 {
 public:
-    SimpleRasterStyle() {}
-    virtual ~SimpleRasterStyle() = default;
+    SimpleImageStyle();
+    void setImage(GLubyte * imageData, GLsizei width, GLsizei height) {
+        m_imageData = imageData;
+        m_width = width;
+        m_height = height;
+    }
+
+    // Style interface
+public:
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+    virtual void draw(const GlBuffer& buffer) const override;
+
+
 };
+
 
 }  // namespace ngs
 

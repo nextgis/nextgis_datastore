@@ -36,7 +36,7 @@ constexpr unsigned char VERTEX_WITH_NORMAL_SIZE = 5;
 //GL_UNSIGNED_SHORT, with a maximum value of 65,535
 constexpr unsigned short MAX_VERTEX_BUFFER_SIZE = 65535;
 
-class GlBuffer
+class GlBuffer : public GlObject
 {
 public:
     enum BufferType {
@@ -48,9 +48,6 @@ public:
     GlBuffer();
     ~GlBuffer();
 
-    void bind();
-    bool bound() const { return m_bound; }
-    void destroy();
     bool canStoreVertices(size_t amount, bool withNormals = false) const {
         return (m_vertices.size()
                 + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE :
@@ -70,12 +67,16 @@ public:
     void addBorderIndex(unsigned short value) { m_borderIndices.push_back(value); }
 #endif // _DEBUG
 
+    // GlObject interface
+public:
+    virtual void bind() override;
+    virtual void destroy() override;
+
 private:
     std::vector<GLfloat> m_vertices;
     std::vector<GLushort> m_indices;
     std::vector<GLushort> m_borderIndices;
     std::array<GLuint, GL_BUFFERS_COUNT> m_bufferIds;
-    bool m_bound;
 };
 
 } // namespace ngs

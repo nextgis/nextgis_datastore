@@ -62,6 +62,7 @@ private:
     void testDrawPoints() const;
     void testDrawPolygons() const;
     void testDrawLines() const;
+    void testDrawIcons() const;
     void testDrawTiledPolygons() const;
 #endif // NGS_GL_DEBUG
 

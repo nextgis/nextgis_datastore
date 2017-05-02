@@ -25,9 +25,8 @@ namespace ngs {
 constexpr GLuint GL_BUFFER_IVALID = 0;
 constexpr unsigned short MAX_INDEX_BUFFER_SIZE = 65535;
 
-GlBuffer::GlBuffer() :
-    m_bufferIds{{GL_BUFFER_IVALID,GL_BUFFER_IVALID,GL_BUFFER_IVALID}},
-    m_bound(false)
+GlBuffer::GlBuffer() : GlObject(),
+    m_bufferIds{{GL_BUFFER_IVALID,GL_BUFFER_IVALID,GL_BUFFER_IVALID}}
 {
     m_vertices.reserve(MAX_VERTEX_BUFFER_SIZE);
     m_indices.reserve(MAX_INDEX_BUFFER_SIZE);

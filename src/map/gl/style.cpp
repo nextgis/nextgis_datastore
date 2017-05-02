@@ -454,5 +454,58 @@ void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
                                    GL_UNSIGNED_SHORT, 0));
 }
 
+//------------------------------------------------------------------------------
+// SimpleImageStyle
+//------------------------------------------------------------------------------
+constexpr const GLchar* const imageVertexShaderSource = R"(
+    attribute vec3 a_mPosition;
+
+    uniform mat4 u_msMatrix;
+    attribute vec2 a_texCoord;"
+    varying vec2 v_texCoord;
+
+    void main()
+    {
+        gl_Position = u_msMatrix * vec4(a_mPosition, 1);
+        v_texCoord = a_texCoord;
+    }
+)";
+
+constexpr const GLchar* const imageFragmentShaderSource = R"(
+    varying vec2 v_texCoord;
+    uniform sampler2D s_texture;
+
+    void main()
+    {
+        gl_FragColor = texture2D( s_texture, v_texCoord );
+    }
+)";
+
+SimpleImageStyle::SimpleImageStyle() : Style(),
+    m_imageData(nullptr),
+    m_width(0),
+    m_height(0)
+{
+    m_vertexShaderSource = imageVertexShaderSource;
+    m_fragmentShaderSource = imageFragmentShaderSource;
+}
+
+bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
+{
+    if (!Style::prepare(msMatrix, vsMatrix))
+        return false;
+
+    m_program.setVertexAttribPointer("a_mPosition", 3, 0, 0);
+
+    return true;
+}
+
+
+void SimpleImageStyle::draw(const GlBuffer& buffer) const
+{
+    Style::draw(buffer);
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.getIndexSize(),
+            GL_UNSIGNED_SHORT, nullptr));
+}
 
 } // namespace ngs

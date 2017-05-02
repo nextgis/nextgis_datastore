@@ -42,10 +42,10 @@ public:
 
     Envelope getExtent() const { return m_rotateExtent; }
     OGRRawPoint getCenter() const { return m_center; }
-    OGRRawPoint worldToDisplay(const OGRRawPoint &pt) {
+    OGRRawPoint worldToDisplay(const OGRRawPoint &pt) const {
         return m_worldToDisplayMatrix.project(pt);
     }
-    OGRRawPoint displayToWorld(const OGRRawPoint &pt) {
+    OGRRawPoint displayToWorld(const OGRRawPoint &pt) const {
         return m_invWorldToDisplayMatrix.project(pt);
     }
     void setDisplaySize(int width, int height, bool isYAxisInverted);
