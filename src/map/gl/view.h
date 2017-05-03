@@ -60,10 +60,11 @@ protected:
     // Test functions
 private:
     void testDrawPoints() const;
-    void testDrawPolygons() const;
+    void testDrawPolygons(const Matrix4 &msMatrix, const Matrix4 &vsMatrix) const;
     void testDrawLines() const;
     void testDrawIcons() const;
     void testDrawTiledPolygons() const;
+    void testDrawTile(const TileItem &tile) const;
 #endif // NGS_GL_DEBUG
 
 private:

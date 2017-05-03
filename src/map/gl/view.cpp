@@ -81,9 +81,11 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 
 
 #ifdef NGS_GL_DEBUG
+//    setRotate(ngsDirection::DIR_Z, M_PI/6);
+
     clearBackground();
     // Test drawing without layers
-//    testDrawPolygons();
+    testDrawPolygons(getSceneMatrix(), getInvViewMatrix());
 //    testDrawPoints();
 //    testDrawLines();
 //    testDrawIcons();
@@ -167,7 +169,7 @@ void GlView::testDrawPoints() const
     buffer1.destroy();
 }
 
-void GlView::testDrawPolygons() const
+void GlView::testDrawPolygons(const Matrix4 &msMatrix, const Matrix4 &vsMatrix) const
 {
     GlBuffer buffer1;
     buffer1.addVertex(0.0f);
@@ -211,12 +213,12 @@ void GlView::testDrawPolygons() const
 
     style.setColor({255, 0, 0, 255});
     buffer2.bind();
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
+    style.prepare(msMatrix, vsMatrix);
     style.draw(buffer2);
 
     style.setColor({0, 0, 255, 255});
     buffer1.bind();
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
+    style.prepare(msMatrix, vsMatrix);
     style.draw(buffer1);
 
     buffer2.destroy();
@@ -567,19 +569,21 @@ void GlView::testDrawIcons() const
     buffer1.destroy();
 }
 
-void GlView::testDrawTiledPolygons() const
+void GlView::testDrawTile(const TileItem &tile) const
 {
-    CPLDebug("GlView", "Zoom is %d", getZoom());
-    std::vector<TileItem> tiles = getTilesForExtent(getExtent(), getZoom(),
-                                                    getYAxisInverted(), false);
+    // FIXME: Don't use NPOT texture. Use standard tile size 256 or 512. Is MPAA needed in this case - I think yes as SPAA is workonly in doublesized images?
 
-    TileItem tile = tiles[0];
+//        double beg = worldToDisplay(OGRRawPoint(tile.env.getMinX(), tile.env.getMinY())).x;
+//        double end = worldToDisplay(OGRRawPoint(tile.env.getMaxX(), tile.env.getMinY())).x;
 
-    // FIXME: Dont use NPOT texture. Use stundard tile size 256 or 512. Is MPAA needed in this case - I think yes as SPAA is workonly in doublesized images?
+//        double pixels = end - beg;
 
+//    int s = pixels + pixels + pixels + pixels;
+    int s = 512;
     GLuint framebuffer;
     GlImage image;
-    image.setImage(nullptr, 256, 256);
+    image.setImage(nullptr, s, s);
+    image.setSmooth(true);
     GLenum status;
     ngsCheckGLError(glGenFramebuffersEXT(1, &framebuffer));
     // Set up the FBO with one texture attachment
@@ -595,51 +599,29 @@ void GlView::testDrawTiledPolygons() const
     ngsCheckGLError(glClearColor(1.0f, 0.0f, 1.0f, 1.0f));
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
+    // Set transform matrix
+    Matrix4 sceneMat;
+    Matrix4 invViewMat;
+//    if (m_YAxisInverted) {
+//        sceneMat.ortho(tile.env.getMinX(), tile.env.getMaxX(),
+//                            tile.env.getMaxY(), tile.env.getMinY(),
+//                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
+//    } else {
+        sceneMat.ortho(tile.env.getMinX(), tile.env.getMaxX(),
+                            tile.env.getMinY(), tile.env.getMaxY(),
+                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
+//    }
+    invViewMat.ortho(0, s, 0, s, -1.0, 1.0);
+
+    GLint viewport[4];
+    glGetIntegerv( GL_VIEWPORT, viewport );
+
+    glViewport(0, 0, s, s);
+
     // Draw in first tile
-    GlBuffer buffer1;
-    buffer1.addVertex(0.0f);
-    buffer1.addVertex(0.0f);
-    buffer1.addVertex(0.0f);
-    buffer1.addIndex(0);
-    buffer1.addVertex(-8236992.95426f);
-    buffer1.addVertex(4972353.09638f);
-    buffer1.addVertex(0.0f);
-    buffer1.addIndex(1);
-    buffer1.addVertex(4187591.86613f);
-    buffer1.addVertex(7509961.73580f);
-    buffer1.addVertex(0.0f);
-    buffer1.addIndex(2);
+    testDrawPolygons(sceneMat, invViewMat);
 
-    GlBuffer buffer2;
-    buffer2.addVertex(1000000.0f);
-    buffer2.addVertex(-500000.0f);
-    buffer2.addVertex(-0.5f);
-    buffer2.addIndex(0);
-    buffer2.addVertex(-2236992.0f);
-    buffer2.addVertex(3972353.0f);
-    buffer2.addVertex(0.5f);
-    buffer2.addIndex(1);
-    buffer2.addVertex(5187591.0f);
-    buffer2.addVertex(4509961.0f);
-    buffer2.addVertex(0.5f);
-    buffer2.addIndex(2);
-
-    SimpleFillStyle style;
-
-    style.setColor({255, 0, 0, 255});
-    buffer2.bind();
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
-    style.draw(buffer2);
-
-    style.setColor({0, 0, 255, 255});
-    buffer1.bind();
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
-    style.draw(buffer1);
-
-//    double beg = worldToDisplay(OGRRawPoint(tile.env.getMinX(), tile.env.getMinY())).x;
-//    double end = worldToDisplay(OGRRawPoint(tile.env.getMaxX(), tile.env.getMinY())).x;
-
-//    double pixels = end - beg;
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
     GlBuffer tile0;
     tile0.addVertex(tile.env.getMinX());
@@ -682,16 +664,22 @@ void GlView::testDrawTiledPolygons() const
     style1.prepare(getSceneMatrix(), getInvViewMatrix());
     style1.draw(tile0);
 
-
-//    buffer2.destroy();
-//    buffer1.destroy();
     tile0.destroy();
     image.destroy();
 
-    buffer2.destroy();
-    buffer1.destroy();
-
     ngsCheckGLError(glDeleteFramebuffersEXT(1, &framebuffer));
+}
+
+void GlView::testDrawTiledPolygons() const
+{
+    CPLDebug("GlView", "Zoom is %d", getZoom());
+    std::vector<TileItem> tiles = getTilesForExtent(getExtent(), getZoom(),
+                                                    getYAxisInverted(), false);
+
+    testDrawTile(tiles[3]);
+    testDrawTile(tiles[2]);
+    testDrawTile(tiles[1]);
+    testDrawTile(tiles[0]);
 }
 
 #endif // NGS_GL_DEBUG

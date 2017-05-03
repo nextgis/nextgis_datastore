@@ -41,11 +41,13 @@ public:
     virtual void destroy() override;
 
     GLuint id() const { return m_id; }
+    void setSmooth(bool smooth) { m_smooth = smooth; }
 
 protected:
     GLubyte * m_imageData;
     GLsizei m_width, m_height;
     GLuint m_id;
+    bool m_smooth;
 };
 
 } // namespace ngs
