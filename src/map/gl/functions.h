@@ -75,6 +75,7 @@ typedef struct _glcolor {
 
 bool checkGLError(const char *cmd);
 void reportGlStatus(GLuint obj);
+void prepareContext();
 
 /**
  * @brief The GlObject class Base class for Gl objects

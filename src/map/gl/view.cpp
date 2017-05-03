@@ -76,6 +76,9 @@ bool GlView::draw(ngsDrawState /*state*/, const Progress &/*progress*/)
 bool GlView::draw(ngsDrawState state, const Progress &progress)
 #endif // NGS_GL_DEBUG
 {
+    // Prepare
+    prepareContext();
+
 
 #ifdef NGS_GL_DEBUG
     clearBackground();
@@ -83,8 +86,8 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 //    testDrawPolygons();
 //    testDrawPoints();
 //    testDrawLines();
-    testDrawIcons();
-//    testDrawTiledPolygons();
+//    testDrawIcons();
+    testDrawTiledPolygons();
     return true;
 #else
     //TODO: Free unnecessary Gl objects as this is call in Gl context
@@ -441,7 +444,7 @@ void GlView::testDrawIcons() const
     chessData[4] = 0;
     chessData[5] = 0;
     chessData[6] = 0;
-    chessData[7] = 255;
+    chessData[7] = 50;
 // 2
     chessData[8] = 255;
     chessData[9] = 255;
@@ -451,7 +454,7 @@ void GlView::testDrawIcons() const
     chessData[12] = 0;
     chessData[13] = 0;
     chessData[14] = 0;
-    chessData[15] = 255;
+    chessData[15] = 50;
 // 4
     chessData[16] = 255;
     chessData[17] = 255;
@@ -461,7 +464,7 @@ void GlView::testDrawIcons() const
     chessData[20] = 0;
     chessData[21] = 0;
     chessData[22] = 0;
-    chessData[23] = 255;
+    chessData[23] = 50;
 // 6
     chessData[24] = 255;
     chessData[25] = 255;
@@ -471,7 +474,7 @@ void GlView::testDrawIcons() const
     chessData[28] = 0;
     chessData[29] = 0;
     chessData[30] = 0;
-    chessData[31] = 255;
+    chessData[31] = 50;
 // 8
     chessData[32] = 255;
     chessData[33] = 255;
@@ -572,23 +575,17 @@ void GlView::testDrawTiledPolygons() const
 
     TileItem tile = tiles[0];
 
-    // FIXME: Dont use NPOT texture. Use stundard tile size 256 or 512. Is MPAA needed in this case - I think yes as SPAA is wokonly in doublesized images?
+    // FIXME: Dont use NPOT texture. Use stundard tile size 256 or 512. Is MPAA needed in this case - I think yes as SPAA is workonly in doublesized images?
 
-    GLuint framebuffer, texture;
+    GLuint framebuffer;
+    GlImage image;
+    image.setImage(nullptr, 256, 256);
     GLenum status;
     ngsCheckGLError(glGenFramebuffersEXT(1, &framebuffer));
     // Set up the FBO with one texture attachment
     ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffer));
-    ngsCheckGLError(glGenTextures(1, &texture));
-    ngsCheckGLError(glBindTexture(GL_TEXTURE_2D, texture));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-
-    ngsCheckGLError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 256, 256, 0,
-                    GL_RGBA, GL_UNSIGNED_BYTE, NULL));
-    ngsCheckGLError(glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, texture, 0));
+    image.bind();
+    ngsCheckGLError(glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, image.id(), 0));
     status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
     if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
         CPLDebug("GlView", "Texture failed %d", status);
@@ -598,6 +595,46 @@ void GlView::testDrawTiledPolygons() const
     ngsCheckGLError(glClearColor(1.0f, 0.0f, 1.0f, 1.0f));
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
+    // Draw in first tile
+    GlBuffer buffer1;
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addVertex(0.0f);
+    buffer1.addIndex(0);
+    buffer1.addVertex(-8236992.95426f);
+    buffer1.addVertex(4972353.09638f);
+    buffer1.addVertex(0.0f);
+    buffer1.addIndex(1);
+    buffer1.addVertex(4187591.86613f);
+    buffer1.addVertex(7509961.73580f);
+    buffer1.addVertex(0.0f);
+    buffer1.addIndex(2);
+
+    GlBuffer buffer2;
+    buffer2.addVertex(1000000.0f);
+    buffer2.addVertex(-500000.0f);
+    buffer2.addVertex(-0.5f);
+    buffer2.addIndex(0);
+    buffer2.addVertex(-2236992.0f);
+    buffer2.addVertex(3972353.0f);
+    buffer2.addVertex(0.5f);
+    buffer2.addIndex(1);
+    buffer2.addVertex(5187591.0f);
+    buffer2.addVertex(4509961.0f);
+    buffer2.addVertex(0.5f);
+    buffer2.addIndex(2);
+
+    SimpleFillStyle style;
+
+    style.setColor({255, 0, 0, 255});
+    buffer2.bind();
+    style.prepare(getSceneMatrix(), getInvViewMatrix());
+    style.draw(buffer2);
+
+    style.setColor({0, 0, 255, 255});
+    buffer1.bind();
+    style.prepare(getSceneMatrix(), getInvViewMatrix());
+    style.draw(buffer1);
 
 //    double beg = worldToDisplay(OGRRawPoint(tile.env.getMinX(), tile.env.getMinY())).x;
 //    double end = worldToDisplay(OGRRawPoint(tile.env.getMaxX(), tile.env.getMinY())).x;
@@ -608,72 +645,52 @@ void GlView::testDrawTiledPolygons() const
     tile0.addVertex(tile.env.getMinX());
     tile0.addVertex(tile.env.getMinY());
     tile0.addVertex(0.0f);
+    tile0.addVertex(0.0f);
+    tile0.addVertex(0.0f);
     tile0.addIndex(0);
     tile0.addVertex(tile.env.getMinX());
     tile0.addVertex(tile.env.getMaxY());
     tile0.addVertex(0.0f);
+    tile0.addVertex(0.0f);
+    tile0.addVertex(1.0f);
     tile0.addIndex(1);
     tile0.addVertex(tile.env.getMaxX());
     tile0.addVertex(tile.env.getMaxY());
     tile0.addVertex(0.0f);
+    tile0.addVertex(1.0f);
+    tile0.addVertex(1.0f);
     tile0.addIndex(2);
     tile0.addVertex(tile.env.getMaxX());
     tile0.addVertex(tile.env.getMinY());
+    tile0.addVertex(0.0f);
+    tile0.addVertex(1.0f);
     tile0.addVertex(0.0f);
     tile0.addIndex(0);
     tile0.addIndex(2);
     tile0.addIndex(3);
 
 
-//    GlBuffer buffer1;
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addIndex(0);
-//    buffer1.addVertex(-8236992.95426f);
-//    buffer1.addVertex(4972353.09638f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addIndex(1);
-//    buffer1.addVertex(4187591.86613f);
-//    buffer1.addVertex(7509961.73580f);
-//    buffer1.addVertex(0.0f);
-//    buffer1.addIndex(2);
-
-//    GlBuffer buffer2;
-//    buffer2.addVertex(1000000.0f);
-//    buffer2.addVertex(-500000.0f);
-//    buffer2.addVertex(-0.5f);
-//    buffer2.addIndex(0);
-//    buffer2.addVertex(-2236992.0f);
-//    buffer2.addVertex(3972353.0f);
-//    buffer2.addVertex(0.5f);
-//    buffer2.addIndex(1);
-//    buffer2.addVertex(5187591.0f);
-//    buffer2.addVertex(4509961.0f);
-//    buffer2.addVertex(0.5f);
-//    buffer2.addIndex(2);
-
-//    // Draw in first tile
 
 //    // Draw tile in view
     // Make the window the target
     ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 1)); // 0 - back, 1 - front.
 
-    SimpleFillStyle style; //SimpleImageStyle TileFBO draw
+    SimpleImageStyle style1; //SimpleImageStyle TileFBO draw
 
-    style.setColor({255, 0, 0, 255});
+    style1.setImage(image);
     tile0.bind();
-    style.prepare(getSceneMatrix(), getInvViewMatrix());
-    style.draw(tile0);
+    style1.prepare(getSceneMatrix(), getInvViewMatrix());
+    style1.draw(tile0);
 
 
 //    buffer2.destroy();
 //    buffer1.destroy();
     tile0.destroy();
+    image.destroy();
 
+    buffer2.destroy();
+    buffer1.destroy();
 
-
-    ngsCheckGLError(glDeleteTextures(1, &texture));
     ngsCheckGLError(glDeleteFramebuffersEXT(1, &framebuffer));
 }
 

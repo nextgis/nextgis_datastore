@@ -152,6 +152,21 @@ bool checkEGLError(const char *cmd) {
 }
 #endif // USE_EGL
 
+
+void prepareContext()
+{
+    // FIXME: Is this Mac OS X specific?
+    ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
+    ngsCheckGLError(glEnable(GL_MULTISAMPLE));
+// NOTE: In usual cases no need in depth test
+//    ngsCheckGLError(glEnable(GL_DEPTH_TEST));
+//    ngsCheckGLError(glDepthFunc(GL_LEQUAL));
+//    ngsCheckGLError(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
+//    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    ngsCheckGLError(glEnable(GL_BLEND));
+}
+
 GlObject::GlObject() : m_bound(false)
 {
 }
