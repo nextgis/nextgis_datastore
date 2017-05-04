@@ -57,7 +57,7 @@ class IRenderLayer
 {
 public:
     virtual ~IRenderLayer() = default;
-    virtual double draw(enum ngsDrawState state, const MapView* map, float level,
+    virtual double draw(enum ngsDrawState state, MapView* map, float level,
                         const Progress& progress = Progress()) = 0;
 };
 

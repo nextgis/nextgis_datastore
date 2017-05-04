@@ -32,6 +32,13 @@ namespace ngs {
 class MapTransform
 {
 public:
+    typedef struct _tile {
+        int x, y;
+        unsigned char z;
+        Envelope env;
+        char crossExtent;
+    } TileItem;
+public:
     MapTransform(int width, int height);
     virtual ~MapTransform() = default;
 
@@ -60,15 +67,13 @@ public:
 
     bool getXAxisLooped() const { return m_XAxisLooped; }
     bool getYAxisInverted() const { return m_YAxisInverted; }
+    std::vector<TileItem> getTilesForExtent() const {
+        return getTilesForExtent(getExtent(), getZoom(), getYAxisInverted(),
+                                 getXAxisLooped());
+    }
 
     // static
 public:
-    typedef struct _tile {
-        int x, y;
-        unsigned char z;
-        Envelope env;
-        char crossExtent;
-    } TileItem;
     static std::vector<TileItem> getTilesForExtent(const Envelope &extent,
                                                    unsigned char zoom,
                                                    bool reverseY,

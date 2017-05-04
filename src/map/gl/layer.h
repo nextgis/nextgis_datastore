@@ -33,7 +33,7 @@ public:
 
     // IRenderLayer interface
 public:
-    virtual double draw(ngsDrawState state, const MapView* map,
+    virtual double draw(ngsDrawState state, MapView *map,
                       float level, const Progress &progress) override;
 };
 

@@ -19,6 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "layer.h"
+#include "view.h"
 
 namespace ngs {
 
@@ -27,8 +28,14 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
 }
 
 
-double GlFeatureLayer::draw(ngsDrawState /*state*/, const MapView */*map*/, float /*level*/, const ngs::Progress &/*progress*/)
+double GlFeatureLayer::draw(ngsDrawState /*state*/, MapView *map, float /*level*/, const ngs::Progress &/*progress*/)
 {
+    const GlView* view = dynamic_cast<GlView*>(map);
+    std::vector<MapTransform::TileItem> tile = view->getTilesForExtent();
+    // TODO: cache tile array
+    // TODO: check if loading thread exist. if not - start it and retorn 0.0, else for ech tile check load state nd return load %.
+    // TODO: What to deal with not ngstore layers? Create vector tile and cache it
+
     return 1.0;
 }
 
@@ -36,19 +43,6 @@ double GlFeatureLayer::draw(ngsDrawState /*state*/, const MapView */*map*/, floa
 
 
 /*
-#include <algorithm>
-#include <iostream>
-
-#include "ds/featuredataset.h"
-#include "ngstore/util/constants.h"
-#include "util/geometryutil.h"
-
-#ifdef _DEBUG
-#  include <chrono>
-#endif //DEBUG
-
-using namespace ngs;
-
 const int MAX_FID_COUNT = 500000;
 
 void ngs::FillGLBufferThread(void * layer)
