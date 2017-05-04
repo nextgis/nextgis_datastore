@@ -25,9 +25,10 @@
  * @brief The NextGIS store and visualisation library error codes enum
  */
 enum ngsErrorCode {
-    EC_SUCCESS = 200,      /**< Success */
-    EC_IN_PROCESS,         /**< In process */
+    EC_CONTINUE = 100,     /**< Contine */
     EC_PENDING,            /**< Pending */
+    EC_IN_PROCESS,         /**< In process */
+    EC_SUCCESS = 200,      /**< Success */
     EC_CANCELED,           /**< Canceled */
     EC_FINISHED,           /**< Finished */
     EC_WARNING = 300,      /**< Warning, not error */

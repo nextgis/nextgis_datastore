@@ -27,7 +27,7 @@
 #include "functions.h"
 
 #ifdef _DEBUG
-#define NGS_GL_DEBUG
+//#define NGS_GL_DEBUG
 #endif
 
 namespace ngs {

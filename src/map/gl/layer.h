@@ -33,7 +33,7 @@ public:
 
     // IRenderLayer interface
 public:
-    virtual void draw(ngsDrawState state, const Envelope &extent, double zoom,
+    virtual double draw(ngsDrawState state, const Envelope &extent, double zoom,
                       float level, const Progress &progress) override;
 };
 

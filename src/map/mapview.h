@@ -34,7 +34,7 @@ class IRenderLayer
 {
 public:
     virtual ~IRenderLayer() = default;
-    virtual void draw(enum ngsDrawState state, const Envelope& extent,
+    virtual double draw(enum ngsDrawState state, const Envelope& extent,
                       double zoom, float level,
                       const Progress& progress = Progress()) = 0;
 };

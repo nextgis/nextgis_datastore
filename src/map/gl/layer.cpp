@@ -27,9 +27,10 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
 }
 
 
-void GlFeatureLayer::draw(ngsDrawState /*state*/, const Envelope &/*extent*/,
+double GlFeatureLayer::draw(ngsDrawState /*state*/, const Envelope &/*extent*/,
                           double /*zoom*/, float /*level*/, const ngs::Progress &/*progress*/)
 {
+    return 1.0;
 }
 
 } // namespace ngs
