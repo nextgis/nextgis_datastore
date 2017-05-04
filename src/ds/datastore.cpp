@@ -248,14 +248,14 @@ bool DataStore::create(const char *path)
 {
     CPLErrorReset();
     if(nullptr == path || EQUAL(path, "")) {
-        return errorMessage(ngsErrorCode::EC_CREATE_FAILED,
+        return errorMessage(ngsCode::COD_CREATE_FAILED,
                             _("The path is empty"));
     }
 
     GDALDriver *poDriver = Filter::getGDALDriver(
                 ngsCatalogObjectType::CAT_CONTAINER_NGS);
     if(poDriver == nullptr) {
-        return errorMessage(ngsErrorCode::EC_CREATE_FAILED,
+        return errorMessage(ngsCode::COD_CREATE_FAILED,
                             _("GeoPackage driver is not present"));
     }
 
@@ -267,7 +267,7 @@ bool DataStore::create(const char *path)
 
     // Create system tables
     if(!createMetadataTable(DS))
-        return errorMessage(ngsErrorCode::EC_CREATE_FAILED,
+        return errorMessage(ngsCode::COD_CREATE_FAILED,
                             _("Create metadata table failed"));
 
     /* TODO: Add raster and attachments support
@@ -299,7 +299,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     // check version and upgrade if needed
     OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
     if(nullptr == pMetadataLayer) {
-        return errorMessage(ngsErrorCode::EC_OPEN_FAILED, _("Invalid structure"));
+        return errorMessage(ngsCode::COD_OPEN_FAILED, _("Invalid structure"));
     }
 
     pMetadataLayer->ResetReading();
@@ -310,7 +310,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
             if(nVersion < NGS_VERSION_NUM) {
                 // Upgrade database if needed
                 if(!upgrade(nVersion)) {
-                    return errorMessage(ngsErrorCode::EC_OPEN_FAILED,
+                    return errorMessage(ngsCode::COD_OPEN_FAILED,
                                         _("Upgrade storage failed"));
                 }
             }

@@ -46,7 +46,7 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
     clearBackground();
 
     if(m_layers.empty()) {
-        progress.onProgress(ngsErrorCode::EC_FINISHED, 1.0,
+        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
                             _("No layers. Nothing to render."));
         return true;
     }
@@ -60,11 +60,11 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
     }
 
     if(isEqual(done, m_layers.size())) {
-        progress.onProgress(ngsErrorCode::EC_FINISHED, 1.0,
+        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
                             _("Map render finished."));
     }
     else {
-        progress.onProgress(ngsErrorCode::EC_IN_PROCESS, done / m_layers.size(),
+        progress.onProgress(ngsCode::COD_IN_PROCESS, done / m_layers.size(),
                             _("Rendering ..."));
     }
 

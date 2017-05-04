@@ -29,9 +29,9 @@ namespace ngs {
 static CPLLock *hAtomicOpLock = nullptr;
 static CPLString lastMsg;
 
-int errorMessage(enum ngsErrorCode errorCode, const char *fmt, ...)
+int errorMessage(enum ngsCode errorCode, const char *fmt, ...)
 {
-    if(errorCode >= ngsErrorCode::EC_UNEXPECTED_ERROR) {
+    if(errorCode >= ngsCode::COD_UNEXPECTED_ERROR) {
         va_list args;
 
         // Expand the error message
@@ -44,9 +44,9 @@ int errorMessage(enum ngsErrorCode errorCode, const char *fmt, ...)
     return errorCode;
 }
 
-int warningMessage(enum ngsErrorCode errorCode, const char *fmt, ...)
+int warningMessage(enum ngsCode errorCode, const char *fmt, ...)
 {
-    if(errorCode >= ngsErrorCode::EC_UNEXPECTED_ERROR) {
+    if(errorCode >= ngsCode::COD_UNEXPECTED_ERROR) {
         va_list args;
 
         // Expand the error message

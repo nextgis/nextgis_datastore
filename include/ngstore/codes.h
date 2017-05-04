@@ -22,34 +22,34 @@
 #define NGSCODES_H
 
 /**
- * @brief The NextGIS store and visualisation library error codes enum
+ * @brief The NextGIS store and visualisation library codes enum
  */
-enum ngsErrorCode {
-    EC_CONTINUE = 100,     /**< Contine */
-    EC_PENDING,            /**< Pending */
-    EC_IN_PROCESS,         /**< In process */
-    EC_SUCCESS = 200,      /**< Success */
-    EC_CANCELED,           /**< Canceled */
-    EC_FINISHED,           /**< Finished */
-    EC_WARNING = 300,      /**< Warning, not error */
-    EC_UNEXPECTED_ERROR = 400,   /**< Unexpected error */
-    EC_NOT_SPECIFIED,      /**< Path, value, etc. is not specified */
-    EC_INVALID,            /**< Path, map, structure, etc. is invalid */
-    EC_UNSUPPORTED,        /**< The feature is unsupported */
-    EC_CREATE_FAILED,      /**< Create failed */
-    EC_DELETE_FAILED,      /**< Failed to delete file, folder or something else */
-    EC_SAVE_FAILED,        /**< Failed to save file, folder or something else */
-    EC_SET_FAILED,         /**< Failed to set value */
-    EC_GET_FAILED,         /**< Failed to get value */
-    EC_OPEN_FAILED,        /**< Failed to open file, folder or something else */
-    EC_INSERT_FAILED,      /**< Insert new feature failed */
-    EC_UPDATE_FAILED,      /**< Update feature failed */
-    EC_INIT_FAILED,        /**< Initialise failed */
-    EC_COPY_FAILED,        /**< Copy failed */
-    EC_MOVE_FAILED,        /**< Move failed */
-    EC_CLOSE_FAILED,       /**< Close failed */
-    EC_RENAME_FAILED,      /**< Rename failed */
-    EC_DRAW_FAILED         /**< Draw failed */
+enum ngsCode {
+    COD_CONTINUE = 100,     /**< Contine */
+    COD_PENDING,            /**< Pending */
+    COD_IN_PROCESS,         /**< In process */
+    COD_SUCCESS = 200,      /**< Success */
+    COD_CANCELED,           /**< Canceled */
+    COD_FINISHED,           /**< Finished */
+    COD_WARNING = 300,      /**< Warning, not error */
+    COD_UNEXPECTED_ERROR = 400,   /**< Unexpected error */
+    COD_NOT_SPECIFIED,      /**< Path, value, etc. is not specified */
+    COD_INVALID,            /**< Path, map, structure, etc. is invalid */
+    COD_UNSUPPORTED,        /**< The feature is unsupported */
+    COD_CREATE_FAILED,      /**< Create failed */
+    COD_DELETE_FAILED,      /**< Failed to delete file, folder or something else */
+    COD_SAVE_FAILED,        /**< Failed to save file, folder or something else */
+    COD_SET_FAILED,         /**< Failed to set value */
+    COD_GET_FAILED,         /**< Failed to get value */
+    COD_OPEN_FAILED,        /**< Failed to open file, folder or something else */
+    COD_INSERT_FAILED,      /**< Insert new feature failed */
+    COD_UPDATE_FAILED,      /**< Update feature failed */
+    COD_INIT_FAILED,        /**< Initialise failed */
+    COD_COPY_FAILED,        /**< Copy failed */
+    COD_MOVE_FAILED,        /**< Move failed */
+    COD_CLOSE_FAILED,       /**< Close failed */
+    COD_RENAME_FAILED,      /**< Rename failed */
+    COD_DRAW_FAILED         /**< Draw failed */
 };
 
 /**

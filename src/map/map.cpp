@@ -167,7 +167,7 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
         return static_cast<int>(m_layers.size() - 1);
     }
 
-    errorMessage(ngsErrorCode::EC_INVALID,
+    errorMessage(ngsCode::COD_INVALID,
                  _("Source '%s' is not valid dataset"), object->getPath().c_str());
 
     return NOT_FOUND;

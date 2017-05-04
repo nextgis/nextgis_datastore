@@ -25,9 +25,9 @@
 
 namespace ngs {
 
-int errorMessage(enum ngsErrorCode errorCode, const char *fmt, ...);
+int errorMessage(enum ngsCode errorCode, const char *fmt, ...);
 bool errorMessage(const char *fmt, ...);
-int warningMessage(enum ngsErrorCode errorCode, const char *fmt, ...);
+int warningMessage(enum ngsCode errorCode, const char *fmt, ...);
 void warningMessage(const char *fmt, ...);
 const char* getLastError();
 

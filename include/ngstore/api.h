@@ -63,7 +63,7 @@ typedef struct _ngsCatalogObjectInfo {
  * @param progressArguments Some user data or null pointer
  * @return 1 to continue execute process or 0 - to cancel
  */
-typedef int (*ngsProgressFunc)(enum ngsErrorCode status,
+typedef int (*ngsProgressFunc)(enum ngsCode status,
                                double complete,
                                const char* message,
                                void* progressArguments);

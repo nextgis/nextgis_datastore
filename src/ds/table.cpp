@@ -186,10 +186,10 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
                      const Progress& progress)
 {
     if(!srcTable) {
-        return errorMessage(ngsErrorCode::EC_COPY_FAILED, _("Source table is invalid"));
+        return errorMessage(ngsCode::COD_COPY_FAILED, _("Source table is invalid"));
     }
 
-    progress.onProgress(ngsErrorCode::EC_IN_PROCESS, 0.0,
+    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
                        srcTable->getName().c_str(), m_name.c_str());
 
@@ -199,28 +199,28 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     FeaturePtr feature;
     while((feature = srcTable->nextFeature ())) {
         double complete = counter / featureCount;
-        if(!progress.onProgress(ngsErrorCode::EC_IN_PROCESS, complete,
+        if(!progress.onProgress(ngsCode::COD_IN_PROCESS, complete,
                            _("Copy in process ..."))) {
-            return  ngsErrorCode::EC_CANCELED;
+            return  ngsCode::COD_CANCELED;
         }
 
         FeaturePtr dstFeature = createFeature();
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            if(!progress.onProgress(ngsErrorCode::EC_WARNING, complete,
+            if(!progress.onProgress(ngsCode::COD_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
                                feature->GetFID ())) {
-               return  ngsErrorCode::EC_CANCELED;
+               return  ngsCode::COD_CANCELED;
             }
         }
         counter++;
     }
 
-    progress.onProgress(ngsErrorCode::EC_FINISHED, 1.0, _("Done. Copied %d rows"),
+    progress.onProgress(ngsCode::COD_FINISHED, 1.0, _("Done. Copied %d rows"),
                        int(counter));
 
-    return ngsErrorCode::EC_SUCCESS;
+    return ngsCode::COD_SUCCESS;
 }
 
 OGRFeatureDefn *Table::getDefinition() const

@@ -79,7 +79,7 @@ int Matrix4::invert()
         det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
     if (det == 0.0) {
-        return ngsErrorCode::EC_UNSUPPORTED;
+        return ngsCode::COD_UNSUPPORTED;
     }
     det = 1.0 / det;
 
@@ -100,7 +100,7 @@ int Matrix4::invert()
     m_values[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
     m_values[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
 
-    return ngsErrorCode::EC_SUCCESS;
+    return ngsCode::COD_SUCCESS;
 }
 
 void Matrix4::ortho(double left, double right, double bottom, double top,
