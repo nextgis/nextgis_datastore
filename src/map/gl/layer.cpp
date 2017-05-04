@@ -27,8 +27,7 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
 }
 
 
-double GlFeatureLayer::draw(ngsDrawState /*state*/, const Envelope &/*extent*/,
-                          double /*zoom*/, float /*level*/, const ngs::Progress &/*progress*/)
+double GlFeatureLayer::draw(ngsDrawState /*state*/, const MapView */*map*/, float /*level*/, const ngs::Progress &/*progress*/)
 {
     return 1.0;
 }

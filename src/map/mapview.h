@@ -28,18 +28,6 @@
 namespace ngs {
 
 /**
- * @brief The IRenderLayer class Interface for renderable map layers
- */
-class IRenderLayer
-{
-public:
-    virtual ~IRenderLayer() = default;
-    virtual double draw(enum ngsDrawState state, const Envelope& extent,
-                      double zoom, float level,
-                      const Progress& progress = Progress()) = 0;
-};
-
-/**
  * @brief The MapView class Base class for map with render support
  */
 class MapView : public Map, public MapTransform
@@ -61,6 +49,17 @@ protected:
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;
+
+/**
+ * @brief The IRenderLayer class Interface for renderable map layers
+ */
+class IRenderLayer
+{
+public:
+    virtual ~IRenderLayer() = default;
+    virtual double draw(enum ngsDrawState state, const MapView* map, float level,
+                        const Progress& progress = Progress()) = 0;
+};
 
 }
 #endif // NGSMAPVIEW_H
