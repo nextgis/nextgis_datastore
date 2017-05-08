@@ -27,7 +27,7 @@
 #include "tile.h"
 
 #ifdef _DEBUG
-#define NGS_GL_DEBUG
+//#define NGS_GL_DEBUG
 #endif
 
 namespace ngs {
@@ -39,14 +39,16 @@ public:
     GlView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope &bounds);
     virtual ~GlView() = default;
-    void freeResource(GlObject* resource) {
+    void freeResource(const GlObjectPtr& resource) {
         m_freeResources.push_back(resource);
     }
 
+    // Run in GL context
 protected:
     void clearTiles();
     void updateTilesList();
     void freeResources();
+    bool drawTiles(const Progress &progress);
 
     // Map interface
 public:
@@ -74,10 +76,12 @@ private:
     void testDrawTiledPolygons() const;
     void testDrawTile(const TileItem &tile) const;
 #endif // NGS_GL_DEBUG
+    void testDrawTileContent(const GlTilePtr& tile);
 
 private:
     GlColor m_glBkColor;
-    std::vector<GlObject*> m_freeResources;
+    std::vector<GlObjectPtr> m_freeResources;
+    std::vector<GlTilePtr> m_tiles;
 
 };
 

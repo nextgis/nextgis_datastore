@@ -40,6 +40,15 @@ GlView::GlView(const CPLString &name, const CPLString &description,
 {
 }
 
+void GlView::clearTiles()
+{
+    auto it = m_tiles.begin();
+    while(it != m_tiles.end()) {
+        (*it)->destroy();
+        it = m_tiles.erase(it);
+    }
+}
+
 void GlView::setBackgroundColor(const ngsRGBA &color)
 {
     MapView::setBackgroundColor(color);
@@ -91,40 +100,71 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     return true;
 #else
 
+    /* FIXME:
+    if(m_layers.empty()) {
+        clearBackground();
+        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
+                            _("No layers. Nothing to render."));
+        return true;
+    }
+    */
+
     switch (state) {
     case DS_REDRAW:
         clearTiles();
     case DS_NORMAL:
-        // 1. get tiles for extent
-        // 2. mark to delete out of bounds tiles
+        // Get tiles for extent and mark to delete out of bounds tiles
         updateTilesList();
-        // 3. Free unnecessary Gl objects as this call is in Gl context
+        // Free unnecessary Gl objects as this call is in Gl context
         freeResources();
         // 4. if needed start loading threads
-        prepareFillThread(extent, zoom, level);
+        // TODO: prepareFillThread(extent, zoom, level);
     case DS_PRESERVED:
-        // 5. for all tiles
-        // 5.1. draw layers
-        // 5.2. draw tile on view
+        clearBackground();
         return drawTiles(progress);
     }
-
-    return MapView::draw(state, progress);
 #endif // NGS_GL_DEBUG
 }
 
 void GlView::updateTilesList()
 {
-    MapView::updateExtent();
-
     // Get tiles for current extent
     Envelope ext = getExtent();
     ext.resize(EXTENT_EXTRA_BUFFER);
-    std::vector<TileItem> items = getTilesForExtent(ext, getZoom(),
+    std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
                                                     getYAxisInverted(),
                                                     getXAxisLooped());
-    // Add new Gl tiles, mark to remove out of extent Gl tiles
-//    std::vector<GlTilePtr> m_tiles;
+    // Remove out of extent Gl tiles
+    auto tileIt = m_tiles.begin();
+    while(tileIt != m_tiles.end()) {
+        bool markToDelete = true;
+        auto itemIt = tileItems.begin();
+        while(itemIt == tileItems.end()) {
+            if((*itemIt).z == (*tileIt)->getZ() &&
+               (*itemIt).x == (*tileIt)->getX() &&
+               (*itemIt).y == (*tileIt)->getY() &&
+               (*itemIt).crossExtent == (*tileIt)->getCrossExtent()) {
+                // Item already present in m_tiles
+                tileItems.erase(itemIt);
+                markToDelete = false;
+                break;
+            }
+        }
+
+        if(markToDelete) {
+            GlObjectPtr freeObject = std::dynamic_pointer_cast<GlObject>(*tileIt);
+            freeResource(freeObject);
+            tileIt = m_tiles.erase(tileIt);
+        }
+        else {
+            ++tileIt;
+        }
+    }
+
+    // Add new Gl tiles
+    for(const TileItem& tileItem : tileItems) {
+        m_tiles.push_back(GlTilePtr(new GlTile(GLTILE_SIZE, tileItem)));
+    }
 }
 
 void GlView::freeResources()
@@ -132,8 +172,112 @@ void GlView::freeResources()
     auto freeResorceIt = m_freeResources.begin();
     while(freeResorceIt != m_freeResources.end()) {
         (*freeResorceIt)->destroy();
-        delete *freeResorceIt;
         freeResorceIt = m_freeResources.erase(freeResorceIt);
+    }
+}
+
+bool GlView::drawTiles(const Progress &/*progress*/)
+{
+    // Preserve current viewport
+    GLint viewport[4];
+    glGetIntegerv( GL_VIEWPORT, viewport );
+
+    for(const GlTilePtr& tile : m_tiles) {
+        if(!tile->filled()) {
+            if(tile->bound()) {
+                tile->rebind();
+            }
+            else {
+                tile->bind();
+            }
+
+            ngsCheckGLError(glClearColor(1.0f, 0.0f, 1.0f, 1.0f));
+            ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+            glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
+            // 5. for all tiles
+            // 5.1. draw layers
+            // draw box and set filled
+            testDrawTileContent(tile);
+            tile->setFilled();
+
+            // Draw tile on view
+            glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+
+            // Make the window the target
+            ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 1)); // 0 - back, 1 - front.
+        }
+
+        SimpleImageStyle style; //SimpleImageStyle TileFBO draw
+
+        style.setImage(tile->getImage());
+        tile->getBuffer().rebind();
+        style.prepare(getSceneMatrix(), getInvViewMatrix());
+        style.draw(tile->getBuffer());
+    }
+
+    return true;
+}
+
+void GlView::testDrawTileContent(const GlTilePtr& tile)
+{
+    Envelope ext = tile->getExtent();
+    ext.resize(0.9);
+
+    std::array<OGRPoint, 6> points;
+    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
+    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
+    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
+    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
+    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+    for(size_t i = 0; i < points.size() - 1; ++i) {
+        Normal normal = ngsGetNormals(points[i], points[i + 1]);
+
+        GlBuffer buffer1;
+        // 0
+        buffer1.addVertex(points[i].getX());
+        buffer1.addVertex(points[i].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(-normal.x);
+        buffer1.addVertex(-normal.y);
+        buffer1.addIndex(0);
+
+        // 1
+        buffer1.addVertex(points[i + 1].getX());
+        buffer1.addVertex(points[i + 1].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(-normal.x);
+        buffer1.addVertex(-normal.y);
+        buffer1.addIndex(1);
+
+        // 2
+        buffer1.addVertex(points[i].getX());
+        buffer1.addVertex(points[i].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(normal.x);
+        buffer1.addVertex(normal.y);
+        buffer1.addIndex(2);
+
+        // 3
+        buffer1.addVertex(points[i + 1].getX());
+        buffer1.addVertex(points[i + 1].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(normal.x);
+        buffer1.addVertex(normal.y);
+
+        buffer1.addIndex(1);
+        buffer1.addIndex(2);
+        buffer1.addIndex(3);
+
+        SimpleLineStyle style;
+        style.setLineWidth(14.0f);
+        style.setColor({0, 0, 255, 255});
+        buffer1.bind();
+        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+        style.draw(buffer1);
+
+        buffer1.destroy();
     }
 }
 
@@ -642,7 +786,6 @@ void GlView::testDrawTile(const TileItem &tile) const
 
     style1.setImage(glTile.getImage());
     glTile.getBuffer().rebind();
-//    tile0.bind();
     style1.prepare(getSceneMatrix(), getInvViewMatrix());
     style1.draw(glTile.getBuffer());
 

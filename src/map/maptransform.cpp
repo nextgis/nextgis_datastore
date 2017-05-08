@@ -299,9 +299,9 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     int begY = static_cast<int>( floor(extent.getMinY() / tilesSizeOneDim +
                                        halfTilesInMapOneDim) );
     int endX = static_cast<int>( ceil(extent.getMaxX() / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) ) + 1;
+                                      halfTilesInMapOneDim) )/* + 1*/;
     int endY = static_cast<int>( ceil(extent.getMaxY() / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) ) + 1;
+                                      halfTilesInMapOneDim) )/* + 1*/;
     if(begY == endY) {
         endY++;
     }
@@ -328,7 +328,10 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     // Normal fill from left bottom corner
     int realX, realY;
     char crossExt;
-    result.reserve(static_cast<size_t>((endX - begX) * (endY - begY)));
+    size_t reserveSize = static_cast<size_t>((endX - begX) * (endY - begY));
+    if(reserveSize > MAX_TILES_COUNT)
+        reserveSize = MAX_TILES_COUNT;
+    result.reserve(reserveSize);
     double fullBoundsMinX = DEFAULT_BOUNDS.getMinX();
     double fullBoundsMinY = DEFAULT_BOUNDS.getMinY();
     for (int x = begX; x < endX; ++x) {

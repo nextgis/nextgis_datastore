@@ -39,6 +39,13 @@ public:
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
     const GlImage& getImage() const { return m_image; }
     const GlBuffer& getBuffer() const { return m_tile; }
+    int getX() const { return m_tileItem.x; }
+    int getY() const { return m_tileItem.y; }
+    int getZ() const { return m_tileItem.z; }
+    int getCrossExtent() const { return m_tileItem.crossExtent; }
+    const Envelope& getExtent() const { return m_tileItem.env; }
+    bool filled() const { return m_filled; }
+    void setFilled(bool filled = true) { m_filled = filled; }
 
     // GlObject interface
 public:
@@ -53,7 +60,10 @@ protected:
     GlBuffer m_tile;
     Matrix4 m_sceneMatrix;
     Matrix4 m_invViewMatrix;
+    bool m_filled;
 };
+
+typedef std::shared_ptr<GlTile> GlTilePtr;
 
 } // namespace ngs
 
