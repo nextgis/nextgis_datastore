@@ -41,8 +41,7 @@ GlBuffer::GlBuffer() : GlObject(),
 
 GlBuffer::~GlBuffer()
 {
-// FIXME: Delete buffer must be in GL context
-//    destroy();
+// NOTE: Delete buffer must be in GL context
 }
 
 

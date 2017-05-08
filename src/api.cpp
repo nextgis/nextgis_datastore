@@ -38,8 +38,6 @@
 using namespace ngs;
 
 // TODO: Tile vector data on load
-// TODO: Add support to Framebuffer Objects rendering & Renderbuffer Objects
-
 
 constexpr const char* HTTP_TIMEOUT = "5";
 constexpr const char* HTTP_USE_GZIP = "ON";
@@ -825,22 +823,31 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
  * @param scale value to set
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapSetScale(unsigned char mapId, double scale)
-//{
-//    initMapStore();
-//    return gMapStore->setMapScale(mapId, scale);
-//}
+int ngsMapSetScale(unsigned char mapId, double scale)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsCode::COD_SET_FAILED,
+                            _("MapStore is not initialized"));
+    }
+    return mapStore->setMapScale(mapId, scale);
+}
 
 /**
  * @brief ngsMapGetScale Return current map scale
  * @param mapId Map id
  * @return Current map scale or 1
  */
-//double ngsMapGetScale(unsigned char mapId)
-//{
-//    initMapStore();
-//    return gMapStore->getMapScale(mapId);
-//}
+double ngsMapGetScale(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsCode::COD_GET_FAILED,
+                            _("MapStore is not initialized"));
+        return 1.0;
+    }
+    return mapStore->getMapScale(mapId);
+}
 
 /**
  * @brief ngsMapCreateLayer Creates new layer in map
@@ -884,7 +891,6 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
         return errorMessage(ngsCode::COD_INVALID,
                      _("MapStore is not initialized"));
     }
-
     return mapStore->reorderLayers(mapId, static_cast<Layer*>(beforeLayer),
                                    static_cast<Layer*>(movedLayer)) ?
                 ngsCode::COD_SUCCESS : ngsCode::COD_MOVE_FAILED;
@@ -899,11 +905,15 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
  * @param rotate value to set
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-//int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
-//{
-//    initMapStore();
-//    return gMapStore->setMapRotate (mapId, dir, rotate);
-//}
+int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsCode::COD_INVALID,
+                     _("MapStore is not initialized"));
+    }
+    return mapStore->setMapRotate(mapId, dir, rotate);
+}
 
 /**
  * @brief ngsMapGetRotate Return map rotate value
@@ -911,12 +921,34 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
  * @param dir Rotate direction. May be X, Y or Z
  * @return rotate value or 0 if error occured
  */
-//double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
-//{
-//    initMapStore();
-//    return gMapStore->getMapRotate (mapId, dir);
-//}
+double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsCode::COD_GET_FAILED,
+                            _("MapStore is not initialized"));
+        return 0.0;
+    }
+    return mapStore->getMapRotate(mapId, dir);
+}
 
+/**
+ * @brief ngsMapGetDistance Map distance from display length
+ * @param mapId Map id
+ * @param w Width
+ * @param h Height
+ * @return ngsCoordinate where X distance along x axis and Y along y axis
+ */
+ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(ngsCode::COD_GET_FAILED,
+                            _("MapStore is not initialized"));
+        return {0.0, 0.0, 0.0};
+    }
+    return mapStore->getMapDistance(mapId, w, h);
+}
 
 /**
  * @brief ngsDisplayGetPosition Display position for geographic coordinates
@@ -932,19 +964,6 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
 //}
 
 /**
- * @brief ngsMapGetDistance Map distance from display length
- * @param mapId Map id
- * @param w Width
- * @param h Height
- * @return ngsCoordinate where X distance along x axis and Y along y axis
- */
-//ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
-//{
-//    initMapStore();
-//    return gMapStore->getMapDistance (mapId, w, h);
-//}
-
-/**
  * @brief ngsDisplayGetLength Display length from map distance
  * @param mapId Map id
  * @param w Width
@@ -955,18 +974,6 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
 //{
 //    initMapStore();
 //    return gMapStore->getDisplayLength (mapId, w, h);
-//}
-
-/**
- * @brief ngsDataStoreGetOptions Report supported options in xml string
- * @param optionType Option to report
- * @return xml string or nullptr
- */
-//const char *ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType)
-//{
-//    if(nullptr != gDataStore)
-//        return gDataStore->getOptions (optionType);
-//    return nullptr;
 //}
 
 /**

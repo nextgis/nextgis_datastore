@@ -319,7 +319,6 @@ void FeatureRenderLayer::fillRenderBuffers()
             if(nullptr == geom)
                 continue;
 
-            // TODO: draw filled polygons with border
             tile->fill(feature->GetFID (), geom, m_renderLevel);
 
             ++fidCount;

@@ -373,4 +373,13 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     return result;
 }
 
+/*
+double ngs::getPixelSize(int zoom)
+{
+    int tilesInMapOneDim = 1 << zoom;
+    long sizeOneDimPixels = tilesInMapOneDim * DEFAULT_TILE_SIZE;
+    return DEFAULT_MAX_X * 2.0 / sizeOneDimPixels;
+}
+*/
+
 } // namespace ngs

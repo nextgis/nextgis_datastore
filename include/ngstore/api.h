@@ -165,6 +165,13 @@ NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
 NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x,
                                               double y);
+NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w,
+                                            double h);
+NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
+                                double rotate);
+NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
+NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
+NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 
 /**
  * Layer functions
@@ -172,14 +179,6 @@ NGS_EXTERNC ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x,
 NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 
-
-
-//NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
-//NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
-//NGS_EXTERNC int ngsMapSetRotate(unsigned char mapId, enum ngsDirection dir,
-//                                double rotate);
-//NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
-//NGS_EXTERNC ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h);
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);

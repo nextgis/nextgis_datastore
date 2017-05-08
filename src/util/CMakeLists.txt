@@ -26,7 +26,6 @@ set(LIB_NAME util)
 
 set(HHEADERS
     jsondocument.h
-    maputil.h
     stringutil.h
     versionutil.h
     settings.h
@@ -38,7 +37,6 @@ set(HHEADERS
 
 set(CSOURCES
     jsondocument.cpp
-    maputil.cpp
     stringutil.cpp
     versionutil.cpp
     settings.cpp
