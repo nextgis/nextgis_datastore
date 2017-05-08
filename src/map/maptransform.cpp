@@ -280,7 +280,7 @@ unsigned char MapTransform::getZoom() const {
     return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5) - 1;
 }
 
-std::vector<MapTransform::TileItem> MapTransform::getTilesForExtent(
+std::vector<TileItem> MapTransform::getTilesForExtent(
         const Envelope &extent, unsigned char zoom, bool reverseY, bool unlimitX)
 {
     Envelope env;

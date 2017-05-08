@@ -18,48 +18,43 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "image.h"
+#ifndef NGSGLTILE_H
+#define NGSGLTILE_H
 
-#include "cpl_conv.h"
+#include "buffer.h"
+#include "functions.h"
+#include "image.h"
+#include "ds/geometry.h"
+#include "map/matrix.h"
 
 namespace ngs {
 
-GlImage::GlImage() : GlObject(),
-    m_id(0), m_smooth(false)
+class GlTile : public GlObject
 {
-}
+public:
+    GlTile(unsigned short tileSize, const TileItem& tileItem);
+    virtual ~GlTile() = default;
 
-void GlImage::bind()
-{
-    if (m_bound)
-        return;
-    ngsCheckGLError(glGenTextures(1, &m_id));
-    rebind();
-    ngsCheckGLError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0,
-                    GL_RGBA, GL_UNSIGNED_BYTE, m_imageData));
-    CPLFree(m_imageData);
-    m_imageData = nullptr;
-    m_bound = true;
-}
+    Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
+    Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
+    const GlImage& getImage() const { return m_image; }
+    const GlBuffer& getBuffer() const { return m_tile; }
 
-void GlImage::rebind() const
-{
-    ngsCheckGLError(glBindTexture(GL_TEXTURE_2D, m_id));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, m_smooth ? GL_LINEAR : GL_NEAREST));
-    ngsCheckGLError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, m_smooth ? GL_LINEAR : GL_NEAREST));
-}
+    // GlObject interface
+public:
+    virtual void bind() override;
+    virtual void rebind() const override;
+    virtual void destroy() override;
 
-void GlImage::destroy()
-{
-    if (m_bound) {
-        ngsCheckGLError(glDeleteTextures(1, &m_id));
-    }
-    else if(m_imageData) {
-        CPLFree(m_imageData);
-    }
-}
+protected:
+    TileItem m_tileItem;
+    GlImage m_image;
+    GLuint m_id;
+    GlBuffer m_tile;
+    Matrix4 m_sceneMatrix;
+    Matrix4 m_invViewMatrix;
+};
 
 } // namespace ngs
 
+#endif // NGSGLTILE_H

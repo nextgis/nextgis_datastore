@@ -70,6 +70,7 @@ public:
     // GlObject interface
 public:
     virtual void bind() override;
+    virtual void rebind() const override;
     virtual void destroy() override;
 
 private:

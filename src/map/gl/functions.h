@@ -52,6 +52,8 @@
 #include "EGL/egl.h"
 #endif // USE_EGL
 
+#include <memory>
+
 namespace ngs {
 
 #ifdef _DEBUG
@@ -86,12 +88,15 @@ public:
     GlObject();
     virtual ~GlObject() = default;
     virtual void bind() = 0;
+    virtual void rebind() const = 0;
     virtual bool bound() const { return m_bound; }
     virtual void destroy() = 0;
 
 protected:
     bool m_bound;
 };
+
+typedef std::shared_ptr<GlObject> GlObjectPtr;
 
 }
 

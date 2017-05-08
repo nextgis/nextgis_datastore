@@ -70,10 +70,7 @@ void Style::draw(const GlBuffer& buffer) const
     if (!buffer.bound())
         return;
 
-    ngsCheckGLError(glBindBuffer(
-            GL_ARRAY_BUFFER, buffer.id(GlBuffer::BF_VERTICES)));
-    ngsCheckGLError(glBindBuffer(
-            GL_ELEMENT_ARRAY_BUFFER, buffer.id(GlBuffer::BF_INDICES)));
+    buffer.rebind();
 }
 
 
@@ -510,7 +507,7 @@ void SimpleImageStyle::draw(const GlBuffer& buffer) const
     Style::draw(buffer);
 
     ngsCheckGLError(glActiveTexture(GL_TEXTURE0));
-    ngsCheckGLError(glBindTexture(GL_TEXTURE_2D, m_image.id()));
+    m_image.rebind();
 
     ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));

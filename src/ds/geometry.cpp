@@ -113,6 +113,8 @@ void Envelope::setRatio(double ratio)
 
 void Envelope::resize(double value)
 {
+    if(isEqual(value, 1.0))
+        return;
     double w = getWidth() * .5;
     double h = getHeight() * .5;
     double x = m_minX + w;
@@ -125,6 +127,14 @@ void Envelope::resize(double value)
     m_maxX = x + w;
     m_minY = y - h;
     m_maxY = y + h;
+}
+
+void Envelope::move(double deltaX, double deltaY)
+{
+    m_minX += deltaX;
+    m_maxX += deltaX;
+    m_minY += deltaY;
+    m_maxY += deltaY;
 }
 
 GeometryPtr Envelope::toGeometry(OGRSpatialReference * const spatialRef)

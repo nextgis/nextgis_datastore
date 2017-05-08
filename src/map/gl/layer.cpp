@@ -31,7 +31,7 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
 double GlFeatureLayer::draw(ngsDrawState /*state*/, MapView *map, float /*level*/, const ngs::Progress &/*progress*/)
 {
     const GlView* view = dynamic_cast<GlView*>(map);
-    std::vector<MapTransform::TileItem> tile = view->getTilesForExtent();
+    std::vector<TileItem> tile = view->getTilesForExtent();
     // TODO: cache tile array
     // TODO: check if loading thread exist. if not - start it and retorn 0.0, else for ech tile check load state nd return load %.
     // TODO: What to deal with not ngstore layers? Create vector tile and cache it

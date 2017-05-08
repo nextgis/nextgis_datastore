@@ -94,6 +94,13 @@ void GlBuffer::bind()
     m_bound = true;
 }
 
+void GlBuffer::rebind() const
+{
+    ngsCheckGLError(glBindBuffer(GL_ARRAY_BUFFER, id(BF_VERTICES)));
+    ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id(BF_INDICES)));
+
+}
+
 
 } // namespace ngs
 

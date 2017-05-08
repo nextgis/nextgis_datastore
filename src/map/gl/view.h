@@ -24,10 +24,10 @@
 
 #include "mapview.h"
 
-#include "functions.h"
+#include "tile.h"
 
 #ifdef _DEBUG
-//#define NGS_GL_DEBUG
+#define NGS_GL_DEBUG
 #endif
 
 namespace ngs {
@@ -39,6 +39,14 @@ public:
     GlView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope &bounds);
     virtual ~GlView() = default;
+    void freeResource(GlObject* resource) {
+        m_freeResources.push_back(resource);
+    }
+
+protected:
+    void clearTiles();
+    void updateTilesList();
+    void freeResources();
 
     // Map interface
 public:
@@ -69,6 +77,8 @@ private:
 
 private:
     GlColor m_glBkColor;
+    std::vector<GlObject*> m_freeResources;
+
 };
 
 }  // namespace ngs

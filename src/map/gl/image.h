@@ -38,6 +38,7 @@ public:
     // GlObject interface
 public:
     virtual void bind() override;
+    virtual void rebind() const override;
     virtual void destroy() override;
 
     GLuint id() const { return m_id; }

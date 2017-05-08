@@ -32,13 +32,6 @@ namespace ngs {
 class MapTransform
 {
 public:
-    typedef struct _tile {
-        int x, y;
-        unsigned char z;
-        Envelope env;
-        char crossExtent;
-    } TileItem;
-public:
     MapTransform(int width, int height);
     virtual ~MapTransform() = default;
 

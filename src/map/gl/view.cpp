@@ -26,6 +26,9 @@
 
 namespace ngs {
 
+constexpr double EXTENT_EXTRA_BUFFER = 1.5;
+constexpr int GLTILE_SIZE = 512;
+
 GlView::GlView() : MapView()
 {
 
@@ -87,10 +90,51 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     testDrawTiledPolygons();
     return true;
 #else
-    //TODO: Free unnecessary Gl objects as this is call in Gl context
+
+    switch (state) {
+    case DS_REDRAW:
+        clearTiles();
+    case DS_NORMAL:
+        // 1. get tiles for extent
+        // 2. mark to delete out of bounds tiles
+        updateTilesList();
+        // 3. Free unnecessary Gl objects as this call is in Gl context
+        freeResources();
+        // 4. if needed start loading threads
+        prepareFillThread(extent, zoom, level);
+    case DS_PRESERVED:
+        // 5. for all tiles
+        // 5.1. draw layers
+        // 5.2. draw tile on view
+        return drawTiles(progress);
+    }
 
     return MapView::draw(state, progress);
 #endif // NGS_GL_DEBUG
+}
+
+void GlView::updateTilesList()
+{
+    MapView::updateExtent();
+
+    // Get tiles for current extent
+    Envelope ext = getExtent();
+    ext.resize(EXTENT_EXTRA_BUFFER);
+    std::vector<TileItem> items = getTilesForExtent(ext, getZoom(),
+                                                    getYAxisInverted(),
+                                                    getXAxisLooped());
+    // Add new Gl tiles, mark to remove out of extent Gl tiles
+//    std::vector<GlTilePtr> m_tiles;
+}
+
+void GlView::freeResources()
+{
+    auto freeResorceIt = m_freeResources.begin();
+    while(freeResorceIt != m_freeResources.end()) {
+        (*freeResorceIt)->destroy();
+        delete *freeResorceIt;
+        freeResorceIt = m_freeResources.erase(freeResorceIt);
+    }
 }
 
 #ifdef NGS_GL_DEBUG
@@ -574,95 +618,35 @@ void GlView::testDrawTile(const TileItem &tile) const
 //        double pixels = end - beg;
 
 //    int s = pixels + pixels + pixels + pixels;
-    int s = 512;
-    GLuint framebuffer;
-    GlImage image;
-    image.setImage(nullptr, s, s);
-    image.setSmooth(true);
-    GLenum status;
-    ngsCheckGLError(glGenFramebuffersEXT(1, &framebuffer));
-    // Set up the FBO with one texture attachment
-    ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebuffer));
-    image.bind();
-    ngsCheckGLError(glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, image.id(), 0));
-    status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-        CPLDebug("GlView", "Texture failed %d", status);
-        return;
-    }
+    GlTile glTile(GLTILE_SIZE, tile);
+    glTile.bind();
 
     ngsCheckGLError(glClearColor(1.0f, 0.0f, 1.0f, 1.0f));
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    // Set transform matrix
-    Matrix4 sceneMat;
-    Matrix4 invViewMat;
-//    if (m_YAxisInverted) {
-//        sceneMat.ortho(tile.env.getMinX(), tile.env.getMaxX(),
-//                            tile.env.getMaxY(), tile.env.getMinY(),
-//                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
-//    } else {
-        sceneMat.ortho(tile.env.getMinX(), tile.env.getMaxX(),
-                            tile.env.getMinY(), tile.env.getMaxY(),
-                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
-//    }
-    invViewMat.ortho(0, s, 0, s, -1.0, 1.0);
-
     GLint viewport[4];
     glGetIntegerv( GL_VIEWPORT, viewport );
 
-    glViewport(0, 0, s, s);
+    glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
 
     // Draw in first tile
-    testDrawPolygons(sceneMat, invViewMat);
+    testDrawPolygons(glTile.getSceneMatrix(), glTile.getInvViewMatrix());
 
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
-    GlBuffer tile0;
-    tile0.addVertex(tile.env.getMinX());
-    tile0.addVertex(tile.env.getMinY());
-    tile0.addVertex(0.0f);
-    tile0.addVertex(0.0f);
-    tile0.addVertex(0.0f);
-    tile0.addIndex(0);
-    tile0.addVertex(tile.env.getMinX());
-    tile0.addVertex(tile.env.getMaxY());
-    tile0.addVertex(0.0f);
-    tile0.addVertex(0.0f);
-    tile0.addVertex(1.0f);
-    tile0.addIndex(1);
-    tile0.addVertex(tile.env.getMaxX());
-    tile0.addVertex(tile.env.getMaxY());
-    tile0.addVertex(0.0f);
-    tile0.addVertex(1.0f);
-    tile0.addVertex(1.0f);
-    tile0.addIndex(2);
-    tile0.addVertex(tile.env.getMaxX());
-    tile0.addVertex(tile.env.getMinY());
-    tile0.addVertex(0.0f);
-    tile0.addVertex(1.0f);
-    tile0.addVertex(0.0f);
-    tile0.addIndex(0);
-    tile0.addIndex(2);
-    tile0.addIndex(3);
-
-
-
-//    // Draw tile in view
+    // Draw tile in view
     // Make the window the target
     ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 1)); // 0 - back, 1 - front.
 
     SimpleImageStyle style1; //SimpleImageStyle TileFBO draw
 
-    style1.setImage(image);
-    tile0.bind();
+    style1.setImage(glTile.getImage());
+    glTile.getBuffer().rebind();
+//    tile0.bind();
     style1.prepare(getSceneMatrix(), getInvViewMatrix());
-    style1.draw(tile0);
+    style1.draw(glTile.getBuffer());
 
-    tile0.destroy();
-    image.destroy();
-
-    ngsCheckGLError(glDeleteFramebuffersEXT(1, &framebuffer));
+    glTile.destroy();
 }
 
 void GlView::testDrawTiledPolygons() const
@@ -680,7 +664,3 @@ void GlView::testDrawTiledPolygons() const
 #endif // NGS_GL_DEBUG
 
 } // namespace ngs
-
-
-
-

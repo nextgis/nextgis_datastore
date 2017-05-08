@@ -47,6 +47,7 @@ public:
     void rotate(double angle);
     void setRatio(double ratio);
     void resize(double value);
+    void move(double deltaX, double deltaY);
     constexpr double getWidth() const {return m_maxX - m_minX;}
     constexpr double getHeight() const {return m_maxY - m_minY;}
     GeometryPtr toGeometry(OGRSpatialReference * const spatialRef);
@@ -85,6 +86,13 @@ typedef struct _normal {
 } Normal;
 
 Normal ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
+
+typedef struct _tile {
+    int x, y;
+    unsigned char z;
+    Envelope env;
+    char crossExtent;
+} TileItem;
 
 } // namespace ngs
 
