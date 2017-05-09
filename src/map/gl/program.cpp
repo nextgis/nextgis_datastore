@@ -87,9 +87,9 @@ bool GlProgram::load(const GLchar * const vertexShader,
     glDeleteShader(fragmentShaderId);
 
 #ifdef _DEBUG
-    GLint numActiveUniforms = 0;
-    glGetProgramiv(programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
-    warningMessage("Number of active uniforms: %d", numActiveUniforms);
+//    GLint numActiveUniforms = 0;
+//    glGetProgramiv(programId, GL_ACTIVE_UNIFORMS, &numActiveUniforms);
+//    warningMessage("Number of active uniforms: %d", numActiveUniforms);
 #endif //_DEBUG
 
     m_id = programId;

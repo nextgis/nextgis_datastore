@@ -299,29 +299,37 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     int begY = static_cast<int>( floor(extent.getMinY() / tilesSizeOneDim +
                                        halfTilesInMapOneDim) );
     int endX = static_cast<int>( ceil(extent.getMaxX() / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) )/* + 1*/;
+                                      halfTilesInMapOneDim) );
     int endY = static_cast<int>( ceil(extent.getMaxY() / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) )/* + 1*/;
+                                      halfTilesInMapOneDim) );
     if(begY == endY) {
         endY++;
     }
     if(begX == endX) {
         endX++;
     }
-    if (begY < 0) {
+    if(begY < 0) {
         begY = 0;
     }
-    if (endY > tilesInMapOneDim) {
+    if(endY > tilesInMapOneDim) {
         endY = tilesInMapOneDim;
     }
 
     // This block unlimited X scroll of the map
     if(!unlimitX) {
-        if (begX < 0) {
+        if(begX < 0) {
             begX = 0;
         }
-        if (endX > tilesInMapOneDim) {
+        if(endX > tilesInMapOneDim) {
             endX = tilesInMapOneDim;
+        }
+    }
+    else {
+        if(begX < -tilesInMapOneDim) {
+            begX = -tilesInMapOneDim;
+        }
+        if(endX >= tilesInMapOneDim + tilesInMapOneDim) {
+            endX = tilesInMapOneDim + tilesInMapOneDim;
         }
     }
 

@@ -37,7 +37,7 @@ namespace ngs
 // Style
 //------------------------------------------------------------------------------
 
-class Style
+class Style : public GlObject
 {
 public:
     enum ShaderType {
@@ -57,6 +57,12 @@ protected:
     const GLchar* m_vertexShaderSource;
     const GLchar* m_fragmentShaderSource;
     GlProgram m_program;
+
+    // GlObject interface
+public:
+    virtual void bind() override {}
+    virtual void rebind() const override {}
+    virtual void destroy() override { m_program.destroy(); } // NOTE: Destroy only style stored GlObjects (i.e. program)
 };
 
 //------------------------------------------------------------------------------

@@ -23,6 +23,7 @@
 
 #include "layer.h"
 #include "style.h"
+#include "util/error.h"
 
 namespace ngs {
 
@@ -131,6 +132,7 @@ void GlView::updateTilesList()
     // Get tiles for current extent
     Envelope ext = getExtent();
     ext.resize(EXTENT_EXTRA_BUFFER);
+    warningMessage("Zoom is: %d", getZoom());
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
                                                     getYAxisInverted(),
                                                     getXAxisLooped());
@@ -139,7 +141,7 @@ void GlView::updateTilesList()
     while(tileIt != m_tiles.end()) {
         bool markToDelete = true;
         auto itemIt = tileItems.begin();
-        while(itemIt == tileItems.end()) {
+        while(itemIt != tileItems.end()) {
             if((*itemIt).z == (*tileIt)->getZ() &&
                (*itemIt).x == (*tileIt)->getX() &&
                (*itemIt).y == (*tileIt)->getY() &&
@@ -149,6 +151,7 @@ void GlView::updateTilesList()
                 markToDelete = false;
                 break;
             }
+            ++itemIt;
         }
 
         if(markToDelete) {
@@ -278,6 +281,7 @@ void GlView::testDrawTileContent(const GlTilePtr& tile)
         style.draw(buffer1);
 
         buffer1.destroy();
+        style.destroy();
     }
 }
 
