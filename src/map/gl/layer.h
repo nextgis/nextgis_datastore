@@ -21,20 +21,33 @@
 #ifndef NGSGLMAPLAYER_H
 #define NGSGLMAPLAYER_H
 
+#include "tile.h"
 #include "map/layer.h"
-#include "map/mapview.h"
 
 namespace ngs {
 
-class GlFeatureLayer : public FeatureLayer, public IRenderLayer
+/**
+ * @brief The IRenderLayer class Interface for renderable map layers
+ */
+class IGlRenderLayer
+{
+public:
+    virtual ~IGlRenderLayer() = default;
+    virtual void load(GlTilePtr tile) = 0;
+    virtual void free(GlTilePtr tile) = 0;
+    virtual bool draw(GlTilePtr tile) = 0;
+};
+
+class GlFeatureLayer : public FeatureLayer, public IGlRenderLayer
 {
 public:
     GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
 
-    // IRenderLayer interface
+    // IGlRenderLayer interface
 public:
-    virtual double draw(ngsDrawState state, MapView *map,
-                      float level, const Progress &progress) override;
+    virtual void load(GlTilePtr tile) override;
+    virtual void free(GlTilePtr tile) override;
+    virtual bool draw(GlTilePtr tile) override;
 };
 
 /*

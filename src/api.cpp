@@ -144,6 +144,7 @@ const char* ngsGetVersionString(const char* request)
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
+ * - GDAL_NUM_THREADS - number theads in various functions (a positive number or ALL_CPUS)
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
@@ -153,6 +154,14 @@ int ngsInit(char **options)
     const char* cachePath = CSLFetchNameValue(options, "CACHE_DIR");
     const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
     CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
+
+    // Number threads
+    const char* numThreads = CSLFetchNameValueDef(options, "GDAL_NUM_THREADS",
+                                                  nullptr);
+    if(numThreads) {
+        CPLSetConfigOption("GDAL_NUM_THREADS", numThreads);
+    }
+
 
 #ifdef HAVE_LIBINTL_H
     const char* locale = CSLFetchNameValue(options, "LOCALE");

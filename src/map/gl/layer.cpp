@@ -19,6 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "layer.h"
+#include "style.h"
 #include "view.h"
 
 namespace ngs {
@@ -27,16 +28,77 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
 {
 }
 
-
-double GlFeatureLayer::draw(ngsDrawState /*state*/, MapView *map, float /*level*/, const ngs::Progress &/*progress*/)
+void GlFeatureLayer::load(GlTilePtr tile)
 {
-    const GlView* view = dynamic_cast<GlView*>(map);
-    std::vector<TileItem> tile = view->getTilesForExtent();
-    // TODO: cache tile array
-    // TODO: check if loading thread exist. if not - start it and retorn 0.0, else for ech tile check load state nd return load %.
-    // TODO: What to deal with not ngstore layers? Create vector tile and cache it
+}
 
-    return 1.0;
+void GlFeatureLayer::free(GlTilePtr tile)
+{
+}
+
+bool GlFeatureLayer::draw(GlTilePtr tile)
+{
+    Envelope ext = tile->getExtent();
+    ext.resize(0.9);
+
+    std::array<OGRPoint, 6> points;
+    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
+    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
+    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
+    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
+    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+    for(size_t i = 0; i < points.size() - 1; ++i) {
+        Normal normal = ngsGetNormals(points[i], points[i + 1]);
+
+        GlBuffer buffer1;
+        // 0
+        buffer1.addVertex(points[i].getX());
+        buffer1.addVertex(points[i].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(-normal.x);
+        buffer1.addVertex(-normal.y);
+        buffer1.addIndex(0);
+
+        // 1
+        buffer1.addVertex(points[i + 1].getX());
+        buffer1.addVertex(points[i + 1].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(-normal.x);
+        buffer1.addVertex(-normal.y);
+        buffer1.addIndex(1);
+
+        // 2
+        buffer1.addVertex(points[i].getX());
+        buffer1.addVertex(points[i].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(normal.x);
+        buffer1.addVertex(normal.y);
+        buffer1.addIndex(2);
+
+        // 3
+        buffer1.addVertex(points[i + 1].getX());
+        buffer1.addVertex(points[i + 1].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(normal.x);
+        buffer1.addVertex(normal.y);
+
+        buffer1.addIndex(1);
+        buffer1.addIndex(2);
+        buffer1.addIndex(3);
+
+        SimpleLineStyle style;
+        style.setLineWidth(14.0f);
+        style.setColor({0, 0, 255, 255});
+        buffer1.bind();
+        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+        style.draw(buffer1);
+
+        buffer1.destroy();
+        style.destroy();
+    }
+
+    return true;
 }
 
 } // namespace ngs
@@ -466,4 +528,3 @@ int FeatureRenderLayer::getFidCount() const
     return fidCount;
 }
 */
-

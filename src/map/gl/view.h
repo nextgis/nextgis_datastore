@@ -24,6 +24,9 @@
 
 #include "mapview.h"
 
+// GDAL
+#include "cpl_worker_thread_pool.h"
+
 #include "tile.h"
 
 #ifdef _DEBUG
@@ -38,7 +41,7 @@ public:
     GlView();
     GlView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope &bounds);
-    virtual ~GlView() = default;
+    virtual ~GlView();
     void freeResource(const GlObjectPtr& resource) {
         m_freeResources.push_back(resource);
     }
@@ -49,6 +52,7 @@ protected:
     void updateTilesList();
     void freeResources();
     bool drawTiles(const Progress &progress);
+    void initView();
 
     // Map interface
 public:
@@ -75,13 +79,15 @@ private:
     void testDrawIcons() const;
     void testDrawTiledPolygons() const;
     void testDrawTile(const TileItem &tile) const;
-#endif // NGS_GL_DEBUG
     void testDrawTileContent(const GlTilePtr& tile);
+#endif // NGS_GL_DEBUG
 
 private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
     std::vector<GlTilePtr> m_tiles;
+    CPLWorkerThreadPool * m_threadPool;
+    int m_threadCount;
 
 };
 

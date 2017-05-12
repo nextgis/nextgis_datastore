@@ -30,15 +30,26 @@ namespace ngs {
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
 constexpr int GLTILE_SIZE = 512;
 
-GlView::GlView() : MapView()
-{
+typedef struct {
+    GlTilePtr tile;
+    LayerPtr layer;
+} TileFillJob;
 
+GlView::GlView() : MapView(), m_threadCount(1)
+{
+    initView();
 }
 
 GlView::GlView(const CPLString &name, const CPLString &description,
                unsigned short epsg, const Envelope &bounds) :
-    MapView(name, description, epsg, bounds)
+    MapView(name, description, epsg, bounds), m_threadCount(1)
 {
+    initView();
+}
+
+GlView::~GlView()
+{
+    delete m_threadPool;
 }
 
 void GlView::clearTiles()
@@ -101,14 +112,12 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     return true;
 #else
 
-    /* FIXME:
     if(m_layers.empty()) {
         clearBackground();
         progress.onProgress(ngsCode::COD_FINISHED, 1.0,
                             _("No layers. Nothing to render."));
         return true;
     }
-    */
 
     switch (state) {
     case DS_REDRAW:
@@ -120,8 +129,13 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         freeResources();
         // 4. if needed start loading threads
         // TODO: prepareFillThread(extent, zoom, level);
+
+
+//        if(m_threadPool) {
+//            m_threadPool->SubmitJobs(PansharpenResampleJobThreadFunc,
+//                                   ahJobData);
+//        }
     case DS_PRESERVED:
-        clearBackground();
         return drawTiles(progress);
     }
 #endif // NGS_GL_DEBUG
@@ -179,14 +193,18 @@ void GlView::freeResources()
     }
 }
 
-bool GlView::drawTiles(const Progress &/*progress*/)
+bool GlView::drawTiles(const Progress &progress)
 {
     // Preserve current viewport
     GLint viewport[4];
     glGetIntegerv( GL_VIEWPORT, viewport );
 
+    double done = 0.0;
     for(const GlTilePtr& tile : m_tiles) {
-        if(!tile->filled()) {
+        if(tile->filled()) {
+            done += m_layers.size();
+        }
+        else {
             if(tile->bound()) {
                 tile->rebind();
             }
@@ -198,11 +216,28 @@ bool GlView::drawTiles(const Progress &/*progress*/)
             ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
             glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
-            // 5. for all tiles
-            // 5.1. draw layers
-            // draw box and set filled
-            testDrawTileContent(tile);
-            tile->setFilled();
+            clearBackground();
+            unsigned char filled = 0;
+            for(const LayerPtr &layer : m_layers) {
+                IGlRenderLayer *renderLayer = ngsDynamicCast(IGlRenderLayer,
+                                                             layer);
+                if(renderLayer && renderLayer->draw(tile)) {
+                    filled++;
+                }
+            }
+
+            if(filled == m_layers.size()) {
+                // Free layer data
+                for(const LayerPtr &layer : m_layers) {
+                    IGlRenderLayer *renderLayer = ngsDynamicCast(IGlRenderLayer,
+                                                                 layer);
+                    if(renderLayer) {
+                        renderLayer->free(tile);
+                    }
+                }
+                tile->setFilled();
+                done++;
+            }
 
             // Draw tile on view
             glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
@@ -219,69 +254,34 @@ bool GlView::drawTiles(const Progress &/*progress*/)
         style.draw(tile->getBuffer());
     }
 
+    size_t totalDrawCalls = m_layers.size() * m_tiles.size();
+    if(isEqual(done, totalDrawCalls)) {
+        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
+                            _("Map render finished."));
+    }
+    else {
+        progress.onProgress(ngsCode::COD_IN_PROCESS, done / totalDrawCalls,
+                            _("Rendering ..."));
+    }
+
     return true;
 }
 
-void GlView::testDrawTileContent(const GlTilePtr& tile)
+void GlView::initView()
 {
-    Envelope ext = tile->getExtent();
-    ext.resize(0.9);
-
-    std::array<OGRPoint, 6> points;
-    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
-    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
-    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
-    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
-    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
-    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
-    for(size_t i = 0; i < points.size() - 1; ++i) {
-        Normal normal = ngsGetNormals(points[i], points[i + 1]);
-
-        GlBuffer buffer1;
-        // 0
-        buffer1.addVertex(points[i].getX());
-        buffer1.addVertex(points[i].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(-normal.x);
-        buffer1.addVertex(-normal.y);
-        buffer1.addIndex(0);
-
-        // 1
-        buffer1.addVertex(points[i + 1].getX());
-        buffer1.addVertex(points[i + 1].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(-normal.x);
-        buffer1.addVertex(-normal.y);
-        buffer1.addIndex(1);
-
-        // 2
-        buffer1.addVertex(points[i].getX());
-        buffer1.addVertex(points[i].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(normal.x);
-        buffer1.addVertex(normal.y);
-        buffer1.addIndex(2);
-
-        // 3
-        buffer1.addVertex(points[i + 1].getX());
-        buffer1.addVertex(points[i + 1].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(normal.x);
-        buffer1.addVertex(normal.y);
-
-        buffer1.addIndex(1);
-        buffer1.addIndex(2);
-        buffer1.addIndex(3);
-
-        SimpleLineStyle style;
-        style.setLineWidth(14.0f);
-        style.setColor({0, 0, 255, 255});
-        buffer1.bind();
-        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-        style.draw(buffer1);
-
-        buffer1.destroy();
-        style.destroy();
+    const char* numThreadsStr = CPLGetConfigOption("GDAL_NUM_THREADS", NULL);
+    if(numThreadsStr) {
+        if(EQUAL(numThreadsStr, "ALL_CPUS")) {
+            m_threadCount = CPLGetNumCPUs();
+        }
+        else {
+            m_threadCount = atoi(numThreadsStr);
+        }
+    }
+    m_threadPool = new (std::nothrow) CPLWorkerThreadPool();
+    if(m_threadPool == NULL || !m_threadPool->Setup(m_threadCount, NULL, NULL)) {
+        delete m_threadPool;
+        m_threadPool = nullptr;
     }
 }
 
@@ -806,6 +806,70 @@ void GlView::testDrawTiledPolygons() const
     testDrawTile(tiles[2]);
     testDrawTile(tiles[1]);
     testDrawTile(tiles[0]);
+}
+
+
+void GlView::testDrawTileContent(const GlTilePtr& tile)
+{
+    Envelope ext = tile->getExtent();
+    ext.resize(0.9);
+
+    std::array<OGRPoint, 6> points;
+    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
+    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
+    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
+    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
+    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+    for(size_t i = 0; i < points.size() - 1; ++i) {
+        Normal normal = ngsGetNormals(points[i], points[i + 1]);
+
+        GlBuffer buffer1;
+        // 0
+        buffer1.addVertex(points[i].getX());
+        buffer1.addVertex(points[i].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(-normal.x);
+        buffer1.addVertex(-normal.y);
+        buffer1.addIndex(0);
+
+        // 1
+        buffer1.addVertex(points[i + 1].getX());
+        buffer1.addVertex(points[i + 1].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(-normal.x);
+        buffer1.addVertex(-normal.y);
+        buffer1.addIndex(1);
+
+        // 2
+        buffer1.addVertex(points[i].getX());
+        buffer1.addVertex(points[i].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(normal.x);
+        buffer1.addVertex(normal.y);
+        buffer1.addIndex(2);
+
+        // 3
+        buffer1.addVertex(points[i + 1].getX());
+        buffer1.addVertex(points[i + 1].getY());
+        buffer1.addVertex(0.0f);
+        buffer1.addVertex(normal.x);
+        buffer1.addVertex(normal.y);
+
+        buffer1.addIndex(1);
+        buffer1.addIndex(2);
+        buffer1.addIndex(3);
+
+        SimpleLineStyle style;
+        style.setLineWidth(14.0f);
+        style.setColor({0, 0, 255, 255});
+        buffer1.bind();
+        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+        style.draw(buffer1);
+
+        buffer1.destroy();
+        style.destroy();
+    }
 }
 
 #endif // NGS_GL_DEBUG
