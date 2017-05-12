@@ -33,8 +33,21 @@ class IGlRenderLayer
 {
 public:
     virtual ~IGlRenderLayer() = default;
-    virtual void load(GlTilePtr tile) = 0;
+    /**
+     * @brief fill Fill arrays for Gl drawing. Executed from separate thread.
+     * @param tile Tile to load data
+     */
+    virtual void fill(GlTilePtr tile) = 0;
+    /**
+     * @brief free Free Gl objects. Run from Gl context.
+     * @param tile Tile to free data
+     */
     virtual void free(GlTilePtr tile) = 0;
+    /**
+     * @brief draw Draw data for specific tile. Run from Gl context.
+     * @param tile Tile to draw
+     * @return True of data for tile loaded, otherwise false.
+     */
     virtual bool draw(GlTilePtr tile) = 0;
 };
 
@@ -45,7 +58,7 @@ public:
 
     // IGlRenderLayer interface
 public:
-    virtual void load(GlTilePtr tile) override;
+    virtual void fill(GlTilePtr tile) override;
     virtual void free(GlTilePtr tile) override;
     virtual bool draw(GlTilePtr tile) override;
 };

@@ -30,26 +30,16 @@ namespace ngs {
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
 constexpr int GLTILE_SIZE = 512;
 
-typedef struct {
-    GlTilePtr tile;
-    LayerPtr layer;
-} TileFillJob;
-
-GlView::GlView() : MapView(), m_threadCount(1)
+GlView::GlView() : MapView()
 {
     initView();
 }
 
 GlView::GlView(const CPLString &name, const CPLString &description,
                unsigned short epsg, const Envelope &bounds) :
-    MapView(name, description, epsg, bounds), m_threadCount(1)
+    MapView(name, description, epsg, bounds)
 {
     initView();
-}
-
-GlView::~GlView()
-{
-    delete m_threadPool;
 }
 
 void GlView::clearTiles()
@@ -87,6 +77,15 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
         return MapView::createLayer(name, type);
     }
 
+}
+
+void GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
+{
+    LayerFillData* data = static_cast<LayerFillData*>(threadData);
+    IGlRenderLayer* renderLayer = ngsDynamicCast(IGlRenderLayer, data->m_layer);
+    if(nullptr != renderLayer) {
+        renderLayer->fill(data->m_tile);
+    }
 }
 
 #ifdef NGS_GL_DEBUG
@@ -127,14 +126,15 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         updateTilesList();
         // Free unnecessary Gl objects as this call is in Gl context
         freeResources();
-        // 4. if needed start loading threads
-        // TODO: prepareFillThread(extent, zoom, level);
-
-
-//        if(m_threadPool) {
-//            m_threadPool->SubmitJobs(PansharpenResampleJobThreadFunc,
-//                                   ahJobData);
-//        }
+        // Start load layers data for tiles
+        m_threadPool.clearThreadData();
+        for(const GlTilePtr& tile : m_tiles) {
+            if(tile->filled())
+                continue;
+            for(const LayerPtr& layer : m_layers) {
+                m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
+            }
+        }
     case DS_PRESERVED:
         return drawTiles(progress);
     }
@@ -212,9 +212,6 @@ bool GlView::drawTiles(const Progress &progress)
                 tile->bind();
             }
 
-            ngsCheckGLError(glClearColor(1.0f, 0.0f, 1.0f, 1.0f));
-            ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
             glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
             clearBackground();
             unsigned char filled = 0;
@@ -269,20 +266,19 @@ bool GlView::drawTiles(const Progress &progress)
 
 void GlView::initView()
 {
+    unsigned char numThreads = static_cast<unsigned char>(CPLGetNumCPUs());
+
     const char* numThreadsStr = CPLGetConfigOption("GDAL_NUM_THREADS", NULL);
     if(numThreadsStr) {
-        if(EQUAL(numThreadsStr, "ALL_CPUS")) {
-            m_threadCount = CPLGetNumCPUs();
-        }
-        else {
-            m_threadCount = atoi(numThreadsStr);
+        if(!EQUAL(numThreadsStr, "ALL_CPUS")) {
+            numThreads = static_cast<unsigned char>(atoi(numThreadsStr));
         }
     }
-    m_threadPool = new (std::nothrow) CPLWorkerThreadPool();
-    if(m_threadPool == NULL || !m_threadPool->Setup(m_threadCount, NULL, NULL)) {
-        delete m_threadPool;
-        m_threadPool = nullptr;
-    }
+
+    if(numThreads < 1)
+        numThreads = 1;
+
+    m_threadPool.init(numThreads, layerDataFillJobThreadFunc);
 }
 
 #ifdef NGS_GL_DEBUG

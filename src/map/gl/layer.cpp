@@ -28,7 +28,7 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
 {
 }
 
-void GlFeatureLayer::load(GlTilePtr tile)
+void GlFeatureLayer::fill(GlTilePtr tile)
 {
 }
 
@@ -111,17 +111,7 @@ void ngs::FillGLBufferThread(void * layer)
 {
     RenderLayer* renderLayer = static_cast<RenderLayer*>(layer);
 
-#ifdef _DEBUG
-    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
-     cout << "Start FillGLBufferThread" << endl;
-#endif //DEBUG
     renderLayer->fillRenderBuffers ();
-
-#ifdef _DEBUG
-    auto duration = chrono::duration_cast<chrono::milliseconds>(
-                            chrono::high_resolution_clock::now() - t1 ).count();
-    cout << "Finish FillGLBufferThread at " << duration << " ms" << endl;
-#endif //DEBUG
 }
 
 //------------------------------------------------------------------------------

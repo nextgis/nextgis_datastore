@@ -24,10 +24,8 @@
 
 #include "mapview.h"
 
-// GDAL
-#include "cpl_worker_thread_pool.h"
-
 #include "tile.h"
+#include "util/threadpool.h"
 
 #ifdef _DEBUG
 //#define NGS_GL_DEBUG
@@ -41,7 +39,7 @@ public:
     GlView();
     GlView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope &bounds);
-    virtual ~GlView();
+    virtual ~GlView() = default;
     void freeResource(const GlObjectPtr& resource) {
         m_freeResources.push_back(resource);
     }
@@ -70,6 +68,10 @@ public:
 protected:
     virtual void clearBackground() override;
 
+    // static
+protected:
+    static void layerDataFillJobThreadFunc(ThreadData *threadData);
+
 #ifdef NGS_GL_DEBUG
     // Test functions
 private:
@@ -86,9 +88,15 @@ private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
     std::vector<GlTilePtr> m_tiles;
-    CPLWorkerThreadPool * m_threadPool;
-    int m_threadCount;
+    ThreadPool m_threadPool;
 
+    class LayerFillData : public ThreadData {
+    public:
+        LayerFillData(GlTilePtr tile, LayerPtr layer, bool own) :
+            ThreadData(own), m_tile(tile), m_layer(layer) {}
+        GlTilePtr m_tile;
+        LayerPtr m_layer;
+    };
 };
 
 }  // namespace ngs

@@ -33,6 +33,7 @@ set(HHEADERS
     progress.h
     options.h
     notify.h
+    threadpool.h
 )
 
 set(CSOURCES
@@ -44,6 +45,7 @@ set(CSOURCES
     progress.cpp
     options.cpp
     notify.cpp
+    threadpool.cpp
 )
 
 if(UNIX)
