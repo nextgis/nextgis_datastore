@@ -18,17 +18,17 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSSIMPLEDATASETFACTORY_H
-#define NGSSIMPLEDATASETFACTORY_H
+#ifndef NGSRASTERFACTORY_H
+#define NGSRASTERFACTORY_H
 
 #include "objectfactory.h"
 
 namespace ngs {
 
-class SimpleDatasetFactory : public ObjectFactory
+class RasterFactory : public ObjectFactory
 {
 public:
-    SimpleDatasetFactory();
+    RasterFactory();
 
     // ObjectFactory interface
 public:
@@ -45,9 +45,9 @@ private:
                   std::vector<const char *> * const names);
 
 private:
-    bool m_shpSupported, m_miSupported;
+    bool m_tiffSupported, m_wmstmsSupported;
 };
 
 } // namespace ngs
 
-#endif // NGSSIMPLEDATASETFACTORY_H
+#endif // NGSRASTERFACTORY_H

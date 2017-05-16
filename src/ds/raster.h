@@ -32,7 +32,8 @@ namespace ngs {
 class Raster : public Object, public ISpatialDataset
 {
 public:
-    Raster(ObjectContainer * const parent = nullptr,
+    Raster(std::vector<CPLString> siblingFiles,
+           ObjectContainer * const parent = nullptr,
            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
            const CPLString & name = "",
            const CPLString & path = "");
@@ -45,6 +46,9 @@ public:
 protected:
     OGRSpatialReference m_spatialReference;
     GDALDataset* m_DS;
+
+private:
+    std::vector<CPLString> m_siblingFiles;
 
 };
 

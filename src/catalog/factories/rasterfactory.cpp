@@ -18,43 +18,52 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "simpledatasetfactory.h"
+#include "rasterfactory.h"
 
-#include <algorithm>
-#include <array>
-
-#include "ds/simpledataset.h"
+#include "ds/raster.h"
 #include "ngstore/catalog/filter.h"
 
 namespace ngs {
 
-static const char *shpMainExts[] = {"shx", "dbf", nullptr};
-static const char *shpExtraExts[] = {"sbn", "sbx", "cpg", "prj", "qix", "osf", nullptr};
-constexpr FORMAT_EXT shpExt = {"shp", shpMainExts, shpExtraExts};
+static const char *tifMainExts[] = {nullptr};
+static const char *tifExtraExts[] = {"tfw", "tiffw", "wld", "tifw", "aux", "ovr", "tif.xml", "tiff.xml", "aux.xml", "ovr.aux.xml", "rrd", "xml", "lgo", "prj", "imd", "pvl", "att", "eph", "rpb", "rpc", nullptr};
+constexpr FORMAT_EXT tifExt = {"tif", tifMainExts, tifExtraExts};
+constexpr FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
 
-static const char *tabMainExts[] = {"dat", "map", "id", "ind", nullptr};
-static const char *tabExtraExts[] = {"cpg", "qix", "osf", nullptr};
-constexpr FORMAT_EXT tabExt = {"tab", tabMainExts, tabExtraExts};
+//CPLString szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("_rpc.txt");
+//szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("-browse.jpg");
+//szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("_readme.txt");
 
-static const char *mifMainExts[] = {"mid", nullptr};
-static const char *mifExtraExts[] = {"cpg", "qix", "osf", nullptr};
-constexpr FORMAT_EXT mifExt = {"mif", mifMainExts, mifExtraExts};
 
-SimpleDatasetFactory::SimpleDatasetFactory() : ObjectFactory()
+RasterFactory::RasterFactory()
 {
-    m_shpSupported = Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE);
-    m_miSupported = Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_FC_MAPINFO_TAB);
+    m_tiffSupported = Filter::getGDALDriver(
+                ngsCatalogObjectType::CAT_RASTER_TIFF);
+    m_wmstmsSupported =  Filter::getGDALDriver(
+                ngsCatalogObjectType::CAT_RASTER_WMS) ||
+            Filter::getGDALDriver(ngsCatalogObjectType::CAT_RASTER_TMS);
+
+//    CAT_RASTER_BMP,
+//    CAT_RASTER_TIL,
+//    CAT_RASTER_IMG,
+//    CAT_RASTER_JPEG,
+//    CAT_RASTER_PNG,
+//    CAT_RASTER_GIF,
+//    CAT_RASTER_SAGA,
+//    CAT_RASTER_VRT,
+//    CAT_RASTER_POSTGIS,
+
 }
 
-const char *SimpleDatasetFactory::getName() const
+
+
+const char *RasterFactory::getName() const
 {
-    return _("Feature classes and tables");
+    return _("Rasters");
 }
 
-void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
-                                         std::vector<const char *> * const names)
+void RasterFactory::createObjects(ObjectContainer * const container,
+                                  std::vector<const char *> * const names)
 {
     nameExtMap nameExts;
     auto it = names->begin();
@@ -68,45 +77,41 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
     for(const auto& nameExtsItem : nameExts) {
 
         // Check if ESRI Shapefile
-        if(m_shpSupported) {
+        if(m_tiffSupported) {
         FORMAT_RESULT result = isFormatSupported(
-                    nameExtsItem.first, nameExtsItem.second, shpExt);
+                    nameExtsItem.first, nameExtsItem.second, tifExt);
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->getPath(), result.name,
                                                nullptr);
             addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE,
+                     ngsCatalogObjectType::CAT_RASTER_TIFF,
                      result.siblingFiles, names);
         }
-        }
-
-        // Check if MapInfo tab
-        if(m_miSupported) {
-        FORMAT_RESULT result = isFormatSupported(
-                            nameExtsItem.first, nameExtsItem.second, tabExt);
-        if(result.isSupported) {
-            const char* path = CPLFormFilename(container->getPath(), result.name,
-                                               nullptr);
-            addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_FC_MAPINFO_TAB,
-                     result.siblingFiles, names);
-        }
-
-        // Check if MapInfo mif/mid
         result = isFormatSupported(
-                            nameExtsItem.first, nameExtsItem.second, mifExt);
+                    nameExtsItem.first, nameExtsItem.second, tiffExt);
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->getPath(), result.name,
                                                nullptr);
             addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_FC_MAPINFO_MIF,
+                     ngsCatalogObjectType::CAT_RASTER_TIFF,
                      result.siblingFiles, names);
         }
+        }
+
+        if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
+            if(EQUAL(nameExtsItem.second[0], "wconn")) {
+                // TODO: Open json here and create path xml
+//                const char* path = CPLFormFilename(container->getPath(), nameExtsItem.first,
+//                                                   nullptr);
+//                addChild(container, nameExtsItem.first, path,
+//                         ngsCatalogObjectType::CAT_RASTER_TIFF,
+//                         result.siblingFiles, names);
+            }
         }
     }
 }
 
-void SimpleDatasetFactory::addChild(ObjectContainer * const container,
+void RasterFactory::addChild(ObjectContainer * const container,
                                     const CPLString &name,
                                     const CPLString &path,
                                     enum ngsCatalogObjectType subType,
@@ -114,10 +119,9 @@ void SimpleDatasetFactory::addChild(ObjectContainer * const container,
                                     std::vector<const char *> * const names)
 {
     ObjectFactory::addChild(container,
-                            ObjectPtr(new SimpleDataset(subType, siblingFiles,
-                                                        container, name, path)));
+                            ObjectPtr(new Raster(siblingFiles, container,
+                                                 subType, name, path)));
     eraseNames(name, siblingFiles, names);
 }
 
 } // namespace ngs
-

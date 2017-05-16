@@ -93,6 +93,7 @@ void SimpleDataset::fillFeatureClasses()
                                                                 m_subType,
                                                                 layerName)));
             }
+            break;
         }
     }
 }

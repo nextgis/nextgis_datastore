@@ -28,6 +28,13 @@
 
 namespace ngs {
 
+typedef std::map<CPLString, std::vector<CPLString>> nameExtMap;
+typedef struct _formatExt {
+    const char *mainExt;
+    const char **mainExts;
+    const char **extraExts;
+} FORMAT_EXT;
+
 class ObjectFactory
 {
 public:
@@ -43,6 +50,19 @@ protected:
     virtual void addChild(ObjectContainer * const container, ObjectPtr object) {
         container->addChild(object);
     }
+
+    typedef struct _formatResult {
+        bool isSupported;
+        CPLString name;
+        std::vector<CPLString> siblingFiles;
+    } FORMAT_RESULT;
+
+    static FORMAT_RESULT isFormatSupported(const CPLString& name,
+                           std::vector<CPLString> extensions,
+                           FORMAT_EXT testExts);
+    static void eraseNames(const CPLString& name,
+                           const std::vector<CPLString> &siblingFiles,
+                           std::vector<const char *> * const names);
 
 private:
     bool m_enabled;

@@ -61,8 +61,10 @@ void initGDAL(const char* dataPath, const char* cachePath)
 {
     Settings& settings = Settings::instance();
     // set config options
-    if(dataPath)
+    if(dataPath) {
         CPLSetConfigOption("GDAL_DATA", dataPath);
+    }
+
     CPLSetConfigOption("GDAL_CACHEMAX",
                        settings.getString("common/cachemax", CACHEMAX));
     CPLSetConfigOption("GDAL_HTTP_USERAGENT",
@@ -76,10 +78,13 @@ void initGDAL(const char* dataPath, const char* cachePath)
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
                        settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk"));
 #endif
-    if(cachePath)
+    if(cachePath) {
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
-    if(isDebugMode())
+    }
+    if(isDebugMode()) {
         CPLSetConfigOption("CPL_DEBUG", "ON");
+        CPLSetConfigOption("CPL_CURL_VERBOSE", "ON");
+    }
 
     CPLSetConfigOption("CPL_ZIP_ENCODING",
                        settings.getString("common/zip_encoding", "CP866"));
@@ -144,7 +149,7 @@ const char* ngsGetVersionString(const char* request)
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
- * - GDAL_NUM_THREADS - number theads in various functions (a positive number or ALL_CPUS)
+ * - NUM_THREADS - number theads in various functions (a positive number or "ALL_CPUS")
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
@@ -156,8 +161,7 @@ int ngsInit(char **options)
     CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
 
     // Number threads
-    const char* numThreads = CSLFetchNameValueDef(options, "GDAL_NUM_THREADS",
-                                                  nullptr);
+    const char* numThreads = CSLFetchNameValueDef(options, "NUM_THREADS", nullptr);
     if(numThreads) {
         CPLSetConfigOption("GDAL_NUM_THREADS", numThreads);
     }

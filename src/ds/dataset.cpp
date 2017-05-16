@@ -351,7 +351,8 @@ bool Dataset::hasChildren()
     fillFeatureClasses();
 
     // fill rasters
-    char** subdatasetList = m_DS->GetMetadata ("SUBDATASETS");
+    char** subdatasetList = m_DS->GetMetadata("SUBDATASETS");
+    std::vector<CPLString> siblingFiles;
     if(nullptr != subdatasetList) {
         int i = 0;
         size_t strLen = 0;
@@ -365,7 +366,7 @@ bool Dataset::hasChildren()
                 CPLStrlcpy(rasterPath, testStr, strLen - 4);
                 CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
                 const char* rasterName = pathPortions[pathPortions.size() - 1];
-                m_children.push_back(ObjectPtr(new Raster(this,
+                m_children.push_back(ObjectPtr(new Raster(siblingFiles, this,
                     ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, rasterPath)));
             }
         }

@@ -22,11 +22,14 @@
 
 namespace ngs {
 
-Raster::Raster(ObjectContainer * const parent,
+Raster::Raster(std::vector<CPLString> siblingFiles,
+               ObjectContainer * const parent,
                const enum ngsCatalogObjectType type,
                const CPLString &name,
                const CPLString &path) :
-  Object(parent, type, name, path), m_DS(nullptr)
+  Object(parent, type, name, path),
+  m_DS(nullptr),
+  m_siblingFiles(siblingFiles)
 {
 }
 
@@ -40,5 +43,5 @@ OGRSpatialReference *Raster::getSpatialReference() const
     return const_cast<OGRSpatialReference *>(&m_spatialReference);
 }
 
-}
+} // namespace ngs
 
