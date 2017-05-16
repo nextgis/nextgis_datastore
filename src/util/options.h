@@ -40,6 +40,7 @@ public:
                                      const CPLString & defaultOption = "") const;
     bool getBoolOption(const char *key, bool defaultOption = true) const;
     int getIntOption(const char *key, int defaultOption = 0) const;
+    double getDoubleOption(const char *key, double defaultOption = 0.0) const;
     OptionsArrayUPtr getOptions() const;
     void addOption(const char *key, const char * value) { m_options[key] = value; }
     void removeOption(const char *key);

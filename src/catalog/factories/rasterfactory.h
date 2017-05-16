@@ -35,7 +35,11 @@ public:
     virtual const char *getName() const override;
     virtual void createObjects(ObjectContainer * const container,
                                std::vector<const char *> * const names) override;
-
+    // static
+public:
+    static const char* getRemoteConnectionExtension() { return "wconn"; }
+    static bool createRemoteConnection(const enum ngsCatalogObjectType type, const char *path,
+                                       const Options &options);
 private:
     void addChild(ObjectContainer * const container,
                   const CPLString& name,

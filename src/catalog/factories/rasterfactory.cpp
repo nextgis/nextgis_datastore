@@ -20,8 +20,10 @@
  ****************************************************************************/
 #include "rasterfactory.h"
 
+#include "ds/geometry.h"
 #include "ds/raster.h"
 #include "ngstore/catalog/filter.h"
+#include "util/error.h"
 
 namespace ngs {
 
@@ -34,6 +36,16 @@ constexpr FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
 //szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("-browse.jpg");
 //szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("_readme.txt");
 
+constexpr const char *KEY_TYPE = "type";
+constexpr const char *KEY_URL = "url";
+constexpr const char *KEY_EPSG = "epsg";
+constexpr const char *KEY_Z_MIN = "z_min";
+constexpr const char *KEY_Z_MAX = "z_max";
+constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
+constexpr const char *KEY_X_MIN = "x_min";
+constexpr const char *KEY_X_MAX = "x_max";
+constexpr const char *KEY_Y_MIN = "y_min";
+constexpr const char *KEY_Y_MAX = "y_max";
 
 RasterFactory::RasterFactory()
 {
@@ -99,15 +111,70 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         }
 
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
-            if(EQUAL(nameExtsItem.second[0], "wconn")) {
-                // TODO: Open json here and create path xml
-//                const char* path = CPLFormFilename(container->getPath(), nameExtsItem.first,
-//                                                   nullptr);
-//                addChild(container, nameExtsItem.first, path,
-//                         ngsCatalogObjectType::CAT_RASTER_TIFF,
-//                         result.siblingFiles, names);
+            if(EQUAL(nameExtsItem.second[0], getRemoteConnectionExtension())) {
+                JSONDocument connectionFile;
+                const char* path = CPLFormFilename(container->getPath(),
+                                                   nameExtsItem.first,
+                                                   getRemoteConnectionExtension());
+                if(connectionFile.load(path)) {
+                    std::vector<CPLString> siblingFiles;
+                    enum ngsCatalogObjectType type =
+                            static_cast<enum ngsCatalogObjectType>(
+                                connectionFile.getRoot().getInteger(
+                                    KEY_TYPE, CAT_UNKNOWN));
+                    addChild(container, nameExtsItem.first, path, type,
+                             siblingFiles, names);
+                }
             }
         }
+    }
+}
+
+bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
+                                           const char* path,
+                                           const Options &options)
+{
+    switch(type) {
+    case CAT_RASTER_TMS:
+    {
+        CPLString url = options.getStringOption(KEY_URL);
+        if(url.empty()) {
+            return errorMessage(ngsCode::COD_CREATE_FAILED,
+                                _("Missign required option 'url'"));
+        }
+
+        int epsg = options.getIntOption(KEY_EPSG, -1);
+        if(epsg < 0) {
+            return errorMessage(ngsCode::COD_CREATE_FAILED,
+                                _("Missign required option 'epsg'"));
+        }
+        int z_min = options.getIntOption(KEY_Z_MIN, 0);
+        int z_max = options.getIntOption(KEY_Z_MAX, 18);
+        bool y_origin_top = options.getBoolOption(KEY_Y_ORIGIN_TOP, true);
+
+        double x_min = options.getDoubleOption(KEY_X_MIN, DEFAULT_BOUNDS.getMinX());
+        double x_max = options.getDoubleOption(KEY_X_MAX, DEFAULT_BOUNDS.getMaxX());
+        double y_min = options.getDoubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.getMinY());
+        double y_max = options.getDoubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.getMaxY());
+
+        JSONDocument connectionFile;
+        JSONObject root = connectionFile.getRoot();
+        root.add(KEY_TYPE, type);
+        root.add(KEY_URL, url);
+        root.add(KEY_Z_MIN, z_min);
+        root.add(KEY_Z_MAX, z_max);
+        root.add(KEY_Y_ORIGIN_TOP, y_origin_top);
+        root.add(KEY_X_MIN, x_min);
+        root.add(KEY_X_MAX, x_max);
+        root.add(KEY_Y_MIN, y_min);
+        root.add(KEY_Y_MAX, y_max);
+        const char* newPath = CPLResetExtension(path,
+                                    getRemoteConnectionExtension());
+        return connectionFile.save(newPath);
+    }
+    default:
+        return errorMessage(ngsCode::COD_CREATE_FAILED,
+                            _("Unsupported connection type %d"), type);
     }
 }
 

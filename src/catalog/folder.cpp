@@ -25,6 +25,8 @@
 #include "catalog.h"
 #include "file.h"
 #include "ds/datastore.h"
+#include "ds/raster.h"
+#include "factories/rasterfactory.h"
 #include "ngstore/catalog/filter.h"
 #include "util/notify.h"
 #include "util/error.h"
@@ -186,6 +188,7 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     switch (type) {
     case CAT_CONTAINER_DIR:
     case CAT_CONTAINER_NGS:
+    case CAT_RASTER_TMS:
         return true;
     default:
         return false;
@@ -208,6 +211,7 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
         newPath = CPLResetExtension(newPath, ext);
     }
     CPLString newName = CPLGetFilename(newPath);
+    std::vector<CPLString> siblingFiles;
 
     switch (type) {
     case CAT_CONTAINER_DIR:
@@ -220,6 +224,13 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
         result = DataStore::create(newPath);
         if(result && m_childrenLoaded) {
             m_children.push_back(ObjectPtr(new DataStore(this, newName, newPath)));
+        }
+        break;
+    case CAT_RASTER_TMS:
+        result = RasterFactory::createRemoteConnection(type, newPath, options);
+        if(result && m_childrenLoaded) {
+            m_children.push_back(ObjectPtr(new Raster(siblingFiles, this, type,
+                                                      newName, newPath)));
         }
         break;
     default:

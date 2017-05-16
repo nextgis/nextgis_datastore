@@ -45,7 +45,6 @@ constexpr int STORE_EXT_LEN = length(STORE_EXT);
 
 constexpr const char* METHADATA_TABLE_NAME = "ngst_meta";
 constexpr const char* ATTACHEMENTS_TABLE_NAME = "ngst_attach";
-constexpr const char* RASTERS_TABLE_NAME = "ngst_raster";
 
 constexpr const char* NGS_VERSION_KEY = "ngs_version";
 
@@ -270,11 +269,7 @@ bool DataStore::create(const char *path)
         return errorMessage(ngsCode::COD_CREATE_FAILED,
                             _("Create metadata table failed"));
 
-    /* TODO: Add raster and attachments support
-    if(!createRastersTable(DS))
-        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
-                            _("Create rasters table failed"));
-
+    /* TODO: Add attachments support
     if(!createAttachmentsTable(DS))
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("Create attachments table failed"));

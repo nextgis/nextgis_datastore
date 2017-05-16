@@ -45,3 +45,8 @@ OGRSpatialReference *Raster::getSpatialReference() const
 
 } // namespace ngs
 
+// Fix url to GDAL supported format
+//url = url.replaceAll("{", "${");
+// TODO: Open json here and create path xml
+//                const char* path = CPLFormFilename(container->getPath(), nameExtsItem.first,
+//                                                   nullptr);

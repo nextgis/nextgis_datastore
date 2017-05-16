@@ -452,7 +452,7 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * layer create options.
  * @param callback The callback function to report or cancel process.
  * @param callbackData The callback function data.
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsErrorCode value - EC_SUCCESS if everything is OK
  */
 int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
                          char **options, ngsProgressFunc callback,
@@ -585,33 +585,6 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
         return ngsCatalogObjectType::CAT_UNKNOWN;
     return static_cast<Object*>(object)->getType();
 }
-
-
-/**
- * @brief Create remote TMS Raster
- * @param url URL to TMS tiles with replacement variables, of the format ${x}, ${y}, etc.
- * @param name Layer name, only alpha, numeric and underline
- * @param alias Layer alias name. User readable text
- * @param copyright Copyright text, link, etc. (optional)
- * @param epsg EPSG code
- * @param z_min Minimum zoom level
- * @param z_max Maximum zoom level. If equal 0 will be set to 18
- * @param y_origin_top If true - OSGeo TMS, else - Slippy map
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
- */
-//int ngsCreateRemoteTMSRaster(const char *url, const char *name, const char *alias,
-//                             const char *copyright, int epsg, int z_min, int z_max,
-//                             bool y_origin_top)
-//{
-//    if(z_max == 0)
-//        z_max = 18;
-
-//    if(gDataStore)
-//        return gDataStore->createRemoteTMSRaster(url, name, alias, copyright,
-//                                            epsg, z_min, z_max, y_origin_top);
-
-//    return ngsErrorCodes::EC_CREATE_FAILED;
-//}
 
 //------------------------------------------------------------------------------
 // Map

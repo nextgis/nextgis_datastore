@@ -192,6 +192,27 @@ TEST(CatalogTests, TestCreate) {
     EXPECT_GE(count, 2);
     ngsFree(pathInfo);
 
+    options = ngsAddNameValue(options, "TYPE",
+                              std::to_string(CAT_RASTER_TMS).c_str());
+    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
+    options = ngsAddNameValue(options, "epsg", "3857");
+    options = ngsAddNameValue(options, "z_min", "0");
+    options = ngsAddNameValue(options, "z_max", "19");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "osm.wconn", options),
+              ngsCode::COD_SUCCESS);
+
+    pathInfo = ngsCatalogObjectQuery(catalogPath);
+    ASSERT_NE(pathInfo, nullptr);
+    count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 3);
+    ngsFree(pathInfo);
+
     ngsUnInit();
 }
 

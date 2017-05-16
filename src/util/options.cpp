@@ -81,6 +81,14 @@ int Options::getIntOption(const char *key, int defaultOption) const
     return atoi(it->second);
 }
 
+double Options::getDoubleOption(const char *key, double defaultOption) const
+{
+    auto it = m_options.find(key);
+    if(it == m_options.end())
+        return defaultOption;
+    return CPLAtofM(it->second);
+}
+
 OptionsArrayUPtr Options::getOptions() const
 {
     char** options = nullptr;

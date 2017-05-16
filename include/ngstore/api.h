@@ -121,12 +121,6 @@ NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
 NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, int optionType);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
-
-
-//NGS_EXTERNC int ngsCreateRemoteTMSRaster(const char* url, const char* name,
-//                                         const char* alias, const char* copyright,
-//                                         int epsg, int z_min, int z_max,
-//                                         bool y_origin_top);
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**
