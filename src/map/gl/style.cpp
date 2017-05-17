@@ -456,9 +456,9 @@ void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
 //------------------------------------------------------------------------------
 constexpr const GLchar* const imageVertexShaderSource = R"(
     attribute vec3 a_mPosition;
+    attribute vec2 a_texCoord;
 
     uniform mat4 u_msMatrix;
-    attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
 
     void main()
@@ -478,7 +478,7 @@ constexpr const GLchar* const imageFragmentShaderSource = R"(
     }
 )";
 
-SimpleImageStyle::SimpleImageStyle() : Style()
+SimpleImageStyle::SimpleImageStyle() : Style(), m_image(nullptr)
 {
     m_vertexShaderSource = imageVertexShaderSource;
     m_fragmentShaderSource = imageFragmentShaderSource;
@@ -489,7 +489,14 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
     if (!Style::prepare(msMatrix, vsMatrix))
         return false;
 
-    m_image.bind();
+    if(m_image) {
+        if(m_image->bound()) {
+            m_image->rebind();
+        }
+        else {
+            m_image->bind();
+        }
+    }
     m_program.setInt("s_texture", 0);
     m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
     m_program.setVertexAttribPointer("a_texCoord", 2, 5 * sizeof(float),
@@ -501,13 +508,13 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 
 void SimpleImageStyle::draw(const GlBuffer& buffer) const
 {
-    if(!m_image.bound())
+    if(!m_image || !m_image->bound())
         return;
 
     Style::draw(buffer);
 
     ngsCheckGLError(glActiveTexture(GL_TEXTURE0));
-    m_image.rebind();
+    m_image->rebind();
 
     ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));

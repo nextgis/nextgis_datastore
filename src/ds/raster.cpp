@@ -45,7 +45,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         url = url.replaceAll("{", "${");
         int epsg = root.getInteger(KEY_EPSG, 3857);
         m_spatialReference.importFromEPSG(epsg);
-        int z_min = root.getInteger(KEY_Z_MIN, 0);
+//        int z_min = root.getInteger(KEY_Z_MIN, 0);
         int z_max = root.getInteger(KEY_Z_MAX, 18);
         bool y_origin_top = root.getBool(KEY_Y_ORIGIN_TOP, true);
 
@@ -88,10 +88,3 @@ const char *Raster::getOptions(ngsOptionType optionType) const
 }
 
 } // namespace ngs
-
-// Fix url to GDAL supported format
-//url = url.replaceAll("{", "${");
-// TODO: Open json here and create path xml
-//                const char* path = CPLFormFilename(container->getPath(), nameExtsItem.first,
-//                                                   nullptr);
-

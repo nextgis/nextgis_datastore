@@ -21,18 +21,20 @@
 #ifndef NGSGLMAPLAYER_H
 #define NGSGLMAPLAYER_H
 
+#include "style.h"
 #include "tile.h"
 #include "map/layer.h"
 
 namespace ngs {
 
 /**
- * @brief The IRenderLayer class Interface for renderable map layers
+ * @brief The GlRenderLayer class Interface for renderable map layers
  */
-class IGlRenderLayer
+class GlRenderLayer
 {
 public:
-    virtual ~IGlRenderLayer() = default;
+    GlRenderLayer();
+    virtual ~GlRenderLayer() = default;
     /**
      * @brief fill Fill arrays for Gl drawing. Executed from separate thread.
      * @param tile Tile to load data
@@ -42,16 +44,21 @@ public:
      * @brief free Free Gl objects. Run from Gl context.
      * @param tile Tile to free data
      */
-    virtual void free(GlTilePtr tile) = 0;
+    virtual void free(GlTilePtr tile);
     /**
      * @brief draw Draw data for specific tile. Run from Gl context.
      * @param tile Tile to draw
      * @return True of data for tile loaded, otherwise false.
      */
     virtual bool draw(GlTilePtr tile) = 0;
+
+protected:
+    std::map<Tile, GlObjectPtr> m_tiles;
+    StylePtr m_style;
+    CPLMutex *m_dataMutex;
 };
 
-class GlFeatureLayer : public FeatureLayer, public IGlRenderLayer
+class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 {
 public:
     GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
@@ -59,12 +66,11 @@ public:
     // IGlRenderLayer interface
 public:
     virtual void fill(GlTilePtr tile) override;
-    virtual void free(GlTilePtr tile) override;
     virtual bool draw(GlTilePtr tile) override;
 };
 
 
-class GlRasterLayer : public RasterLayer, public IGlRenderLayer
+class GlRasterLayer : public RasterLayer, public GlRenderLayer
 {
 public:
     GlRasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
@@ -74,6 +80,10 @@ public:
     virtual void fill(GlTilePtr tile) override;
     virtual void free(GlTilePtr tile) override;
     virtual bool draw(GlTilePtr tile) override;
+
+private:
+    SimpleImageStyle* m_imageStyle;
+    std::map<Tile, GlObjectPtr> m_images;
 };
 /*
 void FillGLBufferThread(void * layer);

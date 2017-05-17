@@ -65,6 +65,8 @@ public:
     virtual void destroy() override { m_program.destroy(); } // NOTE: Destroy only style stored GlObjects (i.e. program)
 };
 
+typedef std::shared_ptr<Style> StylePtr;
+
 //------------------------------------------------------------------------------
 // SimpleVectorStyle
 //------------------------------------------------------------------------------
@@ -189,7 +191,7 @@ class SimpleImageStyle : public Style
 {
 public:
     SimpleImageStyle();
-    void setImage(const GlImage & image) { m_image = image; }
+    void setImage(GlImage * const image) { m_image = image; }
 
     // Style interface
 public:
@@ -197,7 +199,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
-    GlImage m_image;
+    GlImage *m_image;
 };
 
 

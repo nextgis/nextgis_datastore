@@ -87,11 +87,25 @@ typedef struct _normal {
 
 Normal ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
 
-typedef struct _tile {
+typedef struct _tile{
     int x, y;
     unsigned char z;
-    Envelope env;
     char crossExtent;
+    bool operator==(const struct _tile& other) const {
+            return x == other.x && y == other.y && z == other.z &&
+                    crossExtent == other.crossExtent;
+    }
+    bool operator<(const struct _tile& other) const {
+        return x < other.x || (x == other.x && y < other.y) ||
+                (x == other.x && y == other.y && z < other.z) ||
+                (x == other.x && y == other.y && z == other.z &&
+                 crossExtent < other.crossExtent);
+    }
+} Tile;
+
+typedef struct _tileItem{
+    Tile tile;
+    Envelope env;
 } TileItem;
 
 } // namespace ngs

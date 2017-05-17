@@ -22,21 +22,39 @@
 #include "style.h"
 #include "view.h"
 
+#include "util/error.h"
+
 namespace ngs {
+
+//------------------------------------------------------------------------------
+// IGlRenderLayer
+//------------------------------------------------------------------------------
+
+GlRenderLayer::GlRenderLayer() : m_dataMutex(CPLCreateMutex())
+{
+    CPLReleaseMutex(m_dataMutex);
+}
+
+void GlRenderLayer::free(GlTilePtr tile)
+{
+    CPLMutexHolder holder(m_dataMutex);
+    auto it = m_tiles.find(tile->getTile());
+    if(it != m_tiles.end()) {
+        it->second->destroy();
+        m_tiles.erase(it);
+    }
+}
 
 //------------------------------------------------------------------------------
 // GlFeatureLayer
 //------------------------------------------------------------------------------
 
-GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name)
+GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
+    GlRenderLayer()
 {
 }
 
 void GlFeatureLayer::fill(GlTilePtr tile)
-{
-}
-
-void GlFeatureLayer::free(GlTilePtr tile)
 {
 }
 
@@ -109,20 +127,139 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
 // GlRasterLayer
 //------------------------------------------------------------------------------
 
-GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name)
+GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
+    GlRenderLayer()
 {
+    // Create default style
+    m_imageStyle = new SimpleImageStyle;
+    m_style = StylePtr(m_imageStyle);
 }
 
 void GlRasterLayer::fill(GlTilePtr tile)
 {
+    GLubyte* chessData = static_cast<GLubyte*>(CPLMalloc(3 * 3 *
+                                                         sizeof(GLubyte) * 4));
+// 0
+    chessData[0] = 255;
+    chessData[1] = 255;
+    chessData[2] = 255;
+    chessData[3] = 255;
+// 1
+    chessData[4] = 0;
+    chessData[5] = 0;
+    chessData[6] = 0;
+    chessData[7] = 50;
+// 2
+    chessData[8] = 255;
+    chessData[9] = 255;
+    chessData[10] = 255;
+    chessData[11] = 255;
+// 3
+    chessData[12] = 0;
+    chessData[13] = 0;
+    chessData[14] = 0;
+    chessData[15] = 50;
+// 4
+    chessData[16] = 255;
+    chessData[17] = 255;
+    chessData[18] = 255;
+    chessData[19] = 255;
+// 5
+    chessData[20] = 0;
+    chessData[21] = 0;
+    chessData[22] = 0;
+    chessData[23] = 50;
+// 6
+    chessData[24] = 255;
+    chessData[25] = 255;
+    chessData[26] = 255;
+    chessData[27] = 255;
+// 7
+    chessData[28] = 0;
+    chessData[29] = 0;
+    chessData[30] = 0;
+    chessData[31] = 50;
+// 8
+    chessData[32] = 255;
+    chessData[33] = 255;
+    chessData[34] = 255;
+    chessData[35] = 255;
+
+    GlImage *image = new GlImage;
+    image->setImage(chessData, 3, 3);
+
+    Envelope env = tile->getExtent();
+    // TODO: For images in different spatial references or rotated we need buffer overlaped tile and new corner coordinates
+    GlBuffer* tileExtent = new GlBuffer;
+    tileExtent->addVertex(static_cast<float>(env.getMinX()));
+    tileExtent->addVertex(static_cast<float>(env.getMinY()));
+    tileExtent->addVertex(0.0f);
+    tileExtent->addVertex(0.0f);
+    tileExtent->addVertex(0.0f);
+    tileExtent->addIndex(0);
+    tileExtent->addVertex(static_cast<float>(env.getMinX()));
+    tileExtent->addVertex(static_cast<float>(env.getMaxY()));
+    tileExtent->addVertex(0.0f);
+    tileExtent->addVertex(0.0f);
+    tileExtent->addVertex(1.0f);
+    tileExtent->addIndex(1);
+    tileExtent->addVertex(static_cast<float>(env.getMaxX()));
+    tileExtent->addVertex(static_cast<float>(env.getMaxY()));
+    tileExtent->addVertex(0.0f);
+    tileExtent->addVertex(1.0f);
+    tileExtent->addVertex(1.0f);
+    tileExtent->addIndex(2);
+    tileExtent->addVertex(static_cast<float>(env.getMaxX()));
+    tileExtent->addVertex(static_cast<float>(env.getMinY()));
+    tileExtent->addVertex(0.0f);
+    tileExtent->addVertex(1.0f);
+    tileExtent->addVertex(0.0f);
+    tileExtent->addIndex(0);
+    tileExtent->addIndex(2);
+    tileExtent->addIndex(3);
+
+    CPLMutexHolder holder(m_dataMutex);
+    m_tiles[tile->getTile()] = GlObjectPtr(tileExtent);
+    m_images[tile->getTile()] = GlObjectPtr(image);
 }
 
 void GlRasterLayer::free(GlTilePtr tile)
 {
+    GlRenderLayer::free(tile);
+
+    CPLMutexHolder holder(m_dataMutex);
+    auto it = m_images.find(tile->getTile());
+    if(it != m_images.end()) {
+        it->second->destroy();
+        m_images.erase(it);
+    }
 }
+
 
 bool GlRasterLayer::draw(GlTilePtr tile)
 {
+    CPLMutexHolder holder(m_dataMutex);
+    auto buffIt = m_tiles.find(tile->getTile());
+    auto imgIt = m_images.find(tile->getTile());
+    if(buffIt == m_tiles.end() || imgIt == m_images.end()) {
+        return false; // Not yet loaded
+    }
+
+    GlImage* img = static_cast<GlImage*>(imgIt->second.get());
+    m_imageStyle->setImage(img);
+    if(buffIt->second->bound()) {
+        buffIt->second->rebind();
+    }
+    else {
+        buffIt->second->bind();
+    }
+
+    m_imageStyle->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+    const GlBuffer& buff = (*static_cast<GlBuffer*>(buffIt->second.get()));
+    m_imageStyle->draw(buff);
+
+//    return true;
+
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
 
@@ -185,6 +322,7 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 
     return true;
 }
+
 
 } // namespace ngs
 

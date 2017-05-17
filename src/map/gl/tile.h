@@ -37,12 +37,9 @@ public:
 
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
-    const GlImage& getImage() const { return m_image; }
-    const GlBuffer& getBuffer() const { return m_tile; }
-    int getX() const { return m_tileItem.x; }
-    int getY() const { return m_tileItem.y; }
-    int getZ() const { return m_tileItem.z; }
-    int getCrossExtent() const { return m_tileItem.crossExtent; }
+    GlImage* getImageRef() const { return const_cast<GlImage*>(&m_image); }
+    const GlBuffer& getBuffer() const { return m_tile; }  
+    const Tile &getTile() const { return  m_tileItem.tile; }
     const Envelope& getExtent() const { return m_tileItem.env; }
     bool filled() const { return m_filled; }
     void setFilled(bool filled = true) { m_filled = filled; }

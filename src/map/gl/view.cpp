@@ -84,7 +84,7 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
 void GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
 {
     LayerFillData* data = static_cast<LayerFillData*>(threadData);
-    IGlRenderLayer* renderLayer = ngsDynamicCast(IGlRenderLayer, data->m_layer);
+    GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer, data->m_layer);
     if(nullptr != renderLayer) {
         renderLayer->fill(data->m_tile);
     }
@@ -155,13 +155,10 @@ void GlView::updateTilesList()
     // Remove out of extent Gl tiles
     auto tileIt = m_tiles.begin();
     while(tileIt != m_tiles.end()) {
-        bool markToDelete = true;
+        bool markToDelete = true;        
         auto itemIt = tileItems.begin();
         while(itemIt != tileItems.end()) {
-            if((*itemIt).z == (*tileIt)->getZ() &&
-               (*itemIt).x == (*tileIt)->getX() &&
-               (*itemIt).y == (*tileIt)->getY() &&
-               (*itemIt).crossExtent == (*tileIt)->getCrossExtent()) {
+            if((*tileIt)->getTile() == (*itemIt).tile) {
                 // Item already present in m_tiles
                 tileItems.erase(itemIt);
                 markToDelete = false;
@@ -218,7 +215,7 @@ bool GlView::drawTiles(const Progress &progress)
             clearBackground();
             unsigned char filled = 0;
             for(const LayerPtr &layer : m_layers) {
-                IGlRenderLayer *renderLayer = ngsDynamicCast(IGlRenderLayer,
+                GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
                                                              layer);
                 if(renderLayer && renderLayer->draw(tile)) {
                     filled++;
@@ -228,7 +225,7 @@ bool GlView::drawTiles(const Progress &progress)
             if(filled == m_layers.size()) {
                 // Free layer data
                 for(const LayerPtr &layer : m_layers) {
-                    IGlRenderLayer *renderLayer = ngsDynamicCast(IGlRenderLayer,
+                    GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
                                                                  layer);
                     if(renderLayer) {
                         renderLayer->free(tile);
@@ -247,7 +244,7 @@ bool GlView::drawTiles(const Progress &progress)
 
         SimpleImageStyle style; //SimpleImageStyle TileFBO draw
 
-        style.setImage(tile->getImage());
+        style.setImage(tile->getImageRef());
         tile->getBuffer().rebind();
         style.prepare(getSceneMatrix(), getInvViewMatrix());
         style.draw(tile->getBuffer());

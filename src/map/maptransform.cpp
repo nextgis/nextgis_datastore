@@ -287,7 +287,7 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     std::vector<TileItem> result;
     if(zoom == 0) { // If zoom 0 - return one tile
         env = DEFAULT_BOUNDS;
-        TileItem item = { 0, 0, zoom, env, 0 };
+        TileItem item = { {0, 0, zoom, 0}, env };
         result.push_back (item);
         return result;
     }
@@ -369,7 +369,7 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
             env.setMaxX(minX + tilesSizeOneDim);
             env.setMinY(minY);
             env.setMaxY(minY + tilesSizeOneDim);
-            TileItem item = { realX, realY, zoom, env, crossExt };
+            TileItem item = { {realX, realY, zoom, crossExt}, env };
             result.push_back(item);
 
             if(result.size() > MAX_TILES_COUNT) { // Limit for tiles array size
