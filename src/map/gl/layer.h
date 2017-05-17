@@ -63,6 +63,18 @@ public:
     virtual bool draw(GlTilePtr tile) override;
 };
 
+
+class GlRasterLayer : public RasterLayer, public IGlRenderLayer
+{
+public:
+    GlRasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+
+    // IGlRenderLayer interface
+public:
+    virtual void fill(GlTilePtr tile) override;
+    virtual void free(GlTilePtr tile) override;
+    virtual bool draw(GlTilePtr tile) override;
+};
 /*
 void FillGLBufferThread(void * layer);
 class RenderLayer : public Layer

@@ -37,15 +37,6 @@ constexpr FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
 //szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("_readme.txt");
 
 constexpr const char *KEY_TYPE = "type";
-constexpr const char *KEY_URL = "url";
-constexpr const char *KEY_EPSG = "epsg";
-constexpr const char *KEY_Z_MIN = "z_min";
-constexpr const char *KEY_Z_MAX = "z_max";
-constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
-constexpr const char *KEY_X_MIN = "x_min";
-constexpr const char *KEY_X_MAX = "x_max";
-constexpr const char *KEY_Y_MIN = "y_min";
-constexpr const char *KEY_Y_MAX = "y_max";
 
 RasterFactory::RasterFactory()
 {
@@ -66,8 +57,6 @@ RasterFactory::RasterFactory()
 //    CAT_RASTER_POSTGIS,
 
 }
-
-
 
 const char *RasterFactory::getName() const
 {

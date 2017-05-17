@@ -26,7 +26,6 @@
 #include "api_priv.h"
 #include "geometry.h"
 #include "featureclass.h"
-#include "raster.h"
 #include "catalog/objectcontainer.h"
 
 namespace ngs {
@@ -45,30 +44,52 @@ public:
 };
 
 /**
+ * @brief The DatasetBase class
+ */
+class DatasetBase
+{
+public:
+    DatasetBase();
+    virtual ~DatasetBase();
+    virtual const char* getOptions(enum ngsOptionType optionType) const = 0;
+    virtual GDALDataset * getGDALDataset() const { return m_DS; }
+    virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
+    // is checks
+    virtual bool isOpened() const { return m_DS != nullptr; }
+    virtual bool isReadOnly() const { return m_readonly; }
+
+protected:
+    bool open(const char* path, unsigned int openFlags,
+              const Options &options = Options());
+    const char* getOptions(const enum ngsCatalogObjectType type,
+                           enum ngsOptionType optionType) const;
+
+protected:
+    GDALDataset* m_DS;
+    bool m_readonly;
+};
+
+/**
  * @brief The Dataset class is base class of DataStore. Each table, raster,
  * feature class, etc. are Dataset. The DataStore is an array of Datasets as
  * Map is array of Layers.
  */
-class Dataset : public ObjectContainer
+class Dataset : public ObjectContainer, public DatasetBase
 {
 public:
     Dataset(ObjectContainer * const parent = nullptr,
             const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");
-    virtual ~Dataset();
-    virtual const char* getOptions(enum ngsOptionType optionType) const;
-    virtual GDALDataset * getGDALDataset() const { return m_DS; }
+    virtual const char* getOptions(enum ngsOptionType optionType) const override;
 
     TablePtr executeSQL(const char* statement, const char* dialect = "");
     TablePtr executeSQL(const char* statement,
                             GeometryPtr spatialFilter,
                             const char* dialect = "");
 
-    // is checks
-    virtual bool isOpened() const { return m_DS != nullptr; }
-    virtual bool isReadOnly() const { return m_readonly; }
-    virtual bool open(unsigned int openFlags, const Options &options = Options());
+
+    virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
     virtual FeatureClass* createFeatureClass(const CPLString &name,
                                              OGRFeatureDefn* const definition,
                                              const OGRSpatialReference *spatialRef,
@@ -99,9 +120,6 @@ protected:
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     virtual void fillFeatureClasses();
 
-protected:
-    GDALDataset* m_DS;
-    bool m_readonly;
 };
 
 }

@@ -159,7 +159,10 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
         newFCLayer->setFeatureClass(fc);
     }
     else if(Filter::isRaster(object->getType())) {
-        // TODO: Add raster layer support
+        layer = createLayer(name, Layer::Type::Raster);
+        RasterLayer* newRasterLayer = ngsStaticCast(RasterLayer, layer);
+        RasterPtr raster = std::dynamic_pointer_cast<Raster>(object);
+        newRasterLayer->setRaster(raster);
     }
 
     if(layer) {
@@ -225,6 +228,7 @@ LayerPtr Map::createLayer(const char* name, Layer::Type type)
     case Layer::Type::Vector:
         return LayerPtr(new FeatureLayer(name));
     case Layer::Type::Raster:
+        return LayerPtr(new RasterLayer(name));
     case Layer::Type::Group:
     case Layer::Type::Invalid:
         return LayerPtr(new Layer);

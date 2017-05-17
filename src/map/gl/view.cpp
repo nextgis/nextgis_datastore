@@ -73,6 +73,8 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
     switch (type) {
     case Layer::Type::Vector:
         return LayerPtr(new GlFeatureLayer(name));
+    case Layer::Type::Raster:
+        return LayerPtr(new GlRasterLayer(name));
     default:
         return MapView::createLayer(name, type);
     }

@@ -25,6 +25,7 @@
 #include <array>
 
 #include "featureclass.h"
+#include "raster.h"
 #include "table.h"
 #include "catalog/file.h"
 #include "ngstore/api.h"
@@ -88,27 +89,55 @@ GDALDatasetPtr::operator GDALDataset *() const
 }
 
 //------------------------------------------------------------------------------
-// Dataset
+// DatasetBase
 //------------------------------------------------------------------------------
-
-Dataset::Dataset(ObjectContainer * const parent,
-                 const enum ngsCatalogObjectType type,
-                 const CPLString &name,
-                 const CPLString &path) :
-    ObjectContainer(parent, type, name, path),
-    m_DS(nullptr), m_readonly(false)
+DatasetBase::DatasetBase() :
+    m_DS(nullptr),
+    m_readonly(false)
 {
+
 }
 
-Dataset::~Dataset()
+DatasetBase::~DatasetBase()
 {
     GDALClose(m_DS);
     m_DS = nullptr;
 }
 
-bool Dataset::open(unsigned int openFlags, const Options &options)
+const char *DatasetBase::getOptions(const enum ngsCatalogObjectType type,
+                                    ngsOptionType optionType) const
 {
-    if(nullptr == m_path || EQUAL(m_path, "")) {
+    GDALDriver *poDriver = Filter::getGDALDriver(type);
+    switch (optionType) {
+    case OT_CREATE_DATASOURCE:
+        if(nullptr == poDriver)
+            return "";
+        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST);
+    case OT_CREATE_LAYER:
+        if(nullptr == poDriver)
+            return "";
+        return poDriver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST);
+    case OT_CREATE_LAYER_FIELD:
+        if(nullptr == poDriver)
+            return "";
+        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES);
+    case OT_CREATE_RASTER:
+        if(nullptr == poDriver)
+            return "";
+        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
+    case OT_OPEN:
+        if(nullptr == poDriver)
+            return "";
+        return poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST);
+    case OT_LOAD:
+        return "";
+    }
+}
+
+bool DatasetBase::open(const char* path, unsigned int openFlags,
+                       const Options &options)
+{
+    if(nullptr == path || EQUAL(path, "")) {
         return errorMessage(ngsCode::COD_OPEN_FAILED, _("The path is empty"));
     }
 
@@ -116,16 +145,16 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
 
     CPLErrorReset();
     auto openOptions = options.getOptions();
-    m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags, nullptr,
+    m_DS = static_cast<GDALDataset*>(GDALOpenEx( path, openFlags, nullptr,
                                                  openOptions.get(), nullptr));
 
-    if(m_DS == nullptr) {        
+    if(m_DS == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
         if(openFlags & GDAL_OF_UPDATE) {
             // Try to open read-only
             openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
             openFlags |= GDAL_OF_READONLY;
-            m_DS = static_cast<GDALDataset*>(GDALOpenEx( m_path, openFlags,
+            m_DS = static_cast<GDALDataset*>(GDALOpenEx( path, openFlags,
                                           nullptr, openOptions.get(), nullptr));
             if(nullptr == m_DS) {
                 errorMessage(CPLGetLastErrorMsg());
@@ -140,6 +169,19 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
         }
     }
     return true;
+}
+
+//------------------------------------------------------------------------------
+// Dataset
+//------------------------------------------------------------------------------
+
+Dataset::Dataset(ObjectContainer * const parent,
+                 const enum ngsCatalogObjectType type,
+                 const CPLString &name,
+                 const CPLString &path) :
+    ObjectContainer(parent, type, name, path),
+    DatasetBase()
+{
 }
 
 FeatureClass *Dataset::createFeatureClass(const CPLString &name,
@@ -294,28 +336,13 @@ void Dataset::fillFeatureClasses()
 
 const char *Dataset::getOptions(enum ngsOptionType optionType) const
 {
-    GDALDriver *poDriver = Filter::getGDALDriver(m_type);
     switch (optionType) {
     case OT_CREATE_DATASOURCE:
-        if(nullptr == poDriver)
-            return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST);
     case OT_CREATE_LAYER:
-        if(nullptr == poDriver)
-            return "";
-        return poDriver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST);
     case OT_CREATE_LAYER_FIELD:
-        if(nullptr == poDriver)
-            return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES);
     case OT_CREATE_RASTER:
-        if(nullptr == poDriver)
-            return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
     case OT_OPEN:
-        if(nullptr == poDriver)
-            return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST);
+        return DatasetBase::getOptions(m_type, optionType);
     case OT_LOAD:
         return "<LoadOptionList>"
                "  <Option name='MOVE' type='boolean' description='If TRUE move dataset, else copy it.' default='FALSE'/>"
@@ -358,9 +385,7 @@ bool Dataset::hasChildren()
         size_t strLen = 0;
         const char* testStr = nullptr;
         char rasterPath[255];
-        while(subdatasetList[i] != nullptr) {
-            ++i;
-            testStr = subdatasetList[i];
+        while((testStr = subdatasetList[i++]) != nullptr) {
             strLen = CPLStrnlen(testStr, 255);
             if(EQUAL(testStr + strLen - 4, "NAME")) {
                 CPLStrlcpy(rasterPath, testStr, strLen - 4);
@@ -542,6 +567,11 @@ TablePtr Dataset::executeSQL(const char *statement,
         return TablePtr(new FeatureClass(layer, this,
                                          ngsCatalogObjectType::CAT_QUERY_RESULT_FC));
 
+}
+
+bool Dataset::open(unsigned int openFlags, const Options &options)
+{
+    return DatasetBase::open(m_path, openFlags, options);
 }
 
 

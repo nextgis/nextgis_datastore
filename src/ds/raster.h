@@ -21,15 +21,25 @@
 #ifndef NGSRASTERDATASET_H
 #define NGSRASTERDATASET_H
 
-#include "catalog/object.h"
+#include "dataset.h"
 #include "coordinatetransformation.h"
 
 namespace ngs {
 
+constexpr const char *KEY_URL = "url";
+constexpr const char *KEY_EPSG = "epsg";
+constexpr const char *KEY_Z_MIN = "z_min";
+constexpr const char *KEY_Z_MAX = "z_max";
+constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
+constexpr const char *KEY_X_MIN = "x_min";
+constexpr const char *KEY_X_MAX = "x_max";
+constexpr const char *KEY_Y_MIN = "y_min";
+constexpr const char *KEY_Y_MAX = "y_max";
+
 /**
  * @brief The Raster dataset class represent image or raster
  */
-class Raster : public Object, public ISpatialDataset
+class Raster : public Object, public DatasetBase, public ISpatialDataset
 {
 public:
     Raster(std::vector<CPLString> siblingFiles,
@@ -37,7 +47,10 @@ public:
            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
            const CPLString & name = "",
            const CPLString & path = "");
-    virtual ~Raster();
+
+    // DatasetBase interface
+    virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
+    virtual const char *getOptions(ngsOptionType optionType) const override;
 
     // ISpatialDataset interface
 public:
@@ -45,12 +58,12 @@ public:
 
 protected:
     OGRSpatialReference m_spatialReference;
-    GDALDataset* m_DS;
 
 private:
     std::vector<CPLString> m_siblingFiles;
-
 };
+
+typedef std::shared_ptr<Raster> RasterPtr;
 
 }
 

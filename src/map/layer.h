@@ -29,6 +29,7 @@
 
 #include "catalog/objectcontainer.h"
 #include "ds/featureclass.h"
+#include "ds/raster.h"
 
 namespace ngs {
 
@@ -83,6 +84,27 @@ public:
 
 protected:
     FeatureClassPtr m_featureClass;
+};
+
+/**
+ * @brief The RasterLayer class Layer with raster
+ */
+class RasterLayer : public Layer
+{
+public:
+    RasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+
+    void setRaster(const RasterPtr &raster) {
+        m_raster = raster;
+    }
+
+    // Layer interface
+public:
+    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
+    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+
+protected:
+    RasterPtr m_raster;
 };
 
 }

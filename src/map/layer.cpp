@@ -98,4 +98,49 @@ JSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
     return out;
 }
 
+//------------------------------------------------------------------------------
+// RasterLayer
+//------------------------------------------------------------------------------
+
+RasterLayer::RasterLayer(const CPLString& name) : Layer(name, Type::Raster)
+{
+}
+
+
+bool RasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+{
+    if(!Layer::load(store, objectContainer))
+        return false;
+
+    const char* path = store.getString(LAYER_SOURCE_KEY, "");
+    ObjectPtr fcObject;
+    // Check absolute or relative catalog path
+    if(nullptr == objectContainer) { // absolute path
+        CatalogPtr catalog = Catalog::getInstance();
+        fcObject = catalog->getObject(path);
+    }
+    else { // relative path
+        fcObject = Catalog::fromRelativePath(path, objectContainer);
+    }
+
+    m_raster = std::dynamic_pointer_cast<Raster>(fcObject);
+    if(m_raster)
+        return true;
+    return false;
+}
+
+JSONObject RasterLayer::save(const ObjectContainer *objectContainer) const
+{
+    JSONObject out = Layer::save(objectContainer);
+    // Check absolute or relative catalog path
+    if(nullptr == objectContainer) { // absolute path
+        out.add(LAYER_SOURCE_KEY, m_raster->getPath());
+    }
+    else { // relative path
+        out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_raster.get(),
+                                                          objectContainer));
+    }
+    return out;
+}
+
 } // namespace ngs
