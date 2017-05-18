@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "raster.h"
 
+#include "util/error.h"
+
 namespace ngs {
 
 Raster::Raster(std::vector<CPLString> siblingFiles,
@@ -49,10 +51,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         int z_max = root.getInteger(KEY_Z_MAX, 18);
         bool y_origin_top = root.getBool(KEY_Y_ORIGIN_TOP, true);
 
-        double x_min = root.getDouble(KEY_X_MIN, DEFAULT_BOUNDS.getMinX());
-        double x_max = root.getDouble(KEY_X_MAX, DEFAULT_BOUNDS.getMaxX());
-        double y_min = root.getDouble(KEY_Y_MIN, DEFAULT_BOUNDS.getMinY());
-        double y_max = root.getDouble(KEY_Y_MAX, DEFAULT_BOUNDS.getMaxY());
+        m_extent.load(root.getObject(KEY_EXTENT), DEFAULT_BOUNDS);
 
         const char* connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
@@ -63,15 +62,22 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
             "<BlockSizeY>256</BlockSizeY><BandsCount>3</BandsCount>"
             "<Cache/></GDAL_WMS>",
-                                         url.c_str(), x_min, y_max, x_max, y_min,
-                                         z_max, y_origin_top ? "top" : "bottom",
+                                         url.c_str(), m_extent.getMinX(),
+                                         m_extent.getMaxY(), m_extent.getMaxX(),
+                                         m_extent.getMinY(), z_max,
+                                         y_origin_top ? "top" : "bottom",
                                          epsg);
+
         return DatasetBase::open(connStr, openFlags, options);
     }
     else {
         if(DatasetBase::open(m_path, openFlags, options)) {
             const char *spatRefStr = m_DS->GetProjectionRef();
-            m_spatialReference.SetFromUserInput(spatRefStr);
+            if(spatRefStr != nullptr) {
+                m_spatialReference.SetFromUserInput(spatRefStr);
+            }
+            setExtent();
+            return true;
         }
     }
     return false;
@@ -82,9 +88,113 @@ OGRSpatialReference *Raster::getSpatialReference() const
     return const_cast<OGRSpatialReference*>(&m_spatialReference);
 }
 
+bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
+                          int bufXSize, int bufYSize, GDALDataType dataType,
+                          int bandCount, int *bandList, bool read)
+{
+    CPLErrorReset();
+    int pixelSpace(0);
+    int lineSpace(0);
+    int bandSpace(0);
+    if(bandCount > 1)
+    {
+        int dataSize = GDALGetDataTypeSize(dataType) / 8;
+        pixelSpace = dataSize * bandCount;
+        lineSpace = bufXSize * pixelSpace;
+        bandSpace = dataSize;
+    }
+
+    if(m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff, xSize, ySize, data,
+                      bufXSize, bufYSize, dataType, bandCount, bandList,
+                      pixelSpace, lineSpace, bandSpace) != CE_None) {
+        return errorMessage(CPLGetLastErrorMsg());
+    }
+    return true;
+}
+
+void Raster::setExtent()
+{
+    double geoTransform[6] = {0};
+    int xSize = m_DS->GetRasterXSize();
+    int ySize = m_DS->GetRasterYSize();
+    if(m_DS->GetGeoTransform(geoTransform) == CE_None) {
+        double inX[4];
+        double inY[4];
+
+        inX[0] = 0;
+        inY[0] = 0;
+        inX[1] = xSize;
+        inY[1] = 0;
+        inX[2] = xSize;
+        inY[2] = ySize;
+        inX[3] = 0;
+        inY[3] = ySize;
+
+        m_extent.setMaxX(-1000000000.0);
+        m_extent.setMaxY(-1000000000.0);
+        m_extent.setMinX(1000000000.0);
+        m_extent.setMinY(1000000000.0);
+
+        for(int i = 0; i < 4; ++i) {
+            double rX, rY;
+            GDALApplyGeoTransform( geoTransform, inX[i], inY[i], &rX, &rY );
+            if(m_extent.getMaxX() < rX) {
+                m_extent.setMaxX(rX);
+            }
+            if(m_extent.getMinX() > rX) {
+                m_extent.setMinX(rX);
+            }
+            if(m_extent.getMaxY() < rY) {
+                m_extent.setMaxY(rY);
+            }
+            if(m_extent.getMinY() > rY) {
+                m_extent.setMinY(rY);
+            }
+        }
+    }
+    else {
+        m_extent.setMaxX(xSize);
+        m_extent.setMaxY(ySize);
+        m_extent.setMinX(0);
+        m_extent.setMinY(0);
+    }
+}
+
 const char *Raster::getOptions(ngsOptionType optionType) const
 {
     return DatasetBase::getOptions(m_type, optionType);
+}
+
+bool Raster::writeWorldFile(enum WorldFileType type)
+{
+    CPLString ext = CPLGetExtension(m_path);
+    CPLString newExt;
+
+    switch(type) {
+    case FIRSTLASTW:
+        newExt += ext[0];
+        newExt += ext[ext.size() - 1];
+        newExt += 'w';
+        break;
+    case EXTPLUSWX:
+        newExt += ext[0];
+        newExt += ext[ext.size() - 1];
+        newExt += 'w';
+        newExt += 'x';
+        break;
+    case WLD:
+        newExt.append("wld");
+        break;
+    case EXTPLUSW:
+        newExt = ext + CPLString("w");
+        break;
+    }
+
+    double geoTransform[6] = { 0, 0, 0, 0, 0, 0 };
+    if(m_DS->GetGeoTransform(geoTransform) != CE_None) {
+        return errorMessage(CPLGetLastErrorMsg());
+    }
+    return GDALWriteWorldFile(m_path, newExt, geoTransform) == 0 ? false : true;
 }
 
 } // namespace ngs

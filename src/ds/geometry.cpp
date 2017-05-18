@@ -187,6 +187,18 @@ JSONObject Envelope::save() const
     return out;
 }
 
+bool Envelope::intersects(const Envelope &other) const
+{
+    return m_minX <= other.m_maxX && m_maxX >= other.m_minX &&
+            m_minY <= other.m_maxY && m_maxY >= other.m_minY;
+}
+
+bool Envelope::contains(const Envelope &other) const
+{
+    return m_minX <= other.m_minX && m_minY <= other.m_minY &&
+           m_maxX >= other.m_maxX && m_maxY >= other.m_maxY;
+}
+
 Normal ngsGetNormals(const OGRPoint &beg, const OGRPoint &end)
 {
     float deltaX = static_cast<float>(end.getX() - beg.getX());

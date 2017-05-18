@@ -31,10 +31,7 @@ constexpr const char *KEY_EPSG = "epsg";
 constexpr const char *KEY_Z_MIN = "z_min";
 constexpr const char *KEY_Z_MAX = "z_max";
 constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
-constexpr const char *KEY_X_MIN = "x_min";
-constexpr const char *KEY_X_MAX = "x_max";
-constexpr const char *KEY_Y_MIN = "y_min";
-constexpr const char *KEY_Y_MAX = "y_max";
+constexpr const char *KEY_EXTENT = "extent";
 
 /**
  * @brief The Raster dataset class represent image or raster
@@ -47,6 +44,16 @@ public:
            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
            const CPLString & name = "",
            const CPLString & path = "");
+public:
+    enum WorldFileType {
+        FIRSTLASTW,
+        EXTPLUSWX,
+        WLD,
+        EXTPLUSW
+    };
+
+    bool writeWorldFile(enum WorldFileType type);
+    const Envelope& getExtent() const { return m_extent; }
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
@@ -57,7 +64,14 @@ public:
     virtual OGRSpatialReference *getSpatialReference() const override;
 
 protected:
+    bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
+                   int bufXSize, int bufYSize, GDALDataType dataType,
+                   int bandCount, int *bandList, bool read = true);
+    void setExtent();
+
+protected:
     OGRSpatialReference m_spatialReference;
+    Envelope m_extent;
 
 private:
     std::vector<CPLString> m_siblingFiles;

@@ -65,6 +65,8 @@ public:
 
     bool load(const JSONObject& store, const Envelope& defaultValue);
     JSONObject save() const;
+    bool intersects(const Envelope &other) const;
+    bool contains(Envelope const& other) const;
 
 protected:
     double m_minX, m_minY, m_maxX, m_maxY;

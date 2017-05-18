@@ -137,6 +137,12 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
 
 void GlRasterLayer::fill(GlTilePtr tile)
 {
+    if(!m_raster->getExtent().intersects(tile->getExtent())) {
+        m_tiles[tile->getTile()] = GlObjectPtr();
+        m_images[tile->getTile()] = GlObjectPtr();
+        return;
+    }
+
     GLubyte* chessData = static_cast<GLubyte*>(CPLMalloc(3 * 3 *
                                                          sizeof(GLubyte) * 4));
 // 0
@@ -245,6 +251,7 @@ bool GlRasterLayer::draw(GlTilePtr tile)
         return false; // Not yet loaded
     }
 
+    // Bind everything before call prepare and set matrices
     GlImage* img = static_cast<GlImage*>(imgIt->second.get());
     m_imageStyle->setImage(img);
     if(buffIt->second->bound()) {
@@ -258,69 +265,69 @@ bool GlRasterLayer::draw(GlTilePtr tile)
     const GlBuffer& buff = (*static_cast<GlBuffer*>(buffIt->second.get()));
     m_imageStyle->draw(buff);
 
-//    return true;
-
-    Envelope ext = tile->getExtent();
-    ext.resize(0.9);
-
-    std::array<OGRPoint, 6> points;
-    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
-    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
-    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
-    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
-    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
-    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
-    for(size_t i = 0; i < points.size() - 1; ++i) {
-        Normal normal = ngsGetNormals(points[i], points[i + 1]);
-
-        GlBuffer buffer1;
-        // 0
-        buffer1.addVertex(points[i].getX());
-        buffer1.addVertex(points[i].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(-normal.x);
-        buffer1.addVertex(-normal.y);
-        buffer1.addIndex(0);
-
-        // 1
-        buffer1.addVertex(points[i + 1].getX());
-        buffer1.addVertex(points[i + 1].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(-normal.x);
-        buffer1.addVertex(-normal.y);
-        buffer1.addIndex(1);
-
-        // 2
-        buffer1.addVertex(points[i].getX());
-        buffer1.addVertex(points[i].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(normal.x);
-        buffer1.addVertex(normal.y);
-        buffer1.addIndex(2);
-
-        // 3
-        buffer1.addVertex(points[i + 1].getX());
-        buffer1.addVertex(points[i + 1].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(normal.x);
-        buffer1.addVertex(normal.y);
-
-        buffer1.addIndex(1);
-        buffer1.addIndex(2);
-        buffer1.addIndex(3);
-
-        SimpleLineStyle style;
-        style.setLineWidth(14.0f);
-        style.setColor({0, 0, 255, 255});
-        buffer1.bind();
-        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-        style.draw(buffer1);
-
-        buffer1.destroy();
-        style.destroy();
-    }
-
     return true;
+
+//    Envelope ext = tile->getExtent();
+//    ext.resize(0.9);
+
+//    std::array<OGRPoint, 6> points;
+//    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
+//    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
+//    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+//    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
+//    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
+//    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
+//    for(size_t i = 0; i < points.size() - 1; ++i) {
+//        Normal normal = ngsGetNormals(points[i], points[i + 1]);
+
+//        GlBuffer buffer1;
+//        // 0
+//        buffer1.addVertex(points[i].getX());
+//        buffer1.addVertex(points[i].getY());
+//        buffer1.addVertex(0.0f);
+//        buffer1.addVertex(-normal.x);
+//        buffer1.addVertex(-normal.y);
+//        buffer1.addIndex(0);
+
+//        // 1
+//        buffer1.addVertex(points[i + 1].getX());
+//        buffer1.addVertex(points[i + 1].getY());
+//        buffer1.addVertex(0.0f);
+//        buffer1.addVertex(-normal.x);
+//        buffer1.addVertex(-normal.y);
+//        buffer1.addIndex(1);
+
+//        // 2
+//        buffer1.addVertex(points[i].getX());
+//        buffer1.addVertex(points[i].getY());
+//        buffer1.addVertex(0.0f);
+//        buffer1.addVertex(normal.x);
+//        buffer1.addVertex(normal.y);
+//        buffer1.addIndex(2);
+
+//        // 3
+//        buffer1.addVertex(points[i + 1].getX());
+//        buffer1.addVertex(points[i + 1].getY());
+//        buffer1.addVertex(0.0f);
+//        buffer1.addVertex(normal.x);
+//        buffer1.addVertex(normal.y);
+
+//        buffer1.addIndex(1);
+//        buffer1.addIndex(2);
+//        buffer1.addIndex(3);
+
+//        SimpleLineStyle style;
+//        style.setLineWidth(14.0f);
+//        style.setColor({0, 0, 255, 255});
+//        buffer1.bind();
+//        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+//        style.draw(buffer1);
+
+//        buffer1.destroy();
+//        style.destroy();
+//    }
+
+//    return true;
 }
 
 

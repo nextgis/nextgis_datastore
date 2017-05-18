@@ -60,6 +60,10 @@ protected:
     static FORMAT_RESULT isFormatSupported(const CPLString& name,
                            std::vector<CPLString> extensions,
                            FORMAT_EXT testExts);
+    static void checkAdditionalSiblings(const CPLString& path,
+                                        const CPLString& name,
+                                        const char **nameAdds,
+                                        std::vector<CPLString> &siblingFiles);
     static void eraseNames(const CPLString& name,
                            const std::vector<CPLString> &siblingFiles,
                            std::vector<const char *> * const names);

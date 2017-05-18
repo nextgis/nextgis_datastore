@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "objectfactory.h"
 
+#include "catalog/folder.h"
+
 namespace ngs {
 
 ObjectFactory::ObjectFactory() : m_enabled(true)
@@ -81,6 +83,21 @@ ObjectFactory::FORMAT_RESULT ObjectFactory::isFormatSupported(
     }
 
     return out;
+}
+
+void ObjectFactory::checkAdditionalSiblings(const CPLString &path,
+                                            const CPLString &name,
+                                            const char **nameAdds,
+                                            std::vector<CPLString> &siblingFiles)
+{
+    int i = 0;
+    while(nameAdds[i] != nullptr) {
+        CPLString newName = name + nameAdds[i];
+        if(Folder::isExists(CPLFormFilename(path, newName, nullptr))) {
+            siblingFiles.push_back(newName);
+        }
+        i++;
+    }
 }
 
 void ObjectFactory::eraseNames(const CPLString &name,

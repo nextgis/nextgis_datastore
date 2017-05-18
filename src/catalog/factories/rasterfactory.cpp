@@ -28,15 +28,20 @@
 namespace ngs {
 
 static const char *tifMainExts[] = {nullptr};
-static const char *tifExtraExts[] = {"tfw", "tiffw", "wld", "tifw", "aux", "ovr", "tif.xml", "tiff.xml", "aux.xml", "ovr.aux.xml", "rrd", "xml", "lgo", "prj", "imd", "pvl", "att", "eph", "rpb", "rpc", nullptr};
+static const char *tifExtraExts[] = {"tfw", "tiffw", "wld", "tifw", "aux", "ovr",
+                                     "tif.xml", "tiff.xml", "aux.xml",
+                                     "ovr.aux.xml", "rrd", "xml", "lgo", "prj",
+                                     "imd", "pvl", "att", "eph", "rpb", "rpc",
+                                     nullptr};
 constexpr FORMAT_EXT tifExt = {"tif", tifMainExts, tifExtraExts};
 constexpr FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
-
-//CPLString szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("_rpc.txt");
-//szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("-browse.jpg");
-//szRpcName = CPLString(CPLGetBasename(m_sPath)) + CPLString("_readme.txt");
+static const char *tifAdds[] = {"_rpc.txt", "-browse.jpg", "_readme.txt", nullptr};
 
 constexpr const char *KEY_TYPE = "type";
+constexpr const char *KEY_X_MIN = "x_min";
+constexpr const char *KEY_X_MAX = "x_max";
+constexpr const char *KEY_Y_MIN = "y_min";
+constexpr const char *KEY_Y_MAX = "y_max";
 
 RasterFactory::RasterFactory()
 {
@@ -84,6 +89,8 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->getPath(), result.name,
                                                nullptr);
+            checkAdditionalSiblings(container->getPath(), result.name, tifAdds,
+                                    result.siblingFiles);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_RASTER_TIFF,
                      result.siblingFiles, names);
@@ -93,6 +100,8 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->getPath(), result.name,
                                                nullptr);
+            checkAdditionalSiblings(container->getPath(), result.name, tifAdds,
+                                    result.siblingFiles);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_RASTER_TIFF,
                      result.siblingFiles, names);
@@ -141,10 +150,11 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         int z_max = options.getIntOption(KEY_Z_MAX, 18);
         bool y_origin_top = options.getBoolOption(KEY_Y_ORIGIN_TOP, true);
 
-        double x_min = options.getDoubleOption(KEY_X_MIN, DEFAULT_BOUNDS.getMinX());
-        double x_max = options.getDoubleOption(KEY_X_MAX, DEFAULT_BOUNDS.getMaxX());
-        double y_min = options.getDoubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.getMinY());
-        double y_max = options.getDoubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.getMaxY());
+        Envelope extent;
+        extent.setMinX(options.getDoubleOption(KEY_X_MIN, DEFAULT_BOUNDS.getMinX()));
+        extent.setMaxX(options.getDoubleOption(KEY_X_MAX, DEFAULT_BOUNDS.getMaxX()));
+        extent.setMinY(options.getDoubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.getMinY()));
+        extent.setMaxY(options.getDoubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.getMaxY()));
 
         JSONDocument connectionFile;
         JSONObject root = connectionFile.getRoot();
@@ -153,10 +163,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.add(KEY_Z_MIN, z_min);
         root.add(KEY_Z_MAX, z_max);
         root.add(KEY_Y_ORIGIN_TOP, y_origin_top);
-        root.add(KEY_X_MIN, x_min);
-        root.add(KEY_X_MAX, x_max);
-        root.add(KEY_Y_MIN, y_min);
-        root.add(KEY_Y_MAX, y_max);
+        root.add(KEY_EXTENT, extent.save());
         const char* newPath = CPLResetExtension(path,
                                     getRemoteConnectionExtension());
         return connectionFile.save(newPath);
