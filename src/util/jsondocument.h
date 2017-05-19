@@ -78,11 +78,7 @@ public:
     long getLong(const char* name, long defaultVal) const;
     bool getBool(const char* name, bool defaultVal) const;
 
-    const char* getString(const char *defaultVal) const;
-    double getDouble(double defaultVal) const;
-    int getInteger(int defaultVal) const;
-    long getLong(long defaultVal) const;
-    bool getBool(bool defaultVal) const;
+
 
     //
     void destroy(const char* name);
@@ -93,6 +89,11 @@ public:
 
 protected:
     JSONObject getObjectByPath(const char *path, char *name) const;
+    const char* getString(const char *defaultVal) const;
+    double getDouble(double defaultVal) const;
+    int getInteger(int defaultVal) const;
+    long getLong(long defaultVal) const;
+    bool getBool(bool defaultVal) const;
 
 private:
     json_object *m_jsonObject;

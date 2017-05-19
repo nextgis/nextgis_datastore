@@ -53,7 +53,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             return false;
         }
         JSONObject root = connectionFile.getRoot();
-        CPLString url = root.getString(KEY_URL);
+        CPLString url = root.getString(KEY_URL, "");
         url = url.replaceAll("{", "${");
         int epsg = root.getInteger(KEY_EPSG, 3857);
 
@@ -99,7 +99,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 
 bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                           int bufXSize, int bufYSize, GDALDataType dataType,
-                          int bandCount, int *bandList, bool read)
+                          int bandCount, int *bandList, bool read, bool skipLastBand)
 {
     CPLErrorReset();
     int pixelSpace(0);
@@ -114,7 +114,8 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     if(m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff, xSize, ySize, data,
-                      bufXSize, bufYSize, dataType, bandCount, bandList,
+                      bufXSize, bufYSize, dataType,
+                      skipLastBand ? bandCount - 1 : bandCount, bandList,
                       pixelSpace, lineSpace, bandSpace) != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
     }

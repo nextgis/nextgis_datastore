@@ -64,7 +64,8 @@ public:
                         int bufXSize, int bufYSize) const;
     bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                    int bufXSize, int bufYSize, GDALDataType dataType,
-                   int bandCount, int *bandList, bool read = true);
+                   int bandCount, int *bandList, bool read = true,
+                   bool skipLastBand = false);
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;

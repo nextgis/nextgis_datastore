@@ -216,7 +216,7 @@ const Envelope &Envelope::intersect(const Envelope &other)
             m_minX = std::max(m_minX, other.m_minX);
             m_maxX = std::min(m_maxX, other.m_maxX);
             m_minY = std::max(m_minY, other.m_minY);
-            m_maxX = std::min(m_maxY, other.m_maxY);
+            m_maxY = std::min(m_maxY, other.m_maxY);
         }
         else {
             m_minX = other.m_minX;

@@ -120,7 +120,8 @@ void RasterFactory::createObjects(ObjectContainer * const container,
                             static_cast<enum ngsCatalogObjectType>(
                                 connectionFile.getRoot().getInteger(
                                     KEY_TYPE, CAT_UNKNOWN));
-                    addChild(container, nameExtsItem.first, path, type,
+                    addChild(container, nameExtsItem.first + "." +
+                             getRemoteConnectionExtension(), path, type,
                              siblingFiles, names);
                 }
             }

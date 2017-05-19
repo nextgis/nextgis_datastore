@@ -84,7 +84,7 @@ public:
 private:
     SimpleImageStyle* m_imageStyle;
     std::map<Tile, GlObjectPtr> m_images;
-    unsigned char m_red, m_green, m_blue, m_alpha;
+    unsigned char m_red, m_green, m_blue, m_alpha, m_transparancy;
     GDALDataType m_dataType;
 };
 /*

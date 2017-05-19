@@ -133,6 +133,7 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
     m_green(2),
     m_blue(3),
     m_alpha(0),
+    m_transparancy(0),
     m_dataType(GDT_Byte)
 {
     // Create default style
@@ -161,10 +162,10 @@ void GlRasterLayer::fill(GlTilePtr tile)
     double invGeoTransform[6] = { 0 };
     bool noTransform = false;
     if(m_raster->getGeoTransform(geoTransform)) {
-        noTransform = true;
+        noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
     }
     else {
-        noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
+        noTransform = true;
     }
 
     // Calc output buffer width and height
@@ -238,18 +239,30 @@ void GlRasterLayer::fill(GlTilePtr tile)
         }
     }
 
-    int dataSize = m_dataType / 8;
+    int dataSize = GDALGetDataTypeSize(m_dataType) / 8;
     size_t bufferSize = static_cast<size_t>(outWidth * outHeight *
                                             dataSize * 4); // NOTE: We use RGBA to store textures
     GLubyte* pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
-
-    if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
-                            outHeight, m_dataType, bandCount, bands)) {
-        CPLFree(pixData);
-        CPLMutexHolder holder(m_dataMutex);
-        m_tiles[tile->getTile()] = GlObjectPtr();
-        m_images[tile->getTile()] = GlObjectPtr();
-        return;
+    if(m_alpha == 0) {
+        std::memset(pixData, 255 - m_transparancy, bufferSize);
+        if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
+                                outHeight, m_dataType, bandCount, bands, true, true)) {
+            CPLFree(pixData);
+            CPLMutexHolder holder(m_dataMutex);
+            m_tiles[tile->getTile()] = GlObjectPtr();
+            m_images[tile->getTile()] = GlObjectPtr();
+            return;
+        }
+    }
+    else {
+        if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
+                                outHeight, m_dataType, bandCount, bands)) {
+            CPLFree(pixData);
+            CPLMutexHolder holder(m_dataMutex);
+            m_tiles[tile->getTile()] = GlObjectPtr();
+            m_images[tile->getTile()] = GlObjectPtr();
+            return;
+        }
     }
 
     GlImage *image = new GlImage;
@@ -261,25 +274,25 @@ void GlRasterLayer::fill(GlTilePtr tile)
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
-    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
-    tileExtentBuff->addVertex(1.0f);
+    tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(1);
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
-    tileExtentBuff->addVertex(1.0f);
+    tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(2);
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
-    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);
     tileExtentBuff->addIndex(2);
     tileExtentBuff->addIndex(3);

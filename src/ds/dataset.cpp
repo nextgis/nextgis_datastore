@@ -92,8 +92,7 @@ GDALDatasetPtr::operator GDALDataset *() const
 // DatasetBase
 //------------------------------------------------------------------------------
 DatasetBase::DatasetBase() :
-    m_DS(nullptr),
-    m_readonly(false)
+    m_DS(nullptr)
 {
 
 }
@@ -102,6 +101,13 @@ DatasetBase::~DatasetBase()
 {
     GDALClose(m_DS);
     m_DS = nullptr;
+}
+
+bool DatasetBase::isReadOnly() const
+{
+     if(m_DS == nullptr)
+         return true;
+     return m_DS->GetAccess() == GA_ReadOnly;
 }
 
 const char *DatasetBase::getOptions(const enum ngsCatalogObjectType type,
@@ -159,15 +165,13 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
             if(nullptr == m_DS) {
                 errorMessage(CPLGetLastErrorMsg());
                 return false; // Error message comes from GDALOpenEx
-            }
-            else {
-                m_readonly = true;
-            }
+            }            
         }
         else {
             return false;
         }
     }
+
     return true;
 }
 

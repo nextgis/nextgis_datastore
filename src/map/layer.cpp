@@ -124,8 +124,10 @@ bool RasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer
     }
 
     m_raster = std::dynamic_pointer_cast<Raster>(fcObject);
-    if(m_raster)
+    if(m_raster) {
+        m_raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
         return true;
+    }
     return false;
 }
 

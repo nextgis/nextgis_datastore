@@ -56,7 +56,7 @@ public:
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
-    virtual bool isReadOnly() const { return m_readonly; }
+    virtual bool isReadOnly() const;
 
 protected:
     bool open(const char* path, unsigned int openFlags,
@@ -66,7 +66,6 @@ protected:
 
 protected:
     GDALDataset* m_DS;
-    bool m_readonly;
 };
 
 /**
@@ -103,7 +102,7 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override { return !m_readonly; }
+    virtual bool canDestroy() const override { return !isReadOnly(); }
 
     // ObjectContainer interface
 public:
