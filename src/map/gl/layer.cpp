@@ -128,7 +128,12 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
 //------------------------------------------------------------------------------
 
 GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
-    GlRenderLayer()
+    GlRenderLayer(),
+    m_red(1),
+    m_green(2),
+    m_blue(3),
+    m_alpha(0),
+    m_dataType(GDT_Byte)
 {
     // Create default style
     m_imageStyle = new SimpleImageStyle;
@@ -137,95 +142,150 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
 
 void GlRasterLayer::fill(GlTilePtr tile)
 {
-    if(!m_raster->getExtent().intersects(tile->getExtent())) {
+    Envelope rasterExtent = m_raster->getExtent();
+    const Envelope & tileExtent = tile->getExtent();
+
+    // FIXME: Reproject tile extent to raster extent
+
+    Envelope outExt = rasterExtent.intersect(tileExtent);
+
+    if(!rasterExtent.isInit()) {
+        CPLMutexHolder holder(m_dataMutex);
         m_tiles[tile->getTile()] = GlObjectPtr();
         m_images[tile->getTile()] = GlObjectPtr();
         return;
     }
 
-    GLubyte* chessData = static_cast<GLubyte*>(CPLMalloc(3 * 3 *
-                                                         sizeof(GLubyte) * 4));
-// 0
-    chessData[0] = 255;
-    chessData[1] = 255;
-    chessData[2] = 255;
-    chessData[3] = 255;
-// 1
-    chessData[4] = 0;
-    chessData[5] = 0;
-    chessData[6] = 0;
-    chessData[7] = 50;
-// 2
-    chessData[8] = 255;
-    chessData[9] = 255;
-    chessData[10] = 255;
-    chessData[11] = 255;
-// 3
-    chessData[12] = 0;
-    chessData[13] = 0;
-    chessData[14] = 0;
-    chessData[15] = 50;
-// 4
-    chessData[16] = 255;
-    chessData[17] = 255;
-    chessData[18] = 255;
-    chessData[19] = 255;
-// 5
-    chessData[20] = 0;
-    chessData[21] = 0;
-    chessData[22] = 0;
-    chessData[23] = 50;
-// 6
-    chessData[24] = 255;
-    chessData[25] = 255;
-    chessData[26] = 255;
-    chessData[27] = 255;
-// 7
-    chessData[28] = 0;
-    chessData[29] = 0;
-    chessData[30] = 0;
-    chessData[31] = 50;
-// 8
-    chessData[32] = 255;
-    chessData[33] = 255;
-    chessData[34] = 255;
-    chessData[35] = 255;
+    // Create inverse geotransform to get pixel data
+    double geoTransform[6] = { 0 };
+    double invGeoTransform[6] = { 0 };
+    bool noTransform = false;
+    if(m_raster->getGeoTransform(geoTransform)) {
+        noTransform = true;
+    }
+    else {
+        noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
+    }
+
+    // Calc output buffer width and height
+    int outWidth = static_cast<int>(rasterExtent.getWidth() *
+                                    tile->getSizeInPixels() /
+                                    tileExtent.getWidth());
+    int outHeight = static_cast<int>(rasterExtent.getHeight() *
+                                     tile->getSizeInPixels() /
+                                     tileExtent.getHeight());
+
+    if(noTransform) {
+        // Swap min/max Y
+        rasterExtent.setMaxY(m_raster->getHeight() - rasterExtent.getMinY());
+        rasterExtent.setMinY(m_raster->getHeight() - rasterExtent.getMaxY());
+    }
+    else {
+        double minX, minY, maxX, maxY;
+        GDALApplyGeoTransform(invGeoTransform, rasterExtent.getMinX(),
+                              rasterExtent.getMinY(), &minX, &maxY);
+
+        GDALApplyGeoTransform(invGeoTransform, rasterExtent.getMaxX(),
+                              rasterExtent.getMaxY(), &maxX, &minY);
+        rasterExtent.setMinX(minX);
+        rasterExtent.setMaxX(maxX);
+        rasterExtent.setMinY(minY);
+        rasterExtent.setMaxY(maxY);
+    }
+
+    rasterExtent.fix();
+
+    // Get width & height in pixels of raster area
+    int width = static_cast<int>(std::ceil(rasterExtent.getWidth()));
+    int height = static_cast<int>(std::ceil(rasterExtent.getHeight()));
+    int minX = static_cast<int>(std::floor(rasterExtent.getMinX()));
+    int minY = static_cast<int>(std::floor(rasterExtent.getMinY()));
+
+    // Correct data
+    if(minX < 0) {
+        minX = 0;
+    }
+    if(minY < 0) {
+        minY = 0;
+    }
+    if(width - minX > m_raster->getWidth()) {
+        width = m_raster->getWidth() - minX;
+    }
+    if(height - minY > m_raster->getHeight()) {
+        height = m_raster->getHeight() - minY;
+    }
+
+    // TODO: Check if 0 band is working else memset 255 for buffer and read data skipping 4 byte
+    int bandCount = 4;
+    int bands[4];
+    bands[0] = m_red;
+    bands[1] = m_green;
+    bands[2] = m_blue;
+    bands[3] = m_alpha;
+
+    if(outWidth > width && outHeight > height ) { // Read origina raster
+        outWidth = width;
+        outHeight = height;
+    }
+    else { // Get closest overview and get overview data
+        int outWidthOv = width;
+        int outHeightOv = height;
+        int overview = m_raster->getBestOverview(minX, minY, outWidthOv, outHeightOv,
+                                                 outWidth, outHeight);
+        if(overview >= 0) {
+            outWidth = outWidthOv;
+            outHeight = outHeightOv;
+        }
+    }
+
+    int dataSize = m_dataType / 8;
+    size_t bufferSize = static_cast<size_t>(outWidth * outHeight *
+                                            dataSize * 4); // NOTE: We use RGBA to store textures
+    GLubyte* pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
+
+    if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
+                            outHeight, m_dataType, bandCount, bands)) {
+        CPLFree(pixData);
+        CPLMutexHolder holder(m_dataMutex);
+        m_tiles[tile->getTile()] = GlObjectPtr();
+        m_images[tile->getTile()] = GlObjectPtr();
+        return;
+    }
 
     GlImage *image = new GlImage;
-    image->setImage(chessData, 3, 3);
+    image->setImage(pixData, outWidth, outHeight); // NOTE: May be not working NOD
 
-    Envelope env = tile->getExtent();
-    // TODO: For images in different spatial references or rotated we need buffer overlaped tile and new corner coordinates
-    GlBuffer* tileExtent = new GlBuffer;
-    tileExtent->addVertex(static_cast<float>(env.getMinX()));
-    tileExtent->addVertex(static_cast<float>(env.getMinY()));
-    tileExtent->addVertex(0.0f);
-    tileExtent->addVertex(0.0f);
-    tileExtent->addVertex(0.0f);
-    tileExtent->addIndex(0);
-    tileExtent->addVertex(static_cast<float>(env.getMinX()));
-    tileExtent->addVertex(static_cast<float>(env.getMaxY()));
-    tileExtent->addVertex(0.0f);
-    tileExtent->addVertex(0.0f);
-    tileExtent->addVertex(1.0f);
-    tileExtent->addIndex(1);
-    tileExtent->addVertex(static_cast<float>(env.getMaxX()));
-    tileExtent->addVertex(static_cast<float>(env.getMaxY()));
-    tileExtent->addVertex(0.0f);
-    tileExtent->addVertex(1.0f);
-    tileExtent->addVertex(1.0f);
-    tileExtent->addIndex(2);
-    tileExtent->addVertex(static_cast<float>(env.getMaxX()));
-    tileExtent->addVertex(static_cast<float>(env.getMinY()));
-    tileExtent->addVertex(0.0f);
-    tileExtent->addVertex(1.0f);
-    tileExtent->addVertex(0.0f);
-    tileExtent->addIndex(0);
-    tileExtent->addIndex(2);
-    tileExtent->addIndex(3);
+    // FIXME: Reproject intersect raster extent to tile extent
+    GlBuffer* tileExtentBuff = new GlBuffer;
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY()));
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addIndex(0);
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY()));
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(1.0f);
+    tileExtentBuff->addIndex(1);
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY()));
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(1.0f);
+    tileExtentBuff->addVertex(1.0f);
+    tileExtentBuff->addIndex(2);
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY()));
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(1.0f);
+    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addIndex(0);
+    tileExtentBuff->addIndex(2);
+    tileExtentBuff->addIndex(3);
 
     CPLMutexHolder holder(m_dataMutex);
-    m_tiles[tile->getTile()] = GlObjectPtr(tileExtent);
+    m_tiles[tile->getTile()] = GlObjectPtr(tileExtentBuff);
     m_images[tile->getTile()] = GlObjectPtr(image);
 }
 
@@ -248,7 +308,10 @@ bool GlRasterLayer::draw(GlTilePtr tile)
     auto buffIt = m_tiles.find(tile->getTile());
     auto imgIt = m_images.find(tile->getTile());
     if(buffIt == m_tiles.end() || imgIt == m_images.end()) {
-        return false; // Not yet loaded
+        return false; // Data not yet loaded
+    }
+    else if(!buffIt->second || !imgIt->second) {
+        return true; // Out of tile extent
     }
 
     // Bind everything before call prepare and set matrices

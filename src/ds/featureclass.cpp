@@ -39,13 +39,8 @@ FeatureClass::FeatureClass(OGRLayer *layer,
                                const CPLString &name) :
     Table(layer, parent, type, name)
 {
-}
-
-OGRSpatialReference *FeatureClass::getSpatialReference() const
-{
-    if(nullptr == m_layer)
-        return nullptr;
-    return m_layer->GetSpatialRef();
+    if(m_layer && m_layer->GetSpatialRef())
+        m_spatialReference = m_layer->GetSpatialRef();
 }
 
 OGRwkbGeometryType FeatureClass::getGeometryType() const

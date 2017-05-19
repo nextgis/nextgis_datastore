@@ -33,7 +33,7 @@ namespace ngs {
 /**
  * @brief The wrapper class around GDALDataset pointer
  */
-class GDALDatasetPtr : public std::shared_ptr< GDALDataset >
+class GDALDatasetPtr : public std::shared_ptr<GDALDataset>
 {
 public:
     GDALDatasetPtr(GDALDataset* ds);

@@ -96,6 +96,8 @@ public:
 
     void setRaster(const RasterPtr &raster) {
         m_raster = raster;
+        if(m_raster && !m_raster->isOpened())
+            m_raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
     }
 
     // Layer interface

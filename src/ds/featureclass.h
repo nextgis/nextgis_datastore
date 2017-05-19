@@ -30,7 +30,7 @@ namespace ngs {
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 
-class FeatureClass : public Table, public ISpatialDataset
+class FeatureClass : public Table, public SpatialDataset
 {
 public:
     enum class GeometryReportType {
@@ -61,11 +61,6 @@ public:
     static const char *getGeometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
     static OGRwkbGeometryType getGeometryTypeFromName(const char* name);
-
-
-    // ISpatialDataset interface
-public:
-    virtual OGRSpatialReference *getSpatialReference() const override;
 };
 
 }

@@ -31,12 +31,22 @@ Raster::Raster(std::vector<CPLString> siblingFiles,
                const CPLString &path) :
   Object(parent, type, name, path),
   DatasetBase(),
+  SpatialDataset(),
   m_siblingFiles(siblingFiles)
 {
 }
 
+Raster::~Raster()
+{
+    if(m_spatialReference)
+        delete m_spatialReference;
+}
+
 bool Raster::open(unsigned int openFlags, const Options &options)
 {
+    if(isOpened())
+        return true;
+
     if(m_type == CAT_RASTER_TMS) {
         JSONDocument connectionFile;
         if(!connectionFile.load(m_path)) {
@@ -46,7 +56,10 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         CPLString url = root.getString(KEY_URL);
         url = url.replaceAll("{", "${");
         int epsg = root.getInteger(KEY_EPSG, 3857);
-        m_spatialReference.importFromEPSG(epsg);
+
+        m_spatialReference = new OGRSpatialReference;
+        m_spatialReference->importFromEPSG(epsg);
+
 //        int z_min = root.getInteger(KEY_Z_MIN, 0);
         int z_max = root.getInteger(KEY_Z_MAX, 18);
         bool y_origin_top = root.getBool(KEY_Y_ORIGIN_TOP, true);
@@ -74,18 +87,14 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         if(DatasetBase::open(m_path, openFlags, options)) {
             const char *spatRefStr = m_DS->GetProjectionRef();
             if(spatRefStr != nullptr) {
-                m_spatialReference.SetFromUserInput(spatRefStr);
+                m_spatialReference = new OGRSpatialReference;
+                m_spatialReference->SetFromUserInput(spatRefStr);
             }
             setExtent();
             return true;
         }
     }
     return false;
-}
-
-OGRSpatialReference *Raster::getSpatialReference() const
-{
-    return const_cast<OGRSpatialReference*>(&m_spatialReference);
 }
 
 bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
@@ -195,6 +204,58 @@ bool Raster::writeWorldFile(enum WorldFileType type)
         return errorMessage(CPLGetLastErrorMsg());
     }
     return GDALWriteWorldFile(m_path, newExt, geoTransform) == 0 ? false : true;
+}
+
+bool Raster::getGeoTransform(double *transform) const
+{
+    if(!isOpened())
+        return false;
+    return m_DS->GetGeoTransform(transform) == CE_None;
+}
+
+int Raster::getWidth() const
+{
+    if(!isOpened())
+        return 0;
+    return m_DS->GetRasterXSize();
+}
+
+int Raster::getHeight() const
+{
+    if(!isOpened())
+        return 0;
+    return m_DS->GetRasterYSize();
+}
+
+int Raster::getDataSize() const
+{
+    if(!isOpened())
+        return 0;
+    if(m_DS->GetRasterCount() == 0)
+        return 0;
+    GDALDataType dt = m_DS->GetRasterBand(1)->GetRasterDataType();
+    return GDALGetDataTypeSize(dt) / 8;
+}
+
+GDALDataType Raster::getDataType(int band) const
+{
+    if(!isOpened())
+        return GDT_Unknown;
+    if(m_DS->GetRasterCount() == 0)
+        return GDT_Unknown;
+    return  m_DS->GetRasterBand(band)->GetRasterDataType();
+}
+
+int Raster::getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
+                            int bufXSize, int bufYSize) const
+{
+    if(!isOpened())
+        return 0;
+    if(m_DS->GetRasterCount() == 0)
+        return 0;
+
+    return GDALBandGetBestOverviewLevel2(m_DS->GetRasterBand(1), xOff, yOff,
+                                         xSize, ySize, bufXSize, bufYSize, nullptr);
 }
 
 } // namespace ngs

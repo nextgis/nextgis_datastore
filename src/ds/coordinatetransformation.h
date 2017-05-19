@@ -27,13 +27,19 @@
 
 namespace ngs {
 
+typedef std::shared_ptr<OGRSpatialReference> SpatialReferencePtr;
+
 /**
- * @brief The ISpatialDataset interface class for datasets with spatial reference.
+ * @brief The SpatialDataset interface class for datasets with spatial reference.
  */
-class ISpatialDataset {
+class SpatialDataset {
 public:
-    virtual ~ISpatialDataset() = default;
-    virtual OGRSpatialReference * getSpatialReference() const = 0;
+    SpatialDataset() : m_spatialReference(nullptr) {}
+    virtual ~SpatialDataset() = default;
+    virtual OGRSpatialReference *getSpatialReference() const {
+        return m_spatialReference; }
+protected:
+    OGRSpatialReference* m_spatialReference;
 };
 
 class CoordinateTransformation

@@ -208,7 +208,13 @@ DataStore::DataStore(ObjectContainer * const parent,
     Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_NGS, name, path),
     m_disableJournalCounter(0)
 {
-    m_storeSpatialRef.importFromEPSG(DEFAULT_EPSG);
+    m_spatialReference = new OGRSpatialReference;
+    m_spatialReference->importFromEPSG(DEFAULT_EPSG);
+}
+
+DataStore::~DataStore()
+{
+    delete m_spatialReference;
 }
 
 bool DataStore::isNameValid(const char *name) const

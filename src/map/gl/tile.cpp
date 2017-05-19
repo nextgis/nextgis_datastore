@@ -37,7 +37,6 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
 
 
     Envelope env = tileItem.env;
-//    env.resize(0.5);
     env.move(tileItem.tile.crossExtent * DEFAULT_BOUNDS.getWidth(), 0.0);
     m_tile.addVertex(static_cast<float>(env.getMinX()));
     m_tile.addVertex(static_cast<float>(env.getMinY()));

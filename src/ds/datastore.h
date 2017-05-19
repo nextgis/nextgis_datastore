@@ -29,13 +29,13 @@ namespace ngs {
  * @brief The geodata storage and manipulation class for raster, vector geodata
  * and attachments
  */
-class DataStore : public Dataset, public ISpatialDataset
+class DataStore : public Dataset, public SpatialDataset
 {
 public:
     DataStore(ObjectContainer * const parent = nullptr,
               const CPLString & name = "",
               const CPLString & path = "");
-    virtual ~DataStore() = default;
+    virtual ~DataStore();
 
     // static
 public:
@@ -45,12 +45,6 @@ public:
     // Object interface
 public:
     virtual bool canDestroy() const override;
-
-    // ISpatialDataset interface
-public:
-    virtual OGRSpatialReference *getSpatialReference() const override {
-        return const_cast<OGRSpatialReference *>(&m_storeSpatialRef);
-    }
 
     // Dataset interface
 public:
@@ -84,7 +78,6 @@ protected:
 
 protected:
     unsigned char m_disableJournalCounter;
-    OGRSpatialReference m_storeSpatialRef;
 };
 
 }

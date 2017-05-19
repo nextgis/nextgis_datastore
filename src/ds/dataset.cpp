@@ -264,7 +264,7 @@ bool Dataset::isNameValid(const char* name) const
     return true;
 }
 
-bool forbiddenChar (char c)
+bool forbiddenChar(char c)
 {
     return std::find(forbiddenChars.begin(), forbiddenChars.end(), c) !=
             forbiddenChars.end();
@@ -316,7 +316,7 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
 
 void Dataset::fillFeatureClasses()
 {
-    for(int i = 0; i < m_DS->GetLayerCount(); ++i){
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer* layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();

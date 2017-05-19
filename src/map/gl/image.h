@@ -34,6 +34,8 @@ public:
         m_width = width;
         m_height = height;
     }
+    size_t getWidth() const { return static_cast<size_t>(m_width); }
+    size_t getHeight() const { return static_cast<size_t>(m_height); }
 
     // GlObject interface
 public:

@@ -36,7 +36,7 @@ constexpr const char *KEY_EXTENT = "extent";
 /**
  * @brief The Raster dataset class represent image or raster
  */
-class Raster : public Object, public DatasetBase, public ISpatialDataset
+class Raster : public Object, public DatasetBase, public SpatialDataset
 {
 public:
     Raster(std::vector<CPLString> siblingFiles,
@@ -44,6 +44,7 @@ public:
            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
            const CPLString & name = "",
            const CPLString & path = "");
+    virtual ~Raster();
 public:
     enum WorldFileType {
         FIRSTLASTW,
@@ -54,23 +55,26 @@ public:
 
     bool writeWorldFile(enum WorldFileType type);
     const Envelope& getExtent() const { return m_extent; }
+    bool getGeoTransform(double *transform) const;
+    int getWidth() const;
+    int getHeight() const;
+    int getDataSize() const;
+    GDALDataType getDataType(int band = 1) const;
+    int getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
+                        int bufXSize, int bufYSize) const;
+    bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
+                   int bufXSize, int bufYSize, GDALDataType dataType,
+                   int bandCount, int *bandList, bool read = true);
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
     virtual const char *getOptions(ngsOptionType optionType) const override;
 
-    // ISpatialDataset interface
-public:
-    virtual OGRSpatialReference *getSpatialReference() const override;
-
 protected:
-    bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
-                   int bufXSize, int bufYSize, GDALDataType dataType,
-                   int bandCount, int *bandList, bool read = true);
+
     void setExtent();
 
 protected:
-    OGRSpatialReference m_spatialReference;
     Envelope m_extent;
 
 private:
