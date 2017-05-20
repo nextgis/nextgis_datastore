@@ -40,7 +40,9 @@ void GlRenderLayer::free(GlTilePtr tile)
     CPLMutexHolder holder(m_dataMutex);
     auto it = m_tiles.find(tile->getTile());
     if(it != m_tiles.end()) {
-        it->second->destroy();
+        if(it->second) {
+            it->second->destroy();
+        }
         m_tiles.erase(it);
     }
 }
