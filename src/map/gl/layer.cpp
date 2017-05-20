@@ -313,7 +313,9 @@ void GlRasterLayer::free(GlTilePtr tile)
     CPLMutexHolder holder(m_dataMutex);
     auto it = m_images.find(tile->getTile());
     if(it != m_images.end()) {
-        it->second->destroy();
+        if(it->second) {
+            it->second->destroy();
+        }
         m_images.erase(it);
     }
 }
