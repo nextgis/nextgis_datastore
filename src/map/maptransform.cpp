@@ -155,13 +155,13 @@ bool MapTransform::updateExtent()
     m_scaleWorld = 1 / std::min(scaleX, scaleY);
 
     if(m_XAxisLooped) {
-        while (m_extent.getMinX() > DEFAULT_BOUNDS.getMaxX()) {
-            m_extent.setMinX(m_extent.getMinX() - DEFAULT_BOUNDS.getMaxX());
-            m_extent.setMaxX(m_extent.getMaxX() - DEFAULT_BOUNDS.getMaxX());
+        while (m_extent.getMinX() > DEFAULT_BOUNDS_X2.getMaxX()) {
+            m_extent.setMinX(m_extent.getMinX() - DEFAULT_BOUNDS_X2.getMaxX());
+            m_extent.setMaxX(m_extent.getMaxX() - DEFAULT_BOUNDS_X2.getMaxX());
         }
-        while (m_extent.getMaxX() < DEFAULT_BOUNDS.getMinX()) {
-            m_extent.setMinX(m_extent.getMinX() + DEFAULT_BOUNDS.getMaxX());
-            m_extent.setMaxX(m_extent.getMaxX() + DEFAULT_BOUNDS.getMaxX());
+        while (m_extent.getMaxX() < DEFAULT_BOUNDS_X2.getMinX()) {
+            m_extent.setMinX(m_extent.getMinX() + DEFAULT_BOUNDS_X2.getMaxX());
+            m_extent.setMaxX(m_extent.getMaxX() + DEFAULT_BOUNDS_X2.getMaxX());
         }
     }
 

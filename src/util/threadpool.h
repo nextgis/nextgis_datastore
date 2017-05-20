@@ -54,6 +54,8 @@ public:
     void init(unsigned char numThreads, poolThreadFunction function);
     void addThreadData(ThreadData* data);
     void clearThreadData();
+    unsigned char getCurrentWorkerCount() const { return m_threadCount; }
+    unsigned char getMaxWorkerCount() const { return m_maxThreadCount; }
 
 protected:
     bool process();

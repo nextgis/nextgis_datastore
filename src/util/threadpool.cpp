@@ -57,7 +57,7 @@ void ThreadPool::init(unsigned char numThreads, poolThreadFunction function)
 
 void ThreadPool::addThreadData(ThreadData *data)
 {
-    CPLAcquireMutex(m_dataMutex, 100.0);
+    CPLAcquireMutex(m_dataMutex, 1000.0);
     m_threadData.push_back(data);
     CPLReleaseMutex(m_dataMutex);
 
@@ -66,7 +66,7 @@ void ThreadPool::addThreadData(ThreadData *data)
 
 void ThreadPool::clearThreadData()
 {
-    CPLAcquireMutex(m_dataMutex, 100.0);
+    CPLAcquireMutex(m_dataMutex, 1000.0);
     for(ThreadData* data : m_threadData) {
         if(data->isOwn()) {
             delete data;
@@ -78,7 +78,7 @@ void ThreadPool::clearThreadData()
 
 bool ThreadPool::process()
 {
-    CPLAcquireMutex(m_dataMutex, 100.0);
+    CPLAcquireMutex(m_dataMutex, 1000.0);
     if(m_threadData.empty()) {
         CPLReleaseMutex(m_dataMutex);
         return false;

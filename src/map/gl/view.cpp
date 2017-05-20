@@ -28,7 +28,7 @@
 namespace ngs {
 
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
-constexpr int GLTILE_SIZE = 512;
+constexpr int GLTILE_SIZE = 512;//256;
 
 GlView::GlView() : MapView()
 {
@@ -200,6 +200,7 @@ bool GlView::drawTiles(const Progress &progress)
 
     double done = 0.0;
     for(const GlTilePtr& tile : m_tiles) {
+        bool drawTile = true;
         if(tile->filled()) {
             done += m_layers.size();
         }
@@ -240,14 +241,18 @@ bool GlView::drawTiles(const Progress &progress)
 
             // Make the window the target
             ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 1)); // 0 - back, 1 - front.
+
+            if(filled == 0) {
+                drawTile = false;
+            }
         }
 
-        SimpleImageStyle style; //SimpleImageStyle TileFBO draw
-
-        style.setImage(tile->getImageRef());
-        tile->getBuffer().rebind();
-        style.prepare(getSceneMatrix(), getInvViewMatrix());
-        style.draw(tile->getBuffer());
+        if(drawTile) { // Don't draw tiles with only background
+            m_fboDrawStyle.setImage(tile->getImageRef());
+            tile->getBuffer().rebind();
+            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix());
+            m_fboDrawStyle.draw(tile->getBuffer());
+        }
     }
 
     size_t totalDrawCalls = m_layers.size() * m_tiles.size();
@@ -256,7 +261,8 @@ bool GlView::drawTiles(const Progress &progress)
                             _("Map render finished."));
     }
     else {
-        progress.onProgress(ngsCode::COD_IN_PROCESS, done / totalDrawCalls,
+        double complete = done / totalDrawCalls;
+        progress.onProgress(ngsCode::COD_IN_PROCESS, complete,
                             _("Rendering ..."));
     }
 

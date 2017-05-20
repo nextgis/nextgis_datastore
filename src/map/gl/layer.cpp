@@ -229,9 +229,11 @@ void GlRasterLayer::fill(GlTilePtr tile)
         outHeight = height;
     }
     else { // Get closest overview and get overview data
+        int minXOv = minX;
+        int minYOv = minY;
         int outWidthOv = width;
         int outHeightOv = height;
-        int overview = m_raster->getBestOverview(minX, minY, outWidthOv, outHeightOv,
+        int overview = m_raster->getBestOverview(minXOv, minYOv, outWidthOv, outHeightOv,
                                                  outWidth, outHeight);
         if(overview >= 0) {
             outWidth = outWidthOv;

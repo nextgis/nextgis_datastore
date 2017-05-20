@@ -23,7 +23,7 @@
 #define NGSGLVIEW_H
 
 #include "mapview.h"
-
+#include "style.h"
 #include "tile.h"
 #include "util/threadpool.h"
 
@@ -88,6 +88,7 @@ private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
     std::vector<GlTilePtr> m_tiles;
+    SimpleImageStyle m_fboDrawStyle;
     ThreadPool m_threadPool;
 
     class LayerFillData : public ThreadData {
