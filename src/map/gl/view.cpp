@@ -127,7 +127,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         // Get tiles for extent and mark to delete out of bounds tiles
         updateTilesList();
         // Free unnecessary Gl objects as this call is in Gl context
-        freeResources();
+//        freeResources();
         // Start load layers data for tiles
         m_threadPool.clearThreadData();
         for(const GlTilePtr& tile : m_tiles) {
@@ -138,7 +138,9 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
             }
         }
     case DS_PRESERVED:
-        return drawTiles(progress);
+        bool result = drawTiles(progress);
+        freeResources();
+        return result;
     }
 #endif // NGS_GL_DEBUG
 }
@@ -168,8 +170,7 @@ void GlView::updateTilesList()
         }
 
         if(markToDelete) {
-            GlObjectPtr freeObject = std::dynamic_pointer_cast<GlObject>(*tileIt);
-            freeResource(freeObject);
+            m_oldTiles.push_back(*tileIt);
             tileIt = m_tiles.erase(tileIt);
         }
         else {
@@ -194,6 +195,8 @@ void GlView::freeResources()
 
 bool GlView::drawTiles(const Progress &progress)
 {
+    drawOldTiles();
+
     // Preserve current viewport
     GLint viewport[4];
     glGetIntegerv( GL_VIEWPORT, viewport );
@@ -257,6 +260,7 @@ bool GlView::drawTiles(const Progress &progress)
 
     size_t totalDrawCalls = m_layers.size() * m_tiles.size();
     if(isEqual(done, totalDrawCalls)) {
+        freeOldTiles();
         progress.onProgress(ngsCode::COD_FINISHED, 1.0,
                             _("Map render finished."));
     }
@@ -267,6 +271,26 @@ bool GlView::drawTiles(const Progress &progress)
     }
 
     return true;
+}
+
+void GlView::drawOldTiles()
+{
+    for(const GlTilePtr& oldTile : m_oldTiles) {
+        if(oldTile->filled()){
+            m_fboDrawStyle.setImage(oldTile->getImageRef());
+            oldTile->getBuffer().rebind();
+            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix());
+            m_fboDrawStyle.draw(oldTile->getBuffer());
+        }
+    }
+}
+
+void GlView::freeOldTiles()
+{
+    for(const GlTilePtr& oldTile : m_oldTiles) {
+        freeResource(std::dynamic_pointer_cast<GlObject>(oldTile));
+    }
+    m_oldTiles.clear();
 }
 
 void GlView::initView()

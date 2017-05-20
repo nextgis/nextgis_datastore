@@ -50,6 +50,8 @@ protected:
     void updateTilesList();
     void freeResources();
     bool drawTiles(const Progress &progress);
+    void drawOldTiles();
+    void freeOldTiles();
     void initView();
 
     // Map interface
@@ -87,7 +89,7 @@ private:
 private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
-    std::vector<GlTilePtr> m_tiles;
+    std::vector<GlTilePtr> m_tiles, m_oldTiles;
     SimpleImageStyle m_fboDrawStyle;
     ThreadPool m_threadPool;
 

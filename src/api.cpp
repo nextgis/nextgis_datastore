@@ -162,9 +162,13 @@ int ngsInit(char **options)
 
     // Number threads
     const char* numThreads = CSLFetchNameValueDef(options, "NUM_THREADS", nullptr);
-    if(numThreads) {
-        CPLSetConfigOption("GDAL_NUM_THREADS", numThreads);
+    if(!numThreads) {
+        int cpuCount = CPLGetNumCPUs() - 1;
+        if(cpuCount < 2)
+            cpuCount = 1;
+        numThreads = CPLSPrintf("%d", cpuCount);
     }
+    CPLSetConfigOption("GDAL_NUM_THREADS", numThreads);
 
 
 #ifdef HAVE_LIBINTL_H
