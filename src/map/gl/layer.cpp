@@ -199,8 +199,8 @@ void GlRasterLayer::fill(GlTilePtr tile)
     rasterExtent.fix();
 
     // Get width & height in pixels of raster area
-    int width = static_cast<int>(std::ceil(rasterExtent.getWidth()));
-    int height = static_cast<int>(std::ceil(rasterExtent.getHeight()));
+    int width = static_cast<int>(std::ceil(rasterExtent.getWidth())) + 1;
+    int height = static_cast<int>(std::ceil(rasterExtent.getHeight())) + 1;
     int minX = static_cast<int>(std::floor(rasterExtent.getMinX()));
     int minY = static_cast<int>(std::floor(rasterExtent.getMinY()));
 
@@ -271,29 +271,30 @@ void GlRasterLayer::fill(GlTilePtr tile)
 
     GlImage *image = new GlImage;
     image->setImage(pixData, outWidth, outHeight); // NOTE: May be not working NOD
+//    image->setSmooth(true);
 
     // FIXME: Reproject intersect raster extent to tile extent
     GlBuffer* tileExtentBuff = new GlBuffer;
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX()));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY() - 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX()));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY() + 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(1);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX()));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY() + 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(2);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX()));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY() - 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(1.0f);

@@ -33,6 +33,7 @@ Raster::Raster(std::vector<CPLString> siblingFiles,
   DatasetBase(),
   SpatialDataset(),
   m_siblingFiles(siblingFiles)
+//  m_dataMutex(nullptr)
 {
 }
 
@@ -113,6 +114,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         bandSpace = dataSize;
     }
 
+//    CPLMutexHolderD(&m_dataMutex);
     if(m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff, xSize, ySize, data,
                       bufXSize, bufYSize, dataType,
                       skipLastBand ? bandCount - 1 : bandCount, bandList,

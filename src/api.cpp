@@ -39,7 +39,7 @@ using namespace ngs;
 
 // TODO: Tile vector data on load
 
-constexpr const char* HTTP_TIMEOUT = "5";
+constexpr const char* HTTP_TIMEOUT = "2";
 constexpr const char* HTTP_USE_GZIP = "ON";
 constexpr const char* CACHEMAX = "24";
 
@@ -88,7 +88,6 @@ void initGDAL(const char* dataPath, const char* cachePath)
 
     CPLSetConfigOption("CPL_ZIP_ENCODING",
                        settings.getString("common/zip_encoding", "CP866"));
-
 #ifdef _DEBUG
     std::cout << "HTTP user agent set to: " << NGS_USERAGENT << "\n"
               << "GDAL_DATA: " << CPLGetConfigOption("GDAL_DATA", "undefined")

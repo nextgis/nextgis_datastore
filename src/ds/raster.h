@@ -80,6 +80,7 @@ protected:
 
 private:
     std::vector<CPLString> m_siblingFiles;
+//    CPLMutex *m_dataMutex;
 };
 
 typedef std::shared_ptr<Raster> RasterPtr;

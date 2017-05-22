@@ -28,7 +28,7 @@
 namespace ngs {
 
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
-constexpr int GLTILE_SIZE = 512;//256;
+constexpr int GLTILE_SIZE = 256;// 512;//256;
 
 GlView::GlView() : MapView()
 {
