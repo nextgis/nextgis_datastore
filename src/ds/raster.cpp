@@ -24,6 +24,8 @@
 
 namespace ngs {
 
+constexpr unsigned char LOCKS_EXTRA_COUNT = 10;
+
 Raster::Raster(std::vector<CPLString> siblingFiles,
                ObjectContainer * const parent,
                const enum ngsCatalogObjectType type,
@@ -40,6 +42,7 @@ Raster::Raster(std::vector<CPLString> siblingFiles,
 
 Raster::~Raster()
 {
+    freeLocks(true);
     CPLDestroyMutex(m_dataLock);
     if(m_spatialReference)
         delete m_spatialReference;
@@ -206,18 +209,26 @@ void Raster::setExtent()
     }
 }
 
-void Raster::freeLocks()
+void Raster::freeLocks(bool all)
 {
     unsigned char threadCount = static_cast<unsigned char>(
                 atoi(CPLGetConfigOption("GDAL_NUM_THREADS", "1")));
     CPLMutexHolder(m_dataLock, 50.0);
-    if(m_dataLocks.size() > threadCount * 10) {
-        for(size_t i = 0; i < threadCount; ++i) {
-            delete m_dataLocks[i].mutexRef;
-            m_dataLocks[i].mutexRef = nullptr;
+    if(all) {
+        for(auto &lock : m_dataLocks) {
+            delete lock.mutexRef;
         }
-        m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
-                            threadCount);
+        m_dataLocks.clear();
+    }
+    else {
+        if(m_dataLocks.size() > threadCount * LOCKS_EXTRA_COUNT) {
+            for(size_t i = 0; i < threadCount; ++i) {
+                delete m_dataLocks[i].mutexRef;
+                m_dataLocks[i].mutexRef = nullptr;
+            }
+            m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
+                                threadCount);
+        }
     }
 }
 

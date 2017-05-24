@@ -77,7 +77,7 @@ protected:
     void setExtent();
 
 private:
-    void freeLocks();
+    void freeLocks(bool all = false);
 
 protected:
     Envelope m_extent;
