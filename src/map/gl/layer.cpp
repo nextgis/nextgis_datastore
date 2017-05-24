@@ -35,6 +35,11 @@ GlRenderLayer::GlRenderLayer() : m_dataMutex(CPLCreateMutex())
     CPLReleaseMutex(m_dataMutex);
 }
 
+GlRenderLayer::~GlRenderLayer()
+{
+    CPLDestroyMutex(m_dataMutex);
+}
+
 void GlRenderLayer::free(GlTilePtr tile)
 {
     CPLMutexHolder holder(m_dataMutex);
@@ -145,6 +150,7 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
 
 void GlRasterLayer::fill(GlTilePtr tile)
 {
+    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     Envelope rasterExtent = m_raster->getExtent();
     const Envelope & tileExtent = tile->getExtent();
 
@@ -153,7 +159,7 @@ void GlRasterLayer::fill(GlTilePtr tile)
     Envelope outExt = rasterExtent.intersect(tileExtent);
 
     if(!rasterExtent.isInit()) {
-        CPLMutexHolder holder(m_dataMutex);
+        CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         m_images[tile->getTile()] = GlObjectPtr();
         return;
@@ -199,8 +205,8 @@ void GlRasterLayer::fill(GlTilePtr tile)
     rasterExtent.fix();
 
     // Get width & height in pixels of raster area
-    int width = static_cast<int>(std::ceil(rasterExtent.getWidth())) + 1;
-    int height = static_cast<int>(std::ceil(rasterExtent.getHeight())) + 1;
+    int width = static_cast<int>(std::ceil(rasterExtent.getWidth()));
+    int height = static_cast<int>(std::ceil(rasterExtent.getHeight()));
     int minX = static_cast<int>(std::floor(rasterExtent.getMinX()));
     int minY = static_cast<int>(std::floor(rasterExtent.getMinY()));
 
@@ -218,7 +224,7 @@ void GlRasterLayer::fill(GlTilePtr tile)
         height = m_raster->getHeight() - minY;
     }
 
-    // TODO: Check if 0 band is working else memset 255 for buffer and read data skipping 4 byte
+    // Memset 255 for buffer and read data skipping 4 byte
     int bandCount = 4;
     int bands[4];
     bands[0] = m_red;
@@ -226,6 +232,7 @@ void GlRasterLayer::fill(GlTilePtr tile)
     bands[2] = m_blue;
     bands[3] = m_alpha;
 
+    int overview = 18;
     if(outWidth > width && outHeight > height ) { // Read origina raster
         outWidth = width;
         outHeight = height;
@@ -235,7 +242,7 @@ void GlRasterLayer::fill(GlTilePtr tile)
         int minYOv = minY;
         int outWidthOv = width;
         int outHeightOv = height;
-        int overview = m_raster->getBestOverview(minXOv, minYOv, outWidthOv, outHeightOv,
+        overview = m_raster->getBestOverview(minXOv, minYOv, outWidthOv, outHeightOv,
                                                  outWidth, outHeight);
         if(overview >= 0) {
             outWidth = outWidthOv;
@@ -250,11 +257,13 @@ void GlRasterLayer::fill(GlTilePtr tile)
     if(m_alpha == 0) {
         std::memset(pixData, 255 - m_transparancy, bufferSize);
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
-                                outHeight, m_dataType, bandCount, bands, true, true)) {
+                                outHeight, m_dataType, bandCount, bands, true, true,
+                                static_cast<unsigned char>(18 - overview))) {
             CPLFree(pixData);
-            CPLMutexHolder holder(m_dataMutex);
+            CPLMutexHolder holder(m_dataMutex, lockTime);
             m_tiles[tile->getTile()] = GlObjectPtr();
             m_images[tile->getTile()] = GlObjectPtr();
+
             return;
         }
     }
@@ -262,9 +271,10 @@ void GlRasterLayer::fill(GlTilePtr tile)
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
                                 outHeight, m_dataType, bandCount, bands)) {
             CPLFree(pixData);
-            CPLMutexHolder holder(m_dataMutex);
+            CPLMutexHolder holder(m_dataMutex, lockTime);
             m_tiles[tile->getTile()] = GlObjectPtr();
             m_images[tile->getTile()] = GlObjectPtr();
+
             return;
         }
     }
@@ -302,16 +312,20 @@ void GlRasterLayer::fill(GlTilePtr tile)
     tileExtentBuff->addIndex(2);
     tileExtentBuff->addIndex(3);
 
-    CPLMutexHolder holder(m_dataMutex);
+    CPLMutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = GlObjectPtr(tileExtentBuff);
     m_images[tile->getTile()] = GlObjectPtr(image);
+
 }
 
 void GlRasterLayer::free(GlTilePtr tile)
 {
     GlRenderLayer::free(tile);
 
-    CPLMutexHolder holder(m_dataMutex);
+    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
+
+    CPLMutexHolder holder(m_dataMutex, lockTime);
+
     auto it = m_images.find(tile->getTile());
     if(it != m_images.end()) {
         if(it->second) {

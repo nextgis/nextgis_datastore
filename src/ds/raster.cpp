@@ -32,13 +32,15 @@ Raster::Raster(std::vector<CPLString> siblingFiles,
   Object(parent, type, name, path),
   DatasetBase(),
   SpatialDataset(),
-  m_siblingFiles(siblingFiles)
-//  m_dataMutex(nullptr)
+  m_siblingFiles(siblingFiles),
+  m_dataLock(CPLCreateMutex())
 {
+    CPLReleaseMutex(m_dataLock);
 }
 
 Raster::~Raster()
 {
+    CPLDestroyMutex(m_dataLock);
     if(m_spatialReference)
         delete m_spatialReference;
 }
@@ -99,8 +101,9 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 }
 
 bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
-                          int bufXSize, int bufYSize, GDALDataType dataType,
-                          int bandCount, int *bandList, bool read, bool skipLastBand)
+                       int bufXSize, int bufYSize, GDALDataType dataType,
+                       int bandCount, int *bandList, bool read,
+                       bool skipLastBand, unsigned char zoom)
 {
     CPLErrorReset();
     int pixelSpace(0);
@@ -114,13 +117,44 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         bandSpace = dataSize;
     }
 
-//    CPLMutexHolderD(&m_dataMutex);
+    // Lock pixel area to read/write until exit
+    std::mutex* dataLock = nullptr;
+    /*if(zoom < 4)*/ {
+        Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
+        CPLAcquireMutex(m_dataLock, 50.0);
+
+        for(auto &lock : m_dataLocks) {
+            if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
+                dataLock = lock.mutexRef;
+                break;
+            }
+        }
+        CPLReleaseMutex(m_dataLock);
+
+        if(!dataLock) {
+            CPLMutexHolder(m_dataLock, 50.0);
+            dataLock = new std::mutex;
+            m_dataLocks.push_back({testEnv, dataLock, zoom});
+        }
+        dataLock->lock();
+    }
+
+
     if(m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff, xSize, ySize, data,
                       bufXSize, bufYSize, dataType,
                       skipLastBand ? bandCount - 1 : bandCount, bandList,
                       pixelSpace, lineSpace, bandSpace) != CE_None) {
+        if(dataLock) {
+            dataLock->unlock();
+            freeLocks();
+        }
         return errorMessage(CPLGetLastErrorMsg());
     }
+    if(dataLock) {
+        dataLock->unlock();
+        freeLocks();
+    }
+
     return true;
 }
 
@@ -169,6 +203,21 @@ void Raster::setExtent()
         m_extent.setMaxY(ySize);
         m_extent.setMinX(0);
         m_extent.setMinY(0);
+    }
+}
+
+void Raster::freeLocks()
+{
+    unsigned char threadCount = static_cast<unsigned char>(
+                atoi(CPLGetConfigOption("GDAL_NUM_THREADS", "1")));
+    CPLMutexHolder(m_dataLock, 50.0);
+    if(m_dataLocks.size() > threadCount * 10) {
+        for(size_t i = 0; i < threadCount; ++i) {
+            delete m_dataLocks[i].mutexRef;
+            m_dataLocks[i].mutexRef = nullptr;
+        }
+        m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
+                            threadCount);
     }
 }
 

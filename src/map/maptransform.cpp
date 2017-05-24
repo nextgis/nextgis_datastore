@@ -29,7 +29,7 @@
 namespace ngs {
 
 constexpr double DEFAULT_RATIO = 1.0;
-constexpr unsigned short TILE_ZIE = 256;
+constexpr unsigned short TILE_SIZE = 256;
 constexpr unsigned short MAX_TILES_COUNT = 4096; // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
 
 MapTransform::MapTransform(int width, int height) :
@@ -57,8 +57,8 @@ void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
     m_displayWidht = width;
     m_displayHeight = height;
-    m_iniZoom = std::min(double(m_displayWidht) / TILE_ZIE,
-                         double(m_displayHeight) / TILE_ZIE);
+    m_iniZoom = std::min(double(m_displayWidht) / TILE_SIZE,
+                         double(m_displayHeight) / TILE_SIZE);
 
     m_YAxisInverted = isYAxisInverted;
 
@@ -277,7 +277,7 @@ unsigned char MapTransform::getZoom() const {
     } else if (m_scaleWorld < 1) {
         retVal -= lg(1.0 / m_scaleWorld);
     }
-    return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5) - 2;
+    return retVal < 2 ? 0 : static_cast<unsigned char>(retVal + 0.5) - 2;
 }
 
 std::vector<TileItem> MapTransform::getTilesForExtent(

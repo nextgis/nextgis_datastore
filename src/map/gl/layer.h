@@ -34,7 +34,7 @@ class GlRenderLayer
 {
 public:
     GlRenderLayer();
-    virtual ~GlRenderLayer() = default;
+    virtual ~GlRenderLayer();
     /**
      * @brief fill Fill arrays for Gl drawing. Executed from separate thread.
      * @param tile Tile to load data

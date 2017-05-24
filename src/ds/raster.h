@@ -21,6 +21,8 @@
 #ifndef NGSRASTERDATASET_H
 #define NGSRASTERDATASET_H
 
+#include <mutex>
+
 #include "dataset.h"
 #include "coordinatetransformation.h"
 
@@ -65,22 +67,31 @@ public:
     bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                    int bufXSize, int bufYSize, GDALDataType dataType,
                    int bandCount, int *bandList, bool read = true,
-                   bool skipLastBand = false);
+                   bool skipLastBand = false, unsigned char zoom = 0);
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
     virtual const char *getOptions(ngsOptionType optionType) const override;
 
 protected:
-
     void setExtent();
+
+private:
+    void freeLocks();
 
 protected:
     Envelope m_extent;
 
 private:
     std::vector<CPLString> m_siblingFiles;
-//    CPLMutex *m_dataMutex;
+    typedef struct _lockData {
+        Envelope env;
+        std::mutex* mutexRef;
+        unsigned char zoom;
+    } LockData;
+
+    std::vector<LockData> m_dataLocks;
+    CPLMutex* m_dataLock;
 };
 
 typedef std::shared_ptr<Raster> RasterPtr;
