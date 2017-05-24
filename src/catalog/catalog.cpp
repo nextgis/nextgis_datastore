@@ -253,5 +253,11 @@ CatalogPtr Catalog::getInstance()
 {
     return gCatalog;
 }
+ObjectPtr Catalog::getPointer() const
+{
+    return Catalog::getInstance();
+}
 
 }
+
+

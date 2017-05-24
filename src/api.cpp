@@ -280,27 +280,28 @@ void ngsFree(void *pointer)
 // Catalog
 //------------------------------------------------------------------------------
 
-ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
+ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
                                          const Filter& objectFilter)
 {
-    CatalogPtr catalog = Catalog::getInstance();
-    ObjectPtr object = catalog->getObject(path);
-    if(!object) {
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
+    ObjectPtr catalogObjectPointer = catalogObject->getPointer();
 
     ngsCatalogObjectInfo* output = nullptr;
     size_t outputSize = 0;
-    ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
+    ObjectContainer* const container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(!container) {
-        if(!objectFilter.canDisplay(object)) {
+        if(!objectFilter.canDisplay(catalogObjectPointer)) {
             return nullptr;
         }
 
         output = static_cast<ngsCatalogObjectInfo*>(
                     CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-        output[0] = {object->getName(), object->getType()};
-        output[1] = {nullptr, -1};
+        output[0] = {catalogObject->getName(), catalogObject->getType(), catalogObject};
+        output[1] = {nullptr, -1, nullptr};
         return output;
     }
 
@@ -309,8 +310,8 @@ ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
             SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
             output = static_cast<ngsCatalogObjectInfo*>(
                         CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-            output[0] = {object->getName(), simpleDS->getSubType()};
-            output[1] = {nullptr, -1};
+            output[0] = {catalogObject->getName(), simpleDS->getSubType(), catalogObject};
+            output[1] = {nullptr, -1, nullptr};
             return output;
         }
         return nullptr;
@@ -329,16 +330,18 @@ ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
 
             if(child->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
                 SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
-                output[outputSize - 1] = {child->getName(), simpleDS->getSubType()};
+                output[outputSize - 1] = {child->getName(),
+                                          simpleDS->getSubType(),
+                                          simpleDS->getInternalObject().get()};
             }
             else {
                 output[outputSize - 1] = {child->getName(),
-                                          child->getType()};
+                                          child->getType(), child.get()};
             }
         }
     }
     if(outputSize > 0) {
-        output[outputSize] = {nullptr, -1};
+        output[outputSize] = {nullptr, -1, nullptr};
     }
     return output;
 }
@@ -346,30 +349,30 @@ ngsCatalogObjectInfo *catalogObjectQuery(const char *path,
 /**
  * @brief ngsCatalogObjectQuery Queries name and type of child objects for
  * provided path and filter
- * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param object The handle of catalog object
  * @param filter Only objects correspondent to provided filter will be return
  * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
  * after using with ngsFree method
  */
-ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char *path, int filter)
+ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object, int filter)
 {
     // Create filter class from filter value.
     Filter objectFilter(static_cast<enum ngsCatalogObjectType>(filter));
 
-    return catalogObjectQuery(path, objectFilter);
+    return catalogObjectQuery(object, objectFilter);
 }
 
 /**
  * @brief ngsCatalogObjectQueryMultiFilter Queries name and type of child objects for
  * provided path and filters
- * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param object The handle of catalog object
  * @param filter Only objects correspondent to provided filters will be return.
  * User mast delete filters array manually
  * @param filterCount The filters count
  * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
  * after using with ngsFree method
  */
-ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(const char *path,
+ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
                                                        int *filters,
                                                        int filterCount)
 {
@@ -379,21 +382,23 @@ ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(const char *path,
         objectFilter.addType(static_cast<enum ngsCatalogObjectType>(filters[i]));
     }
 
-    return catalogObjectQuery(path, objectFilter);
+    return catalogObjectQuery(object, objectFilter);
 }
 
 /**
  * @brief ngsCatalogObjectDelete Deletes catalog object on specified path
- * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param object The handle of catalog object
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-int ngsCatalogObjectDelete(const char *path)
+int ngsCatalogObjectDelete(CatalogObjectH object)
 {
-    CatalogPtr catalog = Catalog::getInstance();
-    ObjectPtr object = catalog->getObject(path);
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject)
+        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+
     // Check can delete
-    if(object && object->canDestroy())
-        return object->destroy() ? ngsCode::COD_SUCCESS :
+    if(catalogObject->canDestroy())
+        return catalogObject->destroy() ? ngsCode::COD_SUCCESS :
                                    ngsCode::COD_DELETE_FAILED;
     return errorMessage(ngsCode::COD_UNSUPPORTED,
                        _("The path cannot be deleted (write protected, locked, etc.)"));
@@ -401,7 +406,7 @@ int ngsCatalogObjectDelete(const char *path)
 
 /**
  * @brief ngsCatalogObjectCreate Creates new catalog object
- * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param object The handle of catalog object
  * @param name The new object name
  * @param options The array of create object options. Caller mast free this
  * array after function finishes. The common values are:
@@ -409,15 +414,17 @@ int ngsCatalogObjectDelete(const char *path)
  * CREATE_UNIQUE [ON, OFF] - If name already exists in container, make it unique
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-int ngsCatalogObjectCreate(const char *path, const char* name, char **options)
+int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **options)
 {
-    CatalogPtr catalog = Catalog::getInstance();
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject)
+        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+
     Options createOptions(options);
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
                 createOptions.getIntOption("TYPE", CAT_UNKNOWN));
     createOptions.removeOption("TYPE");
-    ObjectPtr object = catalog->getObject(path);
-    ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
+    ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
     // Check can create
     if(nullptr != container && container->canCreate(type))
         return container->create(type, name, createOptions) ?
@@ -425,7 +432,7 @@ int ngsCatalogObjectCreate(const char *path, const char* name, char **options)
 
     return errorMessage(ngsCode::COD_UNSUPPORTED,
                         _("Cannot create such object type (%d) in path: %s"),
-                        type, path);
+                        type, catalogObject->getFullName().c_str());
 }
 
 /**
@@ -446,9 +453,9 @@ const char *ngsCatalogPathFromSystem(const char *path)
 
 /**
  * @brief ngsCatalogObjectLoad Copies or move source dataset to destination dataset
- * @param srcPath The part to source dataset
- * @param dstPath The path to destination dataset. Should be container which
- * is ready to accept source dataset types.
+ * @param srcObject The handle of source catalog object
+ * @param dstObject The handle of destination destination catalog object.
+ * Should be container which is ready to accept source dataset types.
  * @param options The options key-value array specific to operation and
  * destination dataset. The load options can be fetched via
  * ngsCatalogObjectOptions() function. Also load options can combine with
@@ -457,44 +464,42 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * @param callbackData The callback function data.
  * @return ngsErrorCode value - EC_SUCCESS if everything is OK
  */
-int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
+int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
                          char **options, ngsProgressFunc callback,
                          void *callbackData)
 {
-    CatalogPtr catalog = Catalog::getInstance();
+    Object* srcCatalogObject = static_cast<Object*>(srcObject);
+    Object* dstCatalogObject = static_cast<Object*>(dstObject);
+    if(!srcCatalogObject || !dstCatalogObject) {
+        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+    }
+
+    ObjectPtr srcCatalogObjectPointer = srcCatalogObject->getPointer();
+    ObjectPtr dstCatalogObjectPointer = dstCatalogObject->getPointer();
+
     Progress progress(callback, callbackData);
     Options loadOptions(options);
     bool move = loadOptions.getBoolOption("MOVE", false);
     loadOptions.removeOption("MOVE");
-    ObjectPtr srcObject = catalog->getObject(srcPath);
-    if(!srcObject) {
-        return errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset '%s' not found"), srcPath);
-    }
 
-    if(move && !srcObject->canDestroy()) {
+    if(move && !srcCatalogObjectPointer->canDestroy()) {
         return  errorMessage(ngsCode::COD_MOVE_FAILED,
-                             _("Cannot move source dataset '%s'"), srcPath);
+                             _("Cannot move source dataset '%s'"),
+                             srcCatalogObjectPointer->getFullName().c_str());
     }
 
-    if(srcObject->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const dataset = ngsDynamicCast(SimpleDataset, srcObject);
+    if(srcCatalogObjectPointer->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(srcCatalogObject);
         dataset->hasChildren();
-        srcObject = dataset->getInternalObject();
+        srcCatalogObjectPointer = dataset->getInternalObject();
     }
 
-    if(!srcObject) {
+    if(!srcCatalogObjectPointer) {
         return errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset '%s' type is incompatible"), srcPath);
+                            _("Source dataset type is incompatible"));
     }
 
-    ObjectPtr dstObject = catalog->getObject(dstPath);
-    if(!dstObject) {
-        return errorMessage(ngsCode::COD_INVALID,
-                            _("Destination dataset '%s' not found"), dstPath);
-    }
-
-    Dataset * const dstDataset = ngsDynamicCast(Dataset, dstObject);
+    Dataset * const dstDataset = dynamic_cast<Dataset*>(dstCatalogObject);
     if(nullptr == dstDataset) {
         return move ? ngsCode::COD_MOVE_FAILED :
                       ngsCode::COD_COPY_FAILED;
@@ -502,62 +507,66 @@ int ngsCatalogObjectLoad(const char *srcPath, const char *dstPath,
     dstDataset->hasChildren();
 
     // Check can paster
-    if(dstDataset->canPaste(srcObject->getType())) {
-        return dstDataset->paste(srcObject, move, loadOptions, progress);
+    if(dstDataset->canPaste(srcCatalogObjectPointer->getType())) {
+        return dstDataset->paste(srcCatalogObjectPointer, move, loadOptions, progress);
     }
 
     return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
                                ngsCode::COD_COPY_FAILED,
                         _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
-                        dstPath, srcPath);
+                        dstCatalogObjectPointer->getFullName().c_str(),
+                        srcCatalogObjectPointer->getFullName().c_str());
 
 }
 
 /**
  * @brief ngsCatalogObjectRename Renames catalog object
- * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @param object The handle of catalog object
  * @param newName The new object name. The name should be unique inside object
  * parent container
  * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
  */
-int ngsCatalogObjectRename(const char *path, const char *newName)
+int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
 {
-    CatalogPtr catalog = Catalog::getInstance();
-    ObjectPtr object = catalog->getObject(path);
-    if(!object)
-        return errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset '%s' not found"), path);
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject)
+        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
 
-    if(!object->canRename())
+    if(!catalogObject->canRename())
         return errorMessage(ngsCode::COD_RENAME_FAILED,
-                            _("Cannot rename dataset '%s' to '%s'"),
-                            path, newName);
+                            _("Cannot rename catalog object '%s' to '%s'"),
+                            catalogObject->getFullName().c_str(), newName);
 
-    return object->rename(newName) ? ngsCode::COD_SUCCESS :
+    return catalogObject->rename(newName) ? ngsCode::COD_SUCCESS :
                                      ngsCode::COD_RENAME_FAILED;
 }
 
 /**
- * @brief ngsCatalogObjectOptions Queries dataset options.
- * @param path The path inside catalog in form ngc://Local connections/tmp
+ * @brief ngsCatalogObjectOptions Queries catalog object options.
+ * @param object The handle of catalog object
  * @param optionType The one of ngsOptionTypes enum values:
  * OT_CREATE_DATASOURCE, OT_CREATE_RASTER, OT_CREATE_LAYER,
  * OT_CREATE_LAYER_FIELD, OT_OPEN, OT_LOAD
  * @return Options description in xml form.
  */
-const char* ngsCatalogObjectOptions(const char* path, int optionType)
+const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
 {
-    CatalogPtr catalog = Catalog::getInstance();
-    ObjectPtr object = catalog->getObject(path);
     if(!object) {
-        errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset '%s' not found"), path);
+        errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
         return "";
     }
-    Dataset * const dataset = ngsDynamicCast(Dataset, object);
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!Filter::isDatabase(catalogObject->getType())) {
+        errorMessage(ngsCode::COD_INVALID,
+                            _("The input object not a dataset. The type is %d. Options query not supported"),
+                     catalogObject->getType());
+        return "";
+    }
+
+    Dataset * const dataset = dynamic_cast<Dataset*>(catalogObject);
     if(nullptr != dataset) {
         errorMessage(ngsCode::COD_INVALID,
-                            _("The '%s' not a dataset. Options query not supported"), path);
+                            _("The input object not a dataset. Options query not supported"));
         return "";
     }
     enum ngsOptionType enumOptionType = static_cast<enum ngsOptionType>(optionType);

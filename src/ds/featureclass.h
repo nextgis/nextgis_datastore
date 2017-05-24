@@ -57,6 +57,10 @@ public:
                              OGRwkbGeometryType filterGeomType,
                              const Progress& progress = Progress(),
                              const Options& options = Options());
+    bool hasOverviews() const;
+    int createOverviews(const Progress& progress = Progress(),
+                        const Options& options = Options());
+
     // static
     static const char *getGeometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);

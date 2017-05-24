@@ -49,9 +49,11 @@ typedef struct _ngsPosition {
  * @brief Catalog object short information. Int type coded both
  * ngsCatalogObjectType and subtype (according to type).
  */
+typedef void *CatalogObjectH;
 typedef struct _ngsCatalogObjectInfo {
     const char* name;
     int type;
+    CatalogObjectH object;
 } ngsCatalogObjectInfo;
 
 /**
@@ -103,24 +105,27 @@ NGS_EXTERNC void ngsFree(void *pointer);
 /**
  * Catalog functions
  */
-typedef void *CatalogObjectH;
-NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(const char* path,
+NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
+NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
+NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object,
                                                         int filter = 0);
-NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(const char* path,
+NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
                                                         int *filters = nullptr,
                                                         int filterCount = 0);
-NGS_EXTERNC int ngsCatalogObjectDelete(const char* path);
-NGS_EXTERNC int ngsCatalogObjectCreate(const char* path, const char* name,
+NGS_EXTERNC int ngsCatalogObjectDelete(CatalogObjectH object);
+NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char* name,
                                        char **options = nullptr);
-NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
-NGS_EXTERNC int ngsCatalogObjectLoad(const char* srcPath, const char* dstPath,
+NGS_EXTERNC int ngsCatalogObjectLoad(CatalogObjectH srcObject,
+                                     CatalogObjectH dstObject,
                                      char **options = nullptr,
                                      ngsProgressFunc callback = nullptr,
                                      void* callbackData = nullptr);
-NGS_EXTERNC int ngsCatalogObjectRename(const char* path, const char* newName);
-NGS_EXTERNC const char* ngsCatalogObjectOptions(const char* path, int optionType);
-NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
+NGS_EXTERNC int ngsCatalogObjectRename(CatalogObjectH object, const char* newName);
+NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
+                                                int optionType);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
+NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
+                                               char **options = nullptr);
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**

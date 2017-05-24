@@ -46,4 +46,13 @@ CPLString Object::getFullName() const
     return out;
 }
 
+ObjectPtr Object::getPointer() const
+{
+    for(const auto& child : m_parent->getChildren()) {
+        if(child.get() == this)
+            return child;
+    }
+    return ObjectPtr();
+}
+
 } // namespace ngs

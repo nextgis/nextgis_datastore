@@ -85,67 +85,6 @@ bool createMetadataTable(GDALDataset* ds)
     return pMetadataLayer->CreateFeature(feature) == OGRERR_NONE ? true : false;
 }
 
-/* TODO: add raster support
-
-// Rasters
-#define LAYER_URL "url"
-#define LAYER_NAME "name"
-#define LAYER_ALIAS "alias"
-#define LAYER_TYPE "type"
-#define LAYER_COPYING "copyright"
-#define LAYER_EPSG "epsg"
-#define LAYER_MIN_Z "z_min"
-#define LAYER_MAX_Z "z_max"
-#define LAYER_YORIG_TOP "y_origin_top"
-#define LAYER_ACCOUNT "account"
-
-bool createRastersTable(GDALDataset* ds)
-{
-    OGRLayer* pRasterLayer = ds->CreateLayer(RASTERS_TABLE_NAME, nullptr,
-                                                   wkbNone, nullptr);
-    if (NULL == pRasterLayer) {
-        return true;
-    }
-
-    OGRFieldDefn oUrl(LAYER_URL, OFTString);
-    OGRFieldDefn oName(LAYER_NAME, OFTString);
-    oName.SetWidth(NAME_FIELD_LIMIT);
-// FIXME: do we need this field?
-    OGRFieldDefn oType(LAYER_TYPE, OFTInteger);
-// FIXME: do we need this field?
-    OGRFieldDefn oAlias(LAYER_ALIAS, OFTString);
-    oName.SetWidth(ALIAS_FIELD_LIMIT);
-
-    OGRFieldDefn oCopyright(LAYER_COPYING, OFTString);
-    OGRFieldDefn oEPSG(LAYER_EPSG, OFTInteger);
-    OGRFieldDefn oZMin(LAYER_MIN_Z, OFTReal);
-    OGRFieldDefn oZMax(LAYER_MAX_Z, OFTReal);
-    OGRFieldDefn oYOrigTop(LAYER_YORIG_TOP, OFTInteger);
-    oYOrigTop.SetSubType (OFSTBoolean);
-
-    OGRFieldDefn oAccount(LAYER_ACCOUNT, OFTString);
-    oAccount.SetWidth(NAME_FIELD_LIMIT);
-
-    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
-    oFieldValue.SetWidth(META_VALUE_LIMIT);
-
-    if(pRasterLayer->CreateField(&oUrl) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oName) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oType) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oAlias) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oCopyright) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oEPSG) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oZMin) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oZMax) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oYOrigTop) != OGRERR_NONE ||
-       pRasterLayer->CreateField(&oAccount) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    return ngsErrorCodes::EC_SUCCESS;
-}
-*/
-
 /* TODO: Add support fo attachments
 
 // Attachments
@@ -359,108 +298,6 @@ bool DataStore::canDestroy() const
 }
 
 /*
-int DataStore::createRemoteTMSRaster(const char *url, const char *name,
-                                     const char *alias, const char *copyright,
-                                     int epsg, int z_min, int z_max,
-                                     bool y_origin_top)
-{
-    if(!isNameValid(name))
-        return ngsErrorCodes::EC_CREATE_FAILED;
-
-    OGRLayer* pRasterLayer = m_DS->GetLayerByName (RASTERS_TABLE_NAME);
-    FeaturePtr feature( OGRFeature::CreateFeature(
-                pRasterLayer->GetLayerDefn()) );
-
-    feature->SetField (LAYER_URL, url);
-    feature->SetField (LAYER_NAME, name);
-    // FIXME: do we need this field?
-    feature->SetField (LAYER_TYPE, static_cast<int>(ngsDatasetType (Raster)));
-    // FIXME: do we need this field?
-    feature->SetField (LAYER_ALIAS, alias);
-    feature->SetField (LAYER_COPYING, copyright); // show on map copyright string
-    feature->SetField (LAYER_EPSG, epsg);
-    feature->SetField (LAYER_MIN_Z, z_min);
-    feature->SetField (LAYER_MAX_Z, z_max);
-    feature->SetField (LAYER_YORIG_TOP, y_origin_top);
-
-    if(pRasterLayer->CreateFeature(feature) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    // notify listeners
-    if(nullptr != m_notifyFunc)
-        m_notifyFunc(ngsSourceCodes::SC_DATA_STORE, RASTERS_TABLE_NAME,
-                     NOT_FOUND, ngsChangeCodes::CC_CREATE_RESOURCE);
-    return ngsErrorCodes::EC_SUCCESS;
-}
-
-DatasetPtr DataStore::getDataset(const CPLString &name)
-{
-    DatasetPtr outDataset;
-    auto it = m_datasets.find (name);
-    if( it != m_datasets.end ()){
-        if(!it->second->isDeleted ()){
-            return it->second;
-        }
-        else{
-            return outDataset;
-        }
-    }
-
-    OGRLayer* layer = m_DS->GetLayerByName (name);
-    if(nullptr != layer){
-        Dataset* dataset = nullptr;
-        if( layer->GetLayerDefn ()->GetGeomFieldCount () == 0 ){
-            dataset = new Table(layer);
-        }
-        else {
-            CPLString historyName = name + HISTORY_APPEND;
-            OGRLayer* historyLayer = m_DS->GetLayerByName (historyName);
-            StoreFeatureDataset* storeFD = new StoreFeatureDataset(layer);
-            // add link to history layer
-            storeFD->m_history.reset (new StoreFeatureDataset(historyLayer));
-            dataset = storeFD;
-        }
-
-        dataset->setNotifyFunc (m_notifyFunc);
-        dataset->m_DS = m_DS;
-        dataset->m_path = m_path + "/" + name;
-        outDataset.reset(dataset);
-        if(dataset)
-            m_datasets[outDataset->name ()] = outDataset;
-    }
-
-    return outDataset;
-}
-
-int DataStore::copyDataset(DatasetPtr srcDataset, const CPLString &dstName,
-                           LoadData *loadData)
-{
-    int nRet = ngsErrorCodes::EC_COPY_FAILED;
-    if(srcDataset->type () & ngsDatasetType (Table) ||
-       srcDataset->type () & ngsDatasetType (Featureset)) {
-        // disable journal
-        enableJournal(false);
-        nRet = DatasetContainer::copyDataset (srcDataset, dstName,
-                                              loadData);
-        // enable journal
-        enableJournal(true);
-    }
-    else if (srcDataset->type () & ngsDatasetType (Raster)) {
-        // TODO: raster. Create raster in DB? Copy/move raster into the folder and store info in DB? Reproject? Band selection?
-        // TODO: reproject/or copy and result register in sorage, some checks (SRS, bands, etc.)
-        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
-                            "Unsupported dataset", loadData);
-    }
-    else {
-        return reportError (ngsErrorCodes::EC_COPY_FAILED, 0,
-                            "Unsupported dataset", loadData);
-    }
-    return nRet;
-}
-
-
-
 DatasetPtr DataStore::createDataset(const CPLString &name,
                                      OGRFeatureDefn * const definition,
                                      const OGRSpatialReference *spatialRef,
@@ -502,17 +339,6 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
             return out;
         }
     }
-
-    // TODO: create additional geometry fields for zoom levels: 6 9 12 15 only for dstLayer?
-    /*if(type != OGR_GT_Flatten(wkbPoint)) {
-        for(auto sampleDist : gSampleDists) {
-            OGRFieldDefn dstField(CPLSPrintf ("ngs_geom_%d", sampleDist.second),
-                                  OFTBinary);
-            if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
-                return out;
-            }
-        }
-    }*//*
 
     Dataset* dstDataset = nullptr;
     if( type == wkbNone) {

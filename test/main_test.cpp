@@ -110,7 +110,8 @@ TEST(CatalogTests, TestCatalogQuery) {
     EXPECT_EQ(ngsInit(options), ngsCode::COD_SUCCESS);
 
     ngsDestroyList(options);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery("ngc://");
+    CatalogObjectH catalog = ngsCatalogObjectGet("ngc://");
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -120,7 +121,8 @@ TEST(CatalogTests, TestCatalogQuery) {
     CPLString path2test = CPLSPrintf("ngc://%s", pathInfo[0].name);
     ngsFree(pathInfo);
 
-    pathInfo = ngsCatalogObjectQuery(path2test);
+    CatalogObjectH path2testObject = ngsCatalogObjectGet(path2test);
+    pathInfo = ngsCatalogObjectQuery(path2testObject);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
@@ -131,7 +133,8 @@ TEST(CatalogTests, TestCatalogQuery) {
     path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[0].name);
     ngsFree(pathInfo);
 
-    pathInfo = ngsCatalogObjectQuery(path2test);
+    path2testObject = ngsCatalogObjectGet(path2test);
+    pathInfo = ngsCatalogObjectQuery(path2testObject);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
@@ -144,7 +147,8 @@ TEST(CatalogTests, TestCatalogQuery) {
     // Test zip support
     CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
     CPLString zipPath = catalogPath + "/data/railway.zip";
-    pathInfo = ngsCatalogObjectQuery(zipPath);
+    CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath);
+    pathInfo = ngsCatalogObjectQuery(zipObject);
     count = 0;
     while(pathInfo[count].name) {
         std::cout << count << ". " << zipPath << "/" <<  pathInfo[count].name << '\n';
@@ -175,14 +179,15 @@ TEST(CatalogTests, TestCreate) {
                               std::to_string(CAT_CONTAINER_DIR).c_str());
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "test_dir1", options),
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
               ngsCode::COD_SUCCESS);
-    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "test_dir1", options),
+    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
               ngsCode::COD_SUCCESS);
     ngsDestroyList(options);
     options = nullptr;
 
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -200,10 +205,10 @@ TEST(CatalogTests, TestCreate) {
     options = ngsAddNameValue(options, "z_min", "0");
     options = ngsAddNameValue(options, "z_max", "19");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "osm.wconn", options),
+    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "osm.wconn", options),
               ngsCode::COD_SUCCESS);
 
-    pathInfo = ngsCatalogObjectQuery(catalogPath);
+    pathInfo = ngsCatalogObjectQuery(catalog);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
@@ -229,8 +234,10 @@ TEST(CatalogTests, TestDelete) {
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
     CPLString delPath = ngsFormFileName(catalogPath, "test_dir1", nullptr);
-    EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsCode::COD_SUCCESS);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
+    CatalogObjectH delObject = ngsCatalogObjectGet(delPath);
+    EXPECT_EQ(ngsCatalogObjectDelete(delObject), ngsCode::COD_SUCCESS);
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -259,10 +266,10 @@ TEST(DataStoreTests, TestCreateDataStore) {
     options = ngsAddNameValue(options, "TYPE",
                               std::to_string(CAT_CONTAINER_NGS).c_str());
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
-
-    EXPECT_EQ(ngsCatalogObjectCreate(catalogPath, "main", options),
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options),
               ngsCode::COD_SUCCESS);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalogPath);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -287,7 +294,8 @@ TEST(DataStoreTests, TestOpenDataStore) {
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
     CPLString storePath = ngsFormFileName(catalogPath, "main", "ngst");
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(storePath);
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store);
 
     size_t count = 0;
 
@@ -318,8 +326,10 @@ TEST(DataStoreTests, TestLoadDataStore) {
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
     CPLString storePath = catalogPath + "/tmp/main.ngst";
     CPLString shapePath = catalogPath + "/data/bld.shp";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
 
-    EXPECT_EQ(ngsCatalogObjectLoad(shapePath, storePath, nullptr,
+    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr),
               ngsCode::COD_SUCCESS);
     EXPECT_GE(counter, 1);
@@ -343,7 +353,9 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
     CPLString storePath = catalogPath + "/tmp/main.ngst";
     CPLString shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
-    EXPECT_EQ(ngsCatalogObjectLoad(shapePath, storePath, nullptr,
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
+    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr),
               ngsCode::COD_SUCCESS);
     EXPECT_GE(counter, 1);
@@ -375,7 +387,8 @@ TEST(DataStoreTests, TestDeleteDataStore) {
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
     CPLString delPath = ngsFormFileName(catalogPath, "main", "ngst");
-    EXPECT_EQ(ngsCatalogObjectDelete(delPath), ngsCode::COD_SUCCESS);
+    CatalogObjectH delObject = ngsCatalogObjectGet(delPath);
+    EXPECT_EQ(ngsCatalogObjectDelete(delObject), ngsCode::COD_SUCCESS);
     ngsUnInit();
 }
 

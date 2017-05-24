@@ -58,23 +58,6 @@ protected:
 protected:
     void enableJournal(bool enable);
     bool upgrade(int oldVersion);
-/*
-    virtual DatasetPtr createDataset(const CPLString &name,
-                                     OGRFeatureDefn* const definition,
-                                     const OGRSpatialReference *,
-                                     OGRwkbGeometryType type = wkbUnknown,
-                                     ProgressInfo *progressInfo = nullptr) override;
-
-    static DataStorePtr create(const CPLString& path);
-    static DataStorePtr open(const CPLString& path);
-
-    //
-    int createRemoteTMSRaster(const char* url, const char* name,
-                              const char* alias, const char* copyright,
-                              int epsg, int z_min, int z_max,
-                              bool y_origin_top);
-
-*/
 
 protected:
     unsigned char m_disableJournalCounter;

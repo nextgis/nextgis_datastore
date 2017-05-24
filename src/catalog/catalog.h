@@ -47,6 +47,10 @@ public:
     bool isFileHidden(const CPLString& path, const char* name);
     void setShowHidden(bool value);
 
+    // Object interface
+public:
+    virtual ObjectPtr getPointer() const override;
+
     // static
 public:
     static void setInstance(Catalog* pointer);
@@ -65,6 +69,7 @@ private:
 protected:
     bool m_showHidden;
     std::vector<ObjectFactoryUPtr> m_factories;
+
 };
 
 }
