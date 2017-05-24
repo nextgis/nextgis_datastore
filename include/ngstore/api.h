@@ -125,7 +125,9 @@ NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
                                                 int optionType);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
-                                               char **options = nullptr);
+                                               char **options = nullptr,
+                                               ngsProgressFunc callback = nullptr,
+                                               void* callbackData = nullptr);
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**

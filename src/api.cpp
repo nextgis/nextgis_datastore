@@ -149,7 +149,7 @@ const char* ngsGetVersionString(const char* request)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
  * - NUM_THREADS - number theads in various functions (a positive number or "ALL_CPUS")
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
 {
@@ -388,7 +388,7 @@ ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
 /**
  * @brief ngsCatalogObjectDelete Deletes catalog object on specified path
  * @param object The handle of catalog object
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectDelete(CatalogObjectH object)
 {
@@ -412,7 +412,7 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
  * array after function finishes. The common values are:
  * TYPE (required) - The new object type from enum ngsCatalogObjectType
  * CREATE_UNIQUE [ON, OFF] - If name already exists in container, make it unique
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **options)
 {
@@ -462,7 +462,7 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * layer create options.
  * @param callback The callback function to report or cancel process.
  * @param callbackData The callback function data.
- * @return ngsErrorCode value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
                          char **options, ngsProgressFunc callback,
@@ -524,7 +524,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
  * @param object The handle of catalog object
  * @param newName The new object name. The name should be unique inside object
  * parent container
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
 {
@@ -598,6 +598,50 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
     return static_cast<Object*>(object)->getType();
 }
 
+/**
+ * @brief ngsFeatureClassCreateOverviews Creates Gl opimised vector tiles
+ * @param object Catalog object handle. Mast be feature class or simple datasource.
+ * @param options The options key-value array specific to operation.
+ * @param callback The callback function to report or cancel process.
+ * @param callbackData The callback function data.
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
+                                   ngsProgressFunc callback, void* callbackData)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->getPointer();
+    if(catalogObjectPointer->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
+        dataset->hasChildren();
+        catalogObjectPointer = dataset->getInternalObject();
+    }
+
+    if(!catalogObjectPointer) {
+        return errorMessage(ngsCode::COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+
+    if(!Filter::isFeatureClass(catalogObjectPointer->getType())) {
+        return errorMessage(ngsCode::COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+
+    FeatureClass* featureClass = dynamic_cast<FeatureClass*>(catalogObject);
+    if(!featureClass) {
+        return errorMessage(ngsCode::COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+
+    Options createOptions(options);
+    Progress createProgress(callback, callbackData);
+    return featureClass->createOverviews(createProgress, createOptions);
+}
+
 //------------------------------------------------------------------------------
 // Map
 //------------------------------------------------------------------------------
@@ -644,7 +688,7 @@ unsigned char ngsMapOpen(const char *path)
  * @brief ngsMapSave Saves map to file
  * @param mapId Map id to save
  * @param path Path to store map data
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapSave(unsigned char mapId, const char *path)
 {
@@ -679,7 +723,7 @@ int ngsMapSave(unsigned char mapId, const char *path)
 /**
  * @brief ngsMapClose Closes map and free resources
  * @param mapId Map id to close
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapClose(unsigned char mapId)
 {
@@ -697,7 +741,7 @@ int ngsMapClose(unsigned char mapId)
  * @param mapId Map id received from create or open map functions
  * @param width Output image width
  * @param height Output image height
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
 {
@@ -716,7 +760,7 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
  * @param state Draw state (NORMAL, PRESERVED, REDRAW)
  * @param callback Progress function
  * @param callbackData Progress function arguments
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
                ngsProgressFunc callback, void* callbackData)
@@ -750,7 +794,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
  * @brief ngsSetMapBackgroundColor Sets map background color
  * @param mapId Map id received from create or open map functions
  * @param color Background color
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 {
@@ -768,7 +812,7 @@ int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
  * @param mapId Map id
  * @param x X coordinate
  * @param y Y coordinate
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapSetCenter(unsigned char mapId, double x, double y)
 {
@@ -819,7 +863,7 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
  * @brief ngsMapSetScale Set current map scale
  * @param mapId Map id
  * @param scale value to set
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapSetScale(unsigned char mapId, double scale)
 {
@@ -880,7 +924,7 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
  * @param beforeLayer Before this layer insert movedLayer. May be null. In that
  * case layer will be moved to the end of map
  * @param movedLayer Layer to move
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLayer)
 {
@@ -901,7 +945,7 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
  * @param mapId Map id
  * @param dir Rotate direction. May be X, Y or Z
  * @param rotate value to set
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
 {
@@ -1011,7 +1055,7 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
  * @brief ngsMapLayerDelete Deletes layer from map
  * @param mapId Map id
  * @param layer Layer handler get from ngsMapLayerGet() function.
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
 {
@@ -1046,7 +1090,7 @@ const char *ngsLayerGetName(LayerH layer)
  * @brief ngsLayerSetName Sets new layer name
  * @param layer Layer handler
  * @param name New name
- * @return ngsErrorCodes value - EC_SUCCESS if everything is OK
+ * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsLayerSetName(LayerH layer, const char *name)
 {
@@ -1057,3 +1101,4 @@ int ngsLayerSetName(LayerH layer, const char *name)
     (static_cast<Layer*>(layer))->setName(name);
     return ngsCode::COD_SUCCESS;
 }
+

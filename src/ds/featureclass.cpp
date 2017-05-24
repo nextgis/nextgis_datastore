@@ -154,6 +154,16 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     return ngsCode::COD_SUCCESS;
 }
 
+bool FeatureClass::hasOverviews() const
+{
+    return false;
+}
+
+int FeatureClass::createOverviews(const Progress &progress, const Options &options)
+{
+    return ngsCode::COD_SUCCESS;
+}
+
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
 {
     if(fields.empty()) {
