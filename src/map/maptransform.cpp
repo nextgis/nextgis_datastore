@@ -29,13 +29,11 @@
 namespace ngs {
 
 constexpr double DEFAULT_RATIO = 1.0;
-constexpr unsigned short TILE_SIZE = 256;
 constexpr unsigned short MAX_TILES_COUNT = 4096; // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
 
 MapTransform::MapTransform(int width, int height) :
     m_displayWidht(width),
     m_displayHeight(height),
-    m_iniZoom(0.0),
     m_rotate{0.0},
     m_ratio(DEFAULT_RATIO),
     m_YAxisInverted(false),
@@ -57,8 +55,6 @@ void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
     m_displayWidht = width;
     m_displayHeight = height;
-    m_iniZoom = std::min(double(m_displayWidht) / TILE_SIZE,
-                         double(m_displayHeight) / TILE_SIZE);
 
     m_YAxisInverted = isYAxisInverted;
 
@@ -119,9 +115,9 @@ bool MapTransform::setExtent(const Envelope &env)
 //    scaleY = 1.0 / h;
 //    m_scaleScene = std::min(scaleX, scaleY);
 
-    scaleX = w / DEFAULT_BOUNDS_X2.getMaxX();
-    scaleY = h / DEFAULT_BOUNDS_X2.getMaxY();
-    m_scaleWorld = 1 / std::min(scaleX, scaleY);
+//    scaleX = w / DEFAULT_BOUNDS_X2.getMaxX();
+//    scaleY = h / DEFAULT_BOUNDS_X2.getMaxY();
+    m_scaleWorld = 1 / m_scale;//std::min(scaleX, scaleY);
 
     initMatrices();
 
@@ -150,9 +146,9 @@ bool MapTransform::updateExtent()
 //    double scaleY = 1.0 / (halfHeight + halfHeight);
 //    m_scaleScene = std::min(scaleX, scaleY);
 
-    double scaleX = halfWidth / DEFAULT_BOUNDS.getMaxX();
-    double scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
-    m_scaleWorld = 1 / std::min(scaleX, scaleY);
+//    double scaleX = halfWidth / DEFAULT_BOUNDS.getMaxX();
+//    double scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
+    m_scaleWorld = 1 / m_scale;//std::min(scaleX, scaleY);
 
     if(m_XAxisLooped) {
         while (m_extent.getMinX() > DEFAULT_BOUNDS_X2.getMaxX()) {
@@ -271,13 +267,8 @@ void MapTransform::setRotateExtent()
 }
 
 unsigned char MapTransform::getZoom() const {
-    double retVal = m_iniZoom;
-    if (m_scaleWorld > 1) {
-        retVal += lg(m_scaleWorld);
-    } else if (m_scaleWorld < 1) {
-        retVal -= lg(1.0 / m_scaleWorld);
-    }
-    return retVal < 2 ? 0 : static_cast<unsigned char>(retVal + 0.5) - 2;
+    double retVal = lg(156412.0 / m_scaleWorld); // 156412.0 - m/pixel on 0 zoom. See http://wiki.openstreetmap.org/wiki/Zoom_levels
+    return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5);
 }
 
 std::vector<TileItem> MapTransform::getTilesForExtent(

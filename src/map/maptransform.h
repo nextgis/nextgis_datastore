@@ -82,7 +82,6 @@ protected:
 
 protected:
     int m_displayWidht, m_displayHeight;
-    double m_iniZoom;
     OGRRawPoint m_center;
     double m_rotate[3];
     double m_scale, m_scaleWorld; //m_scaleScene, m_scaleView,
