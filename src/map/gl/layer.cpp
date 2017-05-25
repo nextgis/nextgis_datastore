@@ -151,6 +151,13 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
 void GlRasterLayer::fill(GlTilePtr tile)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
+    if(!m_visible) {
+        CPLMutexHolder holder(m_dataMutex, lockTime);
+        m_tiles[tile->getTile()] = GlObjectPtr();
+        m_images[tile->getTile()] = GlObjectPtr();
+        return;
+    }
+
     Envelope rasterExtent = m_raster->getExtent();
     const Envelope & tileExtent = tile->getExtent();
 

@@ -57,10 +57,12 @@ public:
     virtual JSONObject save(const ObjectContainer * objectContainer = nullptr) const;
     const CPLString &getName() const { return m_name; }
     void setName(const CPLString &name) { m_name = name; }
-
+    bool visible() const { return m_visible; }
+    void setVisible(bool visible) { m_visible = visible; }
 protected:
     CPLString m_name;
     enum Type m_type;
+    bool m_visible;
 };
 
 typedef std::shared_ptr<Layer> LayerPtr;

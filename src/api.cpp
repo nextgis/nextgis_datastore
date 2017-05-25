@@ -1081,7 +1081,7 @@ const char *ngsLayerGetName(LayerH layer)
 {
     if(nullptr == layer) {
         errorMessage(ngsCode::COD_GET_FAILED, _("Layer pointer is null"));
-            return "";
+        return "";
     }
     return (static_cast<Layer*>(layer))->getName();
 }
@@ -1102,3 +1102,30 @@ int ngsLayerSetName(LayerH layer, const char *name)
     return ngsCode::COD_SUCCESS;
 }
 
+/**
+ * @brief ngsLayerGetVisible Gets if layer is visible
+ * @param layer Layer handler
+ * @return true if visible or false
+ */
+bool ngsLayerGetVisible(LayerH layer)
+{
+    if(nullptr == layer) {
+        return errorMessage(ngsCode::COD_GET_FAILED, _("Layer pointer is null"));
+    }
+    return (static_cast<Layer*>(layer))->visible();
+}
+
+/**
+ * @brief ngsLayerSetVisible Sets layer visibility
+ * @param layer Layer handler
+ * @param visible
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsLayerSetVisible(LayerH layer, bool visible)
+{
+    if(nullptr == layer) {
+        return errorMessage(ngsCode::COD_SET_FAILED, _("Layer pointer is null"));
+    }
+    (static_cast<Layer*>(layer))->setVisible(visible);
+    return ngsCode::COD_SUCCESS;
+}

@@ -28,6 +28,7 @@ namespace ngs {
 
 constexpr const char* LAYER_NAME_KEY = "name";
 constexpr const char* LAYER_SOURCE_KEY = "src";
+constexpr const char* LAYER_VISIBLE_KEY = "visible";
 
 //------------------------------------------------------------------------------
 // Layer
@@ -35,13 +36,15 @@ constexpr const char* LAYER_SOURCE_KEY = "src";
 
 Layer::Layer(const CPLString &name, Type type) :
     m_name(name),
-    m_type(type)
+    m_type(type),
+    m_visible(true)
 {
 }
 
 bool Layer::load(const JSONObject& store, ObjectContainer * /*objectContainer*/)
 {
     m_name = store.getString(LAYER_NAME_KEY, m_name);
+    m_visible = store.getBool(LAYER_VISIBLE_KEY, m_visible);
     return true;
 }
 
@@ -50,6 +53,7 @@ JSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
     JSONObject out;
     out.add(LAYER_NAME_KEY, m_name);
     out.add(LAYER_TYPE_KEY, static_cast<int>(m_type));
+    out.add(LAYER_VISIBLE_KEY, m_visible);
     return out;
 }
 

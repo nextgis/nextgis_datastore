@@ -79,9 +79,10 @@ enum ngsChangeCode {
  * @brief The draw state enum
  */
 enum ngsDrawState {
-    DS_NORMAL = 1,  /**< normal draw */
-    DS_REDRAW,      /**< free all caches and draw from the scratch */
-    DS_PRESERVED    /**< draw from caches */
+    DS_NORMAL = 1,  /**< Normal draw */
+    DS_REDRAW,      /**< Free all caches and draw from the scratch */
+    DS_REFILL,      /**< Refill tiles from layers */
+    DS_PRESERVED    /**< Draw from caches */
 };
 
 /**

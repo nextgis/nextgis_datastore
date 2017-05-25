@@ -123,11 +123,13 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     switch (state) {
     case DS_REDRAW:
         clearTiles();
-    case DS_NORMAL:
+    [[clang::fallthrough]]; case DS_REFILL:
+        for(GlTilePtr& tile : m_tiles) {
+            tile->setFilled(false);
+        }
+    [[clang::fallthrough]]; case DS_NORMAL:
         // Get tiles for extent and mark to delete out of bounds tiles
         updateTilesList();
-        // Free unnecessary Gl objects as this call is in Gl context
-//        freeResources();
         // Start load layers data for tiles
         m_threadPool.clearThreadData();
         for(const GlTilePtr& tile : m_tiles) {
@@ -137,8 +139,9 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
                 m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
             }
         }
-    case DS_PRESERVED:
+    [[clang::fallthrough]]; case DS_PRESERVED:
         bool result = drawTiles(progress);
+        // Free unnecessary Gl objects as this call is in Gl context
         freeResources();
         return result;
     }

@@ -179,6 +179,8 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
  */
 NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
+NGS_EXTERNC bool ngsLayerGetVisible(LayerH layer);
+NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, bool visible);
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
