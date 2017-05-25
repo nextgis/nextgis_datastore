@@ -45,7 +45,8 @@ FeatureClass::FeatureClass(OGRLayer *layer,
                                ObjectContainer * const parent,
                                const enum ngsCatalogObjectType type,
                                const CPLString &name) :
-    Table(layer, parent, type, name)
+    Table(layer, parent, type, name),
+    m_ovrTable(nullptr)
 {
     if(m_layer && m_layer->GetSpatialRef())
         m_spatialReference = m_layer->GetSpatialRef();
@@ -164,10 +165,11 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
 bool FeatureClass::hasOverviews() const
 {
-    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == parentDS)
+    if(nullptr != m_ovrTable)
+        return true;
+    GDALDataset* ovrDS = getOverviewDataset();
+    if(nullptr == ovrDS)
         return false;
-    GDALDataset* ovrDS = parentDS->getOverviewDataset();
     CPLString ovrTableName = getName() + OVR_ADD;
     return ovrDS && ovrDS->GetLayerByName(ovrTableName);
 }
@@ -370,6 +372,59 @@ std::vector<OGRwkbGeometryType> FeatureClass::getGeometryTypes()
     return out;
 }
 
+bool FeatureClass::destroy()
+{
+    if(!Table::destroy()) {
+        return false;
+    }
+
+
+    GDALDataset* const ovrDataset = getOverviewDataset();
+    if(nullptr == ovrDataset) {
+        warningMessage(_("Overview dataset not present"));
+        return true;
+    }
+
+    if(nullptr == m_ovrTable) {
+        m_ovrTable = getOverviewTable();
+    }
+
+    if(nullptr == m_ovrTable) {
+        warningMessage(_("Overview table not present"));
+        return true;
+    }
+
+    for(int i = 0; i < ovrDataset->GetLayerCount (); ++i){
+        if(ovrDataset->GetLayer(i) == m_ovrTable) {
+            if(ovrDataset->DeleteLayer(i) == OGRERR_NONE) {
+                m_ovrTable = nullptr;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+OGRLayer *FeatureClass::getOverviewTable()
+{
+    if(m_ovrTable)
+        return m_ovrTable;
+    GDALDataset* const ovrDataset = getOverviewDataset();
+    if(nullptr == ovrDataset)
+        return nullptr;
+    CPLString ovrTableName = getName() + OVR_ADD;
+    m_ovrTable = ovrDataset->GetLayerByName(ovrTableName);
+    return m_ovrTable;
+}
+
+GDALDataset *FeatureClass::getOverviewDataset() const
+{
+    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset)
+        return nullptr;
+    return  dataset->getOverviewDataset();
+}
+
 /*
 char RenderLayer::getCloseOvr()
 {
@@ -416,6 +471,4 @@ ResultSetPtr FeatureClass::getGeometries(unsigned char zoom,
 
 */
 
-}
-
-
+} // namespace ngs

@@ -65,6 +65,17 @@ public:
     static const char *getGeometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
     static OGRwkbGeometryType getGeometryTypeFromName(const char* name);
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+
+protected:
+    OGRLayer* getOverviewTable();
+    GDALDataset* getOverviewDataset() const;
+
+protected:
+    OGRLayer *m_ovrTable;
 };
 
 }

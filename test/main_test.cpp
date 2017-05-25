@@ -329,9 +329,13 @@ TEST(DataStoreTests, TestLoadDataStore) {
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
 
-    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, nullptr,
+    options = nullptr;
+    options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
+
+    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, options,
                                    ngsTestProgressFunc, nullptr),
               ngsCode::COD_SUCCESS);
+    ngsDestroyList(options);
     EXPECT_GE(counter, 1);
 
     ngsUnInit();
@@ -361,18 +365,6 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     EXPECT_GE(counter, 1);
     ngsUnInit();
 }
-
-
-/*
-TEST(BasicTests, TestCreateTMS) {
-    counter = 0;
-    EXPECT_EQ(ngsCreateRemoteTMSRaster(TMS_URL, TMS_NAME, TMS_ALIAS, TMS_COPYING,
-                                       TMS_EPSG, TMS_MIN_Z, TMS_MAX_Z,
-                                       TMS_YORIG_TOP), ngsErrorCodes::EC_SUCCESS);
-    CPLSleep(0.1);
-    EXPECT_GE(counter, 1);
-}
-*/
 
 TEST(DataStoreTests, TestDeleteDataStore) {
     char** options = nullptr;

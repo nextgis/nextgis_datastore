@@ -238,8 +238,14 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
     FeatureClass* out = new FeatureClass(layer, this,
                                          ngsCatalogObjectType::CAT_FC_ANY, name);
 
-    if(m_parent)
+    if(options.getBoolOption("CREATE_OVERVIEWS_TABLE", false) ||
+            options.getBoolOption("CREATE_OVERVIEWS", false)) {
+        out->createOverviews(progress, options);
+    }
+
+    if(m_parent) {
         m_parent->notifyChanges();
+    }
 
     Notify::instance().onNotify(out->getFullName(), ngsChangeCode::CC_CREATE_OBJECT);
 
