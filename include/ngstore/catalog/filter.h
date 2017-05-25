@@ -45,6 +45,7 @@ public:
     static bool isTable(const enum ngsCatalogObjectType type);
     static bool isContainer(const enum ngsCatalogObjectType type);
     static bool isDatabase(const enum ngsCatalogObjectType type);
+    static bool isFileBased(const enum ngsCatalogObjectType type);
     static GDALDriver *getGDALDriver(const enum ngsCatalogObjectType type);
     static const char* getExtension(const enum ngsCatalogObjectType type);
 protected:

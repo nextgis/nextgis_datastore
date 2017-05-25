@@ -85,7 +85,19 @@ bool Filter::isTable(const enum ngsCatalogObjectType type)
 
 bool Filter::isDatabase(const enum ngsCatalogObjectType type)
 {
-    return type == CAT_CONTAINER_GDB || type == CAT_CONTAINER_POSTGRES;
+    return type == CAT_CONTAINER_GDB || type == CAT_CONTAINER_POSTGRES ||
+           type == CAT_CONTAINER_NGS || type == CAT_CONTAINER_GPKG;
+}
+
+bool Filter::isFileBased(const enum ngsCatalogObjectType type)
+{
+    return type == CAT_CONTAINER_WFS ||
+          (type >= CAT_CONTAINER_KML && type < CAT_CONTAINER_GPKG) ||
+           type == CAT_CONTAINER_SIMPLE ||
+          (type >= CAT_FC_ESRI_SHAPEFILE && type < CAT_FC_POSTGIS) ||
+          (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
+          (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||
+           type == CAT_FC_CSV;
 }
 
 GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
@@ -98,6 +110,11 @@ GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
     case CAT_RASTER_GPKG:
     case CAT_CONTAINER_NGS:
         return GetGDALDriverManager()->GetDriverByName("GPKG");
+    case CAT_CONTAINER_SQLITE:
+    case CAT_TABLE_LITE:
+    case CAT_FC_LITE:
+    case CAT_RASTER_LITE:
+        return GetGDALDriverManager()->GetDriverByName("SQLite");
     case CAT_CONTAINER_GDB:
     case CAT_TABLE_GDB:
     case CAT_FC_GDB:

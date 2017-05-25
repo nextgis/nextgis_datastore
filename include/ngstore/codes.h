@@ -132,6 +132,7 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_KMZ,
     CAT_CONTAINER_SXF,
     CAT_CONTAINER_GPKG,
+    CAT_CONTAINER_SQLITE,
     CAT_CONTAINER_SIMPLE,       /** For one layer containers */
     CAT_CONTAINER_ALL,
     CAT_FC_ANY,                 /** Any Feature class */
@@ -150,6 +151,7 @@ enum ngsCatalogObjectType {
     CAT_FC_GDB,
     CAT_FC_CSV,
     CAT_FC_GPKG,
+    CAT_FC_LITE,
     CAT_FC_ALL,
     CAT_RASTER_ANY,             /** Any raster */
     CAT_RASTER_BMP,
@@ -166,6 +168,7 @@ enum ngsCatalogObjectType {
     CAT_RASTER_POSTGIS,
     CAT_RASTER_GDB,
     CAT_RASTER_GPKG,
+    CAT_RASTER_LITE,
     CAT_RASTER_ALL,
     CAT_TABLE_ANY,              /** Any table */
     CAT_TABLE_POSTGRES,
@@ -178,6 +181,7 @@ enum ngsCatalogObjectType {
     CAT_TABLE_ODS,
     CAT_TABLE_XLS,
     CAT_TABLE_XLSX,
+    CAT_TABLE_LITE,
     CAT_TABLE_ALL,
     CAT_FILE_ANY,
     CAT_FILE_NGMAPDOCUMENT,

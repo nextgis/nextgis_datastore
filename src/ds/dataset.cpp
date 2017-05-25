@@ -28,6 +28,7 @@
 #include "raster.h"
 #include "table.h"
 #include "catalog/file.h"
+#include "catalog/folder.h"
 #include "ngstore/api.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
@@ -178,14 +179,22 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
 //------------------------------------------------------------------------------
 // Dataset
 //------------------------------------------------------------------------------
+constexpr const char* OVR_EXT = "ngvt";
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
                  const CPLString &name,
                  const CPLString &path) :
     ObjectContainer(parent, type, name, path),
-    DatasetBase()
+    DatasetBase(),
+    m_ovrDS(nullptr)
 {
+}
+
+Dataset::~Dataset()
+{
+    GDALClose(m_ovrDS);
+    m_ovrDS = nullptr;
 }
 
 FeatureClass *Dataset::createFeatureClass(const CPLString &name,
@@ -214,7 +223,9 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
 
         CPLString newFieldName = normalizeFieldName(srcField->GetNameRef());
         if(!EQUAL(newFieldName, srcField->GetNameRef())) {
-            progress.onProgress(ngsCode::COD_WARNING, 0.0, _("Field %s of source table was renamed to %s in destination tables"), srcField->GetNameRef(), newFieldName.c_str());
+            progress.onProgress(ngsCode::COD_WARNING, 0.0,
+                                _("Field %s of source table was renamed to %s in destination tables"),
+                                srcField->GetNameRef(), newFieldName.c_str());
         }
 
         dstField.SetName(newFieldName);
@@ -249,6 +260,9 @@ bool Dataset::destroy()
     clear();
     GDALClose(m_DS);
     m_DS = nullptr;
+    GDALClose(m_ovrDS);
+    m_ovrDS = nullptr;
+
     if(!File::deleteFile(m_path))
         return false;
 
@@ -336,6 +350,45 @@ void Dataset::fillFeatureClasses()
                             ngsCatalogObjectType::CAT_FC_ANY, layerName)));
             }
         }
+    }
+}
+
+GDALDataset *Dataset::createOverviewDataset()
+{
+    if(m_ovrDS) {
+        return m_ovrDS;
+    }
+
+    if(Filter::isDatabase(getType())) {
+        m_ovrDS = m_DS;
+        m_ovrDS->Reference();
+        return m_ovrDS;
+    }
+    else {
+        const char* ovrPath = CPLResetExtension(m_path, OVR_EXT);
+        CPLErrorReset();
+        GDALDriver *poDriver = Filter::getGDALDriver(
+                    ngsCatalogObjectType::CAT_CONTAINER_SQLITE);
+        if(poDriver == nullptr) {
+            errorMessage(ngsCode::COD_CREATE_FAILED,
+                                _("SQLite driver is not present"));
+            return nullptr;
+        }
+
+        Options options;
+        options.addOption("METADATA", "NO");
+        options.addOption("SPATIALITE", "NO");
+        options.addOption("INIT_WITH_EPSG", "NO");
+        auto createOptionsPointer = options.getOptions();
+
+        GDALDataset* DS = poDriver->Create(ovrPath, 0, 0, 0, GDT_Unknown,
+                                           createOptionsPointer.get());
+        if(DS == nullptr) {
+            errorMessage(CPLGetLastErrorMsg());
+            return nullptr;
+        }
+        m_ovrDS = DS;
+        return m_ovrDS;
     }
 }
 
@@ -576,7 +629,26 @@ TablePtr Dataset::executeSQL(const char *statement,
 
 bool Dataset::open(unsigned int openFlags, const Options &options)
 {
-    return DatasetBase::open(m_path, openFlags, options);
+    bool result = DatasetBase::open(m_path, openFlags, options);
+    if(result) {
+        if(Filter::isDatabase(getType())) {
+            m_ovrDS = m_DS;
+            m_ovrDS->Reference();
+        }
+        else {
+            const char* ovrPath = CPLResetExtension(m_path, OVR_EXT);
+            if(Folder::isExists(ovrPath)) {
+                m_ovrDS = static_cast<GDALDataset*>(GDALOpenEx(ovrPath, openFlags,
+                                                               nullptr, nullptr,
+                                                               nullptr));
+
+                if(m_ovrDS == nullptr) {
+                    warningMessage(CPLGetLastErrorMsg());
+                }
+            }
+        }
+    }
+    return result;
 }
 
 

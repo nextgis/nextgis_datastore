@@ -20,7 +20,9 @@
  ****************************************************************************/
 #include "featureclass.h"
 
+#include "dataset.h"
 #include "coordinatetransformation.h"
+#include "ngstore/catalog/filter.h"
 #include "util/error.h"
 
 // For gettext translation
@@ -32,6 +34,12 @@
 #define MPOLYGON_STR _("Multi Polygon")
 
 namespace ngs {
+
+constexpr const char* OVR_ADD = "_ovr";
+constexpr const char* OVR_ZOOM_KEY = "z";
+constexpr const char* OVR_X_KEY = "x";
+constexpr const char* OVR_Y_KEY = "y";
+constexpr const char* OVR_TILE_KEY = "tile";
 
 FeatureClass::FeatureClass(OGRLayer *layer,
                                ObjectContainer * const parent,
@@ -156,11 +164,64 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
 bool FeatureClass::hasOverviews() const
 {
-    return false;
+    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDS)
+        return false;
+    GDALDataset* ovrDS = parentDS->getOverviewDataset();
+    CPLString ovrTableName = getName() + OVR_ADD;
+    return ovrDS && ovrDS->GetLayerByName(ovrTableName);
 }
 
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
+    bool force = options.getBoolOption("FORCE", false);
+    if(!force && hasOverviews()) {
+        return ngsCode::COD_SUCCESS;
+    }
+
+    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDS) {
+        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0,
+                            _("Unsupported feature class"));
+        return errorMessage(ngsCode::COD_CREATE_FAILED,
+                            _("Unsupported feature class"));
+    }
+    GDALDataset* ovrDS = parentDS->getOverviewDataset();
+    if(nullptr == ovrDS) {
+        ovrDS = parentDS->createOverviewDataset();
+    }
+
+    if(nullptr == ovrDS) {
+        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0,
+                            _("No overview datasource"));
+        return errorMessage(ngsCode::COD_CREATE_FAILED,
+                            _("No overview datasource"));
+    }
+
+    // Create overview layer
+    CPLString ovrTableName = getName() + OVR_ADD;
+    OGRLayer* ovrLayer = ovrDS->CreateLayer(ovrTableName, nullptr, wkbNone,
+                                            nullptr);
+    if (nullptr == ovrLayer) {
+        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0, CPLGetLastErrorMsg());
+        return errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
+    }
+
+    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
+    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
+    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
+    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
+
+    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
+       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
+       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
+       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
+        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0, CPLGetLastErrorMsg());
+        return errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
+    }
+
+    // Fill overview layer with data
+
     return ngsCode::COD_SUCCESS;
 }
 

@@ -75,11 +75,13 @@ protected:
  */
 class Dataset : public ObjectContainer, public DatasetBase
 {
+    friend class FeatureClass;
 public:
     Dataset(ObjectContainer * const parent = nullptr,
             const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");
+    virtual ~Dataset();
     virtual const char* getOptions(enum ngsOptionType optionType) const override;
 
     TablePtr executeSQL(const char* statement, const char* dialect = "");
@@ -88,7 +90,8 @@ public:
                             const char* dialect = "");
 
 
-    virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
+    virtual bool open(unsigned int openFlags,
+                      const Options &options = Options()) override;
     virtual FeatureClass* createFeatureClass(const CPLString &name,
                                              OGRFeatureDefn* const definition,
                                              const OGRSpatialReference *spatialRef,
@@ -118,7 +121,11 @@ protected:
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     virtual void fillFeatureClasses();
+    GDALDataset* getOverviewDataset() const { return m_ovrDS; }
+    GDALDataset* createOverviewDataset();
 
+protected:
+    GDALDataset* m_ovrDS;
 };
 
 }
