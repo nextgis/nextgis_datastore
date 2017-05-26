@@ -145,7 +145,7 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
     if(object->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
         simpleDS->hasChildren();
-        ObjectPtr internalObject = simpleDS->getInternalObject();
+        ObjectPtr internalObject = simpleDS->internalObject();
         if(internalObject) {
             return createLayer(name, internalObject);
         }

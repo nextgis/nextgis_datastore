@@ -36,7 +36,7 @@ SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
 
 }
 
-ObjectPtr SimpleDataset::getInternalObject() const
+ObjectPtr SimpleDataset::internalObject() const
 {
     if(m_children.empty())
         return ObjectPtr();

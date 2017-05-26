@@ -71,7 +71,7 @@ public:
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
-    virtual const char *getOptions(ngsOptionType optionType) const override;
+    virtual const char *options(ngsOptionType optionType) const override;
 
 protected:
     void setExtent();

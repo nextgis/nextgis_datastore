@@ -42,6 +42,14 @@ Envelope::Envelope() :
 
 }
 
+void Envelope::operator=(const OGREnvelope &env)
+{
+    m_minX = env.MinX;
+    m_minY = env.MinY;
+    m_maxX = env.MaxX;
+    m_maxY = env.MaxY;
+}
+
 bool Envelope::isInit() const
 {
     return !isEqual(m_minX, DBLNAN) || !isEqual(m_minY, DBLNAN) ||

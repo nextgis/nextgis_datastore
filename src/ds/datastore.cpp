@@ -43,47 +43,9 @@ namespace ngs {
 constexpr const char* STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
 
-constexpr const char* METHADATA_TABLE_NAME = "ngst_meta";
-constexpr const char* ATTACHEMENTS_TABLE_NAME = "ngst_attach";
-
-constexpr const char* NGS_VERSION_KEY = "ngs_version";
-
-// Metadata
-constexpr const char* META_KEY = "key";
-constexpr unsigned short META_KEY_LIMIT = 128;
-constexpr const char* META_VALUE = "value";
-constexpr unsigned short META_VALUE_LIMIT = 512;
-
-
 //------------------------------------------------------------------------------
 // Static functions
 //------------------------------------------------------------------------------
-
-bool createMetadataTable(GDALDataset* ds)
-{
-    OGRLayer* pMetadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
-                                                   wkbNone, nullptr);
-    if (nullptr == pMetadataLayer) {
-        return false;
-    }
-
-    OGRFieldDefn oFieldKey(META_KEY, OFTString);
-    oFieldKey.SetWidth(META_KEY_LIMIT);
-    OGRFieldDefn oFieldValue(META_VALUE, OFTString);
-    oFieldValue.SetWidth(META_VALUE_LIMIT);
-
-    if(pMetadataLayer->CreateField(&oFieldKey) != OGRERR_NONE ||
-       pMetadataLayer->CreateField(&oFieldValue) != OGRERR_NONE) {
-        return false;
-    }
-
-    FeaturePtr feature(OGRFeature::CreateFeature(pMetadataLayer->GetLayerDefn()));
-
-    // write version
-    feature->SetField(META_KEY, NGS_VERSION_KEY);
-    feature->SetField(META_VALUE, NGS_VERSION_NUM);
-    return pMetadataLayer->CreateFeature(feature) == OGRERR_NONE ? true : false;
-}
 
 /* TODO: Add support fo attachments
 
@@ -209,12 +171,15 @@ bool DataStore::create(const char *path)
         return false;
     }
 
+    // Set user version
+    DS->ExecuteSQL(CPLSPrintf("PRAGMA user_version = %d;", NGS_VERSION_NUM), nullptr, nullptr);
+
+    /* TODO: Add attachments support
     // Create system tables
     if(!createMetadataTable(DS))
         return errorMessage(ngsCode::COD_CREATE_FAILED,
                             _("Create metadata table failed"));
 
-    /* TODO: Add attachments support
     if(!createAttachmentsTable(DS))
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("Create attachments table failed"));
@@ -224,7 +189,7 @@ bool DataStore::create(const char *path)
     return true;
 }
 
-const char *DataStore::getExtension()
+const char *DataStore::extension()
 {
     return STORE_EXT;
 }
@@ -236,26 +201,16 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 
     CPLErrorReset();
 
-    // check version and upgrade if needed
-    OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
-    if(nullptr == pMetadataLayer) {
-        return errorMessage(ngsCode::COD_OPEN_FAILED, _("Invalid structure"));
+    TablePtr userVersion = executeSQL("PRAGMA user_version", "SQLITE");
+    userVersion->reset();
+    FeaturePtr feature = userVersion->nextFeature();
+    int version = 0;
+    if(feature) {
+        version = feature->GetFieldAsInteger(0);
     }
 
-    pMetadataLayer->ResetReading();
-    FeaturePtr feature;
-    while( (feature = pMetadataLayer->GetNextFeature()) != nullptr ) {
-        if(EQUAL(feature->GetFieldAsString(META_KEY), NGS_VERSION_KEY)) {
-            int nVersion = atoi(feature->GetFieldAsString(META_VALUE));
-            if(nVersion < NGS_VERSION_NUM) {
-                // Upgrade database if needed
-                if(!upgrade(nVersion)) {
-                    return errorMessage(ngsCode::COD_OPEN_FAILED,
-                                        _("Upgrade storage failed"));
-                }
-            }
-            break;
-        }
+    if(version < NGS_VERSION_NUM && !upgrade(version)) {
+        return errorMessage(ngsCode::COD_OPEN_FAILED, _("Upgrade storage failed"));
     }
 
     return true;
@@ -272,27 +227,22 @@ void DataStore::enableJournal(bool enable)
     if(enable) {        
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
-            executeSQL ("PRAGMA synchronous=ON", "SQLITE");
-            executeSQL ("PRAGMA journal_mode=ON", "SQLITE");
-            executeSQL ("PRAGMA count_changes=ON", "SQLITE");
+            executeSQL("PRAGMA synchronous=ON", "SQLITE");
+            executeSQL("PRAGMA journal_mode=ON", "SQLITE");
+            executeSQL("PRAGMA count_changes=ON", "SQLITE");
         }
     }
     else {
         CPLAssert (m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
-            executeSQL ("PRAGMA synchronous=OFF", "SQLITE");
+            executeSQL("PRAGMA synchronous=OFF", "SQLITE");
             //executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
-            executeSQL ("PRAGMA journal_mode=OFF", "SQLITE");
-            executeSQL ("PRAGMA count_changes=OFF", "SQLITE");
+            executeSQL("PRAGMA journal_mode=OFF", "SQLITE");
+            executeSQL("PRAGMA count_changes=OFF", "SQLITE");
             // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
         }
     }
-}
-
-bool DataStore::canDestroy() const
-{
-    return access(m_path, W_OK) == 0;
 }
 
 }

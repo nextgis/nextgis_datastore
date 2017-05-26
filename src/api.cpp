@@ -310,7 +310,7 @@ ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
             SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
             output = static_cast<ngsCatalogObjectInfo*>(
                         CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-            output[0] = {catalogObject->getName(), simpleDS->getSubType(), catalogObject};
+            output[0] = {catalogObject->getName(), simpleDS->subType(), catalogObject};
             output[1] = {nullptr, -1, nullptr};
             return output;
         }
@@ -331,8 +331,8 @@ ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
             if(child->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
                 SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
                 output[outputSize - 1] = {child->getName(),
-                                          simpleDS->getSubType(),
-                                          simpleDS->getInternalObject().get()};
+                                          simpleDS->subType(),
+                                          simpleDS->internalObject().get()};
             }
             else {
                 output[outputSize - 1] = {child->getName(),
@@ -491,7 +491,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
     if(srcCatalogObjectPointer->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(srcCatalogObject);
         dataset->hasChildren();
-        srcCatalogObjectPointer = dataset->getInternalObject();
+        srcCatalogObjectPointer = dataset->internalObject();
     }
 
     if(!srcCatalogObjectPointer) {
@@ -571,7 +571,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
     }
     enum ngsOptionType enumOptionType = static_cast<enum ngsOptionType>(optionType);
 
-    return dataset->getOptions(enumOptionType);
+    return dataset->options(enumOptionType);
 }
 
 /**
@@ -618,7 +618,7 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
     if(catalogObjectPointer->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
         dataset->hasChildren();
-        catalogObjectPointer = dataset->getInternalObject();
+        catalogObjectPointer = dataset->internalObject();
     }
 
     if(!catalogObjectPointer) {

@@ -51,7 +51,7 @@ class DatasetBase
 public:
     DatasetBase();
     virtual ~DatasetBase();
-    virtual const char* getOptions(enum ngsOptionType optionType) const = 0;
+    virtual const char* options(enum ngsOptionType optionType) const = 0;
     virtual GDALDataset * getGDALDataset() const { return m_DS; }
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
     // is checks
@@ -61,7 +61,7 @@ public:
 protected:
     bool open(const char* path, unsigned int openFlags,
               const Options &options = Options());
-    const char* getOptions(const enum ngsCatalogObjectType type,
+    const char* options(const enum ngsCatalogObjectType type,
                            enum ngsOptionType optionType) const;
 
 protected:
@@ -76,13 +76,15 @@ protected:
 class Dataset : public ObjectContainer, public DatasetBase
 {
     friend class FeatureClass;
+    friend class Table;
+
 public:
     Dataset(ObjectContainer * const parent = nullptr,
             const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");
     virtual ~Dataset();
-    virtual const char* getOptions(enum ngsOptionType optionType) const override;
+    virtual const char* options(enum ngsOptionType optionType) const override;
 
     TablePtr executeSQL(const char* statement, const char* dialect = "");
     TablePtr executeSQL(const char* statement,
@@ -102,6 +104,11 @@ public:
                                OGRFeatureDefn* const definition,
                                const Options& options = Options(),
                                const Progress &progress = Progress());
+
+    virtual bool setMetadata(const char* key, const char* value);
+    virtual const char* metadata(const char* key, const char* defaultValue);
+
+
     // Object interface
 public:
     virtual bool destroy() override;
@@ -116,16 +123,32 @@ public:
     virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
 
+    // static
+public:
+    static const char* additionsDatasetExtension();
+
+protected:
+    static OGRLayer *createMetadataTable(GDALDataset* ds);
+    static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
+    static OGRLayer *createOverviewsTable(GDALDataset* ds, const char* name);
+//    static bool createAttachmentsTable(GDALDataset* ds, const char* name);
+//    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
+
 protected:
     virtual bool isNameValid(const char *name) const;
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     virtual void fillFeatureClasses();
-    GDALDataset* getOverviewDataset() const { return m_ovrDS; }
-    GDALDataset* createOverviewDataset();
+    virtual GDALDataset* createAdditionsDataset();
+    virtual OGRLayer* createOverviewsTable(const char* name);
+    virtual bool destroyOverviewsTable(const char* name);
+    virtual bool clearOverviewsTable(const char* name);
+    virtual OGRLayer* getOverviewsTable(const char* name);
+    virtual bool destroyTable(Table* table);
 
 protected:
-    GDALDataset* m_ovrDS;
+    GDALDataset* m_addsDS;
+    OGRLayer* m_metadata;
 };
 
 }

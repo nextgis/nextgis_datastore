@@ -41,6 +41,13 @@ public:
         m_minY(minY),
         m_maxX(maxX),
         m_maxY(maxY) { }
+    Envelope(const OGREnvelope& env) :
+        m_minX(env.MinX),
+        m_minY(env.MinY),
+        m_maxX(env.MaxX),
+        m_maxY(env.MaxY) { }
+
+    void operator=(const OGREnvelope& env);
 
     bool isInit() const;
     OGRRawPoint getCenter() const;

@@ -33,7 +33,7 @@ public:
                   ObjectContainer * const parent = nullptr,
                   const CPLString & name = "",
                   const CPLString & path = "");
-    ObjectPtr getInternalObject() const;
+    ObjectPtr internalObject() const;
 
     // Object interface
 public:
@@ -46,7 +46,7 @@ public:
     virtual bool canPaste(const enum ngsCatalogObjectType) const override { return false; }
 
     // Dataset interface
-    enum ngsCatalogObjectType getSubType() const { return m_subType; }
+    enum ngsCatalogObjectType subType() const { return m_subType; }
 
 protected:
     virtual void fillFeatureClasses() override;

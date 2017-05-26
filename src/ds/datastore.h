@@ -40,11 +40,11 @@ public:
     // static
 public:
     static bool create(const char* path);
-    static const char* getExtension();
+    static const char* extension();
 
     // Object interface
 public:
-    virtual bool canDestroy() const override;
+    virtual bool canDestroy() const override { return access(m_path, W_OK) == 0; }
 
     // Dataset interface
 public:

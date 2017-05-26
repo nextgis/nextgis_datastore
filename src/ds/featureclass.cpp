@@ -35,11 +35,7 @@
 
 namespace ngs {
 
-constexpr const char* OVR_ADD = "_ovr";
-constexpr const char* OVR_ZOOM_KEY = "z";
-constexpr const char* OVR_X_KEY = "x";
-constexpr const char* OVR_Y_KEY = "y";
-constexpr const char* OVR_TILE_KEY = "tile";
+constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 
 FeatureClass::FeatureClass(OGRLayer *layer,
                                ObjectContainer * const parent,
@@ -52,21 +48,21 @@ FeatureClass::FeatureClass(OGRLayer *layer,
         m_spatialReference = m_layer->GetSpatialRef();
 }
 
-OGRwkbGeometryType FeatureClass::getGeometryType() const
+OGRwkbGeometryType FeatureClass::geometryType() const
 {
     if(nullptr == m_layer)
         return wkbUnknown;
     return m_layer->GetGeomType ();
 }
 
-const char* FeatureClass::getGeometryColumn() const
+const char* FeatureClass::geometryColumn() const
 {
     if(nullptr == m_layer)
         return "";
     return m_layer->GetGeometryColumn();
 }
 
-std::vector<const char*> FeatureClass::getGeometryColumns() const
+std::vector<const char*> FeatureClass::geometryColumns() const
 {
     std::vector<const char*> out;
     OGRFeatureDefn *defn = m_layer->GetLayerDefn();
@@ -99,7 +95,7 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     OGRSpatialReference *dstSRS = getSpatialReference();
     CoordinateTransformation CT(srcSRS, dstSRS);
     GIntBig featureCount = srcFClass->featureCount();
-    OGRwkbGeometryType dstGeomType = getGeometryType();
+    OGRwkbGeometryType dstGeomType = geometryType();
     double counter = 0;
     srcFClass->reset();
     FeaturePtr feature;
@@ -167,11 +163,11 @@ bool FeatureClass::hasOverviews() const
 {
     if(nullptr != m_ovrTable)
         return true;
-    GDALDataset* ovrDS = getOverviewDataset();
-    if(nullptr == ovrDS)
+    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset)
         return false;
-    CPLString ovrTableName = getName() + OVR_ADD;
-    return ovrDS && ovrDS->GetLayerByName(ovrTableName);
+
+    return dataset->getOverviewsTable(getName());
 }
 
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
@@ -188,41 +184,60 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         return errorMessage(ngsCode::COD_CREATE_FAILED,
                             _("Unsupported feature class"));
     }
-    GDALDataset* ovrDS = parentDS->getOverviewDataset();
-    if(nullptr == ovrDS) {
-        ovrDS = parentDS->createOverviewDataset();
+
+    m_ovrTable = parentDS->getOverviewsTable(getName());
+    if(nullptr == m_ovrTable) {
+        m_ovrTable = parentDS->createOverviewsTable(getName());
+    }
+    else {
+        parentDS->clearOverviewsTable(getName());
     }
 
-    if(nullptr == ovrDS) {
-        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0,
-                            _("No overview datasource"));
-        return errorMessage(ngsCode::COD_CREATE_FAILED,
-                            _("No overview datasource"));
-    }
-
-    // Create overview layer
-    CPLString ovrTableName = getName() + OVR_ADD;
-    OGRLayer* ovrLayer = ovrDS->CreateLayer(ovrTableName, nullptr, wkbNone,
-                                            nullptr);
-    if (nullptr == ovrLayer) {
-        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0, CPLGetLastErrorMsg());
-        return errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
-    }
-
-    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
-    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
-    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
-    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
-
-    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0, CPLGetLastErrorMsg());
-        return errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
+    if(options.getBoolOption("CREATE_OVERVIEWS_TABLE", false)) {
+        return ngsCode::COD_SUCCESS;
     }
 
     // Fill overview layer with data
+    const CPLString &zoomLevelListStr = options.getStringOption(
+                ZOOM_LEVELS_OPTION, "");
+    char** zoomLevelArray = CSLTokenizeString2(zoomLevelListStr, ",", 0);
+    std::vector<int> zoomLevels;
+    int i = 0;
+    const char* zoomLevel;
+    while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
+        zoomLevels.push_back(atoi(zoomLevel));
+    }
+    CSLDestroy(zoomLevelArray);
+
+    if(zoomLevels.empty()) {
+        return ngsCode::COD_SUCCESS;
+    }
+
+    CPLString key(getName());
+    key += ".zoom_levels";
+
+    parentDS->setMetadata(key, zoomLevelListStr);
+
+    // TODO: Tile and simplify geometry
+    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
+                        _("Start tiling and simplifieng geometry"));
+    FeaturePtr feature;
+    GIntBig count = featureCount(false);
+    double counter = 0;
+    while((feature = nextFeature()) != nullptr) {
+        progress.onProgress(ngsCode::COD_IN_PROCESS, counter++ / count,
+                            _("Proceeding..."));
+        OGRGeometry* geometry = feature->GetGeometryRef();
+        if(nullptr == geometry) {
+            continue;
+        }
+
+        OGREnvelope extent;
+        geometry->getEnvelope(&extent);
+        Envelope geometryExtent(extent);
+
+        // TODO: Tile and simplify geometry
+    }
 
     return ngsCode::COD_SUCCESS;
 }
@@ -243,7 +258,7 @@ bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
     return result;
 }
 
-const char* FeatureClass::getGeometryTypeName(OGRwkbGeometryType type,
+const char* FeatureClass::geometryTypeName(OGRwkbGeometryType type,
                                                 GeometryReportType reportType)
 {
     if(reportType == GeometryReportType::FULL)
@@ -293,7 +308,7 @@ const char* FeatureClass::getGeometryTypeName(OGRwkbGeometryType type,
     }
 }
 
-OGRwkbGeometryType FeatureClass::getGeometryTypeFromName(const char* name)
+OGRwkbGeometryType FeatureClass::geometryTypeFromName(const char* name)
 {
     if(nullptr == name || EQUAL(name, ""))
         return wkbUnknown;
@@ -312,16 +327,16 @@ OGRwkbGeometryType FeatureClass::getGeometryTypeFromName(const char* name)
     return wkbUnknown;
 }
 
-std::vector<OGRwkbGeometryType> FeatureClass::getGeometryTypes()
+std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
 {
     std::vector<OGRwkbGeometryType> out;
 
-    OGRwkbGeometryType geomType = getGeometryType();
+    OGRwkbGeometryType geomType = geometryType();
     if (OGR_GT_Flatten(geomType) == wkbUnknown ||
             OGR_GT_Flatten(geomType) == wkbGeometryCollection) {
 
         std::vector<const char*> ignoreFields;
-        OGRFeatureDefn* defn = getDefinition();
+        OGRFeatureDefn* defn = definition();
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn *fld = defn->GetFieldDefn(i);
             ignoreFields.push_back(fld->GetNameRef());
@@ -374,55 +389,17 @@ std::vector<OGRwkbGeometryType> FeatureClass::getGeometryTypes()
 
 bool FeatureClass::destroy()
 {
+    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset)
+        return false;
+
     if(!Table::destroy()) {
         return false;
     }
 
+    dataset->destroyOverviewsTable(getName()); // Overviews table maybe not exists
 
-    GDALDataset* const ovrDataset = getOverviewDataset();
-    if(nullptr == ovrDataset) {
-        warningMessage(_("Overview dataset not present"));
-        return true;
-    }
-
-    if(nullptr == m_ovrTable) {
-        m_ovrTable = getOverviewTable();
-    }
-
-    if(nullptr == m_ovrTable) {
-        warningMessage(_("Overview table not present"));
-        return true;
-    }
-
-    for(int i = 0; i < ovrDataset->GetLayerCount (); ++i){
-        if(ovrDataset->GetLayer(i) == m_ovrTable) {
-            if(ovrDataset->DeleteLayer(i) == OGRERR_NONE) {
-                m_ovrTable = nullptr;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-OGRLayer *FeatureClass::getOverviewTable()
-{
-    if(m_ovrTable)
-        return m_ovrTable;
-    GDALDataset* const ovrDataset = getOverviewDataset();
-    if(nullptr == ovrDataset)
-        return nullptr;
-    CPLString ovrTableName = getName() + OVR_ADD;
-    m_ovrTable = ovrDataset->GetLayerByName(ovrTableName);
-    return m_ovrTable;
-}
-
-GDALDataset *FeatureClass::getOverviewDataset() const
-{
-    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset)
-        return nullptr;
-    return  dataset->getOverviewDataset();
+    return true;
 }
 
 /*

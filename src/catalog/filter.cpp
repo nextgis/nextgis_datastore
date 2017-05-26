@@ -197,7 +197,7 @@ const char *Filter::getExtension(const enum ngsCatalogObjectType type)
     case CAT_CONTAINER_NGW:
         return "wconn";
     case CAT_CONTAINER_NGS:
-        return DataStore::getExtension();
+        return DataStore::extension();
     case CAT_FILE_NGMAPDOCUMENT:
         return MapFile::getExtension();
     case CAT_CONTAINER_KMZ:

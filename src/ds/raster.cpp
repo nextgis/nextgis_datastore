@@ -232,9 +232,9 @@ void Raster::freeLocks(bool all)
     }
 }
 
-const char *Raster::getOptions(ngsOptionType optionType) const
+const char *Raster::options(ngsOptionType optionType) const
 {
-    return DatasetBase::getOptions(m_type, optionType);
+    return DatasetBase::options(m_type, optionType);
 }
 
 bool Raster::writeWorldFile(enum WorldFileType type)

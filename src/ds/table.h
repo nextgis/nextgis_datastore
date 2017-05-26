@@ -50,6 +50,7 @@ typedef std::shared_ptr<Table> TablePtr;
 
 class Table : public Object
 {
+    friend class Dataset;
 public:
     Table(OGRLayer * layer,
           ObjectContainer * const parent = nullptr,
@@ -67,8 +68,8 @@ public:
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
-    OGRFeatureDefn *getDefinition() const;
-    const char *getFIDColumn() const;
+    OGRFeatureDefn *definition() const;
+    const char *FIDColumn() const;
 
     // Object interface
 public:

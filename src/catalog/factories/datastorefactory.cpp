@@ -40,7 +40,7 @@ void DataStoreFactory::createObjects(ObjectContainer * const container,
 {
     std::vector<const char *>::iterator it = names->begin();
     while( it != names->end() ) {
-        if(EQUAL(CPLGetExtension(*it), DataStore::getExtension())) {
+        if(EQUAL(CPLGetExtension(*it), DataStore::extension())) {
             const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
             addChild(container, ObjectPtr(new DataStore(container, *it, path)));
             it = names->erase(it);

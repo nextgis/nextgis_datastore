@@ -46,10 +46,10 @@ public:
                  const CPLString & name = "");
     virtual ~FeatureClass() = default;
 
-    OGRwkbGeometryType getGeometryType() const;
-    std::vector<OGRwkbGeometryType> getGeometryTypes();
-    const char* getGeometryColumn() const;
-    std::vector<const char*> getGeometryColumns() const;
+    OGRwkbGeometryType geometryType() const;
+    std::vector<OGRwkbGeometryType> geometryTypes();
+    const char* geometryColumn() const;
+    std::vector<const char*> geometryColumns() const;
     bool setIgnoredFields(const std::vector<const char*> fields =
             std::vector<const char*>());
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
@@ -62,17 +62,13 @@ public:
                         const Options& options = Options());
 
     // static
-    static const char *getGeometryTypeName(OGRwkbGeometryType type,
+    static const char *geometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
-    static OGRwkbGeometryType getGeometryTypeFromName(const char* name);
+    static OGRwkbGeometryType geometryTypeFromName(const char* name);
 
     // Object interface
 public:
     virtual bool destroy() override;
-
-protected:
-    OGRLayer* getOverviewTable();
-    GDALDataset* getOverviewDataset() const;
 
 protected:
     OGRLayer *m_ovrTable;

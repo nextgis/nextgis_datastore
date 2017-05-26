@@ -223,44 +223,32 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     return ngsCode::COD_SUCCESS;
 }
 
-OGRFeatureDefn *Table::getDefinition() const
+OGRFeatureDefn *Table::definition() const
 {
     if(nullptr == m_layer)
         return nullptr;
     return m_layer->GetLayerDefn();
 }
 
-const char* Table::getFIDColumn() const
+const char* Table::FIDColumn() const
 {
     if(nullptr == m_layer)
         return "";
     return m_layer->GetFIDColumn();
 }
 
-
 bool Table::destroy()
 {
     Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset)
+    if(nullptr == dataset) {
         return errorMessage(_("Parent is not dataset"));
-    GDALDataset * const DS = dataset->getGDALDataset();
-    if(nullptr == DS)
-        return errorMessage(_("GDALDataset is null"));
-
-    for(int i = 0; i < DS->GetLayerCount (); ++i){
-        if(DS->GetLayer(i) == m_layer) {
-            if(DS->DeleteLayer(i) == OGRERR_NONE) {
-                m_layer = nullptr;
-                if(m_parent)
-                    m_parent->notifyChanges();
-                Notify::instance().onNotify(getFullName(),
-                                            ngsChangeCode::CC_DELETE_OBJECT);
-                return true;
-            }
-        }
+    }
+    CPLString fullName = getFullName();
+    if(dataset->destroyTable(this)) {
+        Notify::instance().onNotify(fullName, ngsChangeCode::CC_DELETE_OBJECT);
+        return true;
     }
     return false;
-
 }
 
-}
+} // namespace ngs
