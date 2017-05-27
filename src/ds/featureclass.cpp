@@ -214,7 +214,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
                         _("Start tiling and simplifieng geometry"));
 
-    // TODO: multithreaded
+    // TODO: multithreaded thread pool
     FeaturePtr feature;
     GIntBig count = featureCount(false);
     double counter = 0;

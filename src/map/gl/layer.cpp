@@ -63,6 +63,17 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
 
 void GlFeatureLayer::fill(GlTilePtr tile)
 {
+    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
+    if(!m_visible) {
+        CPLMutexHolder holder(m_dataMutex, lockTime);
+        m_tiles[tile->getTile()] = GlObjectPtr();
+        return;
+    }
+
+    m_featureClass->getTile(tile->getTile());
+
+    GlBuffer* tileExtentBuff = new GlBuffer;
+
 }
 
 bool GlFeatureLayer::draw(GlTilePtr tile)
@@ -154,7 +165,6 @@ void GlRasterLayer::fill(GlTilePtr tile)
     if(!m_visible) {
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
-        m_images[tile->getTile()] = GlObjectPtr();
         return;
     }
 
@@ -168,7 +178,6 @@ void GlRasterLayer::fill(GlTilePtr tile)
     if(!rasterExtent.isInit()) {
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
-        m_images[tile->getTile()] = GlObjectPtr();
         return;
     }
 
@@ -269,8 +278,6 @@ void GlRasterLayer::fill(GlTilePtr tile)
             CPLFree(pixData);
             CPLMutexHolder holder(m_dataMutex, lockTime);
             m_tiles[tile->getTile()] = GlObjectPtr();
-            m_images[tile->getTile()] = GlObjectPtr();
-
             return;
         }
     }
@@ -280,8 +287,6 @@ void GlRasterLayer::fill(GlTilePtr tile)
             CPLFree(pixData);
             CPLMutexHolder holder(m_dataMutex, lockTime);
             m_tiles[tile->getTile()] = GlObjectPtr();
-            m_images[tile->getTile()] = GlObjectPtr();
-
             return;
         }
     }
@@ -319,55 +324,38 @@ void GlRasterLayer::fill(GlTilePtr tile)
     tileExtentBuff->addIndex(2);
     tileExtentBuff->addIndex(3);
 
-    CPLMutexHolder holder(m_dataMutex, lockTime);
-    m_tiles[tile->getTile()] = GlObjectPtr(tileExtentBuff);
-    m_images[tile->getTile()] = GlObjectPtr(image);
-
-}
-
-void GlRasterLayer::free(GlTilePtr tile)
-{
-    GlRenderLayer::free(tile);
-
-    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
+    GlObjectPtr tileData(new RasterGlObject(tileExtentBuff, image));
 
     CPLMutexHolder holder(m_dataMutex, lockTime);
-
-    auto it = m_images.find(tile->getTile());
-    if(it != m_images.end()) {
-        if(it->second) {
-            it->second->destroy();
-        }
-        m_images.erase(it);
-    }
+    m_tiles[tile->getTile()] = tileData;
 }
-
 
 bool GlRasterLayer::draw(GlTilePtr tile)
 {
     CPLMutexHolder holder(m_dataMutex);
-    auto buffIt = m_tiles.find(tile->getTile());
-    auto imgIt = m_images.find(tile->getTile());
-    if(buffIt == m_tiles.end() || imgIt == m_images.end()) {
+    auto tileDataIt = m_tiles.find(tile->getTile());
+    if(tileDataIt == m_tiles.end()) {
         return false; // Data not yet loaded
     }
-    else if(!buffIt->second || !imgIt->second) {
+    else if(!tileDataIt->second) {
         return true; // Out of tile extent
     }
 
+    RasterGlObject* rasterGlObject = ngsStaticCast(RasterGlObject, tileDataIt->second);
+
     // Bind everything before call prepare and set matrices
-    GlImage* img = static_cast<GlImage*>(imgIt->second.get());
+    GlImage* img = rasterGlObject->getImageRef();
     m_imageStyle->setImage(img);
-    if(buffIt->second->bound()) {
-        buffIt->second->rebind();
+    GlBuffer* extBuff = rasterGlObject->getBufferRef();
+    if(extBuff->bound()) {
+        extBuff->rebind();
     }
     else {
-        buffIt->second->bind();
+        extBuff->bind();
     }
 
     m_imageStyle->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-    const GlBuffer& buff = (*static_cast<GlBuffer*>(buffIt->second.get()));
-    m_imageStyle->draw(buff);
+    m_imageStyle->draw(*extBuff);
 
     return true;
 
@@ -432,6 +420,35 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 //    }
 
 //    return true;
+}
+
+//------------------------------------------------------------------------------
+// RasterGlObject
+//------------------------------------------------------------------------------
+RasterGlObject::RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image) :
+    GlObject(),
+    m_extentBuffer(tileExtentBuff),
+    m_image(image)
+{
+
+}
+
+void RasterGlObject::bind()
+{
+    m_extentBuffer->bind();
+    m_image->bind();
+}
+
+void RasterGlObject::rebind() const
+{
+    m_extentBuffer->rebind();
+    m_image->rebind();
+}
+
+void RasterGlObject::destroy()
+{
+    m_extentBuffer->destroy();
+    m_image->destroy();
 }
 
 

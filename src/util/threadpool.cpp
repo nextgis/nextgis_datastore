@@ -76,6 +76,23 @@ void ThreadPool::clearThreadData()
     CPLReleaseMutex(m_dataMutex);
 }
 
+void ThreadPool::waitComplete() const
+{
+    bool complete = false;
+    while(true) {
+
+        CPLAcquireMutex(m_threadMutex, 250.0);
+        complete = m_threadCount <= 0;
+        CPLReleaseMutex(m_threadMutex);
+
+        if(complete) {
+            return;
+        }
+
+        CPLSleep(0.5);
+    }
+}
+
 bool ThreadPool::process()
 {
     CPLAcquireMutex(m_dataMutex, 1000.0);

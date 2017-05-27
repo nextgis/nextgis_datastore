@@ -69,7 +69,28 @@ public:
     virtual bool draw(GlTilePtr tile) override;
 };
 
+class RasterGlObject : public GlObject
+{
+public:
+    RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image);
+    GlImage* getImageRef() const { return static_cast<GlImage*>(m_image.get()); }
+    GlBuffer* getBufferRef() const {
+        return static_cast<GlBuffer*>(m_extentBuffer.get());
+    }
 
+    // GlObject interface
+public:
+    virtual void bind() override;
+    virtual void rebind() const override;
+    virtual void destroy() override;
+
+private:
+    GlObjectPtr m_extentBuffer, m_image;
+};
+
+/**
+ * @brief The GlRasterLayer class OpenGL raster layer
+ */
 class GlRasterLayer : public RasterLayer, public GlRenderLayer
 {
 public:
@@ -78,12 +99,10 @@ public:
     // IGlRenderLayer interface
 public:
     virtual void fill(GlTilePtr tile) override;
-    virtual void free(GlTilePtr tile) override;
     virtual bool draw(GlTilePtr tile) override;
 
 private:
     SimpleImageStyle* m_imageStyle;
-    std::map<Tile, GlObjectPtr> m_images;
     unsigned char m_red, m_green, m_blue, m_alpha, m_transparancy;
     GDALDataType m_dataType;
 };
