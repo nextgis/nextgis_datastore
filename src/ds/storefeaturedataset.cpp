@@ -101,7 +101,7 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
         FeaturePtr dstFeature = createFeature ();
         if(nullptr != newGeom) {
             dstFeature->SetGeometryDirectly (newGeom);
-/* TODO: Create tiled geometries in separate ogrlayer
+/* Create tiled geometries in separate ogrlayer
             // create geometries for zoom levels
             if(OGR_GT_Flatten(newGeom->getGeometryType ()) != wkbPoint &&
                OGR_GT_Flatten(newGeom->getGeometryType ()) != wkbMultiPoint) {
@@ -139,12 +139,4 @@ int StoreFeatureDataset::copyFeatures(const FeatureDataset *srcDataset,
         progressInfo->setStatus (ngsErrorCodes::EC_SUCCESS);
     }
     return ngsErrorCodes::EC_SUCCESS;
-}
-
-/* TODO: createDataset() with history also add StoreFeatureDataset to override copyRows function
-// 4. for each feature
-// 4.1. read
-// 4.2. create samples for several scales
-// 4.3. create feature in storage dataset
-// 4.4. create mapping of fields and original spatial reference metadata
-*/
+} */

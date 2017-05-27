@@ -22,6 +22,7 @@
 #define NGSFEATUREDATASET_H
 
 #include "coordinatetransformation.h"
+#include "geometry.h"
 #include "table.h"
 #include "util/options.h"
 
@@ -60,6 +61,7 @@ public:
     bool hasOverviews() const;
     int createOverviews(const Progress& progress = Progress(),
                         const Options& options = Options());
+    VectorTile getTile(const Tile& tile);
 
     // static
     static const char *geometryTypeName(OGRwkbGeometryType type,
@@ -71,7 +73,12 @@ public:
     virtual bool destroy() override;
 
 protected:
+    void tileGeometry(OGRGeometry* geometry);
+    void fillZoomLevels(const char* zoomLevels);
+
+protected:
     OGRLayer *m_ovrTable;
+    std::vector<unsigned short> m_zoomLevels;
 };
 
 }

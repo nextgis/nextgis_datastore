@@ -183,6 +183,8 @@ bool DataStore::create(const char *path)
     if(!createAttachmentsTable(DS))
         return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
                             _("Create attachments table failed"));
+
+       // 4.4. create mapping of fields and original spatial reference metadata
     */
 
     GDALClose(DS);
@@ -292,7 +294,7 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
 
     Dataset* dstDataset = nullptr;
     if( type == wkbNone) {
-        // TODO: create special class StoreTable instead of table with hostory etc.
+        // TODO: create special class StoreTable instead of table with history etc.
         dstDataset = new Table(dstLayer);
     }
     else {

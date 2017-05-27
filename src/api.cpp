@@ -37,8 +37,6 @@
 
 using namespace ngs;
 
-// TODO: Tile vector data on load
-
 constexpr const char* HTTP_TIMEOUT = "2";
 constexpr const char* HTTP_USE_GZIP = "ON";
 constexpr const char* CACHEMAX = "24";

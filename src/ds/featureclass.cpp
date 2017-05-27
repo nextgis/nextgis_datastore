@@ -200,16 +200,8 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     // Fill overview layer with data
     const CPLString &zoomLevelListStr = options.getStringOption(
                 ZOOM_LEVELS_OPTION, "");
-    char** zoomLevelArray = CSLTokenizeString2(zoomLevelListStr, ",", 0);
-    std::vector<int> zoomLevels;
-    int i = 0;
-    const char* zoomLevel;
-    while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
-        zoomLevels.push_back(atoi(zoomLevel));
-    }
-    CSLDestroy(zoomLevelArray);
-
-    if(zoomLevels.empty()) {
+    fillZoomLevels(zoomLevelListStr);
+    if(m_zoomLevels.empty()) {
         return ngsCode::COD_SUCCESS;
     }
 
@@ -218,25 +210,18 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
     parentDS->setMetadata(key, zoomLevelListStr);
 
-    // TODO: Tile and simplify geometry
+    // Tile and simplify geometry
     progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
                         _("Start tiling and simplifieng geometry"));
+
+    // TODO: multithreaded
     FeaturePtr feature;
     GIntBig count = featureCount(false);
     double counter = 0;
     while((feature = nextFeature()) != nullptr) {
         progress.onProgress(ngsCode::COD_IN_PROCESS, counter++ / count,
                             _("Proceeding..."));
-        OGRGeometry* geometry = feature->GetGeometryRef();
-        if(nullptr == geometry) {
-            continue;
-        }
-
-        OGREnvelope extent;
-        geometry->getEnvelope(&extent);
-        Envelope geometryExtent(extent);
-
-        // TODO: Tile and simplify geometry
+        tileGeometry(feature->GetGeometryRef());
     }
 
     return ngsCode::COD_SUCCESS;
@@ -400,6 +385,38 @@ bool FeatureClass::destroy()
     dataset->destroyOverviewsTable(getName()); // Overviews table maybe not exists
 
     return true;
+}
+
+void FeatureClass::tileGeometry(OGRGeometry *geometry)
+{
+    if(nullptr == geometry) {
+        return;
+    }
+
+    OGREnvelope extent;
+    geometry->getEnvelope(&extent);
+    Envelope geometryExtent(extent);
+
+    // TODO: Tile and simplify geometry
+
+/*        GByte* geomBlob = (GByte*) VSI_MALLOC_VERBOSE(blobLen);
+    if( geomBlob != nullptr && simpleGeom->exportToWkb(
+                wkbNDR, geomBlob) == OGRERR_NONE )
+        dstFeature->SetField (dstFeature->GetFieldIndex(
+            CPLSPrintf ("ngs_geom_%d", sampleDist.second)),
+            blobLen, geomBlob);
+    CPLFree(geomBlob);*/
+}
+
+void FeatureClass::fillZoomLevels(const char *zoomLevels)
+{
+    char** zoomLevelArray = CSLTokenizeString2(zoomLevels, ",", 0);
+    int i = 0;
+    const char* zoomLevel;
+    while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
+        m_zoomLevels.push_back(static_cast<unsigned short>(atoi(zoomLevel)));
+    }
+    CSLDestroy(zoomLevelArray);
 }
 
 /*
