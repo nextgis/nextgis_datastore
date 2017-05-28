@@ -85,10 +85,8 @@ void GlFeatureLayer::fill(GlTilePtr tile)
 //            buffer
 
 
-}
+/*
 
-bool GlFeatureLayer::draw(GlTilePtr tile)
-{
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
 
@@ -150,6 +148,40 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
     }
 
     return true;
+*/
+
+}
+
+bool GlFeatureLayer::draw(GlTilePtr tile)
+{
+    if(!m_style) {
+        return true; // Should never happened
+    }
+
+    CPLMutexHolder holder(m_dataMutex);
+    auto tileDataIt = m_tiles.find(tile->getTile());
+    if(tileDataIt == m_tiles.end()) {
+        return false; // Data not yet loaded
+    }
+    else if(!tileDataIt->second) {
+        return true; // Out of tile extent
+    }
+
+    VectorGlObject* vectorGlObject = ngsStaticCast(VectorGlObject, tileDataIt->second);
+
+    if(vectorGlObject->bound()) {
+        vectorGlObject->rebind();
+    }
+    else {
+        vectorGlObject->bind();
+    }
+
+    m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+
+    for(const GlBufferPtr& buff : vectorGlObject->buffers()) {
+        m_style->draw(*buff.get());
+    }
+    return true;
 }
 
 
@@ -158,14 +190,21 @@ bool GlFeatureLayer::load(const JSONObject &store, ObjectContainer *objectContai
     bool result = FeatureLayer::load(store, objectContainer);
     if(!result)
         return false;
+    const char* styleName = store.getString("style_name", "");
+    if(styleName != nullptr && !EQUAL(styleName, "")) {
+        m_style = StylePtr(Style::createStyle(styleName));
+        return m_style->load(store.getObject("style"));
+    }
     return true;
 }
 
 JSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
 {
     JSONObject out = FeatureLayer::save(objectContainer);
-    // TODO: release save style
-
+    if(m_style) {
+        out.add("style_name", m_style->name());
+        out.add("style", m_style->save());
+    }
     return out;
 }
 
@@ -175,16 +214,16 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
     switch(OGR_GT_Flatten(featureClass->geometryType())) {
     case wkbPoint:
     case wkbMultiPoint:
-        m_style = StylePtr(new SimplePointStyle());
+        m_style = StylePtr(Style::createStyle("simplePoint"));
         break;
     case wkbLineString:
     case wkbMultiLineString:
-        m_style = StylePtr(new SimpleLineStyle());
+        m_style = StylePtr(Style::createStyle("simpleLine"));
         break;
 
     case wkbPolygon:
-    case wkbMultiPolygon:
-        m_style = StylePtr(new SimpleFillBorderedStyle());
+    case wkbMultiPolygon:        
+        m_style = StylePtr(Style::createStyle("simpleFillBordered"));
         break;
     }
 }
@@ -389,7 +428,7 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 
     // Bind everything before call prepare and set matrices
     GlImage* img = rasterGlObject->getImageRef();
-    m_imageStyle->setImage(img);
+    ngsStaticCast(SimpleImageStyle, m_style)->setImage(img);
     GlBuffer* extBuff = rasterGlObject->getBufferRef();
     if(extBuff->bound()) {
         extBuff->rebind();
@@ -481,9 +520,7 @@ bool GlRasterLayer::load(const JSONObject &store, ObjectContainer *objectContain
                                                                       m_transparancy));
     }
 
-    m_imageStyle = new SimpleImageStyle;
-    m_style = StylePtr(m_imageStyle);
-
+    m_style = StylePtr(Style::createStyle("simpleImage"));
     return true;
 }
 
@@ -504,8 +541,7 @@ void GlRasterLayer::setRaster(const RasterPtr &raster)
 {
     RasterLayer::setRaster(raster);
     // Create default style
-    m_imageStyle = new SimpleImageStyle;
-    m_style = StylePtr(m_imageStyle);
+    m_style = StylePtr(Style::createStyle("simpleImage"));
 }
 
 //------------------------------------------------------------------------------

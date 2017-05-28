@@ -53,6 +53,8 @@ protected:
     bool m_smooth;
 };
 
+typedef std::shared_ptr<GlImage> GlImagePtr;
+
 } // namespace ngs
 
 #endif // NGSGLIMAGE_H

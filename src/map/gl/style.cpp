@@ -73,6 +73,13 @@ void Style::draw(const GlBuffer& buffer) const
     buffer.rebind();
 }
 
+Style *Style::createStyle(const char *name)
+{
+    if(EQUAL(name, "simpleImage"))
+        return new SimpleImageStyle;
+    return nullptr;
+}
+
 
 //------------------------------------------------------------------------------
 // SimpleFillBorderStyle

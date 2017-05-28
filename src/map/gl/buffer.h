@@ -78,6 +78,8 @@ private:
     std::array<GLuint, GL_BUFFERS_COUNT> m_bufferIds;
 };
 
+typedef std::shared_ptr<GlBuffer> GlBufferPtr;
+
 } // namespace ngs
 
 #endif // NGSBUFFER_H

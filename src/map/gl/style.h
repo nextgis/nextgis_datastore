@@ -29,6 +29,7 @@
 #include "program.h"
 
 #include "ngstore/api.h"
+#include "util/jsondocument.h"
 
 namespace ngs
 {
@@ -49,6 +50,13 @@ public:
     virtual ~Style() = default;
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix);
     virtual void draw(const GlBuffer& buffer) const;
+    virtual bool load(const JSONObject &store) = 0;
+    virtual JSONObject save() const = 0;
+    virtual const char* name() = 0;
+
+    //static
+public:
+    static Style* createStyle(const char* name);
 
 protected:
     virtual const GLchar* getShaderSource(enum ShaderType type);
@@ -200,6 +208,12 @@ public:
 
 protected:
     GlImage *m_image;
+
+    // Style interface
+public:
+    virtual bool load(const JSONObject &/*store*/) override { return true; }
+    virtual JSONObject save() const override { return JSONObject(); }
+    virtual const char *name() override { return "simpleImage"; }
 };
 
 

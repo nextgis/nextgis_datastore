@@ -68,8 +68,8 @@ file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/railway.zip ${CMAKE_CURRENT_BINARY_D
 endif()"
     )
 
-    add_custom_target (clean_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/tmp" )
-    add_custom_target (prepare_test_data ALL
+    add_custom_target (clean_lib_tests ALL COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/tmp" )
+    add_custom_target (prepare_lib_test_data ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/data"
         COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/download.cmake
     )

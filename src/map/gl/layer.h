@@ -58,6 +58,27 @@ protected:
     CPLMutex *m_dataMutex;
 };
 
+/**
+ * @brief The VectorGlObject class Storage for vector data
+ */
+class VectorGlObject : public GlObject
+{
+public:
+    VectorGlObject();
+    const std::vector<GlBufferPtr>& buffers() const { return m_buffers; }
+
+    // GlObject interface
+public:
+    virtual void bind() override;
+    virtual void rebind() const override;
+    virtual void destroy() override;
+private:
+    std::vector<GlBufferPtr> m_buffers;
+};
+
+/**
+ * @brief The GlFeatureLayer class OpenGl vector layer
+ */
 class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 {
 public:
@@ -79,16 +100,14 @@ public:
 };
 
 /**
- * @brief The RasterGlObject class Class to store image and extent data
+ * @brief The RasterGlObject class Storage for image and extent data
  */
 class RasterGlObject : public GlObject
 {
 public:
     RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image);
-    GlImage* getImageRef() const { return static_cast<GlImage*>(m_image.get()); }
-    GlBuffer* getBufferRef() const {
-        return static_cast<GlBuffer*>(m_extentBuffer.get());
-    }
+    GlImage* getImageRef() const { return m_image.get(); }
+    GlBuffer* getBufferRef() const { return m_extentBuffer.get(); }
 
     // GlObject interface
 public:
@@ -97,7 +116,8 @@ public:
     virtual void destroy() override;
 
 private:
-    GlObjectPtr m_extentBuffer, m_image;
+    GlBufferPtr m_extentBuffer;
+    GlImagePtr m_image;
 };
 
 /**
@@ -123,7 +143,6 @@ public:
     virtual void setRaster(const RasterPtr &raster) override;
 
 private:
-    SimpleImageStyle* m_imageStyle;
     unsigned char m_red, m_green, m_blue, m_alpha, m_transparancy;
     GDALDataType m_dataType;
 };
