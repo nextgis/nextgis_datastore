@@ -83,11 +83,13 @@ class SimpleVectorStyle : public Style
 {
 public:
     SimpleVectorStyle();
-    virtual void setColor(const ngsRGBA& color);
+    virtual void setColor(const ngsRGBA& color) { m_color = ngsRGBA2Gl(color); }
 
     // Style interface
 public:
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix) override;
+    virtual bool load(const JSONObject &store) override;
+    virtual JSONObject save() const override;
 
 protected:
     GlColor m_color;
@@ -122,6 +124,9 @@ public:
 public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
     virtual void draw(const GlBuffer& buffer) const override;
+    virtual bool load(const JSONObject &store) override;
+    virtual JSONObject save() const override;
+    virtual const char *name() override { return "simplePoint"; }
 
 protected:
     enum PointType m_type;
@@ -144,6 +149,9 @@ public:
 public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
     virtual void draw(const GlBuffer& buffer) const override;
+    virtual bool load(const JSONObject &store) override;
+    virtual JSONObject save() const override;
+    virtual const char *name() override { return "simpleLine"; }
 
 protected:
     GLint m_normalId;
@@ -165,6 +173,7 @@ public:
 public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix) override;
+    virtual const char *name() override { return "simpleFill"; }
 };
 
 //------------------------------------------------------------------------------
@@ -178,13 +187,16 @@ public:
 
     float borderWidth() const { return m_borderWidth; }
     void setBorderWidth(float borderWidth) { m_borderWidth = borderWidth; }
-    void setBorderColor(const ngsRGBA& color);
+    void setBorderColor(const ngsRGBA& color) { m_borderColor = ngsRGBA2Gl(color); }
 //    void setBorderIndicesCount(size_t count);
 
     // Style interface
 public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
     virtual void draw(const GlBuffer& buffer) const override;
+    virtual bool load(const JSONObject &store) override;
+    virtual JSONObject save() const override;
+    virtual const char *name() override { return "simpleFillBordered"; }
 
 protected:
     GlColor m_borderColor;

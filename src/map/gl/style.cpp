@@ -24,6 +24,8 @@
 
 #include <iostream>
 
+#include "api_priv.h"
+
 namespace ngs {
 
 //------------------------------------------------------------------------------
@@ -75,8 +77,17 @@ void Style::draw(const GlBuffer& buffer) const
 
 Style *Style::createStyle(const char *name)
 {
+    // NOTE: Add new styles here
     if(EQUAL(name, "simpleImage"))
         return new SimpleImageStyle;
+    else if(EQUAL(name, "simplePoint"))
+            return new SimplePointStyle;
+    else if(EQUAL(name, "simpleLine"))
+            return new SimpleLineStyle;
+    else if(EQUAL(name, "simpleFill"))
+            return new SimpleFillStyle;
+    else if(EQUAL(name, "simpleFillBordered"))
+            return new SimpleFillBorderedStyle;
     return nullptr;
 }
 
@@ -92,14 +103,6 @@ SimpleVectorStyle::SimpleVectorStyle() :
 
 }
 
-void SimpleVectorStyle::setColor(const ngsRGBA &color)
-{
-    m_color.r = float(color.R) / 255;
-    m_color.g = float(color.G) / 255;
-    m_color.b = float(color.B) / 255;
-    m_color.a = float(color.A) / 255;
-}
-
 bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
 {
     if(!Style::prepare(msMatrix, vsMatrix))
@@ -107,6 +110,21 @@ bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix
     m_program.setColor("u_color", m_color);
 
     return true;
+}
+
+bool SimpleVectorStyle::load(const JSONObject &store)
+{
+    ngsRGBA color = ngsHEX2RGBA(store.getInteger("color",
+                                                 ngsRGBA2HEX({255, 255, 255, 255})));
+    setColor(color);
+    return true;
+}
+
+JSONObject SimpleVectorStyle::save() const
+{
+    JSONObject out;
+    out.add("color", ngsRGBA2HEX(ngsGl2RGBA(m_color)));
+    return out;
 }
 
 //------------------------------------------------------------------------------
@@ -261,7 +279,24 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
     SimpleVectorStyle::draw(buffer);
 
     ngsCheckGLError(glDrawElements(GL_POINTS, buffer.indexSize(),
-            GL_UNSIGNED_SHORT, nullptr));
+                                   GL_UNSIGNED_SHORT, nullptr));
+}
+
+bool SimplePointStyle::load(const JSONObject &store)
+{
+    if(!SimpleVectorStyle::load(store))
+        return false;
+    m_size = static_cast<float>(store.getDouble("size", 6.0));
+    m_type = static_cast<enum PointType>(store.getInteger("type", 3));
+    return true;
+}
+
+JSONObject SimplePointStyle::save() const
+{
+    JSONObject out = SimpleVectorStyle::save();
+    out.add("size", static_cast<double>(m_size));
+    out.add("type", m_type);
+    return out;
 }
 
 //------------------------------------------------------------------------------
@@ -318,7 +353,22 @@ void SimpleLineStyle::draw(const GlBuffer& buffer) const
 {
     SimpleVectorStyle::draw(buffer);
     ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
-            GL_UNSIGNED_SHORT, nullptr));
+                                   GL_UNSIGNED_SHORT, nullptr));
+}
+
+bool SimpleLineStyle::load(const JSONObject &store)
+{
+    if(!SimpleVectorStyle::load(store))
+        return false;
+    m_lineWidth = static_cast<float>(store.getDouble("line_width", 1.0));
+    return true;
+}
+
+JSONObject SimpleLineStyle::save() const
+{
+    JSONObject out = SimpleVectorStyle::save();
+    out.add("line_width", static_cast<double>(m_lineWidth));
+    return out;
 }
 
 //------------------------------------------------------------------------------
@@ -415,14 +465,6 @@ SimpleFillBorderedStyle::SimpleFillBorderedStyle()
     m_fragmentShaderSource = fillBorderFragmentShaderSource;
 }
 
-void SimpleFillBorderedStyle::setBorderColor(const ngsRGBA& color)
-{
-    m_borderColor.r = float(color.R) / 255;
-    m_borderColor.g = float(color.G) / 255;
-    m_borderColor.b = float(color.B) / 255;
-    m_borderColor.a = float(color.A) / 255;
-}
-
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
                                       const Matrix4& vsMatrix)
 {
@@ -456,6 +498,26 @@ void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
     ngsCheckGLError(glDrawElements(GL_TRIANGLES,
                                    buffer.indexSize(GlBuffer::BF_BORDER_INDICES),
                                    GL_UNSIGNED_SHORT, 0));
+}
+
+bool SimpleFillBorderedStyle::load(const JSONObject &store)
+{
+    if(!SimpleVectorStyle::load(store))
+        return false;
+    m_borderWidth = static_cast<float>(store.getDouble("border_width", 1.0));
+
+    ngsRGBA color = ngsHEX2RGBA(store.getInteger("border_color",
+                                                 ngsRGBA2HEX({255, 255, 255, 255})));
+    setBorderColor(color);
+    return true;
+}
+
+JSONObject SimpleFillBorderedStyle::save() const
+{
+    JSONObject out = SimpleVectorStyle::save();
+    out.add("border_width", static_cast<double>(m_borderWidth));
+    out.add("border_color", ngsRGBA2HEX(ngsGl2RGBA(m_borderColor)));
+    return out;
 }
 
 //------------------------------------------------------------------------------
