@@ -61,11 +61,9 @@ public:
             return static_cast<GLsizei>(m_borderIndices.size());
     }
 
-#ifdef _DEBUG
     void addVertex(float value) { m_vertices.push_back(value); }
     void addIndex(unsigned short value) { m_indices.push_back(value); }
     void addBorderIndex(unsigned short value) { m_borderIndices.push_back(value); }
-#endif // _DEBUG
 
     // GlObject interface
 public:

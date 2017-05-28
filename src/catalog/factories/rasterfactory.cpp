@@ -109,11 +109,11 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         }
 
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
-            if(EQUAL(nameExtsItem.second[0], getRemoteConnectionExtension())) {
+            if(EQUAL(nameExtsItem.second[0], remoteConnectionExtension())) {
                 JSONDocument connectionFile;
                 const char* path = CPLFormFilename(container->getPath(),
                                                    nameExtsItem.first,
-                                                   getRemoteConnectionExtension());
+                                                   remoteConnectionExtension());
                 if(connectionFile.load(path)) {
                     std::vector<CPLString> siblingFiles;
                     enum ngsCatalogObjectType type =
@@ -121,7 +121,7 @@ void RasterFactory::createObjects(ObjectContainer * const container,
                                 connectionFile.getRoot().getInteger(
                                     KEY_TYPE, CAT_UNKNOWN));
                     addChild(container, nameExtsItem.first + "." +
-                             getRemoteConnectionExtension(), path, type,
+                             remoteConnectionExtension(), path, type,
                              siblingFiles, names);
                 }
             }
@@ -166,7 +166,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.add(KEY_Y_ORIGIN_TOP, y_origin_top);
         root.add(KEY_EXTENT, extent.save());
         const char* newPath = CPLResetExtension(path,
-                                    getRemoteConnectionExtension());
+                                    remoteConnectionExtension());
         return connectionFile.save(newPath);
     }
     default:

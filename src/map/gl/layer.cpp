@@ -70,9 +70,20 @@ void GlFeatureLayer::fill(GlTilePtr tile)
         return;
     }
 
-    m_featureClass->getTile(tile->getTile());
+//    m_featureClass->getTile(tile->getTile());
 
-    GlBuffer* tileExtentBuff = new GlBuffer;
+//    GlBuffer* tileExtentBuff = new GlBuffer;
+
+//    1. Get one or more vertex buffers
+//    2. Add vertext for line join and ends (not for points)
+//    3. Get one or more indices
+//    4. Remove indices for hide FIDs
+//    5. Fiil GlBuffers
+//    6. Add GlBuffers to GlObject
+
+//    style
+//            buffer
+
 
 }
 
@@ -141,6 +152,42 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
     return true;
 }
 
+
+bool GlFeatureLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+{
+    bool result = FeatureLayer::load(store, objectContainer);
+    if(!result)
+        return false;
+    return true;
+}
+
+JSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
+{
+    JSONObject out = FeatureLayer::save(objectContainer);
+    // TODO: release save style
+
+    return out;
+}
+
+void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
+{
+    FeatureLayer::setFeatureClass(featureClass);
+    switch(OGR_GT_Flatten(featureClass->geometryType())) {
+    case wkbPoint:
+    case wkbMultiPoint:
+        m_style = StylePtr(new SimplePointStyle());
+        break;
+    case wkbLineString:
+    case wkbMultiLineString:
+        m_style = StylePtr(new SimpleLineStyle());
+        break;
+
+    case wkbPolygon:
+    case wkbMultiPolygon:
+        m_style = StylePtr(new SimpleFillBorderedStyle());
+        break;
+    }
+}
 //------------------------------------------------------------------------------
 // GlRasterLayer
 //------------------------------------------------------------------------------
@@ -154,9 +201,6 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
     m_transparancy(0),
     m_dataType(GDT_Byte)
 {
-    // Create default style
-    m_imageStyle = new SimpleImageStyle;
-    m_style = StylePtr(m_imageStyle);
 }
 
 void GlRasterLayer::fill(GlTilePtr tile)
@@ -354,12 +398,12 @@ bool GlRasterLayer::draw(GlTilePtr tile)
         extBuff->bind();
     }
 
-    m_imageStyle->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-    m_imageStyle->draw(*extBuff);
+    m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+    m_style->draw(*extBuff);
 
     return true;
 
-//    Envelope ext = tile->getExtent();
+/*/    Envelope ext = tile->getExtent();
 //    ext.resize(0.9);
 
 //    std::array<OGRPoint, 6> points;
@@ -419,12 +463,55 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 //        style.destroy();
 //    }
 
-//    return true;
+//    return true; */
+}
+
+bool GlRasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+{
+    bool result = RasterLayer::load(store, objectContainer);
+    if(!result)
+        return false;
+    JSONObject raster = store.getObject("raster");
+    if(raster.isValid()) {
+        m_red = static_cast<unsigned char>(raster.getInteger("red", m_red));
+        m_green = static_cast<unsigned char>(raster.getInteger("green", m_green));
+        m_blue = static_cast<unsigned char>(raster.getInteger("blue", m_blue));
+        m_alpha = static_cast<unsigned char>(raster.getInteger("alpha", m_alpha));
+        m_transparancy = static_cast<unsigned char>(raster.getInteger("transparancy",
+                                                                      m_transparancy));
+    }
+
+    m_imageStyle = new SimpleImageStyle;
+    m_style = StylePtr(m_imageStyle);
+
+    return true;
+}
+
+JSONObject GlRasterLayer::save(const ObjectContainer *objectContainer) const
+{
+    JSONObject out = RasterLayer::save(objectContainer);
+    JSONObject raster;
+    raster.add("red", m_red);
+    raster.add("green", m_green);
+    raster.add("blue", m_blue);
+    raster.add("alpha", m_alpha);
+    raster.add("transparancy", m_transparancy);
+    out.add("raster", raster);
+    return out;
+}
+
+void GlRasterLayer::setRaster(const RasterPtr &raster)
+{
+    RasterLayer::setRaster(raster);
+    // Create default style
+    m_imageStyle = new SimpleImageStyle;
+    m_style = StylePtr(m_imageStyle);
 }
 
 //------------------------------------------------------------------------------
 // RasterGlObject
 //------------------------------------------------------------------------------
+
 RasterGlObject::RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image) :
     GlObject(),
     m_extentBuffer(tileExtentBuff),

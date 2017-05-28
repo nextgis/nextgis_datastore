@@ -104,10 +104,10 @@ public:
 public:
     SimplePointStyle(enum PointType type = PT_CIRCLE);
 
-    enum SimplePointStyle::PointType getType() const { return m_type; }
+    enum SimplePointStyle::PointType type() const { return m_type; }
     void setType(enum SimplePointStyle::PointType type) { m_type = type; }
 
-    float getSize() const { return m_size; }
+    float size() const { return m_size; }
     void setSize(float size) { m_size = size; }
 
     // Style interface
@@ -129,7 +129,7 @@ class SimpleLineStyle : public SimpleVectorStyle
 public:
     SimpleLineStyle();
 
-    float getLineWidth() const { return m_lineWidth; }
+    float lineWidth() const { return m_lineWidth; }
     void setLineWidth(float lineWidth) { m_lineWidth = lineWidth * 0.25f; }
 
     // Style interface
@@ -168,7 +168,7 @@ class SimpleFillBorderedStyle : public SimpleVectorStyle
 public:
     SimpleFillBorderedStyle();
 
-    float getBorderWidth() const { return m_borderWidth; }
+    float borderWidth() const { return m_borderWidth; }
     void setBorderWidth(float borderWidth) { m_borderWidth = borderWidth; }
     void setBorderColor(const ngsRGBA& color);
 //    void setBorderIndicesCount(size_t count);

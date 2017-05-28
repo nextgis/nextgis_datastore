@@ -67,8 +67,20 @@ public:
 public:
     virtual void fill(GlTilePtr tile) override;
     virtual bool draw(GlTilePtr tile) override;
+
+    // Layer interface
+public:
+    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
+    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+
+    // FeatureLayer interface
+public:
+    virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
 };
 
+/**
+ * @brief The RasterGlObject class Class to store image and extent data
+ */
 class RasterGlObject : public GlObject
 {
 public:
@@ -101,11 +113,21 @@ public:
     virtual void fill(GlTilePtr tile) override;
     virtual bool draw(GlTilePtr tile) override;
 
+    // Layer interface
+public:
+    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
+    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+
+    // RasterLayer interface
+public:
+    virtual void setRaster(const RasterPtr &raster) override;
+
 private:
     SimpleImageStyle* m_imageStyle;
     unsigned char m_red, m_green, m_blue, m_alpha, m_transparancy;
     GDALDataType m_dataType;
 };
+
 /*
 void FillGLBufferThread(void * layer);
 class RenderLayer : public Layer

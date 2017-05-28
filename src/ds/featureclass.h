@@ -61,7 +61,7 @@ public:
     bool hasOverviews() const;
     int createOverviews(const Progress& progress = Progress(),
                         const Options& options = Options());
-    VectorTile getTile(const Tile& tile);
+    // TODO: VectorTile getTile(const Tile& tile);
 
     // static
     static const char *geometryTypeName(OGRwkbGeometryType type,
