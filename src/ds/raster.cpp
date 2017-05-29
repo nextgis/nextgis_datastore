@@ -121,7 +121,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     // Lock pixel area to read/write until exit
-    std::mutex* dataLock = nullptr;
+    std::timed_mutex* dataLock = nullptr;
 
     Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
     CPLAcquireMutex(m_dataLock, 50.0);
@@ -136,10 +136,14 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 
     if(!dataLock) {
         CPLMutexHolder(m_dataLock, 50.0);
-        dataLock = new std::mutex;
+        dataLock = new std::timed_mutex;
         m_dataLocks.push_back({testEnv, dataLock, zoom});
     }
-    dataLock->lock();
+    using sec = std::chrono::seconds;
+    bool success = dataLock->try_lock_for(sec(60));
+    if(!success) {
+        return false;
+    }
 
     CPLErr result = m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff,
                                    xSize, ySize, data, bufXSize, bufYSize,
@@ -212,18 +216,32 @@ void Raster::freeLocks(bool all)
     CPLMutexHolder(m_dataLock, 50.0);
     if(all) {
         for(auto &lock : m_dataLocks) {
-            delete lock.mutexRef;
+            if(lock.mutexRef->try_lock()) {
+                lock.mutexRef->unlock();
+                delete lock.mutexRef;
+            }
         }
         m_dataLocks.clear();
     }
     else {
         if(m_dataLocks.size() > threadCount * LOCKS_EXTRA_COUNT) {
-            for(size_t i = 0; i < threadCount; ++i) {
-                delete m_dataLocks[i].mutexRef;
-                m_dataLocks[i].mutexRef = nullptr;
+            size_t freeCount = m_dataLocks.size() - threadCount;
+            for(size_t i = 0; i < freeCount; ++i) {
+                if(m_dataLocks[i].mutexRef) {
+                    if(m_dataLocks[i].mutexRef->try_lock()) {
+                        m_dataLocks[i].mutexRef->unlock();
+                        delete m_dataLocks[i].mutexRef;
+                        m_dataLocks[i].mutexRef = nullptr;
+                    }
+                    else {
+                        m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
+                                            i);
+                        return;
+                    }
+                }
             }
             m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
-                                threadCount);
+                                freeCount);
         }
     }
 }

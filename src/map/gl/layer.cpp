@@ -61,13 +61,13 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
 {
 }
 
-void GlFeatureLayer::fill(GlTilePtr tile)
+bool GlFeatureLayer::fill(GlTilePtr tile)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
-        return;
+        return true;
     }
 
 //    m_featureClass->getTile(tile->getTile());
@@ -154,10 +154,7 @@ void GlFeatureLayer::fill(GlTilePtr tile)
     CPLMutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = GlObjectPtr(bufferArray);
 
-/*
     return true;
-*/
-
 }
 
 bool GlFeatureLayer::draw(GlTilePtr tile)
@@ -250,13 +247,13 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
 {
 }
 
-void GlRasterLayer::fill(GlTilePtr tile)
+bool GlRasterLayer::fill(GlTilePtr tile)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
-        return;
+        return true;
     }
 
     Envelope rasterExtent = m_raster->getExtent();
@@ -269,7 +266,7 @@ void GlRasterLayer::fill(GlTilePtr tile)
     if(!rasterExtent.isInit()) {
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
-        return;
+        return true;
     }
 
     // Create inverse geotransform to get pixel data
@@ -367,18 +364,18 @@ void GlRasterLayer::fill(GlTilePtr tile)
                                 outHeight, m_dataType, bandCount, bands, true, true,
                                 static_cast<unsigned char>(18 - overview))) {
             CPLFree(pixData);
-            CPLMutexHolder holder(m_dataMutex, lockTime);
-            m_tiles[tile->getTile()] = GlObjectPtr();
-            return;
+//            CPLMutexHolder holder(m_dataMutex, lockTime);
+//            m_tiles[tile->getTile()] = GlObjectPtr();
+            return false;
         }
     }
     else {
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
                                 outHeight, m_dataType, bandCount, bands)) {
             CPLFree(pixData);
-            CPLMutexHolder holder(m_dataMutex, lockTime);
-            m_tiles[tile->getTile()] = GlObjectPtr();
-            return;
+//            CPLMutexHolder holder(m_dataMutex, lockTime);
+//            m_tiles[tile->getTile()] = GlObjectPtr();
+            return false;
         }
     }
 
@@ -419,6 +416,8 @@ void GlRasterLayer::fill(GlTilePtr tile)
 
     CPLMutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = tileData;
+
+    return true;
 }
 
 bool GlRasterLayer::draw(GlTilePtr tile)

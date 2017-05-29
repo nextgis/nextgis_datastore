@@ -26,7 +26,8 @@ namespace ngs {
 //------------------------------------------------------------------------------
 // ThreadData
 //------------------------------------------------------------------------------
-ThreadData::ThreadData(bool own) : m_own(own)
+ThreadData::ThreadData(bool own) : m_own(own),
+    m_tries(0)
 {
 
 }
@@ -104,10 +105,21 @@ bool ThreadPool::process()
     m_threadData.pop_front();
     CPLReleaseMutex(m_dataMutex);
 
-    m_function(data);
-
-    if(data->isOwn()) {
-        delete data;
+    if(m_function(data)) {
+        if(data->isOwn()) {
+            delete data;
+        }
+    }
+    else if(data->tries() > 3) {
+        if(data->isOwn()) {
+            delete data;
+        }
+    }
+    else {
+        CPLAcquireMutex(m_dataMutex, 1000.0);
+        data->increaseTries();
+        m_threadData.push_back(data);
+        CPLReleaseMutex(m_dataMutex);
     }
 
     return true;

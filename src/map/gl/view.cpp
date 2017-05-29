@@ -81,13 +81,14 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
 
 }
 
-void GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
+bool GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
 {
     LayerFillData* data = static_cast<LayerFillData*>(threadData);
     GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer, data->m_layer);
     if(nullptr != renderLayer) {
-        renderLayer->fill(data->m_tile);
+        return renderLayer->fill(data->m_tile);
     }
+    return true;
 }
 
 #ifdef NGS_GL_DEBUG

@@ -35,9 +35,12 @@ class ThreadData
 public:
     ThreadData(bool own);
     bool isOwn() const { return m_own; }
+    void increaseTries() { m_tries++; }
+    unsigned char tries() const { return m_tries; }
 
 protected:
     bool m_own;
+    unsigned char m_tries;
 };
 
 
@@ -47,7 +50,7 @@ protected:
  */
 class ThreadPool
 {
-    typedef void (*poolThreadFunction)(ThreadData*);
+    typedef bool (*poolThreadFunction)(ThreadData*);
 public:
     ThreadPool();
     ~ThreadPool();

@@ -72,7 +72,7 @@ protected:
 
     // static
 protected:
-    static void layerDataFillJobThreadFunc(ThreadData *threadData);
+    static bool layerDataFillJobThreadFunc(ThreadData *threadData);
 
 #ifdef NGS_GL_DEBUG
     // Test functions

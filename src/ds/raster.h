@@ -86,7 +86,7 @@ private:
     std::vector<CPLString> m_siblingFiles;
     typedef struct _lockData {
         Envelope env;
-        std::mutex* mutexRef;
+        std::timed_mutex* mutexRef;
         unsigned char zoom;
     } LockData;
 
