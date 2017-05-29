@@ -66,6 +66,7 @@ class VectorGlObject : public GlObject
 public:
     VectorGlObject();
     const std::vector<GlBufferPtr>& buffers() const { return m_buffers; }
+    void addBuffer(GlBuffer* buffer) { m_buffers.push_back(GlBufferPtr(buffer)); }
 
     // GlObject interface
 public:

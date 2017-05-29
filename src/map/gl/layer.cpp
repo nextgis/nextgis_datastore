@@ -85,7 +85,9 @@ void GlFeatureLayer::fill(GlTilePtr tile)
 //            buffer
 
 
-/*
+/* Test */
+
+    VectorGlObject *bufferArray = new VectorGlObject;
 
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
@@ -100,53 +102,59 @@ void GlFeatureLayer::fill(GlTilePtr tile)
     for(size_t i = 0; i < points.size() - 1; ++i) {
         Normal normal = ngsGetNormals(points[i], points[i + 1]);
 
-        GlBuffer buffer1;
+        GlBuffer *buffer1 = new GlBuffer;
         // 0
-        buffer1.addVertex(points[i].getX());
-        buffer1.addVertex(points[i].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(-normal.x);
-        buffer1.addVertex(-normal.y);
-        buffer1.addIndex(0);
+        buffer1->addVertex(points[i].getX());
+        buffer1->addVertex(points[i].getY());
+        buffer1->addVertex(0.0f);
+        buffer1->addVertex(-normal.x);
+        buffer1->addVertex(-normal.y);
+        buffer1->addIndex(0);
 
         // 1
-        buffer1.addVertex(points[i + 1].getX());
-        buffer1.addVertex(points[i + 1].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(-normal.x);
-        buffer1.addVertex(-normal.y);
-        buffer1.addIndex(1);
+        buffer1->addVertex(points[i + 1].getX());
+        buffer1->addVertex(points[i + 1].getY());
+        buffer1->addVertex(0.0f);
+        buffer1->addVertex(-normal.x);
+        buffer1->addVertex(-normal.y);
+        buffer1->addIndex(1);
 
         // 2
-        buffer1.addVertex(points[i].getX());
-        buffer1.addVertex(points[i].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(normal.x);
-        buffer1.addVertex(normal.y);
-        buffer1.addIndex(2);
+        buffer1->addVertex(points[i].getX());
+        buffer1->addVertex(points[i].getY());
+        buffer1->addVertex(0.0f);
+        buffer1->addVertex(normal.x);
+        buffer1->addVertex(normal.y);
+        buffer1->addIndex(2);
 
         // 3
-        buffer1.addVertex(points[i + 1].getX());
-        buffer1.addVertex(points[i + 1].getY());
-        buffer1.addVertex(0.0f);
-        buffer1.addVertex(normal.x);
-        buffer1.addVertex(normal.y);
+        buffer1->addVertex(points[i + 1].getX());
+        buffer1->addVertex(points[i + 1].getY());
+        buffer1->addVertex(0.0f);
+        buffer1->addVertex(normal.x);
+        buffer1->addVertex(normal.y);
 
-        buffer1.addIndex(1);
-        buffer1.addIndex(2);
-        buffer1.addIndex(3);
+        buffer1->addIndex(1);
+        buffer1->addIndex(2);
+        buffer1->addIndex(3);
 
-        SimpleLineStyle style;
-        style.setLineWidth(14.0f);
-        style.setColor({0, 0, 255, 255});
-        buffer1.bind();
-        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-        style.draw(buffer1);
+        bufferArray->addBuffer(buffer1);
 
-        buffer1.destroy();
-        style.destroy();
+//        SimpleLineStyle style;
+//        style.setLineWidth(14.0f);
+//        style.setColor({0, 0, 255, 255});
+//        buffer1.bind();
+//        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+//        style.draw(buffer1);
+
+//        buffer1.destroy();
+//        style.destroy();
     }
 
+    CPLMutexHolder holder(m_dataMutex, lockTime);
+    m_tiles[tile->getTile()] = GlObjectPtr(bufferArray);
+
+/*
     return true;
 */
 
@@ -572,6 +580,40 @@ void RasterGlObject::destroy()
 {
     m_extentBuffer->destroy();
     m_image->destroy();
+}
+
+//------------------------------------------------------------------------------
+// VectorGlObject
+//------------------------------------------------------------------------------
+
+VectorGlObject::VectorGlObject() :
+    GlObject()
+{
+
+}
+
+void VectorGlObject::bind()
+{
+    if(m_bound)
+        return;
+    for(GlBufferPtr& buffer : m_buffers) {
+        buffer->bind();
+    }
+    m_bound = true;
+}
+
+void VectorGlObject::rebind() const
+{
+    for(const GlBufferPtr& buffer : m_buffers) {
+        buffer->rebind();
+    }
+}
+
+void VectorGlObject::destroy()
+{
+    for(GlBufferPtr& buffer : m_buffers) {
+        buffer->destroy();
+    }
 }
 
 

@@ -81,13 +81,13 @@ Style *Style::createStyle(const char *name)
     if(EQUAL(name, "simpleImage"))
         return new SimpleImageStyle;
     else if(EQUAL(name, "simplePoint"))
-            return new SimplePointStyle;
+        return new SimplePointStyle;
     else if(EQUAL(name, "simpleLine"))
-            return new SimpleLineStyle;
+        return new SimpleLineStyle;
     else if(EQUAL(name, "simpleFill"))
-            return new SimpleFillStyle;
+        return new SimpleFillStyle;
     else if(EQUAL(name, "simpleFillBordered"))
-            return new SimpleFillBorderedStyle;
+        return new SimpleFillBorderedStyle;
     return nullptr;
 }
 

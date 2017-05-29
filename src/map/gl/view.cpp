@@ -135,7 +135,10 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         for(const GlTilePtr& tile : m_tiles) {
             if(tile->filled())
                 continue;
-            for(const LayerPtr& layer : m_layers) {
+            //for(const LayerPtr& layer : m_layers) {
+            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+                 ++layerIt) {
+                const LayerPtr &layer = *layerIt;
                 m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
             }
         }
@@ -221,7 +224,9 @@ bool GlView::drawTiles(const Progress &progress)
             glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
             clearBackground();
             unsigned char filled = 0;
-            for(const LayerPtr &layer : m_layers) {
+            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+                 ++layerIt) {
+                const LayerPtr &layer = *layerIt;
                 GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
                                                              layer);
                 if(renderLayer && renderLayer->draw(tile)) {

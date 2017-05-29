@@ -122,40 +122,36 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 
     // Lock pixel area to read/write until exit
     std::mutex* dataLock = nullptr;
-    /*if(zoom < 4)*/ {
-        Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
-        CPLAcquireMutex(m_dataLock, 50.0);
 
-        for(auto &lock : m_dataLocks) {
-            if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
-                dataLock = lock.mutexRef;
-                break;
-            }
-        }
-        CPLReleaseMutex(m_dataLock);
+    Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
+    CPLAcquireMutex(m_dataLock, 50.0);
 
-        if(!dataLock) {
-            CPLMutexHolder(m_dataLock, 50.0);
-            dataLock = new std::mutex;
-            m_dataLocks.push_back({testEnv, dataLock, zoom});
+    for(auto &lock : m_dataLocks) {
+        if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
+            dataLock = lock.mutexRef;
+            break;
         }
-        dataLock->lock();
     }
+    CPLReleaseMutex(m_dataLock);
 
+    if(!dataLock) {
+        CPLMutexHolder(m_dataLock, 50.0);
+        dataLock = new std::mutex;
+        m_dataLocks.push_back({testEnv, dataLock, zoom});
+    }
+    dataLock->lock();
 
-    if(m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff, xSize, ySize, data,
-                      bufXSize, bufYSize, dataType,
-                      skipLastBand ? bandCount - 1 : bandCount, bandList,
-                      pixelSpace, lineSpace, bandSpace) != CE_None) {
-        if(dataLock) {
-            dataLock->unlock();
-            freeLocks();
-        }
+    CPLErr result = m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff,
+                                   xSize, ySize, data, bufXSize, bufYSize,
+                                   dataType, skipLastBand ? bandCount - 1 :
+                                                            bandCount, bandList,
+                                   pixelSpace, lineSpace, bandSpace);
+
+    dataLock->unlock();
+    freeLocks();
+
+    if(result != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
-    }
-    if(dataLock) {
-        dataLock->unlock();
-        freeLocks();
     }
 
     return true;
