@@ -97,7 +97,7 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     }
 
     if(!bufferArray) {
-        return false;
+        return true;
     }
 
 
@@ -199,21 +199,75 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
 
 VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
 {
-    return nullptr;
+    VectorGlObject *bufferArray = new VectorGlObject;
+    auto items = tile.points();
+    auto it = items.begin();
+    unsigned short index = 0;
+    GlBuffer *buffer = new GlBuffer;
+    while(it != items.end()) {
+        if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
+            ++it;
+            continue;
+        }
+
+        auto points = it->second;
+
+        if(points.size() < 1) {
+            ++it;
+            continue;
+        }
+
+        for(size_t i = 0; i < points.size(); ++i) {
+            if(!buffer->canStoreVertices(3, false)) {
+                bufferArray->addBuffer(buffer);
+                index = 0;
+                buffer = new GlBuffer;
+            }
+
+            buffer->addVertex(static_cast<float>(points[i].x));
+            buffer->addVertex(static_cast<float>(points[i].y));
+            buffer->addVertex(0.0f);
+            buffer->addIndex(index++);
+        }
+    }
+
+    bufferArray->addBuffer(buffer);
+
+    return bufferArray;
 }
 
 VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
-    auto items = tile.items();
+    auto items = tile.points();
     auto it = items.begin();
     while(it != items.end()) {
+        if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
+            ++it;
+            continue;
+        }
+
         auto points = it->second;
+
+        if(points.size() < 2) {
+            ++it;
+            continue;
+        }
+
+        // Check if line is closed or not
+        bool closed = isEqual(points[0].x, points[points.size() - 1].x) &&
+                isEqual(points[0].y, points[points.size() - 1].y);
+
+        GlBuffer *buffer = new GlBuffer;
+
+        if(closed) {
+
+        }
+
 
         for(size_t i = 0; i < points.size() - 1; ++i) {
             Normal normal = ngsGetNormals(points[i], points[i + 1]);
 
-            GlBuffer *buffer1 = new GlBuffer;
             // 0
             buffer1->addVertex(points[i].x);
             buffer1->addVertex(points[i].y);

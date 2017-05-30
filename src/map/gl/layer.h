@@ -21,6 +21,8 @@
 #ifndef NGSGLMAPLAYER_H
 #define NGSGLMAPLAYER_H
 
+#include <set>
+
 #include "style.h"
 #include "tile.h"
 #include "map/layer.h"
@@ -106,7 +108,7 @@ protected:
     VectorGlObject *fillPolygons(const VectorTile &tile);
 
 protected:
-    std::vector<GIntBig> m_skipFIDs;
+    std::set<GIntBig> m_skipFIDs;
 };
 
 /**

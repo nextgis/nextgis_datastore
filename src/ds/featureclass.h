@@ -37,9 +37,10 @@ public:
     void add(GIntBig fid, const OGRRawPoint& pt);
     GByte* save();
     bool load(GByte* data);
-    std::map<GIntBig, std::vector<OGRRawPoint>> items() const { return m_items; }
+    std::map<GIntBig, std::vector<OGRRawPoint>> points() const { return m_points; }
 private:
-    std::map<GIntBig, std::vector<OGRRawPoint>> m_items;
+    std::map<GIntBig, std::vector<OGRRawPoint>> m_points;
+    std::map<GIntBig, OGRRawPoint> m_centroids;
 };
 
 /**
