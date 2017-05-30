@@ -97,7 +97,7 @@ typedef struct _normal {
     float x, y;
 } Normal;
 
-Normal ngsGetNormals(const OGRPoint& beg, const OGRPoint& end);
+Normal ngsGetNormals(const OGRRawPoint &beg, const OGRRawPoint &end);
 
 typedef struct _tile{
     int x, y;

@@ -31,6 +31,20 @@ namespace ngs {
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 
+class VectorTile
+{
+public:
+    void add(GIntBig fid, const OGRRawPoint& pt);
+    GByte* save();
+    bool load(GByte* data);
+    std::map<GIntBig, std::vector<OGRRawPoint>> items() const { return m_items; }
+private:
+    std::map<GIntBig, std::vector<OGRRawPoint>> m_items;
+};
+
+/**
+ * @brief The FeatureClass class
+ */
 class FeatureClass : public Table, public SpatialDataset
 {
 public:

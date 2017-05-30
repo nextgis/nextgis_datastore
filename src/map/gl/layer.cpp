@@ -70,6 +70,37 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
         return true;
     }
 
+    VectorGlObject *bufferArray = nullptr;
+
+    Envelope ext = tile->getExtent();
+    ext.resize(0.9);
+    VectorTile vtile;
+    vtile.add(0, OGRRawPoint(ext.getMinX(), ext.getMinY()));
+    vtile.add(0, OGRRawPoint(ext.getMinX(), ext.getMaxY()));
+    vtile.add(0, OGRRawPoint(ext.getMaxX(), ext.getMaxY()));
+    vtile.add(0, OGRRawPoint(ext.getMaxX(), ext.getMinY()));
+    vtile.add(0, OGRRawPoint(ext.getMinX(), ext.getMinY()));
+    vtile.add(0, OGRRawPoint(ext.getMaxX(), ext.getMaxY()));
+
+    switch(m_style->type()) {
+    case Style::T_POINT:
+        bufferArray = fillPoints(vtile);
+        break;
+    case Style::T_LINE:
+        bufferArray = fillLines(vtile);
+        break;
+    case Style::T_FILL:
+        bufferArray = fillPolygons(vtile);
+        break;
+    case Style::T_IMAGE:
+        return true;
+    }
+
+    if(!bufferArray) {
+        return false;
+    }
+
+
 //    m_featureClass->getTile(tile->getTile());
 
 //    GlBuffer* tileExtentBuff = new GlBuffer;
@@ -78,78 +109,11 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
 //    2. Add vertext for line join and ends (not for points)
 //    3. Get one or more indices
 //    4. Remove indices for hide FIDs
-//    5. Fiil GlBuffers
+//    5. Fill GlBuffers
 //    6. Add GlBuffers to GlObject
 
 //    style
 //            buffer
-
-
-/* Test */
-
-    VectorGlObject *bufferArray = new VectorGlObject;
-
-    Envelope ext = tile->getExtent();
-    ext.resize(0.9);
-
-    std::array<OGRPoint, 6> points;
-    points[0] = OGRPoint(ext.getMinX(), ext.getMinY());
-    points[1] = OGRPoint(ext.getMinX(), ext.getMaxY());
-    points[2] = OGRPoint(ext.getMaxX(), ext.getMaxY());
-    points[3] = OGRPoint(ext.getMaxX(), ext.getMinY());
-    points[4] = OGRPoint(ext.getMinX(), ext.getMinY());
-    points[5] = OGRPoint(ext.getMaxX(), ext.getMaxY());
-    for(size_t i = 0; i < points.size() - 1; ++i) {
-        Normal normal = ngsGetNormals(points[i], points[i + 1]);
-
-        GlBuffer *buffer1 = new GlBuffer;
-        // 0
-        buffer1->addVertex(points[i].getX());
-        buffer1->addVertex(points[i].getY());
-        buffer1->addVertex(0.0f);
-        buffer1->addVertex(-normal.x);
-        buffer1->addVertex(-normal.y);
-        buffer1->addIndex(0);
-
-        // 1
-        buffer1->addVertex(points[i + 1].getX());
-        buffer1->addVertex(points[i + 1].getY());
-        buffer1->addVertex(0.0f);
-        buffer1->addVertex(-normal.x);
-        buffer1->addVertex(-normal.y);
-        buffer1->addIndex(1);
-
-        // 2
-        buffer1->addVertex(points[i].getX());
-        buffer1->addVertex(points[i].getY());
-        buffer1->addVertex(0.0f);
-        buffer1->addVertex(normal.x);
-        buffer1->addVertex(normal.y);
-        buffer1->addIndex(2);
-
-        // 3
-        buffer1->addVertex(points[i + 1].getX());
-        buffer1->addVertex(points[i + 1].getY());
-        buffer1->addVertex(0.0f);
-        buffer1->addVertex(normal.x);
-        buffer1->addVertex(normal.y);
-
-        buffer1->addIndex(1);
-        buffer1->addIndex(2);
-        buffer1->addIndex(3);
-
-        bufferArray->addBuffer(buffer1);
-
-//        SimpleLineStyle style;
-//        style.setLineWidth(14.0f);
-//        style.setColor({0, 0, 255, 255});
-//        buffer1.bind();
-//        style.prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-//        style.draw(buffer1);
-
-//        buffer1.destroy();
-//        style.destroy();
-    }
 
     CPLMutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = GlObjectPtr(bufferArray);
@@ -232,6 +196,73 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
         break;
     }
 }
+
+VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
+{
+    return nullptr;
+}
+
+VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
+{
+    VectorGlObject *bufferArray = new VectorGlObject;
+    auto items = tile.items();
+    auto it = items.begin();
+    while(it != items.end()) {
+        auto points = it->second;
+
+        for(size_t i = 0; i < points.size() - 1; ++i) {
+            Normal normal = ngsGetNormals(points[i], points[i + 1]);
+
+            GlBuffer *buffer1 = new GlBuffer;
+            // 0
+            buffer1->addVertex(points[i].x);
+            buffer1->addVertex(points[i].y);
+            buffer1->addVertex(0.0f);
+            buffer1->addVertex(-normal.x);
+            buffer1->addVertex(-normal.y);
+            buffer1->addIndex(0);
+
+            // 1
+            buffer1->addVertex(points[i + 1].x);
+            buffer1->addVertex(points[i + 1].y);
+            buffer1->addVertex(0.0f);
+            buffer1->addVertex(-normal.x);
+            buffer1->addVertex(-normal.y);
+            buffer1->addIndex(1);
+
+            // 2
+            buffer1->addVertex(points[i].x);
+            buffer1->addVertex(points[i].y);
+            buffer1->addVertex(0.0f);
+            buffer1->addVertex(normal.x);
+            buffer1->addVertex(normal.y);
+            buffer1->addIndex(2);
+
+            // 3
+            buffer1->addVertex(points[i + 1].x);
+            buffer1->addVertex(points[i + 1].y);
+            buffer1->addVertex(0.0f);
+            buffer1->addVertex(normal.x);
+            buffer1->addVertex(normal.y);
+
+            buffer1->addIndex(1);
+            buffer1->addIndex(2);
+            buffer1->addIndex(3);
+
+            bufferArray->addBuffer(buffer1);
+
+        }
+        ++it;
+    }
+
+    return bufferArray;
+}
+
+VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
+{
+    return nullptr;
+}
+
 //------------------------------------------------------------------------------
 // GlRasterLayer
 //------------------------------------------------------------------------------
@@ -364,8 +395,6 @@ bool GlRasterLayer::fill(GlTilePtr tile)
                                 outHeight, m_dataType, bandCount, bands, true, true,
                                 static_cast<unsigned char>(18 - overview))) {
             CPLFree(pixData);
-//            CPLMutexHolder holder(m_dataMutex, lockTime);
-//            m_tiles[tile->getTile()] = GlObjectPtr();
             return false;
         }
     }
@@ -373,8 +402,6 @@ bool GlRasterLayer::fill(GlTilePtr tile)
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
                                 outHeight, m_dataType, bandCount, bands)) {
             CPLFree(pixData);
-//            CPLMutexHolder holder(m_dataMutex, lockTime);
-//            m_tiles[tile->getTile()] = GlObjectPtr();
             return false;
         }
     }

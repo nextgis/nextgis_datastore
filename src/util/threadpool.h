@@ -54,7 +54,7 @@ class ThreadPool
 public:
     ThreadPool();
     ~ThreadPool();
-    void init(unsigned char numThreads, poolThreadFunction function);
+    void init(unsigned char numThreads, poolThreadFunction function, unsigned char tries = 3);
     void addThreadData(ThreadData* data);
     void clearThreadData();
     unsigned char currentWorkerCount() const { return m_threadCount; }
@@ -74,6 +74,7 @@ protected:
     CPLMutex *m_dataMutex, *m_threadMutex;
     poolThreadFunction m_function;
     unsigned char m_maxThreadCount, m_threadCount;
+    unsigned char m_tries;
 };
 
 }

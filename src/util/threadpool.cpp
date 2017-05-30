@@ -50,10 +50,12 @@ ThreadPool::~ThreadPool()
     clearThreadData();
 }
 
-void ThreadPool::init(unsigned char numThreads, poolThreadFunction function)
+void ThreadPool::init(unsigned char numThreads, poolThreadFunction function,
+                      unsigned char tries)
 {
     m_maxThreadCount = numThreads;
     m_function = function;
+    m_tries = tries;
 }
 
 void ThreadPool::addThreadData(ThreadData *data)
@@ -110,7 +112,7 @@ bool ThreadPool::process()
             delete data;
         }
     }
-    else if(data->tries() > 3) {
+    else if(data->tries() > m_tries) {
         if(data->isOwn()) {
             delete data;
         }

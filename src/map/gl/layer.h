@@ -84,6 +84,7 @@ class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 {
 public:
     GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    virtual ~GlFeatureLayer() = default;
 
     // IGlRenderLayer interface
 public:
@@ -98,6 +99,14 @@ public:
     // FeatureLayer interface
 public:
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
+
+protected:
+    VectorGlObject *fillPoints(const VectorTile &tile);
+    VectorGlObject *fillLines(const VectorTile &tile);
+    VectorGlObject *fillPolygons(const VectorTile &tile);
+
+protected:
+    std::vector<GIntBig> m_skipFIDs;
 };
 
 /**

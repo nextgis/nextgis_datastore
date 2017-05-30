@@ -37,6 +37,28 @@ namespace ngs {
 
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 
+//------------------------------------------------------------------------------
+// VectorTile
+//------------------------------------------------------------------------------
+void VectorTile::add(GIntBig fid, const OGRRawPoint& pt)
+{
+    m_items[fid].push_back(pt);
+}
+
+GByte* VectorTile::save()
+{
+    return nullptr;
+}
+
+bool VectorTile::load(GByte* data)
+{
+    return false;
+}
+
+//------------------------------------------------------------------------------
+// FeatureClass
+//------------------------------------------------------------------------------
+
 FeatureClass::FeatureClass(OGRLayer *layer,
                                ObjectContainer * const parent,
                                const enum ngsCatalogObjectType type,

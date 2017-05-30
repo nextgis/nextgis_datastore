@@ -254,12 +254,13 @@ constexpr const GLchar* const pointFragmentShaderSource = R"(
 )";
 
 SimplePointStyle::SimplePointStyle(enum PointType type)
-        : SimpleVectorStyle()
-        , m_type(type)
-        , m_size(6.0)
+        : SimpleVectorStyle(),
+          m_type(type),
+          m_size(6.0)
 {
     m_vertexShaderSource = pointVertexShaderSource;
     m_fragmentShaderSource = pointFragmentShaderSource;
+    m_styleType = Style::T_POINT;
 }
 
 bool SimplePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
@@ -335,6 +336,7 @@ SimpleLineStyle::SimpleLineStyle()
 {
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
+    m_styleType = Style::T_LINE;
 }
 
 bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
@@ -399,6 +401,7 @@ SimpleFillStyle::SimpleFillStyle()
 {
     m_vertexShaderSource = fillVertexShaderSource;
     m_fragmentShaderSource = fillFragmentShaderSource;
+    m_styleType = Style::T_FILL;
 }
 
 bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
@@ -463,6 +466,7 @@ SimpleFillBorderedStyle::SimpleFillBorderedStyle()
 {
     m_vertexShaderSource = fillBorderVertexShaderSource;
     m_fragmentShaderSource = fillBorderFragmentShaderSource;
+    m_styleType = Style::T_FILL;
 }
 
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
@@ -551,6 +555,7 @@ SimpleImageStyle::SimpleImageStyle() : Style(), m_image(nullptr)
 {
     m_vertexShaderSource = imageVertexShaderSource;
     m_fragmentShaderSource = imageFragmentShaderSource;
+    m_styleType = Style::T_IMAGE;
 }
 
 bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)

@@ -45,6 +45,14 @@ public:
         SH_VERTEX,
         SH_FRAGMENT
     };
+
+    enum Type {
+        T_POINT,
+        T_LINE,
+        T_FILL,
+        T_IMAGE
+    };
+
 public:
     Style();
     virtual ~Style() = default;
@@ -53,10 +61,18 @@ public:
     virtual bool load(const JSONObject &store) = 0;
     virtual JSONObject save() const = 0;
     virtual const char* name() = 0;
+    virtual enum Type type() const { return m_styleType; }
 
     //static
 public:
     static Style* createStyle(const char* name);
+
+
+    // GlObject interface
+public:
+    virtual void bind() override {}
+    virtual void rebind() const override {}
+    virtual void destroy() override { m_program.destroy(); } // NOTE: Destroy only style stored GlObjects (i.e. program)
 
 protected:
     virtual const GLchar* getShaderSource(enum ShaderType type);
@@ -65,12 +81,7 @@ protected:
     const GLchar* m_vertexShaderSource;
     const GLchar* m_fragmentShaderSource;
     GlProgram m_program;
-
-    // GlObject interface
-public:
-    virtual void bind() override {}
-    virtual void rebind() const override {}
-    virtual void destroy() override { m_program.destroy(); } // NOTE: Destroy only style stored GlObjects (i.e. program)
+    enum Type m_styleType;
 };
 
 typedef std::shared_ptr<Style> StylePtr;
@@ -114,7 +125,7 @@ public:
 public:
     SimplePointStyle(enum PointType type = PT_CIRCLE);
 
-    enum SimplePointStyle::PointType type() const { return m_type; }
+    enum SimplePointStyle::PointType pointType() const { return m_type; }
     void setType(enum SimplePointStyle::PointType type) { m_type = type; }
 
     float size() const { return m_size; }
