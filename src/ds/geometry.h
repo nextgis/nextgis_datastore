@@ -95,9 +95,9 @@ constexpr Envelope DEFAULT_BOUNDS_X2 = Envelope(DEFAULT_BOUNDS.getMinX() * 2,
 
 typedef struct _normal {
     float x, y;
-} Normal;
+} Normal, SimplePoint;
 
-Normal ngsGetNormals(const OGRRawPoint &beg, const OGRRawPoint &end);
+Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end);
 
 typedef struct _tile{
     int x, y;

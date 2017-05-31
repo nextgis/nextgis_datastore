@@ -40,7 +40,7 @@ constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 //------------------------------------------------------------------------------
 // VectorTile
 //------------------------------------------------------------------------------
-void VectorTile::add(GIntBig fid, const OGRRawPoint& pt)
+void VectorTile::add(GIntBig fid, const SimplePoint &pt)
 {
     m_points[fid].push_back(pt);
 }
@@ -56,7 +56,7 @@ bool VectorTile::load(GByte* data)
 }
 
 // TODO: OGRGeometry::DelaunayTriangulation
-// TODO: Check if 3 points belong the interior ring - remove them
+// TODO: Check if triangle belong the interior ring - remove it
 
 //------------------------------------------------------------------------------
 // FeatureClass

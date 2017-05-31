@@ -247,7 +247,7 @@ void Envelope::fix()
         std::swap(m_minY, m_maxY);
 }
 
-Normal ngsGetNormals(const OGRRawPoint &beg, const OGRRawPoint &end)
+Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end)
 {
     float deltaX = static_cast<float>(end.x - beg.x);
     float deltaY = static_cast<float>(end.y - beg.y);

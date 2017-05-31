@@ -95,6 +95,7 @@ class SimpleVectorStyle : public Style
 public:
     SimpleVectorStyle();
     virtual void setColor(const ngsRGBA& color) { m_color = ngsRGBA2Gl(color); }
+    virtual ngsRGBA color() const { return ngsGl2RGBA(m_color); }
 
     // Style interface
 public:
@@ -147,14 +148,31 @@ protected:
 //------------------------------------------------------------------------------
 // SimpleLineStyle
 //------------------------------------------------------------------------------
+enum CapType {
+    CT_BUTT,
+    CT_ROUND,
+    CT_SQUARE
+};
+
+enum JoinType {
+    JT_MITER,
+    JT_ROUND,
+    JT_BEVELED
+};
 
 class SimpleLineStyle : public SimpleVectorStyle
 {
 public:
     SimpleLineStyle();
 
-    float lineWidth() const { return m_lineWidth; }
-    void setLineWidth(float lineWidth) { m_lineWidth = lineWidth * 0.25f; }
+    float width() const { return m_width; }
+    void setWidth(float lineWidth) { m_width = lineWidth * 0.25f; }
+    enum CapType capType() const;
+    void setCapType(const CapType &capType);
+    enum JoinType joinType() const;
+    void setJoinType(const JoinType &joinType);
+    unsigned char segmentCount() const;
+    void setSegmentCount(unsigned char segmentCount);
 
     // Style interface
 public:
@@ -168,7 +186,10 @@ protected:
     GLint m_normalId;
     GLint m_vLineWidthId;
 
-    float m_lineWidth;
+    float m_width;
+    enum CapType m_capType;
+    enum JoinType m_joinType;
+    unsigned char m_segmentCount;
 };
 
 //------------------------------------------------------------------------------
@@ -191,15 +212,22 @@ public:
 // SimpleFillBorderedStyle
 //------------------------------------------------------------------------------
 
-class SimpleFillBorderedStyle : public SimpleVectorStyle
+class SimpleFillBorderedStyle : public Style
 {
 public:
     SimpleFillBorderedStyle();
 
-    float borderWidth() const { return m_borderWidth; }
-    void setBorderWidth(float borderWidth) { m_borderWidth = borderWidth; }
-    void setBorderColor(const ngsRGBA& color) { m_borderColor = ngsRGBA2Gl(color); }
-//    void setBorderIndicesCount(size_t count);
+    float borderWidth() const { return m_line.width(); }
+    void setBorderWidth(float borderWidth) { m_line.setWidth(borderWidth); }
+    void setBorderColor(const ngsRGBA& color) { m_line.setColor(color); }
+    void setColor(const ngsRGBA& color) { m_fill.setColor(color); }
+    ngsRGBA color() const { return m_fill.color(); }
+    enum CapType capType() const;
+    void setCapType(const CapType &capType);
+    enum JoinType joinType() const;
+    void setJoinType(const JoinType &joinType);
+    unsigned char segmentCount() const;
+    void setSegmentCount(unsigned char segmentCount);
 
     // Style interface
 public:
@@ -210,8 +238,8 @@ public:
     virtual const char *name() override { return "simpleFillBordered"; }
 
 protected:
-    GlColor m_borderColor;
-    float m_borderWidth;
+    SimpleFillStyle m_fill;
+    SimpleLineStyle m_line;
 };
 
 //------------------------------------------------------------------------------

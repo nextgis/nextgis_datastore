@@ -34,13 +34,14 @@ typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 class VectorTile
 {
 public:
-    void add(GIntBig fid, const OGRRawPoint& pt);
+    void add(GIntBig fid, const SimplePoint& pt);
     GByte* save();
     bool load(GByte* data);
-    std::map<GIntBig, std::vector<OGRRawPoint>> points() const { return m_points; }
+    std::map<GIntBig, std::vector<SimplePoint>> points() const { return m_points; }
 private:
-    std::map<GIntBig, std::vector<OGRRawPoint>> m_points;
-    std::map<GIntBig, OGRRawPoint> m_centroids;
+    std::map<GIntBig, std::vector<SimplePoint>> m_points;
+    std::map<GIntBig, std::vector<unsigned short>> m_indices;
+    std::map<GIntBig, SimplePoint> m_centroids;
 };
 
 /**

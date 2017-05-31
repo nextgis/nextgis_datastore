@@ -332,7 +332,10 @@ constexpr const GLchar* const lineFragmentShaderSource = R"(
 
 SimpleLineStyle::SimpleLineStyle()
         : SimpleVectorStyle(),
-          m_lineWidth(1.0)
+          m_width(1.0),
+          m_capType(CT_ROUND),
+          m_joinType(JT_ROUND),
+          m_segmentCount(6)
 {
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
@@ -344,7 +347,7 @@ bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
     if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
         return false;
 
-    m_program.setFloat("u_vLineWidth", m_lineWidth);
+    m_program.setFloat("u_vLineWidth", m_width);
     m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
     m_program.setVertexAttribPointer("a_normal", 2, 5 * sizeof(float),
                             reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
@@ -362,15 +365,51 @@ bool SimpleLineStyle::load(const JSONObject &store)
 {
     if(!SimpleVectorStyle::load(store))
         return false;
-    m_lineWidth = static_cast<float>(store.getDouble("line_width", 1.0));
+    m_width = static_cast<float>(store.getDouble("line_width", 1.0));
+    m_capType = static_cast<enum CapType>(store.getInteger("cap", m_capType));
+    m_joinType = static_cast<enum JoinType>(store.getInteger("join", m_joinType));
+    m_segmentCount = static_cast<unsigned char>(store.getInteger("segments", m_segmentCount));
     return true;
 }
 
 JSONObject SimpleLineStyle::save() const
 {
     JSONObject out = SimpleVectorStyle::save();
-    out.add("line_width", static_cast<double>(m_lineWidth));
+    out.add("line_width", static_cast<double>(m_width));
+    out.add("cap", m_capType);
+    out.add("join", m_joinType);
+    out.add("segments", m_segmentCount);
     return out;
+}
+
+enum CapType SimpleLineStyle::capType() const
+{
+    return m_capType;
+}
+
+void SimpleLineStyle::setCapType(const enum CapType &capType)
+{
+    m_capType = capType;
+}
+
+enum JoinType SimpleLineStyle::joinType() const
+{
+    return m_joinType;
+}
+
+void SimpleLineStyle::setJoinType(const enum JoinType &joinType)
+{
+    m_joinType = joinType;
+}
+
+unsigned char SimpleLineStyle::segmentCount() const
+{
+    return m_segmentCount;
+}
+
+void SimpleLineStyle::setSegmentCount(unsigned char segmentCount)
+{
+    m_segmentCount = segmentCount;
 }
 
 //------------------------------------------------------------------------------
@@ -423,105 +462,78 @@ void SimpleFillStyle::draw(const GlBuffer& buffer) const
 //------------------------------------------------------------------------------
 // SimpleFillBorderStyle
 //------------------------------------------------------------------------------
-constexpr const GLchar* const fillBorderVertexShaderSource = R"(
-    attribute vec3 a_mPosition;
-    attribute vec2 a_normal;
-
-    uniform bool u_isBorder;
-    uniform float u_vBorderWidth;
-    uniform mat4 u_msMatrix;
-    uniform mat4 u_vsMatrix;
-
-    void main()
-    {
-        if (u_isBorder) {
-            vec4 vDelta = vec4(a_normal * u_vBorderWidth, 0, 0);
-            vec4 sDelta = u_vsMatrix * vDelta;
-            vec4 sPosition = u_msMatrix * vec4(a_mPosition, 1);
-            gl_Position = sPosition + sDelta;
-        } else {
-            gl_Position = u_msMatrix * vec4(a_mPosition, 1);
-        }
-    }
-)";
-
-constexpr const GLchar* const fillBorderFragmentShaderSource = R"(
-    uniform bool u_isBorder;
-    uniform vec4 u_color;
-    uniform vec4 u_borderColor;
-
-    void main()
-    {
-        if (u_isBorder) {
-            gl_FragColor = u_borderColor;
-        } else {
-            gl_FragColor = u_color;
-        }
-    }
-)";
 
 SimpleFillBorderedStyle::SimpleFillBorderedStyle()
-        : SimpleVectorStyle(),
-          m_borderWidth(1.0)
+        : Style()
 {
-    m_vertexShaderSource = fillBorderVertexShaderSource;
-    m_fragmentShaderSource = fillBorderFragmentShaderSource;
     m_styleType = Style::T_FILL;
 }
 
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
                                       const Matrix4& vsMatrix)
 {
-    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
+    if(!m_line.prepare(msMatrix, vsMatrix))
         return false;
-
-    m_program.setFloat("u_vBorderWidth", m_borderWidth);
-    m_program.setColor("u_borderColor", m_borderColor);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
-    m_program.setVertexAttribPointer("a_normal", 2, 5 * sizeof(float),
-                            reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
-
-    m_program.setInt("u_isBorder", false);
-
+    if(!m_fill.prepare(msMatrix, vsMatrix))
+        return false;
     return true;
 }
 
 void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
 {
-    SimpleVectorStyle::draw(buffer);
-
-    ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                 buffer.id(GlBuffer::BF_INDICES)));
-    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
-                                   GL_UNSIGNED_SHORT, 0));
-
-    ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-                                 buffer.id(GlBuffer::BF_BORDER_INDICES)));
-    m_program.setInt("u_isBorder", true);
-
-    ngsCheckGLError(glDrawElements(GL_TRIANGLES,
-                                   buffer.indexSize(GlBuffer::BF_BORDER_INDICES),
-                                   GL_UNSIGNED_SHORT, 0));
+    if(buffer.type() == GlBuffer::BF_LINE) {
+        m_line.draw(buffer);
+    }
+    else if(buffer.type() == GlBuffer::BF_FILL) {
+        m_fill.draw(buffer);
+    }
 }
 
 bool SimpleFillBorderedStyle::load(const JSONObject &store)
 {
-    if(!SimpleVectorStyle::load(store))
+    if(!m_line.load(store.getObject("line")))
         return false;
-    m_borderWidth = static_cast<float>(store.getDouble("border_width", 1.0));
-
-    ngsRGBA color = ngsHEX2RGBA(store.getInteger("border_color",
-                                                 ngsRGBA2HEX({255, 255, 255, 255})));
-    setBorderColor(color);
+    if(!m_fill.load(store.getObject("fill")))
+        return false;
     return true;
 }
 
 JSONObject SimpleFillBorderedStyle::save() const
 {
-    JSONObject out = SimpleVectorStyle::save();
-    out.add("border_width", static_cast<double>(m_borderWidth));
-    out.add("border_color", ngsRGBA2HEX(ngsGl2RGBA(m_borderColor)));
+    JSONObject out;
+    out.add("line", m_line.save());
+    out.add("fill", m_fill.save());
     return out;
+}
+
+unsigned char SimpleFillBorderedStyle::segmentCount() const
+{
+    return m_line.segmentCount();
+}
+
+void SimpleFillBorderedStyle::setSegmentCount(unsigned char segmentCount)
+{
+    m_line.setSegmentCount(segmentCount);
+}
+
+enum CapType SimpleFillBorderedStyle::capType() const
+{
+    return m_line.capType();
+}
+
+void SimpleFillBorderedStyle::setCapType(const enum CapType &capType)
+{
+    m_line.setCapType(capType);
+}
+
+enum JoinType SimpleFillBorderedStyle::joinType() const
+{
+    return m_line.joinType();
+}
+
+void SimpleFillBorderedStyle::setJoinType(const enum JoinType &joinType)
+{
+    m_line.setJoinType(joinType);
 }
 
 //------------------------------------------------------------------------------

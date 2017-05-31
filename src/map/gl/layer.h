@@ -106,7 +106,13 @@ protected:
     VectorGlObject *fillPoints(const VectorTile &tile);
     VectorGlObject *fillLines(const VectorTile &tile);
     VectorGlObject *fillPolygons(const VectorTile &tile);
-
+    unsigned short addLineCap(const SimplePoint& point, const Normal& normal,
+                              unsigned short index, GlBuffer* buffer);
+    size_t lineCapVerticesCount() const;
+    unsigned short addLineJoin(const SimplePoint& point, const Normal& prevNormal,
+                               const Normal& normal, unsigned short index,
+                               GlBuffer* buffer);
+    size_t lineJoinVerticesCount() const;
 protected:
     std::set<GIntBig> m_skipFIDs;
 };

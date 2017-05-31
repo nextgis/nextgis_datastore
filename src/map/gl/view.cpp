@@ -600,11 +600,11 @@ void GlView::testDrawLines() const
 */
     // No test Butt cap
 
-    // Add seond segment
+    // Add second segment
 
     // Test Miter join
 
-    // Test Round joim
+    // Test Round join
 
     // Test Beveled join
 

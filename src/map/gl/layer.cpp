@@ -75,12 +75,12 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
     VectorTile vtile;
-    vtile.add(0, OGRRawPoint(ext.getMinX(), ext.getMinY()));
-    vtile.add(0, OGRRawPoint(ext.getMinX(), ext.getMaxY()));
-    vtile.add(0, OGRRawPoint(ext.getMaxX(), ext.getMaxY()));
-    vtile.add(0, OGRRawPoint(ext.getMaxX(), ext.getMinY()));
-    vtile.add(0, OGRRawPoint(ext.getMinX(), ext.getMinY()));
-    vtile.add(0, OGRRawPoint(ext.getMaxX(), ext.getMaxY()));
+    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
 
     switch(m_style->type()) {
     case Style::T_POINT:
@@ -203,7 +203,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
     auto items = tile.points();
     auto it = items.begin();
     unsigned short index = 0;
-    GlBuffer *buffer = new GlBuffer;
+    GlBuffer *buffer = new GlBuffer(GlBuffer::BF_PT);
     while(it != items.end()) {
         if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
             ++it;
@@ -221,7 +221,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
             if(!buffer->canStoreVertices(3, false)) {
                 bufferArray->addBuffer(buffer);
                 index = 0;
-                buffer = new GlBuffer;
+                buffer = new GlBuffer(GlBuffer::BF_PT);
             }
 
             buffer->addVertex(static_cast<float>(points[i].x));
@@ -229,6 +229,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
             buffer->addVertex(0.0f);
             buffer->addIndex(index++);
         }
+        ++it;
     }
 
     bufferArray->addBuffer(buffer);
@@ -241,6 +242,8 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
     VectorGlObject *bufferArray = new VectorGlObject;
     auto items = tile.points();
     auto it = items.begin();
+    unsigned short index = 0;
+    GlBuffer *buffer = new GlBuffer(GlBuffer::BF_LINE);
     while(it != items.end()) {
         if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
             ++it;
@@ -258,56 +261,81 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
         bool closed = isEqual(points[0].x, points[points.size() - 1].x) &&
                 isEqual(points[0].y, points[points.size() - 1].y);
 
-        GlBuffer *buffer = new GlBuffer;
-
-        if(closed) {
-
-        }
-
-
+        Normal prevNormal;
         for(size_t i = 0; i < points.size() - 1; ++i) {
             Normal normal = ngsGetNormals(points[i], points[i + 1]);
 
+            if(i == 0 || i == points.size() - 2) { // Add cap
+                if(!closed) {
+                    if(i == 0) {
+                        if(!buffer->canStoreVertices(lineCapVerticesCount(), true)) {
+                            bufferArray->addBuffer(buffer);
+                            index = 0;
+                            buffer = new GlBuffer(GlBuffer::BF_LINE);
+                        }
+                        index = addLineCap(points[i], normal, index, buffer);
+                    }
+
+                    if(i == points.size() - 2) {
+                        if(!buffer->canStoreVertices(lineCapVerticesCount(), true)) {
+                            bufferArray->addBuffer(buffer);
+                            index = 0;
+                            buffer = new GlBuffer(GlBuffer::BF_LINE);
+                        }
+                        index = addLineCap(points[i + 1], normal, index, buffer);
+                    }
+                }
+            }
+            else { // Add join
+                if(!buffer->canStoreVertices(lineJoinVerticesCount(), true)) {
+                    bufferArray->addBuffer(buffer);
+                    index = 0;
+                    buffer = new GlBuffer(GlBuffer::BF_LINE);
+                }
+                index = addLineJoin(points[i], prevNormal, normal, index, buffer);
+            }
+
+
             // 0
-            buffer1->addVertex(points[i].x);
-            buffer1->addVertex(points[i].y);
-            buffer1->addVertex(0.0f);
-            buffer1->addVertex(-normal.x);
-            buffer1->addVertex(-normal.y);
-            buffer1->addIndex(0);
+            buffer->addVertex(points[i].x);
+            buffer->addVertex(points[i].y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(-normal.x);
+            buffer->addVertex(-normal.y);
+            buffer->addIndex(index++); // 0
 
             // 1
-            buffer1->addVertex(points[i + 1].x);
-            buffer1->addVertex(points[i + 1].y);
-            buffer1->addVertex(0.0f);
-            buffer1->addVertex(-normal.x);
-            buffer1->addVertex(-normal.y);
-            buffer1->addIndex(1);
+            buffer->addVertex(points[i + 1].x);
+            buffer->addVertex(points[i + 1].y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(-normal.x);
+            buffer->addVertex(-normal.y);
+            buffer->addIndex(index++); // 1
 
             // 2
-            buffer1->addVertex(points[i].x);
-            buffer1->addVertex(points[i].y);
-            buffer1->addVertex(0.0f);
-            buffer1->addVertex(normal.x);
-            buffer1->addVertex(normal.y);
-            buffer1->addIndex(2);
+            buffer->addVertex(points[i].x);
+            buffer->addVertex(points[i].y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(normal.x);
+            buffer->addVertex(normal.y);
+            buffer->addIndex(index++); // 2
 
             // 3
-            buffer1->addVertex(points[i + 1].x);
-            buffer1->addVertex(points[i + 1].y);
-            buffer1->addVertex(0.0f);
-            buffer1->addVertex(normal.x);
-            buffer1->addVertex(normal.y);
+            buffer->addVertex(points[i + 1].x);
+            buffer->addVertex(points[i + 1].y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(normal.x);
+            buffer->addVertex(normal.y);
 
-            buffer1->addIndex(1);
-            buffer1->addIndex(2);
-            buffer1->addIndex(3);
+            buffer->addIndex(index - 2); // index = 3 at that point
+            buffer->addIndex(index - 1);
+            buffer->addIndex(index++);
 
-            bufferArray->addBuffer(buffer1);
-
+            prevNormal = normal;
         }
         ++it;
     }
+    bufferArray->addBuffer(buffer);
 
     return bufferArray;
 }
@@ -315,6 +343,144 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
 VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
 {
     return nullptr;
+}
+
+unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
+                                          const Normal &normal,
+                                          unsigned short index, GlBuffer *buffer)
+{
+    enum CapType capType = CapType::CT_BUTT;
+    unsigned char segmentCount = 0;
+
+    if(m_style->type() == Style::T_LINE) {
+        SimpleLineStyle* lineStyle = ngsDynamicCast(SimpleLineStyle, m_style);
+        if(lineStyle) {
+            capType = lineStyle->capType();
+            segmentCount = lineStyle->segmentCount();
+        }
+    }
+    else if(m_style->type() == Style::T_FILL) {
+        SimpleFillBorderedStyle* fillStyle = ngsDynamicCast(
+                    SimpleFillBorderedStyle, m_style);
+        if(fillStyle) {
+            capType = fillStyle->capType();
+            segmentCount = fillStyle->segmentCount();
+        }
+    }
+
+    switch(capType) {
+        case CapType::CT_ROUND:
+
+        case CapType::CT_BUTT:
+            break;
+        case CapType::CT_SQUARE:
+        {
+        // 0
+        float scX1 = -(normal.y + normal.x);
+        float scY1 = -(normal.y - normal.x);
+        float scX2 = normal.x - normal.y;
+        float scY2 = normal.x + normal.y;
+
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(scX1);
+        buffer->addVertex(scY1);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(scX2);
+        buffer->addVertex(scY2);
+
+        buffer->addIndex(index);
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+        buffer->addIndex(index + 3);
+
+        index += 2;
+        }
+    }
+
+    return index;
+}
+
+size_t GlFeatureLayer::lineCapVerticesCount() const
+{
+    enum CapType capType = CapType::CT_BUTT;
+    unsigned char segmentCount = 0;
+
+    if(m_style->type() == Style::T_LINE) {
+        SimpleLineStyle* lineStyle = ngsDynamicCast(SimpleLineStyle, m_style);
+        if(lineStyle) {
+            capType = lineStyle->capType();
+            segmentCount = lineStyle->segmentCount();
+        }
+    }
+    else if(m_style->type() == Style::T_FILL) {
+        SimpleFillBorderedStyle* fillStyle = ngsDynamicCast(
+                    SimpleFillBorderedStyle, m_style);
+        if(fillStyle) {
+            capType = fillStyle->capType();
+            segmentCount = fillStyle->segmentCount();
+        }
+    }
+
+    switch(capType) {
+        case CapType::CT_ROUND:
+            return 3 * segmentCount;
+        case CapType::CT_BUTT:
+            return 0;
+        case CapType::CT_SQUARE:
+            return 2;
+    }
+
+    return 0;
+}
+
+unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
+                                           const Normal &prevNormal,
+                                           const Normal &normal,
+                                           unsigned short index, GlBuffer *buffer)
+{
+    return index;
+}
+
+size_t GlFeatureLayer::lineJoinVerticesCount() const
+{
+    enum JoinType joinType = JoinType::JT_ROUND;
+    unsigned char segmentCount = 0;
+
+    if(m_style->type() == Style::T_LINE) {
+        SimpleLineStyle* lineStyle = ngsDynamicCast(SimpleLineStyle, m_style);
+        if(lineStyle) {
+            joinType = lineStyle->joinType();
+            segmentCount = lineStyle->segmentCount();
+        }
+    }
+    else if(m_style->type() == Style::T_FILL) {
+        SimpleFillBorderedStyle* fillStyle = ngsDynamicCast(
+                    SimpleFillBorderedStyle, m_style);
+        if(fillStyle) {
+            joinType = fillStyle->joinType();
+            segmentCount = fillStyle->segmentCount();
+        }
+    }
+
+    switch(joinType) {
+    case JoinType::JT_ROUND:
+        return 3 * segmentCount;
+    case JoinType::JT_MITER:
+        return 6;
+    case JoinType::JT_BEVELED:
+        return 3;
+    }
+
+    return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -465,7 +631,7 @@ bool GlRasterLayer::fill(GlTilePtr tile)
 //    image->setSmooth(true);
 
     // FIXME: Reproject intersect raster extent to tile extent
-    GlBuffer* tileExtentBuff = new GlBuffer;
+    GlBuffer* tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX() - 0.2));
     tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY() - 0.2));
     tileExtentBuff->addVertex(0.0f);

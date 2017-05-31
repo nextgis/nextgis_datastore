@@ -55,6 +55,9 @@ inline bool isEqual(double val1, double val2) {
     return fabs(val1 - val2) <= std::numeric_limits<double>::epsilon();
 }
 
+inline bool isEqual(float val1, float val2) {
+    return fabsf(val1 - val2) <= std::numeric_limits<float>::epsilon();
+}
 #define ARRAY_SIZE(array) (sizeof((array))/sizeof((array[0])))
 
 bool isDebugMode();
