@@ -75,10 +75,10 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
     VectorTile vtile;
-    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
     vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
     vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
 
@@ -282,7 +282,10 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                             index = 0;
                             buffer = new GlBuffer(GlBuffer::BF_LINE);
                         }
-                        index = addLineCap(points[i + 1], normal, index, buffer);
+                        Normal reverseNormal;
+                        reverseNormal.x = -normal.x;
+                        reverseNormal.y = -normal.y;
+                        index = addLineCap(points[i + 1], reverseNormal, index, buffer);
                     }
                 }
             }
@@ -370,7 +373,48 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
 
     switch(capType) {
         case CapType::CT_ROUND:
+        {
+            float start = std::asinf(normal.y);
+            if(normal.x < 0 && normal.y < 0)
+                start = M_PI_F + -(start);
+            else if(normal.x < 0 && normal.y > 0)
+                start = M_PI_2_F + start;
+            else if(normal.x > 0 && normal.y < 0)
+                start = M_PI_F + M_PI_F + start;
 
+            float end = M_PI_F + start;
+            float step = (end - start) / segmentCount;
+            float current = start;
+            for(int i = 0 ; i < segmentCount; ++i) {
+                float x = std::cosf(current);
+                float y = std::sinf(current);
+                current += step;
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                x = std::cosf(current);
+                y = std::sinf(current);
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.0f);
+
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+            }
+        }
+            break;
         case CapType::CT_BUTT:
             break;
         case CapType::CT_SQUARE:
@@ -402,7 +446,7 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
         buffer->addIndex(index + 2);
         buffer->addIndex(index + 3);
 
-        index += 2;
+        index += 3;
         }
     }
 

@@ -62,4 +62,7 @@ inline bool isEqual(float val1, float val2) {
 
 bool isDebugMode();
 
+constexpr float M_PI_F = 3.14159265358979323846264338327950288f;
+constexpr float M_PI_2_F = 1.57079632679489661923132169163975144f;
+
 #endif // NGSAPI_PRIV_H

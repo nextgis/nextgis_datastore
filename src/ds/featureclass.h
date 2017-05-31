@@ -40,7 +40,7 @@ public:
     std::map<GIntBig, std::vector<SimplePoint>> points() const { return m_points; }
 private:
     std::map<GIntBig, std::vector<SimplePoint>> m_points;
-    std::map<GIntBig, std::vector<unsigned short>> m_indices;
+    std::map<GIntBig, std::vector<std::vector<unsigned short>>> m_indices; // NOTE: first array is exterior ring indices
     std::map<GIntBig, SimplePoint> m_centroids;
 };
 
