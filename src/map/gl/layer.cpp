@@ -75,12 +75,12 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
     VectorTile vtile;
-    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
 
     switch(m_style->type()) {
     case Style::T_POINT:
@@ -290,7 +290,8 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                     }
                 }
             }
-            else { // Add join
+
+            if(i != 0) { // Add join
                 if(!buffer->canStoreVertices(lineJoinVerticesCount(), true)) {
                     bufferArray->addBuffer(buffer);
                     index = 0;
@@ -334,6 +335,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
             buffer->addIndex(index - 2); // index = 3 at that point
             buffer->addIndex(index - 1);
             buffer->addIndex(index++);
+
 
             prevNormal = normal;
         }
@@ -506,6 +508,60 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
                                            const Normal &normal,
                                            unsigned short index, GlBuffer *buffer)
 {
+    enum JoinType joinType = JoinType::JT_ROUND;
+    unsigned char segmentCount = 0;
+    float angle = std::asinf(prevNormal.y) - std::asinf(normal.y);
+    char mult = angle >= 0 ? -1 : 1;
+
+    if(m_style->type() == Style::T_LINE) {
+        SimpleLineStyle* lineStyle = ngsDynamicCast(SimpleLineStyle, m_style);
+        if(lineStyle) {
+            joinType = lineStyle->joinType();
+            segmentCount = lineStyle->segmentCount();
+        }
+    }
+    else if(m_style->type() == Style::T_FILL) {
+        SimpleFillBorderedStyle* fillStyle = ngsDynamicCast(
+                    SimpleFillBorderedStyle, m_style);
+        if(fillStyle) {
+            joinType = fillStyle->joinType();
+            segmentCount = fillStyle->segmentCount();
+        }
+    }
+
+    switch(joinType) {
+    case JoinType::JT_ROUND:
+//        return 3 * segmentCount;
+    case JoinType::JT_MITER:
+//        return 6;
+    case JoinType::JT_BEVELED:
+    {
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(prevNormal.x * mult);
+        buffer->addVertex(prevNormal.y * mult);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal.x * mult);
+        buffer->addVertex(normal.y * mult);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+    }
+    }
     return index;
 }
 
