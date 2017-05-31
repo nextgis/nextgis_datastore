@@ -71,6 +71,7 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     }
 
     VectorGlObject *bufferArray = nullptr;
+    //    VectorTile vtile = m_featureClass->getTile(tile->getTile());
 
     Envelope ext = tile->getExtent();
     ext.resize(0.8);
@@ -78,11 +79,38 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    OGRRawPoint center = ext.getCenter();
+//        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+
+
+    // Polygon
     OGRRawPoint center = ext.getCenter();
-        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+    vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
+    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
+    vtile.addIndex(0, 0);
+    vtile.addIndex(0, 1);
+    vtile.addIndex(0, 2);
+
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+    vtile.addIndex(0, 1);
+    vtile.addIndex(0, 2);
+    vtile.addIndex(0, 3);
+
     vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+    vtile.addIndex(0, 1);
+    vtile.addIndex(0, 3);
+    vtile.addIndex(0, 4);
+
+    vtile.addBorderIndex(0, 0, 0);
+    vtile.addBorderIndex(0, 0, 1);
+    vtile.addBorderIndex(0, 0, 4);
+    vtile.addBorderIndex(0, 0, 3);
+    vtile.addBorderIndex(0, 0, 2);
+    vtile.addBorderIndex(0, 0, 0);
 
     switch(m_style->type()) {
     case Style::T_POINT:
@@ -101,21 +129,6 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     if(!bufferArray) {
         return true;
     }
-
-
-//    m_featureClass->getTile(tile->getTile());
-
-//    GlBuffer* tileExtentBuff = new GlBuffer;
-
-//    1. Get one or more vertex buffers
-//    2. Add vertext for line join and ends (not for points)
-//    3. Get one or more indices
-//    4. Remove indices for hide FIDs
-//    5. Fill GlBuffers
-//    6. Add GlBuffers to GlObject
-
-//    style
-//            buffer
 
     CPLMutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = GlObjectPtr(bufferArray);
@@ -139,17 +152,17 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
     }
 
     VectorGlObject* vectorGlObject = ngsStaticCast(VectorGlObject, tileDataIt->second);
-
-    if(vectorGlObject->bound()) {
-        vectorGlObject->rebind();
-    }
-    else {
-        vectorGlObject->bind();
-    }
-
-    m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
-
     for(const GlBufferPtr& buff : vectorGlObject->buffers()) {
+
+        if(buff->bound()) {
+            buff->rebind();
+        }
+        else {
+            buff->bind();
+        }
+
+        m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix(),
+                         buff->type());
         m_style->draw(*buff.get());
     }
     return true;
@@ -302,6 +315,12 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                 index = addLineJoin(points[i], prevNormal, normal, index, buffer);
             }
 
+            if(!buffer->canStoreVertices(12, true)) {
+                bufferArray->addBuffer(buffer);
+                index = 0;
+                buffer = new GlBuffer(GlBuffer::BF_LINE);
+            }
+
             // 0
             buffer->addVertex(points[i].x);
             buffer->addVertex(points[i].y);
@@ -348,7 +367,125 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
 
 VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
 {
-    return nullptr;
+    VectorGlObject *bufferArray = new VectorGlObject;
+    auto items = tile.points();
+    auto it = items.begin();
+    unsigned short fillIndex = 0;
+    unsigned short lineIndex = 0;
+    GlBuffer *fillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+    GlBuffer *lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+
+    while(it != items.end()) {
+        if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
+            ++it;
+            continue;
+        }
+
+        auto points = it->second;
+        auto indices = tile.indices(it->first);
+
+        if(points.size() < 3 || points.size() > GlBuffer::maxIndexes() ||
+                points.size() > GlBuffer::maxVertices()) {
+            ++it;
+            continue;
+        }
+
+        // Fill polygons
+        if(!fillBuffer->canStoreVertices(points.size() * 3, false)) {
+            bufferArray->addBuffer(fillBuffer);
+            fillIndex = 0;
+            fillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+        }
+
+        for(auto point : points) {
+            fillBuffer->addVertex(point.x);
+            fillBuffer->addVertex(point.y);
+            fillBuffer->addVertex(0.0f);
+        }
+
+        // FIXME: Expected indices should fit to buffer as points can
+
+        unsigned short maxFillIndex = 0;
+        for(auto indexPoint : indices) {
+            fillBuffer->addIndex(fillIndex + indexPoint);
+            if(maxFillIndex < indexPoint) {
+                maxFillIndex = indexPoint;
+            }
+        }
+        fillIndex += maxFillIndex;
+
+
+        // Fill borders
+
+        auto borders = tile.borderIndices(it->first);
+        for(auto border : borders) {
+            Normal prevNormal;
+            for(size_t i = 0; i < border.size() - 1; ++i) {
+                auto borderIndex = border[i];
+                auto borderIndex1 = border[i + 1];
+                Normal normal = ngsGetNormals(points[borderIndex], points[borderIndex1]);
+
+                if(i != 0) {
+                    if(!lineBuffer->canStoreVertices(lineJoinVerticesCount(), true)) {
+                        bufferArray->addBuffer(lineBuffer);
+                        lineIndex = 0;
+                        lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+                    }
+                    lineIndex = addLineJoin(points[borderIndex], prevNormal, normal, lineIndex, lineBuffer);
+                }
+
+                if(!lineBuffer->canStoreVertices(12, true)) {
+                    bufferArray->addBuffer(lineBuffer);
+                    lineIndex = 0;
+                    lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+                }
+
+                // 0
+                lineBuffer->addVertex(points[borderIndex].x);
+                lineBuffer->addVertex(points[borderIndex].y);
+                lineBuffer->addVertex(0.0f);
+                lineBuffer->addVertex(-normal.x);
+                lineBuffer->addVertex(-normal.y);
+                lineBuffer->addIndex(lineIndex++); // 0
+
+                // 1
+                lineBuffer->addVertex(points[borderIndex1].x);
+                lineBuffer->addVertex(points[borderIndex1].y);
+                lineBuffer->addVertex(0.0f);
+                lineBuffer->addVertex(-normal.x);
+                lineBuffer->addVertex(-normal.y);
+                lineBuffer->addIndex(lineIndex++); // 1
+
+                // 2
+                lineBuffer->addVertex(points[borderIndex].x);
+                lineBuffer->addVertex(points[borderIndex].y);
+                lineBuffer->addVertex(0.0f);
+                lineBuffer->addVertex(normal.x);
+                lineBuffer->addVertex(normal.y);
+                lineBuffer->addIndex(lineIndex++); // 2
+
+                // 3
+                lineBuffer->addVertex(points[borderIndex1].x);
+                lineBuffer->addVertex(points[borderIndex1].y);
+                lineBuffer->addVertex(0.0f);
+                lineBuffer->addVertex(normal.x);
+                lineBuffer->addVertex(normal.y);
+
+                lineBuffer->addIndex(lineIndex - 2); // index = 3 at that point
+                lineBuffer->addIndex(lineIndex - 1);
+                lineBuffer->addIndex(lineIndex++);
+
+                prevNormal = normal;
+            }
+        }
+
+        ++it;
+    }
+
+    bufferArray->addBuffer(fillBuffer);
+    bufferArray->addBuffer(lineBuffer);
+
+    return bufferArray;
 }
 
 unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
@@ -913,7 +1050,8 @@ bool GlRasterLayer::draw(GlTilePtr tile)
         extBuff->bind();
     }
 
-    m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix());
+    m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix(),
+                     extBuff->type());
     m_style->draw(*extBuff);
 
     return true;
@@ -1084,421 +1222,4 @@ void VectorGlObject::destroy()
     }
 }
 
-
 } // namespace ngs
-
-
-/*
-const int MAX_FID_COUNT = 500000;
-
-void ngs::FillGLBufferThread(void * layer)
-{
-    RenderLayer* renderLayer = static_cast<RenderLayer*>(layer);
-
-    renderLayer->fillRenderBuffers ();
-}
-
-//------------------------------------------------------------------------------
-// RenderLayer
-//------------------------------------------------------------------------------
-
-RenderLayer::RenderLayer() : Layer(), m_hPrepareThread(nullptr), m_mapView(nullptr),
-    m_hThreadLock(CPLCreateLock(LOCK_SPIN)), m_featureCount(0)
-{
-    m_type = Layer::Type::Invalid;
-}
-
-RenderLayer::RenderLayer(const CPLString &name, DatasetPtr dataset) :
-    Layer(name, dataset), m_hPrepareThread(nullptr), m_mapView(nullptr),
-    m_hThreadLock(CPLCreateLock(LOCK_SPIN))
-{
-    m_type = Layer::Type::Invalid;
-}
-
-RenderLayer::~RenderLayer()
-{
-    cancelFillThread();    
-    CPLDestroyLock(m_hThreadLock);
-}
-
-
-void RenderLayer::prepareFillThread(OGREnvelope extent, double zoom, float level)
-{
-    cancelFillThread();
-
-    // start bucket of buffers preparation
-    m_cancelPrepare = false;
-    //m_renderPercent = 0;
-    m_renderExtent = extent;
-    m_renderZoom = static_cast<unsigned char>(zoom);
-    m_renderLevel = level;
-
-    // create or refill virtual tiles for current extent and zooms
-    CPLLockHolder tilesHolder(m_hThreadLock);
-    m_hPrepareThread = CPLCreateJoinableThread(FillGLBufferThread, this);
-}
-
-void RenderLayer::cancelFillThread()
-{
-    CPLLockHolder tilesHolder(m_hThreadLock);
-    if(m_hPrepareThread) {
-        m_cancelPrepare = true;
-        // wait thread exit
-        CPLJoinThread(m_hPrepareThread);
-        m_hPrepareThread = nullptr;
-    }
-}
-
-void RenderLayer::finishFillThread()
-{
-    CPLLockHolder tilesHolder(m_hThreadLock);
-    CPLJoinThread(m_hPrepareThread);
-    m_hPrepareThread = nullptr;
-}
-
-void RenderLayer::draw(ngsDrawState state, OGREnvelope extent, double zoom,
-                         float level)
-{
-    switch (state) {
-    case DS_REDRAW:
-        // clear cache
-        clearTiles();
-    case DS_NORMAL:
-        // start extract data thread
-        prepareFillThread(extent, zoom, level);
-    case DS_PRESERVED:
-        // draw cached data
-        drawTiles ();
-        break;
-    }
-}
-
-float RenderLayer::getComplete() const
-{
-    return m_complete;
-}
-
-bool RenderLayer::isComplete() const
-{
-    return m_isComplete;
-}
-
-int RenderLayer::getFeatureCount() const
-{
-    return m_featureCount;
-}
-
-//------------------------------------------------------------------------------
-// FeatureRenderLayer
-//------------------------------------------------------------------------------
-
-struct tileIs {
-    tileIs( const GlBufferBucket &item ) {
-        toFind.x = item.X();
-        toFind.y = item.Y();
-        toFind.z = item.zoom ();
-        toFind.crossExtent = item.crossExtent();
-    }
-    bool operator() (const TileItem &item) {
-        return item.x == toFind.x &&
-               item.y == toFind.y &&
-               item.z == toFind.z &&
-               item.crossExtent == toFind.crossExtent;
-    }
-    TileItem toFind;
-};
-
-FeatureRenderLayer::FeatureRenderLayer() : RenderLayer(),
-    m_hTilesLock(CPLCreateLock(LOCK_SPIN))
-{
-    m_type = Layer::Type::Vector;
-}
-
-FeatureRenderLayer::FeatureRenderLayer(const CPLString &name, DatasetPtr dataset) :
-    RenderLayer(name, dataset), m_hTilesLock(CPLCreateLock(LOCK_SPIN))
-{
-    m_type = Layer::Type::Vector;
-    initStyle();
-}
-
-FeatureRenderLayer::~FeatureRenderLayer()
-{
-    CPLDestroyLock(m_hTilesLock);
-}
-
-void FeatureRenderLayer::initStyle()
-{
-    FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset, m_dataset);
-    OGRwkbGeometryType geomType = featureDataset->getGeometryType();
-
-    switch (OGR_GT_Flatten(geomType)) {
-        case wkbMultiPoint:
-        case wkbPoint: {
-            SimplePointStyle* style = new SimplePointStyle();
-            m_style.reset(style);
-            m_style->setColor({0, 0, 255, 255});
-            style->setType(PT_CIRCLE);
-            style->setSize(9.0f);
-        } break;
-
-        case wkbMultiLineString:
-        case wkbLineString: {
-            SimpleLineStyle* style = new SimpleLineStyle();
-            m_style.reset(style);
-            m_style->setColor({0, 255, 255, 255});
-            style->setLineWidth(2);
-        } break;
-
-        case wkbMultiPolygon:
-        case wkbPolygon: {
-//            SimpleFillStyle* style = new SimpleFillStyle();
-//            m_style.reset(style);
-//            m_style->setColor({255, 0, 0, 255});
-            SimpleFillBorderedStyle* style = new SimpleFillBorderedStyle();
-            m_style.reset(style);
-            m_style->setColor({255, 0, 0, 255});
-            style->setBorderWidth(2);
-            style->setBorderColor({0, 0, 0, 255});
-        } break;
-
-        default:
-            break;
-    }
-}
-
-void FeatureRenderLayer::fillRenderBuffers()
-{
-    cout << "GlBuffer::getHardBuffersCount() before fillRenderBuffers: "
-         << GlBuffer::getGlobalHardBuffersCount() << "\n";
-
-    m_complete = 0;
-    m_isComplete = false;
-    m_featureCount = -1;
-    float counter = 0;
-    OGREnvelope renderExtent = m_renderExtent;
-    FeaturePtr feature;
-    OGRGeometry* geom;
-    FeatureDataset* featureDataset = ngsDynamicCast(FeatureDataset, m_dataset);
-    bool fidExists;
-
-    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom,
-                                            false, m_mapView->getXAxisLooped ());
-    // remove already exist tiles
-    auto iter = m_tiles.begin ();
-    while (iter != m_tiles.end()) {
-        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(**iter) );
-        if(pos != tiles.end ()) {
-            tiles.erase (pos);
-        }
-        ++iter;
-    }
-
-    int fidCount = getFidCount();
-    for(TileItem &tileItem : tiles) {
-        if(m_cancelPrepare) {
-            return;
-        }
-
-        if(! (isEqual(renderExtent.MaxX, m_renderExtent.MaxX) &&
-              isEqual(renderExtent.MaxY, m_renderExtent.MaxY) &&
-              isEqual(renderExtent.MinX, m_renderExtent.MinX) &&
-              isEqual(renderExtent.MinY, m_renderExtent.MinY))) {
-            // if extent changed - refresh tiles
-            return fillRenderBuffers();
-        }
-
-        if (fidCount > MAX_FID_COUNT) {
-            break;
-        }
-
-        int numPoints = 4;
-        if (!GlBuffer::canGlobalStoreVertices(4 * numPoints, true)
-                || !GlBuffer::canGlobalStoreIndices(6 * numPoints)) {
-            cout << "can not store, m_renderZoom " << ((int) m_renderZoom)
-                 << "\n";
-            cout << "GlBuffer::getGlobalVertexBufferSize() "
-                 << GlBuffer::getGlobalVertexBufferSize() << "\n";
-            cout << "GlBuffer::getGlobalIndexBufferSize() "
-                 << GlBuffer::getGlobalIndexBufferSize() << "\n";
-            cout << "GlBuffer::getHardBuffersCount() after fillRenderBuffers: "
-                 << GlBuffer::getGlobalHardBuffersCount() << "\n";
-            return;
-        }
-
-        GlBufferBucketSharedPtr tile =
-                makeSharedGlBufferBucket(GlBufferBucket(tileItem.x, tileItem.y,
-                        tileItem.z, tileItem.env, tileItem.crossExtent));
-        GeometryPtr spatialFilter = envelopeToGeometry(
-                tile->extent(), featureDataset->getSpatialReference());
-        ResultSetPtr resSet =
-                featureDataset->getGeometries(tile->zoom(), spatialFilter);
-
-        while ((feature = resSet->GetNextFeature ()) != nullptr) {
-            if(m_cancelPrepare) {
-                return;
-            }
-
-            fidExists = false;
-            for (const GlBufferBucketSharedPtr& tile1 : m_tiles) {
-                if (tile1->zoom() == m_renderZoom
-                        && tile1->crossExtent() == tile->crossExtent()
-                        && tile1->hasFid(feature->GetFID())) {
-                    fidExists = true;
-                    break;
-                }
-            }
-
-            if(fidExists)
-                continue;
-
-            geom = feature->GetGeometryRef ();
-            if(nullptr == geom)
-                continue;
-
-            tile->fill(feature->GetFID (), geom, m_renderLevel);
-
-            ++fidCount;
-            if (fidCount > MAX_FID_COUNT) {
-                break;
-            }
-        }
-
-        tile->setFilled(true);
-        {
-            CPLLockHolder tilesHolder(m_hTilesLock);
-            m_tiles.emplace_back(std::move(tile));
-        }
-        ++counter;
-        m_complete = counter / tiles.size ();
-
-        if(m_mapView) {
-            m_mapView->notify();
-        }
-    }
-
-
-    // free memory remove not visible tiles
-    OGREnvelope testExt = resizeEnvelope(m_renderExtent, 2);
-    iter = m_tiles.begin();
-    while (iter != m_tiles.end()) {
-        const GlBufferBucketSharedPtr currentTile = *iter;
-
-        if (currentTile->zoom() != m_renderZoom
-                || (currentTile->crossExtent() == 0
-                           && !currentTile->intersects(testExt))) {
-                CPLLockHolder tilesHolder(m_hTilesLock);
-            iter = m_tiles.erase(iter);
-        } else {
-            if (-1 == m_featureCount) {
-                m_featureCount = 0;
-            }
-            m_featureCount += currentTile->getFidCount();
-            ++iter;
-        }
-    }
-
-    m_complete = 1;
-    m_isComplete = true;
-    if(m_mapView) {
-        m_mapView->notify();
-    }
-
-    if(! (isEqual(renderExtent.MaxX, m_renderExtent.MaxX) &&
-          isEqual(renderExtent.MaxY, m_renderExtent.MaxY) &&
-          isEqual(renderExtent.MinX, m_renderExtent.MinX) &&
-          isEqual(renderExtent.MinY, m_renderExtent.MinY))) {
-        // if extent changed - refresh tiles
-        return fillRenderBuffers();
-    }
-
-    cout << "m_renderZoom " << ((int) m_renderZoom) << "\n";
-    cout << "GlBuffer::getGlobalVertexBufferSize() "
-         << GlBuffer::getGlobalVertexBufferSize() << "\n";
-    cout << "GlBuffer::getGlobalIndexBufferSize() "
-         << GlBuffer::getGlobalIndexBufferSize() << "\n";
-    cout << "GlBuffer::getHardBuffersCount() after fillRenderBuffers: "
-         << GlBuffer::getGlobalHardBuffersCount() << "\n";
-}
-
-void ngs::FeatureRenderLayer::clearTiles()
-{
-    CPLLockHolder tilesHolder(m_hTilesLock);
-    m_tiles.clear ();
-}
-
-void ngs::FeatureRenderLayer::drawTiles()
-{
-    cout << "GlBuffer::getHardBuffersCount() before draw: "
-         << GlBuffer::getGlobalHardBuffersCount() << "\n";
-
-    CPLLockHolder tilesHolder(m_hTilesLock);
-
-    // load program if already not, set matrix and fill color in prepare
-    m_style->prepareProgram();
-    m_style->prepareData(m_mapView->getSceneMatrix(), m_mapView->getInvViewMatrix());
-
-    int finalVertexBufferSize = 0;
-    int finalIndexBufferSize = 0;
-    for (const GlBufferBucketSharedPtr& tile : m_tiles) {
-        tile->draw(*m_style.get());
-        finalVertexBufferSize += tile->getVertexBufferSize();
-        finalIndexBufferSize += tile->getIndexBufferSize();
-    }
-
-    cout << "drawTiles(), finalVertexBufferSize == " << finalVertexBufferSize
-         << endl;
-    cout << "drawTiles(), finalIndexBufferSize == " << finalIndexBufferSize
-         << endl;
-    cout << "GlBuffer::getHardBuffersCount() after  draw: "
-         << GlBuffer::getGlobalHardBuffersCount() << "\n";
-}
-
-void FeatureRenderLayer::refreshTiles()
-{
-    vector<TileItem> tiles = getTilesForExtent(m_renderExtent, m_renderZoom,
-                                            false, m_mapView->getXAxisLooped ());
-
-    // remove exist items in m_tiles from tiles
-    // remove non exist items in tiles from m_tiles
-    CPLLockHolder tilesHolder(m_hTilesLock);
-    auto iter = m_tiles.begin();
-    while (iter != m_tiles.end()) {
-        if (tiles.empty())
-            break;
-        auto pos = find_if(tiles.begin(), tiles.end(), tileIs(**iter));
-        if (pos == tiles.end()) {
-            // erase returns the new iterator
-            iter = m_tiles.erase(iter);
-        } else {
-            tiles.erase(pos);
-            ++iter;
-        }
-    }
-
-    for (const TileItem& tile : tiles) {
-        m_tiles.emplace_back(makeSharedGlBufferBucket(GlBufferBucket(
-                tile.x, tile.y, tile.z, tile.env, tile.crossExtent)));
-    }
-}
-
-
-int FeatureRenderLayer::load(const JSONObject &store,
-                                  DatasetContainerPtr dataStore,
-                                  const CPLString &mapPath)
-{
-    int nRet = Layer::load (store, dataStore, mapPath);
-    if(nRet != ngsErrorCodes::EC_SUCCESS)
-        return nRet;
-    initStyle();
-    return nRet;
-}
-
-int FeatureRenderLayer::getFidCount() const
-{
-    int fidCount = 0;
-    for (const GlBufferBucketSharedPtr& tile : m_tiles) {
-        fidCount += tile->getFidCount();
-    }
-    return fidCount;
-}
-*/

@@ -60,7 +60,7 @@ TEST(StoreTests, TestOpen) {
     EXPECT_NE(storage, nullptr);
 }
 
-/* FIXME: test create and delete TMS
+/* TODO: test create and delete TMS
 TEST(StoreTests, TestCreateTMS){
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     EXPECT_NE(storage, nullptr);

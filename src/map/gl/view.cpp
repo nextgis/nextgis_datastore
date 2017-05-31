@@ -201,7 +201,10 @@ void GlView::freeResources()
 }
 
 bool GlView::drawTiles(const Progress &progress)
-{
+{        
+//    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    ngsCheckGLError(glDisable(GL_BLEND));
+
     drawOldTiles();
 
     // Preserve current viewport
@@ -224,6 +227,10 @@ bool GlView::drawTiles(const Progress &progress)
 
             glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
             clearBackground();
+
+            ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+            ngsCheckGLError(glEnable(GL_BLEND));
+
             unsigned char filled = 0;
             for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
@@ -248,6 +255,8 @@ bool GlView::drawTiles(const Progress &progress)
                 done++;
             }
 
+            ngsCheckGLError(glDisable(GL_BLEND));
+
             // Draw tile on view
             glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
@@ -262,7 +271,8 @@ bool GlView::drawTiles(const Progress &progress)
         if(drawTile) { // Don't draw tiles with only background
             m_fboDrawStyle.setImage(tile->getImageRef());
             tile->getBuffer().rebind();
-            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix());
+            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(),
+                                   tile->getBuffer().type());
             m_fboDrawStyle.draw(tile->getBuffer());
         }
     }
@@ -288,7 +298,8 @@ void GlView::drawOldTiles()
         if(oldTile->filled()){
             m_fboDrawStyle.setImage(oldTile->getImageRef());
             oldTile->getBuffer().rebind();
-            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix());
+            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(),
+                                   oldTile->getBuffer().type());
             m_fboDrawStyle.draw(oldTile->getBuffer());
         }
     }

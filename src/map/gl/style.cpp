@@ -49,7 +49,8 @@ const GLchar* Style::getShaderSource(ShaderType type)
     return nullptr;
 }
 
-bool Style::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
+bool Style::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                    enum GlBuffer::BufferType /*type*/)
 {
     if (!m_program.loaded()) {
         bool result = m_program.load(getShaderSource(Style::SH_VERTEX),
@@ -103,9 +104,10 @@ SimpleVectorStyle::SimpleVectorStyle() :
 
 }
 
-bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
+bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+                                enum GlBuffer::BufferType type)
 {
-    if(!Style::prepare(msMatrix, vsMatrix))
+    if(!Style::prepare(msMatrix, vsMatrix, type))
         return false;
     m_program.setColor("u_color", m_color);
 
@@ -263,9 +265,10 @@ SimplePointStyle::SimplePointStyle(enum PointType type)
     m_styleType = Style::T_POINT;
 }
 
-bool SimplePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
+bool SimplePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                               enum GlBuffer::BufferType type)
 {
-    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
         return false;
 
     m_program.setInt("u_type", m_type);
@@ -342,9 +345,10 @@ SimpleLineStyle::SimpleLineStyle()
     m_styleType = Style::T_LINE;
 }
 
-bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
+bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                              enum GlBuffer::BufferType type)
 {
-    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
         return false;
 
     m_program.setFloat("u_vLineWidth", m_width);
@@ -356,6 +360,8 @@ bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
 
 void SimpleLineStyle::draw(const GlBuffer& buffer) const
 {
+    if(buffer.indexSize() == 0)
+        return;
     SimpleVectorStyle::draw(buffer);
     ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
                                    GL_UNSIGNED_SHORT, nullptr));
@@ -443,9 +449,10 @@ SimpleFillStyle::SimpleFillStyle()
     m_styleType = Style::T_FILL;
 }
 
-bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix)
+bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+                              enum GlBuffer::BufferType type)
 {
-    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix))
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
         return false;
     m_program.setVertexAttribPointer("a_mPosition", 3, 0, 0);
 
@@ -470,12 +477,17 @@ SimpleFillBorderedStyle::SimpleFillBorderedStyle()
 }
 
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
-                                      const Matrix4& vsMatrix)
+                                      const Matrix4& vsMatrix,
+                                      enum GlBuffer::BufferType type)
 {
-    if(!m_line.prepare(msMatrix, vsMatrix))
-        return false;
-    if(!m_fill.prepare(msMatrix, vsMatrix))
-        return false;
+    if(type == GlBuffer::BF_LINE) {
+        if(!m_line.prepare(msMatrix, vsMatrix, type))
+            return false;
+    }
+    else if(type == GlBuffer::BF_FILL) {
+        if(!m_fill.prepare(msMatrix, vsMatrix, type))
+            return false;
+    }
     return true;
 }
 
@@ -495,6 +507,12 @@ bool SimpleFillBorderedStyle::load(const JSONObject &store)
         return false;
     if(!m_fill.load(store.getObject("fill")))
         return false;
+
+    m_line.setSegmentCount(4);
+    m_line.setWidth(24.0f);
+    m_line.setColor({255, 0, 0, 255});
+    m_fill.setColor({255, 255, 0, 30});
+
     return true;
 }
 
@@ -570,9 +588,10 @@ SimpleImageStyle::SimpleImageStyle() : Style(), m_image(nullptr)
     m_styleType = Style::T_IMAGE;
 }
 
-bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix)
+bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                               enum GlBuffer::BufferType type)
 {
-    if (!Style::prepare(msMatrix, vsMatrix))
+    if (!Style::prepare(msMatrix, vsMatrix, type))
         return false;
 
     if(m_image) {

@@ -24,6 +24,12 @@ namespace ngs {
 
 constexpr GLuint GL_BUFFER_IVALID = 0;
 constexpr unsigned short MAX_INDEX_BUFFER_SIZE = 65535;
+constexpr unsigned char VERTEX_SIZE = 3;
+// 5 = 3 for vertex + 2 for normal
+constexpr unsigned char VERTEX_WITH_NORMAL_SIZE = 5;
+//GL_UNSIGNED_BYTE, with a maximum value of 255.
+//GL_UNSIGNED_SHORT, with a maximum value of 65,535
+constexpr unsigned short MAX_VERTEX_BUFFER_SIZE = 65535;
 
 GlBuffer::GlBuffer(BufferType type) : GlObject(),
     m_bufferIds{{GL_BUFFER_IVALID,GL_BUFFER_IVALID}},
@@ -35,9 +41,14 @@ GlBuffer::GlBuffer(BufferType type) : GlObject(),
 
 GlBuffer::~GlBuffer()
 {
-// NOTE: Delete buffer must be in GL context
+    // NOTE: Delete buffer must be in GL context
 }
 
+bool GlBuffer::canStoreVertices(size_t amount, bool withNormals) const
+{
+    return (m_vertices.size() + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE :
+                                             VERTEX_SIZE)) < MAX_VERTEX_BUFFER_SIZE;
+}
 
 void GlBuffer::destroy()
 {
@@ -52,6 +63,16 @@ GLuint GlBuffer::id(bool vertices) const
         return m_bufferIds[0];
     else
         return m_bufferIds[1];
+}
+
+size_t GlBuffer::maxIndexes()
+{
+    return MAX_INDEX_BUFFER_SIZE;
+}
+
+size_t GlBuffer::maxVertices()
+{
+    return MAX_VERTEX_BUFFER_SIZE;
 }
 
 void GlBuffer::bind()

@@ -29,12 +29,6 @@
 namespace ngs {
 
 constexpr GLsizei GL_BUFFERS_COUNT = 2;
-constexpr unsigned char VERTEX_SIZE = 3;
-// 5 = 3 for vertex + 2 for normal
-constexpr unsigned char VERTEX_WITH_NORMAL_SIZE = 5;
-//GL_UNSIGNED_BYTE, with a maximum value of 255.
-//GL_UNSIGNED_SHORT, with a maximum value of 65,535
-constexpr unsigned short MAX_VERTEX_BUFFER_SIZE = 65535;
 
 class GlBuffer : public GlObject
 {
@@ -49,11 +43,7 @@ public:
     GlBuffer(enum BufferType type = BF_TEX);
     ~GlBuffer();
 
-    bool canStoreVertices(size_t amount, bool withNormals = false) const {
-        return (m_vertices.size()
-                + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE :
-                                          VERTEX_SIZE)) < MAX_VERTEX_BUFFER_SIZE;
-    }
+    bool canStoreVertices(size_t amount, bool withNormals = false) const;
     GLuint id(bool vertices) const;
     GLsizei indexSize() const {
         return static_cast<GLsizei>(m_indices.size());
@@ -63,6 +53,8 @@ public:
     void addIndex(unsigned short value) { m_indices.push_back(value); }
 
     enum BufferType type() const { return m_type; }
+    static size_t maxIndexes();
+    static size_t maxVertices();
 
     // GlObject interface
 public:

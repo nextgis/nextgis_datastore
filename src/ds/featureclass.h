@@ -35,12 +35,34 @@ class VectorTile
 {
 public:
     void add(GIntBig fid, const SimplePoint& pt);
+    void addIndex(GIntBig fid, unsigned short index) {
+        m_indices[fid].push_back(index);
+    }
+    void addBorderIndex(GIntBig fid, unsigned short ring, unsigned short index) {
+        if(m_borderIndices[fid].empty()) {
+            for(unsigned short i = 0; i < ring + 1; ++i) {
+                m_borderIndices[fid].push_back(std::vector<unsigned short>());
+            }
+        }
+        m_borderIndices[fid][ring].push_back(index);
+    }
+
     GByte* save();
     bool load(GByte* data);
-    std::map<GIntBig, std::vector<SimplePoint>> points() const { return m_points; }
+    std::map<GIntBig, std::vector<SimplePoint>> points() const {
+        return m_points;
+    }
+    const std::vector<unsigned short> indices(GIntBig fid) const {
+        return m_indices.find(fid)->second;
+    }
+    const std::vector<std::vector<unsigned short>> borderIndices(GIntBig fid) const {
+        return m_borderIndices.find(fid)->second;
+    }
+
 private:
     std::map<GIntBig, std::vector<SimplePoint>> m_points;
-    std::map<GIntBig, std::vector<std::vector<unsigned short>>> m_indices; // NOTE: first array is exterior ring indices
+    std::map<GIntBig, std::vector<unsigned short>> m_indices;
+    std::map<GIntBig, std::vector<std::vector<unsigned short>>> m_borderIndices; // NOTE: first array is exterior ring indices
     std::map<GIntBig, SimplePoint> m_centroids;
 };
 

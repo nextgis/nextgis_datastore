@@ -166,8 +166,6 @@ void prepareContext()
 //    ngsCheckGLError(glDepthFunc(GL_LEQUAL));
 //    ngsCheckGLError(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
 //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
-    ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    ngsCheckGLError(glEnable(GL_BLEND));
 }
 
 GlObject::GlObject() : m_bound(false)

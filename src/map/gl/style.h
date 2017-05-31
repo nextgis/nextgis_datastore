@@ -56,7 +56,8 @@ public:
 public:
     Style();
     virtual ~Style() = default;
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix);
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type);
     virtual void draw(const GlBuffer& buffer) const;
     virtual bool load(const JSONObject &store) = 0;
     virtual JSONObject save() const = 0;
@@ -99,7 +100,8 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix) override;
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+                         enum GlBuffer::BufferType type) override;
     virtual bool load(const JSONObject &store) override;
     virtual JSONObject save() const override;
 
@@ -134,7 +136,8 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const JSONObject &store) override;
     virtual JSONObject save() const override;
@@ -176,7 +179,8 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const JSONObject &store) override;
     virtual JSONObject save() const override;
@@ -204,7 +208,8 @@ public:
     // Style interface
 public:
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix) override;
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+                         enum GlBuffer::BufferType type) override;
     virtual const char *name() override { return "simpleFill"; }
 };
 
@@ -231,7 +236,8 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const JSONObject &store) override;
     virtual JSONObject save() const override;
@@ -254,7 +260,8 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix) override;
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
 
 protected:

@@ -135,7 +135,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     CPLReleaseMutex(m_dataLock);
 
     if(!dataLock) {
-        CPLMutexHolder(m_dataLock, 50.0);
+        CPLMutexHolder holder(m_dataLock, 50.0);
         dataLock = new std::timed_mutex;
         m_dataLocks.push_back({testEnv, dataLock, zoom});
     }
@@ -213,7 +213,7 @@ void Raster::freeLocks(bool all)
 {
     unsigned char threadCount = static_cast<unsigned char>(
                 atoi(CPLGetConfigOption("GDAL_NUM_THREADS", "1")));
-    CPLMutexHolder(m_dataLock, 50.0);
+    CPLMutexHolder holder(m_dataLock, 50.0);
     if(all) {
         for(auto &lock : m_dataLocks) {
             if(lock.mutexRef->try_lock()) {
