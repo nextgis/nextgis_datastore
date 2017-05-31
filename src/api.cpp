@@ -166,7 +166,10 @@ int ngsInit(char **options)
         numThreads = CPLSPrintf("%d", cpuCount);
     }
     CPLSetConfigOption("GDAL_NUM_THREADS", numThreads);
-
+    const char* multisample = CSLFetchNameValue(options, "GL_MULTISAMPLE");
+    if(multisample) {
+        CPLSetConfigOption("GL_MULTISAMPLE", multisample);
+    }
 
 #ifdef HAVE_LIBINTL_H
     const char* locale = CSLFetchNameValue(options, "LOCALE");

@@ -334,7 +334,7 @@ SimpleLineStyle::SimpleLineStyle()
         : SimpleVectorStyle(),
           m_width(1.0),
           m_capType(CT_ROUND),
-          m_joinType(JT_MITER), //ROUND),
+          m_joinType(JT_ROUND),
           m_segmentCount(6)
 {
     m_vertexShaderSource = lineVertexShaderSource;
@@ -365,7 +365,7 @@ bool SimpleLineStyle::load(const JSONObject &store)
 {
     if(!SimpleVectorStyle::load(store))
         return false;
-    m_width = static_cast<float>(store.getDouble("line_width", 12.0));
+    m_width = static_cast<float>(store.getDouble("line_width", 3.0));
     m_capType = static_cast<enum CapType>(store.getInteger("cap", m_capType));
     m_joinType = static_cast<enum JoinType>(store.getInteger("join", m_joinType));
     m_segmentCount = static_cast<unsigned char>(store.getInteger("segments", m_segmentCount));

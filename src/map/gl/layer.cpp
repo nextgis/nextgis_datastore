@@ -73,7 +73,7 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     VectorGlObject *bufferArray = nullptr;
 
     Envelope ext = tile->getExtent();
-    ext.resize(0.9);
+    ext.resize(0.8);
     VectorTile vtile;
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });

@@ -43,7 +43,7 @@ public:
     const Envelope& getExtent() const { return m_tileItem.env; }
     bool filled() const { return m_filled; }
     void setFilled(bool filled = true) { m_filled = filled; }
-    size_t getSizeInPixels() const { return m_image.getWidth()/* / 2*/; }
+    size_t getSizeInPixels() const { return m_image.getWidth() / 2; }
 
     // GlObject interface
 public:

@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "functions.h"
 
+#include "cpl_string.h"
+
 #include "util/error.h"
 
 /* Links:
@@ -157,7 +159,8 @@ void prepareContext()
 {
     // FIXME: Is this Mac OS X specific?
     ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
-//    ngsCheckGLError(glEnable(GL_MULTISAMPLE));
+    if( CPLTestBool("GL_MULTISAMPLE") )
+        ngsCheckGLError(glEnable(GL_MULTISAMPLE));
 // NOTE: In usual cases no need in depth test
 //    ngsCheckGLError(glEnable(GL_DEPTH_TEST));
 //    ngsCheckGLError(glDepthFunc(GL_LEQUAL));
