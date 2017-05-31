@@ -75,12 +75,12 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     Envelope ext = tile->getExtent();
     ext.resize(0.9);
     VectorTile vtile;
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
     vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
     vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
 
     switch(m_style->type()) {
     case Style::T_POINT:
@@ -376,11 +376,11 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
         case CapType::CT_ROUND:
         {
             float start = std::asinf(normal.y);
-            if(normal.x < 0 && normal.y < 0)
+            if(normal.x < 0.0f && normal.y <= 0.0f)
                 start = M_PI_F + -(start);
-            else if(normal.x < 0 && normal.y > 0)
+            else if(normal.x < 0.0f && normal.y >= 0.0f)
                 start = M_PI_2_F + start;
-            else if(normal.x > 0 && normal.y < 0)
+            else if(normal.x > 0.0f && normal.y <= 0.0f)
                 start = M_PI_F + M_PI_F + start;
 
             float end = M_PI_F + start;

@@ -333,7 +333,7 @@ constexpr const GLchar* const lineFragmentShaderSource = R"(
 SimpleLineStyle::SimpleLineStyle()
         : SimpleVectorStyle(),
           m_width(1.0),
-          m_capType(CT_SQUARE), //ROUND),
+          m_capType(CT_ROUND),
           m_joinType(JT_ROUND),
           m_segmentCount(6)
 {
