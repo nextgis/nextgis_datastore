@@ -282,6 +282,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                             index = 0;
                             buffer = new GlBuffer(GlBuffer::BF_LINE);
                         }
+
                         Normal reverseNormal;
                         reverseNormal.x = -normal.x;
                         reverseNormal.y = -normal.y;
@@ -419,12 +420,12 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
             break;
         case CapType::CT_SQUARE:
         {
-        // 0
         float scX1 = -(normal.y + normal.x);
         float scY1 = -(normal.y - normal.x);
         float scX2 = normal.x - normal.y;
         float scY2 = normal.x + normal.y;
 
+        // 0
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
         buffer->addVertex(0.0f);
@@ -438,15 +439,29 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
         buffer->addVertex(scX2);
         buffer->addVertex(scY2);
 
-        buffer->addIndex(index);
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-normal.x);
+        buffer->addVertex(-normal.y);
+
+        // 3
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal.x);
+        buffer->addVertex(normal.y);
+
+        buffer->addIndex(index + 0);
         buffer->addIndex(index + 1);
         buffer->addIndex(index + 2);
 
-        buffer->addIndex(index + 1);
-        buffer->addIndex(index + 2);
         buffer->addIndex(index + 3);
+        buffer->addIndex(index + 2);
+        buffer->addIndex(index + 1);
 
-        index += 3;
+        index += 4;
         }
     }
 
