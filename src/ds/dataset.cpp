@@ -844,6 +844,12 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset *ds, const char *name)
     return ovrLayer;
 }
 
+const char *Dataset::formOverviewsAttributeFilter(int x, int y, unsigned char z)
+{
+    return CPLSPrintf("%s = %d AND %s = %d AND %s = %d", OVR_X_KEY, x, OVR_Y_KEY,
+                      y, OVR_ZOOM_KEY, z);
+}
+
 
 //// Check version and upgrade if needed
 //OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);

@@ -131,6 +131,8 @@ protected:
     static OGRLayer *createMetadataTable(GDALDataset* ds);
     static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
     static OGRLayer *createOverviewsTable(GDALDataset* ds, const char* name);
+    static const char* formOverviewsAttributeFilter(int x, int y, unsigned char z);
+
 //    static bool createAttachmentsTable(GDALDataset* ds, const char* name);
 //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
 

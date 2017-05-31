@@ -71,46 +71,7 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
     }
 
     VectorGlObject *bufferArray = nullptr;
-    //    VectorTile vtile = m_featureClass->getTile(tile->getTile());
-
-    Envelope ext = tile->getExtent();
-    ext.resize(0.8);
-    VectorTile vtile;
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-//    OGRRawPoint center = ext.getCenter();
-//        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-
-
-    // Polygon
-    OGRRawPoint center = ext.getCenter();
-    vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
-    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
-    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
-    vtile.addIndex(0, 0);
-    vtile.addIndex(0, 1);
-    vtile.addIndex(0, 2);
-
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-    vtile.addIndex(0, 1);
-    vtile.addIndex(0, 2);
-    vtile.addIndex(0, 3);
-
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-    vtile.addIndex(0, 1);
-    vtile.addIndex(0, 3);
-    vtile.addIndex(0, 4);
-
-    vtile.addBorderIndex(0, 0, 0);
-    vtile.addBorderIndex(0, 0, 1);
-    vtile.addBorderIndex(0, 0, 4);
-    vtile.addBorderIndex(0, 0, 3);
-    vtile.addBorderIndex(0, 0, 2);
-    vtile.addBorderIndex(0, 0, 0);
+    VectorTile vtile = m_featureClass->getTile(tile->getTile(), tile->getExtent());
 
     switch(m_style->type()) {
     case Style::T_POINT:
@@ -273,8 +234,8 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
         }
 
         // Check if line is closed or not
-        bool closed = isEqual(points[0].x, points[points.size() - 1].x) &&
-                isEqual(points[0].y, points[points.size() - 1].y);
+        bool closed = isEqual(points.front().x, points.back().x) &&
+                isEqual(points.front().y, points.back().y);
 
         Normal prevNormal;
         for(size_t i = 0; i < points.size() - 1; ++i) {
@@ -416,14 +377,32 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
 
 
         // Fill borders
+        // FIXME: May be more styles with borders
+        if(EQUAL(m_style->name(), "simpleFillBordered")) {
 
         auto borders = tile.borderIndices(it->first);
         for(auto border : borders) {
             Normal prevNormal;
+            Normal firstNormal;
+            bool firstNormalSet = false;
             for(size_t i = 0; i < border.size() - 1; ++i) {
                 auto borderIndex = border[i];
                 auto borderIndex1 = border[i + 1];
                 Normal normal = ngsGetNormals(points[borderIndex], points[borderIndex1]);
+
+                if(i == border.size() - 2) {
+                    if(!lineBuffer->canStoreVertices(lineCapVerticesCount(), true)) {
+                        bufferArray->addBuffer(lineBuffer);
+                        lineIndex = 0;
+                        lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+                    }
+
+                    Normal reverseNormal;
+                    reverseNormal.x = -normal.x;
+                    reverseNormal.y = -normal.y;
+                    lineIndex = addLineJoin(points[borderIndex1], firstNormal,
+                                        reverseNormal, lineIndex, lineBuffer);
+                }
 
                 if(i != 0) {
                     if(!lineBuffer->canStoreVertices(lineJoinVerticesCount(), true)) {
@@ -431,7 +410,8 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
                         lineIndex = 0;
                         lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                     }
-                    lineIndex = addLineJoin(points[borderIndex], prevNormal, normal, lineIndex, lineBuffer);
+                    lineIndex = addLineJoin(points[borderIndex], prevNormal,
+                                            normal, lineIndex, lineBuffer);
                 }
 
                 if(!lineBuffer->canStoreVertices(12, true)) {
@@ -476,7 +456,13 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
                 lineBuffer->addIndex(lineIndex++);
 
                 prevNormal = normal;
+                if(!firstNormalSet) {
+                    firstNormal.x = -prevNormal.x;
+                    firstNormal.y = -prevNormal.y;
+                    firstNormalSet = true;
+                }
             }
+        }
         }
 
         ++it;
@@ -640,6 +626,35 @@ size_t GlFeatureLayer::lineCapVerticesCount() const
     return 0;
 }
 
+float angle(const Normal &normal) {
+    if(isEqual(normal.y, 0.0f)) {
+        if(normal.x > 0.0f) {
+            return 0.0f;
+        }
+        else {
+            return M_PI_F;
+        }
+    }
+
+    if(isEqual(normal.x, 0.0f)) {
+        if(normal.y > 0.0f) {
+            return M_PI_2_F;
+        }
+        else {
+            return -M_PI_2_F;
+        }
+    }
+
+    float angle = std::fabs(std::asinf(normal.y));
+    if(normal.x < 0.0f && normal.y >= 0.0f)
+        angle = M_PI_F - angle;
+    else if(normal.x < 0.0f && normal.y <= 0.0f)
+        angle = angle - M_PI_F;
+    else if(normal.x > 0.0f && normal.y <= 0.0f)
+        angle = -angle;
+    return angle;
+}
+
 unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
                                            const Normal &prevNormal,
                                            const Normal &normal,
@@ -648,7 +663,10 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
     enum JoinType joinType = JoinType::JT_ROUND;
     unsigned char segmentCount = 0;
     float maxWidth = 0.0f;
-    float angle = std::asinf(prevNormal.y) - std::asinf(normal.y);
+    float start = angle(prevNormal);
+    float end = angle(normal);
+
+    float angle = end - start;
     char mult = angle >= 0 ? -1 : 1;
 
     if(m_style->type() == Style::T_LINE) {
@@ -672,33 +690,21 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
     switch(joinType) {
     case JoinType::JT_ROUND:
     {
-        Normal testNormal;
-        testNormal.x = normal.x * mult;
-        testNormal.y = normal.y * mult;
-
-        float start = std::asinf(testNormal.y);
-        if(testNormal.x < 0.0f && testNormal.y <= 0.0f)
-            start = M_PI_F + -(start);
-        else if(testNormal.x < 0.0f && testNormal.y >= 0.0f)
-            start = M_PI_2_F + start;
-        else if(testNormal.x > 0.0f && testNormal.y <= 0.0f)
-            start = M_PI_F + M_PI_F + start;
-
-        float end =  start - angle;
-        float step = (end - start) / segmentCount;
+        float step = angle / segmentCount;
         float current = start;
         for(int i = 0 ; i < segmentCount; ++i) {
-            float x = std::cosf(current);
-            float y = std::sinf(current);
-            current += step;
+            float x = std::cosf(current) * mult;
+            float y = std::sinf(current) * mult;
+
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
             buffer->addVertex(0.0f);
             buffer->addVertex(x);
             buffer->addVertex(y);
 
-            x = std::cosf(current);
-            y = std::sinf(current);
+            current += step;
+            x = std::cosf(current) * mult;
+            y = std::sinf(current) * mult;
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
             buffer->addVertex(0.0f);

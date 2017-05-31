@@ -268,8 +268,8 @@ DatasetPtr DataStore::createDataset(const CPLString &name,
         return out;
     }
 
-    // TODO: create ovr layer
-    // TODO: create changes layer CPLString changesLayerName = name + "_changes";
+    // create ovr layer
+    // create changes layer CPLString changesLayerName = name + "_changes";
 
 
     // create history layer

@@ -508,11 +508,6 @@ bool SimpleFillBorderedStyle::load(const JSONObject &store)
     if(!m_fill.load(store.getObject("fill")))
         return false;
 
-    m_line.setSegmentCount(4);
-    m_line.setWidth(24.0f);
-    m_line.setColor({255, 0, 0, 255});
-    m_fill.setColor({255, 255, 0, 30});
-
     return true;
 }
 

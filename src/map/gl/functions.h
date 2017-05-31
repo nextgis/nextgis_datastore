@@ -115,33 +115,3 @@ typedef std::shared_ptr<GlObject> GlObjectPtr;
 }
 
 #endif // NGSGLFUNCTIONS_H
-
-/*
-
-typedef int (*ngsBindVertexArray)(GLuint array);
-typedef int (*ngsDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
-typedef int (*ngsGenVertexArrays)(GLsizei n, GLuint* arrays);
-
-enum ngsShaderType {
-    SH_VERTEX,
-    SH_FRAGMENT
-};
-
-enum class LineCapType : uint8_t {
-    Butt,
-    Square,
-    Round,
-    // the following type is for internal use only
-    FakeRound // TODO: remove it and switch to Round
-};
-
-enum class LineJoinType : uint8_t {
-    Miter,
-    Bevel,
-    Round,
-    // the following two types are for internal use only
-    FlipBevel,
-    FakeRound
-};
-
-*/

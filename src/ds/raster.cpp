@@ -258,13 +258,13 @@ bool Raster::writeWorldFile(enum WorldFileType type)
 
     switch(type) {
     case FIRSTLASTW:
-        newExt += ext[0];
-        newExt += ext[ext.size() - 1];
+        newExt += ext.front();
+        newExt += ext.back();
         newExt += 'w';
         break;
     case EXTPLUSWX:
-        newExt += ext[0];
-        newExt += ext[ext.size() - 1];
+        newExt += ext.front();
+        newExt += ext.back();
         newExt += 'w';
         newExt += 'x';
         break;
@@ -276,7 +276,7 @@ bool Raster::writeWorldFile(enum WorldFileType type)
         break;
     }
 
-    double geoTransform[6] = { 0, 0, 0, 0, 0, 0 };
+    double geoTransform[6] = { 0 };
     if(m_DS->GetGeoTransform(geoTransform) != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
     }

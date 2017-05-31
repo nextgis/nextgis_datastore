@@ -45,12 +45,12 @@ void VectorTile::add(GIntBig fid, const SimplePoint &pt)
     m_points[fid].push_back(pt);
 }
 
-GByte* VectorTile::save()
+GByte* VectorTile::save(int &size)
 {
     return nullptr;
 }
 
-bool VectorTile::load(GByte* data)
+bool VectorTile::load(GByte* data, int size)
 {
     return false;
 }
@@ -250,6 +250,74 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     }
 
     return ngsCode::COD_SUCCESS;
+}
+
+VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) const
+{
+    VectorTile vtile;
+    if(hasOverviews() && tile.z <= m_zoomLevels.back()) {
+        // Get closet zoom level
+        short diff = 32000;
+        unsigned short z = m_zoomLevels.front();
+        for(auto zoomLevel : m_zoomLevels) {
+            short newDiff = abs(zoomLevel - tile.z);
+            if(newDiff < diff) {
+                z = zoomLevel;
+                diff = newDiff;
+            }
+        }
+        m_ovrTable->SetAttributeFilter(Dataset::formOverviewsAttributeFilter(
+                                           tile.x, tile.y, tile.z));
+        m_ovrTable->ResetReading();
+        FeaturePtr ovrTile = m_ovrTable->GetNextFeature();
+        if(ovrTile) {
+            int size = 0;
+            vtile.load(ovrTile->GetFieldAsBinary(3, &size), size);
+            return vtile;
+        }
+    }
+    else { // Tile on the fly
+
+    Envelope ext = tileExtent;
+    ext.resize(0.8);
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    OGRRawPoint center = ext.getCenter();
+//        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+
+
+    // Polygon
+    OGRRawPoint center = ext.getCenter();
+    vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
+    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
+    vtile.addIndex(0, 0);
+    vtile.addIndex(0, 1);
+    vtile.addIndex(0, 2);
+
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+    vtile.addIndex(0, 1);
+    vtile.addIndex(0, 2);
+    vtile.addIndex(0, 3);
+
+    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+    vtile.addIndex(0, 1);
+    vtile.addIndex(0, 3);
+    vtile.addIndex(0, 4);
+
+    vtile.addBorderIndex(0, 0, 0);
+    vtile.addBorderIndex(0, 0, 1);
+    vtile.addBorderIndex(0, 0, 4);
+    vtile.addBorderIndex(0, 0, 3);
+    vtile.addBorderIndex(0, 0, 2);
+    vtile.addBorderIndex(0, 0, 0);
+
+    return vtile;
+    }
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)

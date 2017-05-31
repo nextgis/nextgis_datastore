@@ -47,8 +47,8 @@ public:
         m_borderIndices[fid][ring].push_back(index);
     }
 
-    GByte* save();
-    bool load(GByte* data);
+    GByte* save(int &size);
+    bool load(GByte* data, int size);
     std::map<GIntBig, std::vector<SimplePoint>> points() const {
         return m_points;
     }
@@ -99,7 +99,7 @@ public:
     bool hasOverviews() const;
     int createOverviews(const Progress& progress = Progress(),
                         const Options& options = Options());
-    // TODO: VectorTile getTile(const Tile& tile);
+    VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope()) const;
 
     // static
     static const char *geometryTypeName(OGRwkbGeometryType type,
