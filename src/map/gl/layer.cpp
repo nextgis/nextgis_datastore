@@ -300,7 +300,6 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                 index = addLineJoin(points[i], prevNormal, normal, index, buffer);
             }
 
-
             // 0
             buffer->addVertex(points[i].x);
             buffer->addVertex(points[i].y);
@@ -335,7 +334,6 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
             buffer->addIndex(index - 2); // index = 3 at that point
             buffer->addIndex(index - 1);
             buffer->addIndex(index++);
-
 
             prevNormal = normal;
         }
@@ -531,7 +529,52 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
 
     switch(joinType) {
     case JoinType::JT_ROUND:
-//        return 3 * segmentCount;
+    {
+        Normal testNormal;
+        testNormal.x = normal.x * mult;
+        testNormal.y = normal.y * mult;
+
+        float start = std::asinf(testNormal.y);
+        if(testNormal.x < 0.0f && testNormal.y <= 0.0f)
+            start = M_PI_F + -(start);
+        else if(testNormal.x < 0.0f && testNormal.y >= 0.0f)
+            start = M_PI_2_F + start;
+        else if(testNormal.x > 0.0f && testNormal.y <= 0.0f)
+            start = M_PI_F + M_PI_F + start;
+
+        float end =  start - angle;
+        float step = (end - start) / segmentCount;
+        float current = start;
+        for(int i = 0 ; i < segmentCount; ++i) {
+            float x = std::cosf(current);
+            float y = std::sinf(current);
+            current += step;
+            buffer->addVertex(point.x);
+            buffer->addVertex(point.y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(x);
+            buffer->addVertex(y);
+
+            x = std::cosf(current);
+            y = std::sinf(current);
+            buffer->addVertex(point.x);
+            buffer->addVertex(point.y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(x);
+            buffer->addVertex(y);
+
+            buffer->addVertex(point.x);
+            buffer->addVertex(point.y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(0.0f);
+
+            buffer->addIndex(index++);
+            buffer->addIndex(index++);
+            buffer->addIndex(index++);
+        }
+    }
+        break;
     case JoinType::JT_MITER:
 //        return 6;
     case JoinType::JT_BEVELED:
