@@ -79,7 +79,9 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
 //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
 //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
     vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    OGRRawPoint center = ext.getCenter();
+        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
     vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
 
     switch(m_style->type()) {
@@ -508,6 +510,7 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
 {
     enum JoinType joinType = JoinType::JT_ROUND;
     unsigned char segmentCount = 0;
+    float maxWidth = 0.0f;
     float angle = std::asinf(prevNormal.y) - std::asinf(normal.y);
     char mult = angle >= 0 ? -1 : 1;
 
@@ -516,6 +519,7 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
         if(lineStyle) {
             joinType = lineStyle->joinType();
             segmentCount = lineStyle->segmentCount();
+            maxWidth = lineStyle->width() * 5;
         }
     }
     else if(m_style->type() == Style::T_FILL) {
@@ -524,6 +528,7 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
         if(fillStyle) {
             joinType = fillStyle->joinType();
             segmentCount = fillStyle->segmentCount();
+            maxWidth = fillStyle->borderWidth() * 5;
         }
     }
 
@@ -576,7 +581,66 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
     }
         break;
     case JoinType::JT_MITER:
-//        return 6;
+    {
+        Normal newNormal;
+        newNormal.x = (prevNormal.x + normal.x);
+        newNormal.y = (prevNormal.y + normal.y);
+        float cosHalfAngle = newNormal.x * normal.x + newNormal.y * normal.y;
+        float miterLength = cosHalfAngle == 0.0f ? 0.0f : 1.0f / cosHalfAngle;
+        newNormal.x *= miterLength;
+        newNormal.y *= miterLength;
+
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(prevNormal.x * mult);
+        buffer->addVertex(prevNormal.y * mult);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(newNormal.x * mult);
+        buffer->addVertex(newNormal.y * mult);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal.x * mult);
+        buffer->addVertex(normal.y * mult);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(newNormal.x * mult);
+        buffer->addVertex(newNormal.y * mult);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+    }
+        break;
     case JoinType::JT_BEVELED:
     {
         // 0
