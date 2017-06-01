@@ -34,6 +34,7 @@ typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 class VectorTile
 {
 public:
+    VectorTile() : m_valid(false) {}
     void add(GIntBig fid, const SimplePoint& pt);
     void addIndex(GIntBig fid, unsigned short index) {
         m_indices[fid].push_back(index);
@@ -58,12 +59,14 @@ public:
     const std::vector<std::vector<unsigned short>> borderIndices(GIntBig fid) const {
         return m_borderIndices.find(fid)->second;
     }
+    bool isValid() const { return m_valid; }
 
 private:
     std::map<GIntBig, std::vector<SimplePoint>> m_points;
     std::map<GIntBig, std::vector<unsigned short>> m_indices;
     std::map<GIntBig, std::vector<std::vector<unsigned short>>> m_borderIndices; // NOTE: first array is exterior ring indices
     std::map<GIntBig, SimplePoint> m_centroids;
+    bool m_valid;
 };
 
 /**

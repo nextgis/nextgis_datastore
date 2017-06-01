@@ -57,7 +57,7 @@ public:
     void move(double deltaX, double deltaY);
     constexpr double getWidth() const {return m_maxX - m_minX;}
     constexpr double getHeight() const {return m_maxY - m_minY;}
-    GeometryPtr toGeometry(OGRSpatialReference * const spatialRef);
+    GeometryPtr toGeometry(OGRSpatialReference * const spatialRef) const;
     OGREnvelope getOgrEnvelope() const;
 
     constexpr double getMinX() const {return m_minX;}

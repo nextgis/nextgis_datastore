@@ -52,6 +52,7 @@ GByte* VectorTile::save(int &size)
 
 bool VectorTile::load(GByte* data, int size)
 {
+    m_valid = true;
     return false;
 }
 
@@ -255,28 +256,35 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) const
 {
     VectorTile vtile;
+    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        return vtile;
+    }
     if(hasOverviews() && tile.z <= m_zoomLevels.back()) {
         // Get closet zoom level
-        short diff = 32000;
+        int diff = 32000;
         unsigned short z = m_zoomLevels.front();
         for(auto zoomLevel : m_zoomLevels) {
-            short newDiff = abs(zoomLevel - tile.z);
+            int newDiff = abs(zoomLevel - tile.z);
             if(newDiff < diff) {
                 z = zoomLevel;
                 diff = newDiff;
             }
         }
-        m_ovrTable->SetAttributeFilter(Dataset::formOverviewsAttributeFilter(
-                                           tile.x, tile.y, tile.z));
-        m_ovrTable->ResetReading();
-        FeaturePtr ovrTile = m_ovrTable->GetNextFeature();
-        if(ovrTile) {
-            int size = 0;
-            vtile.load(ovrTile->GetFieldAsBinary(3, &size), size);
+
+        vtile = dataset->getTile(getName(), tile.x, tile.y, z);
+        if(vtile.isValid()) {
             return vtile;
         }
     }
-    else { // Tile on the fly
+
+    // Tile on the fly
+    GeometryPtr spatFilter = tileExtent.toGeometry(getSpatialReference());
+    TablePtr features = dataset->executeSQL("", spatFilter);
+    FeaturePtr feature;
+    while((feature = nextFeature()) != nullptr) {
+        tileGeometry(feature->GetGeometryRef());
+    }
 
     Envelope ext = tileExtent;
     ext.resize(0.8);
@@ -317,7 +325,6 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) c
     vtile.addBorderIndex(0, 0, 0);
 
     return vtile;
-    }
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)

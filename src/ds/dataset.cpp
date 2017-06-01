@@ -844,10 +844,23 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset *ds, const char *name)
     return ovrLayer;
 }
 
-const char *Dataset::formOverviewsAttributeFilter(int x, int y, unsigned char z)
+VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)
 {
-    return CPLSPrintf("%s = %d AND %s = %d AND %s = %d", OVR_X_KEY, x, OVR_Y_KEY,
-                      y, OVR_ZOOM_KEY, z);
+    VectorTile vtile;
+    TablePtr queryResult = executeSQL(
+                CPLSPrintf("SELECT %s FROM %s%s WHERE %s = %d AND %s = %d AND %s = %d",
+                           OVR_TILE_KEY, name, OVR_ADD, OVR_X_KEY, x, OVR_Y_KEY,
+                           y, OVR_ZOOM_KEY, z));
+    if(queryResult && queryResult->featureCount() > 0) {
+        queryResult->reset();
+        FeaturePtr ovrTile = queryResult->nextFeature();
+        if(ovrTile) {
+            int size = 0;
+            vtile.load(ovrTile->GetFieldAsBinary(0, &size), size);
+            return vtile;
+        }
+    }
+    return vtile;
 }
 
 

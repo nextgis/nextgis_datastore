@@ -131,7 +131,6 @@ protected:
     static OGRLayer *createMetadataTable(GDALDataset* ds);
     static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
     static OGRLayer *createOverviewsTable(GDALDataset* ds, const char* name);
-    static const char* formOverviewsAttributeFilter(int x, int y, unsigned char z);
 
 //    static bool createAttachmentsTable(GDALDataset* ds, const char* name);
 //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
@@ -147,6 +146,7 @@ protected:
     virtual bool clearOverviewsTable(const char* name);
     virtual OGRLayer* getOverviewsTable(const char* name);
     virtual bool destroyTable(Table* table);
+    virtual VectorTile getTile(const char* name, int x, int y, unsigned short z);
 
 protected:
     GDALDataset* m_addsDS;
