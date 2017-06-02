@@ -402,10 +402,10 @@ TEST(MapTests, MapSave) {
     CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
 
     unsigned char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
-                                       ngs::DEFAULT_BOUNDS.getMinX(),
-                                       ngs::DEFAULT_BOUNDS.getMinY(),
-                                       ngs::DEFAULT_BOUNDS.getMaxX(),
-                                       ngs::DEFAULT_BOUNDS.getMaxY());
+                                       ngs::DEFAULT_BOUNDS.minX(),
+                                       ngs::DEFAULT_BOUNDS.minY(),
+                                       ngs::DEFAULT_BOUNDS.maxX(),
+                                       ngs::DEFAULT_BOUNDS.maxY());
     ASSERT_NE(mapId, 0);
     EXPECT_EQ(ngsMapLayerCount(mapId), 0);
 

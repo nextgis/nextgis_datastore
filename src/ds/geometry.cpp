@@ -59,8 +59,8 @@ bool Envelope::isInit() const
 OGRRawPoint Envelope::getCenter() const
 {
     OGRRawPoint pt;
-    pt.x = m_minX + getWidth() * .5;
-    pt.y = m_minY + getHeight() * .5;
+    pt.x = m_minX + width() * .5;
+    pt.y = m_minY + height() * .5;
     return pt;
 }
 
@@ -99,8 +99,8 @@ void Envelope::rotate(double angle)
 
 void Envelope::setRatio(double ratio)
 {
-    double halfWidth = getWidth() * .5;
-    double halfHeight = getHeight() * .5;
+    double halfWidth = width() * .5;
+    double halfHeight = height() * .5;
     OGRRawPoint center(m_minX + halfWidth,  m_minY + halfHeight);
     double envRatio = halfWidth / halfHeight;
     if(isEqual(envRatio, ratio))
@@ -123,8 +123,8 @@ void Envelope::resize(double value)
 {
     if(isEqual(value, 1.0))
         return;
-    double w = getWidth() * .5;
-    double h = getHeight() * .5;
+    double w = width() * .5;
+    double h = height() * .5;
     double x = m_minX + w;
     double y = m_minY + h;
 
@@ -178,10 +178,10 @@ OGREnvelope Envelope::getOgrEnvelope() const
 
 bool Envelope::load(const JSONObject &store, const Envelope& defaultValue)
 {
-    m_minX = store.getDouble(MAP_MIN_X_KEY, defaultValue.getMinX());
-    m_minY = store.getDouble(MAP_MIN_Y_KEY, defaultValue.getMinY());
-    m_maxX = store.getDouble(MAP_MAX_X_KEY, defaultValue.getMaxX());
-    m_maxY = store.getDouble(MAP_MAX_Y_KEY, defaultValue.getMaxY());
+    m_minX = store.getDouble(MAP_MIN_X_KEY, defaultValue.minX());
+    m_minY = store.getDouble(MAP_MIN_Y_KEY, defaultValue.minY());
+    m_maxX = store.getDouble(MAP_MAX_X_KEY, defaultValue.maxX());
+    m_maxY = store.getDouble(MAP_MAX_Y_KEY, defaultValue.maxY());
     return true;
 }
 

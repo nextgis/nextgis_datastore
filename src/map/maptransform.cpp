@@ -95,18 +95,18 @@ bool MapTransform::setExtent(const Envelope &env)
     m_extent.setRatio(m_ratio);
 
     if(m_XAxisLooped) {
-        while (m_extent.getMinX() > DEFAULT_BOUNDS.getMinX()) {
-            m_extent.setMinX(m_extent.getMinX() - DEFAULT_BOUNDS_X2.getMaxX());
-            m_extent.setMaxX(m_extent.getMaxX() - DEFAULT_BOUNDS_X2.getMaxX());
+        while (m_extent.minX() > DEFAULT_BOUNDS.minX()) {
+            m_extent.setMinX(m_extent.minX() - DEFAULT_BOUNDS_X2.maxX());
+            m_extent.setMaxX(m_extent.maxX() - DEFAULT_BOUNDS_X2.maxX());
         }
-        while (m_extent.getMaxX() < DEFAULT_BOUNDS.getMinX()) {
-            m_extent.setMinX(m_extent.getMinX() + DEFAULT_BOUNDS_X2.getMaxX());
-            m_extent.setMaxX(m_extent.getMaxX() + DEFAULT_BOUNDS_X2.getMaxX());
+        while (m_extent.maxX() < DEFAULT_BOUNDS.minX()) {
+            m_extent.setMinX(m_extent.minX() + DEFAULT_BOUNDS_X2.maxX());
+            m_extent.setMaxX(m_extent.maxX() + DEFAULT_BOUNDS_X2.maxX());
         }
     }
 
-    double w = m_extent.getWidth();
-    double h = m_extent.getHeight();
+    double w = m_extent.width();
+    double h = m_extent.height();
     double scaleX = std::fabs(double(m_displayWidht) / w);
     double scaleY = std::fabs(double(m_displayHeight) / h);
     m_scale = std::min(scaleX, scaleY);
@@ -151,13 +151,13 @@ bool MapTransform::updateExtent()
     m_scaleWorld = 1 / m_scale;//std::min(scaleX, scaleY);
 
     if(m_XAxisLooped) {
-        while (m_extent.getMinX() > DEFAULT_BOUNDS_X2.getMaxX()) {
-            m_extent.setMinX(m_extent.getMinX() - DEFAULT_BOUNDS_X2.getMaxX());
-            m_extent.setMaxX(m_extent.getMaxX() - DEFAULT_BOUNDS_X2.getMaxX());
+        while (m_extent.minX() > DEFAULT_BOUNDS_X2.maxX()) {
+            m_extent.setMinX(m_extent.minX() - DEFAULT_BOUNDS_X2.maxX());
+            m_extent.setMaxX(m_extent.maxX() - DEFAULT_BOUNDS_X2.maxX());
         }
-        while (m_extent.getMaxX() < DEFAULT_BOUNDS_X2.getMinX()) {
-            m_extent.setMinX(m_extent.getMinX() + DEFAULT_BOUNDS_X2.getMaxX());
-            m_extent.setMaxX(m_extent.getMaxX() + DEFAULT_BOUNDS_X2.getMaxX());
+        while (m_extent.maxX() < DEFAULT_BOUNDS_X2.minX()) {
+            m_extent.setMinX(m_extent.minX() + DEFAULT_BOUNDS_X2.maxX());
+            m_extent.setMaxX(m_extent.maxX() + DEFAULT_BOUNDS_X2.maxX());
         }
     }
 
@@ -180,13 +180,13 @@ void MapTransform::initMatrices()
     m_sceneMatrix.clear();
 
     if (m_YAxisInverted) {
-        m_sceneMatrix.ortho(m_extent.getMinX(), m_extent.getMaxX(),
-                            m_extent.getMaxY(), m_extent.getMinY(),
-                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
+        m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
+                            m_extent.maxY(), m_extent.minY(),
+                            DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
     } else {
-        m_sceneMatrix.ortho(m_extent.getMinX(), m_extent.getMaxX(),
-                            m_extent.getMinY(), m_extent.getMaxY(),
-                            DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
+        m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
+                            m_extent.minY(), m_extent.maxY(),
+                            DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
     }
 
 
@@ -255,13 +255,13 @@ void MapTransform::setRotateExtent()
 
     for(unsigned char i = 1; i < 4; ++i) {
         pt = m_invWorldToDisplayMatrix.project (inPt[i]);
-        if(pt.x > m_rotateExtent.getMaxX())
+        if(pt.x > m_rotateExtent.maxX())
             m_rotateExtent.setMaxX(pt.x);
-        if(pt.x < m_rotateExtent.getMinX())
+        if(pt.x < m_rotateExtent.minX())
             m_rotateExtent.setMinX(pt.x);
-        if(pt.y > m_rotateExtent.getMaxY())
+        if(pt.y > m_rotateExtent.maxY())
             m_rotateExtent.setMaxY(pt.y);
-        if(pt.y < m_rotateExtent.getMinY())
+        if(pt.y < m_rotateExtent.minY())
             m_rotateExtent.setMinY(pt.y);
     }
 }
@@ -284,14 +284,14 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     }
     int tilesInMapOneDim = 1 << zoom;
     double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
-    double tilesSizeOneDim = DEFAULT_BOUNDS.getMaxX() / halfTilesInMapOneDim;
-    int begX = static_cast<int>( floor(extent.getMinX() / tilesSizeOneDim +
+    double tilesSizeOneDim = DEFAULT_BOUNDS.maxX() / halfTilesInMapOneDim;
+    int begX = static_cast<int>( floor(extent.minX() / tilesSizeOneDim +
                                        halfTilesInMapOneDim) );
-    int begY = static_cast<int>( floor(extent.getMinY() / tilesSizeOneDim +
+    int begY = static_cast<int>( floor(extent.minY() / tilesSizeOneDim +
                                        halfTilesInMapOneDim) );
-    int endX = static_cast<int>( ceil(extent.getMaxX() / tilesSizeOneDim +
+    int endX = static_cast<int>( ceil(extent.maxX() / tilesSizeOneDim +
                                       halfTilesInMapOneDim) );
-    int endY = static_cast<int>( ceil(extent.getMaxY() / tilesSizeOneDim +
+    int endY = static_cast<int>( ceil(extent.maxY() / tilesSizeOneDim +
                                       halfTilesInMapOneDim) );
     if(begY == endY) {
         endY++;
@@ -331,8 +331,8 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     if(reserveSize > MAX_TILES_COUNT)
         reserveSize = MAX_TILES_COUNT;
     result.reserve(reserveSize);
-    double fullBoundsMinX = DEFAULT_BOUNDS.getMinX();
-    double fullBoundsMinY = DEFAULT_BOUNDS.getMinY();
+    double fullBoundsMinX = DEFAULT_BOUNDS.minX();
+    double fullBoundsMinY = DEFAULT_BOUNDS.minY();
     for (int x = begX; x < endX; ++x) {
         for (int y = begY; y < endY; ++y) {
             realX = x;
@@ -371,14 +371,5 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
 
     return result;
 }
-
-/*
-double ngs::getPixelSize(int zoom)
-{
-    int tilesInMapOneDim = 1 << zoom;
-    long sizeOneDimPixels = tilesInMapOneDim * DEFAULT_TILE_SIZE;
-    return DEFAULT_MAX_X * 2.0 / sizeOneDimPixels;
-}
-*/
 
 } // namespace ngs

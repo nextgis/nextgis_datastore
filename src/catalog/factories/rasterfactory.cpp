@@ -152,10 +152,10 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         bool y_origin_top = options.getBoolOption(KEY_Y_ORIGIN_TOP, true);
 
         Envelope extent;
-        extent.setMinX(options.getDoubleOption(KEY_X_MIN, DEFAULT_BOUNDS.getMinX()));
-        extent.setMaxX(options.getDoubleOption(KEY_X_MAX, DEFAULT_BOUNDS.getMaxX()));
-        extent.setMinY(options.getDoubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.getMinY()));
-        extent.setMaxY(options.getDoubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.getMaxY()));
+        extent.setMinX(options.getDoubleOption(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
+        extent.setMaxX(options.getDoubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
+        extent.setMinY(options.getDoubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
+        extent.setMaxY(options.getDoubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
 
         JSONDocument connectionFile;
         JSONObject root = connectionFile.getRoot();

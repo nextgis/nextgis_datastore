@@ -65,7 +65,7 @@ GLuint GlBuffer::id(bool vertices) const
         return m_bufferIds[1];
 }
 
-size_t GlBuffer::maxIndexes()
+size_t GlBuffer::maxIndices()
 {
     return MAX_INDEX_BUFFER_SIZE;
 }

@@ -53,6 +53,7 @@ protected:
     void drawOldTiles();
     void freeOldTiles();
     void initView();
+    double pixelSize(int zoom);
 
     // Map interface
 public:

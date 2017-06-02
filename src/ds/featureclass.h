@@ -31,41 +31,60 @@ namespace ngs {
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 
+class VectorTileItem
+{
+public:
+    VectorTileItem() : m_valid(false) {}
+    void addPoint(const SimplePoint& pt) { m_points.push_back(pt); }
+    void addIndex(unsigned short index) { m_indices.push_back(index); }
+    void addBorderIndex(unsigned short ring, unsigned short index) {
+        for(unsigned short i = 0; i < ring + 1; ++i) {
+            m_borderIndices.push_back(std::vector<unsigned short>());
+        }
+        m_borderIndices[ring].push_back(index);
+    }
+    void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
+
+    GByte* save(int &size) {}
+    bool load(GByte* data, int size) { m_valid = false; return false; }
+    size_t pointCount() const { return m_points.size(); }
+    const SimplePoint& point(size_t index) const { return m_points[index]; }
+    bool isClosed() const;
+    const std::vector<SimplePoint>& points() const { return m_points; }
+    const std::vector<unsigned short>& indices() const { return m_indices; }
+    const std::vector<std::vector<unsigned short>>& borderIndices() const {
+        return m_borderIndices;
+    }
+    bool isValid() const { return m_valid; }
+    void setValid(bool valid) { m_valid = valid; }
+private:
+    std::vector<SimplePoint> m_points;
+    std::vector<unsigned short> m_indices;
+    std::vector<std::vector<unsigned short>> m_borderIndices; // NOTE: first array is exterior ring indices
+    std::vector<SimplePoint> m_centroids;
+    bool m_valid;
+};
+
 class VectorTile
 {
 public:
     VectorTile() : m_valid(false) {}
-    void add(GIntBig fid, const SimplePoint& pt);
-    void addIndex(GIntBig fid, unsigned short index) {
-        m_indices[fid].push_back(index);
-    }
+    void add(GIntBig id, VectorTileItem item) { m_items[id] = item; }
+    void addPoint(GIntBig fid, const SimplePoint& pt) { m_items[fid].addPoint(pt); }
+    void addIndex(GIntBig fid, unsigned short index) { m_items[fid].addIndex(index); }
     void addBorderIndex(GIntBig fid, unsigned short ring, unsigned short index) {
-        if(m_borderIndices[fid].empty()) {
-            for(unsigned short i = 0; i < ring + 1; ++i) {
-                m_borderIndices[fid].push_back(std::vector<unsigned short>());
-            }
-        }
-        m_borderIndices[fid][ring].push_back(index);
+        m_items[fid].addBorderIndex(ring, index);
     }
 
     GByte* save(int &size);
     bool load(GByte* data, int size);
-    std::map<GIntBig, std::vector<SimplePoint>> points() const {
-        return m_points;
+    std::map<GIntBig, VectorTileItem> points() const {
+        return m_items;
     }
-    const std::vector<unsigned short> indices(GIntBig fid) const {
-        return m_indices.find(fid)->second;
-    }
-    const std::vector<std::vector<unsigned short>> borderIndices(GIntBig fid) const {
-        return m_borderIndices.find(fid)->second;
-    }
-    bool isValid() const { return m_valid; }
 
+    bool isValid() const { return m_valid; }
 private:
-    std::map<GIntBig, std::vector<SimplePoint>> m_points;
-    std::map<GIntBig, std::vector<unsigned short>> m_indices;
-    std::map<GIntBig, std::vector<std::vector<unsigned short>>> m_borderIndices; // NOTE: first array is exterior ring indices
-    std::map<GIntBig, SimplePoint> m_centroids;
+    std::map<GIntBig, VectorTileItem> m_items;
     bool m_valid;
 };
 
@@ -114,8 +133,9 @@ public:
     virtual bool destroy() override;
 
 protected:
-    void tileGeometry(OGRGeometry* geometry);
+    VectorTileItem tileGeometry(OGRGeometry* geometry, OGRGeometry *extent, float step) const;
     void fillZoomLevels(const char* zoomLevels);
+    double pixelSize(int zoom) const;
 
 protected:
     OGRLayer *m_ovrTable;

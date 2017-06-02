@@ -210,7 +210,7 @@ TEST(MatrixTests, TestRotateByCenter) {
 TEST(MatrixTests, TestComplexProject) {
 
     int display_sqw = 100;
-    double map_sqw = ngs::DEFAULT_BOUNDS.getMaxX();
+    double map_sqw = ngs::DEFAULT_BOUNDS.maxX();
     bool m_isYAxisInverted = false;
     int m_displayWidht = display_sqw;
     int m_displayHeight = display_sqw;

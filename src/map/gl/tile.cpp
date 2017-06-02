@@ -30,34 +30,34 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_image.setImage(nullptr, tileSize, tileSize);
     m_image.setSmooth(true);
 
-    m_sceneMatrix.ortho(tileItem.env.getMinX(), tileItem.env.getMaxX(),
-                        tileItem.env.getMinY(), tileItem.env.getMaxY(),
-                        DEFAULT_BOUNDS.getMinX(), DEFAULT_BOUNDS.getMaxX());
+    m_sceneMatrix.ortho(tileItem.env.minX(), tileItem.env.maxX(),
+                        tileItem.env.minY(), tileItem.env.maxY(),
+                        DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
     m_invViewMatrix.ortho(0, tileSize, 0, tileSize, -1.0, 1.0);
 
 
     Envelope env = tileItem.env;
-    env.move(tileItem.tile.crossExtent * DEFAULT_BOUNDS.getWidth(), 0.0);
-    m_tile.addVertex(static_cast<float>(env.getMinX()));
-    m_tile.addVertex(static_cast<float>(env.getMinY()));
+    env.move(tileItem.tile.crossExtent * DEFAULT_BOUNDS.width(), 0.0);
+    m_tile.addVertex(static_cast<float>(env.minX()));
+    m_tile.addVertex(static_cast<float>(env.minY()));
     m_tile.addVertex(0.0f);
     m_tile.addVertex(0.0f);
     m_tile.addVertex(0.0f);
     m_tile.addIndex(0);
-    m_tile.addVertex(static_cast<float>(env.getMinX()));
-    m_tile.addVertex(static_cast<float>(env.getMaxY()));
+    m_tile.addVertex(static_cast<float>(env.minX()));
+    m_tile.addVertex(static_cast<float>(env.maxY()));
     m_tile.addVertex(0.0f);
     m_tile.addVertex(0.0f);
     m_tile.addVertex(1.0f);
     m_tile.addIndex(1);
-    m_tile.addVertex(static_cast<float>(env.getMaxX()));
-    m_tile.addVertex(static_cast<float>(env.getMaxY()));
+    m_tile.addVertex(static_cast<float>(env.maxX()));
+    m_tile.addVertex(static_cast<float>(env.maxY()));
     m_tile.addVertex(0.0f);
     m_tile.addVertex(1.0f);
     m_tile.addVertex(1.0f);
     m_tile.addIndex(2);
-    m_tile.addVertex(static_cast<float>(env.getMaxX()));
-    m_tile.addVertex(static_cast<float>(env.getMinY()));
+    m_tile.addVertex(static_cast<float>(env.maxX()));
+    m_tile.addVertex(static_cast<float>(env.minY()));
     m_tile.addVertex(0.0f);
     m_tile.addVertex(1.0f);
     m_tile.addVertex(0.0f);

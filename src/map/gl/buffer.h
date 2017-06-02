@@ -53,7 +53,7 @@ public:
     void addIndex(unsigned short value) { m_indices.push_back(value); }
 
     enum BufferType type() const { return m_type; }
-    static size_t maxIndexes();
+    static size_t maxIndices();
     static size_t maxVertices();
 
     // GlObject interface

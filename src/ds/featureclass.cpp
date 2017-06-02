@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "featureclass.h"
 
+#include "api_priv.h"
 #include "dataset.h"
 #include "coordinatetransformation.h"
 #include "ngstore/catalog/filter.h"
@@ -36,14 +37,21 @@
 namespace ngs {
 
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
+constexpr unsigned short TILE_SIZE = 256;
+constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
 
+//------------------------------------------------------------------------------
+// VectorTileItem
+//------------------------------------------------------------------------------
+
+bool VectorTileItem::isClosed() const
+{
+    return isEqual(m_points.front().x, m_points.back().x) &&
+                    isEqual(m_points.front().y, m_points.back().y);
+}
 //------------------------------------------------------------------------------
 // VectorTile
 //------------------------------------------------------------------------------
-void VectorTile::add(GIntBig fid, const SimplePoint &pt)
-{
-    m_points[fid].push_back(pt);
-}
 
 GByte* VectorTile::save(int &size)
 {
@@ -196,6 +204,13 @@ bool FeatureClass::hasOverviews() const
     return dataset->getOverviewsTable(getName());
 }
 
+double FeatureClass::pixelSize(int zoom) const
+{
+    int tilesInMapOneDim = 1 << zoom;
+    long sizeOneDimPixels = tilesInMapOneDim * TILE_SIZE;
+    return WORLD_WIDTH / sizeOneDimPixels;
+}
+
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
     bool force = options.getBoolOption("FORCE", false);
@@ -279,52 +294,139 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) c
     }
 
     // Tile on the fly
+
+    // Calc grid step for zoom
+    float step = static_cast<float>(pixelSize(tile.z));
+
     GeometryPtr spatFilter = tileExtent.toGeometry(getSpatialReference());
     TablePtr features = dataset->executeSQL("", spatFilter);
     FeaturePtr feature;
+    Envelope ext = tileExtent;
+    ext.resize(1.1); // FIXME: Is it enouth extra size for tile?
+    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+
+    // TODO: Exclude duplicated points, 2 point lines and 4 point polygons
+
     while((feature = nextFeature()) != nullptr) {
-        tileGeometry(feature->GetGeometryRef());
+        VectorTileItem item = tileGeometry(feature->GetGeometryRef(),
+                                           extGeom.get(), step);
+        if(item.isValid()) {
+            vtile.add(feature->GetFID(), item);
+        }
     }
 
-    Envelope ext = tileExtent;
-    ext.resize(0.8);
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-//    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-//    OGRRawPoint center = ext.getCenter();
-//        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
-//    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-
-
-    // Polygon
-    OGRRawPoint center = ext.getCenter();
-    vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
-    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
-    vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
-    vtile.addIndex(0, 0);
-    vtile.addIndex(0, 1);
-    vtile.addIndex(0, 2);
-
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-    vtile.addIndex(0, 1);
-    vtile.addIndex(0, 2);
-    vtile.addIndex(0, 3);
-
-    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-    vtile.addIndex(0, 1);
-    vtile.addIndex(0, 3);
-    vtile.addIndex(0, 4);
-
-    vtile.addBorderIndex(0, 0, 0);
-    vtile.addBorderIndex(0, 0, 1);
-    vtile.addBorderIndex(0, 0, 4);
-    vtile.addBorderIndex(0, 0, 3);
-    vtile.addBorderIndex(0, 0, 2);
-    vtile.addBorderIndex(0, 0, 0);
-
     return vtile;
+}
+
+VectorTileItem FeatureClass::tileGeometry(OGRGeometry *geometry,
+                                          OGRGeometry *extent, float step) const
+{
+    if(nullptr == geometry) {
+        return VectorTileItem();
+    }
+
+    GeometryPtr cutGeom(geometry->Intersection(extent));
+    if(!cutGeom) {
+        return VectorTileItem();
+    }
+
+    VectorTileItem vitem;
+
+    switch(OGR_GT_Flatten(geometry->getGeometryType())) {
+    case wkbPoint:
+        return "pt";
+    case wkbLineString:
+        return "ln";
+    case wkbPolygon:
+        return "plg";
+    case wkbMultiPoint:
+        return "mptr";
+    case wkbMultiLineString:
+        return "mln";
+    case wkbMultiPolygon:
+        return "mplg";
+    case wkbGeometryCollection:
+        return "gt";
+    case wkbCircularString:
+        return "cir";
+    case wkbCompoundCurve:
+        return "ccrv";
+    case wkbCurvePolygon:
+        return "crvplg";
+    case wkbMultiCurve:
+        return "mcrv";
+    case wkbMultiSurface:
+        return "msurf";
+    case wkbCurve:
+        return "crv";
+    case wkbSurface:
+        return "surf";
+    case wkbPolyhedralSurface:
+        return "psurf";
+    case wkbTIN:
+        return "tin";
+    case wkbTriangle:
+        return "triangle";
+    default:
+        break;
+    }
+
+    vitem.setValid(true);
+    return vitem;
+
+
+    OGREnvelope extent;
+    geometry->getEnvelope(&extent);
+    Envelope geometryExtent(extent);
+
+    // TODO: Tile and simplify geometry
+
+
+
+    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    //    OGRRawPoint center = ext.getCenter();
+    //        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+
+
+        // Polygon
+        OGRRawPoint center = ext.getCenter();
+        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+        vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
+        vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
+        vtile.addIndex(0, 0);
+        vtile.addIndex(0, 1);
+        vtile.addIndex(0, 2);
+
+        vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+        vtile.addIndex(0, 1);
+        vtile.addIndex(0, 2);
+        vtile.addIndex(0, 3);
+
+        vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+        vtile.addIndex(0, 1);
+        vtile.addIndex(0, 3);
+        vtile.addIndex(0, 4);
+
+        vtile.addBorderIndex(0, 0, 0);
+        vtile.addBorderIndex(0, 0, 1);
+        vtile.addBorderIndex(0, 0, 4);
+        vtile.addBorderIndex(0, 0, 3);
+        vtile.addBorderIndex(0, 0, 2);
+        vtile.addBorderIndex(0, 0, 0);
+
+
+/*        GByte* geomBlob = (GByte*) VSI_MALLOC_VERBOSE(blobLen);
+    if( geomBlob != nullptr && simpleGeom->exportToWkb(
+                wkbNDR, geomBlob) == OGRERR_NONE )
+        dstFeature->SetField (dstFeature->GetFieldIndex(
+            CPLSPrintf ("ngs_geom_%d", sampleDist.second)),
+            blobLen, geomBlob);
+    CPLFree(geomBlob);*/
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
@@ -485,27 +587,6 @@ bool FeatureClass::destroy()
     dataset->destroyOverviewsTable(getName()); // Overviews table maybe not exists
 
     return true;
-}
-
-void FeatureClass::tileGeometry(OGRGeometry *geometry)
-{
-    if(nullptr == geometry) {
-        return;
-    }
-
-    OGREnvelope extent;
-    geometry->getEnvelope(&extent);
-    Envelope geometryExtent(extent);
-
-    // TODO: Tile and simplify geometry
-
-/*        GByte* geomBlob = (GByte*) VSI_MALLOC_VERBOSE(blobLen);
-    if( geomBlob != nullptr && simpleGeom->exportToWkb(
-                wkbNDR, geomBlob) == OGRERR_NONE )
-        dstFeature->SetField (dstFeature->GetFieldIndex(
-            CPLSPrintf ("ngs_geom_%d", sampleDist.second)),
-            blobLen, geomBlob);
-    CPLFree(geomBlob);*/
 }
 
 void FeatureClass::fillZoomLevels(const char *zoomLevels)

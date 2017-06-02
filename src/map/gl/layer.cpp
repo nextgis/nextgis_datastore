@@ -18,6 +18,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+
 #include "layer.h"
 #include "style.h"
 #include "view.h"
@@ -186,22 +187,23 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
             continue;
         }
 
-        auto points = it->second;
+        VectorTileItem tileItem = it->second;
 
-        if(points.size() < 1) {
+        if(tileItem.pointCount() < 1) {
             ++it;
             continue;
         }
 
-        for(size_t i = 0; i < points.size(); ++i) {
+        for(size_t i = 0; i < tileItem.pointCount(); ++i) {
             if(!buffer->canStoreVertices(3, false)) {
                 bufferArray->addBuffer(buffer);
                 index = 0;
                 buffer = new GlBuffer(GlBuffer::BF_PT);
             }
 
-            buffer->addVertex(static_cast<float>(points[i].x));
-            buffer->addVertex(static_cast<float>(points[i].y));
+            const SimplePoint& pt = tileItem.point(i);
+            buffer->addVertex(static_cast<float>(pt.x));
+            buffer->addVertex(static_cast<float>(pt.y));
             buffer->addVertex(0.0f);
             buffer->addIndex(index++);
         }
@@ -226,22 +228,23 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
             continue;
         }
 
-        auto points = it->second;
+        VectorTileItem tileItem = it->second;
 
-        if(points.size() < 2) {
+        if(tileItem.pointCount() < 2) {
             ++it;
             continue;
         }
 
         // Check if line is closed or not
-        bool closed = isEqual(points.front().x, points.back().x) &&
-                isEqual(points.front().y, points.back().y);
+        bool closed = tileItem.isClosed();
 
         Normal prevNormal;
-        for(size_t i = 0; i < points.size() - 1; ++i) {
-            Normal normal = ngsGetNormals(points[i], points[i + 1]);
+        for(size_t i = 0; i < tileItem.pointCount() - 1; ++i) {
+            const SimplePoint& pt1 = tileItem.point(i);
+            const SimplePoint& pt2 = tileItem.point(i + 1);
+            Normal normal = ngsGetNormals(pt1, pt2);
 
-            if(i == 0 || i == points.size() - 2) { // Add cap
+            if(i == 0 || i == tileItem.pointCount() - 2) { // Add cap
                 if(!closed) {
                     if(i == 0) {
                         if(!buffer->canStoreVertices(lineCapVerticesCount(), true)) {
@@ -249,10 +252,10 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                             index = 0;
                             buffer = new GlBuffer(GlBuffer::BF_LINE);
                         }
-                        index = addLineCap(points[i], normal, index, buffer);
+                        index = addLineCap(pt1, normal, index, buffer);
                     }
 
-                    if(i == points.size() - 2) {
+                    if(i == tileItem.pointCount() - 2) {
                         if(!buffer->canStoreVertices(lineCapVerticesCount(), true)) {
                             bufferArray->addBuffer(buffer);
                             index = 0;
@@ -262,7 +265,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                         Normal reverseNormal;
                         reverseNormal.x = -normal.x;
                         reverseNormal.y = -normal.y;
-                        index = addLineCap(points[i + 1], reverseNormal, index, buffer);
+                        index = addLineCap(pt2, reverseNormal, index, buffer);
                     }
                 }
             }
@@ -273,7 +276,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                     index = 0;
                     buffer = new GlBuffer(GlBuffer::BF_LINE);
                 }
-                index = addLineJoin(points[i], prevNormal, normal, index, buffer);
+                index = addLineJoin(pt1, prevNormal, normal, index, buffer);
             }
 
             if(!buffer->canStoreVertices(12, true)) {
@@ -283,32 +286,32 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
             }
 
             // 0
-            buffer->addVertex(points[i].x);
-            buffer->addVertex(points[i].y);
+            buffer->addVertex(pt1.x);
+            buffer->addVertex(pt1.y);
             buffer->addVertex(0.0f);
             buffer->addVertex(-normal.x);
             buffer->addVertex(-normal.y);
             buffer->addIndex(index++); // 0
 
             // 1
-            buffer->addVertex(points[i + 1].x);
-            buffer->addVertex(points[i + 1].y);
+            buffer->addVertex(pt2.x);
+            buffer->addVertex(pt2.y);
             buffer->addVertex(0.0f);
             buffer->addVertex(-normal.x);
             buffer->addVertex(-normal.y);
             buffer->addIndex(index++); // 1
 
             // 2
-            buffer->addVertex(points[i].x);
-            buffer->addVertex(points[i].y);
+            buffer->addVertex(pt1.x);
+            buffer->addVertex(pt1.y);
             buffer->addVertex(0.0f);
             buffer->addVertex(normal.x);
             buffer->addVertex(normal.y);
             buffer->addIndex(index++); // 2
 
             // 3
-            buffer->addVertex(points[i + 1].x);
-            buffer->addVertex(points[i + 1].y);
+            buffer->addVertex(pt2.x);
+            buffer->addVertex(pt2.y);
             buffer->addVertex(0.0f);
             buffer->addVertex(normal.x);
             buffer->addVertex(normal.y);
@@ -342,10 +345,10 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
             continue;
         }
 
-        auto points = it->second;
-        auto indices = tile.indices(it->first);
+        auto points = it->second.points();
+        auto indices = it->second.indices();
 
-        if(points.size() < 3 || points.size() > GlBuffer::maxIndexes() ||
+        if(points.size() < 3 || points.size() > GlBuffer::maxIndices() ||
                 points.size() > GlBuffer::maxVertices()) {
             ++it;
             continue;
@@ -365,7 +368,6 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
         }
 
         // FIXME: Expected indices should fit to buffer as points can
-
         unsigned short maxFillIndex = 0;
         for(auto indexPoint : indices) {
             fillBuffer->addIndex(fillIndex + indexPoint);
@@ -380,7 +382,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
         // FIXME: May be more styles with borders
         if(EQUAL(m_style->name(), "simpleFillBordered")) {
 
-        auto borders = tile.borderIndices(it->first);
+        auto borders = it->second.borderIndices();
         for(auto border : borders) {
             Normal prevNormal;
             Normal firstNormal;
@@ -897,25 +899,25 @@ bool GlRasterLayer::fill(GlTilePtr tile)
     }
 
     // Calc output buffer width and height
-    int outWidth = static_cast<int>(rasterExtent.getWidth() *
+    int outWidth = static_cast<int>(rasterExtent.width() *
                                     tile->getSizeInPixels() /
-                                    tileExtent.getWidth());
-    int outHeight = static_cast<int>(rasterExtent.getHeight() *
+                                    tileExtent.width());
+    int outHeight = static_cast<int>(rasterExtent.height() *
                                      tile->getSizeInPixels() /
-                                     tileExtent.getHeight());
+                                     tileExtent.height());
 
     if(noTransform) {
         // Swap min/max Y
-        rasterExtent.setMaxY(m_raster->getHeight() - rasterExtent.getMinY());
-        rasterExtent.setMinY(m_raster->getHeight() - rasterExtent.getMaxY());
+        rasterExtent.setMaxY(m_raster->getHeight() - rasterExtent.minY());
+        rasterExtent.setMinY(m_raster->getHeight() - rasterExtent.maxY());
     }
     else {
         double minX, minY, maxX, maxY;
-        GDALApplyGeoTransform(invGeoTransform, rasterExtent.getMinX(),
-                              rasterExtent.getMinY(), &minX, &maxY);
+        GDALApplyGeoTransform(invGeoTransform, rasterExtent.minX(),
+                              rasterExtent.minY(), &minX, &maxY);
 
-        GDALApplyGeoTransform(invGeoTransform, rasterExtent.getMaxX(),
-                              rasterExtent.getMaxY(), &maxX, &minY);
+        GDALApplyGeoTransform(invGeoTransform, rasterExtent.maxX(),
+                              rasterExtent.maxY(), &maxX, &minY);
         rasterExtent.setMinX(minX);
         rasterExtent.setMaxX(maxX);
         rasterExtent.setMinY(minY);
@@ -925,10 +927,10 @@ bool GlRasterLayer::fill(GlTilePtr tile)
     rasterExtent.fix();
 
     // Get width & height in pixels of raster area
-    int width = static_cast<int>(std::ceil(rasterExtent.getWidth()));
-    int height = static_cast<int>(std::ceil(rasterExtent.getHeight()));
-    int minX = static_cast<int>(std::floor(rasterExtent.getMinX()));
-    int minY = static_cast<int>(std::floor(rasterExtent.getMinY()));
+    int width = static_cast<int>(std::ceil(rasterExtent.width()));
+    int height = static_cast<int>(std::ceil(rasterExtent.height()));
+    int minX = static_cast<int>(std::floor(rasterExtent.minX()));
+    int minY = static_cast<int>(std::floor(rasterExtent.minY()));
 
     // Correct data
     if(minX < 0) {
@@ -997,26 +999,26 @@ bool GlRasterLayer::fill(GlTilePtr tile)
 
     // FIXME: Reproject intersect raster extent to tile extent
     GlBuffer* tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX() - 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minX() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minY() - 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinX() - 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minX() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxY() + 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(1);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX() + 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxY() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxX() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxY() + 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(2);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMaxX() + 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.getMinY() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxX() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minY() - 0.2));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(1.0f);

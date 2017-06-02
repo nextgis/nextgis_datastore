@@ -55,20 +55,20 @@ public:
     void setRatio(double ratio);
     void resize(double value);
     void move(double deltaX, double deltaY);
-    constexpr double getWidth() const {return m_maxX - m_minX;}
-    constexpr double getHeight() const {return m_maxY - m_minY;}
+    constexpr double width() const { return m_maxX - m_minX; }
+    constexpr double height() const { return m_maxY - m_minY; }
     GeometryPtr toGeometry(OGRSpatialReference * const spatialRef) const;
     OGREnvelope getOgrEnvelope() const;
 
-    constexpr double getMinX() const {return m_minX;}
-    constexpr double getMinY() const {return m_minY;}
-    constexpr double getMaxX() const {return m_maxX;}
-    constexpr double getMaxY() const {return m_maxY;}
+    constexpr double minX() const { return m_minX; }
+    constexpr double minY() const { return m_minY; }
+    constexpr double maxX() const { return m_maxX; }
+    constexpr double maxY() const { return m_maxY; }
 
-    void setMinX(double minX) {m_minX = minX;}
-    void setMinY(double minY) {m_minY = minY;}
-    void setMaxX(double maxX) {m_maxX = maxX;}
-    void setMaxY(double maxY) {m_maxY = maxY;}
+    void setMinX(double minX) { m_minX = minX; }
+    void setMinY(double minY) { m_minY = minY; }
+    void setMaxX(double maxX) { m_maxX = maxX; }
+    void setMaxY(double maxY) { m_maxY = maxY; }
 
     bool load(const JSONObject& store, const Envelope& defaultValue);
     JSONObject save() const;
@@ -86,10 +86,10 @@ constexpr unsigned short DEFAULT_EPSG = 3857;
 
 constexpr Envelope DEFAULT_BOUNDS = Envelope(-20037508.34, -20037508.34,
                                        20037508.34, 20037508.34);
-constexpr Envelope DEFAULT_BOUNDS_X2 = Envelope(DEFAULT_BOUNDS.getMinX() * 2,
-                                          DEFAULT_BOUNDS.getMinY() * 2,
-                                          DEFAULT_BOUNDS.getMaxX() * 2,
-                                          DEFAULT_BOUNDS.getMaxY() * 2);
+constexpr Envelope DEFAULT_BOUNDS_X2 = Envelope(DEFAULT_BOUNDS.minX() * 2,
+                                          DEFAULT_BOUNDS.minY() * 2,
+                                          DEFAULT_BOUNDS.maxX() * 2,
+                                          DEFAULT_BOUNDS.maxY() * 2);
 
 //    OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
 

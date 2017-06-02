@@ -330,6 +330,13 @@ void GlView::initView()
     m_threadPool.init(numThreads, layerDataFillJobThreadFunc);
 }
 
+double GlView::pixelSize(int zoom)
+{
+    int tilesInMapOneDim = 1 << zoom;
+    long sizeOneDimPixels = tilesInMapOneDim * GLTILE_SIZE;
+    return m_bounds.width() / sizeOneDimPixels;
+}
+
 #ifdef NGS_GL_DEBUG
 void GlView::testDrawPoints() const
 {

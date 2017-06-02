@@ -81,9 +81,9 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
             "<BlockSizeY>256</BlockSizeY><BandsCount>3</BandsCount>"
             "<Cache/></GDAL_WMS>",
-                                         url.c_str(), m_extent.getMinX(),
-                                         m_extent.getMaxY(), m_extent.getMaxX(),
-                                         m_extent.getMinY(), z_max,
+                                         url.c_str(), m_extent.minX(),
+                                         m_extent.maxY(), m_extent.maxX(),
+                                         m_extent.minY(), z_max,
                                          y_origin_top ? "top" : "bottom",
                                          epsg);
 
@@ -187,16 +187,16 @@ void Raster::setExtent()
         for(int i = 0; i < 4; ++i) {
             double rX, rY;
             GDALApplyGeoTransform( geoTransform, inX[i], inY[i], &rX, &rY );
-            if(m_extent.getMaxX() < rX) {
+            if(m_extent.maxX() < rX) {
                 m_extent.setMaxX(rX);
             }
-            if(m_extent.getMinX() > rX) {
+            if(m_extent.minX() > rX) {
                 m_extent.setMinX(rX);
             }
-            if(m_extent.getMaxY() < rY) {
+            if(m_extent.maxY() < rY) {
                 m_extent.setMaxY(rY);
             }
-            if(m_extent.getMinY() > rY) {
+            if(m_extent.minY() > rY) {
                 m_extent.setMinY(rY);
             }
         }
