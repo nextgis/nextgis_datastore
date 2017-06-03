@@ -39,19 +39,55 @@ namespace ngs {
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 constexpr unsigned short TILE_SIZE = 256;
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
+constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
 
 //------------------------------------------------------------------------------
 // VectorTileItem
 //------------------------------------------------------------------------------
 
+VectorTileItem::VectorTileItem() :
+     m_valid(false),
+     m_2d(true)
+{
+
+}
+
+GByte *VectorTileItem::save(int &size)
+{
+    size = 0;
+    return nullptr;
+}
+
+bool VectorTileItem::load(GByte *data, int size)
+{
+     m_valid = false; return false;
+}
+
 bool VectorTileItem::isClosed() const
 {
     return isEqual(m_points.front().x, m_points.back().x) &&
-                    isEqual(m_points.front().y, m_points.back().y);
+            isEqual(m_points.front().y, m_points.back().y);
 }
+
+void VectorTileItem::loadIds(const VectorTileItem &item)
+{
+    for(GIntBig id : item.m_ids) {
+        m_ids.insert(id);
+    }
+}
+
 //------------------------------------------------------------------------------
 // VectorTile
 //------------------------------------------------------------------------------
+
+void VectorTile::add(VectorTileItem item)
+{
+    auto it = std::find(m_items.begin(), m_items.end(), item);
+    if(it == m_items.end())
+        m_items.push_back(item);
+    else
+        (*it).loadIds(item);
+}
 
 GByte* VectorTile::save(int &size)
 {
@@ -211,6 +247,115 @@ double FeatureClass::pixelSize(int zoom) const
     return WORLD_WIDTH / sizeOneDimPixels;
 }
 
+SimplePoint generalizePoint(OGRPoint* pt, float step)
+{
+    float x = static_cast<long>(pt->getX() / static_cast<double>(step)) * step;
+    float y = static_cast<long>(pt->getY() / static_cast<double>(step)) * step;
+
+    return {x, y};
+}
+
+void FeatureClass::tilePoint(OGRGeometry *geom, OGRGeometry *extent, float step,
+                             VectorTileItem *vitem) const
+{
+    if(!extent->Intersects(geom))
+        return;
+
+    OGRPoint* pt = static_cast<OGRPoint*>(geom);
+    vitem->addPoint(generalizePoint(pt, step));
+}
+
+void FeatureClass::tileLine(OGRGeometry *geom, OGRGeometry *extent, float step,
+                            VectorTileItem *vitem) const
+{
+/*
+    OGREnvelope extent;
+    geometry->getEnvelope(&extent);
+    Envelope geometryExtent(extent);
+
+    // TODO: Tile and simplify geometry
+
+
+
+    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
+    //    OGRRawPoint center = ext.getCenter();
+    //        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+
+
+        // Polygon
+        OGRRawPoint center = ext.getCenter();
+        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
+        vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
+        vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
+        vtile.addIndex(0, 0);
+        vtile.addIndex(0, 1);
+        vtile.addIndex(0, 2);
+
+        vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
+        vtile.addIndex(0, 1);
+        vtile.addIndex(0, 2);
+        vtile.addIndex(0, 3);
+
+        vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
+        vtile.addIndex(0, 1);
+        vtile.addIndex(0, 3);
+        vtile.addIndex(0, 4);
+
+        vtile.addBorderIndex(0, 0, 0);
+        vtile.addBorderIndex(0, 0, 1);
+        vtile.addBorderIndex(0, 0, 4);
+        vtile.addBorderIndex(0, 0, 3);
+        vtile.addBorderIndex(0, 0, 2);
+        vtile.addBorderIndex(0, 0, 0);
+*/
+
+/*        GByte* geomBlob = (GByte*) VSI_MALLOC_VERBOSE(blobLen);
+    if( geomBlob != nullptr && simpleGeom->exportToWkb(
+                wkbNDR, geomBlob) == OGRERR_NONE )
+        dstFeature->SetField (dstFeature->GetFieldIndex(
+            CPLSPrintf ("ngs_geom_%d", sampleDist.second)),
+            blobLen, geomBlob);
+    CPLFree(geomBlob);*/
+}
+
+void FeatureClass::tilePolygon(OGRGeometry *geom, OGRGeometry *extent, float step,
+                               VectorTileItem *vitem) const
+{
+
+}
+
+void FeatureClass::tileMultiPoint(OGRGeometry *geom, OGRGeometry *extent,
+                                  float step, VectorTileItem *vitem) const
+{
+    OGRMultiPoint* mpoint = static_cast<OGRMultiPoint*>(geom);
+    for(int i = 0; i < mpoint->getNumGeometries(); ++i) {
+        tilePoint(mpoint->getGeometryRef(i), extent, step, vitem);
+    }
+}
+
+void FeatureClass::tileMultiLine(OGRGeometry *geom, OGRGeometry *extent,
+                                 float step, VectorTileItem *vitem) const
+{
+    OGRMultiLineString* mline = static_cast<OGRMultiLineString*>(geom);
+    for(int i = 0; i < mline->getNumGeometries(); ++i) {
+        tileLine(mline->getGeometryRef(i), extent, step, vitem);
+    }
+}
+
+void FeatureClass::tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent,
+                                    float step, VectorTileItem *vitem) const
+{
+    OGRMultiPolygon* mpoly = static_cast<OGRMultiPolygon*>(geom);
+    for(int i = 0; i < mpoly->getNumGeometries(); ++i) {
+        tileLine(mpoly->getGeometryRef(i), extent, step, vitem);
+    }
+}
+
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
     bool force = options.getBoolOption("FORCE", false);
@@ -256,15 +401,20 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                         _("Start tiling and simplifieng geometry"));
 
     // TODO: multithreaded thread pool
-    FeaturePtr feature;
+/*    FeaturePtr feature;
     GIntBig count = featureCount(false);
     double counter = 0;
+    float step = static_cast<float>(pixelSize(tile.z));
+    Envelope ext = tileExtent;
+    ext.resize(TILE_RESIZE);
+    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+
     while((feature = nextFeature()) != nullptr) {
         progress.onProgress(ngsCode::COD_IN_PROCESS, counter++ / count,
                             _("Proceeding..."));
-        tileGeometry(feature->GetGeometryRef());
+        tileGeometry(feature, extGeom, step);
     }
-
+*/
     return ngsCode::COD_SUCCESS;
 }
 
@@ -299,28 +449,30 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) c
     float step = static_cast<float>(pixelSize(tile.z));
 
     GeometryPtr spatFilter = tileExtent.toGeometry(getSpatialReference());
-    TablePtr features = dataset->executeSQL("", spatFilter);
+    TablePtr features = dataset->executeSQL(CPLSPrintf("SELECT %s,%s FROM %s",
+                                                       fidColumn(),
+                                                       geometryColumn(),
+                                                       getName().c_str()),
+                                            spatFilter);
     FeaturePtr feature;
     Envelope ext = tileExtent;
-    ext.resize(1.1); // FIXME: Is it enouth extra size for tile?
+    ext.resize(TILE_RESIZE);
     GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
 
-    // TODO: Exclude duplicated points, 2 point lines and 4 point polygons
-
-    while((feature = nextFeature()) != nullptr) {
-        VectorTileItem item = tileGeometry(feature->GetGeometryRef(),
-                                           extGeom.get(), step);
+    while((feature = features->nextFeature()) != nullptr) {
+        VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
         if(item.isValid()) {
-            vtile.add(feature->GetFID(), item);
+            vtile.add(item);
         }
     }
 
     return vtile;
 }
 
-VectorTileItem FeatureClass::tileGeometry(OGRGeometry *geometry,
+VectorTileItem FeatureClass::tileGeometry(const FeaturePtr &feature,
                                           OGRGeometry *extent, float step) const
 {
+    OGRGeometry *geometry = feature->GetGeometryRef();
     if(nullptr == geometry) {
         return VectorTileItem();
     }
@@ -331,102 +483,43 @@ VectorTileItem FeatureClass::tileGeometry(OGRGeometry *geometry,
     }
 
     VectorTileItem vitem;
-
+    vitem.addId(feature->GetFID());
     switch(OGR_GT_Flatten(geometry->getGeometryType())) {
     case wkbPoint:
-        return "pt";
-    case wkbLineString:
-        return "ln";
-    case wkbPolygon:
-        return "plg";
-    case wkbMultiPoint:
-        return "mptr";
-    case wkbMultiLineString:
-        return "mln";
-    case wkbMultiPolygon:
-        return "mplg";
-    case wkbGeometryCollection:
-        return "gt";
-    case wkbCircularString:
-        return "cir";
-    case wkbCompoundCurve:
-        return "ccrv";
-    case wkbCurvePolygon:
-        return "crvplg";
-    case wkbMultiCurve:
-        return "mcrv";
-    case wkbMultiSurface:
-        return "msurf";
-    case wkbCurve:
-        return "crv";
-    case wkbSurface:
-        return "surf";
-    case wkbPolyhedralSurface:
-        return "psurf";
-    case wkbTIN:
-        return "tin";
-    case wkbTriangle:
-        return "triangle";
-    default:
+        tilePoint(geometry, extent, step, &vitem);
         break;
+    case wkbLineString:
+        tileLine(geometry, extent, step, &vitem);
+        break;
+    case wkbPolygon:
+        tilePolygon(geometry, extent, step, &vitem);
+        break;
+    case wkbMultiPoint:
+        tileMultiPoint(geometry, extent, step, &vitem);
+        break;
+    case wkbMultiLineString:
+        tileMultiLine(geometry, extent, step, &vitem);
+        break;
+    case wkbMultiPolygon:
+        tileMultiPolygon(geometry, extent, step, &vitem);
+        break;
+    case wkbGeometryCollection:
+    case wkbCircularString:
+    case wkbCompoundCurve:
+    case wkbCurvePolygon:
+    case wkbMultiCurve:
+    case wkbMultiSurface:
+    case wkbCurve:
+    case wkbSurface:
+    case wkbPolyhedralSurface:
+    case wkbTIN:
+    case wkbTriangle:
+    default:
+        break; // Not supported yet
     }
 
     vitem.setValid(true);
     return vitem;
-
-
-    OGREnvelope extent;
-    geometry->getEnvelope(&extent);
-    Envelope geometryExtent(extent);
-
-    // TODO: Tile and simplify geometry
-
-
-
-    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
-    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-    //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
-    //    OGRRawPoint center = ext.getCenter();
-    //        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
-    //    vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-
-
-        // Polygon
-        OGRRawPoint center = ext.getCenter();
-        vtile.add(0, { static_cast<float>( ext.getMinX() + (center.x - ext.getMinX()) / 2), static_cast<float>(center.y) });
-        vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMaxY()) });
-        vtile.add(0, { static_cast<float>(center.x), static_cast<float>(ext.getMinY()) });
-        vtile.addIndex(0, 0);
-        vtile.addIndex(0, 1);
-        vtile.addIndex(0, 2);
-
-        vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMinY()) });
-        vtile.addIndex(0, 1);
-        vtile.addIndex(0, 2);
-        vtile.addIndex(0, 3);
-
-        vtile.add(0, { static_cast<float>(ext.getMaxX()), static_cast<float>(ext.getMaxY()) });
-        vtile.addIndex(0, 1);
-        vtile.addIndex(0, 3);
-        vtile.addIndex(0, 4);
-
-        vtile.addBorderIndex(0, 0, 0);
-        vtile.addBorderIndex(0, 0, 1);
-        vtile.addBorderIndex(0, 0, 4);
-        vtile.addBorderIndex(0, 0, 3);
-        vtile.addBorderIndex(0, 0, 2);
-        vtile.addBorderIndex(0, 0, 0);
-
-
-/*        GByte* geomBlob = (GByte*) VSI_MALLOC_VERBOSE(blobLen);
-    if( geomBlob != nullptr && simpleGeom->exportToWkb(
-                wkbNDR, geomBlob) == OGRERR_NONE )
-        dstFeature->SetField (dstFeature->GetFieldIndex(
-            CPLSPrintf ("ngs_geom_%d", sampleDist.second)),
-            blobLen, geomBlob);
-    CPLFree(geomBlob);*/
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)

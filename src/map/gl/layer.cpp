@@ -177,17 +177,16 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
 VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
-    auto items = tile.points();
+    auto items = tile.items();
     auto it = items.begin();
     unsigned short index = 0;
     GlBuffer *buffer = new GlBuffer(GlBuffer::BF_PT);
     while(it != items.end()) {
-        if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
+        VectorTileItem tileItem = *it;
+        if(tileItem.isIdsPresent(m_skipFIDs)) {
             ++it;
             continue;
         }
-
-        VectorTileItem tileItem = it->second;
 
         if(tileItem.pointCount() < 1) {
             ++it;
@@ -218,17 +217,16 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
 VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
-    auto items = tile.points();
+    auto items = tile.items();
     auto it = items.begin();
     unsigned short index = 0;
     GlBuffer *buffer = new GlBuffer(GlBuffer::BF_LINE);
     while(it != items.end()) {
-        if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
+        VectorTileItem tileItem = *it;
+        if(tileItem.isIdsPresent(m_skipFIDs)) {
             ++it;
             continue;
         }
-
-        VectorTileItem tileItem = it->second;
 
         if(tileItem.pointCount() < 2) {
             ++it;
@@ -332,7 +330,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
 VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
-    auto items = tile.points();
+    auto items = tile.items();
     auto it = items.begin();
     unsigned short fillIndex = 0;
     unsigned short lineIndex = 0;
@@ -340,13 +338,14 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
     GlBuffer *lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
 
     while(it != items.end()) {
-        if(m_skipFIDs.find(it->first) != m_skipFIDs.end()) {
+        VectorTileItem tileItem = *it;
+        if(tileItem.isIdsPresent(m_skipFIDs)) {
             ++it;
             continue;
         }
 
-        auto points = it->second.points();
-        auto indices = it->second.indices();
+        auto points = tileItem.points();
+        auto indices = tileItem.indices();
 
         if(points.size() < 3 || points.size() > GlBuffer::maxIndices() ||
                 points.size() > GlBuffer::maxVertices()) {
@@ -382,7 +381,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
         // FIXME: May be more styles with borders
         if(EQUAL(m_style->name(), "simpleFillBordered")) {
 
-        auto borders = it->second.borderIndices();
+        auto borders = (*it).borderIndices();
         for(auto border : borders) {
             Normal prevNormal;
             Normal firstNormal;

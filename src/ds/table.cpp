@@ -230,7 +230,7 @@ OGRFeatureDefn *Table::definition() const
     return m_layer->GetLayerDefn();
 }
 
-const char* Table::FIDColumn() const
+const char* Table::fidColumn() const
 {
     if(nullptr == m_layer)
         return "";

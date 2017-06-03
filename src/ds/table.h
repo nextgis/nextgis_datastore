@@ -69,7 +69,7 @@ public:
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
     OGRFeatureDefn *definition() const;
-    const char *FIDColumn() const;
+    const char *fidColumn() const;
 
     // Object interface
 public:

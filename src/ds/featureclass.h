@@ -21,6 +21,8 @@
 #ifndef NGSFEATUREDATASET_H
 #define NGSFEATUREDATASET_H
 
+#include <set>
+
 #include "coordinatetransformation.h"
 #include "geometry.h"
 #include "table.h"
@@ -34,7 +36,8 @@ typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 class VectorTileItem
 {
 public:
-    VectorTileItem() : m_valid(false) {}
+    VectorTileItem();
+    void addId(GIntBig id) { m_ids.insert(id); }
     void addPoint(const SimplePoint& pt) { m_points.push_back(pt); }
     void addIndex(unsigned short index) { m_indices.push_back(index); }
     void addBorderIndex(unsigned short ring, unsigned short index) {
@@ -45,8 +48,8 @@ public:
     }
     void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
 
-    GByte* save(int &size) {}
-    bool load(GByte* data, int size) { m_valid = false; return false; }
+    GByte* save(int &size);
+    bool load(GByte* data, int size);
     size_t pointCount() const { return m_points.size(); }
     const SimplePoint& point(size_t index) const { return m_points[index]; }
     bool isClosed() const;
@@ -57,34 +60,41 @@ public:
     }
     bool isValid() const { return m_valid; }
     void setValid(bool valid) { m_valid = valid; }
+    void loadIds(const VectorTileItem& item);
+    bool operator==(const VectorTileItem& other) const {
+        return m_points == other.m_points;
+    }
+    bool isIdsPresent(std::set<GIntBig> other) const { return m_ids == other; }
 private:
     std::vector<SimplePoint> m_points;
     std::vector<unsigned short> m_indices;
     std::vector<std::vector<unsigned short>> m_borderIndices; // NOTE: first array is exterior ring indices
     std::vector<SimplePoint> m_centroids;
+    std::set<GIntBig> m_ids;
     bool m_valid;
+    bool m_2d;
 };
 
 class VectorTile
 {
 public:
     VectorTile() : m_valid(false) {}
-    void add(GIntBig id, VectorTileItem item) { m_items[id] = item; }
-    void addPoint(GIntBig fid, const SimplePoint& pt) { m_items[fid].addPoint(pt); }
-    void addIndex(GIntBig fid, unsigned short index) { m_items[fid].addIndex(index); }
-    void addBorderIndex(GIntBig fid, unsigned short ring, unsigned short index) {
-        m_items[fid].addBorderIndex(ring, index);
-    }
+    void add(VectorTileItem item);
+//    void addPoint(GIntBig fid, const SimplePoint& pt) { m_items[fid].addPoint(pt); }
+//    void addIndex(GIntBig fid, unsigned short index) { m_items[fid].addIndex(index); }
+//    void addBorderIndex(GIntBig fid, unsigned short ring, unsigned short index) {
+//        m_items[fid].addBorderIndex(ring, index);
+//    }
 
     GByte* save(int &size);
     bool load(GByte* data, int size);
-    std::map<GIntBig, VectorTileItem> points() const {
+    std::vector<VectorTileItem> items() const {
         return m_items;
     }
 
     bool isValid() const { return m_valid; }
 private:
-    std::map<GIntBig, VectorTileItem> m_items;
+    std::vector<VectorTileItem> m_items;
     bool m_valid;
 };
 
@@ -133,9 +143,23 @@ public:
     virtual bool destroy() override;
 
 protected:
-    VectorTileItem tileGeometry(OGRGeometry* geometry, OGRGeometry *extent, float step) const;
+    VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry *extent,
+                                float step) const;
     void fillZoomLevels(const char* zoomLevels);
     double pixelSize(int zoom) const;
+
+    void tilePoint(OGRGeometry *geom, OGRGeometry *extent, float step,
+                   VectorTileItem *vitem) const;
+    void tileLine(OGRGeometry *geom, OGRGeometry *extent, float step,
+                   VectorTileItem *vitem)  const;
+    void tilePolygon(OGRGeometry *geom, OGRGeometry *extent, float step,
+                   VectorTileItem *vitem)  const;
+    void tileMultiPoint(OGRGeometry *geom, OGRGeometry *extent, float step,
+                   VectorTileItem *vitem)  const;
+    void tileMultiLine(OGRGeometry *geom, OGRGeometry *extent, float step,
+                   VectorTileItem *vitem)  const;
+    void tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent, float step,
+                   VectorTileItem *vitem)  const;
 
 protected:
     OGRLayer *m_ovrTable;

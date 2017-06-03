@@ -26,6 +26,7 @@
 #include <array>
 #include <memory>
 
+#include "api_priv.h"
 #include "util/jsondocument.h"
 
 namespace ngs {
@@ -95,6 +96,8 @@ constexpr Envelope DEFAULT_BOUNDS_X2 = Envelope(DEFAULT_BOUNDS.minX() * 2,
 
 typedef struct _normal {
     float x, y;
+    bool operator==(const _normal& other) const { return isEqual(x, other.x) &&
+                isEqual(y,other.y);}
 } Normal, SimplePoint;
 
 Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end);
