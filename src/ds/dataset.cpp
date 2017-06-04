@@ -739,7 +739,11 @@ TablePtr Dataset::executeSQL(const char *statement,
         errorMessage(_("Not opened."));
         return TablePtr();
     }
-    OGRLayer * layer = m_DS->ExecuteSQL(statement, spatialFilter.get(), dialect);
+    OGRGeometry* spaFilter(nullptr);
+    if(spatialFilter) {
+        spaFilter = spatialFilter.get()->clone();
+    }
+    OGRLayer * layer = m_DS->ExecuteSQL(statement, spaFilter, dialect);
     if(nullptr == layer) {
         errorMessage(CPLGetLastErrorMsg());
         return TablePtr();

@@ -91,7 +91,7 @@ bool MapTransform::setScaleAndCenter(double scale, double x, double y)
 bool MapTransform::setExtent(const Envelope &env)
 {
     m_extent = env;
-    m_center = m_extent.getCenter();
+    m_center = m_extent.center();
     m_extent.setRatio(m_ratio);
 
     if(m_XAxisLooped) {
@@ -227,7 +227,7 @@ void MapTransform::initMatrices()
 
     // Z axis rotation
     if(!isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)){
-        OGRRawPoint center = m_extent.getCenter();
+        OGRRawPoint center = m_extent.center();
         m_sceneMatrix.translate(center.x, center.y, 0);
         m_sceneMatrix.rotateZ(m_rotate[ngsDirection::DIR_Z]);
         m_sceneMatrix.translate(-center.x, -center.y, 0);

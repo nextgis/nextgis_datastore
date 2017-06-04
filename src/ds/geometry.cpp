@@ -56,7 +56,7 @@ bool Envelope::isInit() const
            !isEqual(m_maxX, DBLNAN) || !isEqual(m_maxY, DBLNAN);
 }
 
-OGRRawPoint Envelope::getCenter() const
+OGRRawPoint Envelope::center() const
 {
     OGRRawPoint pt;
     pt.x = m_minX + width() * .5;
@@ -166,7 +166,7 @@ GeometryPtr Envelope::toGeometry(OGRSpatialReference * const spatialRef) const
     return GeometryPtr(static_cast<OGRGeometry*>(rgn));
 }
 
-OGREnvelope Envelope::getOgrEnvelope() const
+OGREnvelope Envelope::toOgrEnvelope() const
 {
     OGREnvelope env;
     env.MaxX = m_maxX;

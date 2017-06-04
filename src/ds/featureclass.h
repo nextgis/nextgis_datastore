@@ -79,13 +79,7 @@ class VectorTile
 {
 public:
     VectorTile() : m_valid(false) {}
-    void add(VectorTileItem item);
-//    void addPoint(GIntBig fid, const SimplePoint& pt) { m_items[fid].addPoint(pt); }
-//    void addIndex(GIntBig fid, unsigned short index) { m_items[fid].addIndex(index); }
-//    void addBorderIndex(GIntBig fid, unsigned short ring, unsigned short index) {
-//        m_items[fid].addBorderIndex(ring, index);
-//    }
-
+    void add(VectorTileItem item, bool checkDuplicates = false);
     GByte* save(int &size);
     bool load(GByte* data, int size);
     std::vector<VectorTileItem> items() const {
@@ -115,7 +109,7 @@ public:
                  ObjectContainer * const parent = nullptr,
                  const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
                  const CPLString & name = "");
-    virtual ~FeatureClass() = default;
+    virtual ~FeatureClass();
 
     OGRwkbGeometryType geometryType() const;
     std::vector<OGRwkbGeometryType> geometryTypes();
@@ -123,6 +117,8 @@ public:
     std::vector<const char*> geometryColumns() const;
     bool setIgnoredFields(const std::vector<const char*> fields =
             std::vector<const char*>());
+    void setSpatialFilter(GeometryPtr geom);
+    Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
                              const FieldMapPtr fieldMap,
                              OGRwkbGeometryType filterGeomType,
@@ -131,7 +127,7 @@ public:
     bool hasOverviews() const;
     int createOverviews(const Progress& progress = Progress(),
                         const Options& options = Options());
-    VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope()) const;
+    VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope());
 
     // static
     static const char *geometryTypeName(OGRwkbGeometryType type,
@@ -164,6 +160,9 @@ protected:
 protected:
     OGRLayer *m_ovrTable;
     std::vector<unsigned short> m_zoomLevels;
+    CPLMutex* m_fieldsMutex;
+    Envelope m_extent;
+    std::vector<const char*> m_ignoreFields;
 };
 
 }

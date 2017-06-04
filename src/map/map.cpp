@@ -162,6 +162,9 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
         layer = createLayer(name, Layer::Type::Raster);
         RasterLayer* newRasterLayer = ngsStaticCast(RasterLayer, layer);
         RasterPtr raster = std::dynamic_pointer_cast<Raster>(object);
+        if(!raster->isOpened()) {
+            raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
+        }
         newRasterLayer->setRaster(raster);
     }
 

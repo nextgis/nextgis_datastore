@@ -108,12 +108,15 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                        int bandCount, int *bandList, bool read,
                        bool skipLastBand, unsigned char zoom)
 {
+    if(nullptr == m_DS) {
+        return false;
+    }
+
     CPLErrorReset();
     int pixelSpace(0);
     int lineSpace(0);
     int bandSpace(0);
-    if(bandCount > 1)
-    {
+    if(bandCount > 1) {
         int dataSize = GDALGetDataTypeSize(dataType) / 8;
         pixelSpace = dataSize * bandCount;
         lineSpace = bufXSize * pixelSpace;

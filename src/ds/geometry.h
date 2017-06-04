@@ -47,11 +47,17 @@ public:
         m_minY(env.MinY),
         m_maxX(env.MaxX),
         m_maxY(env.MaxY) { }
+    void set(const OGREnvelope& env) {
+        m_minX = env.MinX;
+        m_minY = env.MinY;
+        m_maxX = env.MaxX;
+        m_maxY = env.MaxY;
+    }
 
     void operator=(const OGREnvelope& env);
 
     bool isInit() const;
-    OGRRawPoint getCenter() const;
+    OGRRawPoint center() const;
     void rotate(double angle);
     void setRatio(double ratio);
     void resize(double value);
@@ -59,7 +65,7 @@ public:
     constexpr double width() const { return m_maxX - m_minX; }
     constexpr double height() const { return m_maxY - m_minY; }
     GeometryPtr toGeometry(OGRSpatialReference * const spatialRef) const;
-    OGREnvelope getOgrEnvelope() const;
+    OGREnvelope toOgrEnvelope() const;
 
     constexpr double minX() const { return m_minX; }
     constexpr double minY() const { return m_minY; }

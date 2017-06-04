@@ -80,13 +80,20 @@ void VectorTileItem::loadIds(const VectorTileItem &item)
 // VectorTile
 //------------------------------------------------------------------------------
 
-void VectorTile::add(VectorTileItem item)
+void VectorTile::add(VectorTileItem item, bool checkDuplicates)
 {
-    auto it = std::find(m_items.begin(), m_items.end(), item);
-    if(it == m_items.end())
+    if(checkDuplicates) {
+        auto it = std::find(m_items.begin(), m_items.end(), item);
+        if(it == m_items.end()) {
+            m_items.push_back(item);
+        }
+        else {
+            (*it).loadIds(item);
+        }
+    }
+    else {
         m_items.push_back(item);
-    else
-        (*it).loadIds(item);
+    }
 }
 
 GByte* VectorTile::save(int &size)
@@ -112,10 +119,33 @@ FeatureClass::FeatureClass(OGRLayer *layer,
                                const enum ngsCatalogObjectType type,
                                const CPLString &name) :
     Table(layer, parent, type, name),
-    m_ovrTable(nullptr)
+    m_ovrTable(nullptr),
+    m_fieldsMutex(CPLCreateMutex())
 {
-    if(m_layer && m_layer->GetSpatialRef())
-        m_spatialReference = m_layer->GetSpatialRef();
+    CPLReleaseMutex(m_fieldsMutex);
+    if(m_layer) {
+        if(m_layer->GetSpatialRef()) {
+            m_spatialReference = m_layer->GetSpatialRef();
+        }
+
+        OGREnvelope env;
+        OGRErr result = m_layer->GetExtent(&env, 1);
+        if(result == OGRERR_NONE) {
+            m_extent.set(env);
+        }
+
+        OGRFeatureDefn* defn = m_layer->GetLayerDefn();
+        for(int i = 0; i < defn->GetFieldCount(); ++i) {
+            OGRFieldDefn *fld = defn->GetFieldDefn(i);
+            m_ignoreFields.push_back(fld->GetNameRef());
+        }
+        m_ignoreFields.push_back("OGR_STYLE");
+    }
+}
+
+FeatureClass::~FeatureClass()
+{
+    CPLDestroyMutex(m_fieldsMutex);
 }
 
 OGRwkbGeometryType FeatureClass::geometryType() const
@@ -135,6 +165,9 @@ const char* FeatureClass::geometryColumn() const
 std::vector<const char*> FeatureClass::geometryColumns() const
 {
     std::vector<const char*> out;
+    if(nullptr == m_layer) {
+        return out;
+    }
     OGRFeatureDefn *defn = m_layer->GetLayerDefn();
     for(int i = 0; i < defn->GetGeomFieldCount(); ++i) {
         OGRGeomFieldDefn* geom = defn->GetGeomFieldDefn(i);
@@ -255,12 +288,9 @@ SimplePoint generalizePoint(OGRPoint* pt, float step)
     return {x, y};
 }
 
-void FeatureClass::tilePoint(OGRGeometry *geom, OGRGeometry *extent, float step,
+void FeatureClass::tilePoint(OGRGeometry *geom, OGRGeometry */*extent*/, float step,
                              VectorTileItem *vitem) const
 {
-    if(!extent->Intersects(geom))
-        return;
-
     OGRPoint* pt = static_cast<OGRPoint*>(geom);
     vitem->addPoint(generalizePoint(pt, step));
 }
@@ -418,9 +448,14 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     return ngsCode::COD_SUCCESS;
 }
 
-VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) const
+VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 {
     VectorTile vtile;
+    if(!m_extent.intersects(tileExtent)) {
+        return vtile;
+    }
+
+
     Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
         return vtile;
@@ -443,29 +478,53 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) c
         }
     }
 
-    // Tile on the fly
+    // Tiling on the fly
 
     // Calc grid step for zoom
     float step = static_cast<float>(pixelSize(tile.z));
 
-    GeometryPtr spatFilter = tileExtent.toGeometry(getSpatialReference());
-    TablePtr features = dataset->executeSQL(CPLSPrintf("SELECT %s,%s FROM %s",
-                                                       fidColumn(),
-                                                       geometryColumn(),
-                                                       getName().c_str()),
-                                            spatFilter);
-    FeaturePtr feature;
     Envelope ext = tileExtent;
     ext.resize(TILE_RESIZE);
     GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+    std::vector<FeaturePtr> features;
 
-    while((feature = features->nextFeature()) != nullptr) {
+    // Lock threads here
+    CPLAcquireMutex(m_fieldsMutex, 1000.0);
+//    setSpatialFilter(extGeom);
+    setIgnoredFields(m_ignoreFields);
+    reset();
+    FeaturePtr feature;
+    while((feature = nextFeature())) {
+        features.push_back(feature);
+    }
+//    setSpatialFilter(GeometryPtr());
+    setIgnoredFields(std::vector<const char*>());
+    CPLReleaseMutex(m_fieldsMutex);
+
+    for(auto feature : features) {
         VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
         if(item.isValid()) {
-            vtile.add(item);
+            vtile.add(item, true);
         }
     }
 
+//    TablePtr features = dataset->executeSQL(CPLSPrintf("SELECT * FROM %s",
+//                                                       getName().c_str()),
+//                                            extGeom);
+//    if(features) {
+//        FeaturePtr feature;
+//        while(true) {
+//            CPLAcquireMutex(m_fieldsMutex, 1000.0);
+//            feature = features->nextFeature();
+//            CPLReleaseMutex(m_fieldsMutex);
+//            if(!feature)
+//                break;
+//            VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
+//            if(item.isValid()) {
+//                vtile.add(item, false);
+//            }
+//        }
+//    }
     return vtile;
 }
 
@@ -518,12 +577,17 @@ VectorTileItem FeatureClass::tileGeometry(const FeaturePtr &feature,
         break; // Not supported yet
     }
 
-    vitem.setValid(true);
+    if(vitem.pointCount() > 0) {
+        vitem.setValid(true);
+    }
     return vitem;
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
 {
+    if(nullptr == m_layer) {
+        return false;
+    }
     if(fields.empty()) {
         return m_layer->SetIgnoredFields(nullptr) == OGRERR_NONE;
     }
@@ -536,6 +600,27 @@ bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
                 const_cast<const char**>(ignoreFields)) == OGRERR_NONE;
     CSLDestroy(ignoreFields);
     return result;
+}
+
+void FeatureClass::setSpatialFilter(GeometryPtr geom)
+{
+    if(nullptr == m_layer) {
+        if(geom) {
+            m_layer->SetSpatialFilter(geom.get());
+        }
+        else {
+            m_layer->SetSpatialFilter(nullptr);
+        }
+    }
+}
+
+Envelope FeatureClass::extent() const
+{
+    if(nullptr == m_layer) {
+        return Envelope();
+    }
+
+    return m_extent;
 }
 
 const char* FeatureClass::geometryTypeName(OGRwkbGeometryType type,
