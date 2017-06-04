@@ -73,6 +73,9 @@ bool GlFeatureLayer::fill(GlTilePtr tile)
 
     VectorGlObject *bufferArray = nullptr;
     VectorTile vtile = m_featureClass->getTile(tile->getTile(), tile->getExtent());
+    if(vtile.empty()) {
+        return true;
+    }
 
     switch(m_style->type()) {
     case Style::T_POINT:
@@ -183,7 +186,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
     GlBuffer *buffer = new GlBuffer(GlBuffer::BF_PT);
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(tileItem.isIdsPresent(m_skipFIDs)) {
+        if(!m_skipFIDs.empty() && tileItem.isIdsPresent(m_skipFIDs)) {
             ++it;
             continue;
         }
@@ -194,15 +197,15 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
         }
 
         for(size_t i = 0; i < tileItem.pointCount(); ++i) {
-            if(!buffer->canStoreVertices(3, false)) {
+            if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
                 bufferArray->addBuffer(buffer);
                 index = 0;
                 buffer = new GlBuffer(GlBuffer::BF_PT);
             }
 
             const SimplePoint& pt = tileItem.point(i);
-            buffer->addVertex(static_cast<float>(pt.x));
-            buffer->addVertex(static_cast<float>(pt.y));
+            buffer->addVertex(pt.x);
+            buffer->addVertex(pt.y);
             buffer->addVertex(0.0f);
             buffer->addIndex(index++);
         }

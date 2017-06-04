@@ -282,8 +282,15 @@ double FeatureClass::pixelSize(int zoom) const
 
 SimplePoint generalizePoint(OGRPoint* pt, float step)
 {
-    float x = static_cast<long>(pt->getX() / static_cast<double>(step)) * step;
-    float y = static_cast<long>(pt->getY() / static_cast<double>(step)) * step;
+    float x, y;
+    if(isEqual(step, 0.0f)) {
+        x = static_cast<float>(pt->getX());
+        y = static_cast<float>(pt->getY());
+    }
+    else {
+        x = static_cast<long>(pt->getX() / static_cast<double>(step)) * step;
+        y = static_cast<long>(pt->getY() / static_cast<double>(step)) * step;
+    }
 
     return {x, y};
 }
@@ -299,6 +306,12 @@ void FeatureClass::tileLine(OGRGeometry *geom, OGRGeometry *extent, float step,
                             VectorTileItem *vitem) const
 {
 /*
+
+//    GeometryPtr cutGeom(geometry->Intersection(extent));
+//    if(!cutGeom) {
+//        return VectorTileItem();
+//    }
+
     OGREnvelope extent;
     geometry->getEnvelope(&extent);
     Envelope geometryExtent(extent);
@@ -451,15 +464,15 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 {
     VectorTile vtile;
-    if(!m_extent.intersects(tileExtent)) {
-        return vtile;
-    }
-
-
     Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
         return vtile;
     }
+
+    if(!m_extent.intersects(tileExtent)) {
+        return vtile;
+    }
+
     if(hasOverviews() && tile.z <= m_zoomLevels.back()) {
         // Get closet zoom level
         int diff = 32000;
@@ -481,31 +494,43 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     // Tiling on the fly
 
     // Calc grid step for zoom
-    float step = static_cast<float>(pixelSize(tile.z));
+    float step = static_cast<float>(pixelSize(tile.z)); // 0.0f;//
 
     Envelope ext = tileExtent;
     ext.resize(TILE_RESIZE);
-    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
     std::vector<FeaturePtr> features;
+    OGREnvelope extEnv = ext.toOgrEnvelope();
 
     // Lock threads here
-    CPLAcquireMutex(m_fieldsMutex, 1000.0);
+    CPLAcquireMutex(m_fieldsMutex, 50.0);
 //    setSpatialFilter(extGeom);
     setIgnoredFields(m_ignoreFields);
     reset();
     FeaturePtr feature;
     while((feature = nextFeature())) {
-        features.push_back(feature);
+        OGRGeometry* geom = feature->GetGeometryRef();
+        if(geom) {
+            OGREnvelope env;
+            geom->getEnvelope(&env);
+            if(env.IsInit() && env.Intersects(extEnv)) {
+                features.push_back(feature);
+            }
+        }
     }
 //    setSpatialFilter(GeometryPtr());
     setIgnoredFields(std::vector<const char*>());
     CPLReleaseMutex(m_fieldsMutex);
 
-    for(auto feature : features) {
+    if(!features.empty()) {
+    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+    while(!features.empty()) {
+        auto feature = features.back();
         VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
         if(item.isValid()) {
-            vtile.add(item, true);
+            vtile.add(item, false);
         }
+        features.pop_back();
+    }
     }
 
 //    TablePtr features = dataset->executeSQL(CPLSPrintf("SELECT * FROM %s",
@@ -525,6 +550,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 //            }
 //        }
 //    }
+
     return vtile;
 }
 
@@ -533,11 +559,6 @@ VectorTileItem FeatureClass::tileGeometry(const FeaturePtr &feature,
 {
     OGRGeometry *geometry = feature->GetGeometryRef();
     if(nullptr == geometry) {
-        return VectorTileItem();
-    }
-
-    GeometryPtr cutGeom(geometry->Intersection(extent));
-    if(!cutGeom) {
         return VectorTileItem();
     }
 

@@ -48,6 +48,9 @@ public:
     GLsizei indexSize() const {
         return static_cast<GLsizei>(m_indices.size());
     }
+    size_t vertexSize() const {
+        return m_vertices.size();
+    }
 
     void addVertex(float value) { m_vertices.push_back(value); }
     void addIndex(unsigned short value) { m_indices.push_back(value); }

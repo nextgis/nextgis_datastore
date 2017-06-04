@@ -85,6 +85,7 @@ public:
     std::vector<VectorTileItem> items() const {
         return m_items;
     }
+    bool empty() { return m_items.empty(); }
 
     bool isValid() const { return m_valid; }
 private:
