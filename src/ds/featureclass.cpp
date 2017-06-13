@@ -273,7 +273,6 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) c
         if(ovrTile) {
             int size = 0;
             vtile.load(ovrTile->GetFieldAsBinary(3, &size), size);
-            return vtile;
         }
     }
     else { // Tile on the fly
@@ -315,9 +314,8 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent) c
     vtile.addBorderIndex(0, 0, 3);
     vtile.addBorderIndex(0, 0, 2);
     vtile.addBorderIndex(0, 0, 0);
-
-    return vtile;
     }
+    return vtile;
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)

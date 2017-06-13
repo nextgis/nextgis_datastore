@@ -22,7 +22,7 @@
 #ifndef NGSGLVIEW_H
 #define NGSGLVIEW_H
 
-#include "mapview.h"
+#include "map/mapview.h"
 #include "style.h"
 #include "tile.h"
 #include "util/threadpool.h"

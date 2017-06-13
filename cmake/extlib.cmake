@@ -83,7 +83,7 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     add_definitions (-DHAVE_ZLIB_H)
     add_definitions (-DHAVE_OPENSSLV_H)
 
-    add_definitions (-DHAVE_BOOST_VERSION_HPP)
+    # add_definitions (-DHAVE_BOOST_VERSION_HPP)
 # Not needed     add_definitions (-DHAVE_CGAL_VERSION_H)
 endif()
 
@@ -298,6 +298,7 @@ find_anyproject(GDAL REQUIRED VERSION 2.0 SHARED OFF CMAKE_ARGS
     -DENABLE_WASP=OFF
     -DENABLE_WFS=OFF
     -DENABLE_XLSX=OFF
+    -DENABLE_CAD=OFF
     -DGDAL_BUILD_APPS=OFF
     -DGDAL_BUILD_DOCS=OFF)
 
