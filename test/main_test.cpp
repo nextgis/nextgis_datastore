@@ -111,7 +111,7 @@ TEST(CatalogTests, TestCatalogQuery) {
 
     ngsDestroyList(options);
     CatalogObjectH catalog = ngsCatalogObjectGet("ngc://");
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -122,7 +122,7 @@ TEST(CatalogTests, TestCatalogQuery) {
     ngsFree(pathInfo);
 
     CatalogObjectH path2testObject = ngsCatalogObjectGet(path2test);
-    pathInfo = ngsCatalogObjectQuery(path2testObject);
+    pathInfo = ngsCatalogObjectQuery(path2testObject, 0);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
@@ -134,7 +134,7 @@ TEST(CatalogTests, TestCatalogQuery) {
     ngsFree(pathInfo);
 
     path2testObject = ngsCatalogObjectGet(path2test);
-    pathInfo = ngsCatalogObjectQuery(path2testObject);
+    pathInfo = ngsCatalogObjectQuery(path2testObject, 0);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
@@ -148,7 +148,7 @@ TEST(CatalogTests, TestCatalogQuery) {
     CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
     CPLString zipPath = catalogPath + "/data/railway.zip";
     CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath);
-    pathInfo = ngsCatalogObjectQuery(zipObject);
+    pathInfo = ngsCatalogObjectQuery(zipObject, 0);
     count = 0;
     while(pathInfo[count].name) {
         std::cout << count << ". " << zipPath << "/" <<  pathInfo[count].name << '\n';
@@ -187,7 +187,7 @@ TEST(CatalogTests, TestCreate) {
     ngsDestroyList(options);
     options = nullptr;
 
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -208,7 +208,7 @@ TEST(CatalogTests, TestCreate) {
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "osm.wconn", options),
               ngsCode::COD_SUCCESS);
 
-    pathInfo = ngsCatalogObjectQuery(catalog);
+    pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
@@ -237,7 +237,7 @@ TEST(CatalogTests, TestDelete) {
     CatalogObjectH delObject = ngsCatalogObjectGet(delPath);
     EXPECT_EQ(ngsCatalogObjectDelete(delObject), ngsCode::COD_SUCCESS);
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -269,7 +269,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options),
               ngsCode::COD_SUCCESS);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -295,7 +295,7 @@ TEST(DataStoreTests, TestOpenDataStore) {
     ASSERT_STRNE(catalogPath, "");
     CPLString storePath = ngsFormFileName(catalogPath, "main", "ngst");
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);
 
     size_t count = 0;
 
