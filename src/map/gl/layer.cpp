@@ -24,6 +24,12 @@
 
 #include "util/error.h"
 
+#include "cpl_conv.h"
+#include "ogr_core.h"
+
+#include <cstring>
+#include <math.h>
+
 namespace ngs {
 
 //------------------------------------------------------------------------------
@@ -500,7 +506,7 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
     switch(capType) {
         case CapType::CT_ROUND:
         {
-            float start = std::asinf(normal.y);
+            float start = asinf(normal.y);
             if(normal.x < 0.0f && normal.y <= 0.0f)
                 start = M_PI_F + -(start);
             else if(normal.x < 0.0f && normal.y >= 0.0f)
@@ -512,8 +518,8 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
             float step = (end - start) / segmentCount;
             float current = start;
             for(int i = 0 ; i < segmentCount; ++i) {
-                float x = std::cosf(current);
-                float y = std::sinf(current);
+                float x = cosf(current);
+                float y = sinf(current);
                 current += step;
                 buffer->addVertex(point.x);
                 buffer->addVertex(point.y);
@@ -521,8 +527,8 @@ unsigned short GlFeatureLayer::addLineCap(const SimplePoint &point,
                 buffer->addVertex(x);
                 buffer->addVertex(y);
 
-                x = std::cosf(current);
-                y = std::sinf(current);
+                x = cosf(current);
+                y = sinf(current);
                 buffer->addVertex(point.x);
                 buffer->addVertex(point.y);
                 buffer->addVertex(0.0f);
@@ -645,7 +651,7 @@ float angle(const Normal &normal) {
         }
     }
 
-    float angle = std::fabs(std::asinf(normal.y));
+    float angle = std::fabs(asinf(normal.y));
     if(normal.x < 0.0f && normal.y >= 0.0f)
         angle = M_PI_F - angle;
     else if(normal.x < 0.0f && normal.y <= 0.0f)
@@ -693,8 +699,8 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
         float step = angle / segmentCount;
         float current = start;
         for(int i = 0 ; i < segmentCount; ++i) {
-            float x = std::cosf(current) * mult;
-            float y = std::sinf(current) * mult;
+            float x = cosf(current) * mult;
+            float y = sinf(current) * mult;
 
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
@@ -703,8 +709,8 @@ unsigned short GlFeatureLayer::addLineJoin(const SimplePoint &point,
             buffer->addVertex(y);
 
             current += step;
-            x = std::cosf(current) * mult;
-            y = std::sinf(current) * mult;
+            x = cosf(current) * mult;
+            y = sinf(current) * mult;
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
             buffer->addVertex(0.0f);

@@ -25,6 +25,8 @@
 #include "ogr_spatialref.h"
 #include "ogrsf_frmts.h"
 
+#include <memory>
+
 namespace ngs {
 
 typedef std::shared_ptr<OGRSpatialReference> SpatialReferencePtr;
