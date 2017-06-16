@@ -19,17 +19,17 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
+#include <cstring>
+#include <math.h>
+
+#include "cpl_conv.h"
+#include "ogr_core.h"
+
 #include "layer.h"
 #include "style.h"
 #include "view.h"
 
 #include "util/error.h"
-
-#include "cpl_conv.h"
-#include "ogr_core.h"
-
-#include <cstring>
-#include <math.h>
 
 namespace ngs {
 

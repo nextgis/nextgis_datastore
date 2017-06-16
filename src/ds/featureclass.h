@@ -25,6 +25,7 @@
 
 #include "coordinatetransformation.h"
 #include "geometry.h"
+#include "ngstore/codes.h"
 #include "table.h"
 #include "util/options.h"
 

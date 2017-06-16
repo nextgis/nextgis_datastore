@@ -20,12 +20,12 @@
  ****************************************************************************/
 #include "objectfactory.h"
 
-#include "catalog/folder.h"
+#include <algorithm>
 
 // gdal
 #include "cpl_port.h"
 
-#include <algorithm>
+#include "catalog/folder.h"
 
 namespace ngs {
 

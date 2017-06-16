@@ -29,12 +29,13 @@
 #include <iostream>
 
 #include "api_priv.h"
-#include "geometry.h"
 #include "catalog/catalog.h"
 #include "catalog/folder.h"
-#include "ngstore/version.h"
+#include "geometry.h"
 #include "ngstore/catalog/filter.h"
+#include "ngstore/codes.h"
 #include "ngstore/util/constants.h"
+#include "ngstore/version.h"
 #include "util/error.h"
 #include "util/stringutil.h"
 

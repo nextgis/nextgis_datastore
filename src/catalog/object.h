@@ -25,6 +25,7 @@
 
 #include "cpl_string.h"
 
+#include "ngstore/codes.h"
 #include "util/progress.h"
 
 namespace ngs {
