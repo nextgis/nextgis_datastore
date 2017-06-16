@@ -21,6 +21,7 @@
 #ifndef NGSOBJECTCONTAINER_H
 #define NGSOBJECTCONTAINER_H
 
+#include "ngstore/codes.h"
 #include "object.h"
 
 #include <vector>
