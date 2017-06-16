@@ -72,32 +72,32 @@ void GlTile::bind()
     if (m_bound)
         return;
 
-    ngsCheckGLError(glGenFramebuffersEXT(1, &m_id));
+    ngsCheckGLError(glGenFramebuffers(1, &m_id));
     // Set up the FBO with one texture attachment
-    ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_id));
+    ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, m_id));
     m_image.bind();
-    ngsCheckGLError(glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                                              GL_COLOR_ATTACHMENT0_EXT,
-                                              GL_TEXTURE_2D, m_image.id(), 0));
-    ngsCheckGLError(glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT));
+    ngsCheckGLError(glFramebufferTexture2D(GL_FRAMEBUFFER,
+                                           GL_COLOR_ATTACHMENT0,
+                                           GL_TEXTURE_2D, m_image.id(), 0));
+    ngsCheckGLError(glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
     m_tile.bind();
 }
 
 void GlTile::rebind() const
 {
-    ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_id));
+    ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, m_id));
     m_image.rebind();
-    ngsCheckGLError(glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                                              GL_COLOR_ATTACHMENT0_EXT,
-                                              GL_TEXTURE_2D, m_image.id(), 0));
+    ngsCheckGLError(glFramebufferTexture2D(GL_FRAMEBUFFER,
+                                           GL_COLOR_ATTACHMENT0,
+                                           GL_TEXTURE_2D, m_image.id(), 0));
     m_tile.rebind();
 }
 
 void GlTile::destroy()
 {
     if (m_bound) {
-        ngsCheckGLError(glDeleteFramebuffersEXT(1, &m_id));
+        ngsCheckGLError(glDeleteFramebuffers(1, &m_id));
     }
     m_image.destroy();
     m_tile.destroy();

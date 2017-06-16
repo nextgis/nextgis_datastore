@@ -113,9 +113,13 @@ if(BUILD_SHARED_LIBS)
             SUFFIX "${NGS_MAJOR_VERSION}${NGS_MINOR_VERSION}.dll")
     endif()
 
+    if(NOT IOS)
+        set_target_properties (${LIB_NAME} PROPERTIES
+            VERSION ${LIB_VERSION}
+            SOVERSION ${SOVERSION}
+        )
+    endif()
     set_target_properties (${LIB_NAME} PROPERTIES
-        VERSION ${LIB_VERSION}
-        SOVERSION ${SOVERSION}
         DEFINE_SYMBOL NGSTOR_EXPORTS
     )
 
@@ -133,12 +137,20 @@ if(BUILD_SHARED_LIBS)
     endif()
 else()
     add_library(${LIB_NAME} STATIC ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
-    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
+    set_target_properties(${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
+endif()
+
+if(IOS)
+    set_target_properties(${LIB_NAME} PROPERTIES
+        COMPILE_FLAGS "-arch ${IOS_ARCH}" LINK_FLAGS "-arch ${IOS_ARCH}"
+    )
 endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 11
     C_STANDARD 11
+    CXX_VISIBILITY_PRESET hidden
+    C_VISIBILITY_PRESET hidden
 )
 
 target_link_extlibraries(${LIB_NAME})

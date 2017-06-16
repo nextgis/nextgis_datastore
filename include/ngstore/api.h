@@ -83,9 +83,9 @@ typedef void (*ngsNotifyFunc)(const char* uri, enum ngsChangeCode operation);
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
 NGS_EXTERNC const char* ngsGetVersionString(const char* request);
-NGS_EXTERNC int ngsInit(char **options = nullptr);
+NGS_EXTERNC int ngsInit(char **options);
 NGS_EXTERNC void ngsUnInit();
-NGS_EXTERNC void ngsFreeResources(bool full = false);
+NGS_EXTERNC void ngsFreeResources(char full);
 NGS_EXTERNC const char* ngsGetLastErrorMessage();
 NGS_EXTERNC void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes);
 NGS_EXTERNC void ngsRemoveNotifyFunction(ngsNotifyFunc function);
@@ -108,26 +108,26 @@ NGS_EXTERNC void ngsFree(void *pointer);
 NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object,
-                                                        int filter = 0);
+                                                        int filter);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
-                                                        int *filters = nullptr,
-                                                        int filterCount = 0);
+                                                                int *filters,
+                                                                int filterCount);
 NGS_EXTERNC int ngsCatalogObjectDelete(CatalogObjectH object);
 NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char* name,
-                                       char **options = nullptr);
+                                       char **options);
 NGS_EXTERNC int ngsCatalogObjectLoad(CatalogObjectH srcObject,
                                      CatalogObjectH dstObject,
-                                     char **options = nullptr,
-                                     ngsProgressFunc callback = nullptr,
-                                     void* callbackData = nullptr);
+                                     char **options,
+                                     ngsProgressFunc callback,
+                                     void* callbackData);
 NGS_EXTERNC int ngsCatalogObjectRename(CatalogObjectH object, const char* newName);
 NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
                                                 int optionType);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
-                                               char **options = nullptr,
-                                               ngsProgressFunc callback = nullptr,
-                                               void* callbackData = nullptr);
+                                               char **options,
+                                               ngsProgressFunc callback,
+                                               void* callbackData);
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**
@@ -160,7 +160,7 @@ NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
                            int YAxisInverted);
 NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
                            ngsProgressFunc callback, void* callbackData);
-NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color);
+NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA color);
 NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
 NGS_EXTERNC ngsCoordinate ngsMapGetCenter(unsigned char mapId);
@@ -179,8 +179,8 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
  */
 NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
-NGS_EXTERNC bool ngsLayerGetVisible(LayerH layer);
-NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, bool visible);
+NGS_EXTERNC char ngsLayerGetVisible(LayerH layer);
+NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, char visible);
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);

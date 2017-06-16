@@ -35,7 +35,7 @@ void GlImage::bind()
         return;
     ngsCheckGLError(glGenTextures(1, &m_id));
     rebind();
-    ngsCheckGLError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0,
+    ngsCheckGLError(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0,
                     GL_RGBA, GL_UNSIGNED_BYTE, m_imageData));
     CPLFree(m_imageData);
     m_imageData = nullptr;
@@ -62,4 +62,3 @@ void GlImage::destroy()
 }
 
 } // namespace ngs
-

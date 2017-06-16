@@ -157,10 +157,15 @@ bool checkEGLError(const char *cmd) {
 
 void prepareContext()
 {
-    // FIXME: Is this Mac OS X specific?
+#ifdef GL_PROGRAM_POINT_SIZE_EXT
     ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
+#endif
+
+#ifdef GL_MULTISAMPLE
     if( CPLTestBool("GL_MULTISAMPLE") )
         ngsCheckGLError(glEnable(GL_MULTISAMPLE));
+#endif
+
 // NOTE: In usual cases no need in depth test
 //    ngsCheckGLError(glEnable(GL_DEPTH_TEST));
 //    ngsCheckGLError(glDepthFunc(GL_LEQUAL));

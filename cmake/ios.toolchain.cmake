@@ -92,9 +92,9 @@ endif (NOT DEFINED CMAKE_INSTALL_NAME_TOOL)
 
 # Setup iOS platform unless specified manually with IOS_PLATFORM
 if (NOT DEFINED IOS_PLATFORM)
-	set (IOS_PLATFORM "OS")
-endif (NOT DEFINED IOS_PLATFORM)
-set (IOS_PLATFORM ${IOS_PLATFORM} CACHE STRING "Type of iOS Platform")
+	set(IOS_PLATFORM "OS")
+endif()
+set(IOS_PLATFORM ${IOS_PLATFORM} CACHE STRING "Type of iOS Platform")
 
 # Setup building for arm64 or not
 if (NOT DEFINED BUILD_ARM64)
@@ -103,20 +103,24 @@ endif (NOT DEFINED BUILD_ARM64)
 set (BUILD_ARM64 ${BUILD_ARM64} CACHE STRING "Build arm64 arch or not")
 
 # Check the platform selection and setup for developer root
-if (${IOS_PLATFORM} STREQUAL "OS")
+if(IOS_PLATFORM STREQUAL "OS")
 	set (IOS_PLATFORM_LOCATION "iPhoneOS.platform")
 
 	# This causes the installers to properly locate the output libraries
 	set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphoneos")
-elseif (${IOS_PLATFORM} STREQUAL "SIMULATOR")
+endif()
+
+if(IOS_PLATFORM STREQUAL "SIMULATOR")
     set (SIMULATOR true)
 	set (IOS_PLATFORM_LOCATION "iPhoneSimulator.platform")
 
 	# This causes the installers to properly locate the output libraries
 	set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphonesimulator")
-else (${IOS_PLATFORM} STREQUAL "OS")
+endif()
+
+if(NOT DEFINED IOS_PLATFORM_LOCATION OR NOT DEFINED CMAKE_XCODE_EFFECTIVE_PLATFORMS)
 	message (FATAL_ERROR "Unsupported IOS_PLATFORM value selected. Please choose OS or SIMULATOR")
-endif (${IOS_PLATFORM} STREQUAL "OS")
+endif()
 
 # Setup iOS developer location unless specified manually with CMAKE_IOS_DEVELOPER_ROOT
 # Note Xcode 4.3 changed the installation location, choose the most recent one available
@@ -151,11 +155,12 @@ set (CMAKE_OSX_SYSROOT ${CMAKE_IOS_SDK_ROOT} CACHE PATH "Sysroot used for iOS su
 
 # set the architecture for iOS
 if(NOT IOS_ARCH)
-    if (${IOS_PLATFORM} STREQUAL "OS")
-        set (IOS_ARCH armv7 armv7s arm64)
-    elseif (${IOS_PLATFORM} STREQUAL "SIMULATOR")
-        set (IOS_ARCH i386 x86_64)
-    endif ()
+    if(IOS_PLATFORM STREQUAL "OS")
+        set(IOS_ARCH armv7 armv7s arm64)
+    endif()
+    if(IOS_PLATFORM STREQUAL "SIMULATOR")
+        set(IOS_ARCH i386 x86_64)
+    endif()
 endif()
 
 set (CMAKE_OSX_ARCHITECTURES ${IOS_ARCH} CACHE string  "Build architecture for iOS")

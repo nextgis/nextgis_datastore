@@ -177,9 +177,10 @@ int ngsInit(char **options)
 #endif
 
 #ifdef NGS_MOBILE
-    if(nullptr == dataPath)
-        return returnError(ngsErrorCodes::EC_NOT_SPECIFIED,
+    if(nullptr == dataPath) {
+        return errorMessage(ngsCode::COD_NOT_SPECIFIED,
                            _("GDAL_PATH option is required"));
+    }
 #endif
 
     initGDAL(dataPath, cachePath);
@@ -204,7 +205,7 @@ void ngsUnInit()
  * @brief ngsFreeResources Inform library to free resources as possible
  * @param full If full is true maximum resources will be freed.
  */
-void ngsFreeResources(bool full)
+void ngsFreeResources(char full)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr != mapStore) {
@@ -797,7 +798,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
  * @param color Background color
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA &color)
+int ngsMapSetBackgroundColor(unsigned char mapId, ngsRGBA color)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -1108,7 +1109,7 @@ int ngsLayerSetName(LayerH layer, const char *name)
  * @param layer Layer handler
  * @return true if visible or false
  */
-bool ngsLayerGetVisible(LayerH layer)
+char ngsLayerGetVisible(LayerH layer)
 {
     if(nullptr == layer) {
         return errorMessage(ngsCode::COD_GET_FAILED, _("Layer pointer is null"));
@@ -1122,7 +1123,7 @@ bool ngsLayerGetVisible(LayerH layer)
  * @param visible
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsLayerSetVisible(LayerH layer, bool visible)
+int ngsLayerSetVisible(LayerH layer, char visible)
 {
     if(nullptr == layer) {
         return errorMessage(ngsCode::COD_SET_FAILED, _("Layer pointer is null"));

@@ -43,7 +43,7 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     # Not needed set(WITH_Boost ON CACHE BOOL "Boost on" FORCE)
     # Not needed set(WITH_CGAL ON CACHE BOOL "CGAL on" FORCE)
 
-    set(WITH_SQLite3_EXTERNAL ON CACHE BOOL "SQLite3 external on" FORCE)
+    set(WITH_SQLite3_EXTERNAL ON CACHE BOOL "SQLite3 external on" FORCE) # NOTE: Need for R-tree extension
     set(WITH_OpenSSL_EXTERNAL ON CACHE BOOL "OpenSSL external on" FORCE)
     set(WITH_ICONV_EXTERNAL ON CACHE BOOL "iconv external on")
     set(WITH_CURL_EXTERNAL ON CACHE BOOL "CURL external on" FORCE)

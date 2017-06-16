@@ -164,7 +164,7 @@ void GlView::updateTilesList()
     // Remove out of extent Gl tiles
     auto tileIt = m_tiles.begin();
     while(tileIt != m_tiles.end()) {
-        bool markToDelete = true;        
+        bool markToDelete = true;
         auto itemIt = tileItems.begin();
         while(itemIt != tileItems.end()) {
             if((*tileIt)->getTile() == (*itemIt).tile) {
@@ -201,7 +201,7 @@ void GlView::freeResources()
 }
 
 bool GlView::drawTiles(const Progress &progress)
-{        
+{
 //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
     ngsCheckGLError(glDisable(GL_BLEND));
 
@@ -261,7 +261,7 @@ bool GlView::drawTiles(const Progress &progress)
             glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
             // Make the window the target
-            ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 1)); // 0 - back, 1 - front.
+            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, 1)); // 0 - back, 1 - front.
 
             if(filled == 0) {
                 drawTile = false;
@@ -829,7 +829,7 @@ void GlView::testDrawTile(const TileItem &tile) const
 
     // Draw tile in view
     // Make the window the target
-    ngsCheckGLError(glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 1)); // 0 - back, 1 - front.
+    ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, 1)); // 0 - back, 1 - front.
 
     SimpleImageStyle style1; //SimpleImageStyle TileFBO draw
 
