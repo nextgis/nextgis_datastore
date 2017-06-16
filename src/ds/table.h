@@ -25,6 +25,7 @@
 #include "ogrsf_frmts.h"
 
 #include "catalog/object.h"
+#include "ngstore/codes.h"
 
 namespace ngs {
 

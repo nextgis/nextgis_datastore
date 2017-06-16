@@ -24,9 +24,10 @@
 #include <memory>
 
 #include "api_priv.h"
-#include "geometry.h"
-#include "featureclass.h"
 #include "catalog/objectcontainer.h"
+#include "featureclass.h"
+#include "geometry.h"
+#include "ngstore/codes.h"
 
 namespace ngs {
 

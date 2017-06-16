@@ -21,11 +21,11 @@
 #ifndef NGSCOORDINATETRANSFORMATION_H
 #define NGSCOORDINATETRANSFORMATION_H
 
+#include <memory>
+
 // gdal
 #include "ogr_spatialref.h"
 #include "ogrsf_frmts.h"
-
-#include <memory>
 
 namespace ngs {
 

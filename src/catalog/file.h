@@ -21,6 +21,7 @@
 #ifndef NGSFILE_H
 #define NGSFILE_H
 
+#include "ngstore/codes.h"
 #include "objectcontainer.h"
 
 namespace ngs {

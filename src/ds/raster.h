@@ -23,8 +23,9 @@
 
 #include <mutex>
 
-#include "dataset.h"
 #include "coordinatetransformation.h"
+#include "dataset.h"
+#include "ngstore/codes.h"
 
 namespace ngs {
 
