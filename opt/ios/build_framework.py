@@ -26,7 +26,10 @@ However, ngs.framework directory is erased and recreated on each run.
 
 from __future__ import print_function
 import glob, re, os, os.path, shutil, string, sys, argparse, traceback
+import multiprocessing
 from subprocess import check_call, check_output, CalledProcessError
+
+ext = 'dylib'
 
 def execute(cmd, cwd = None):
     print("Executing: %s in %s" % (cmd, cwd), file=sys.stderr)
@@ -64,7 +67,7 @@ class Builder:
             mainBD = self.getBD(outdir, t)
             dirs.append(mainBD)
             cmake_flags = []
-            if xcode_ver >= 7 and t[1] == 'iPhoneOS':
+            if xcode_ver >= 100 and t[1] == 'iPhoneOS': # 7
                 cmake_flags.append("-DCMAKE_C_FLAGS=-fembed-bitcode")
                 cmake_flags.append("-DCMAKE_CXX_FLAGS=-fembed-bitcode")
             self.buildOne(t[0], t[1], mainBD, cmake_flags)
@@ -82,40 +85,50 @@ class Builder:
             sys.exit(1)
 
     def getCMakeArgs(self, arch, target):
-        
         args = [
             "cmake",
             "-GUnix Makefiles",
-            "-DBUILD_TARGET_PLATFORM=IOS",            
+            "-DBUILD_TARGET_PLATFORM=IOS",
             "-DCMAKE_INSTALL_PREFIX=install",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DIOS_ARCH=" + arch,
         ]
-        
+
         if target == 'iPhoneSimulator':
             args.append("-DIOS_PLATFORM=SIMULATOR")
         else:
-            args.append("-DIOS_PLATFORM=OS")        
+            args.append("-DIOS_PLATFORM=OS")
+
+        if ext == 'dylib':
+            args.append("-DBUILD_SHARED_LIBS=ON")
         return args
 
     def getBuildCommand(self, arch, target):
+        maxCount = multiprocessing.cpu_count()
+        # if maxCount > 2:
+        #     maxCount = 2
         buildcmd = [
             "cmake",
             "--build",
             ".",
+            "--config",
+            "release",
+            "--",
+            "-j",
+            str(maxCount)
         ]
         return buildcmd
-    
-    
+
+
     def getInstallCommand(self, arch, target):
         buildcmd = [
             "cmake",
             "--build",
             ".",
-            "--target", 
+            "--target",
             "install",
         ]
-        return buildcmd    
+        return buildcmd
 
     def getInfoPlist(self, builddirs):
         return os.path.join(builddirs[0], "ios", "Info.plist")
@@ -144,7 +157,7 @@ class Builder:
 
     def makeFramework(self, outdir, builddirs):
         name = "ngstore"
-        libname = "libngs_merged.a"
+        libname = "libngs_merged." + ext
 
         # set the current dir to the dst root
         framework_dir = os.path.join(outdir, "%s.framework" % name)
@@ -170,11 +183,26 @@ class Builder:
         os.makedirs(resdir)
         shutil.copyfile(self.getInfoPlist(builddirs), os.path.join(resdir, "Info.plist"))
 
+        moddir = os.path.join(dstdir, "Modules")
+        os.makedirs(moddir)
+        f = open(os.path.join(moddir, 'module.modulemap'), 'w')
+        f.write('''framework module ngstore {
+  header "api.h"
+  header "codes.h"
+  header "common.h"
+}''')
+
+  # umbrella header "api.h"
+  #
+  # export *
+  # module * { export * }
+  #
         # make symbolic links
         links = [
             (["A"], ["Versions", "Current"]),
             (["Versions", "Current", "Headers"], ["Headers"]),
             (["Versions", "Current", "Resources"], ["Resources"]),
+            (["Versions", "Current", "Modules"], ["Modules"]),
             (["Versions", "Current", name], [name])
         ]
         for l in links:
@@ -189,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('--repo', metavar='DIR', default=folder, help='folder with ngs repository (default is "../.." relative to script location)')
     args = parser.parse_args()
 
-    b = Builder(args.repo, 
+    b = Builder(args.repo,
         [
             ("armv7", "iPhoneOS"),
             ("armv7s", "iPhoneOS"),

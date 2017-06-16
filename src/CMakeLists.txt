@@ -23,13 +23,19 @@
 ################################################################################
 
 if(ANDROID OR (UNIX AND NOT APPLE))
-    find_package (EGL REQUIRED)
+    find_package(EGL REQUIRED)
     if(EGL_FOUND)
         include_directories(${EGL_INCLUDE_DIRS})
         set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
     endif()
 
-    find_package (GLES2 REQUIRED)
+    find_package(GLES2 REQUIRED)
+    if(OPENGLES2_FOUND)
+        include_directories(${OPENGLES2_INCLUDE_DIRS})
+        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
+    endif()
+elseif(IOS)
+    find_package(GLES2 REQUIRED)
     if(OPENGLES2_FOUND)
         include_directories(${OPENGLES2_INCLUDE_DIRS})
         set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
@@ -65,8 +71,10 @@ set(CSOURCES
 if(UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
+    if(NOT APPLE)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
+    endif()
 endif()
 
 set(OBJ_LIBRARIES)
@@ -105,9 +113,13 @@ if(BUILD_SHARED_LIBS)
             SUFFIX "${NGS_MAJOR_VERSION}${NGS_MINOR_VERSION}.dll")
     endif()
 
+    if(NOT IOS)
+        set_target_properties (${LIB_NAME} PROPERTIES
+            VERSION ${LIB_VERSION}
+            SOVERSION ${SOVERSION}
+        )
+    endif()
     set_target_properties (${LIB_NAME} PROPERTIES
-        VERSION ${LIB_VERSION}
-        SOVERSION ${SOVERSION}
         DEFINE_SYMBOL NGSTOR_EXPORTS
     )
 
@@ -125,12 +137,20 @@ if(BUILD_SHARED_LIBS)
     endif()
 else()
     add_library(${LIB_NAME} STATIC ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
-    set_target_properties (${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
+    set_target_properties(${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
+endif()
+
+if(IOS)
+    set_target_properties(${LIB_NAME} PROPERTIES
+        COMPILE_FLAGS "-arch ${IOS_ARCH}" LINK_FLAGS "-arch ${IOS_ARCH}"
+    )
 endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 11
     C_STANDARD 11
+    CXX_VISIBILITY_PRESET hidden
+    C_VISIBILITY_PRESET hidden
 )
 
 target_link_extlibraries(${LIB_NAME})

@@ -62,4 +62,3 @@ void GlImage::destroy()
 }
 
 } // namespace ngs
-

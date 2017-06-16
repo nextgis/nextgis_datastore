@@ -25,9 +25,9 @@
 
 #include "buffer.h"
 #include "image.h"
-#include "matrix.h"
 #include "program.h"
 
+#include "map/matrix.h"
 #include "ngstore/api.h"
 #include "util/jsondocument.h"
 

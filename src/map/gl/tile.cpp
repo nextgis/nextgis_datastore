@@ -72,13 +72,13 @@ void GlTile::bind()
     if (m_bound)
         return;
 
-    ngsCheckGLError(glGenFramebuffers(1, &m_id));//EXT
+    ngsCheckGLError(glGenFramebuffers(1, &m_id));
     // Set up the FBO with one texture attachment
     ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, m_id));
     m_image.bind();
     ngsCheckGLError(glFramebufferTexture2D(GL_FRAMEBUFFER,
-                                              GL_COLOR_ATTACHMENT0,
-                                              GL_TEXTURE_2D, m_image.id(), 0));
+                                           GL_COLOR_ATTACHMENT0,
+                                           GL_TEXTURE_2D, m_image.id(), 0));
     ngsCheckGLError(glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
     m_tile.bind();
@@ -89,8 +89,8 @@ void GlTile::rebind() const
     ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, m_id));
     m_image.rebind();
     ngsCheckGLError(glFramebufferTexture2D(GL_FRAMEBUFFER,
-                                              GL_COLOR_ATTACHMENT0,
-                                              GL_TEXTURE_2D, m_image.id(), 0));
+                                           GL_COLOR_ATTACHMENT0,
+                                           GL_TEXTURE_2D, m_image.id(), 0));
     m_tile.rebind();
 }
 

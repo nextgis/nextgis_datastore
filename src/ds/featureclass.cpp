@@ -484,10 +484,13 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
                 diff = newDiff;
             }
         }
-
-        vtile = dataset->getTile(getName(), tile.x, tile.y, z);
-        if(vtile.isValid()) {
-            return vtile;
+        m_ovrTable->SetAttributeFilter(Dataset::formOverviewsAttributeFilter(
+                                           tile.x, tile.y, tile.z));
+        m_ovrTable->ResetReading();
+        FeaturePtr ovrTile = m_ovrTable->GetNextFeature();
+        if(ovrTile) {
+            int size = 0;
+            vtile.load(ovrTile->GetFieldAsBinary(3, &size), size);
         }
     }
 
@@ -533,75 +536,14 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     }
     }
 
-//    TablePtr features = dataset->executeSQL(CPLSPrintf("SELECT * FROM %s",
-//                                                       getName().c_str()),
-//                                            extGeom);
-//    if(features) {
-//        FeaturePtr feature;
-//        while(true) {
-//            CPLAcquireMutex(m_fieldsMutex, 1000.0);
-//            feature = features->nextFeature();
-//            CPLReleaseMutex(m_fieldsMutex);
-//            if(!feature)
-//                break;
-//            VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
-//            if(item.isValid()) {
-//                vtile.add(item, false);
-//            }
-//        }
-//    }
-
+    vtile.addBorderIndex(0, 0, 0);
+    vtile.addBorderIndex(0, 0, 1);
+    vtile.addBorderIndex(0, 0, 4);
+    vtile.addBorderIndex(0, 0, 3);
+    vtile.addBorderIndex(0, 0, 2);
+    vtile.addBorderIndex(0, 0, 0);
+    }
     return vtile;
-}
-
-VectorTileItem FeatureClass::tileGeometry(const FeaturePtr &feature,
-                                          OGRGeometry *extent, float step) const
-{
-    OGRGeometry *geometry = feature->GetGeometryRef();
-    if(nullptr == geometry) {
-        return VectorTileItem();
-    }
-
-    VectorTileItem vitem;
-    vitem.addId(feature->GetFID());
-    switch(OGR_GT_Flatten(geometry->getGeometryType())) {
-    case wkbPoint:
-        tilePoint(geometry, extent, step, &vitem);
-        break;
-    case wkbLineString:
-        tileLine(geometry, extent, step, &vitem);
-        break;
-    case wkbPolygon:
-        tilePolygon(geometry, extent, step, &vitem);
-        break;
-    case wkbMultiPoint:
-        tileMultiPoint(geometry, extent, step, &vitem);
-        break;
-    case wkbMultiLineString:
-        tileMultiLine(geometry, extent, step, &vitem);
-        break;
-    case wkbMultiPolygon:
-        tileMultiPolygon(geometry, extent, step, &vitem);
-        break;
-    case wkbGeometryCollection:
-    case wkbCircularString:
-    case wkbCompoundCurve:
-    case wkbCurvePolygon:
-    case wkbMultiCurve:
-    case wkbMultiSurface:
-    case wkbCurve:
-    case wkbSurface:
-    case wkbPolyhedralSurface:
-    case wkbTIN:
-    case wkbTriangle:
-    default:
-        break; // Not supported yet
-    }
-
-    if(vitem.pointCount() > 0) {
-        vitem.setValid(true);
-    }
-    return vitem;
 }
 
 bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)

@@ -22,6 +22,11 @@
 
 #include "catalog/folder.h"
 
+// gdal
+#include "cpl_port.h"
+
+#include <algorithm>
+
 namespace ngs {
 
 ObjectFactory::ObjectFactory() : m_enabled(true)

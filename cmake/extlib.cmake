@@ -43,7 +43,7 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     # Not needed set(WITH_Boost ON CACHE BOOL "Boost on" FORCE)
     # Not needed set(WITH_CGAL ON CACHE BOOL "CGAL on" FORCE)
 
-    set(WITH_SQLite3_EXTERNAL ON CACHE BOOL "SQLite3 external on" FORCE)
+    set(WITH_SQLite3_EXTERNAL ON CACHE BOOL "SQLite3 external on" FORCE) # NOTE: Need for R-tree extension
     set(WITH_OpenSSL_EXTERNAL ON CACHE BOOL "OpenSSL external on" FORCE)
     set(WITH_ICONV_EXTERNAL ON CACHE BOOL "iconv external on")
     set(WITH_CURL_EXTERNAL ON CACHE BOOL "CURL external on" FORCE)
@@ -83,7 +83,7 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     add_definitions (-DHAVE_ZLIB_H)
     add_definitions (-DHAVE_OPENSSLV_H)
 
-    add_definitions (-DHAVE_BOOST_VERSION_HPP)
+    # add_definitions (-DHAVE_BOOST_VERSION_HPP)
 # Not needed     add_definitions (-DHAVE_CGAL_VERSION_H)
 endif()
 
@@ -298,6 +298,7 @@ find_anyproject(GDAL REQUIRED VERSION 2.0 SHARED OFF CMAKE_ARGS
     -DENABLE_WASP=OFF
     -DENABLE_WFS=OFF
     -DENABLE_XLSX=OFF
+    -DENABLE_CAD=OFF
     -DGDAL_BUILD_APPS=OFF
     -DGDAL_BUILD_DOCS=OFF)
 

@@ -164,7 +164,7 @@ void GlView::updateTilesList()
     // Remove out of extent Gl tiles
     auto tileIt = m_tiles.begin();
     while(tileIt != m_tiles.end()) {
-        bool markToDelete = true;        
+        bool markToDelete = true;
         auto itemIt = tileItems.begin();
         while(itemIt != tileItems.end()) {
             if((*tileIt)->getTile() == (*itemIt).tile) {
@@ -201,7 +201,7 @@ void GlView::freeResources()
 }
 
 bool GlView::drawTiles(const Progress &progress)
-{        
+{
 //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
     ngsCheckGLError(glDisable(GL_BLEND));
 
