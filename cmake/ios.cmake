@@ -27,11 +27,11 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Rele
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ios.toolchain.cmake
-        CACHE PATH "Select android toolchain file path")
+        CACHE PATH "Select iOS toolchain file path")
 
 set (IOS ON)
 
-set(NGS_APPLE_BUNDLE_NAME "ng_support_lib")
+set(NGS_APPLE_BUNDLE_NAME "com.nextgis.maplib")
 set(NGS_APPLE_BUNDLE_ID ${PACKAGE_ID})
 
 if(IOS)
