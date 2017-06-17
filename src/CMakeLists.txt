@@ -142,7 +142,7 @@ endif()
 
 if(IOS)
     set_target_properties(${LIB_NAME} PROPERTIES
-        COMPILE_FLAGS "-arch ${IOS_ARCH}" LINK_FLAGS "-arch ${IOS_ARCH}"
+        COMPILE_FLAGS "-arch ${IOS_ARCH}" LINK_FLAGS "-arch ${IOS_ARCH} -Wl,-exported_symbols_list,${CMAKE_SOURCE_DIR}/opt/sym.exp"
     )
 endif()
 

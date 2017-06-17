@@ -50,6 +50,7 @@ include (CMakeForceCompiler)
 # CMAKE_FORCE_C_COMPILER (/usr/bin/clang Apple)
 # CMAKE_FORCE_CXX_COMPILER (/usr/bin/clang++ Apple)
 set(CMAKE_AR ar CACHE FILEPATH "" FORCE)
+set(CMAKE_RANLIB ranlib CACHE FILEPATH "" FORCE)
 
 # Skip the platform compiler checks for cross compiling
 set (CMAKE_CXX_COMPILER_WORKS TRUE)
@@ -81,6 +82,7 @@ set (CMAKE_SHARED_MODULE_CREATE_C_FLAGS "-bundle -headerpad_max_install_names")
 set (CMAKE_SHARED_MODULE_LOADER_C_FLAG "-Wl,-bundle_loader,")
 set (CMAKE_SHARED_MODULE_LOADER_CXX_FLAG "-Wl,-bundle_loader,")
 set (CMAKE_FIND_LIBRARY_SUFFIXES ".dylib" ".so" ".a")
+
 
 # hack: if a new cmake (which uses CMAKE_INSTALL_NAME_TOOL) runs on an old build tree
 # (where install_name_tool was hardcoded) and where CMAKE_INSTALL_NAME_TOOL isn't in the cache
@@ -167,6 +169,19 @@ set (CMAKE_OSX_ARCHITECTURES ${IOS_ARCH} CACHE string  "Build architecture for i
 
 # Set the find root to the iOS developer roots and to user defined paths
 set (CMAKE_FIND_ROOT_PATH ${CMAKE_IOS_DEVELOPER_ROOT} ${CMAKE_IOS_SDK_ROOT} ${CMAKE_PREFIX_PATH} CACHE string  "iOS find search path root")
+
+# Find (Apple's) libtool.
+execute_process(COMMAND xcrun -sdk ${CMAKE_OSX_SYSROOT} -find libtool
+  OUTPUT_VARIABLE IOS_LIBTOOL
+  ERROR_QUIET
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "Using libtool: ${IOS_LIBTOOL}")
+
+# Configure libtool to be used instead of ar + ranlib to build static libraries.
+# This is required on Xcode 7+, but should also work on previous versions of
+# Xcode.
+set(CMAKE_C_CREATE_STATIC_LIBRARY "${IOS_LIBTOOL} -static -o <TARGET> <LINK_FLAGS> <OBJECTS> ")
+set(CMAKE_CXX_CREATE_STATIC_LIBRARY "${IOS_LIBTOOL} -static -o <TARGET> <LINK_FLAGS> <OBJECTS> ")
 
 # default to searching for frameworks first
 set (CMAKE_FIND_FRAMEWORK FIRST)

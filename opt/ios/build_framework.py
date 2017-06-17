@@ -104,9 +104,7 @@ class Builder:
         return args
 
     def getBuildCommand(self, arch, target):
-        maxCount = multiprocessing.cpu_count()
-        # if maxCount > 2:
-        #     maxCount = 2
+        maxCount = 2 #multiprocessing.cpu_count()
         buildcmd = [
             "cmake",
             "--build",
@@ -157,7 +155,10 @@ class Builder:
 
     def makeFramework(self, outdir, builddirs):
         name = "ngstore"
-        libname = "libngs_merged." + ext
+        if ext == 'dylib':
+            libname = 'libngstore.' + ext
+        else:
+            libname = "libngs_merged." + ext
 
         # set the current dir to the dst root
         framework_dir = os.path.join(outdir, "%s.framework" % name)
