@@ -14,7 +14,7 @@ settings/network/proxy_url
 settings/network/proxy_port
 settings/map/background
 
-# Settings folder contetns
+# Settings folder contents
 
 settings.json
 fs_connections

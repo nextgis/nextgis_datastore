@@ -179,10 +179,20 @@ class Builder:
         print("Creating universal library from:\n\t%s" % "\n\t".join(libs), file=sys.stderr)
         execute(lipocmd)
 
+        fixnamecmd = ['install_name_tool', '-id', '@rpath/' + name + '.framework/Versions/A/' + name, os.path.join(dstdir, name)]
+        #['install_name_tool', '-change', libname, '@rpath/' + name + '.framework/Versions/A/' + name, os.path.join(dstdir, name)]
+        execute(fixnamecmd)
+
         # copy Info.plist
         resdir = os.path.join(dstdir, "Resources")
         os.makedirs(resdir)
         shutil.copyfile(self.getInfoPlist(builddirs), os.path.join(resdir, "Info.plist"))
+
+        # copy other Resources
+        shutil.copytree(os.path.join(builddirs[0], "install", "share", "epsg_csv"), os.path.join(resdir, "epsg_csv"))
+        shutil.copytree(os.path.join(builddirs[0], "install", "share", "gdal"), os.path.join(resdir, "gdal"))
+        shutil.copytree(os.path.join(builddirs[0], "install", "share", "proj"), os.path.join(resdir, "proj"))
+        shutil.copytree(os.path.join(builddirs[0], "install", "share", "ssl"), os.path.join(resdir, "ssl"))
 
         moddir = os.path.join(dstdir, "Modules")
         os.makedirs(moddir)
@@ -193,11 +203,11 @@ class Builder:
   header "common.h"
 }''')
 
-  # umbrella header "api.h"
-  #
-  # export *
-  # module * { export * }
-  #
+        # Code sign
+        signcmd = ["codesign", "--force", "--sign", "-", "--preserve-metadata=identifier,entitlements", os.path.join(dstdir, name)]
+        print("Sign universal library: " + os.path.join(dstdir, name), file=sys.stderr)
+        execute(signcmd)
+
         # make symbolic links
         links = [
             (["A"], ["Versions", "Current"]),
@@ -217,6 +227,8 @@ if __name__ == "__main__":
     parser.add_argument('out', metavar='OUTDIR', help='folder to put built framework')
     parser.add_argument('--repo', metavar='DIR', default=folder, help='folder with ngs repository (default is "../.." relative to script location)')
     args = parser.parse_args()
+
+    print("Build in:" + args.out, file=sys.stderr)
 
     b = Builder(args.repo,
         [
