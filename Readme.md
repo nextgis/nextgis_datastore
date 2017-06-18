@@ -84,7 +84,8 @@ and copy tasks. Also special Android.mk and application.mk files with linked
 libraries and supported ABIs set.
 
 For iOS special Python script *build_framework.py* to build XCode framework.
-Special swift file with cast main C types is provided as well.
+Carthage support enabled. The special swift wrapper library is at
+[separate repository](https://github.com/nextgis/ios_maplib).
 
 # License
 

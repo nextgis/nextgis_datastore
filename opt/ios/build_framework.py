@@ -238,12 +238,29 @@ if __name__ == "__main__":
 
     print("Build in:" + args.out, file=sys.stderr)
 
-    b = Builder(args.repo,
-        [
-            ("armv7", "iPhoneOS"),
-            ("armv7s", "iPhoneOS"),
-            ("arm64", "iPhoneOS"),
-            ("i386", "iPhoneSimulator"),
-            ("x86_64", "iPhoneSimulator"),
-        ])
-    b.build(args.out)
+    if ios:
+        b1 = Builder(args.repo,
+            [
+                ("armv7", "iPhoneOS"),
+                ("armv7s", "iPhoneOS"),
+                ("arm64", "iPhoneOS"),
+            ])
+        b1.build(args.out + '-iphoneos')
+
+        b2 = Builder(args.repo,
+            [
+                ("i386", "iPhoneSimulator"),
+                ("x86_64", "iPhoneSimulator"),
+            ])
+        b2.build(args.out + '-iphonesimulator')
+
+    else:
+        b = Builder(args.repo,
+            [
+                ("armv7", "iPhoneOS"),
+                ("armv7s", "iPhoneOS"),
+                ("arm64", "iPhoneOS"),
+                ("i386", "iPhoneSimulator"),
+                ("x86_64", "iPhoneSimulator"),
+            ])
+        b.build(args.out)
