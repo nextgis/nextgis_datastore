@@ -60,6 +60,14 @@ set(SOVERSION 1)
 
 report_version(${PROJECT_NAME} ${VERSION})
 
+if(IOS)
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
+                 "${CMAKE_BINARY_DIR}/ios/Info.plist")
+elseif(APPLE)
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
+                 "${CMAKE_BINARY_DIR}/osx/Info.plist")
+endif()
+
 enable_testing()
 include(FindAnyProject)
 include(extlib)

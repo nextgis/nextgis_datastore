@@ -7,12 +7,14 @@
     <key>CFBundleIdentifier</key>
     <string>${NGS_APPLE_BUNDLE_ID}</string>
     <key>CFBundleVersion</key>
-    <string>${NGS_LIBVERSION}</string>
+    <string>${VERSION}</string>
     <key>CFBundleShortVersionString</key>
-    <string>${NGS_LIBVERSION}</string>
+    <string>${VERSION}</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundlePackageType</key>
     <string>FMWK</string>
+    <key>CFBundleExecutable</key>
+    <string>${PROJECT_NAME}</string>
 </dict>
 </plist>

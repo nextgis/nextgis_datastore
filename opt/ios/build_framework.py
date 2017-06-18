@@ -30,6 +30,7 @@ import multiprocessing
 from subprocess import check_call, check_output, CalledProcessError
 
 ext = 'dylib'
+ios = True
 
 def execute(cmd, cwd = None):
     print("Executing: %s in %s" % (cmd, cwd), file=sys.stderr)
@@ -166,7 +167,10 @@ class Builder:
             shutil.rmtree(framework_dir)
         os.makedirs(framework_dir)
 
-        dstdir = os.path.join(framework_dir, "Versions", "A")
+        if ios:
+            dstdir = framework_dir
+        else:
+            dstdir = os.path.join(framework_dir, "Versions", "A")
 
         # copy headers from one of build folders
         shutil.copytree(os.path.join(builddirs[0], "install", "include", "ngstore"), os.path.join(dstdir, "Headers"))
@@ -179,7 +183,10 @@ class Builder:
         print("Creating universal library from:\n\t%s" % "\n\t".join(libs), file=sys.stderr)
         execute(lipocmd)
 
-        fixnamecmd = ['install_name_tool', '-id', '@rpath/' + name + '.framework/Versions/A/' + name, os.path.join(dstdir, name)]
+        if ios:
+            fixnamecmd = ['install_name_tool', '-id', '@rpath/' + name + '.framework/' + name, os.path.join(dstdir, name)]
+        else:
+            fixnamecmd = ['install_name_tool', '-id', '@rpath/' + name + '.framework/Versions/A/' + name, os.path.join(dstdir, name)]
         #['install_name_tool', '-change', libname, '@rpath/' + name + '.framework/Versions/A/' + name, os.path.join(dstdir, name)]
         execute(fixnamecmd)
 
@@ -209,17 +216,18 @@ class Builder:
         execute(signcmd)
 
         # make symbolic links
-        links = [
-            (["A"], ["Versions", "Current"]),
-            (["Versions", "Current", "Headers"], ["Headers"]),
-            (["Versions", "Current", "Resources"], ["Resources"]),
-            (["Versions", "Current", "Modules"], ["Modules"]),
-            (["Versions", "Current", name], [name])
-        ]
-        for l in links:
-            s = os.path.join(*l[0])
-            d = os.path.join(framework_dir, *l[1])
-            os.symlink(s, d)
+        if not ios:
+            links = [
+                (["A"], ["Versions", "Current"]),
+                (["Versions", "Current", "Headers"], ["Headers"]),
+                (["Versions", "Current", "Resources"], ["Resources"]),
+                (["Versions", "Current", "Modules"], ["Modules"]),
+                (["Versions", "Current", name], [name])
+            ]
+            for l in links:
+                s = os.path.join(*l[0])
+                d = os.path.join(framework_dir, *l[1])
+                os.symlink(s, d)
 
 if __name__ == "__main__":
     folder = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../.."))
