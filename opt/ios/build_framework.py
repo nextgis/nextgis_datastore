@@ -105,16 +105,16 @@ class Builder:
         return args
 
     def getBuildCommand(self, arch, target):
-        maxCount = 2 #multiprocessing.cpu_count()
+        # maxCount = 1 #multiprocessing.cpu_count()
         buildcmd = [
             "cmake",
             "--build",
             ".",
             "--config",
             "release",
-            "--",
-            "-j",
-            str(maxCount)
+            # "--",
+            # "-j",
+            # str(maxCount)
         ]
         return buildcmd
 
