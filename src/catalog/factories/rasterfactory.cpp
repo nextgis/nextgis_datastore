@@ -136,26 +136,26 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
     switch(type) {
     case CAT_RASTER_TMS:
     {
-        CPLString url = options.getStringOption(KEY_URL);
+        CPLString url = options.stringOption(KEY_URL);
         if(url.empty()) {
             return errorMessage(ngsCode::COD_CREATE_FAILED,
                                 _("Missign required option 'url'"));
         }
 
-        int epsg = options.getIntOption(KEY_EPSG, -1);
+        int epsg = options.intOption(KEY_EPSG, -1);
         if(epsg < 0) {
             return errorMessage(ngsCode::COD_CREATE_FAILED,
                                 _("Missign required option 'epsg'"));
         }
-        int z_min = options.getIntOption(KEY_Z_MIN, 0);
-        int z_max = options.getIntOption(KEY_Z_MAX, 18);
-        bool y_origin_top = options.getBoolOption(KEY_Y_ORIGIN_TOP, true);
+        int z_min = options.intOption(KEY_Z_MIN, 0);
+        int z_max = options.intOption(KEY_Z_MAX, 18);
+        bool y_origin_top = options.boolOption(KEY_Y_ORIGIN_TOP, true);
 
         Envelope extent;
-        extent.setMinX(options.getDoubleOption(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
-        extent.setMaxX(options.getDoubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
-        extent.setMinY(options.getDoubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
-        extent.setMaxY(options.getDoubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
+        extent.setMinX(options.doubleOption(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
+        extent.setMaxX(options.doubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
+        extent.setMinY(options.doubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
+        extent.setMaxY(options.doubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
 
         JSONDocument connectionFile;
         JSONObject root = connectionFile.getRoot();

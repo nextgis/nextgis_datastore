@@ -201,7 +201,7 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
 {
     bool result = false;
     CPLString newPath;
-    if(options.getBoolOption("CREATE_UNIQUE")) {
+    if(options.boolOption("CREATE_UNIQUE")) {
         newPath = createUniquePath(m_path, name);
     }
     else {

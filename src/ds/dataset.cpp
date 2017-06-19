@@ -255,8 +255,8 @@ FeatureClass *Dataset::createFeatureClass(const CPLString &name,
     FeatureClass* out = new FeatureClass(layer, this,
                                          ngsCatalogObjectType::CAT_FC_ANY, name);
 
-    if(options.getBoolOption("CREATE_OVERVIEWS_TABLE", false) ||
-            options.getBoolOption("CREATE_OVERVIEWS", false)) {
+    if(options.boolOption("CREATE_OVERVIEWS_TABLE", false) ||
+            options.boolOption("CREATE_OVERVIEWS", false)) {
         out->createOverviews(progress, options);
     }
 
@@ -585,7 +585,7 @@ bool Dataset::hasChildren()
 int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                     const Progress &progress)
 {
-    CPLString newName = options.getStringOption("NEW_NAME",
+    CPLString newName = options.stringOption("NEW_NAME",
                                                 CPLGetBasename(child->getName()));
     newName = normalizeDatasetName(newName);
     if(move) {
@@ -633,13 +633,13 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->getName().c_str());
         }
-        bool toMulti = options.getBoolOption("FORCE_GEOMETRY_TO_MULTI", false);
+        bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
         OGRFeatureDefn* const srcDefinition = srcFClass->definition();
         std::vector<OGRwkbGeometryType> geometryTypes =
                 srcFClass->geometryTypes();
         OGRwkbGeometryType filterFeometryType =
                 FeatureClass::geometryTypeFromName(
-                    options.getStringOption("ACCEPT_GEOMETRY", "ANY"));
+                    options.stringOption("ACCEPT_GEOMETRY", "ANY"));
         for(OGRwkbGeometryType geometryType : geometryTypes) {
             if(filterFeometryType != geometryType &&
                     filterFeometryType != wkbUnknown) {

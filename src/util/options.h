@@ -36,11 +36,11 @@ public:
     Options() = default;
     Options(const Options& options) : m_options(options.m_options) {}
     Options(char** options);
-    const CPLString &getStringOption(const char * key,
+    const CPLString &stringOption(const char * key,
                                      const CPLString & defaultOption = "") const;
-    bool getBoolOption(const char *key, bool defaultOption = true) const;
-    int getIntOption(const char *key, int defaultOption = 0) const;
-    double getDoubleOption(const char *key, double defaultOption = 0.0) const;
+    bool boolOption(const char *key, bool defaultOption = true) const;
+    int intOption(const char *key, int defaultOption = 0) const;
+    double doubleOption(const char *key, double defaultOption = 0.0) const;
     OptionsArrayUPtr getOptions() const;
     void addOption(const char *key, const char * value) { m_options[key] = value; }
     void removeOption(const char *key);

@@ -23,6 +23,9 @@
 // stl
 #include <iostream>
 
+// gdal
+#include "cpl_http.h"
+
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
 #include "ds/simpledataset.h"
@@ -171,6 +174,11 @@ int ngsInit(char **options)
         CPLSetConfigOption("GL_MULTISAMPLE", multisample);
     }
 
+    const char* cainfo = CSLFetchNameValue(options, "CAINFO");
+    if(cainfo) {
+        CPLSetConfigOption("CAINFO", cainfo);
+    }
+
 #ifdef HAVE_LIBINTL_H
     const char* locale = CSLFetchNameValue(options, "LOCALE");
     //TODO: Do we need std::setlocale(LC_ALL, locale); execution here in library or it will call from programm?
@@ -276,6 +284,87 @@ const char *ngsFormFileName(const char *path, const char *name,
 void ngsFree(void *pointer)
 {
     CPLFree(pointer);
+}
+
+//------------------------------------------------------------------------------
+// Miscellaneous functions
+//------------------------------------------------------------------------------
+
+/**
+ * @brief ngsURLRequest Perform web request
+ * @param type Request type (GET, POST, PUT, DELETE)
+ * @param url Request URL
+ * @param options Available options are:
+ * - PERSISTENT=name, create persistent connection with provided name
+ * - CLOSE_PERSISTENT=name, close persistent connection with provided name
+ * - CONNECTTIMEOUT=val, where val is in seconds (possibly with decimals).
+ *   This is the maximum delay for the connection to be established before
+ *   being aborted
+ * - TIMEOUT=val, where val is in seconds. This is the maximum delay for the whole
+ *   request to complete before being aborted
+ * - LOW_SPEED_TIME=val, where val is in seconds. This is the maximum time where the
+ *   transfer speed should be below the LOW_SPEED_LIMIT (if not specified 1b/s),
+ *   before the transfer to be considered too slow and aborted
+ * - LOW_SPEED_LIMIT=val, where val is in bytes/second. See LOW_SPEED_TIME. Has only
+ *   effect if LOW_SPEED_TIME is specified too
+ * - HEADERS=val, where val is an extra header to use when getting a web page.
+ *   For example "Accept: application/x-ogcwkt"
+ * - HEADER_FILE=filename: filename of a text file with "key: value" headers
+ * - HTTPAUTH=[BASIC/NTLM/GSSNEGOTIATE/ANY] to specify an authentication scheme to use
+ * - USERPWD=userid:password to specify a user and password for authentication
+ * - POSTFIELDS=val, where val is a nul-terminated string to be passed to the server
+ *   with a POST request
+ * - PROXY=val, to make requests go through a proxy server, where val is of the
+ *   form proxy.server.com:port_number
+ * - PROXYUSERPWD=val, where val is of the form username:password
+ * - PROXYAUTH=[BASIC/NTLM/DIGEST/ANY] to specify an proxy authentication scheme
+ *   to use
+ * - COOKIE=val, where val is formatted as COOKIE1=VALUE1; COOKIE2=VALUE2; ...
+ * - MAX_RETRY=val, where val is the maximum number of retry attempts if a 503 or
+ *   504 HTTP error occurs. Default is 0
+ * - RETRY_DELAY=val, where val is the number of seconds between retry attempts.
+ *   Default is 30
+ * - MAX_FILE_SIZE=val, where val is a number of bytes
+ * @return structure of type ngsURLRequestResult
+ */
+ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
+                                  char** options)
+{
+    Options requestOptions(options);
+    switch (type) {
+    case URT_GET:
+        requestOptions.addOption("CUSTOMREQUEST", "GET");
+        break;
+    case URT_POST:
+        requestOptions.addOption("CUSTOMREQUEST", "POST");
+        break;
+    case URT_PUT:
+        requestOptions.addOption("CUSTOMREQUEST", "PUT");
+        break;
+    case URT_DELETE:
+        requestOptions.addOption("CUSTOMREQUEST", "DELETE");
+        break;
+    }
+    auto optionsPtr = requestOptions.getOptions();
+    CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
+
+    if(result->pszErrBuf) {
+        errorMessage(ngsCode::COD_REQUEST_FAILED, result->pszErrBuf);
+    }
+
+    unsigned char* buffer = new unsigned char[result->nDataAlloc];
+    memccpy(buffer, result->pabyData, 1, static_cast<size_t>(result->nDataAlloc));
+
+    OptionsArrayUPtr headersPtr(CSLDuplicate(result->papszHeaders), CSLDestroy);
+    std::unique_ptr<ngsURLRequestResult> out(new ngsURLRequestResult);
+    out->status = result->nStatus;
+    out->headers = headersPtr.get();
+    out->dataLen = result->nDataAlloc;
+    out->data = buffer;
+
+    CPLHTTPDestroyResult( result );
+
+    return out.get();
 }
 
 //------------------------------------------------------------------------------
@@ -424,7 +513,7 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **optio
 
     Options createOptions(options);
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
-                createOptions.getIntOption("TYPE", CAT_UNKNOWN));
+                createOptions.intOption("TYPE", CAT_UNKNOWN));
     createOptions.removeOption("TYPE");
     ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
     // Check can create
@@ -481,7 +570,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
 
     Progress progress(callback, callbackData);
     Options loadOptions(options);
-    bool move = loadOptions.getBoolOption("MOVE", false);
+    bool move = loadOptions.boolOption("MOVE", false);
     loadOptions.removeOption("MOVE");
 
     if(move && !srcCatalogObjectPointer->canDestroy()) {

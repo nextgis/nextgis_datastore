@@ -45,7 +45,7 @@ Options::Options(char **options)
     }
 }
 
-const CPLString &Options::getStringOption(const char *key,
+const CPLString &Options::stringOption(const char *key,
                                           const CPLString &defaultOption) const
 {
     auto it = m_options.find(key);
@@ -54,7 +54,7 @@ const CPLString &Options::getStringOption(const char *key,
     return it->second;
 }
 
-bool Options::getBoolOption(const char *key, bool defaultOption) const
+bool Options::boolOption(const char *key, bool defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())
@@ -73,7 +73,7 @@ bool Options::getBoolOption(const char *key, bool defaultOption) const
     return true;
 }
 
-int Options::getIntOption(const char *key, int defaultOption) const
+int Options::intOption(const char *key, int defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())
@@ -81,7 +81,7 @@ int Options::getIntOption(const char *key, int defaultOption) const
     return atoi(it->second);
 }
 
-double Options::getDoubleOption(const char *key, double defaultOption) const
+double Options::doubleOption(const char *key, double defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())

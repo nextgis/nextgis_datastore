@@ -49,7 +49,8 @@ enum ngsCode {
     COD_MOVE_FAILED,        /**< Move failed */
     COD_CLOSE_FAILED,       /**< Close failed */
     COD_RENAME_FAILED,      /**< Rename failed */
-    COD_DRAW_FAILED         /**< Draw failed */
+    COD_DRAW_FAILED,        /**< Draw failed */
+    COD_REQUEST_FAILED      /**< URL Request failed */
 };
 
 /**
@@ -189,6 +190,16 @@ enum ngsCatalogObjectType {
     CAT_QUERY_RESULT,
     CAT_QUERY_RESULT_FC,
     CAT_RASTER_FC_ANY
+};
+
+/**
+ * @brief The URL Request Type enum
+ */
+enum ngsURLRequestType {
+    URT_GET = 1,
+    URT_POST,
+    URT_PUT,
+    URT_DELETE
 };
 
 #endif // NGSCODES_H

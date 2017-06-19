@@ -190,9 +190,9 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                        _("Start copy features from '%s' to '%s'"),
                        srcFClass->getName().c_str(), m_name.c_str());
 
-    bool skipEmpty = options.getBoolOption("SKIP_EMPTY_GEOMETRY", false);
-    bool skipInvalid = options.getBoolOption("SKIP_INVALID_GEOMETRY", false);
-    bool toMulti = options.getBoolOption("FORCE_GEOMETRY_TO_MULTI", false);
+    bool skipEmpty = options.boolOption("SKIP_EMPTY_GEOMETRY", false);
+    bool skipInvalid = options.boolOption("SKIP_INVALID_GEOMETRY", false);
+    bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
 
     OGRSpatialReference *srcSRS = srcFClass->getSpatialReference();
     OGRSpatialReference *dstSRS = getSpatialReference();
@@ -401,7 +401,7 @@ void FeatureClass::tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent,
 
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
-    bool force = options.getBoolOption("FORCE", false);
+    bool force = options.boolOption("FORCE", false);
     if(!force && hasOverviews()) {
         return ngsCode::COD_SUCCESS;
     }
@@ -422,12 +422,12 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         parentDS->clearOverviewsTable(getName());
     }
 
-    if(options.getBoolOption("CREATE_OVERVIEWS_TABLE", false)) {
+    if(options.boolOption("CREATE_OVERVIEWS_TABLE", false)) {
         return ngsCode::COD_SUCCESS;
     }
 
     // Fill overview layer with data
-    const CPLString &zoomLevelListStr = options.getStringOption(
+    const CPLString &zoomLevelListStr = options.stringOption(
                 ZOOM_LEVELS_OPTION, "");
     fillZoomLevels(zoomLevelListStr);
     if(m_zoomLevels.empty()) {

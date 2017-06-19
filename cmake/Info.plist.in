@@ -16,5 +16,17 @@
     <string>FMWK</string>
     <key>CFBundleExecutable</key>
     <string>${PROJECT_NAME}</string>
+    <key>DTSDKName</key>
+    <string>${XCODE_IOS_PLATFORM}${IOS_SDK_VERSION}</string>
+    <key>MinimumOSVersion</key>
+    <string>${IOS_DEPLOYMENT_TARGET}</string>
+    <key>DTPlatformName</key>
+    <string>${XCODE_IOS_PLATFORM}</string>
+    <key>DTPlatformVersion</key>
+    <string>${IOS_SDK_VERSION}</string>
+    <key>DTPlatformBuild</key>
+    <string>${IOS_BUILD_VERSION}</string>
+    <key>DTSDKBuild</key>
+    <string>${IOS_BUILD_VERSION}</string>
 </dict>
 </plist>

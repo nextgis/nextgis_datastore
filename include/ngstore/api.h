@@ -56,6 +56,14 @@ typedef struct _ngsCatalogObjectInfo {
     CatalogObjectH object;
 } ngsCatalogObjectInfo;
 
+typedef struct _ngsURLRequestResult {
+    int status;
+    char** headers;
+    unsigned char* data;
+    int dataLen;
+    ~_ngsURLRequestResult(){ delete data; }
+} ngsURLRequestResult;
+
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
@@ -101,6 +109,14 @@ NGS_EXTERNC void ngsDestroyList(char** list);
 NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension);
 NGS_EXTERNC void ngsFree(void *pointer);
+
+/**
+  * Miscellaneous functions
+  */
+
+NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
+                                              const char* url,
+                                              char** options);
 
 /**
  * Catalog functions

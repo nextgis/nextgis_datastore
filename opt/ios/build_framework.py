@@ -68,9 +68,9 @@ class Builder:
             mainBD = self.getBD(outdir, t)
             dirs.append(mainBD)
             cmake_flags = []
-            if xcode_ver >= 100 and t[1] == 'iPhoneOS': # 7
-                cmake_flags.append("-DCMAKE_C_FLAGS=-fembed-bitcode")
-                cmake_flags.append("-DCMAKE_CXX_FLAGS=-fembed-bitcode")
+            # if xcode_ver >= 100 and t[1] == 'iPhoneOS': # 7
+            #     cmake_flags.append("-DCMAKE_C_FLAGS=-fembed-bitcode")
+            #     cmake_flags.append("-DCMAKE_CXX_FLAGS=-fembed-bitcode")
             self.buildOne(t[0], t[1], mainBD, cmake_flags)
             self.mergeLibs(mainBD)
         self.makeFramework(outdir, dirs)
