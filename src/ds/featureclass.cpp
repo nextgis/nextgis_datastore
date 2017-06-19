@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "featureclass.h"
 
+#include <algorithm>
+
 #include "api_priv.h"
 #include "dataset.h"
 #include "coordinatetransformation.h"
