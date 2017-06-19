@@ -530,16 +530,18 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **optio
  * @brief ngsCatalogPathFromSystem Finds catalog path
  * (i.e. ngc://Local connections/tmp) correspondent system path (i.e. /home/user/tmp
  * @param path System path
- * @return Catalog path
+ * @return A pointer to buffer, containing catalog path
+ * or NULL in case of error. User is responsible to free that buffer
+ * after usage with ngsFree() function.
  */
-const char *ngsCatalogPathFromSystem(const char *path)
+char *ngsCatalogPathFromSystem(const char *path)
 {
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObjectByLocalPath(path);
     if(object) {
-        return object->getFullName();
+        return CPLStrdup(object->getFullName());
     }
-    return "";
+    return NULL;
 }
 
 /**

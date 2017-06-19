@@ -121,7 +121,7 @@ NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
 /**
  * Catalog functions
  */
-NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
+NGS_EXTERNC char* ngsCatalogPathFromSystem(const char* path);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object,
                                                         int filter);
