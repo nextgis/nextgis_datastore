@@ -61,7 +61,6 @@ typedef struct _ngsURLRequestResult {
     char** headers;
     unsigned char* data;
     int dataLen;
-    ~_ngsURLRequestResult(){ delete data; }
 } ngsURLRequestResult;
 
 /**
@@ -117,7 +116,7 @@ NGS_EXTERNC void ngsFree(void *pointer);
 NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
-
+NGS_EXTERNC void ngsURLRequestDestroyResult(ngsURLRequestResult* result);
 /**
  * Catalog functions
  */

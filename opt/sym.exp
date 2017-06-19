@@ -47,3 +47,5 @@ _ngsMapSetScale
 _ngsMapSetSize
 _ngsRemoveNotifyFunction
 _ngsUnInit
+_ngsURLRequest
+_ngsURLRequestDestroyResult

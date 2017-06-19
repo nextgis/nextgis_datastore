@@ -67,7 +67,7 @@ class Builder:
         for t in self.targets:
             mainBD = self.getBD(outdir, t)
             dirs.append(mainBD)
-            cmake_flags = []
+            cmake_flags = ["-DENABLE_BITCODE=OFF"]
             # if xcode_ver >= 100 and t[1] == 'iPhoneOS': # 7
             #     cmake_flags.append("-DCMAKE_C_FLAGS=-fembed-bitcode")
             #     cmake_flags.append("-DCMAKE_CXX_FLAGS=-fembed-bitcode")

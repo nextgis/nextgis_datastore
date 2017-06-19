@@ -61,6 +61,8 @@ set(SOVERSION 1)
 report_version(${PROJECT_NAME} ${VERSION})
 
 if(IOS)
+  include (CheckIncludeFile)
+  check_include_file("stdint.h" HAVE_STDINT_H)
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Info.plist.in"
                  "${CMAKE_BINARY_DIR}/ios/Info.plist")
 elseif(APPLE)

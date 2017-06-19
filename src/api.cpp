@@ -355,16 +355,24 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     unsigned char* buffer = new unsigned char[result->nDataAlloc];
     memccpy(buffer, result->pabyData, 1, static_cast<size_t>(result->nDataAlloc));
 
-    OptionsArrayUPtr headersPtr(CSLDuplicate(result->papszHeaders), CSLDestroy);
-    std::unique_ptr<ngsURLRequestResult> out(new ngsURLRequestResult);
+    ngsURLRequestResult* out = new ngsURLRequestResult;
     out->status = result->nStatus;
-    out->headers = headersPtr.get();
+    out->headers = CSLDuplicate(result->papszHeaders);
     out->dataLen = result->nDataAlloc;
     out->data = buffer;
 
     CPLHTTPDestroyResult( result );
 
-    return out.get();
+    return out;
+}
+
+void ngsURLRequestDestroyResult(ngsURLRequestResult* result)
+{
+    if(nullptr == result)
+        return;
+    delete result->data;
+    CSLDestroy(result->headers);
+    delete result;
 }
 
 //------------------------------------------------------------------------------

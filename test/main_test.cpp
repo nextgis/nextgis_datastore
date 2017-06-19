@@ -465,3 +465,22 @@ TEST(MapTests, MapOpen) {
 
     ngsUnInit();
 }
+
+TEST(MiscTests, TestURLRequest) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), ngsCode::COD_SUCCESS);
+    ngsDestroyList(options);
+
+    ngsURLRequestResult *result = ngsURLRequest(ngsURLRequestType::URT_GET,
+                                               "http://ya.ru", nullptr);
+    ASSERT_NE(result, nullptr);
+    EXPECT_LT(result->status, 400);
+    std::cout << result->data << std::endl;
+    ngsURLRequestDestroyResult(result);
+
+    ngsUnInit();
+}
