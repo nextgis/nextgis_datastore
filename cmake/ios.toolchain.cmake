@@ -271,15 +271,17 @@ if(ENABLE_BITCODE)
     endif()
     message(STATUS "Enabling bitcode support.")
 else()
-  set(BITCODE "")
+  unset(BITCODE) # "")
   message(STATUS "Disabling bitcode support.")
 endif()
 
 set(CMAKE_C_FLAGS
-"${XCODE_IOS_PLATFORM_VERSION_FLAGS} ${BITCODE} -fobjc-abi-version=2 -fobjc-arc ${CMAKE_C_FLAGS}")
+    "${XCODE_IOS_PLATFORM_VERSION_FLAGS} ${BITCODE} -fobjc-abi-version=2 -fobjc-arc ${CMAKE_C_FLAGS}"
+)
 # Hidden visibilty is required for C++ on iOS.
 set(CMAKE_CXX_FLAGS
-  "${XCODE_IOS_PLATFORM_VERSION_FLAGS} ${BITCODE} -fvisibility=hidden -fvisibility-inlines-hidden -fobjc-abi-version=2 -fobjc-arc ${CMAKE_CXX_FLAGS}")
+    "${XCODE_IOS_PLATFORM_VERSION_FLAGS} ${BITCODE} -fvisibility=hidden -fvisibility-inlines-hidden -fobjc-abi-version=2 -fobjc-arc ${CMAKE_CXX_FLAGS}"
+)
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fomit-frame-pointer -ffast-math ${BITCODE} ${CMAKE_CXX_FLAGS_RELEASE}")
 set(CMAKE_C_LINK_FLAGS "${XCODE_IOS_PLATFORM_VERSION_FLAGS} -Wl,-search_paths_first ${CMAKE_C_LINK_FLAGS}")
 set(CMAKE_CXX_LINK_FLAGS "${XCODE_IOS_PLATFORM_VERSION_FLAGS}  -Wl,-search_paths_first ${CMAKE_CXX_LINK_FLAGS}")
