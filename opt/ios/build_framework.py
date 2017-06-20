@@ -140,6 +140,13 @@ class Builder:
             cmakecmd.append("-DENABLE_NEON=ON")
         cmakecmd.append(self.ngs)
         cmakecmd.extend(cmakeargs)
+
+        # Clean up
+        cleanUpPath = os.path.join(builddir, 'CMakeCache.txt')
+        if os.path.exists(cleanUpPath):
+            print("Clean up files: " + cleanUpPath, file=sys.stderr)
+            os.remove(cleanUpPath)
+
         execute(cmakecmd, cwd = builddir)
         # Clean and build
         clean_dir = os.path.join(builddir, "install")
