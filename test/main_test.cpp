@@ -478,9 +478,27 @@ TEST(MiscTests, TestURLRequest) {
     ngsURLRequestResult *result = ngsURLRequest(ngsURLRequestType::URT_GET,
                                                "http://ya.ru", nullptr);
     ASSERT_NE(result, nullptr);
+    EXPECT_GE(result->status, 200);
+    EXPECT_LT(result->status, 400);
+    ngsURLRequestDestroyResult(result);
+
+    result = ngsURLRequest(ngsURLRequestType::URT_GET,
+            "http://demo.nextgis.com/api/component/pyramid/pkg_version", nullptr);
+
+    EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);
     std::cout << result->data << std::endl;
     ngsURLRequestDestroyResult(result);
+
+    options = nullptr;
+    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+    result = ngsURLRequest(ngsURLRequestType::URT_GET,
+            "https://google.com", options);
+
+    EXPECT_GE(result->status, 200);
+    EXPECT_LT(result->status, 400);
+    ngsURLRequestDestroyResult(result);
+    ngsDestroyList(options);
 
     ngsUnInit();
 }

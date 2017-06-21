@@ -348,18 +348,31 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     auto optionsPtr = requestOptions.getOptions();
     CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
 
-    if(result->pszErrBuf) {
+    ngsURLRequestResult* out = new ngsURLRequestResult;
+    if(result->nStatus != 0) {
         errorMessage(ngsCode::COD_REQUEST_FAILED, result->pszErrBuf);
+        out->status = 543;
+        out->headers = nullptr;
+        out->dataLen = 0;
+        out->data = nullptr;
+
+        CPLHTTPDestroyResult( result );
+
+        return out;
+    }
+    else if(result->pszErrBuf) {
+        warningMessage(ngsCode::COD_WARNING, result->pszErrBuf);
     }
 
     unsigned char* buffer = new unsigned char[result->nDataAlloc];
     memccpy(buffer, result->pabyData, 1, static_cast<size_t>(result->nDataAlloc));
 
-    ngsURLRequestResult* out = new ngsURLRequestResult;
-    out->status = result->nStatus;
-    out->headers = CSLDuplicate(result->papszHeaders);
+    out->status = static_cast<int>(result->nHTTPResponseCode);
+    out->headers = result->papszHeaders;
     out->dataLen = result->nDataAlloc;
     out->data = buffer;
+
+    result->papszHeaders = nullptr;
 
     CPLHTTPDestroyResult( result );
 
