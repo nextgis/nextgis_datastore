@@ -49,6 +49,7 @@ typedef struct _ngsPosition {
  * @brief Catalog object short information. Int type coded both
  * ngsCatalogObjectType and subtype (according to type).
  */
+
 typedef void *CatalogObjectH;
 typedef struct _ngsCatalogObjectInfo {
     const char* name;
@@ -110,16 +111,18 @@ NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
 NGS_EXTERNC void ngsFree(void *pointer);
 
 /**
-  * Miscellaneous functions
-  */
+ * Miscellaneous functions
+ */
 
 NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
 NGS_EXTERNC void ngsURLRequestDestroyResult(ngsURLRequestResult* result);
+
 /**
  * Catalog functions
  */
+
 NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object,
@@ -192,6 +195,7 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 /**
  * Layer functions
  */
+
 NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 NGS_EXTERNC char ngsLayerGetVisible(LayerH layer);

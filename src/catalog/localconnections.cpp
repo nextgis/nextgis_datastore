@@ -28,6 +28,7 @@
 
 #if defined (__APPLE__)
 #include <pwd.h>
+#include "TargetConditionals.h"
 #endif
 
 namespace ngs {
@@ -78,6 +79,15 @@ bool LocalConnections::hasChildren()
                connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
            }
        }
+#elif (TARGET_OS_IPHONE == 1) || (TARGET_OS_SIMULATOR == 1)
+    // Add iOS application root path
+    const char* homeDir = CPLGetConfigOption("NGS_HOME", getenv("HOME"));
+    if(nullptr == homeDir) {
+        struct passwd* pwd = getpwuid(getuid());
+        if (pwd)
+           homeDir = pwd->pw_dir;
+    }
+    connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
 #elif defined(__APPLE__)
        const char *homeDir = getenv("HOME");
 
@@ -111,6 +121,8 @@ bool LocalConnections::hasChildren()
        }
        root.add("connections", connections);
        doc.save(m_path);
+
+       CPLDebug("ngstore", "Save connections file to %s", m_path.c_str());
     }
 
     m_childrenLoaded = true;

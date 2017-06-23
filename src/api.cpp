@@ -64,6 +64,7 @@ void initGDAL(const char* dataPath, const char* cachePath)
     // set config options
     if(dataPath) {
         CPLSetConfigOption("GDAL_DATA", dataPath);
+        CPLDebug("ngstore", "GDAL_DATA path set to %s", dataPath);
     }
 
     CPLSetConfigOption("GDAL_CACHEMAX",
@@ -89,11 +90,8 @@ void initGDAL(const char* dataPath, const char* cachePath)
 
     CPLSetConfigOption("CPL_ZIP_ENCODING",
                        settings.getString("common/zip_encoding", "CP866"));
-#ifdef _DEBUG
-    std::cout << "HTTP user agent set to: " << NGS_USERAGENT << "\n"
-              << "GDAL_DATA: " << CPLGetConfigOption("GDAL_DATA", "undefined")
-              <<  std::endl;
-#endif //_DEBUG
+
+    CPLDebug("ngstore", "HTTP user agent set to: %s", NGS_USERAGENT);
 
     // register drivers
 #ifdef NGS_MOBILE // for mobile devices
@@ -112,7 +110,6 @@ void initGDAL(const char* dataPath, const char* cachePath)
     RegisterOGRGeoJSON();
     RegisterOGRGeoPackage();
     RegisterOGRSQLite();
-    //GDALRegister_WMS();
 #else
     GDALAllRegister();
 #endif
@@ -149,16 +146,22 @@ const char* ngsGetVersionString(const char* request)
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
- * - NUM_THREADS - number theads in various functions (a positive number or "ALL_CPUS")
+ * - NUM_THREADS - Number theads in various functions (a positive number or "ALL_CPUS")
+ * - GL_MULTISAMPLE - Enable sampling if applicable
+ * - SSL_CERT_FILE - Path to ssl cert file (*.pem)
+ * - HOME - Root directory for library
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
 {
     gDebugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
+    CPLDebug("ngstore", "debug mode %s", gDebugMode ? "ON" : "OFF");
     const char* dataPath = CSLFetchNameValue(options, "GDAL_DATA");
     const char* cachePath = CSLFetchNameValue(options, "CACHE_DIR");
-    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
-    CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
+    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");    
+    if(settingsPath) {
+        CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
+    }
 
     // Number threads
     const char* numThreads = CSLFetchNameValueDef(options, "NUM_THREADS", nullptr);
@@ -174,9 +177,16 @@ int ngsInit(char **options)
         CPLSetConfigOption("GL_MULTISAMPLE", multisample);
     }
 
-    const char* cainfo = CSLFetchNameValue(options, "CAINFO");
+    const char* cainfo = CSLFetchNameValue(options, "SSL_CERT_FILE");
     if(cainfo) {
-        CPLSetConfigOption("CAINFO", cainfo);
+        CPLSetConfigOption("SSL_CERT_FILE", cainfo);
+        CPLDebug("ngstore", "SSL_CERT_FILE path set to %s", cainfo);
+    }
+
+    const char* home = CSLFetchNameValue(options, "HOME");
+    if(home) {
+        CPLSetConfigOption("NGS_HOME", home);
+        CPLDebug("ngstore", "NGS_HOME path set to %s", home);
     }
 
 #ifdef HAVE_LIBINTL_H
@@ -187,7 +197,7 @@ int ngsInit(char **options)
 #ifdef NGS_MOBILE
     if(nullptr == dataPath) {
         return errorMessage(ngsCode::COD_NOT_SPECIFIED,
-                           _("GDAL_PATH option is required"));
+                           _("GDAL_DATA option is required"));
     }
 #endif
 
