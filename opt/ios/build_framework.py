@@ -106,7 +106,7 @@ class Builder:
         return args
 
     def getBuildCommand(self, arch, target):
-        # maxCount = 1 #multiprocessing.cpu_count()
+        maxCount = multiprocessing.cpu_count()
         buildcmd = [
             "cmake",
             "--build",
@@ -202,6 +202,7 @@ class Builder:
         resdir = os.path.join(dstdir, "Resources")
         os.makedirs(resdir)
         shutil.copyfile(self.getInfoPlist(builddirs), os.path.join(resdir, "Info.plist"))
+        shutil.copyfile(self.getInfoPlist(builddirs), os.path.join(dstdir, "Info.plist"))
 
         # copy other Resources
         shutil.copytree(os.path.join(builddirs[0], "install", "share", "epsg_csv"), os.path.join(resdir, "epsg_csv"))

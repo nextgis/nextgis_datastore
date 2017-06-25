@@ -472,6 +472,7 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
+    options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
     EXPECT_EQ(ngsInit(options), ngsCode::COD_SUCCESS);
     ngsDestroyList(options);
 
@@ -493,7 +494,14 @@ TEST(MiscTests, TestURLRequest) {
     options = nullptr;
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
     result = ngsURLRequest(ngsURLRequestType::URT_GET,
-            "https://google.com", options);
+            "https://nextgis.com", options);
+
+    EXPECT_GE(result->status, 200);
+    EXPECT_LT(result->status, 400);
+    ngsURLRequestDestroyResult(result);
+
+    result = ngsURLRequest(ngsURLRequestType::URT_GET,
+            "https://kcdev.rusgis.com:444/auth/realms/dev/protocol/openid-connect/token", options);
 
     EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);

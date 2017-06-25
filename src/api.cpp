@@ -153,7 +153,7 @@ const char* ngsGetVersionString(const char* request)
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
-{
+{    
     gDebugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
     CPLDebug("ngstore", "debug mode %s", gDebugMode ? "ON" : "OFF");
     const char* dataPath = CSLFetchNameValue(options, "GDAL_DATA");
