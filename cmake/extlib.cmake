@@ -99,7 +99,7 @@ find_anyproject(OpenSSL REQUIRED SHARED OFF CMAKE_ARGS
     -DOPENSSL_NO_STATIC_ENGINE=ON
     -DOPENSSL_NO_DEPRECATED=ON
     -DOPENSSL_NO_UNIT_TEST=ON
-) # TODO: disable max algs
+) # TODO: Disable max alghorithms. Check TLS v1.2 working!
 
 find_anyproject(CURL REQUIRED SHARED OFF CMAKE_ARGS
     -DBUILD_CURL_EXE=OFF

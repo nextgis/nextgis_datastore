@@ -142,6 +142,7 @@ NGS_EXTERNC int ngsCatalogObjectRename(CatalogObjectH object, const char* newNam
 NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
                                                 int optionType);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
+NGS_EXTERNC const char* ngsCatalogObjectName(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char **options,
                                                ngsProgressFunc callback,

@@ -8,6 +8,7 @@ _ngsCatalogObjectOptions
 _ngsCatalogObjectQuery
 _ngsCatalogObjectQueryMultiFilter
 _ngsCatalogObjectRename
+_ngsCatalogObjectName
 _ngsCatalogObjectType
 _ngsCatalogPathFromSystem
 _ngsDestroyList

@@ -723,6 +723,18 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
 }
 
 /**
+ * @brief ngsCatalogObjectName Returns input object handler name
+ * @param object Object handler
+ * @return Catalog object name
+ */
+const char *ngsCatalogObjectName(CatalogObjectH object)
+{
+    if(nullptr == object)
+        return "";
+    return static_cast<Object*>(object)->getName();
+}
+
+/**
  * @brief ngsFeatureClassCreateOverviews Creates Gl opimised vector tiles
  * @param object Catalog object handle. Mast be feature class or simple datasource.
  * @param options The options key-value array specific to operation.
@@ -1253,3 +1265,4 @@ int ngsLayerSetVisible(LayerH layer, char visible)
     (static_cast<Layer*>(layer))->setVisible(visible);
     return ngsCode::COD_SUCCESS;
 }
+
