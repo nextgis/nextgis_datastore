@@ -49,6 +49,22 @@ bool LocalConnections::hasChildren()
     if(m_childrenLoaded)
         return ObjectContainer::hasChildren();
 
+#if (TARGET_OS_IPHONE == 1) || (TARGET_OS_IPHONE == 1)
+    // NOTE: For iOS (Mobile?) we don't need to store connections in file as
+    // there is the only connection to root directory
+    // Add iOS application root path
+    const char* homeDir = CPLGetConfigOption("NGS_HOME", getenv("HOME"));
+    if(nullptr == homeDir) {
+        struct passwd* pwd = getpwuid(getuid());
+        if (pwd)
+           homeDir = pwd->pw_dir;
+    }
+
+    m_children.push_back(ObjectPtr(new Folder(this, "Home", homeDir)));
+    m_childrenLoaded = true;
+    return ObjectContainer::hasChildren();
+#endif // TARGET_OS_IPHONE || TARGET_OS_IPHONE
+
     JSONDocument doc;
     if(doc.load (m_path)) {
         JSONObject root = doc.getRoot ();
@@ -79,15 +95,6 @@ bool LocalConnections::hasChildren()
                connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
            }
        }
-#elif (TARGET_OS_IPHONE == 1) || (TARGET_OS_SIMULATOR == 1)
-    // Add iOS application root path
-    const char* homeDir = CPLGetConfigOption("NGS_HOME", getenv("HOME"));
-    if(nullptr == homeDir) {
-        struct passwd* pwd = getpwuid(getuid());
-        if (pwd)
-           homeDir = pwd->pw_dir;
-    }
-    connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
 #elif defined(__APPLE__)
        const char *homeDir = getenv("HOME");
 
