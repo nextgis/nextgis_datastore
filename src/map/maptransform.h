@@ -64,6 +64,8 @@ public:
         return getTilesForExtent(getExtent(), getZoom(), getYAxisInverted(),
                                  getXAxisLooped());
     }
+    void setExtentLimits(const Envelope& extentLimit);
+    void setZoomIncrement(char increment) { m_extraZoom = increment; }
 
     // static
 public:
@@ -76,6 +78,9 @@ protected:
     bool updateExtent();
     void initMatrices();
     void setRotateExtent();
+    double fixScale(double scale);
+    OGRRawPoint fixCenter(double x, double y);
+    void fixExtent();
 
 protected:
     inline static double lg(double x) { return log(x) / M_LN2; }
@@ -93,6 +98,11 @@ protected:
      */
     Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
     Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
+
+    // Limits
+    char m_extraZoom;
+    double m_scaleMax, m_scaleMin;
+    Envelope m_extentLimit;
 };
 
 }

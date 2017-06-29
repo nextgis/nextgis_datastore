@@ -81,6 +81,8 @@ public:
     int createLayer(unsigned char mapId, const char* name, const ObjectPtr &object);
     bool deleteLayer(unsigned char mapId, Layer* layer);
     bool reorderLayers(unsigned char mapId, Layer* beforeLayer, Layer* movedLayer);
+    bool setZoomIncrement(unsigned char mapId, char extraZoom);
+    bool setExtentLimits(unsigned char mapId, const Envelope& extentLimits);
 
     // static
 public:

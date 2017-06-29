@@ -99,8 +99,12 @@ static CPLString gFormats;
  * return.
  * @return supported raster/vector/network formats or empty string
  */
-CPLString ngs::reportFormats()
+CPLString &ngs::reportFormats()
 {
+    if(!gFormats.empty()) {
+        return gFormats;
+    }
+
     for( int iDr = 0; iDr < GDALGetDriverCount(); iDr++ ) {
         GDALDriverH hDriver = GDALGetDriver(iDr);
 
@@ -240,7 +244,7 @@ const char* ngs::getVersionString(const char* request)
         return SQLITE_VERSION;
 #endif
     else if(EQUAL(request, "formats")){
-        return reportFormats().c_str ();
+        return reportFormats().c_str();
     }
 #ifdef HAVE_JSON_C_H
     else if(EQUAL(request, "jsonc"))

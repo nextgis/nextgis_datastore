@@ -93,14 +93,15 @@ void initGDAL(const char* dataPath, const char* cachePath)
 
     CPLDebug("ngstore", "HTTP user agent set to: %s", NGS_USERAGENT);
 
-    // register drivers
-#ifdef NGS_MOBILE // for mobile devices
+    // Register drivers
+#ifdef NGS_MOBILE // NOTE: Keep in sync with extlib.cmake gdal options. For mobile devices
     GDALRegister_VRT();
     GDALRegister_GTiff();
     GDALRegister_HFA();
     GDALRegister_PNG();
     GDALRegister_JPEG();
     GDALRegister_MEM();
+    GDALRegister_WMS();
     RegisterOGRShape();
     RegisterOGRTAB();
     RegisterOGRVRT();
@@ -1202,6 +1203,32 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
     }
     return mapStore->deleteLayer(mapId, static_cast<Layer*>(layer)) ?
                 ngsCode::COD_SUCCESS : ngsCode::COD_DELETE_FAILED;
+}
+
+
+int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsCode::COD_DELETE_FAILED,
+                     _("MapStore is not initialized"));
+    }
+    return mapStore->setZoomIncrement(mapId, extraZoom) ?
+                ngsCode::COD_SUCCESS : ngsCode::COD_SET_FAILED;
+}
+
+int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
+                                      double maxX, double maxY)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(ngsCode::COD_DELETE_FAILED,
+                     _("MapStore is not initialized"));
+    }
+
+    Envelope extentLimits(minX, minY, maxX, maxY);
+    return mapStore->setExtentLimits(mapId, extentLimits) ?
+                ngsCode::COD_SUCCESS : ngsCode::COD_SET_FAILED;
 }
 
 //------------------------------------------------------------------------------

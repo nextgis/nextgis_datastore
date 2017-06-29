@@ -53,7 +53,11 @@ bool GlProgram::load(const GLchar * const vertexShader,
     }
 
     CPLString fagShStr(fragmentShader);
-#ifdef TARGET_OS_MAC
+#if TARGET_OS_IPHONE
+    fagShStr = "precision mediump float;\n" + fagShStr;
+#elif TARGET_IPHONE_SIMULATOR
+    fagShStr = "precision mediump float;\n" + fagShStr;
+#elif TARGET_OS_MAC
     fagShStr = "#version 120\n" + fagShStr;
 #else
     fagShStr = "precision mediump float;\n" + fagShStr;

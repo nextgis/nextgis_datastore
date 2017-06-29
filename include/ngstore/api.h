@@ -193,6 +193,10 @@ NGS_EXTERNC double ngsMapGetRotate(unsigned char mapId, enum ngsDirection dir);
 NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
 NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 
+NGS_EXTERNC int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom);
+NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
+                                      double maxX, double maxY);
+
 /**
  * Layer functions
  */

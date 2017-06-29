@@ -37,7 +37,11 @@ MapTransform::MapTransform(int width, int height) :
     m_rotate{0.0},
     m_ratio(DEFAULT_RATIO),
     m_YAxisInverted(false),
-    m_XAxisLooped(true)
+    m_XAxisLooped(true),
+    m_extraZoom(0),
+    m_scaleMax(std::numeric_limits<double>::max()),
+    m_scaleMin(std::numeric_limits<double>::min()),
+    m_extentLimit(DEFAULT_BOUNDS_Y2X4)
 {
     setExtent(DEFAULT_BOUNDS);
     setDisplaySize(width, height, false);
@@ -69,41 +73,29 @@ void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 
 bool MapTransform::setScale(double scale)
 {
-    m_scale = scale;
+    m_scale = fixScale(scale);
     return updateExtent();
 }
 
 bool MapTransform::setCenter(double x, double y)
 {
-    m_center.x = x;
-    m_center.y = y;
+    m_center = fixCenter(x, y);
     return updateExtent();
 }
 
 bool MapTransform::setScaleAndCenter(double scale, double x, double y)
 {
-    m_scale = scale;
-    m_center.x = x;
-    m_center.y = y;
+    m_scale = fixScale(scale);
+    m_center = fixCenter(x, y);
     return updateExtent();
 }
 
 bool MapTransform::setExtent(const Envelope &env)
 {
     m_extent = env;
-    m_center = m_extent.center();
     m_extent.setRatio(m_ratio);
 
-    if(m_XAxisLooped) {
-        while (m_extent.minX() > DEFAULT_BOUNDS.minX()) {
-            m_extent.setMinX(m_extent.minX() - DEFAULT_BOUNDS_X2.maxX());
-            m_extent.setMaxX(m_extent.maxX() - DEFAULT_BOUNDS_X2.maxX());
-        }
-        while (m_extent.maxX() < DEFAULT_BOUNDS.minX()) {
-            m_extent.setMinX(m_extent.minX() + DEFAULT_BOUNDS_X2.maxX());
-            m_extent.setMaxX(m_extent.maxX() + DEFAULT_BOUNDS_X2.maxX());
-        }
-    }
+    fixExtent();
 
     double w = m_extent.width();
     double h = m_extent.height();
@@ -150,16 +142,7 @@ bool MapTransform::updateExtent()
 //    double scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
     m_scaleWorld = 1 / m_scale;//std::min(scaleX, scaleY);
 
-    if(m_XAxisLooped) {
-        while (m_extent.minX() > DEFAULT_BOUNDS_X2.maxX()) {
-            m_extent.setMinX(m_extent.minX() - DEFAULT_BOUNDS_X2.maxX());
-            m_extent.setMaxX(m_extent.maxX() - DEFAULT_BOUNDS_X2.maxX());
-        }
-        while (m_extent.maxX() < DEFAULT_BOUNDS_X2.minX()) {
-            m_extent.setMinX(m_extent.minX() + DEFAULT_BOUNDS_X2.maxX());
-            m_extent.setMaxX(m_extent.maxX() + DEFAULT_BOUNDS_X2.maxX());
-        }
-    }
+    fixExtent();
 
     initMatrices();
 
@@ -266,9 +249,74 @@ void MapTransform::setRotateExtent()
     }
 }
 
+double MapTransform::fixScale(double scale)
+{
+    if(scale > m_scaleMax)
+        scale = m_scaleMax;
+    if(scale < m_scaleMin)
+        scale = m_scaleMin;
+    return scale;
+}
+
+void MapTransform::fixExtent()
+{
+    if(m_XAxisLooped) {
+        while(m_extent.minX() > DEFAULT_BOUNDS.minX() + 5000000) {
+            m_extent.setMinX(m_extent.minX() - DEFAULT_BOUNDS_X2.maxX());
+            m_extent.setMaxX(m_extent.maxX() - DEFAULT_BOUNDS_X2.maxX());
+        }
+        while(m_extent.maxX() < DEFAULT_BOUNDS.minX() + 5000000) {
+            m_extent.setMinX(m_extent.minX() + DEFAULT_BOUNDS_X2.maxX());
+            m_extent.setMaxX(m_extent.maxX() + DEFAULT_BOUNDS_X2.maxX());
+        }
+    }
+    m_center = m_extent.center();
+}
+
+OGRRawPoint MapTransform::fixCenter(double x, double y)
+{
+    Envelope ext = m_extent;
+    fixExtent();
+
+    double halfHeight = ext.height() / 2;
+    double halfWidth = ext.width() / 2;
+
+    if(y - halfHeight < m_extentLimit.minY()){
+        y = m_center.y;//m_extentLimit.minY();
+    }
+    if(y + halfHeight > m_extentLimit.maxY()) {
+        y = m_center.y;//m_extentLimit.maxY();
+    }
+
+    if(!m_XAxisLooped) {
+        if(x - halfWidth < m_extentLimit.minX()){
+            x = m_center.x;//m_extentLimit.minX();
+        }
+        if(x + halfWidth > m_extentLimit.maxX()) {
+            x = m_center.x;//m_extentLimit.maxX();
+        }
+    }
+
+    return OGRRawPoint(x, y);
+}
+
 unsigned char MapTransform::getZoom() const {
-    double retVal = lg(156412.0 / m_scaleWorld); // 156412.0 - m/pixel on 0 zoom. See http://wiki.openstreetmap.org/wiki/Zoom_levels
+    // 156412.0 is m/pixel on 0 zoom. See http://wiki.openstreetmap.org/wiki/Zoom_levels
+    double retVal = lg(156412.0 / m_scaleWorld) + m_extraZoom;
     return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5);
+}
+
+void MapTransform::setExtentLimits(const Envelope &extentLimit)
+{
+    m_extentLimit = extentLimit;
+
+    double minScale = std::min(m_extentLimit.width() / m_displayWidht,
+                          m_extentLimit.height() / m_displayHeight);
+    if(minScale > m_scaleMin)
+        m_scaleMin = minScale;
+
+    if(m_scale < minScale)
+        setScale(minScale);
 }
 
 std::vector<TileItem> MapTransform::getTilesForExtent(

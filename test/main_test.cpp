@@ -88,7 +88,21 @@ TEST(BasicTests, TestVersions) {
     EXPECT_EQ(268443663, ngsGetVersion("openssl"));
     EXPECT_STREQ("1.0.2", ngsGetVersionString("openssl"));*/
 
-    EXPECT_NE(nullptr, ngsGetVersionString("formats"));
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), ngsCode::COD_SUCCESS);
+
+    ngsDestroyList(options);
+
+
+    const char* formats = ngsGetVersionString("formats");
+    EXPECT_NE(nullptr, formats);
+    std::cout << "Available formats:\n" << formats << std::endl;
+
+    ngsUnInit();
 }
 
 TEST(BasicTests, TestInlines) {
@@ -500,12 +514,6 @@ TEST(MiscTests, TestURLRequest) {
     EXPECT_LT(result->status, 400);
     ngsURLRequestDestroyResult(result);
 
-    result = ngsURLRequest(ngsURLRequestType::URT_GET,
-            "https://kcdev.rusgis.com:444/auth/realms/dev/protocol/openid-connect/token", options);
-
-    EXPECT_GE(result->status, 200);
-    EXPECT_LT(result->status, 400);
-    ngsURLRequestDestroyResult(result);
     ngsDestroyList(options);
 
     ngsUnInit();

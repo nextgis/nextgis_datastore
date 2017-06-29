@@ -97,6 +97,10 @@ constexpr Envelope DEFAULT_BOUNDS_X2 = Envelope(DEFAULT_BOUNDS.minX() * 2,
                                           DEFAULT_BOUNDS.minY() * 2,
                                           DEFAULT_BOUNDS.maxX() * 2,
                                           DEFAULT_BOUNDS.maxY() * 2);
+constexpr Envelope DEFAULT_BOUNDS_Y2X4 = Envelope(DEFAULT_BOUNDS.minX() * 4,
+                                          DEFAULT_BOUNDS.minY() * 2,
+                                          DEFAULT_BOUNDS.maxX() * 4,
+                                          DEFAULT_BOUNDS.maxY() * 2);
 
 //    OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
 

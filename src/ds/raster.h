@@ -21,8 +21,6 @@
 #ifndef NGSRASTERDATASET_H
 #define NGSRASTERDATASET_H
 
-#include <mutex>
-
 #include "coordinatetransformation.h"
 #include "dataset.h"
 #include "ngstore/codes.h"
@@ -87,7 +85,7 @@ private:
     std::vector<CPLString> m_siblingFiles;
     typedef struct _lockData {
         Envelope env;
-        std::timed_mutex* mutexRef;
+        CPLMutex* mutexRef;
         unsigned char zoom;
     } LockData;
 

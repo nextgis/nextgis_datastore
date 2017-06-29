@@ -124,7 +124,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     // Lock pixel area to read/write until exit
-    std::timed_mutex* dataLock = nullptr;
+    CPLMutex* dataLock = nullptr;
 
     Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
     CPLAcquireMutex(m_dataLock, 50.0);
@@ -137,15 +137,16 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
     CPLReleaseMutex(m_dataLock);
 
-    if(!dataLock) {
+    bool exists = dataLock != nullptr;
+    if(!exists) {
         CPLMutexHolder holder(m_dataLock, 50.0);
-        dataLock = new std::timed_mutex;
+
+        dataLock = CPLCreateMutex();
         m_dataLocks.push_back({testEnv, dataLock, zoom});
     }
-    using sec = std::chrono::seconds;
-    bool success = dataLock->try_lock_for(sec(60));
-    if(!success) {
-        return false;
+
+    if(exists) {
+        CPLAcquireMutex(dataLock, 60.0);
     }
 
     CPLErr result = m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff,
@@ -154,7 +155,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                                                             bandCount, bandList,
                                    pixelSpace, lineSpace, bandSpace);
 
-    dataLock->unlock();
+    CPLReleaseMutex(dataLock);
     freeLocks();
 
     if(result != CE_None) {
@@ -219,10 +220,9 @@ void Raster::freeLocks(bool all)
     CPLMutexHolder holder(m_dataLock, 50.0);
     if(all) {
         for(auto &lock : m_dataLocks) {
-            if(lock.mutexRef->try_lock()) {
-                lock.mutexRef->unlock();
-                delete lock.mutexRef;
-            }
+            CPLAcquireMutex(lock.mutexRef, 1000.0);
+            CPLReleaseMutex(lock.mutexRef);
+            CPLDestroyMutex(lock.mutexRef);
         }
         m_dataLocks.clear();
     }
@@ -231,16 +231,15 @@ void Raster::freeLocks(bool all)
             size_t freeCount = m_dataLocks.size() - threadCount;
             for(size_t i = 0; i < freeCount; ++i) {
                 if(m_dataLocks[i].mutexRef) {
-                    if(m_dataLocks[i].mutexRef->try_lock()) {
-                        m_dataLocks[i].mutexRef->unlock();
-                        delete m_dataLocks[i].mutexRef;
-                        m_dataLocks[i].mutexRef = nullptr;
-                    }
-                    else {
-                        m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
-                                            i);
-                        return;
-                    }
+                    CPLAcquireMutex(m_dataLocks[i].mutexRef, 1000.0);
+                    CPLReleaseMutex(m_dataLocks[i].mutexRef);
+                    CPLDestroyMutex(m_dataLocks[i].mutexRef);
+                    m_dataLocks[i].mutexRef = nullptr;
+                }
+                else {
+                    m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
+                                        i);
+                    return;
                 }
             }
             m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +

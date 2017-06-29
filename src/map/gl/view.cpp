@@ -136,7 +136,6 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         for(const GlTilePtr& tile : m_tiles) {
             if(tile->filled())
                 continue;
-            //for(const LayerPtr& layer : m_layers) {
             for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
                 const LayerPtr &layer = *layerIt;
@@ -249,6 +248,7 @@ bool GlView::drawTiles(const Progress &progress)
                                                                  layer);
                     if(renderLayer) {
                         renderLayer->free(tile);
+                        CPLDebug("ngstore", "Free tile data z: %d, x: %d, y: %d", tile->getTile().z, tile->getTile().x, tile->getTile().y);
                     }
                 }
                 tile->setFilled();

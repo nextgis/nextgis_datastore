@@ -27,7 +27,7 @@
 namespace ngs {
     int getVersion(const char* request);
     const char* getVersionString(const char* request);
-    CPLString reportFormats();
+    CPLString &reportFormats();
 }
 
 #endif // NGSVERSIONUTIL_H
