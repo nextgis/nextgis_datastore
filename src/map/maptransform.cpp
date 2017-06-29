@@ -275,25 +275,18 @@ void MapTransform::fixExtent()
 
 OGRRawPoint MapTransform::fixCenter(double x, double y)
 {
-    Envelope ext = m_extent;
-    fixExtent();
 
-    double halfHeight = ext.height() / 2;
-    double halfWidth = ext.width() / 2;
-
-    if(y - halfHeight < m_extentLimit.minY()){
-        y = m_center.y;//m_extentLimit.minY();
-    }
-    if(y + halfHeight > m_extentLimit.maxY()) {
-        y = m_center.y;//m_extentLimit.maxY();
+    double halfHeight = m_extent.height() / 2;
+    if(y - halfHeight < m_extentLimit.minY() ||
+            y + halfHeight > m_extentLimit.maxY()) {
+        y = m_center.y;
     }
 
     if(!m_XAxisLooped) {
-        if(x - halfWidth < m_extentLimit.minX()){
-            x = m_center.x;//m_extentLimit.minX();
-        }
-        if(x + halfWidth > m_extentLimit.maxX()) {
-            x = m_center.x;//m_extentLimit.maxX();
+        double halfWidth = m_extent.width() / 2;
+        if(x - halfWidth < m_extentLimit.minX() ||
+                x + halfWidth > m_extentLimit.maxX()) {
+            x = m_center.x;
         }
     }
 
@@ -310,8 +303,10 @@ void MapTransform::setExtentLimits(const Envelope &extentLimit)
 {
     m_extentLimit = extentLimit;
 
-    double minScale = std::min(m_extentLimit.width() / m_displayWidht,
-                          m_extentLimit.height() / m_displayHeight);
+    double s1 = m_displayWidht / m_extentLimit.width();
+    double s2 = m_displayHeight / m_extentLimit.height();
+
+    double minScale = std::max(s1, s2);
     if(minScale > m_scaleMin)
         m_scaleMin = minScale;
 

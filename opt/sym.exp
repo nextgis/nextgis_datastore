@@ -46,6 +46,8 @@ _ngsMapSetCenter
 _ngsMapSetRotate
 _ngsMapSetScale
 _ngsMapSetSize
+_ngsMapSetZoomIncrement
+_ngsMapSetExtentLimits
 _ngsRemoveNotifyFunction
 _ngsUnInit
 _ngsURLRequest
