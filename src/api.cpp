@@ -430,6 +430,12 @@ char** ngsURLAuthGet(const char* url)
     return option.getOptions().release();
 }
 
+int ngsURLAuthDelete(const char* url)
+{
+    AuthStore::instance().deleteAuth(url);
+    return COD_SUCCESS;
+}
+
 /**
  * @brief ngsMD5 Transform string to MD5 hash
  * @param value String to transform

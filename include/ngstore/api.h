@@ -120,6 +120,7 @@ NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
 NGS_EXTERNC void ngsURLRequestDestroyResult(ngsURLRequestResult* result);
 NGS_EXTERNC int ngsURLAuthAdd(const char* url, char** options);
 NGS_EXTERNC char** ngsURLAuthGet(const char* url);
+NGS_EXTERNC int ngsURLAuthDelete(const char* url);
 NGS_EXTERNC const char* ngsMD5(const char* value);
 
 
