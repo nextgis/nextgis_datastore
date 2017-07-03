@@ -54,4 +54,5 @@ _ngsURLRequest
 _ngsURLRequestDestroyResult
 _ngsURLAuthAdd
 _ngsURLAuthGet
+_ngsURLAuthDelete
 _ngsMD5
