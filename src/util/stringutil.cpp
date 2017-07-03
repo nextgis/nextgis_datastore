@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <map>
 
+#include "openssl/md5.h"
+
 namespace ngs {
 
 const static std::map<const char*, const char*> ruMap = { {"а", "a"}, {"б", "b"},
@@ -75,6 +77,21 @@ CPLString normalize(const CPLString &str, const CPLString &lang)
     else {
         return stripUnicode (str);
     }
+    return out;
+}
+
+CPLString md5(const char *value)
+{
+    unsigned char digest[16];
+    MD5_CTX context;
+    MD5_Init(&context);
+    MD5_Update(&context, value, strlen(value));
+    MD5_Final(digest, &context);
+
+    CPLString out;
+    for(int i = 0; i < 16; ++i)
+        out += CPLSPrintf("%02x", static_cast<unsigned int>(digest[i]));
+
     return out;
 }
 

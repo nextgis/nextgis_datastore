@@ -34,6 +34,7 @@ set(HHEADERS
     options.h
     notify.h
     threadpool.h
+    authstore.h
 )
 
 set(CSOURCES
@@ -46,6 +47,7 @@ set(CSOURCES
     options.cpp
     notify.cpp
     threadpool.cpp
+    authstore.cpp
 )
 
 if(UNIX)

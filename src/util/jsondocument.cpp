@@ -95,6 +95,24 @@ bool JSONDocument::load(const char *path)
     return parsed;
 }
 
+bool JSONDocument::load(GByte* data, int len)
+{
+    if(nullptr == data) {
+        return false;
+    }
+    json_tokener* jstok = json_tokener_new();
+    m_rootJsonObject = json_tokener_parse_ex(jstok,
+                                    reinterpret_cast<const char*>(data), len);
+    bool parsed = jstok->err == json_tokener_success;
+    if(!parsed) {
+        errorMessage(_("JSON parsing error: %s (at offset %d)"),
+                            json_tokener_error_desc(jstok->err),
+                            jstok->char_offset);
+    }
+    json_tokener_free(jstok);
+    return parsed;
+}
+
 //------------------------------------------------------------------------------
 // JSONObject
 //------------------------------------------------------------------------------

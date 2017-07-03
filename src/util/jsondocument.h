@@ -127,6 +127,7 @@ public:
     bool save(const char* path);
     JSONObject getRoot();
     bool load(const char* path);
+    bool load(GByte* data, int len = -1);
 
     // TODO: add JSONObject reader(stream);
     // JsonReader reader = new JsonReader(new InputStreamReader(in, "UTF-8"));

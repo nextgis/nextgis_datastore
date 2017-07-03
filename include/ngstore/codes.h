@@ -57,23 +57,25 @@ enum ngsCode {
  * @brief The table, datasource, map and etc. change codes enum
  */
 enum ngsChangeCode {
-    CC_NOP                  = 0 << 1,
+    CC_NOP                  = 1 << 0,
     CC_CREATE_OBJECT        = 1 << 1,
-    CC_DELETE_OBJECT        = 2 << 1,
-    CC_CHANGE_OBJECT        = 3 << 1,
-    CC_CREATE_FEATURE       = 4 << 1,
-    CC_CHANGE_FEATURE       = 5 << 1,
-    CC_DELETE_FEATURE       = 6 << 1,
-    CC_DELETEALL_FEATURES   = 7 << 1,
-    CC_CREATE_ATTACHMENT    = 8 << 1,
-    CC_CHANGE_ATTACHMENT    = 9 << 1,
-    CC_DELETE_ATTACHMENT    = 10 << 1,
-    CC_DELETEALL_ATTACHMENTS = 11 << 1,
-    CC_CREATE_MAP           = 12 << 1,
-    CC_CHANGE_MAP           = 13 << 1,
-    CC_CREATE_LAYER         = 14 << 1,
-    CC_DELETE_LAYER         = 15 << 1,
-    CC_CHANGE_LAYER         = 16 << 1
+    CC_DELETE_OBJECT        = 1 << 2,
+    CC_CHANGE_OBJECT        = 1 << 3,
+    CC_CREATE_FEATURE       = 1 << 4,
+    CC_CHANGE_FEATURE       = 1 << 5,
+    CC_DELETE_FEATURE       = 1 << 6,
+    CC_DELETEALL_FEATURES   = 1 << 7,
+    CC_CREATE_ATTACHMENT    = 1 << 8,
+    CC_CHANGE_ATTACHMENT    = 1 << 9,
+    CC_DELETE_ATTACHMENT    = 1 << 10,
+    CC_DELETEALL_ATTACHMENTS = 1 << 11,
+    CC_CREATE_MAP           = 1 << 12,
+    CC_CHANGE_MAP           = 1 << 13,
+    CC_CREATE_LAYER         = 1 << 14,
+    CC_DELETE_LAYER         = 1 << 15,
+    CC_CHANGE_LAYER         = 1 << 16,
+    CC_TOKEN_EXPIRED        = 1 << 17,
+    CC_ALL = CC_CREATE_OBJECT | CC_DELETE_OBJECT | CC_CHANGE_OBJECT | CC_CREATE_FEATURE | CC_CHANGE_FEATURE | CC_DELETE_FEATURE | CC_DELETEALL_FEATURES | CC_CREATE_ATTACHMENT | CC_CHANGE_ATTACHMENT | CC_DELETE_ATTACHMENT | CC_DELETEALL_ATTACHMENTS | CC_CREATE_MAP | CC_CHANGE_MAP | CC_CREATE_LAYER | CC_DELETE_LAYER | CC_CHANGE_LAYER | CC_TOKEN_EXPIRED
 };
 
 /**

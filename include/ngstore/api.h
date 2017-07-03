@@ -118,6 +118,10 @@ NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
 NGS_EXTERNC void ngsURLRequestDestroyResult(ngsURLRequestResult* result);
+NGS_EXTERNC int ngsURLAuthAdd(const char* url, char** options);
+NGS_EXTERNC char** ngsURLAuthGet(const char* url);
+NGS_EXTERNC const char* ngsMD5(const char* value);
+
 
 /**
  * Catalog functions
@@ -157,11 +161,6 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
  */
 
 typedef void *LayerH;
-/*
-mapSet/GetProperties - scale, rotate
-mapGet distance
-dispalyGet position, length
-*/
 NGS_EXTERNC unsigned char ngsMapCreate(const char* name, const char* description,
                              unsigned short epsg, double minX, double minY,
                              double maxX, double maxY);

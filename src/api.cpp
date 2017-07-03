@@ -33,9 +33,11 @@
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
+#include "util/authstore.h"
 #include "util/error.h"
 #include "util/notify.h"
 #include "util/settings.h"
+#include "util/stringutil.h"
 #include "util/versionutil.h"
 
 using namespace ngs;
@@ -356,10 +358,23 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
         requestOptions.addOption("CUSTOMREQUEST", "DELETE");
         break;
     }
+
+    ngsURLRequestResult* out = new ngsURLRequestResult;
+    CPLString authHeader = AuthStore::instance().getAuthHeader(url);
+    if(!authHeader.empty()) {
+        if(EQUAL(authHeader, "expired")) {
+            out->status = 543;
+            out->headers = nullptr;
+            out->dataLen = 0;
+            out->data = nullptr;
+            return out;
+        }
+        requestOptions.addOption("HEADERS", authHeader);
+    }
+
     auto optionsPtr = requestOptions.getOptions();
     CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
 
-    ngsURLRequestResult* out = new ngsURLRequestResult;
     if(result->nStatus != 0) {
         errorMessage(ngsCode::COD_REQUEST_FAILED, result->pszErrBuf);
         out->status = 543;
@@ -397,6 +412,32 @@ void ngsURLRequestDestroyResult(ngsURLRequestResult* result)
     delete result->data;
     CSLDestroy(result->headers);
     delete result;
+}
+
+
+int ngsURLAuthAdd(const char *url, char **options)
+{
+    Options opt(options);
+    return AuthStore::addAuth(url, opt) ? COD_SUCCESS : COD_INSERT_FAILED;
+}
+
+
+char** ngsURLAuthGet(const char* url)
+{
+    Options option = AuthStore::instance().description(url);
+    if(option.empty())
+        return nullptr;
+    return option.getOptions().release();
+}
+
+/**
+ * @brief ngsMD5 Transform string to MD5 hash
+ * @param value String to transform
+ * @return Hex presentation of MD5 hash
+ */
+const char *ngsMD5(const char *value)
+{
+    return CPLSPrintf("%s", value);
 }
 
 //------------------------------------------------------------------------------
@@ -564,14 +605,12 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **optio
  * @param path System path
  * @return Catalog path or empty string
  */
-static CPLString gLastFullName; // NOTE: Not thread safe
 const char *ngsCatalogPathFromSystem(const char *path)
 {
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObjectByLocalPath(path);
     if(object) {
-        gLastFullName = object->getFullName();
-        return gLastFullName;
+        return CPLSPrintf("%s", object->getFullName().c_str());
     }
     return "";
 }

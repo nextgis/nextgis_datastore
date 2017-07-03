@@ -44,6 +44,7 @@ public:
     OptionsArrayUPtr getOptions() const;
     void addOption(const char *key, const char * value) { m_options[key] = value; }
     void removeOption(const char *key);
+    bool empty() const { return m_options.empty(); }
 
 protected:
     std::map< CPLString, CPLString > m_options;

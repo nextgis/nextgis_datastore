@@ -52,3 +52,6 @@ _ngsRemoveNotifyFunction
 _ngsUnInit
 _ngsURLRequest
 _ngsURLRequestDestroyResult
+_ngsURLAuthAdd
+_ngsURLAuthGet
+_ngsMD5
