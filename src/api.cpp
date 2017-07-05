@@ -22,6 +22,7 @@
 
 // stl
 #include <iostream>
+#include <cstring>
 
 // gdal
 #include "cpl_http.h"
@@ -391,7 +392,7 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     }
 
     unsigned char* buffer = new unsigned char[result->nDataLen];
-    memccpy(buffer, result->pabyData, 1, static_cast<size_t>(result->nDataLen));
+    std::memcpy(buffer, result->pabyData, static_cast<size_t>(result->nDataLen));
 
     out->status = static_cast<int>(result->nHTTPResponseCode);
     out->headers = result->papszHeaders;

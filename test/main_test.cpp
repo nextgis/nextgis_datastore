@@ -21,6 +21,9 @@
 
 #include "test.h"
 
+#include <iostream>
+#include <fstream>
+
 // gdal
 #include "cpl_string.h"
 
@@ -515,6 +518,18 @@ TEST(MiscTests, TestURLRequest) {
     ngsURLRequestDestroyResult(result);
 
     ngsDestroyList(options);
+
+    result = ngsURLRequest(ngsURLRequestType::URT_GET,
+            "http://tile.openstreetmap.org/9/309/160.png", options);
+
+    EXPECT_GE(result->status, 200);
+    EXPECT_LT(result->status, 400);
+
+//    std::ofstream outFile;
+//    outFile.open("osm.png", std::ios::out | std::ios::binary);
+//    outFile.write(reinterpret_cast<const char*>(result->data), result->dataLen);
+
+    ngsURLRequestDestroyResult(result);
 
     ngsUnInit();
 }
