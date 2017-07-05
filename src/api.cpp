@@ -390,12 +390,12 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
         warningMessage(ngsCode::COD_WARNING, result->pszErrBuf);
     }
 
-    unsigned char* buffer = new unsigned char[result->nDataAlloc];
-    memccpy(buffer, result->pabyData, 1, static_cast<size_t>(result->nDataAlloc));
+    unsigned char* buffer = new unsigned char[result->nDataLen];
+    memccpy(buffer, result->pabyData, 1, static_cast<size_t>(result->nDataLen));
 
     out->status = static_cast<int>(result->nHTTPResponseCode);
     out->headers = result->papszHeaders;
-    out->dataLen = result->nDataAlloc;
+    out->dataLen = result->nDataLen;
     out->data = buffer;
 
     result->papszHeaders = nullptr;
@@ -443,7 +443,7 @@ int ngsURLAuthDelete(const char* url)
  */
 const char *ngsMD5(const char *value)
 {
-    return CPLSPrintf("%s", value);
+    return CPLSPrintf("%s", md5(value).c_str());
 }
 
 //------------------------------------------------------------------------------
