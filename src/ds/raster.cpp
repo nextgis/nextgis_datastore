@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "raster.h"
 
+#include "catalog/file.h"
+#include "ngstore/catalog/filter.h"
 #include "util/error.h"
 
 namespace ngs {
@@ -163,6 +165,23 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     return true;
+}
+
+bool Raster::destroy()
+{
+    if(Filter::isFileBased(m_type)) {
+        return File::deleteFile(m_path);
+    }
+
+    errorMessage(ngsCode::COD_DELETE_FAILED, _("The data type %d cannot be deleted. Path: %s"),
+                 m_type, m_path.c_str());
+
+    return false;
+}
+
+bool Raster::canDestroy() const
+{
+    return Filter::isFileBased(m_type); // NOTE: Now supported only fila based rasters
 }
 
 void Raster::setExtent()

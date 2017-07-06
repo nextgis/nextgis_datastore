@@ -248,7 +248,7 @@ bool GlView::drawTiles(const Progress &progress)
                                                                  layer);
                     if(renderLayer) {
                         renderLayer->free(tile);
-                        CPLDebug("ngstore", "Free tile data z: %d, x: %d, y: %d", tile->getTile().z, tile->getTile().x, tile->getTile().y);
+                        // CPLDebug("ngstore", "Free tile data z: %d, x: %d, y: %d", tile->getTile().z, tile->getTile().x, tile->getTile().y);
                     }
                 }
                 tile->setFilled();

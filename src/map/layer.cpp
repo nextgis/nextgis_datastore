@@ -23,6 +23,7 @@
 #include "catalog/catalog.h"
 #include "ds/simpledataset.h"
 #include "ngstore/util/constants.h"
+#include "util/error.h"
 
 namespace ngs {
 
@@ -129,8 +130,10 @@ bool RasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer
 
     m_raster = std::dynamic_pointer_cast<Raster>(fcObject);
     if(m_raster) {
-        m_raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
-        return true;
+        return m_raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
+    }
+    else {
+        errorMessage(_("Raster not found in path: %s"), path);
     }
     return false;
 }

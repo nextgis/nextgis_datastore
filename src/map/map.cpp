@@ -77,6 +77,7 @@ bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
                                              ngsRGBA2HEX(m_bkColor))));
 
     JSONArray layers = root.getArray("layers");
+    CPLDebug("ngstore", "Opening map has %d layers", layers.size());
     for(int i = 0; i < layers.size(); ++i) {
         JSONObject layerConfig = layers[i];
         Layer::Type type = static_cast<Layer::Type>(
@@ -85,8 +86,9 @@ bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
         LayerPtr layer = createLayer(DEFAULT_LAYER_NAME, type);
         if(nullptr != layer) {
             if(layer->load(layerConfig, m_relativePaths ?
-                           mapFile->getParent() : nullptr))
+                           mapFile->getParent() : nullptr)) {
                 m_layers.push_back(layer);
+            }
         }
     }
 

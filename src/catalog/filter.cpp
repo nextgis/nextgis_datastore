@@ -94,6 +94,7 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
     return type == CAT_CONTAINER_WFS ||
           (type >= CAT_CONTAINER_KML && type < CAT_CONTAINER_GPKG) ||
            type == CAT_CONTAINER_SIMPLE ||
+          (type >= CAT_RASTER_BMP && type < CAT_RASTER_POSTGIS) ||
           (type >= CAT_FC_ESRI_SHAPEFILE && type < CAT_FC_POSTGIS) ||
           (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
           (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||

@@ -142,7 +142,7 @@ const char *AuthBearer::header()
     options.addOption("RETRY_DELAY", "5");
     auto optionsPtr = options.getOptions();
     CPLHTTPResult* result = CPLHTTPFetch(m_tokenServer, optionsPtr.get());
-    if(result->nStatus != 0 || result->nHTTPResponseCode >= 400) {
+    if(result->nHTTPResponseCode >= 400 && result->nHTTPResponseCode < 404) {
         // 3. If failed to update - return "expired"
         errorMessage(COD_UPDATE_FAILED, _("Failed to update token. Url: %s"),
                      m_url.c_str());
@@ -157,10 +157,7 @@ const char *AuthBearer::header()
     JSONDocument resultJson;
     if(!resultJson.load(result->pabyData, result->nDataLen)) {
         CPLHTTPDestroyResult( result );
-
-        Notify::instance().onNotify(m_url, CC_TOKEN_EXPIRED);
-
-        return "expired";
+        return "";
     }
     CPLHTTPDestroyResult( result );
 

@@ -77,6 +77,13 @@ unsigned char MapStore::openMap(MapFile * const file)
         }
     }
 
+    for(size_t i = 0; i < m_maps.size(); ++i) {
+        if(!m_maps[i]) {
+            m_maps[i] = map;
+            return static_cast<unsigned char>(i);
+        }
+    }
+
     m_maps.push_back(map);
     return static_cast<unsigned char>(m_maps.size() - 1);
 }

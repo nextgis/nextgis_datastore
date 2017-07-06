@@ -68,6 +68,10 @@ public:
                    int bandCount, int *bandList, bool read = true,
                    bool skipLastBand = false, unsigned char zoom = 0);
 
+    // Object interface
+    virtual bool destroy() override;
+    virtual bool canDestroy() const override;
+
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
     virtual const char *options(ngsOptionType optionType) const override;
