@@ -658,7 +658,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             }
 
             std::unique_ptr<FeatureClass> dstFClass(createFeatureClass(createName,
-                srcDefinition, srcFClass->getSpatialReference(), geometryType,
+                srcDefinition, srcFClass->getSpatialReference(), newGeometryType,
                 options));
             if(nullptr == dstFClass) {
                 return move ? ngsCode::COD_MOVE_FAILED :
@@ -784,6 +784,10 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
 OGRLayer *Dataset::createMetadataTable(GDALDataset* ds)
 {
     CPLErrorReset();
+    if(nullptr == ds) {
+        return nullptr;
+    }
+
     OGRLayer* metadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
                                                    wkbNone, nullptr);
     if (nullptr == metadataLayer) {

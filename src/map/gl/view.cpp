@@ -160,6 +160,7 @@ void GlView::updateTilesList()
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
                                                     getYAxisInverted(),
                                                     getXAxisLooped());
+
     // Remove out of extent Gl tiles
     auto tileIt = m_tiles.begin();
     while(tileIt != m_tiles.end()) {
@@ -195,6 +196,7 @@ void GlView::freeResources()
     auto freeResorceIt = m_freeResources.begin();
     while(freeResorceIt != m_freeResources.end()) {
         (*freeResorceIt)->destroy();
+        // CPLDebug("ngstore", "Free GL resource. Reference count %ld", (*freeResorceIt).use_count());
         freeResorceIt = m_freeResources.erase(freeResorceIt);
     }
 }

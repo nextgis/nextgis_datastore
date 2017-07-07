@@ -34,6 +34,7 @@ class ThreadData
 {
 public:
     ThreadData(bool own);
+    virtual ~ThreadData() = default;
     bool isOwn() const { return m_own; }
     void increaseTries() { m_tries++; }
     unsigned char tries() const { return m_tries; }
@@ -60,6 +61,7 @@ public:
     unsigned char currentWorkerCount() const { return m_threadCount; }
     unsigned char maxWorkerCount() const { return m_maxThreadCount; }
     void waitComplete() const;
+    size_t dataCount() const { return m_threadData.size(); }
 
 protected:
     bool process();

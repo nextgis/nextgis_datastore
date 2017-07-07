@@ -41,7 +41,7 @@ public:
     };
 public:
     GlBuffer(enum BufferType type = BF_TEX);
-    ~GlBuffer();
+    virtual ~GlBuffer();
 
     bool canStoreVertices(size_t amount, bool withNormals = false) const;
     GLuint id(bool vertices) const;

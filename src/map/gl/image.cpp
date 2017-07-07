@@ -29,6 +29,14 @@ GlImage::GlImage() : GlObject(),
 {
 }
 
+GlImage::~GlImage()
+{
+    if(m_imageData) {
+        CPLFree(m_imageData);
+        m_imageData = nullptr;
+    }
+}
+
 void GlImage::bind()
 {
     if (m_bound)
@@ -56,8 +64,10 @@ void GlImage::destroy()
     if (m_bound) {
         ngsCheckGLError(glDeleteTextures(1, &m_id));
     }
-    else if(m_imageData) {
+
+    if(m_imageData) {
         CPLFree(m_imageData);
+        m_imageData = nullptr;
     }
 }
 

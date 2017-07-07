@@ -627,7 +627,7 @@ bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
 
 void FeatureClass::setSpatialFilter(GeometryPtr geom)
 {
-    if(nullptr == m_layer) {
+    if(nullptr != m_layer) {
         if(geom) {
             m_layer->SetSpatialFilter(geom.get());
         }

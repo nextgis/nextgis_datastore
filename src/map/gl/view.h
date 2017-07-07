@@ -98,6 +98,7 @@ private:
     public:
         LayerFillData(GlTilePtr tile, LayerPtr layer, bool own) :
             ThreadData(own), m_tile(tile), m_layer(layer) {}
+        virtual ~LayerFillData() = default;
         GlTilePtr m_tile;
         LayerPtr m_layer;
     };

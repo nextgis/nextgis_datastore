@@ -735,7 +735,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
     }
 
     Dataset * const dataset = dynamic_cast<Dataset*>(catalogObject);
-    if(nullptr != dataset) {
+    if(nullptr == dataset) {
         errorMessage(ngsCode::COD_INVALID,
                             _("The input object not a dataset. Options query not supported"));
         return "";

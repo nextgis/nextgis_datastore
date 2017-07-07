@@ -74,7 +74,7 @@ class FeatureLayer : public Layer
 {
 public:
     FeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
-
+    virtual ~FeatureLayer() = default;
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) {
         m_featureClass = featureClass;
     }
@@ -95,7 +95,7 @@ class RasterLayer : public Layer
 {
 public:
     RasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
-
+    virtual ~RasterLayer() = default;
     virtual void setRaster(const RasterPtr &raster) {
         m_raster = raster;
     }

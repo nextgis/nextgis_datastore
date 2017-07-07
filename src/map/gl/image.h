@@ -29,6 +29,7 @@ class GlImage : public GlObject
 {
 public:
     GlImage();
+    virtual ~GlImage();
     void setImage(GLubyte * imageData, GLsizei width, GLsizei height) {
         m_imageData = imageData;
         m_width = width;
