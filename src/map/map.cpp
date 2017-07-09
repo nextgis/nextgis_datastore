@@ -50,7 +50,8 @@ Map::Map() :
     m_epsg(DEFAULT_EPSG),
     m_bounds(DEFAULT_BOUNDS),
     m_bkColor(DEFAULT_MAP_BK),
-    m_relativePaths(true)
+    m_relativePaths(true),
+    m_isClosed(false)
 {
 }
 
@@ -61,7 +62,8 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
     m_epsg(epsg),
     m_bounds(bounds),
     m_bkColor(DEFAULT_MAP_BK),
-    m_relativePaths(true)
+    m_relativePaths(true),
+    m_isClosed(false)
 {
 }
 
@@ -92,6 +94,7 @@ bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
         }
     }
 
+    m_isClosed = false;
     return true;
 }
 
@@ -138,6 +141,7 @@ bool Map::save(MapFile * const mapFile)
 bool Map::close()
 {
     m_layers.clear();
+    m_isClosed = true;
     return true;
 }
 

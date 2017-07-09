@@ -882,6 +882,10 @@ bool GlRasterLayer::fill(GlTilePtr tile)
         return true;
     }
 
+    if(m_tiles.find(tile->getTile()) != m_tiles.end()) { // Already filled
+        return true;
+    }
+
     Envelope rasterExtent = m_raster->getExtent();
     const Envelope & tileExtent = tile->getExtent();
 

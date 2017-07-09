@@ -69,14 +69,13 @@ void ThreadPool::addThreadData(ThreadData *data)
 
 void ThreadPool::clearThreadData()
 {
-    CPLAcquireMutex(m_dataMutex, 1000.0);
+    CPLMutexHolder holder(m_dataMutex, 1000.0);
     for(ThreadData* data : m_threadData) {
         if(data->isOwn()) {
             delete data;
         }
     }
     m_threadData.clear();
-    CPLReleaseMutex(m_dataMutex);
 }
 
 void ThreadPool::waitComplete() const
@@ -129,21 +128,18 @@ bool ThreadPool::process()
 
 void ThreadPool::finished()
 {
-    CPLAcquireMutex(m_threadMutex, 250.0);
+    CPLMutexHolder holder(m_threadMutex, 250.0);
     m_threadCount--;
-    CPLReleaseMutex(m_threadMutex);
 }
 
 void ThreadPool::newWorker()
 {
-    CPLAcquireMutex(m_threadMutex, 250.0);
+    CPLMutexHolder holder(m_threadMutex, 250.0);
     if(m_threadCount == m_maxThreadCount) {
-        CPLReleaseMutex(m_threadMutex);
         return;
     }
     CPLCreateThread(threadFunction, this);
     m_threadCount++;
-    CPLReleaseMutex(m_threadMutex);
 }
 
 void ThreadPool::threadFunction(void *threadData)

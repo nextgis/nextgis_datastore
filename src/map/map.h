@@ -57,6 +57,7 @@ public:
     bool save(MapFile * const mapFile);
 
     virtual bool close();
+    bool isClosed() const { return m_isClosed; }
     virtual ngsRGBA getBackgroundColor() const { return  m_bkColor; }
     virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
 
@@ -84,7 +85,7 @@ protected:
     Envelope m_bounds;
     std::vector<LayerPtr> m_layers;
     ngsRGBA m_bkColor;
-    bool m_relativePaths;
+    bool m_relativePaths, m_isClosed;
 };
 
 }

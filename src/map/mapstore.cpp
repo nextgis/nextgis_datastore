@@ -52,8 +52,8 @@ unsigned char MapStore::createMap(const CPLString &name,
         return INVALID_MAPID;
     }
     m_maps.push_back(MapViewPtr(new GlView(name, description, epsg, bounds)));
-    unsigned char result = static_cast<unsigned char>(m_maps.size() - 1);
-    if(result != 0) {
+    unsigned char result = static_cast<unsigned char>(m_maps.size());
+    if(result != INVALID_MAPID) {
         Notify::instance().onNotify(std::to_string(result).c_str(),
                                     ngsChangeCode::CC_CREATE_MAP);
     }
@@ -73,19 +73,19 @@ unsigned char MapStore::openMap(MapFile * const file)
 
     for(size_t i = 0; i < m_maps.size(); ++i) {
         if(m_maps[i] == map) {
-            return static_cast<unsigned char>(i);
+            return static_cast<unsigned char>(i + 1);
         }
     }
 
     for(size_t i = 0; i < m_maps.size(); ++i) {
         if(!m_maps[i]) {
             m_maps[i] = map;
-            return static_cast<unsigned char>(i);
+            return static_cast<unsigned char>(i + 1);
         }
     }
 
     m_maps.push_back(map);
-    return static_cast<unsigned char>(m_maps.size() - 1);
+    return static_cast<unsigned char>(m_maps.size());
 }
 
 bool MapStore::saveMap(unsigned char mapId, MapFile * const file)
@@ -106,7 +106,7 @@ bool MapStore::closeMap(unsigned char mapId)
         return false;
     }
     if(map->close()) {
-        m_maps[mapId].reset();
+        m_maps[mapId - 1] = MapViewPtr();
         return true;
     }
 
@@ -115,9 +115,9 @@ bool MapStore::closeMap(unsigned char mapId)
 
 MapViewPtr MapStore::getMap(unsigned char mapId) const
 {    
-    if(mapId > m_maps.size())
+    if(mapId > m_maps.size() || mapId == INVALID_MAPID)
         return MapViewPtr();
-    return m_maps[mapId];
+    return m_maps[mapId - 1];
 }
 
 bool MapStore::drawMap(unsigned char mapId, ngsDrawState state, const Progress &progress)

@@ -56,7 +56,7 @@ public:
     virtual MapViewPtr getMap(unsigned char mapId) const;
 
     //
-    void freeResources() { m_maps.clear (); }
+    void freeResources() { m_maps.clear(); }
 
     // Map manipulation
     bool drawMap(unsigned char mapId, enum ngsDrawState state,

@@ -60,6 +60,14 @@ void GlView::setBackgroundColor(const ngsRGBA &color)
     m_glBkColor.a = float(color.A) / 255;
 }
 
+bool GlView::close()
+{
+    freeOldTiles();
+    freeResources();
+    clearTiles();
+    return MapView::close();
+}
+
 // NOTE: Should be run on OpenGL current context
 void GlView::clearBackground()
 {
@@ -156,7 +164,7 @@ void GlView::updateTilesList()
     // Get tiles for current extent
     Envelope ext = getExtent();
     ext.resize(EXTENT_EXTRA_BUFFER);
-    warningMessage("Zoom is: %d", getZoom());
+    CPLDebug("ngstore", "Zoom is: %d", getZoom());
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
                                                     getYAxisInverted(),
                                                     getXAxisLooped());
@@ -196,7 +204,8 @@ void GlView::freeResources()
     auto freeResorceIt = m_freeResources.begin();
     while(freeResorceIt != m_freeResources.end()) {
         (*freeResorceIt)->destroy();
-        // CPLDebug("ngstore", "Free GL resource. Reference count %ld", (*freeResorceIt).use_count());
+        //if((*freeResorceIt).use_count() != 1)
+        //    CPLDebug("ngstore", "Free GL resource. Reference count %ld", (*freeResorceIt).use_count());
         freeResorceIt = m_freeResources.erase(freeResorceIt);
     }
 }
@@ -213,6 +222,7 @@ bool GlView::drawTiles(const Progress &progress)
     glGetIntegerv( GL_VIEWPORT, viewport );
 
     double done = 0.0;
+    double totalDrawCalls = m_layers.size() * m_tiles.size() - 0.0000001;
     for(const GlTilePtr& tile : m_tiles) {
         bool drawTile = true;
         if(tile->filled()) {
@@ -279,8 +289,7 @@ bool GlView::drawTiles(const Progress &progress)
         }
     }
 
-    size_t totalDrawCalls = m_layers.size() * m_tiles.size();
-    if(isEqual(done, totalDrawCalls)) {
+    if(done >= totalDrawCalls) {
         freeOldTiles();
         progress.onProgress(ngsCode::COD_FINISHED, 1.0,
                             _("Map render finished."));

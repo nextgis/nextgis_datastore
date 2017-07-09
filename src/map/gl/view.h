@@ -58,6 +58,7 @@ protected:
     // Map interface
 public:
     virtual void setBackgroundColor(const ngsRGBA &color) override;
+    virtual bool close() override;
 
     // Map interface
 protected:

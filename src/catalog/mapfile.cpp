@@ -39,7 +39,7 @@ MapFile::MapFile(ObjectContainer * const parent,
 
 bool MapFile::open()
 {
-    if(m_mapView)
+    if(m_mapView && !m_mapView->isClosed())
         return true;
     m_mapView = MapStore::initMap();
     return m_mapView->open(this);
