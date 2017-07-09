@@ -23,6 +23,7 @@
 #include "catalog/file.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
+#include "util/notify.h"
 
 namespace ngs {
 
@@ -63,6 +64,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         JSONObject root = connectionFile.getRoot();
         CPLString url = root.getString(KEY_URL, "");
         url = url.replaceAll("{", "${");
+        url = url.replaceAll("&", "&amp;");
         int epsg = root.getInteger(KEY_EPSG, 3857);
 
         m_spatialReference = new OGRSpatialReference;
@@ -170,7 +172,13 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 bool Raster::destroy()
 {
     if(Filter::isFileBased(m_type)) {
-        return File::deleteFile(m_path);
+        if(File::deleteFile(m_path)) {
+            CPLString fullName = getFullName();
+            if(m_parent)
+                m_parent->notifyChanges();
+            Notify::instance().onNotify(fullName, ngsChangeCode::CC_DELETE_OBJECT);
+            return  true;
+        }
     }
 
     errorMessage(ngsCode::COD_DELETE_FAILED, _("The data type %d cannot be deleted. Path: %s"),
