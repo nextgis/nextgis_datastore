@@ -28,7 +28,7 @@ namespace ngs {
 class Folder : public ObjectContainer
 {
 public:
-    Folder(ObjectContainer * const parent = nullptr,
+    explicit Folder(ObjectContainer * const parent = nullptr,
            const CPLString & name = "",
            const CPLString & path = "");
     virtual bool hasChildren() override;

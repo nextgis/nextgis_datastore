@@ -28,7 +28,7 @@ namespace ngs {
 class LocalConnections : public ObjectContainer
 {
 public:
-    LocalConnections(ObjectContainer * const parent = nullptr,
+    explicit LocalConnections(ObjectContainer * const parent = nullptr,
                      const CPLString & path = "");
     virtual bool hasChildren() override;
     virtual ObjectPtr getObjectByLocalPath(const char* path);

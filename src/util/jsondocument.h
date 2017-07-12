@@ -50,7 +50,7 @@ public:
 
 public:
     JSONObject();
-    JSONObject(const char* name, const JSONObject& parent);
+    explicit JSONObject(const char* name, const JSONObject& parent);
 
 private:
     JSONObject(json_object *jsonObject);
@@ -108,7 +108,7 @@ class JSONArray : public JSONObject
 public:
     JSONArray();
 private:
-    JSONArray(json_object *jsonObject);
+    explicit JSONArray(json_object *jsonObject);
 public:
     int size() const;
     void add(const JSONObject& val);

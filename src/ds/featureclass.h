@@ -107,7 +107,7 @@ public:
     };
 
 public:
-    FeatureClass(OGRLayer * layer,
+    explicit FeatureClass(OGRLayer * layer,
                  ObjectContainer * const parent = nullptr,
                  const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
                  const CPLString & name = "");

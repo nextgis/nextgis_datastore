@@ -85,7 +85,7 @@ private:
 class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 {
 public:
-    GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlFeatureLayer() = default;
 
     // IGlRenderLayer interface
@@ -123,7 +123,7 @@ protected:
 class RasterGlObject : public GlObject
 {
 public:
-    RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image);
+    explicit RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image);
     GlImage* getImageRef() const { return m_image.get(); }
     GlBuffer* getBufferRef() const { return m_extentBuffer.get(); }
 
@@ -144,7 +144,7 @@ private:
 class GlRasterLayer : public RasterLayer, public GlRenderLayer
 {
 public:
-    GlRasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit GlRasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
 
     // IGlRenderLayer interface
 public:

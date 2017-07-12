@@ -29,7 +29,7 @@ namespace ngs {
 class MapFile : public File
 {
 public:
-    MapFile(ObjectContainer * const parent = nullptr,
+    explicit MapFile(ObjectContainer * const parent = nullptr,
             const CPLString & name = "",
             const CPLString & path = "");
     MapViewPtr getMap() const { return m_mapView; }

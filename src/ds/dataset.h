@@ -37,9 +37,9 @@ namespace ngs {
 class GDALDatasetPtr : public std::shared_ptr<GDALDataset>
 {
 public:
-    GDALDatasetPtr(GDALDataset* ds);
+    explicit GDALDatasetPtr(GDALDataset* ds);
     GDALDatasetPtr();
-    GDALDatasetPtr(const GDALDatasetPtr& ds);
+    explicit GDALDatasetPtr(const GDALDatasetPtr& ds);
     GDALDatasetPtr& operator=(GDALDataset* ds);
     operator GDALDataset*() const;
 };
@@ -80,7 +80,7 @@ class Dataset : public ObjectContainer, public DatasetBase
     friend class Table;
 
 public:
-    Dataset(ObjectContainer * const parent = nullptr,
+    explicit Dataset(ObjectContainer * const parent = nullptr,
             const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");

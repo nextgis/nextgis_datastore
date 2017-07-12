@@ -34,7 +34,7 @@ class ObjectContainer : public Object
 {
     friend class ObjectFactory;
 public:
-    ObjectContainer(ObjectContainer * const parent = nullptr,
+    explicit ObjectContainer(ObjectContainer * const parent = nullptr,
                     const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
                     const CPLString & name = "",
                     const CPLString & path = "");

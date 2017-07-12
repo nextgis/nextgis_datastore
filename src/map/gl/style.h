@@ -126,7 +126,7 @@ public:
         PT_STAR
     };
 public:
-    SimplePointStyle(enum PointType type = PT_CIRCLE);
+    explicit SimplePointStyle(enum PointType type = PT_CIRCLE);
 
     enum SimplePointStyle::PointType pointType() const { return m_type; }
     void setType(enum SimplePointStyle::PointType type) { m_type = type; }

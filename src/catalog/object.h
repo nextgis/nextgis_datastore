@@ -39,7 +39,7 @@ typedef std::shared_ptr< Object > ObjectPtr;
 class Object
 {
 public:
-    Object(ObjectContainer * const parent = nullptr,
+    explicit Object(ObjectContainer * const parent = nullptr,
            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_UNKNOWN,
            const CPLString & name = "",
            const CPLString & path = "");

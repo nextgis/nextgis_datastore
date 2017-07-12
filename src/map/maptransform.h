@@ -32,7 +32,7 @@ namespace ngs {
 class MapTransform
 {
 public:
-    MapTransform(int width, int height);
+    explicit MapTransform(int width, int height);
     virtual ~MapTransform() = default;
 
     int getDisplayWidht() const { return m_displayHeight; }

@@ -40,7 +40,7 @@ public:
         BF_TEX
     };
 public:
-    GlBuffer(enum BufferType type = BF_TEX);
+    explicit GlBuffer(enum BufferType type = BF_TEX);
     virtual ~GlBuffer();
 
     bool canStoreVertices(size_t amount, bool withNormals = false) const;

@@ -32,7 +32,7 @@ namespace ngs {
 class FieldMapPtr : public std::shared_ptr<int>
 {
 public:
-    FieldMapPtr(unsigned long size);
+    explicit FieldMapPtr(unsigned long size);
     int &operator[](int key);
     const int &operator[](int key) const;
 };
@@ -53,7 +53,7 @@ class Table : public Object
 {
     friend class Dataset;
 public:
-    Table(OGRLayer * layer,
+    explicit Table(OGRLayer * layer,
           ObjectContainer * const parent = nullptr,
           const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_TABLE_ANY,
           const CPLString & name = "");

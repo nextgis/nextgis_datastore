@@ -34,7 +34,7 @@ class MapView : public Map, public MapTransform
 {
 public:
     MapView();
-    MapView(const CPLString& name, const CPLString& description,
+    explicit MapView(const CPLString& name, const CPLString& description,
             unsigned short epsg, const Envelope& bounds);
     virtual ~MapView() = default;
     virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress());

@@ -33,7 +33,7 @@ namespace ngs {
 class ThreadData
 {
 public:
-    ThreadData(bool own);
+    explicit ThreadData(bool own);
     virtual ~ThreadData() = default;
     bool isOwn() const { return m_own; }
     void increaseTries() { m_tries++; }

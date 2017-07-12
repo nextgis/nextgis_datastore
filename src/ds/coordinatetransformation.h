@@ -47,7 +47,7 @@ protected:
 class CoordinateTransformation
 {
 public:
-    CoordinateTransformation(OGRSpatialReference *srcSRS,
+    explicit CoordinateTransformation(OGRSpatialReference *srcSRS,
                              OGRSpatialReference *dstSRS);
     ~CoordinateTransformation();
     bool transform(OGRGeometry *geom);

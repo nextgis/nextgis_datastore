@@ -28,7 +28,7 @@ namespace ngs {
 class Progress
 {
 public:
-    Progress(ngsProgressFunc progressFunc = nullptr,
+    explicit Progress(ngsProgressFunc progressFunc = nullptr,
              void *progressArguments = nullptr);
     virtual ~Progress() = default;
     virtual bool onProgress(enum ngsCode status,

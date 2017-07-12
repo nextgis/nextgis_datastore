@@ -34,7 +34,7 @@ class Map
 {
 public:
     Map();
-    Map(const CPLString& name, const CPLString& description, unsigned short epsg,
+    explicit Map(const CPLString& name, const CPLString& description, unsigned short epsg,
         const Envelope &bounds);
     virtual ~Map() = default;
 

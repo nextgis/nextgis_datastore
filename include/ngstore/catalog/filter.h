@@ -35,7 +35,7 @@ namespace ngs {
 class Filter
 {
 public:
-    Filter(const enum ngsCatalogObjectType type = CAT_UNKNOWN);
+    explicit Filter(const enum ngsCatalogObjectType type = CAT_UNKNOWN);
     virtual ~Filter() = default;
     virtual bool canDisplay(ObjectPtr object) const;
 

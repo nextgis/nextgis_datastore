@@ -32,7 +32,7 @@ namespace ngs {
 class DataStore : public Dataset, public SpatialDataset
 {
 public:
-    DataStore(ObjectContainer * const parent = nullptr,
+    explicit DataStore(ObjectContainer * const parent = nullptr,
               const CPLString & name = "",
               const CPLString & path = "");
     virtual ~DataStore();

@@ -28,7 +28,7 @@ namespace ngs {
 class SimpleDataset : public Dataset
 {
 public:
-    SimpleDataset(enum ngsCatalogObjectType subType,
+    explicit SimpleDataset(enum ngsCatalogObjectType subType,
                   std::vector<CPLString> siblingFiles,
                   ObjectContainer * const parent = nullptr,
                   const CPLString & name = "",

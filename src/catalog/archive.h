@@ -28,7 +28,7 @@ namespace ngs {
 class ArchiveFolder : public Folder
 {
 public:
-    ArchiveFolder(ObjectContainer * const parent = nullptr,
+    explicit ArchiveFolder(ObjectContainer * const parent = nullptr,
                   const CPLString & name = "",
                   const CPLString & path = "");
     // ObjectContainer interface
@@ -46,7 +46,7 @@ public:
 class Archive : public ArchiveFolder
 {
 public:
-    Archive(ObjectContainer * const parent = nullptr,
+    explicit Archive(ObjectContainer * const parent = nullptr,
             const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE,
             const CPLString & name = "",
             const CPLString & path = "");

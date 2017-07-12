@@ -50,7 +50,7 @@ public:
     };
 
 public:
-    Layer(const CPLString& name = DEFAULT_LAYER_NAME, enum Type type = Type::Invalid);
+    explicit Layer(const CPLString& name = DEFAULT_LAYER_NAME, enum Type type = Type::Invalid);
     virtual ~Layer() = default;
     virtual bool load(const JSONObject& store,
                       ObjectContainer *objectContainer = nullptr);
@@ -73,7 +73,7 @@ typedef std::shared_ptr<Layer> LayerPtr;
 class FeatureLayer : public Layer
 {
 public:
-    FeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit FeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~FeatureLayer() = default;
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) {
         m_featureClass = featureClass;
@@ -94,7 +94,7 @@ protected:
 class RasterLayer : public Layer
 {
 public:
-    RasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit RasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~RasterLayer() = default;
     virtual void setRaster(const RasterPtr &raster) {
         m_raster = raster;

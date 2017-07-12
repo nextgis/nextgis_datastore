@@ -40,7 +40,7 @@ constexpr const char *KEY_EXTENT = "extent";
 class Raster : public Object, public DatasetBase, public SpatialDataset
 {
 public:
-    Raster(std::vector<CPLString> siblingFiles,
+    explicit Raster(std::vector<CPLString> siblingFiles,
            ObjectContainer * const parent = nullptr,
            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
            const CPLString & name = "",

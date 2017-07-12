@@ -32,7 +32,7 @@ namespace ngs {
 class GlTile : public GlObject
 {
 public:
-    GlTile(unsigned short tileSize, const TileItem& tileItem);
+    explicit GlTile(unsigned short tileSize, const TileItem& tileItem);
     virtual ~GlTile() = default;
 
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
