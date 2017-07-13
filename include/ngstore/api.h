@@ -78,7 +78,7 @@ typedef int (*ngsProgressFunc)(enum ngsCode status,
                                const char* message,
                                void* progressArguments);
 /**
- * @brief Prototype of function, which executed when changes accured.
+ * @brief Prototype of function, which executed when changes occurred.
  * @param uri Catalog path (for features/rows ended with feature ID, for
  * attachments ended with attachments/{int:id}).
  * @param operation Operation which trigger notification.

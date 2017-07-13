@@ -148,9 +148,9 @@ const char* ngsGetVersionString(const char* request)
  * - CACHE_DIR - path to cache directory (mainly for TMS/WMS cache)
  * - SETTINGS_DIR - path to settings directory
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
- * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/isable debag mode
+ * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/disable debug mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
- * - NUM_THREADS - Number theads in various functions (a positive number or "ALL_CPUS")
+ * - NUM_THREADS - Number threads in various functions (a positive number or "ALL_CPUS")
  * - GL_MULTISAMPLE - Enable sampling if applicable
  * - SSL_CERT_FILE - Path to ssl cert file (*.pem)
  * - HOME - Root directory for library
@@ -253,7 +253,7 @@ const char *ngsGetLastErrorMessage()
 
 /**
  * @brief ngsAddNotifyFunction Add function triggered on some events
- * @param function Function executed on event occured
+ * @param function Function executed on event occurred
  * @param notifyTypes The OR combination of ngsChangeCode
  */
 void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes)
@@ -262,7 +262,7 @@ void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes)
 }
 
 /**
- * @brief ngsRemoveNotifyFunction Remove function. No events will be occured.
+ * @brief ngsRemoveNotifyFunction Remove function. No events will be occurred.
  * @param function The function to remove
  */
 void ngsRemoveNotifyFunction(ngsNotifyFunc function)
@@ -522,7 +522,7 @@ ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
  * provided path and filter
  * @param object The handle of catalog object
  * @param filter Only objects correspondent to provided filter will be return
- * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
+ * @return Array of ngsCatlogObjectInfo structures. Caller must free this array
  * after using with ngsFree method
  */
 ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object, int filter)
@@ -538,9 +538,9 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object, int filter)
  * provided path and filters
  * @param object The handle of catalog object
  * @param filter Only objects correspondent to provided filters will be return.
- * User mast delete filters array manually
+ * User must delete filters array manually
  * @param filterCount The filters count
- * @return Array of ngsCatlogObjectInfo structures. Caller mast free this array
+ * @return Array of ngsCatlogObjectInfo structures. Caller must free this array
  * after using with ngsFree method
  */
 ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
@@ -579,7 +579,7 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
  * @brief ngsCatalogObjectCreate Creates new catalog object
  * @param object The handle of catalog object
  * @param name The new object name
- * @param options The array of create object options. Caller mast free this
+ * @param options The array of create object options. Caller must free this
  * array after function finishes. The common values are:
  * TYPE (required) - The new object type from enum ngsCatalogObjectType
  * CREATE_UNIQUE [ON, OFF] - If name already exists in container, make it unique
@@ -782,8 +782,8 @@ const char *ngsCatalogObjectName(CatalogObjectH object)
 }
 
 /**
- * @brief ngsFeatureClassCreateOverviews Creates Gl opimised vector tiles
- * @param object Catalog object handle. Mast be feature class or simple datasource.
+ * @brief ngsFeatureClassCreateOverviews Creates Gl optimized vector tiles
+ * @param object Catalog object handle. Must be feature class or simple datasource.
  * @param options The options key-value array specific to operation.
  * @param callback The callback function to report or cancel process.
  * @param callbackData The callback function data.
@@ -1011,7 +1011,7 @@ int ngsMapSetCenter(unsigned char mapId, double x, double y)
 /**
  * @brief ngsMapGetCenter Gets map center for current view (extent)
  * @param mapId Map id
- * @return Coordintate structure. If error occured all coordinates set to 0.0
+ * @return Coordinate structure. If error occurred all coordinates set to 0.0
  */
 ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 {
@@ -1025,11 +1025,11 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 }
 
 /**
- * @brief ngsMapGetCoordinate Georpaphic coordinates for display positon
+ * @brief ngsMapGetCoordinate Geographic coordinates for display position
  * @param mapId Map id
  * @param x X position
  * @param y Y position
- * @return Georpaphic coordinates
+ * @return Geographic coordinates
  */
 ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
 {
