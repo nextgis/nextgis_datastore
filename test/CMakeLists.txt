@@ -85,10 +85,10 @@ endif()"
     endmacro ()
 
     add_ngs_test(MainTests main_test main_test.cpp)
-#    add_ngs_test(SettingsTests settings_test settings_test.cpp)
-#    add_ngs_test(MatrixTests matrix_test matrix_test.cpp)
-#    add_ngs_test(StorageTests store_test store_test.cpp)
-#    add_ngs_test(GlTests gl_test gl_test.cpp)
-#    add_ngs_test(MapTests map_test map_test.cpp)
+    add_ngs_test(SettingsTests settings_test settings_test.cpp)
+    add_ngs_test(MatrixTests matrix_test matrix_test.cpp)
+    add_ngs_test(StorageTests store_test store_test.cpp)
+    add_ngs_test(GlTests gl_test gl_test.cpp)
+    add_ngs_test(MapTests map_test map_test.cpp)
 
 endif()
