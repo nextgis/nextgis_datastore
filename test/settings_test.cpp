@@ -23,11 +23,12 @@
 
 #include "ngstore/codes.h"
 #include "catalog/folder.h"
-#include "util/jsondocument.h"
+//#include "util/jsondocument.h"
 #include "util/settings.h"
 
 constexpr const char* SETTINGS_FILE = "./tmp/settings.json";
 
+/*
 TEST(SettingsTests, WriteTest) {
     // just try to create directory
     ngs::Folder::mkDir("./tmp");
@@ -57,6 +58,7 @@ TEST(SettingsTests, ReadTest) {
     // delete settings file
     VSIUnlink(SETTINGS_FILE);
 }
+*/
 
 TEST(SettingsTests, Settings) {
     ngs::Settings &settings = ngs::Settings::instance();

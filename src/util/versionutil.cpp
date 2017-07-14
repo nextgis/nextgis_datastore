@@ -40,7 +40,7 @@
 #endif
 
 #ifdef HAVE_JSON_C_VERSION_H
-#include "json_c_version.h"
+//#include "json_c_version.h"
 #endif
 
 #ifdef HAVE_PROJ_API_H
