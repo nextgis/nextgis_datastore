@@ -50,14 +50,6 @@ set(CSOURCES
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
-#if(WITH_CGAL_EXTERNAL)
-#    add_dependencies(${LIB_NAME} CGAL_EP)
-#endif()
-
-#if(WITH_JSONC_EXTERNAL)
-#    add_dependencies(${LIB_NAME} JSONC_EP)
-#endif()
-
 #if(WITH_OpenSSL_EXTERNAL)
 #    add_dependencies(${LIB_NAME} OpenSSL_EP)
 #endif()
