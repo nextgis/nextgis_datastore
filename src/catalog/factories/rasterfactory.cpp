@@ -110,15 +110,15 @@ void RasterFactory::createObjects(ObjectContainer * const container,
 
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
             if(EQUAL(nameExtsItem.second[0], remoteConnectionExtension())) {
-                JSONDocument connectionFile;
+                CPLJSONDocument connectionFile;
                 const char* path = CPLFormFilename(container->getPath(),
                                                    nameExtsItem.first,
                                                    remoteConnectionExtension());
-                if(connectionFile.load(path)) {
+                if(connectionFile.Load(path)) {
                     std::vector<CPLString> siblingFiles;
                     enum ngsCatalogObjectType type =
                             static_cast<enum ngsCatalogObjectType>(
-                                connectionFile.getRoot().getInteger(
+                                connectionFile.GetRoot().GetInteger(
                                     KEY_TYPE, CAT_UNKNOWN));
                     addChild(container, nameExtsItem.first + "." +
                              remoteConnectionExtension(), path, type,
@@ -157,17 +157,17 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         extent.setMinY(options.doubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
         extent.setMaxY(options.doubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
 
-        JSONDocument connectionFile;
-        JSONObject root = connectionFile.getRoot();
-        root.add(KEY_TYPE, type);
-        root.add(KEY_URL, url);
-        root.add(KEY_Z_MIN, z_min);
-        root.add(KEY_Z_MAX, z_max);
-        root.add(KEY_Y_ORIGIN_TOP, y_origin_top);
-        root.add(KEY_EXTENT, extent.save());
+        CPLJSONDocument connectionFile;
+        CPLJSONObject root = connectionFile.GetRoot();
+        root.Add(KEY_TYPE, type);
+        root.Add(KEY_URL, url);
+        root.Add(KEY_Z_MIN, z_min);
+        root.Add(KEY_Z_MAX, z_max);
+        root.Add(KEY_Y_ORIGIN_TOP, y_origin_top);
+        root.Add(KEY_EXTENT, extent.save());
         const char* newPath = CPLResetExtension(path,
                                     remoteConnectionExtension());
-        return connectionFile.save(newPath);
+        return connectionFile.Save(newPath);
     }
     default:
         return errorMessage(ngsCode::COD_CREATE_FAILED,

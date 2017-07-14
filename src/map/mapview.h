@@ -41,8 +41,8 @@ public:
 
     // Map interface
 protected:
-    virtual bool openInternal(const JSONObject& root, MapFile * const mapFile) override;
-    virtual bool saveInternal(JSONObject &root, MapFile * const mapFile) override;
+    virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile) override;
+    virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile) override;
 
 protected:
     virtual void clearBackground() = 0;

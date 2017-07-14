@@ -360,19 +360,7 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
         break;
     }
 
-    ngsURLRequestResult* out = new ngsURLRequestResult;
-    CPLString authHeader = AuthStore::instance().getAuthHeader(url);
-    if(!authHeader.empty()) {
-        if(EQUAL(authHeader, "expired")) {
-            out->status = 543;
-            out->headers = nullptr;
-            out->dataLen = 0;
-            out->data = nullptr;
-            return out;
-        }
-        requestOptions.addOption("HEADERS", authHeader);
-    }
-
+    ngsURLRequestResult* out = new ngsURLRequestResult;    
     auto optionsPtr = requestOptions.getOptions();
     CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
 
@@ -415,25 +403,53 @@ void ngsURLRequestDestroyResult(ngsURLRequestResult* result)
     delete result;
 }
 
-
+/**
+ * @brief ngsURLAuthAdd Adds HTTP Authorisation to store. When some HTTP
+ * request executed it will ask store for authorisation header.
+ * @param url The URL this authorisation options belongs to. All requests
+ * started with this URL will add authorisation header.
+ * @param options Authorisation options.
+ * HTTPAUTH_TYPE - Requered. The authorisation type (i.e. bearer).
+ * HTTPAUTH_CLIENT_ID - Client identificator for bearer
+ * HTTPAUTH_TOKEN_SERVER - Token validate/update server
+ * HTTPAUTH_ACCESS_TOKEN - Access token
+ * HTTPAUTH_REFRESH_TOKEN - Refresh token
+ * HTTPAUTH_EXPIRES_IN - Expires ime in sec.
+ * HTTPAUTH_CONNECTION_TIMEOUT - Connection timeout to token server. Default 5.
+ * HTTPAUTH_TIMEOUT - Network timeout to token server. Default 15.
+ * HTTPAUTH_MAX_RETRY - Retries count to token server. Default 5.
+ * HTTPAUTH_RETRY_DELAY - Delay between retries. Default 5.
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
 int ngsURLAuthAdd(const char *url, char **options)
 {
     Options opt(options);
     return AuthStore::addAuth(url, opt) ? COD_SUCCESS : COD_INSERT_FAILED;
 }
 
-
+/**
+ * @brief ngsURLAuthGet If Authorization properties changed, this
+ * function helps to get them back.
+ * @param url The URL to search authorization options.
+ * @return Key=value list (may be empty). User mast free returned
+ * value via ngsDestroyList.
+ */
 char** ngsURLAuthGet(const char* url)
 {
-    Options option = AuthStore::instance().description(url);
+    Options option = AuthStore::description(url);
     if(option.empty())
         return nullptr;
     return option.getOptions().release();
 }
 
+/**
+ * @brief ngsURLAuthDelete Removes authorization from store
+ * @param url The URL to search authorization options.
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
 int ngsURLAuthDelete(const char* url)
 {
-    AuthStore::instance().deleteAuth(url);
+    AuthStore::deleteAuth(url);
     return COD_SUCCESS;
 }
 

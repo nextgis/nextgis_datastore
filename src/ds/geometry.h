@@ -22,12 +22,12 @@
 #define NGSGEOMETRY_H
 
 #include "ogrsf_frmts.h"
+#include "cpl_json.h"
 
 #include <array>
 #include <memory>
 
 #include "api_priv.h"
-#include "util/jsondocument.h"
 
 namespace ngs {
 
@@ -77,8 +77,8 @@ public:
     void setMaxX(double maxX) { m_maxX = maxX; }
     void setMaxY(double maxY) { m_maxY = maxY; }
 
-    bool load(const JSONObject& store, const Envelope& defaultValue);
-    JSONObject save() const;
+    bool load(const CPLJSONObject& store, const Envelope& defaultValue);
+    CPLJSONObject save() const;
     bool intersects(const Envelope &other) const;
     bool contains(Envelope const& other) const;
     const Envelope& merge( Envelope const& other );

@@ -23,13 +23,14 @@
 #ifndef NGSSTYLE_H
 #define NGSSTYLE_H
 
+#include "cpl_json.h"
+
 #include "buffer.h"
 #include "image.h"
 #include "program.h"
 
 #include "map/matrix.h"
 #include "ngstore/api.h"
-#include "util/jsondocument.h"
 
 namespace ngs
 {
@@ -59,8 +60,8 @@ public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type);
     virtual void draw(const GlBuffer& buffer) const;
-    virtual bool load(const JSONObject &store) = 0;
-    virtual JSONObject save() const = 0;
+    virtual bool load(const CPLJSONObject &store) = 0;
+    virtual CPLJSONObject save() const = 0;
     virtual const char* name() = 0;
     virtual enum Type type() const { return m_styleType; }
 
@@ -102,8 +103,8 @@ public:
 public:
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual bool load(const JSONObject &store) override;
-    virtual JSONObject save() const override;
+    virtual bool load(const CPLJSONObject &store) override;
+    virtual CPLJSONObject save() const override;
 
 protected:
     GlColor m_color;
@@ -139,8 +140,8 @@ public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool load(const JSONObject &store) override;
-    virtual JSONObject save() const override;
+    virtual bool load(const CPLJSONObject &store) override;
+    virtual CPLJSONObject save() const override;
     virtual const char *name() override { return "simplePoint"; }
 
 protected:
@@ -182,8 +183,8 @@ public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool load(const JSONObject &store) override;
-    virtual JSONObject save() const override;
+    virtual bool load(const CPLJSONObject &store) override;
+    virtual CPLJSONObject save() const override;
     virtual const char *name() override { return "simpleLine"; }
 
 protected:
@@ -239,8 +240,8 @@ public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool load(const JSONObject &store) override;
-    virtual JSONObject save() const override;
+    virtual bool load(const CPLJSONObject &store) override;
+    virtual CPLJSONObject save() const override;
     virtual const char *name() override { return "simpleFillBordered"; }
 
 protected:
@@ -269,8 +270,8 @@ protected:
 
     // Style interface
 public:
-    virtual bool load(const JSONObject &/*store*/) override { return true; }
-    virtual JSONObject save() const override { return JSONObject(); }
+    virtual bool load(const CPLJSONObject &/*store*/) override { return true; }
+    virtual CPLJSONObject save() const override { return CPLJSONObject(); }
     virtual const char *name() override { return "simpleImage"; }
 };
 

@@ -20,11 +20,13 @@
  ****************************************************************************/
 #include "localconnections.h"
 
+// gdal
+#include "cpl_json.h"
+
 #include "api_priv.h"
 #include "folder.h"
 #include "catalog.h"
 #include "ngstore/common.h"
-#include "util/jsondocument.h"
 
 #if defined (__APPLE__)
 #include <pwd.h>
@@ -65,24 +67,24 @@ bool LocalConnections::hasChildren()
     return ObjectContainer::hasChildren();
 #endif // TARGET_OS_IPHONE || TARGET_OS_IPHONE
 
-    JSONDocument doc;
-    if(doc.load (m_path)) {
-        JSONObject root = doc.getRoot ();
-        if(root.getType () == JSONObject::Type::Object) {
-            JSONArray connections = root.getArray("connections");
-            for(int i = 0; i < connections.size(); ++i) {
-                JSONObject connection = connections[i];
-                if(connection.getBool("hidden", true))
+    CPLJSONDocument doc;
+    if(doc.Load (m_path)) {
+        CPLJSONObject root = doc.GetRoot ();
+        if(root.GetType () == CPLJSONObject::Object) {
+            CPLJSONArray connections = root.GetArray("connections");
+            for(int i = 0; i < connections.Size(); ++i) {
+                CPLJSONObject connection = connections[i];
+                if(connection.GetBool("hidden", true))
                     continue;
-                CPLString connName = connection.getString("name", "");
-                CPLString connPath = connection.getString("path", "");
+                CPLString connName = connection.GetString("name", "");
+                CPLString connPath = connection.GetString("path", "");
                 m_children.push_back(ObjectPtr(new Folder(this, connName, connPath)));
             }
         }
     }
     else {
-       JSONObject root = doc.getRoot ();
-       JSONArray connections;
+       CPLJSONObject root = doc.GetRoot ();
+       CPLJSONArray connections;
        std::vector<std::pair<CPLString, CPLString>> connectionPaths;
 #ifdef _WIN32
        char testLetter[3];
@@ -116,18 +118,18 @@ bool LocalConnections::hasChildren()
 #endif
 
        for(const auto &connectionPath : connectionPaths ) {
-           JSONObject connection;
-           connection.add("name", connectionPath.first);
-           connection.add("path", connectionPath.second);
-           connection.add("hidden", false);
+           CPLJSONObject connection;
+           connection.Add("name", connectionPath.first);
+           connection.Add("path", connectionPath.second);
+           connection.Add("hidden", false);
 
-           connections.add(connection);
+           connections.Add(connection);
 
            m_children.push_back(ObjectPtr(new Folder(this, connectionPath.first,
                                                    connectionPath.second)));
        }
-       root.add("connections", connections);
-       doc.save(m_path);
+       root.Add("connections", connections);
+       doc.Save(m_path);
 
        CPLDebug("ngstore", "Save connections file to %s", m_path.c_str());
     }

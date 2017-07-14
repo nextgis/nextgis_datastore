@@ -22,7 +22,7 @@
 #ifndef NGSSETTINGS_H
 #define NGSSETTINGS_H
 
-#include "jsondocument.h"
+#include "cpl_json.h"
 
 namespace ngs {
 
@@ -63,8 +63,8 @@ private:
     Settings& operator= (Settings const&) = delete;
 
 private:
-    JSONDocument m_settings;
-    JSONObject m_root;
+    CPLJSONDocument m_settings;
+    CPLJSONObject m_root;
     CPLString m_path;
     bool m_hasChanges;
 };

@@ -505,7 +505,9 @@ TEST(MiscTests, TestURLRequest) {
 
     EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);
-    std::cout << result->data << std::endl;
+    CPLString data(reinterpret_cast<const char*>(result->data),
+                   static_cast<size_t>(result->dataLen));
+    std::cout << data << std::endl;
     ngsURLRequestDestroyResult(result);
 
     options = nullptr;

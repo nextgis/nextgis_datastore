@@ -114,18 +114,18 @@ bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix
     return true;
 }
 
-bool SimpleVectorStyle::load(const JSONObject &store)
+bool SimpleVectorStyle::load(const CPLJSONObject &store)
 {
-    ngsRGBA color = ngsHEX2RGBA(store.getInteger("color",
-                                                 ngsRGBA2HEX({255, 255, 255, 255})));
+    ngsRGBA color = ngsHEX2RGBA(store.GetInteger("color",
+                                             ngsRGBA2HEX({255, 255, 255, 255})));
     setColor(color);
     return true;
 }
 
-JSONObject SimpleVectorStyle::save() const
+CPLJSONObject SimpleVectorStyle::save() const
 {
-    JSONObject out;
-    out.add("color", ngsRGBA2HEX(ngsGl2RGBA(m_color)));
+    CPLJSONObject out;
+    out.Add("color", ngsRGBA2HEX(ngsGl2RGBA(m_color)));
     return out;
 }
 
@@ -286,20 +286,20 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
                                    GL_UNSIGNED_SHORT, nullptr));
 }
 
-bool SimplePointStyle::load(const JSONObject &store)
+bool SimplePointStyle::load(const CPLJSONObject &store)
 {
     if(!SimpleVectorStyle::load(store))
         return false;
-    m_size = static_cast<float>(store.getDouble("size", 6.0));
-    m_type = static_cast<enum PointType>(store.getInteger("type", 3));
+    m_size = static_cast<float>(store.GetDouble("size", 6.0));
+    m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
     return true;
 }
 
-JSONObject SimplePointStyle::save() const
+CPLJSONObject SimplePointStyle::save() const
 {
-    JSONObject out = SimpleVectorStyle::save();
-    out.add("size", static_cast<double>(m_size));
-    out.add("type", m_type);
+    CPLJSONObject out = SimpleVectorStyle::save();
+    out.Add("size", static_cast<double>(m_size));
+    out.Add("type", m_type);
     return out;
 }
 
@@ -367,24 +367,24 @@ void SimpleLineStyle::draw(const GlBuffer& buffer) const
                                    GL_UNSIGNED_SHORT, nullptr));
 }
 
-bool SimpleLineStyle::load(const JSONObject &store)
+bool SimpleLineStyle::load(const CPLJSONObject &store)
 {
     if(!SimpleVectorStyle::load(store))
         return false;
-    m_width = static_cast<float>(store.getDouble("line_width", 3.0));
-    m_capType = static_cast<enum CapType>(store.getInteger("cap", m_capType));
-    m_joinType = static_cast<enum JoinType>(store.getInteger("join", m_joinType));
-    m_segmentCount = static_cast<unsigned char>(store.getInteger("segments", m_segmentCount));
+    m_width = static_cast<float>(store.GetDouble("line_width", 3.0));
+    m_capType = static_cast<enum CapType>(store.GetInteger("cap", m_capType));
+    m_joinType = static_cast<enum JoinType>(store.GetInteger("join", m_joinType));
+    m_segmentCount = static_cast<unsigned char>(store.GetInteger("segments", m_segmentCount));
     return true;
 }
 
-JSONObject SimpleLineStyle::save() const
+CPLJSONObject SimpleLineStyle::save() const
 {
-    JSONObject out = SimpleVectorStyle::save();
-    out.add("line_width", static_cast<double>(m_width));
-    out.add("cap", m_capType);
-    out.add("join", m_joinType);
-    out.add("segments", m_segmentCount);
+    CPLJSONObject out = SimpleVectorStyle::save();
+    out.Add("line_width", static_cast<double>(m_width));
+    out.Add("cap", m_capType);
+    out.Add("join", m_joinType);
+    out.Add("segments", m_segmentCount);
     return out;
 }
 
@@ -501,21 +501,21 @@ void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
     }
 }
 
-bool SimpleFillBorderedStyle::load(const JSONObject &store)
+bool SimpleFillBorderedStyle::load(const CPLJSONObject &store)
 {
-    if(!m_line.load(store.getObject("line")))
+    if(!m_line.load(store.GetObject("line")))
         return false;
-    if(!m_fill.load(store.getObject("fill")))
+    if(!m_fill.load(store.GetObject("fill")))
         return false;
 
     return true;
 }
 
-JSONObject SimpleFillBorderedStyle::save() const
+CPLJSONObject SimpleFillBorderedStyle::save() const
 {
-    JSONObject out;
-    out.add("line", m_line.save());
-    out.add("fill", m_fill.save());
+    CPLJSONObject out;
+    out.Add("line", m_line.save());
+    out.Add("fill", m_fill.save());
     return out;
 }
 

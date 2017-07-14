@@ -67,23 +67,23 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
 {
 }
 
-bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
+bool Map::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
 {
-    m_name = root.getString(MAP_NAME_KEY, DEFAULT_MAP_NAME);
-    m_description = root.getString(MAP_DESCRIPTION_KEY, "");
-    m_relativePaths = root.getBool(MAP_RELATIVEPATHS_KEY, true);
-    m_epsg = static_cast<unsigned short>(root.getInteger(MAP_EPSG_KEY,
+    m_name = root.GetString(MAP_NAME_KEY, DEFAULT_MAP_NAME);
+    m_description = root.GetString(MAP_DESCRIPTION_KEY, "");
+    m_relativePaths = root.GetBool(MAP_RELATIVEPATHS_KEY, true);
+    m_epsg = static_cast<unsigned short>(root.GetInteger(MAP_EPSG_KEY,
                                                          DEFAULT_EPSG));
-    m_bounds.load(root.getObject(MAP_BOUNDS_KEY), DEFAULT_BOUNDS);
-    setBackgroundColor(ngsHEX2RGBA(root.getInteger (MAP_BKCOLOR_KEY,
+    m_bounds.load(root.GetObject(MAP_BOUNDS_KEY), DEFAULT_BOUNDS);
+    setBackgroundColor(ngsHEX2RGBA(root.GetInteger (MAP_BKCOLOR_KEY,
                                              ngsRGBA2HEX(m_bkColor))));
 
-    JSONArray layers = root.getArray("layers");
-    CPLDebug("ngstore", "Opening map has %d layers", layers.size());
-    for(int i = 0; i < layers.size(); ++i) {
-        JSONObject layerConfig = layers[i];
+    CPLJSONArray layers = root.GetArray("layers");
+    CPLDebug("ngstore", "Opening map has %d layers", layers.Size());
+    for(int i = 0; i < layers.Size(); ++i) {
+        CPLJSONObject layerConfig = layers[i];
         Layer::Type type = static_cast<Layer::Type>(
-                    layerConfig.getInteger(LAYER_TYPE_KEY, 0));
+                    layerConfig.GetInteger(LAYER_TYPE_KEY, 0));
         // load layer
         LayerPtr layer = createLayer(DEFAULT_LAYER_NAME, type);
         if(nullptr != layer) {
@@ -98,44 +98,44 @@ bool Map::openInternal(const JSONObject& root, MapFile * const mapFile)
     return true;
 }
 
-bool Map::saveInternal(JSONObject& root, MapFile * const mapFile)
+bool Map::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 {
-    root.add(MAP_NAME_KEY, m_name);
-    root.add(MAP_DESCRIPTION_KEY, m_description);
-    root.add(MAP_RELATIVEPATHS_KEY, m_relativePaths);
-    root.add(MAP_EPSG_KEY, m_epsg);
-    root.add(MAP_BOUNDS_KEY, m_bounds.save());
-    root.add(MAP_BKCOLOR_KEY, ngsRGBA2HEX(m_bkColor));
+    root.Add(MAP_NAME_KEY, m_name);
+    root.Add(MAP_DESCRIPTION_KEY, m_description);
+    root.Add(MAP_RELATIVEPATHS_KEY, m_relativePaths);
+    root.Add(MAP_EPSG_KEY, m_epsg);
+    root.Add(MAP_BOUNDS_KEY, m_bounds.save());
+    root.Add(MAP_BKCOLOR_KEY, ngsRGBA2HEX(m_bkColor));
 
-    JSONArray layers;
+    CPLJSONArray layers;
     for(LayerPtr layer : m_layers) {
-        layers.add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
+        layers.Add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
     }
-    root.add(MAP_LAYERS_KEY, layers);
+    root.Add(MAP_LAYERS_KEY, layers);
 
     return true;
 }
 
 bool Map::open(MapFile * const mapFile)
 {
-    JSONDocument doc;
-    if(!doc.load(mapFile->getPath())) {
+    CPLJSONDocument doc;
+    if(!doc.Load(mapFile->getPath())) {
         return false;
     }
 
-    JSONObject root = doc.getRoot();
+    CPLJSONObject root = doc.GetRoot();
     return openInternal(root, mapFile);
 }
 
 bool Map::save(MapFile * const mapFile)
 {
-    JSONDocument doc;
-    JSONObject root = doc.getRoot();
+    CPLJSONDocument doc;
+    CPLJSONObject root = doc.GetRoot();
 
     if(!saveInternal(root, mapFile))
         return false;
 
-    return doc.save(mapFile->getPath());
+    return doc.Save(mapFile->getPath());
 }
 
 bool Map::close()

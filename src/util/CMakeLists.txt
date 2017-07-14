@@ -25,7 +25,7 @@
 set(LIB_NAME util)
 
 set(HHEADERS
-    jsondocument.h
+    #jsondocument.h
     stringutil.h
     versionutil.h
     settings.h
@@ -38,7 +38,7 @@ set(HHEADERS
 )
 
 set(CSOURCES
-    jsondocument.cpp
+    #jsondocument.cpp
     stringutil.cpp
     versionutil.cpp
     settings.cpp

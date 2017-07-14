@@ -21,11 +21,12 @@
 #ifndef NGSLAYER_H
 #define NGSLAYER_H
 
-#include "util/jsondocument.h"
-
 // stl
 #include <memory>
 #include <vector>
+
+// gdal
+#include "cpl_json.h"
 
 #include "catalog/objectcontainer.h"
 #include "ds/featureclass.h"
@@ -52,9 +53,9 @@ public:
 public:
     explicit Layer(const CPLString& name = DEFAULT_LAYER_NAME, enum Type type = Type::Invalid);
     virtual ~Layer() = default;
-    virtual bool load(const JSONObject& store,
+    virtual bool load(const CPLJSONObject& store,
                       ObjectContainer *objectContainer = nullptr);
-    virtual JSONObject save(const ObjectContainer * objectContainer = nullptr) const;
+    virtual CPLJSONObject save(const ObjectContainer * objectContainer = nullptr) const;
     const CPLString &getName() const { return m_name; }
     void setName(const CPLString &name) { m_name = name; }
     bool visible() const { return m_visible; }
@@ -81,8 +82,8 @@ public:
 
     // Layer interface
 public:
-    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
-    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+    virtual bool load(const CPLJSONObject &store, ObjectContainer *objectContainer) override;
+    virtual CPLJSONObject save(const ObjectContainer *objectContainer) const override;
 
 protected:
     FeatureClassPtr m_featureClass;
@@ -102,8 +103,8 @@ public:
 
     // Layer interface
 public:
-    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
-    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+    virtual bool load(const CPLJSONObject &store, ObjectContainer *objectContainer) override;
+    virtual CPLJSONObject save(const ObjectContainer *objectContainer) const override;
 
 protected:
     RasterPtr m_raster;

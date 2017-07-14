@@ -95,8 +95,8 @@ public:
 
     // Layer interface
 public:
-    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
-    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+    virtual bool load(const CPLJSONObject &store, ObjectContainer *objectContainer) override;
+    virtual CPLJSONObject save(const ObjectContainer *objectContainer) const override;
 
     // FeatureLayer interface
 public:
@@ -153,8 +153,8 @@ public:
 
     // Layer interface
 public:
-    virtual bool load(const JSONObject &store, ObjectContainer *objectContainer) override;
-    virtual JSONObject save(const ObjectContainer *objectContainer) const override;
+    virtual bool load(const CPLJSONObject &store, ObjectContainer *objectContainer) override;
+    virtual CPLJSONObject save(const ObjectContainer *objectContainer) const override;
 
     // RasterLayer interface
 public:

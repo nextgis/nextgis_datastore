@@ -42,19 +42,19 @@ Layer::Layer(const CPLString &name, Type type) :
 {
 }
 
-bool Layer::load(const JSONObject& store, ObjectContainer * /*objectContainer*/)
+bool Layer::load(const CPLJSONObject &store, ObjectContainer * /*objectContainer*/)
 {
-    m_name = store.getString(LAYER_NAME_KEY, m_name);
-    m_visible = store.getBool(LAYER_VISIBLE_KEY, m_visible);
+    m_name = store.GetString(LAYER_NAME_KEY, m_name);
+    m_visible = store.GetBool(LAYER_VISIBLE_KEY, m_visible);
     return true;
 }
 
-JSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
+CPLJSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
 {
-    JSONObject out;
-    out.add(LAYER_NAME_KEY, m_name);
-    out.add(LAYER_TYPE_KEY, static_cast<int>(m_type));
-    out.add(LAYER_VISIBLE_KEY, m_visible);
+    CPLJSONObject out;
+    out.Add(LAYER_NAME_KEY, m_name);
+    out.Add(LAYER_TYPE_KEY, static_cast<int>(m_type));
+    out.Add(LAYER_VISIBLE_KEY, m_visible);
     return out;
 }
 
@@ -67,12 +67,12 @@ FeatureLayer::FeatureLayer(const CPLString& name) : Layer(name, Type::Vector)
 }
 
 
-bool FeatureLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
     if(!Layer::load(store, objectContainer))
         return false;
 
-    const char* path = store.getString(LAYER_SOURCE_KEY, "");
+    const char* path = store.GetString(LAYER_SOURCE_KEY, "");
     ObjectPtr fcObject;
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
@@ -89,15 +89,15 @@ bool FeatureLayer::load(const JSONObject &store, ObjectContainer *objectContaine
     return false;
 }
 
-JSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
+CPLJSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
 {
-    JSONObject out = Layer::save(objectContainer);
+    CPLJSONObject out = Layer::save(objectContainer);
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        out.add(LAYER_SOURCE_KEY, m_featureClass->getPath());
+        out.Add(LAYER_SOURCE_KEY, m_featureClass->getPath());
     }
     else { // relative path
-        out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_featureClass.get(),
+        out.Add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_featureClass.get(),
                                                           objectContainer));
     }
     return out;
@@ -112,12 +112,12 @@ RasterLayer::RasterLayer(const CPLString& name) : Layer(name, Type::Raster)
 }
 
 
-bool RasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+bool RasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
     if(!Layer::load(store, objectContainer))
         return false;
 
-    const char* path = store.getString(LAYER_SOURCE_KEY, "");
+    const char* path = store.GetString(LAYER_SOURCE_KEY, "");
     ObjectPtr fcObject;
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
@@ -138,15 +138,15 @@ bool RasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer
     return false;
 }
 
-JSONObject RasterLayer::save(const ObjectContainer *objectContainer) const
+CPLJSONObject RasterLayer::save(const ObjectContainer *objectContainer) const
 {
-    JSONObject out = Layer::save(objectContainer);
+    CPLJSONObject out = Layer::save(objectContainer);
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        out.add(LAYER_SOURCE_KEY, m_raster->getPath());
+        out.Add(LAYER_SOURCE_KEY, m_raster->getPath());
     }
     else { // relative path
-        out.add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_raster.get(),
+        out.Add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_raster.get(),
                                                           objectContainer));
     }
     return out;

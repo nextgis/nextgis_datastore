@@ -71,35 +71,35 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
     return true;
 }
 
-bool MapView::openInternal(const JSONObject &root, MapFile * const mapFile)
+bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
 {
     if(!Map::openInternal(root, mapFile))
         return false;
 
-    setRotate(ngsDirection::DIR_X, root.getDouble(MAP_ROTATE_X_KEY, 0));
-    setRotate(ngsDirection::DIR_Y, root.getDouble(MAP_ROTATE_Y_KEY, 0));
-    setRotate(ngsDirection::DIR_Z, root.getDouble(MAP_ROTATE_Z_KEY, 0));
+    setRotate(ngsDirection::DIR_X, root.GetDouble(MAP_ROTATE_X_KEY, 0));
+    setRotate(ngsDirection::DIR_Y, root.GetDouble(MAP_ROTATE_Y_KEY, 0));
+    setRotate(ngsDirection::DIR_Z, root.GetDouble(MAP_ROTATE_Z_KEY, 0));
 
     Envelope env;
-    env.load(root.getObject(MAP_EXTENT_KEY), DEFAULT_BOUNDS);
+    env.load(root.GetObject(MAP_EXTENT_KEY), DEFAULT_BOUNDS);
     setExtent(env);
 
-    m_XAxisLooped = root.getBool(MAP_X_LOOP_KEY, true);
+    m_XAxisLooped = root.GetBool(MAP_X_LOOP_KEY, true);
 
     return true;
 }
 
-bool MapView::saveInternal(JSONObject &root, MapFile * const mapFile)
+bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 {
     if(!Map::saveInternal(root, mapFile))
         return false;
 
-    root.add(MAP_EXTENT_KEY, getExtent().save());
-    root.add(MAP_ROTATE_X_KEY, getRotate(ngsDirection::DIR_X));
-    root.add(MAP_ROTATE_Y_KEY, getRotate(ngsDirection::DIR_Y));
-    root.add(MAP_ROTATE_Z_KEY, getRotate(ngsDirection::DIR_Z));
+    root.Add(MAP_EXTENT_KEY, getExtent().save());
+    root.Add(MAP_ROTATE_X_KEY, getRotate(ngsDirection::DIR_X));
+    root.Add(MAP_ROTATE_Y_KEY, getRotate(ngsDirection::DIR_Y));
+    root.Add(MAP_ROTATE_Z_KEY, getRotate(ngsDirection::DIR_Z));
 
-    root.add(MAP_X_LOOP_KEY, m_XAxisLooped);
+    root.Add(MAP_X_LOOP_KEY, m_XAxisLooped);
     return true;
 }
 

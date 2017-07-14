@@ -57,24 +57,24 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         return true;
 
     if(m_type == CAT_RASTER_TMS) {
-        JSONDocument connectionFile;
-        if(!connectionFile.load(m_path)) {
+        CPLJSONDocument connectionFile;
+        if(!connectionFile.Load(m_path)) {
             return false;
         }
-        JSONObject root = connectionFile.getRoot();
-        CPLString url = root.getString(KEY_URL, "");
+        CPLJSONObject root = connectionFile.GetRoot();
+        CPLString url = root.GetString(KEY_URL, "");
         url = url.replaceAll("{", "${");
         url = url.replaceAll("&", "&amp;");
-        int epsg = root.getInteger(KEY_EPSG, 3857);
+        int epsg = root.GetInteger(KEY_EPSG, 3857);
 
         m_spatialReference = new OGRSpatialReference;
         m_spatialReference->importFromEPSG(epsg);
 
 //        int z_min = root.getInteger(KEY_Z_MIN, 0);
-        int z_max = root.getInteger(KEY_Z_MAX, 18);
-        bool y_origin_top = root.getBool(KEY_Y_ORIGIN_TOP, true);
+        int z_max = root.GetInteger(KEY_Z_MAX, 18);
+        bool y_origin_top = root.GetBool(KEY_Y_ORIGIN_TOP, true);
 
-        m_extent.load(root.getObject(KEY_EXTENT), DEFAULT_BOUNDS);
+        m_extent.load(root.GetObject(KEY_EXTENT), DEFAULT_BOUNDS);
 
         const char* connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"

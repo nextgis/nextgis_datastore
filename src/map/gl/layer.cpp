@@ -140,25 +140,25 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
 }
 
 
-bool GlFeatureLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+bool GlFeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
     bool result = FeatureLayer::load(store, objectContainer);
     if(!result)
         return false;
-    const char* styleName = store.getString("style_name", "");
+    const char* styleName = store.GetString("style_name", "");
     if(styleName != nullptr && !EQUAL(styleName, "")) {
         m_style = StylePtr(Style::createStyle(styleName));
-        return m_style->load(store.getObject("style"));
+        return m_style->load(store.GetObject("style"));
     }
     return true;
 }
 
-JSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
+CPLJSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
 {
-    JSONObject out = FeatureLayer::save(objectContainer);
+    CPLJSONObject out = FeatureLayer::save(objectContainer);
     if(m_style) {
-        out.add("style_name", m_style->name());
-        out.add("style", m_style->save());
+        out.Add("style_name", m_style->name());
+        out.Add("style", m_style->save());
     }
     return out;
 }
@@ -1139,18 +1139,18 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 //    return true; */
 }
 
-bool GlRasterLayer::load(const JSONObject &store, ObjectContainer *objectContainer)
+bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
     bool result = RasterLayer::load(store, objectContainer);
     if(!result)
         return false;
-    JSONObject raster = store.getObject("raster");
-    if(raster.isValid()) {
-        m_red = static_cast<unsigned char>(raster.getInteger("red", m_red));
-        m_green = static_cast<unsigned char>(raster.getInteger("green", m_green));
-        m_blue = static_cast<unsigned char>(raster.getInteger("blue", m_blue));
-        m_alpha = static_cast<unsigned char>(raster.getInteger("alpha", m_alpha));
-        m_transparancy = static_cast<unsigned char>(raster.getInteger("transparancy",
+    CPLJSONObject raster = store.GetObject("raster");
+    if(raster.IsValid()) {
+        m_red = static_cast<unsigned char>(raster.GetInteger("red", m_red));
+        m_green = static_cast<unsigned char>(raster.GetInteger("green", m_green));
+        m_blue = static_cast<unsigned char>(raster.GetInteger("blue", m_blue));
+        m_alpha = static_cast<unsigned char>(raster.GetInteger("alpha", m_alpha));
+        m_transparancy = static_cast<unsigned char>(raster.GetInteger("transparancy",
                                                                       m_transparancy));
     }
 
@@ -1158,16 +1158,16 @@ bool GlRasterLayer::load(const JSONObject &store, ObjectContainer *objectContain
     return true;
 }
 
-JSONObject GlRasterLayer::save(const ObjectContainer *objectContainer) const
+CPLJSONObject GlRasterLayer::save(const ObjectContainer *objectContainer) const
 {
-    JSONObject out = RasterLayer::save(objectContainer);
-    JSONObject raster;
-    raster.add("red", m_red);
-    raster.add("green", m_green);
-    raster.add("blue", m_blue);
-    raster.add("alpha", m_alpha);
-    raster.add("transparancy", m_transparancy);
-    out.add("raster", raster);
+    CPLJSONObject out = RasterLayer::save(objectContainer);
+    CPLJSONObject raster;
+    raster.Add("red", m_red);
+    raster.Add("green", m_green);
+    raster.Add("blue", m_blue);
+    raster.Add("alpha", m_alpha);
+    raster.Add("transparancy", m_transparancy);
+    out.Add("raster", raster);
     return out;
 }
 

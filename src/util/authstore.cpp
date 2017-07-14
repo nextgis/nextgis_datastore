@@ -24,10 +24,19 @@
 
 #include "api_priv.h"
 #include "util/error.h"
-#include "util/jsondocument.h"
 #include "util/notify.h"
 
 namespace ngs {
+
+void AuthNotifyFunction(const char* url, CPLHTTPAuthChangeCode operation)
+{
+    if(operation == HTTPAUTH_EXPIRED) {
+        Notify::instance().onNotify(url, CC_TOKEN_EXPIRED);
+    }
+    else if(operation == HTTPAUTH_UPDATE) {
+        Notify::instance().onNotify(url, CC_TOKEN_CHANGED);
+    }
+}
 
 //------------------------------------------------------------------------------
 // AuthStore
@@ -35,141 +44,21 @@ namespace ngs {
 
 bool AuthStore::addAuth(const char *url, const Options &options)
 {
-    if(EQUAL(options.stringOption("TYPE"), "bearer")) {
-        IAuth* newAuth = new AuthBearer(url,
-                                        options.stringOption("CLIENT_ID"),
-                                        options.stringOption("TOKEN_SERVER"),
-                                        options.stringOption("ACCESS_TOKEN"),
-                                        options.stringOption("REFRESH_TOKEN"),
-                                        options.intOption("EXPIRES_IN"));
-        AuthStore::instance().addAuth(newAuth);
+    auto optionsPtr = options.getOptions();
+    if(CPLHTTPAuthAdd(url, optionsPtr.get(), AuthNotifyFunction) == CE_None) {
         return true;
     }
     return false;
 }
 
-AuthStore &AuthStore::instance()
-{
-    static AuthStore n;
-    return n;
-}
-
-void AuthStore::addAuth(IAuth* auth)
-{
-    m_auths.push_back(AuthUPtr(auth));
-}
-
 void AuthStore::deleteAuth(const char* url)
 {
-    for(auto auth = m_auths.begin(); auth != m_auths.end(); ++auth) {
-        if(EQUAL((*auth)->url(), url)) {
-            m_auths.erase(auth);
-            return;
-        }
-    }
+    CPLHTTPAuthDelete(url);
 }
 
-const char *AuthStore::getAuthHeader(const char *url)
+Options AuthStore::description(const char *url)
 {
-    for(auto auth = m_auths.begin(); auth != m_auths.end(); ++auth) {
-        const char* baseUrl = (*auth)->url();
-        if(EQUALN(baseUrl, url, CPLStrnlen(baseUrl, 512))) {
-            return (*auth)->header();
-        }
-    }
-    return "";
-}
-
-Options AuthStore::description(const char *url) const
-{
-    for(auto auth = m_auths.begin(); auth != m_auths.end(); ++auth) {
-        if(EQUAL((*auth)->url(), url)) {
-            return (*auth)->description();
-        }
-    }
-    return Options();
-}
-
-//------------------------------------------------------------------------------
-// AuthBearer
-//------------------------------------------------------------------------------
-AuthBearer::AuthBearer(const CPLString &url, const CPLString &clientId, const CPLString &tokenServer,
-                       const CPLString &accessToken, const CPLString &updateToken,
-                       int expiresIn) : IAuth(),
-    m_url(url),
-    m_clientId(clientId),
-    m_accessToken(accessToken),
-    m_updateToken(updateToken),
-    m_tokenServer(tokenServer),
-    m_expiresIn(expiresIn),
-    m_lastCheck(0)
-{
-
-}
-
-Options AuthBearer::description() const
-{
-    Options out;
-    out.addOption("TYPE", "bearer");
-    out.addOption("ACCESS_TOKEN", m_accessToken);
-    out.addOption("UPDATE_TOKEN", m_updateToken);
-    out.addOption("TOKEN_SERVER", m_tokenServer);
-    out.addOption("TOKEN_SERVER", m_tokenServer);
-    out.addOption("URL", m_url);
-    out.addOption("EXPIRES_IN", CPLSPrintf("%d", m_expiresIn));
-
-    return out;
-}
-
-const char *AuthBearer::header()
-{
-    // 1. Check if expires if not return current access token
-    time_t now = time(nullptr);
-    double seconds = difftime(now, m_lastCheck);
-    if(seconds < m_expiresIn) {
-        CPLDebug("ngstore", "Token is not expired. Url: %s", m_url.c_str());
-        return CPLSPrintf("Authorization: bearer %s", m_accessToken.c_str());
-    }
-    // 2. Try to update token
-
-    Options options;
-    options.addOption("CUSTOMREQUEST", "POST");
-    options.addOption("POSTFIELDS", CPLSPrintf("grant_type=refresh_token&client_id=%s&refresh_token=%s",
-                                     m_clientId.c_str(), m_updateToken.c_str()));
-    options.addOption("CONNECTTIMEOUT", "5");
-    options.addOption("TIMEOUT", "15");
-    options.addOption("MAX_RETRY", "5");
-    options.addOption("RETRY_DELAY", "5");
-    auto optionsPtr = options.getOptions();
-    CPLHTTPResult* result = CPLHTTPFetch(m_tokenServer, optionsPtr.get());
-    if(result->nHTTPResponseCode >= 400 && result->nHTTPResponseCode < 404) {
-        // 3. If failed to update - return "expired"
-        errorMessage(COD_UPDATE_FAILED, _("Failed to update token. Url: %s"),
-                     m_url.c_str());
-
-        CPLHTTPDestroyResult( result );
-
-        Notify::instance().onNotify(m_url, CC_TOKEN_EXPIRED);
-
-        return "expired";
-    }
-
-    JSONDocument resultJson;
-    if(!resultJson.load(result->pabyData, result->nDataLen)) {
-        CPLHTTPDestroyResult( result );
-        return "";
-    }
-    CPLHTTPDestroyResult( result );
-
-    // 4. Save new update and access tokens
-    JSONObject root = resultJson.getRoot();
-    m_accessToken = root.getString("access_token", m_accessToken);
-    m_updateToken = root.getString("refresh_token", m_updateToken);
-    m_expiresIn = root.getInteger("expires_in", m_expiresIn);
-    m_lastCheck = now;
-
-    // 5. Return new Auth Header
-    return CPLSPrintf("Authorization: bearer %s", m_accessToken.c_str());
+    return Options(CPLHTTPAuthProperties(url));
 }
 
 } // namespace ngs

@@ -176,22 +176,22 @@ OGREnvelope Envelope::toOgrEnvelope() const
     return env;
 }
 
-bool Envelope::load(const JSONObject &store, const Envelope& defaultValue)
+bool Envelope::load(const CPLJSONObject &store, const Envelope& defaultValue)
 {
-    m_minX = store.getDouble(MAP_MIN_X_KEY, defaultValue.minX());
-    m_minY = store.getDouble(MAP_MIN_Y_KEY, defaultValue.minY());
-    m_maxX = store.getDouble(MAP_MAX_X_KEY, defaultValue.maxX());
-    m_maxY = store.getDouble(MAP_MAX_Y_KEY, defaultValue.maxY());
+    m_minX = store.GetDouble(MAP_MIN_X_KEY, defaultValue.minX());
+    m_minY = store.GetDouble(MAP_MIN_Y_KEY, defaultValue.minY());
+    m_maxX = store.GetDouble(MAP_MAX_X_KEY, defaultValue.maxX());
+    m_maxY = store.GetDouble(MAP_MAX_Y_KEY, defaultValue.maxY());
     return true;
 }
 
-JSONObject Envelope::save() const
+CPLJSONObject Envelope::save() const
 {
-    JSONObject out;
-    out.add(MAP_MIN_X_KEY, m_minX);
-    out.add(MAP_MIN_Y_KEY, m_minY);
-    out.add(MAP_MAX_X_KEY, m_maxX);
-    out.add(MAP_MAX_Y_KEY, m_maxY);
+    CPLJSONObject out;
+    out.Add(MAP_MIN_X_KEY, m_minX);
+    out.Add(MAP_MIN_Y_KEY, m_minY);
+    out.Add(MAP_MAX_X_KEY, m_maxX);
+    out.Add(MAP_MAX_Y_KEY, m_maxY);
     return out;
 }
 

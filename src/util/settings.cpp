@@ -32,8 +32,8 @@ Settings::Settings() : m_hasChanges(false)
     const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
     m_path = CPLFormFilename(settingsPath, SETTINGS_FILE, SETTINGS_FILE_EXT);
     if(Folder::isExists(m_path))
-        m_settings.load(m_path);
-    m_root = m_settings.getRoot();
+        m_settings.Load(m_path);
+    m_root = m_settings.GetRoot();
 }
 
 Settings::~Settings()
@@ -43,52 +43,52 @@ Settings::~Settings()
 
 void Settings::set(const char *path, bool val)
 {
-    m_root.set(path, val);
+    m_root.Set(path, val);
 }
 
 void Settings::set(const char *path, double val)
 {
-    m_root.set(path, val);
+    m_root.Set(path, val);
 }
 
 void Settings::set(const char *path, int val)
 {
-    m_root.set(path, val);
+    m_root.Set(path, val);
 }
 
 void Settings::set(const char *path, long val)
 {
-    m_root.set(path, val);
+    m_root.Set(path, val);
 }
 
 void Settings::set(const char *path, const char *val)
 {
-    m_root.set(path, val);
+    m_root.Set(path, val);
 }
 
 bool Settings::getBool(const char *path, bool defaultVal) const
 {
-    return m_root.getBool(path, defaultVal);
+    return m_root.GetBool(path, defaultVal);
 }
 
 double Settings::getDouble(const char *path, double defaultVal) const
 {
-    return m_root.getDouble(path, defaultVal);
+    return m_root.GetDouble(path, defaultVal);
 }
 
 int Settings::getInteger(const char *path, int defaultVal) const
 {
-    return m_root.getInteger(path, defaultVal);
+    return m_root.GetInteger(path, defaultVal);
 }
 
 long Settings::getLong(const char *path, long defaultVal) const
 {
-    return m_root.getLong(path, defaultVal);
+    return m_root.GetLong(path, defaultVal);
 }
 
 const char *Settings::getString(const char *path, const char *defaultVal) const
 {
-    return m_root.getString(path, defaultVal);
+    return m_root.GetString(path, defaultVal);
 }
 
 bool Settings::save()
@@ -104,7 +104,7 @@ bool Settings::save()
                 return false;
         }
 
-        return m_settings.save(m_path);
+        return m_settings.Save(m_path);
     }
     return true;
 }
