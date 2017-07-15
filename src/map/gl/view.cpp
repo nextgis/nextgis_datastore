@@ -164,7 +164,7 @@ void GlView::updateTilesList()
     // Get tiles for current extent
     Envelope ext = getExtent();
     ext.resize(EXTENT_EXTRA_BUFFER);
-    CPLDebug("ngstore", "Zoom is: %d", getZoom());
+    //CPLDebug("ngstore", "Zoom is: %d", getZoom());
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
                                                     getYAxisInverted(),
                                                     getXAxisLooped());
@@ -197,6 +197,9 @@ void GlView::updateTilesList()
     for(const TileItem& tileItem : tileItems) {
         m_tiles.push_back(GlTilePtr(new GlTile(GLTILE_SIZE, tileItem)));
     }
+
+//    CPLDebug("ngstore", "Tile count: %ld", m_tiles.size());
+//    CPLDebug("ngstore", "Old tile count: %ld", m_oldTiles.size());
 }
 
 void GlView::freeResources()
@@ -319,6 +322,13 @@ void GlView::drawOldTiles()
 void GlView::freeOldTiles()
 {
     for(const GlTilePtr& oldTile : m_oldTiles) {
+        for(const LayerPtr &layer : m_layers) {
+            GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer, layer);
+            if(renderLayer) {
+                renderLayer->free(oldTile);
+            }
+        }
+
         freeResource(std::dynamic_pointer_cast<GlObject>(oldTile));
     }
     m_oldTiles.clear();

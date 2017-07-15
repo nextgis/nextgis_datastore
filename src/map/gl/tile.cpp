@@ -82,6 +82,8 @@ void GlTile::bind()
     ngsCheckGLError(glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
     m_tile.bind();
+
+    m_bound = true;
 }
 
 void GlTile::rebind() const

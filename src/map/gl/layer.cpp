@@ -57,6 +57,7 @@ void GlRenderLayer::free(GlTilePtr tile)
         }
         m_tiles.erase(it);
     }
+    // CPLDebug("ngstore", "GlRenderLayer::free: %ld GlObject in layer", m_tiles.size());
 }
 
 //------------------------------------------------------------------------------

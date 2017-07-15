@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "buffer.h"
 
+#include "cpl_conv.h"
+
 namespace ngs {
 
 constexpr GLuint GL_BUFFER_IVALID = 0;
