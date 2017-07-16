@@ -24,6 +24,7 @@
 #include "ds/raster.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
+#include "util/stringutil.h"
 
 namespace ngs {
 
@@ -42,6 +43,12 @@ constexpr const char *KEY_X_MIN = "x_min";
 constexpr const char *KEY_X_MAX = "x_max";
 constexpr const char *KEY_Y_MIN = "y_min";
 constexpr const char *KEY_Y_MAX = "y_max";
+constexpr const char *KEY_CACHE_EXPIRES = "cache_expires";
+constexpr const char *KEY_USER_PREFIX = "USER_";
+constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
+
+constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
+
 
 RasterFactory::RasterFactory()
 {
@@ -165,6 +172,17 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.Add(KEY_Z_MAX, z_max);
         root.Add(KEY_Y_ORIGIN_TOP, y_origin_top);
         root.Add(KEY_EXTENT, extent.save());
+        root.Add(KEY_CACHE_EXPIRES, options.intOption(KEY_CACHE_EXPIRES,
+                                                      defaultCacheExpires));
+
+        CPLJSONObject user;
+        for(auto it = options.begin(); it != options.end(); ++it) {
+            if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
+                user.Add(it->first.c_str() + KEY_USER_PREFIX_LEN, it->second);
+            }
+        }
+        root.Add(KEY_USER, user);
+
         const char* newPath = CPLResetExtension(path,
                                     remoteConnectionExtension());
         return connectionFile.Save(newPath);

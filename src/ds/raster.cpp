@@ -70,6 +70,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         m_spatialReference = new OGRSpatialReference;
         m_spatialReference->importFromEPSG(epsg);
 
+        // TODO: Add support for "cache_expires" value and "user" JSONObject;
 //        int z_min = root.getInteger(KEY_Z_MIN, 0);
         int z_max = root.GetInteger(KEY_Z_MAX, 18);
         bool y_origin_top = root.GetBool(KEY_Y_ORIGIN_TOP, true);
@@ -91,7 +92,12 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                                          y_origin_top ? "top" : "bottom",
                                          epsg);
 
-        return DatasetBase::open(connStr, openFlags, options);
+//        m_DS->GetMetadata();
+        bool result = DatasetBase::open(connStr, openFlags, options);
+        if(result) {
+            m_DS->SetMetadataItem("", "", KEY_USER);
+        }
+        return result;
     }
     else {
         if(DatasetBase::open(m_path, openFlags, options)) {

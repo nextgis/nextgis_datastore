@@ -797,6 +797,24 @@ const char *ngsCatalogObjectName(CatalogObjectH object)
     return static_cast<Object*>(object)->getName();
 }
 
+char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    DatasetBase* datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
+    if(!datasetBase) {
+        errorMessage(ngsCode::COD_INVALID,
+                            _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return datasetBase->metadata(domain);
+}
+
 /**
  * @brief ngsFeatureClassCreateOverviews Creates Gl optimized vector tiles
  * @param object Catalog object handle. Must be feature class or simple datasource.
@@ -1355,3 +1373,13 @@ int ngsLayerSetVisible(LayerH layer, char visible)
     return ngsCode::COD_SUCCESS;
 }
 
+
+CatalogObjectH ngsLayerGetDataSource(LayerH layer)
+{
+    if(nullptr == layer) {
+        errorMessage(ngsCode::COD_SET_FAILED, _("Layer pointer is null"));
+        return nullptr;
+    }
+
+    return (static_cast<Layer*>(layer))->datasource().get();
+}

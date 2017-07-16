@@ -45,6 +45,10 @@ public:
     void addOption(const char *key, const char * value) { m_options[key] = value; }
     void removeOption(const char *key);
     bool empty() const { return m_options.empty(); }
+    std::map< CPLString, CPLString >::const_iterator begin() const {
+        return m_options.begin(); }
+    std::map< CPLString, CPLString >::const_iterator end() const {
+        return m_options.end(); }
 
 protected:
     std::map< CPLString, CPLString > m_options;

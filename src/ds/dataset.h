@@ -55,6 +55,11 @@ public:
     virtual const char* options(enum ngsOptionType optionType) const = 0;
     virtual GDALDataset * getGDALDataset() const { return m_DS; }
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
+    virtual char** metadata(const char* domain) const {
+        if(nullptr == m_DS)
+            return nullptr;
+        return m_DS->GetMetadata(domain);
+    }
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
     virtual bool isReadOnly() const;

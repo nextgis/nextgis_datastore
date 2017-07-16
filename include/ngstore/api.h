@@ -148,6 +148,7 @@ NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
                                                 int optionType);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 NGS_EXTERNC const char* ngsCatalogObjectName(CatalogObjectH object);
+NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char **options,
                                                ngsProgressFunc callback,
@@ -205,6 +206,7 @@ NGS_EXTERNC const char* ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 NGS_EXTERNC char ngsLayerGetVisible(LayerH layer);
 NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, char visible);
+NGS_EXTERNC CatalogObjectH ngsLayerGetDataSource(LayerH layer);
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);

@@ -56,6 +56,7 @@ public:
     virtual bool load(const CPLJSONObject& store,
                       ObjectContainer *objectContainer = nullptr);
     virtual CPLJSONObject save(const ObjectContainer * objectContainer = nullptr) const;
+    virtual ObjectPtr datasource() const { return ObjectPtr();}
     const CPLString &getName() const { return m_name; }
     void setName(const CPLString &name) { m_name = name; }
     bool visible() const { return m_visible; }
@@ -84,6 +85,9 @@ public:
 public:
     virtual bool load(const CPLJSONObject &store, ObjectContainer *objectContainer) override;
     virtual CPLJSONObject save(const ObjectContainer *objectContainer) const override;
+    virtual ObjectPtr datasource() const override {
+        return std::dynamic_pointer_cast<Object>(m_featureClass);
+    }
 
 protected:
     FeatureClassPtr m_featureClass;
@@ -105,6 +109,9 @@ public:
 public:
     virtual bool load(const CPLJSONObject &store, ObjectContainer *objectContainer) override;
     virtual CPLJSONObject save(const ObjectContainer *objectContainer) const override;
+    virtual ObjectPtr datasource() const override {
+        return std::dynamic_pointer_cast<Object>(m_raster);
+    }
 
 protected:
     RasterPtr m_raster;

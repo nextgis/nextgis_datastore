@@ -33,6 +33,7 @@ constexpr const char *KEY_Z_MIN = "z_min";
 constexpr const char *KEY_Z_MAX = "z_max";
 constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
 constexpr const char *KEY_EXTENT = "extent";
+constexpr const char *KEY_USER = "user";
 
 /**
  * @brief The Raster dataset class represent image or raster
