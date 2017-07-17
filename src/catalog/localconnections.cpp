@@ -51,7 +51,7 @@ bool LocalConnections::hasChildren()
     if(m_childrenLoaded)
         return ObjectContainer::hasChildren();
 
-#if (TARGET_OS_IPHONE == 1) || (TARGET_OS_IPHONE == 1)
+#if (TARGET_OS_IPHONE == 1) || (TARGET_IPHONE_SIMULATOR == 1)
     // NOTE: For iOS (Mobile?) we don't need to store connections in file as
     // there is the only connection to root directory
     // Add iOS application root path
@@ -65,7 +65,7 @@ bool LocalConnections::hasChildren()
     m_children.push_back(ObjectPtr(new Folder(this, "Home", homeDir)));
     m_childrenLoaded = true;
     return ObjectContainer::hasChildren();
-#endif // TARGET_OS_IPHONE || TARGET_OS_IPHONE
+#endif // TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
 
     CPLJSONDocument doc;
     if(doc.Load (m_path)) {

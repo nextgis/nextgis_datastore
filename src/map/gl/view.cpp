@@ -29,6 +29,7 @@ namespace ngs {
 
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
 constexpr int GLTILE_SIZE = 512; //256; //
+constexpr unsigned char MAX_TRIES = 2;
 
 GlView::GlView() : MapView()
 {
@@ -94,7 +95,7 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
     LayerFillData* data = static_cast<LayerFillData*>(threadData);
     GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer, data->m_layer);
     if(nullptr != renderLayer) {
-        return renderLayer->fill(data->m_tile);
+        return renderLayer->fill(data->m_tile, data->tries() >= MAX_TRIES - 1);
     }
     return true;
 }
@@ -122,8 +123,10 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     return true;
 #else
 
+    clearBackground();
+
     if(m_layers.empty()) {
-        clearBackground();
+        //clearBackground();
         progress.onProgress(ngsCode::COD_FINISHED, 1.0,
                             _("No layers. Nothing to render."));
         return true;
@@ -267,7 +270,7 @@ bool GlView::drawTiles(const Progress &progress)
                     }
                 }
                 tile->setFilled();
-                done++;
+                done += m_layers.size();
             }
 
             ngsCheckGLError(glDisable(GL_BLEND));
@@ -292,6 +295,7 @@ bool GlView::drawTiles(const Progress &progress)
         }
     }
 
+//    CPLDebug("ngstore", "Drawing %f of %f", done, totalDrawCalls);
     if(done >= totalDrawCalls) {
         freeOldTiles();
         progress.onProgress(ngsCode::COD_FINISHED, 1.0,
@@ -348,7 +352,7 @@ void GlView::initView()
     if(numThreads < 1)
         numThreads = 1;
 
-    m_threadPool.init(numThreads, layerDataFillJobThreadFunc);
+    m_threadPool.init(numThreads, layerDataFillJobThreadFunc, MAX_TRIES);
 }
 
 double GlView::pixelSize(int zoom)

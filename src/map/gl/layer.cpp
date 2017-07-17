@@ -49,7 +49,8 @@ GlRenderLayer::~GlRenderLayer()
 
 void GlRenderLayer::free(GlTilePtr tile)
 {
-    CPLMutexHolder holder(m_dataMutex);
+    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
+    CPLMutexHolder holder(m_dataMutex, lockTime);
     auto it = m_tiles.find(tile->getTile());
     if(it != m_tiles.end()) {
         if(it->second) {
@@ -69,7 +70,7 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
 {
 }
 
-bool GlFeatureLayer::fill(GlTilePtr tile)
+bool GlFeatureLayer::fill(GlTilePtr tile, bool isLastTry)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
@@ -114,7 +115,7 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
         return true; // Should never happened
     }
 
-    CPLMutexHolder holder(m_dataMutex);
+    CPLMutexHolder holder(m_dataMutex, 0.5);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
         return false; // Data not yet loaded
@@ -874,7 +875,7 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
 {
 }
 
-bool GlRasterLayer::fill(GlTilePtr tile)
+bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
@@ -887,14 +888,14 @@ bool GlRasterLayer::fill(GlTilePtr tile)
         return true;
     }
 
-    Envelope rasterExtent = m_raster->getExtent();
+    Envelope rasterExtent = m_raster->extent();
     const Envelope & tileExtent = tile->getExtent();
 
     // FIXME: Reproject tile extent to raster extent
 
     Envelope outExt = rasterExtent.intersect(tileExtent);
 
-    if(!rasterExtent.isInit()) {
+    if(!outExt.isInit()) {
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
@@ -904,7 +905,7 @@ bool GlRasterLayer::fill(GlTilePtr tile)
     double geoTransform[6] = { 0 };
     double invGeoTransform[6] = { 0 };
     bool noTransform = false;
-    if(m_raster->getGeoTransform(geoTransform)) {
+    if(m_raster->geoTransform(geoTransform)) {
         noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
     }
     else {
@@ -921,8 +922,8 @@ bool GlRasterLayer::fill(GlTilePtr tile)
 
     if(noTransform) {
         // Swap min/max Y
-        rasterExtent.setMaxY(m_raster->getHeight() - rasterExtent.minY());
-        rasterExtent.setMinY(m_raster->getHeight() - rasterExtent.maxY());
+        rasterExtent.setMaxY(m_raster->height() - rasterExtent.minY());
+        rasterExtent.setMinY(m_raster->height() - rasterExtent.maxY());
     }
     else {
         double minX, minY, maxX, maxY;
@@ -952,11 +953,11 @@ bool GlRasterLayer::fill(GlTilePtr tile)
     if(minY < 0) {
         minY = 0;
     }
-    if(width - minX > m_raster->getWidth()) {
-        width = m_raster->getWidth() - minX;
+    if(width - minX > m_raster->width()) {
+        width = m_raster->width() - minX;
     }
-    if(height - minY > m_raster->getHeight()) {
-        height = m_raster->getHeight() - minY;
+    if(height - minY > m_raster->height()) {
+        height = m_raster->height() - minY;
     }
 
     // Memset 255 for buffer and read data skipping 4 byte
@@ -995,6 +996,15 @@ bool GlRasterLayer::fill(GlTilePtr tile)
                                 outHeight, m_dataType, bandCount, bands, true, true,
                                 static_cast<unsigned char>(18 - overview))) {
             CPLFree(pixData);
+
+            if(isLastTry) {
+                CPLMutexHolder holder(m_dataMutex, lockTime);
+                m_tiles[tile->getTile()] = GlObjectPtr();
+                return true;
+            }
+
+            // TODO: Get overzoom or underzoom pixels here
+
             return false;
         }
     }
@@ -1002,6 +1012,13 @@ bool GlRasterLayer::fill(GlTilePtr tile)
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
                                 outHeight, m_dataType, bandCount, bands)) {
             CPLFree(pixData);
+
+            if(isLastTry) {
+                CPLMutexHolder holder(m_dataMutex, lockTime);
+                m_tiles[tile->getTile()] = GlObjectPtr();
+                return true;
+            }
+
             return false;
         }
     }
@@ -1049,16 +1066,23 @@ bool GlRasterLayer::fill(GlTilePtr tile)
 
 bool GlRasterLayer::draw(GlTilePtr tile)
 {
-    CPLMutexHolder holder(m_dataMutex);
+    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
+    CPLAcquireMutex(m_dataMutex, lockTime);
+    //CPLMutexHolder holder(m_dataMutex, lockTime);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
+        CPLReleaseMutex(m_dataMutex);
         return false; // Data not yet loaded
     }
-    else if(!tileDataIt->second) {
-        return true; // Out of tile extent
-    }
 
-    RasterGlObject* rasterGlObject = ngsStaticCast(RasterGlObject, tileDataIt->second);
+    auto second = tileDataIt->second;
+    CPLReleaseMutex(m_dataMutex);
+
+    if(!second) {
+        return true; // Out of tile extent
+    }    
+
+    RasterGlObject* rasterGlObject = ngsStaticCast(RasterGlObject, second);
 
     // Bind everything before call prepare and set matrices
     GlImage* img = rasterGlObject->getImageRef();
@@ -1177,6 +1201,10 @@ void GlRasterLayer::setRaster(const RasterPtr &raster)
     RasterLayer::setRaster(raster);
     // Create default style
     m_style = StylePtr(Style::createStyle("simpleImage"));
+
+    if(raster->bandCount() == 4) {
+        m_alpha = 4;
+    }
 }
 
 //------------------------------------------------------------------------------

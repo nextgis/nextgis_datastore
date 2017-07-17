@@ -41,7 +41,7 @@ public:
      * @brief fill Fill arrays for Gl drawing. Executed from separate thread.
      * @param tile Tile to load data
      */
-    virtual bool fill(GlTilePtr tile) = 0;
+    virtual bool fill(GlTilePtr tile, bool isLastTry) = 0;
     /**
      * @brief free Free Gl objects. Run from Gl context.
      * @param tile Tile to free data
@@ -90,7 +90,7 @@ public:
 
     // IGlRenderLayer interface
 public:
-    virtual bool fill(GlTilePtr tile) override;
+    virtual bool fill(GlTilePtr tile, bool isLastTry) override;
     virtual bool draw(GlTilePtr tile) override;
 
     // Layer interface
@@ -148,7 +148,7 @@ public:
 
     // IGlRenderLayer interface
 public:
-    virtual bool fill(GlTilePtr tile) override;
+    virtual bool fill(GlTilePtr tile, bool isLastTry) override;
     virtual bool draw(GlTilePtr tile) override;
 
     // Layer interface

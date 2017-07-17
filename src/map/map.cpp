@@ -213,7 +213,7 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
                 before = m_layers.end(); // Restore iterator if it has changed
             }
 
-            if(!invalidBefore || beforeLayer == nullptr) { // Already have botch iterators or just push_back
+            if(!invalidBefore || beforeLayer == nullptr) { // Already have both iterators or just push_back
                 break;
             }
         }

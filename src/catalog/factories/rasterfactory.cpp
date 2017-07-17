@@ -46,6 +46,10 @@ constexpr const char *KEY_Y_MAX = "y_max";
 constexpr const char *KEY_CACHE_EXPIRES = "cache_expires";
 constexpr const char *KEY_USER_PREFIX = "USER_";
 constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
+constexpr const char *KEY_LIMIT_X_MIN = "limit_x_min";
+constexpr const char *KEY_LIMIT_X_MAX = "limit_x_max";
+constexpr const char *KEY_LIMIT_Y_MIN = "limit_y_min";
+constexpr const char *KEY_LIMIT_Y_MAX = "limit_y_max";
 
 constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
 
@@ -158,11 +162,17 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         int z_max = options.intOption(KEY_Z_MAX, 18);
         bool y_origin_top = options.boolOption(KEY_Y_ORIGIN_TOP, true);
 
-        Envelope extent;
-        extent.setMinX(options.doubleOption(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
-        extent.setMaxX(options.doubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
-        extent.setMinY(options.doubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
-        extent.setMaxY(options.doubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
+        Envelope fullExtent;
+        fullExtent.setMinX(options.doubleOption(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
+        fullExtent.setMaxX(options.doubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
+        fullExtent.setMinY(options.doubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
+        fullExtent.setMaxY(options.doubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
+
+        Envelope limitExtent;
+        limitExtent.setMinX(options.doubleOption(KEY_LIMIT_X_MIN, DEFAULT_BOUNDS.minX()));
+        limitExtent.setMaxX(options.doubleOption(KEY_LIMIT_X_MAX, DEFAULT_BOUNDS.maxX()));
+        limitExtent.setMinY(options.doubleOption(KEY_LIMIT_Y_MIN, DEFAULT_BOUNDS.minY()));
+        limitExtent.setMaxY(options.doubleOption(KEY_LIMIT_Y_MAX, DEFAULT_BOUNDS.maxY()));
 
         CPLJSONDocument connectionFile;
         CPLJSONObject root = connectionFile.GetRoot();
@@ -171,10 +181,11 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.Add(KEY_Z_MIN, z_min);
         root.Add(KEY_Z_MAX, z_max);
         root.Add(KEY_Y_ORIGIN_TOP, y_origin_top);
-        root.Add(KEY_EXTENT, extent.save());
+        root.Add(KEY_EXTENT, fullExtent.save());
+        root.Add(KEY_LIMIT_EXTENT, limitExtent.save());
         root.Add(KEY_CACHE_EXPIRES, options.intOption(KEY_CACHE_EXPIRES,
                                                       defaultCacheExpires));
-
+        root.Add(KEY_BAND_COUNT, options.intOption(KEY_BAND_COUNT, 4));
         CPLJSONObject user;
         for(auto it = options.begin(); it != options.end(); ++it) {
             if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {

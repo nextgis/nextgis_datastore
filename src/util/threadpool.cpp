@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "threadpool.h"
 
+#include "cpl_conv.h"
+
 namespace ngs {
 
 
@@ -60,7 +62,7 @@ void ThreadPool::init(unsigned char numThreads, poolThreadFunction function,
 
 void ThreadPool::addThreadData(ThreadData *data)
 {
-    CPLAcquireMutex(m_dataMutex, 1000.0);
+    CPLAcquireMutex(m_dataMutex, 5.5);
     m_threadData.push_back(data);
     CPLReleaseMutex(m_dataMutex);
 
@@ -69,7 +71,7 @@ void ThreadPool::addThreadData(ThreadData *data)
 
 void ThreadPool::clearThreadData()
 {
-    CPLMutexHolder holder(m_dataMutex, 1000.0);
+    CPLMutexHolder holder(m_dataMutex, 5.5);
     for(ThreadData* data : m_threadData) {
         if(data->isOwn()) {
             delete data;
@@ -83,7 +85,7 @@ void ThreadPool::waitComplete() const
     bool complete = false;
     while(true) {
 
-        CPLAcquireMutex(m_threadMutex, 250.0);
+        CPLAcquireMutex(m_threadMutex, 7.0);
         complete = m_threadCount <= 0;
         CPLReleaseMutex(m_threadMutex);
 
@@ -97,7 +99,7 @@ void ThreadPool::waitComplete() const
 
 bool ThreadPool::process()
 {
-    CPLAcquireMutex(m_dataMutex, 1000.0);
+    CPLAcquireMutex(m_dataMutex, 9.5);
     if(m_threadData.empty()) {
         CPLReleaseMutex(m_dataMutex);
         return false;
@@ -117,8 +119,8 @@ bool ThreadPool::process()
         }
     }
     else {
-        CPLAcquireMutex(m_dataMutex, 1000.0);
         data->increaseTries();
+        CPLAcquireMutex(m_dataMutex, 9.5);
         m_threadData.push_back(data);
         CPLReleaseMutex(m_dataMutex);
     }
@@ -128,13 +130,13 @@ bool ThreadPool::process()
 
 void ThreadPool::finished()
 {
-    CPLMutexHolder holder(m_threadMutex, 250.0);
+    CPLMutexHolder holder(m_threadMutex, 9.5);
     m_threadCount--;
 }
 
 void ThreadPool::newWorker()
 {
-    CPLMutexHolder holder(m_threadMutex, 250.0);
+    CPLMutexHolder holder(m_threadMutex, 9.5);
     if(m_threadCount == m_maxThreadCount) {
         return;
     }
@@ -146,7 +148,7 @@ void ThreadPool::threadFunction(void *threadData)
 {
     ThreadPool *pool = static_cast<ThreadPool*>(threadData);
     while(pool->process()) {
-
+        //CPLSleep(0.125);
     }
     pool->finished();
 }

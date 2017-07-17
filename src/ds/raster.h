@@ -33,7 +33,9 @@ constexpr const char *KEY_Z_MIN = "z_min";
 constexpr const char *KEY_Z_MAX = "z_max";
 constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
 constexpr const char *KEY_EXTENT = "extent";
+constexpr const char *KEY_LIMIT_EXTENT = "limit_extent";
 constexpr const char *KEY_USER = "user";
+constexpr const char *KEY_BAND_COUNT = "band_count";
 
 /**
  * @brief The Raster dataset class represent image or raster
@@ -56,12 +58,13 @@ public:
     };
 
     bool writeWorldFile(enum WorldFileType type);
-    const Envelope& getExtent() const { return m_extent; }
-    bool getGeoTransform(double *transform) const;
-    int getWidth() const;
-    int getHeight() const;
-    int getDataSize() const;
-    GDALDataType getDataType(int band = 1) const;
+    const Envelope& extent() const { return m_extent; }
+    bool geoTransform(double *transform) const;
+    int width() const;
+    int height() const;
+    int dataSize() const;
+    unsigned short bandCount() const;
+    GDALDataType dataType(int band = 1) const;
     int getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                         int bufXSize, int bufYSize) const;
     bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,

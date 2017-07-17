@@ -74,8 +74,12 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 //        int z_min = root.getInteger(KEY_Z_MIN, 0);
         int z_max = root.GetInteger(KEY_Z_MAX, 18);
         bool y_origin_top = root.GetBool(KEY_Y_ORIGIN_TOP, true);
+        unsigned short bandCount = static_cast<unsigned short>(
+                    root.GetInteger(KEY_BAND_COUNT, 4));
 
-        m_extent.load(root.GetObject(KEY_EXTENT), DEFAULT_BOUNDS);
+        Envelope extent;
+        extent.load(root.GetObject(KEY_EXTENT), DEFAULT_BOUNDS);
+        m_extent.load(root.GetObject(KEY_LIMIT_EXTENT), DEFAULT_BOUNDS);
 
         const char* connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
@@ -84,18 +88,17 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             "<TileLevel>%d</TileLevel><TileCountX>1</TileCountX>"
             "<TileCountY>1</TileCountY><YOrigin>%s</YOrigin></DataWindow>"
             "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
-            "<BlockSizeY>256</BlockSizeY><BandsCount>3</BandsCount>"
+            "<BlockSizeY>256</BlockSizeY><BandsCount>%d</BandsCount>"
             "<Cache/></GDAL_WMS>",
-                                         url.c_str(), m_extent.minX(),
-                                         m_extent.maxY(), m_extent.maxX(),
-                                         m_extent.minY(), z_max,
+                                         url.c_str(), extent.minX(),
+                                         extent.maxY(), extent.maxX(),
+                                         extent.minY(), z_max,
                                          y_origin_top ? "top" : "bottom",
-                                         epsg);
+                                         epsg, bandCount);
 
-//        m_DS->GetMetadata();
         bool result = DatasetBase::open(connStr, openFlags, options);
         if(result) {
-            m_DS->SetMetadataItem("", "", KEY_USER);
+            // TODO: m_DS->SetMetadataItem("", "", KEY_USER);
         }
         return result;
     }
@@ -318,28 +321,28 @@ bool Raster::writeWorldFile(enum WorldFileType type)
     return GDALWriteWorldFile(m_path, newExt, geoTransform) == 0 ? false : true;
 }
 
-bool Raster::getGeoTransform(double *transform) const
+bool Raster::geoTransform(double *transform) const
 {
     if(!isOpened())
         return false;
     return m_DS->GetGeoTransform(transform) == CE_None;
 }
 
-int Raster::getWidth() const
+int Raster::width() const
 {
     if(!isOpened())
         return 0;
     return m_DS->GetRasterXSize();
 }
 
-int Raster::getHeight() const
+int Raster::height() const
 {
     if(!isOpened())
         return 0;
     return m_DS->GetRasterYSize();
 }
 
-int Raster::getDataSize() const
+int Raster::dataSize() const
 {
     if(!isOpened())
         return 0;
@@ -349,7 +352,14 @@ int Raster::getDataSize() const
     return GDALGetDataTypeSize(dt) / 8;
 }
 
-GDALDataType Raster::getDataType(int band) const
+unsigned short Raster::bandCount() const
+{
+    if(!isOpened())
+        return 0;
+    return static_cast<unsigned short>(m_DS->GetRasterCount());
+}
+
+GDALDataType Raster::dataType(int band) const
 {
     if(!isOpened())
         return GDT_Unknown;
