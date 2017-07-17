@@ -95,7 +95,7 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
     LayerFillData* data = static_cast<LayerFillData*>(threadData);
     GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer, data->m_layer);
     if(nullptr != renderLayer) {
-        return renderLayer->fill(data->m_tile, data->tries() >= MAX_TRIES - 1);
+        return renderLayer->fill(data->m_tile, data->tries() >= MAX_TRIES);
     }
     return true;
 }

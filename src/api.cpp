@@ -45,7 +45,13 @@ using namespace ngs;
 
 constexpr const char* HTTP_TIMEOUT = "2";
 constexpr const char* HTTP_USE_GZIP = "ON";
-constexpr const char* CACHEMAX = "24";
+#if (TARGET_OS_IPHONE == 1) || (TARGET_IPHONE_SIMULATOR == 1)
+constexpr const char* CACHEMAX = "8";
+#elif __ANDROID__
+constexpr const char* CACHEMAX = "4";
+#else
+constexpr const char* CACHEMAX = "64";
+#endif
 
 static bool gDebugMode = false;
 
