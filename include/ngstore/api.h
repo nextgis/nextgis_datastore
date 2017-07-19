@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
@@ -208,5 +209,11 @@ NGS_EXTERNC CatalogObjectH ngsLayerGetDataSource(LayerH layer);
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
+
+
+NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
+NGS_EXTERNC void ngsMapOverlayEnable(unsigned char mapId, int overlayMask);
+NGS_EXTERNC void ngsMapTouch(
+        unsigned char mapId, double x, double y, const ngsMapTouchType type);
 
 #endif // NGSAPI_H

@@ -2,7 +2,7 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*  Author: NikitaFeodonit, nfeodonit@yandex.com
+*  Author:  NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
 *  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
 *
@@ -64,6 +64,7 @@ public:
 protected:
     virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
                                  Layer::Type type = Layer::Type::Invalid) override;
+    virtual void createOverlays() override;
 
     // MapView interface
 public:

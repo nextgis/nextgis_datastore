@@ -2,6 +2,7 @@
 #  Project: libngstore
 #  Purpose: NextGIS store and visualisation support library
 #  Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+#  Author: NikitaFeodonit, nfeodonit@yandex.com
 #  Language: C/C++
 ################################################################################
 #  GNU Lesser General Public License v3
@@ -32,6 +33,7 @@ set(HHEADERS
     maptransform.h
     mapview.h
     matrix.h
+    overlay.h
 #    vector.h
     gl/view.h
     gl/program.h
@@ -41,6 +43,7 @@ set(HHEADERS
     gl/layer.h
     gl/image.h
     gl/tile.h
+    gl/overlay.h
 )
 
 set(CSOURCES
@@ -51,6 +54,7 @@ set(CSOURCES
     maptransform.cpp
     mapview.cpp
     matrix.cpp
+    overlay.cpp
     gl/view.cpp
     gl/program.cpp
     gl/functions.cpp
@@ -59,6 +63,7 @@ set(CSOURCES
     gl/layer.cpp
     gl/image.cpp
     gl/tile.cpp
+    gl/overlay.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

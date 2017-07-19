@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
@@ -24,8 +25,10 @@
 #include "api_priv.h"
 
 #include "layer.h"
+#include "overlay.h"
 
 #include "ds/datastore.h"
+#include "ngstore/codes.h"
 
 namespace ngs {
 
@@ -72,11 +75,27 @@ public:
     virtual bool deleteLayer(Layer* layer);
     virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);
 
+    size_t overlayCount() const { return m_overlays.size(); }
+    OverlayPtr getOverlay(ngsMapOverlyType type) const
+    {
+        int index = Overlay::getOverlayIndexFromType(type);
+        if (-1 == type)
+            return nullptr;
+
+        size_t overlayIndex = static_cast<size_t>(index);
+        if (overlayIndex >= m_overlays.size())
+            return nullptr;
+
+        return m_overlays[overlayIndex];
+    }
+
 protected:
     virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
                                  enum Layer::Type type = Layer::Type::Invalid);
     virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile);
     virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile);
+
+    virtual void createOverlays();
 
 protected:
     CPLString m_name;
@@ -84,6 +103,7 @@ protected:
     unsigned short m_epsg;
     Envelope m_bounds;
     std::vector<LayerPtr> m_layers;
+    std::vector<OverlayPtr> m_overlays;
     ngsRGBA m_bkColor;
     bool m_relativePaths, m_isClosed;
 };

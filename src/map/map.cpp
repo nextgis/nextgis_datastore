@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
@@ -53,6 +54,7 @@ Map::Map() :
     m_relativePaths(true),
     m_isClosed(false)
 {
+    createOverlays();
 }
 
 Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
@@ -65,6 +67,7 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
     m_relativePaths(true),
     m_isClosed(false)
 {
+    createOverlays();
 }
 
 bool Map::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
@@ -242,6 +245,14 @@ LayerPtr Map::createLayer(const char* name, Layer::Type type)
     case Layer::Type::Invalid:
         return LayerPtr(new Layer);
     }
+}
+
+void Map::createOverlays()
+{
+    // Push in reverse order
+    m_overlays.push_back(OverlayPtr(new EditLayerOverlay()));
+    m_overlays.push_back(OverlayPtr(new CurrentTrackOverlay()));
+    m_overlays.push_back(OverlayPtr(new CurrentLocationOverlay()));
 }
 
 }

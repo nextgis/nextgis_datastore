@@ -2,7 +2,7 @@
 *  Project: NextGIS GL Viewer
 *  Purpose: GUI viewer for spatial data.
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*  Author: NikitaFeodonit, nfeodonit@yandex.com
+*  Author:  NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
 *  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
 *
@@ -23,6 +23,8 @@
 
 #include "layer.h"
 #include "style.h"
+#include "map/overlay.h"
+#include "overlay.h"
 #include "util/error.h"
 
 namespace ngs {
@@ -87,7 +89,6 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
     default:
         return MapView::createLayer(name, type);
     }
-
 }
 
 bool GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
@@ -228,8 +229,9 @@ bool GlView::drawTiles(const Progress &progress)
     glGetIntegerv( GL_VIEWPORT, viewport );
 
     double done = 0.0;
-    double totalDrawCalls = m_layers.size() * m_tiles.size() - 0.0000001;
-    for(const GlTilePtr& tile : m_tiles) {
+    double totalDrawCalls =
+            m_layers.size() * m_tiles.size() + m_overlays.size() - 0.0000001;
+    for (const GlTilePtr& tile : m_tiles) {
         bool drawTile = true;
         if(tile->filled()) {
             done += m_layers.size();
@@ -294,6 +296,16 @@ bool GlView::drawTiles(const Progress &progress)
             m_fboDrawStyle.draw(tile->getBuffer());
         }
     }
+
+    for (auto overlayIt = m_overlays.rbegin(); overlayIt != m_overlays.rend();
+            ++overlayIt) {
+        const OverlayPtr& overlay = *overlayIt;
+        GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
+        if (glOverlay && overlay->visible()) {
+            glOverlay->draw();
+        }
+    }
+    done += m_overlays.size();
 
 //    CPLDebug("ngstore", "Drawing %f of %f", done, totalDrawCalls);
     if(done >= totalDrawCalls) {
@@ -360,6 +372,14 @@ double GlView::pixelSize(int zoom)
     int tilesInMapOneDim = 1 << zoom;
     long sizeOneDimPixels = tilesInMapOneDim * GLTILE_SIZE;
     return m_bounds.width() / sizeOneDimPixels;
+}
+
+void GlView::createOverlays()
+{
+    // Push in reverse order
+    m_overlays.push_back(OverlayPtr(new GlEditLayerOverlay()));
+    m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
+    m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
 }
 
 #ifdef NGS_GL_DEBUG
