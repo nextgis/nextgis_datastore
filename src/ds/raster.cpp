@@ -100,11 +100,11 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         if(result) {
             CPLJSONObject user = root.GetObject(KEY_USER);
             if(user.IsValid()) {
-                CPLJSONObject** children = user.GetChildren();
+                CPLJSONObject **children = user.GetChildren();
                 int i = 0;
                 CPLJSONObject *child = nullptr;
                 while((child = children[i]) != nullptr) {
-                    const char* name = child->GetName();
+                    const char *name = child->GetName();
                     CPLString value;
                     switch(child->GetType()) {
                     case CPLJSONObject::Null:
@@ -174,7 +174,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     // Lock pixel area to read/write until exit
-    CPLMutex* dataLock = nullptr;
+    CPLMutex *dataLock = nullptr;
 
     Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
     CPLAcquireMutex(m_dataLock, 50.0);

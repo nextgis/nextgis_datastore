@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
@@ -178,7 +178,7 @@ TEST(CatalogTests, TestCatalogQuery) {
 }
 
 TEST(CatalogTests, TestCreate) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -204,7 +204,7 @@ TEST(CatalogTests, TestCreate) {
     ngsDestroyList(options);
     options = nullptr;
 
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -239,7 +239,7 @@ TEST(CatalogTests, TestCreate) {
 }
 
 TEST(CatalogTests, TestDelete) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -267,7 +267,7 @@ TEST(CatalogTests, TestDelete) {
 }
 
 TEST(DataStoreTests, TestCreateDataStore) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -286,7 +286,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options),
               ngsCode::COD_SUCCESS);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -299,7 +299,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
 }
 
 TEST(DataStoreTests, TestOpenDataStore) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -312,7 +312,7 @@ TEST(DataStoreTests, TestOpenDataStore) {
     ASSERT_STRNE(catalogPath, "");
     CPLString storePath = ngsFormFileName(catalogPath, "main", "ngst");
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(store, 0);
 
     size_t count = 0;
 
@@ -330,7 +330,7 @@ TEST(DataStoreTests, TestOpenDataStore) {
 TEST(DataStoreTests, TestLoadDataStore) {
     counter = 0;
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -361,7 +361,7 @@ TEST(DataStoreTests, TestLoadDataStore) {
 TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     counter = 0;
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -384,7 +384,7 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
 }
 
 TEST(DataStoreTests, TestDeleteDataStore) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -405,7 +405,7 @@ constexpr ngsRGBA DEFAULT_MAP_BK = {199, 199, 199, 199};
 constexpr const char* DEFAULT_MAP_NAME = "new map";
 
 TEST(MapTests, MapSave) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -441,7 +441,7 @@ TEST(MapTests, MapSave) {
 }
 
 TEST(MapTests, MapOpen) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -484,7 +484,7 @@ TEST(MapTests, MapOpen) {
 }
 
 TEST(MiscTests, TestURLRequest) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",

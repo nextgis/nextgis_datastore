@@ -25,6 +25,7 @@ _ngsLayerGetName
 _ngsLayerGetVisible
 _ngsLayerSetName
 _ngsLayerSetVisible
+_ngsLayerGetDataSource
 _ngsMapClose
 _ngsMapCreate
 _ngsMapCreateLayer
