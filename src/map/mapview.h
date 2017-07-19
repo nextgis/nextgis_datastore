@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
@@ -57,6 +58,14 @@ class IRenderLayer
 {
 public:
     virtual ~IRenderLayer() = default;
+    virtual double draw(enum ngsDrawState state, MapView* map, float level,
+                        const Progress& progress = Progress()) = 0;
+};
+
+class IOverlay
+{
+public:
+    virtual ~IOverlay() = default;
     virtual double draw(enum ngsDrawState state, MapView* map, float level,
                         const Progress& progress = Progress()) = 0;
 };

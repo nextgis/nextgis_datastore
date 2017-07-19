@@ -2,6 +2,7 @@
  * Project: libngstore
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author:  NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
@@ -203,6 +204,21 @@ enum ngsURLRequestType {
     URT_POST,
     URT_PUT,
     URT_DELETE
+};
+
+enum ngsMapOverlyType
+{
+    MOT_UNKNOWN = 1 << 0,
+    MOT_LOCATION = 1 << 1,
+    MOT_TRACK = 1 << 2,
+    MOT_EDIT = 1 << 3
+};
+
+enum ngsMapTouchType
+{
+    MTT_ON_DOWN,
+    MTT_ON_MOVE,
+    MTT_ON_UP
 };
 
 #endif // NGSCODES_H

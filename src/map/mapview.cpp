@@ -2,6 +2,7 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
  *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
@@ -58,14 +59,19 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
         IRenderLayer* const renderLayer = ngsDynamicCast(IRenderLayer, layer);
         done += renderLayer->draw(state, this, level++, progress);
     }
-
-    if(isEqual(done, m_layers.size())) {
-        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
-                            _("Map render finished."));
+    for (auto it = m_overlays.rbegin(); it != m_overlays.rend(); ++it) {
+        OverlayPtr overlay = *it;
+        IOverlay* const iOverlay = ngsDynamicCast(IOverlay, overlay);
+        done += iOverlay->draw(state, this, level++, progress);
     }
-    else {
-        progress.onProgress(ngsCode::COD_IN_PROCESS, done / m_layers.size(),
-                            _("Rendering ..."));
+
+    size_t size = m_layers.size() + m_overlays.size();
+    if (isEqual(done, size)) {
+        progress.onProgress(
+                ngsCode::COD_FINISHED, 1.0, _("Map render finished."));
+    } else {
+        progress.onProgress(
+                ngsCode::COD_IN_PROCESS, done / (size), _("Rendering ..."));
     }
 
     return true;
