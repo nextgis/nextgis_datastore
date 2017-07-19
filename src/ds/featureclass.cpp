@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
@@ -38,7 +38,7 @@
 
 namespace ngs {
 
-constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
+constexpr const char *ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 constexpr unsigned short TILE_SIZE = 256;
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
 constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
@@ -98,12 +98,12 @@ void VectorTile::add(VectorTileItem item, bool checkDuplicates)
     }
 }
 
-GByte* VectorTile::save(int &size)
+GByte *VectorTile::save(int &size)
 {
     return nullptr;
 }
 
-bool VectorTile::load(GByte* data, int size)
+bool VectorTile::load(GByte *data, int size)
 {
     m_valid = true;
     return false;
@@ -136,7 +136,7 @@ FeatureClass::FeatureClass(OGRLayer *layer,
             m_extent.set(env);
         }
 
-        OGRFeatureDefn* defn = m_layer->GetLayerDefn();
+        OGRFeatureDefn *defn = m_layer->GetLayerDefn();
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn *fld = defn->GetFieldDefn(i);
             m_ignoreFields.push_back(fld->GetNameRef());
@@ -154,7 +154,7 @@ OGRwkbGeometryType FeatureClass::geometryType() const
 {
     if(nullptr == m_layer)
         return wkbUnknown;
-    return m_layer->GetGeomType ();
+    return m_layer->GetGeomType();
 }
 
 const char* FeatureClass::geometryColumn() const
@@ -164,16 +164,16 @@ const char* FeatureClass::geometryColumn() const
     return m_layer->GetGeometryColumn();
 }
 
-std::vector<const char*> FeatureClass::geometryColumns() const
+std::vector<const char *> FeatureClass::geometryColumns() const
 {
-    std::vector<const char*> out;
+    std::vector<const char *> out;
     if(nullptr == m_layer) {
         return out;
     }
     OGRFeatureDefn *defn = m_layer->GetLayerDefn();
     for(int i = 0; i < defn->GetGeomFieldCount(); ++i) {
-        OGRGeomFieldDefn* geom = defn->GetGeomFieldDefn(i);
-        out.push_back (geom->GetNameRef());
+        OGRGeomFieldDefn *geom = defn->GetGeomFieldDefn(i);
+        out.push_back(geom->GetNameRef());
     }
     return out;
 }
@@ -211,7 +211,7 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
             return ngsCode::COD_CANCELED;
         }
 
-        OGRGeometry * geom = feature->GetGeometryRef();
+        OGRGeometry *geom = feature->GetGeometryRef();
         OGRGeometry *newGeom = nullptr;
         if(nullptr == geom) {
             if(skipEmpty) {
@@ -268,7 +268,7 @@ bool FeatureClass::hasOverviews() const
 {
     if(nullptr != m_ovrTable)
         return true;
-    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset)
         return false;
 
@@ -282,7 +282,7 @@ double FeatureClass::pixelSize(int zoom) const
     return WORLD_WIDTH / sizeOneDimPixels;
 }
 
-SimplePoint generalizePoint(OGRPoint* pt, float step)
+SimplePoint generalizePoint(OGRPoint *pt, float step)
 {
     float x, y;
     if(isEqual(step, 0.0f)) {
@@ -300,7 +300,7 @@ SimplePoint generalizePoint(OGRPoint* pt, float step)
 void FeatureClass::tilePoint(OGRGeometry *geom, OGRGeometry */*extent*/, float step,
                              VectorTileItem *vitem) const
 {
-    OGRPoint* pt = static_cast<OGRPoint*>(geom);
+    OGRPoint *pt = static_cast<OGRPoint*>(geom);
     vitem->addPoint(generalizePoint(pt, step));
 }
 
@@ -377,7 +377,7 @@ void FeatureClass::tilePolygon(OGRGeometry *geom, OGRGeometry *extent, float ste
 void FeatureClass::tileMultiPoint(OGRGeometry *geom, OGRGeometry *extent,
                                   float step, VectorTileItem *vitem) const
 {
-    OGRMultiPoint* mpoint = static_cast<OGRMultiPoint*>(geom);
+    OGRMultiPoint *mpoint = static_cast<OGRMultiPoint*>(geom);
     for(int i = 0; i < mpoint->getNumGeometries(); ++i) {
         tilePoint(mpoint->getGeometryRef(i), extent, step, vitem);
     }
@@ -386,7 +386,7 @@ void FeatureClass::tileMultiPoint(OGRGeometry *geom, OGRGeometry *extent,
 void FeatureClass::tileMultiLine(OGRGeometry *geom, OGRGeometry *extent,
                                  float step, VectorTileItem *vitem) const
 {
-    OGRMultiLineString* mline = static_cast<OGRMultiLineString*>(geom);
+    OGRMultiLineString *mline = static_cast<OGRMultiLineString*>(geom);
     for(int i = 0; i < mline->getNumGeometries(); ++i) {
         tileLine(mline->getGeometryRef(i), extent, step, vitem);
     }
@@ -395,9 +395,9 @@ void FeatureClass::tileMultiLine(OGRGeometry *geom, OGRGeometry *extent,
 void FeatureClass::tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent,
                                     float step, VectorTileItem *vitem) const
 {
-    OGRMultiPolygon* mpoly = static_cast<OGRMultiPolygon*>(geom);
+    OGRMultiPolygon *mpoly = static_cast<OGRMultiPolygon*>(geom);
     for(int i = 0; i < mpoly->getNumGeometries(); ++i) {
-        tileLine(mpoly->getGeometryRef(i), extent, step, vitem);
+        tilePolygon(mpoly->getGeometryRef(i), extent, step, vitem);
     }
 }
 
@@ -466,7 +466,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 {
     VectorTile vtile;
-    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
         return vtile;
     }
@@ -475,12 +475,13 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
         return vtile;
     }
 
-    if(hasOverviews() && tile.z <= m_zoomLevels.back()) {
-        // Get closet zoom level
-        int diff = 32000;
-        unsigned short z = m_zoomLevels.front();
+    if(hasOverviews() && tile.z <= *m_zoomLevels.rbegin()) {
+        // Get closest zoom level
+        unsigned char diff = 127;
+        unsigned char z = 0;
         for(auto zoomLevel : m_zoomLevels) {
-            int newDiff = abs(zoomLevel - tile.z);
+            unsigned char newDiff = static_cast<unsigned char>(
+                        ABS(zoomLevel - tile.z));
             if(newDiff < diff) {
                 z = zoomLevel;
                 diff = newDiff;
@@ -505,12 +506,12 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 
     // Lock threads here
     CPLAcquireMutex(m_fieldsMutex, 50.0);
-//    setSpatialFilter(extGeom);
+    setSpatialFilter(ext.toGeometry(nullptr));
     setIgnoredFields(m_ignoreFields);
     reset();
     FeaturePtr feature;
     while((feature = nextFeature())) {
-        OGRGeometry* geom = feature->GetGeometryRef();
+        OGRGeometry *geom = feature->GetGeometryRef();
         if(geom) {
             OGREnvelope env;
             geom->getEnvelope(&env);
@@ -519,20 +520,20 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
             }
         }
     }
-//    setSpatialFilter(GeometryPtr());
+    setSpatialFilter(GeometryPtr());
     setIgnoredFields(std::vector<const char*>());
     CPLReleaseMutex(m_fieldsMutex);
 
     if(!features.empty()) {
-    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
-    while(!features.empty()) {
-        auto feature = features.back();
-        VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
-        if(item.isValid()) {
-            vtile.add(item, false);
+        GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+        while(!features.empty()) {
+            auto feature = features.back();
+            VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
+            if(item.isValid()) {
+                vtile.add(item, false);
+            }
+            features.pop_back();
         }
-        features.pop_back();
-    }
     }
 
 //    TablePtr features = dataset->executeSQL(CPLSPrintf("SELECT * FROM %s",
@@ -615,8 +616,8 @@ bool FeatureClass::setIgnoredFields(const std::vector<const char *> fields)
         return m_layer->SetIgnoredFields(nullptr) == OGRERR_NONE;
     }
 
-    char** ignoreFields = nullptr;
-    for(const char* fieldName : fields) {
+    char **ignoreFields = nullptr;
+    for(const char *fieldName : fields) {
         ignoreFields = CSLAddString(ignoreFields, fieldName);
     }
     bool result = m_layer->SetIgnoredFields(
@@ -696,7 +697,7 @@ const char* FeatureClass::geometryTypeName(OGRwkbGeometryType type,
     }
 }
 
-OGRwkbGeometryType FeatureClass::geometryTypeFromName(const char* name)
+OGRwkbGeometryType FeatureClass::geometryTypeFromName(const char *name)
 {
     if(nullptr == name || EQUAL(name, ""))
         return wkbUnknown;
@@ -723,7 +724,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
     if (OGR_GT_Flatten(geomType) == wkbUnknown ||
             OGR_GT_Flatten(geomType) == wkbGeometryCollection) {
 
-        std::vector<const char*> ignoreFields;
+        std::vector<const char *> ignoreFields;
         OGRFeatureDefn* defn = definition();
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn *fld = defn->GetFieldDefn(i);
@@ -777,7 +778,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
 
 bool FeatureClass::destroy()
 {
-    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset)
         return false;
 
@@ -792,11 +793,11 @@ bool FeatureClass::destroy()
 
 void FeatureClass::fillZoomLevels(const char *zoomLevels)
 {
-    char** zoomLevelArray = CSLTokenizeString2(zoomLevels, ",", 0);
+    char **zoomLevelArray = CSLTokenizeString2(zoomLevels, ",", 0);
     int i = 0;
     const char* zoomLevel;
     while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
-        m_zoomLevels.push_back(static_cast<unsigned short>(atoi(zoomLevel)));
+        m_zoomLevels.insert(static_cast<unsigned short>(atoi(zoomLevel)));
     }
     CSLDestroy(zoomLevelArray);
 }

@@ -37,8 +37,8 @@ public:
 
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
-    GlImage* getImageRef() const { return const_cast<GlImage*>(&m_image); }
-    const GlBuffer& getBuffer() const { return m_tile; }  
+    GlImage *getImageRef() const { return const_cast<GlImage*>(&m_image); }
+    const GlBuffer& getBuffer() const { return m_tile; }
     const Tile &getTile() const { return  m_tileItem.tile; }
     const Envelope& getExtent() const { return m_tileItem.env; }
     bool filled() const { return m_filled; }

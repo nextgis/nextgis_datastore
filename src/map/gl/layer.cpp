@@ -70,7 +70,7 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
 {
 }
 
-bool GlFeatureLayer::fill(GlTilePtr tile, bool isLastTry)
+bool GlFeatureLayer::fill(GlTilePtr tile, bool /*isLastTry*/)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
@@ -82,6 +82,8 @@ bool GlFeatureLayer::fill(GlTilePtr tile, bool isLastTry)
     VectorGlObject *bufferArray = nullptr;
     VectorTile vtile = m_featureClass->getTile(tile->getTile(), tile->getExtent());
     if(vtile.empty()) {
+        CPLMutexHolder holder(m_dataMutex, lockTime);
+        m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
 
@@ -100,6 +102,8 @@ bool GlFeatureLayer::fill(GlTilePtr tile, bool isLastTry)
     }
 
     if(!bufferArray) {
+        CPLMutexHolder holder(m_dataMutex, lockTime);
+        m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
 
@@ -124,7 +128,7 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
         return true; // Out of tile extent
     }
 
-    VectorGlObject* vectorGlObject = ngsStaticCast(VectorGlObject, tileDataIt->second);
+    VectorGlObject *vectorGlObject = ngsStaticCast(VectorGlObject, tileDataIt->second);
     for(const GlBufferPtr& buff : vectorGlObject->buffers()) {
 
         if(buff->bound()) {

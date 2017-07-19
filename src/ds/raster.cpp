@@ -103,7 +103,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                 CPLJSONObject **children = user.GetChildren();
                 int i = 0;
                 CPLJSONObject *child = nullptr;
-                while((child = children[i]) != nullptr) {
+                while((child = children[i++]) != nullptr) {
                     const char *name = child->GetName();
                     CPLString value;
                     switch(child->GetType()) {

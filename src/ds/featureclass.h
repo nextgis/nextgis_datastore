@@ -49,7 +49,7 @@ public:
     }
     void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
 
-    GByte* save(int &size);
+    GByte *save(int &size);
     bool load(GByte* data, int size);
     size_t pointCount() const { return m_points.size(); }
     const SimplePoint& point(size_t index) const { return m_points[index]; }
@@ -81,8 +81,8 @@ class VectorTile
 public:
     VectorTile() : m_valid(false) {}
     void add(VectorTileItem item, bool checkDuplicates = false);
-    GByte* save(int &size);
-    bool load(GByte* data, int size);
+    GByte *save(int &size);
+    bool load(GByte *data, int size);
     std::vector<VectorTileItem> items() const {
         return m_items;
     }
@@ -107,7 +107,7 @@ public:
     };
 
 public:
-    explicit FeatureClass(OGRLayer * layer,
+    explicit FeatureClass(OGRLayer *layer,
                  ObjectContainer * const parent = nullptr,
                  const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
                  const CPLString & name = "");
@@ -115,10 +115,10 @@ public:
 
     OGRwkbGeometryType geometryType() const;
     std::vector<OGRwkbGeometryType> geometryTypes();
-    const char* geometryColumn() const;
-    std::vector<const char*> geometryColumns() const;
-    bool setIgnoredFields(const std::vector<const char*> fields =
-            std::vector<const char*>());
+    const char *geometryColumn() const;
+    std::vector<const char *> geometryColumns() const;
+    bool setIgnoredFields(const std::vector<const char *> fields =
+            std::vector<const char *>());
     void setSpatialFilter(GeometryPtr geom);
     Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
@@ -134,7 +134,7 @@ public:
     // static
     static const char *geometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
-    static OGRwkbGeometryType geometryTypeFromName(const char* name);
+    static OGRwkbGeometryType geometryTypeFromName(const char *name);
 
     // Object interface
 public:
@@ -143,7 +143,7 @@ public:
 protected:
     VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry *extent,
                                 float step) const;
-    void fillZoomLevels(const char* zoomLevels);
+    void fillZoomLevels(const char *zoomLevels);
     double pixelSize(int zoom) const;
 
     void tilePoint(OGRGeometry *geom, OGRGeometry *extent, float step,
@@ -161,10 +161,10 @@ protected:
 
 protected:
     OGRLayer *m_ovrTable;
-    std::vector<unsigned short> m_zoomLevels;
-    CPLMutex* m_fieldsMutex;
+    std::set<unsigned char> m_zoomLevels;
+    CPLMutex *m_fieldsMutex;
     Envelope m_extent;
-    std::vector<const char*> m_ignoreFields;
+    std::vector<const char *> m_ignoreFields;
 };
 
 }
