@@ -107,7 +107,7 @@ bool Map::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
     root.Add(MAP_BOUNDS_KEY, m_bounds.save());
     root.Add(MAP_BKCOLOR_KEY, ngsRGBA2HEX(m_bkColor));
 
-    CPLJSONArray layers;
+    CPLJSONArray layers("layers");
     for(LayerPtr layer : m_layers) {
         layers.Add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
     }

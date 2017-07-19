@@ -57,12 +57,10 @@ public:
                       ObjectContainer *objectContainer = nullptr);
     virtual CPLJSONObject save(const ObjectContainer * objectContainer = nullptr) const;
     virtual ObjectPtr datasource() const { return ObjectPtr();}
-    const CPLString &getName() const { return m_name; }
-    void setName(const CPLString &name) { m_name = name; }
-    bool visible() const { return m_visible; }
-    void setVisible(bool visible) {
-        CPLDebug("ngstore", "Set layer visible %s", visible ? "true" : "false");
-        m_visible = visible; }
+    virtual const CPLString &getName() const { return m_name; }
+    virtual void setName(const CPLString &name) { m_name = name; }
+    virtual bool visible() const { return m_visible; }
+    virtual void setVisible(bool visible) { m_visible = visible; }
 protected:
     CPLString m_name;
     enum Type m_type;

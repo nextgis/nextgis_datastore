@@ -98,7 +98,44 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 
         bool result = DatasetBase::open(connStr, openFlags, options);
         if(result) {
-            // TODO: m_DS->SetMetadataItem("", "", KEY_USER);
+            CPLJSONObject user = root.GetObject(KEY_USER);
+            if(user.IsValid()) {
+                CPLJSONObject** children = user.GetChildren();
+                int i = 0;
+                CPLJSONObject *child = nullptr;
+                while((child = children[i]) != nullptr) {
+                    const char* name = child->GetName();
+                    CPLString value;
+                    switch(child->GetType()) {
+                    case CPLJSONObject::Null:
+                        value = "<null>";
+                        break;
+                    case CPLJSONObject::Object:
+                        value = "<object>";
+                        break;
+                    case CPLJSONObject::Array:
+                        value = "<array>";
+                        break;
+                    case CPLJSONObject::Boolean:
+                        value = child->GetBool(true) ? "TRUE" : "FALSE";
+                        break;
+                    case CPLJSONObject::String:
+                        value = child->GetString("");
+                        break;
+                    case CPLJSONObject::Integer:
+                        value = CPLSPrintf("%d", child->GetInteger(0));
+                        break;
+                    case CPLJSONObject::Long:
+                        value = CPLSPrintf("%ld", child->GetLong(0));
+                        break;
+                    case CPLJSONObject::Double:
+                        value = CPLSPrintf("%f", child->GetDouble(0.0));
+                        break;
+                    }
+                    m_DS->SetMetadataItem(name, value, KEY_USER);
+                }
+                CPLJSONObject::DestroyJSONObjectList(children);
+            }
         }
         return result;
     }

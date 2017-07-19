@@ -84,7 +84,7 @@ bool LocalConnections::hasChildren()
     }
     else {
        CPLJSONObject root = doc.GetRoot ();
-       CPLJSONArray connections;
+       CPLJSONArray connections("connections");
        std::vector<std::pair<CPLString, CPLString>> connectionPaths;
 #ifdef _WIN32
        char testLetter[3];
