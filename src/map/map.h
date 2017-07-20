@@ -76,18 +76,7 @@ public:
     virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);
 
     size_t overlayCount() const { return m_overlays.size(); }
-    OverlayPtr getOverlay(ngsMapOverlyType type) const
-    {
-        int index = Overlay::getOverlayIndexFromType(type);
-        if (-1 == type)
-            return nullptr;
-
-        size_t overlayIndex = static_cast<size_t>(index);
-        if (overlayIndex >= m_overlays.size())
-            return nullptr;
-
-        return m_overlays[overlayIndex];
-    }
+    OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
 
 protected:
     virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,

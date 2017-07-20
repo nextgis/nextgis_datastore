@@ -234,6 +234,19 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
     return true;
 }
 
+OverlayPtr Map::getOverlay(ngsMapOverlyType type) const
+{
+    int index = Overlay::getOverlayIndexFromType(type);
+    if (-1 == index)
+        return nullptr;
+
+    size_t overlayIndex = static_cast<size_t>(index);
+    if (overlayIndex >= m_overlays.size())
+        return nullptr;
+
+    return m_overlays[overlayIndex];
+}
+
 LayerPtr Map::createLayer(const char* name, Layer::Type type)
 {
     switch (type) {

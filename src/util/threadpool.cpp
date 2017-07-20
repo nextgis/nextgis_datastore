@@ -80,13 +80,16 @@ void ThreadPool::clearThreadData()
     m_threadData.clear();
 }
 
-void ThreadPool::waitComplete() const
+void ThreadPool::waitComplete(const Progress &progress) const
 {
     bool complete = false;
+    size_t currentDataCount = dataCount();
     while(true) {
 
         CPLAcquireMutex(m_threadMutex, 7.0);
         complete = m_threadCount <= 0;
+        double completePercent = double(dataCount()) / currentDataCount;
+        progress.onProgress(ngsCode::COD_IN_PROCESS, completePercent, _("Working..."));
         CPLReleaseMutex(m_threadMutex);
 
         if(complete) {

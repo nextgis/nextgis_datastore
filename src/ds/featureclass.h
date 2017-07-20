@@ -28,6 +28,7 @@
 #include "ngstore/codes.h"
 #include "table.h"
 #include "util/options.h"
+#include "util/threadpool.h"
 
 namespace ngs {
 
@@ -50,7 +51,7 @@ public:
     void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
 
     GByte *save(int &size);
-    bool load(GByte* data, int size);
+    bool load(GByte *data, int size);
     size_t pointCount() const { return m_points.size(); }
     const SimplePoint& point(size_t index) const { return m_points[index]; }
     bool isClosed() const;
@@ -159,12 +160,27 @@ protected:
     void tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent, float step,
                    VectorTileItem *vitem)  const;
 
+    // static
+protected:
+    static bool tilingDataJobThreadFunc(ThreadData *threadData);
+
 protected:
     OGRLayer *m_ovrTable;
     std::set<unsigned char> m_zoomLevels;
     CPLMutex *m_fieldsMutex;
     Envelope m_extent;
     std::vector<const char *> m_ignoreFields;
+
+private:
+    class TilingData : public ThreadData {
+    public:
+        TilingData(FeatureClass *featureClass, FeaturePtr feature, bool own) :
+            ThreadData(own), m_feature(feature), m_featureClass(featureClass) {}
+        virtual ~TilingData() = default;
+        FeaturePtr m_feature;
+        FeatureClass *m_featureClass;
+    };
+
 };
 
 }

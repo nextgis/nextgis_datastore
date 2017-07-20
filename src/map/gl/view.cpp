@@ -352,19 +352,7 @@ void GlView::freeOldTiles()
 
 void GlView::initView()
 {
-    unsigned char numThreads = static_cast<unsigned char>(CPLGetNumCPUs());
-
-    const char* numThreadsStr = CPLGetConfigOption("GDAL_NUM_THREADS", NULL);
-    if(numThreadsStr) {
-        if(!EQUAL(numThreadsStr, "ALL_CPUS")) {
-            numThreads = static_cast<unsigned char>(atoi(numThreadsStr));
-        }
-    }
-
-    if(numThreads < 1)
-        numThreads = 1;
-
-    m_threadPool.init(numThreads, layerDataFillJobThreadFunc, MAX_TRIES);
+    m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
 }
 
 double GlView::pixelSize(int zoom)

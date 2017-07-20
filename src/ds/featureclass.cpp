@@ -401,6 +401,21 @@ void FeatureClass::tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent,
     }
 }
 
+bool FeatureClass::tilingDataJobThreadFunc(ThreadData *threadData)
+{
+    TilingData *data = static_cast<TilingData*>(threadData);
+    // Get tiles for geometry
+    //data->m_feature->GetGeometryRef()
+    // Tile geometry
+    // Put tile item to vector tile
+
+//    float step = static_cast<float>(pixelSize(tile.z));
+//    Envelope ext = tileExtent;
+//    ext.resize(TILE_RESIZE);
+//    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+    return true;
+}
+
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
     bool force = options.boolOption("FORCE", false);
@@ -408,7 +423,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         return ngsCode::COD_SUCCESS;
     }
 
-    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    Dataset *parentDS = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDS) {
         progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0,
                             _("Unsupported feature class"));
@@ -422,10 +437,6 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     }
     else {
         parentDS->clearOverviewsTable(getName());
-    }
-
-    if(options.boolOption("CREATE_OVERVIEWS_TABLE", false)) {
-        return ngsCode::COD_SUCCESS;
     }
 
     // Fill overview layer with data
@@ -443,23 +454,20 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
     // Tile and simplify geometry
     progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
-                        _("Start tiling and simplifieng geometry"));
+                        _("Start tiling and simplifying geometry"));
 
-    // TODO: multithreaded thread pool
-/*    FeaturePtr feature;
-    GIntBig count = featureCount(false);
-    double counter = 0;
-    float step = static_cast<float>(pixelSize(tile.z));
-    Envelope ext = tileExtent;
-    ext.resize(TILE_RESIZE);
-    GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
+    // Multithreaded thread pool
+    ThreadPool threadPool;
+    threadPool.init(getNumberThreads(), tilingDataJobThreadFunc);
 
+    FeaturePtr feature;
     while((feature = nextFeature()) != nullptr) {
-        progress.onProgress(ngsCode::COD_IN_PROCESS, counter++ / count,
-                            _("Proceeding..."));
-        tileGeometry(feature, extGeom, step);
+        threadPool.addThreadData(new TilingData(this, feature, true));
     }
-*/
+
+    threadPool.waitComplete(progress);
+    progress.onProgress(ngsCode::COD_FINISHED, 1.0,
+                        _("Finish tiling and simplifying geometry"));
     return ngsCode::COD_SUCCESS;
 }
 
@@ -485,6 +493,8 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
             if(newDiff < diff) {
                 z = zoomLevel;
                 diff = newDiff;
+                if(diff == 0)
+                    break;
             }
         }
 

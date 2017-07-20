@@ -830,9 +830,9 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
-                                   ngsProgressFunc callback, void* callbackData)
+                                   ngsProgressFunc callback, void *callbackData)
 {
-    Object* catalogObject = static_cast<Object*>(object);
+    Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
     }
@@ -854,7 +854,7 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
                             _("Source dataset type is incompatible"));
     }
 
-    FeatureClass* featureClass = dynamic_cast<FeatureClass*>(catalogObject);
+    FeatureClass *featureClass = dynamic_cast<FeatureClass*>(catalogObject);
     if(!featureClass) {
         return errorMessage(ngsCode::COD_INVALID,
                             _("Source dataset type is incompatible"));

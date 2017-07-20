@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "options.h"
 
+#include "cpl_multiproc.h"
+
 namespace ngs {
 
 constexpr short MAX_OPTION_LEN = 255;
@@ -103,6 +105,24 @@ void Options::removeOption(const char *key)
     auto it = m_options.find(key);
     if(it != m_options.end())
         m_options.erase(it);
+}
+
+unsigned char getNumberThreads()
+{
+    unsigned char numThreads = static_cast<unsigned char>(CPLGetNumCPUs());
+
+    const char* numThreadsStr = CPLGetConfigOption("GDAL_NUM_THREADS", NULL);
+    if(numThreadsStr) {
+        if(!EQUAL(numThreadsStr, "ALL_CPUS")) {
+            numThreads = static_cast<unsigned char>(atoi(numThreadsStr));
+        }
+    }
+
+    if(numThreads < 1) {
+        numThreads = 1;
+    }
+
+    return numThreads;
 }
 
 }

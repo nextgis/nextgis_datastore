@@ -65,7 +65,7 @@ constexpr unsigned short MAX_EQUAL_NAMES = 10000;
 // GDALDatasetPtr
 //------------------------------------------------------------------------------
 
-GDALDatasetPtr::GDALDatasetPtr(GDALDataset* ds) :
+GDALDatasetPtr::GDALDatasetPtr(GDALDataset *ds) :
     shared_ptr(ds, GDALClose)
 {
 }
@@ -80,7 +80,7 @@ GDALDatasetPtr::GDALDatasetPtr(const GDALDatasetPtr &ds) : shared_ptr(ds)
 {
 }
 
-GDALDatasetPtr& GDALDatasetPtr::operator=(GDALDataset* ds) {
+GDALDatasetPtr& GDALDatasetPtr::operator=(GDALDataset *ds) {
     reset(ds);
     return *this;
 }
@@ -142,7 +142,7 @@ const char *DatasetBase::options(const enum ngsCatalogObjectType type,
     }
 }
 
-bool DatasetBase::open(const char* path, unsigned int openFlags,
+bool DatasetBase::open(const char *path, unsigned int openFlags,
                        const Options &options)
 {
     if(nullptr == path || EQUAL(path, "")) {
@@ -180,23 +180,23 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
 //------------------------------------------------------------------------------
 // Dataset
 //------------------------------------------------------------------------------
-constexpr const char* ADDS_EXT = "ngadds";
-constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
+constexpr const char *ADDS_EXT = "ngadds";
+constexpr const char *METHADATA_TABLE_NAME = "nga_meta";
 
-constexpr const char* NGS_VERSION_KEY = "version";
+constexpr const char *NGS_VERSION_KEY = "version";
 
 // Metadata
-constexpr const char* META_KEY = "key";
+constexpr const char *META_KEY = "key";
 constexpr unsigned short META_KEY_LIMIT = 128;
-constexpr const char* META_VALUE = "value";
+constexpr const char *META_VALUE = "value";
 constexpr unsigned short META_VALUE_LIMIT = 512;
 
 // Overviews
-constexpr const char* OVR_ADD = "_overviews";
-constexpr const char* OVR_ZOOM_KEY = "z";
-constexpr const char* OVR_X_KEY = "x";
-constexpr const char* OVR_Y_KEY = "y";
-constexpr const char* OVR_TILE_KEY = "tile";
+constexpr const char *OVR_ADD = "_overviews";
+constexpr const char *OVR_ZOOM_KEY = "z";
+constexpr const char *OVR_X_KEY = "x";
+constexpr const char *OVR_Y_KEY = "y";
+constexpr const char *OVR_TILE_KEY = "tile";
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -341,7 +341,7 @@ bool Dataset::destroy()
     return true;
 }
 
-bool Dataset::isNameValid(const char* name) const
+bool Dataset::isNameValid(const char *name) const
 {
     for(const ObjectPtr& object : m_children)
         if(EQUAL(object->getName(), name))
@@ -402,7 +402,7 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
 void Dataset::fillFeatureClasses()
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
-        OGRLayer* layer = m_DS->GetLayer(i);
+        OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             const char* layerName = layer->GetName();
@@ -437,7 +437,7 @@ GDALDataset *Dataset::createAdditionsDataset()
         return m_addsDS;
     }
     else {
-        const char* ovrPath = CPLResetExtension(m_path, ADDS_EXT);
+        const char *ovrPath = CPLResetExtension(m_path, ADDS_EXT);
         CPLErrorReset();
         GDALDriver *poDriver = Filter::getGDALDriver(
                     ngsCatalogObjectType::CAT_CONTAINER_SQLITE);
@@ -453,7 +453,7 @@ GDALDataset *Dataset::createAdditionsDataset()
         options.addOption("INIT_WITH_EPSG", "NO");
         auto createOptionsPointer = options.getOptions();
 
-        GDALDataset* DS = poDriver->Create(ovrPath, 0, 0, 0, GDT_Unknown,
+        GDALDataset *DS = poDriver->Create(ovrPath, 0, 0, 0, GDT_Unknown,
                                            createOptionsPointer.get());
         if(DS == nullptr) {
             errorMessage(CPLGetLastErrorMsg());
@@ -485,7 +485,7 @@ bool Dataset::destroyOverviewsTable(const char *name)
         return false;
     CPLString ovrLayerName(name);
     ovrLayerName += OVR_ADD;
-    OGRLayer* layer = m_addsDS->GetLayerByName(ovrLayerName);
+    OGRLayer *layer = m_addsDS->GetLayerByName(ovrLayerName);
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
@@ -557,19 +557,19 @@ bool Dataset::hasChildren()
     fillFeatureClasses();
 
     // fill rasters
-    char** subdatasetList = m_DS->GetMetadata("SUBDATASETS");
+    char **subdatasetList = m_DS->GetMetadata("SUBDATASETS");
     std::vector<CPLString> siblingFiles;
     if(nullptr != subdatasetList) {
         int i = 0;
         size_t strLen = 0;
-        const char* testStr = nullptr;
+        const char *testStr = nullptr;
         char rasterPath[255];
         while((testStr = subdatasetList[i++]) != nullptr) {
             strLen = CPLStrnlen(testStr, 255);
             if(EQUAL(testStr + strLen - 4, "NAME")) {
                 CPLStrlcpy(rasterPath, testStr, strLen - 4);
                 CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
-                const char* rasterName = pathPortions[pathPortions.size() - 1];
+                const char *rasterName = pathPortions[pathPortions.size() - 1];
                 m_children.push_back(ObjectPtr(new Raster(siblingFiles, this,
                     ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, rasterPath)));
             }
@@ -607,14 +607,14 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->getName().c_str());
         }
-        OGRFeatureDefn* const srcDefinition = srcTable->definition();
+        OGRFeatureDefn * const srcDefinition = srcTable->definition();
         std::unique_ptr<Table> dstTable(createTable(newName, srcDefinition,
                                                     options));
         if(nullptr == dstTable) {
             return move ? ngsCode::COD_MOVE_FAILED :
                           ngsCode::COD_COPY_FAILED;
         }
-        OGRFeatureDefn* const dstDefinition = dstTable->definition();
+        OGRFeatureDefn * const dstDefinition = dstTable->definition();
         // Create fields map. We expected equal count of fields
         FieldMapPtr fieldMap(static_cast<unsigned long>(
                                  dstDefinition->GetFieldCount()));
@@ -634,7 +634,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 child->getName().c_str());
         }
         bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
-        OGRFeatureDefn* const srcDefinition = srcFClass->definition();
+        OGRFeatureDefn * const srcDefinition = srcFClass->definition();
         std::vector<OGRwkbGeometryType> geometryTypes =
                 srcFClass->geometryTypes();
         OGRwkbGeometryType filterFeometryType =
@@ -664,7 +664,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                 return move ? ngsCode::COD_MOVE_FAILED :
                               ngsCode::COD_COPY_FAILED;
             }
-            OGRFeatureDefn* const dstDefinition = dstFClass->definition();
+            OGRFeatureDefn * const dstDefinition = dstFClass->definition();
             // Create fields map. We expected equal count of fields
             FieldMapPtr fieldMap(static_cast<unsigned long>(
                                                dstDefinition->GetFieldCount()));
@@ -712,13 +712,13 @@ const char *Dataset::additionsDatasetExtension()
     return ADDS_EXT;
 }
 
-TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
+TablePtr Dataset::executeSQL(const char *statement, const char *dialect)
 {
     if(nullptr == m_DS) {
         errorMessage(_("Not opened."));
         return TablePtr();
     }
-    OGRLayer * layer = m_DS->ExecuteSQL(statement, nullptr, dialect);
+    OGRLayer *layer = m_DS->ExecuteSQL(statement, nullptr, dialect);
     if(nullptr == layer) {
         errorMessage(CPLGetLastErrorMsg());
         return TablePtr();
@@ -739,11 +739,11 @@ TablePtr Dataset::executeSQL(const char *statement,
         errorMessage(_("Not opened."));
         return TablePtr();
     }
-    OGRGeometry* spaFilter(nullptr);
+    OGRGeometry *spaFilter(nullptr);
     if(spatialFilter) {
         spaFilter = spatialFilter.get()->clone();
     }
-    OGRLayer * layer = m_DS->ExecuteSQL(statement, spaFilter, dialect);
+    OGRLayer *layer = m_DS->ExecuteSQL(statement, spaFilter, dialect);
     if(nullptr == layer) {
         errorMessage(CPLGetLastErrorMsg());
         return TablePtr();
@@ -766,7 +766,7 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
             m_addsDS->Reference();
         }
         else {
-            const char* ovrPath = CPLResetExtension(m_path, ADDS_EXT);
+            const char *ovrPath = CPLResetExtension(m_path, ADDS_EXT);
             if(Folder::isExists(ovrPath)) {
                 m_addsDS = static_cast<GDALDataset*>(GDALOpenEx(ovrPath, openFlags,
                                                                nullptr, nullptr,
@@ -788,7 +788,7 @@ OGRLayer *Dataset::createMetadataTable(GDALDataset* ds)
         return nullptr;
     }
 
-    OGRLayer* metadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
+    OGRLayer *metadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
                                                    wkbNone, nullptr);
     if (nullptr == metadataLayer) {
         return nullptr;
@@ -830,7 +830,7 @@ bool Dataset::destroyTable(GDALDataset *ds, OGRLayer *layer)
 
 OGRLayer* Dataset::createOverviewsTable(GDALDataset *ds, const char *name)
 {
-    OGRLayer* ovrLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
+    OGRLayer *ovrLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
     if (nullptr == ovrLayer) {
         errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
@@ -852,7 +852,7 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset *ds, const char *name)
     return ovrLayer;
 }
 
-VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)
+VectorTile Dataset::getTile(const char *name, int x, int y, unsigned short z)
 {
     VectorTile vtile;
     TablePtr queryResult = executeSQL(

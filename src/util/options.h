@@ -54,6 +54,8 @@ protected:
     std::map< CPLString, CPLString > m_options;
 };
 
+unsigned char getNumberThreads();
+
 }
 
 #endif // NGSOPTIONS_H

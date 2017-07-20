@@ -25,6 +25,8 @@
 
 #include "cpl_multiproc.h"
 
+#include "progress.h"
+
 namespace ngs {
 
 /**
@@ -60,7 +62,7 @@ public:
     void clearThreadData();
     unsigned char currentWorkerCount() const { return m_threadCount; }
     unsigned char maxWorkerCount() const { return m_maxThreadCount; }
-    void waitComplete() const;
+    void waitComplete(const Progress &progress) const;
     size_t dataCount() const { return m_threadData.size(); }
 
 protected:
