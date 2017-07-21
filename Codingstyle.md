@@ -9,6 +9,7 @@ This is the coding style
 5. If brackets ('{' and '}') use in function in one place, should use in another:
 
 For example
+```
 void test(int type)
 {
     if(type == 1) {
@@ -17,23 +18,28 @@ void test(int type)
     else <-- Wrong - need {
         int y = 1;
 }
+```
 
 6. The pointer star should be at right (not left).
 
 For example:
+```
 const char *name
 char **list
 Dataset *parentDS
 but:
 Dataset * const dataset
+```
 
 7. Variable name and functions - use camel style from lower case
 8. Class name - from upper case
 9. In getters try not use get
 
 For example:
+```
 size_t getFeatureCount() <-- Wrong
 size_t featureCount() <-- Right
+```
 
 10. For smart pointers use Ptr and UPtr and WPtr postfix
 
