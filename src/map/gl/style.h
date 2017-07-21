@@ -20,8 +20,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
-#ifndef NGSSTYLE_H
-#define NGSSTYLE_H
+#ifndef NGSGLSTYLE_H
+#define NGSGLSTYLE_H
 
 #include "cpl_json.h"
 
@@ -142,7 +142,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char *name() override { return "simplePoint"; }
+    virtual const char* name() override { return "simplePoint"; }
 
 protected:
     enum PointType m_type;
@@ -185,7 +185,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char *name() override { return "simpleLine"; }
+    virtual const char* name() override { return "simpleLine"; }
 
 protected:
     GLint m_normalId;
@@ -211,7 +211,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual const char *name() override { return "simpleFill"; }
+    virtual const char* name() override { return "simpleFill"; }
 };
 
 //------------------------------------------------------------------------------
@@ -242,7 +242,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char *name() override { return "simpleFillBordered"; }
+    virtual const char* name() override { return "simpleFillBordered"; }
 
 protected:
     SimpleFillStyle m_fill;
@@ -272,10 +272,10 @@ protected:
 public:
     virtual bool load(const CPLJSONObject &/*store*/) override { return true; }
     virtual CPLJSONObject save() const override { return CPLJSONObject(); }
-    virtual const char *name() override { return "simpleImage"; }
+    virtual const char* name() override { return "simpleImage"; }
 };
 
 
 }  // namespace ngs
 
-#endif  // NGSSTYLE_H
+#endif  // NGSGLSTYLE_H

@@ -51,7 +51,7 @@ endif()
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/src
     ${INCLUDE_DIR}
 )
 

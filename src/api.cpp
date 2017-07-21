@@ -162,7 +162,7 @@ const char* ngsGetVersionString(const char* request)
  * - HOME - Root directory for library
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsInit(char **options)
+int ngsInit(char** options)
 {    
     gDebugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
     CPLDebug("ngstore", "debug mode %s", gDebugMode ? "ON" : "OFF");
@@ -252,7 +252,7 @@ void ngsFreeResources(char full)
  * returnError, CPLError, etc.
  * @return last error message or NULL if no error message present.
  */
-const char *ngsGetLastErrorMessage()
+const char* ngsGetLastErrorMessage()
 {
     return getLastError();
 }
@@ -280,28 +280,28 @@ void ngsRemoveNotifyFunction(ngsNotifyFunc function)
 // GDAL proxy functions
 //------------------------------------------------------------------------------
 
-const char *ngsGetCurrentDirectory()
+const char* ngsGetCurrentDirectory()
 {
     return CPLGetCurrentDir();
 }
 
-char **ngsAddNameValue(char **list, const char *name, const char *value)
+char** ngsAddNameValue(char** list, const char* name, const char* value)
 {
     return CSLAddNameValue(list, name, value);
 }
 
-void ngsDestroyList(char **list)
+void ngsDestroyList(char** list)
 {
     CSLDestroy(list);
 }
 
-const char *ngsFormFileName(const char *path, const char *name,
-                            const char *extension)
+const char* ngsFormFileName(const char* path, const char* name,
+                            const char* extension)
 {
     return CPLFormFilename(path, name, extension);
 }
 
-void ngsFree(void *pointer)
+void ngsFree(void* pointer)
 {
     CPLFree(pointer);
 }
@@ -427,7 +427,7 @@ void ngsURLRequestDestroyResult(ngsURLRequestResult* result)
  * HTTPAUTH_RETRY_DELAY - Delay between retries. Default 5.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsURLAuthAdd(const char *url, char **options)
+int ngsURLAuthAdd(const char* url, char** options)
 {
     Options opt(options);
     return AuthStore::addAuth(url, opt) ? COD_SUCCESS : COD_INSERT_FAILED;
@@ -464,7 +464,7 @@ int ngsURLAuthDelete(const char* url)
  * @param value String to transform
  * @return Hex presentation of MD5 hash
  */
-const char *ngsMD5(const char *value)
+const char* ngsMD5(const char* value)
 {
     return CPLSPrintf("%s", md5(value).c_str());
 }
@@ -473,7 +473,7 @@ const char *ngsMD5(const char *value)
 // Catalog
 //------------------------------------------------------------------------------
 
-ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
+ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
                                          const Filter& objectFilter)
 {
     Object* catalogObject = static_cast<Object*>(object);
@@ -565,8 +565,8 @@ ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object, int filter)
  * @return Array of ngsCatlogObjectInfo structures. Caller must free this array
  * after using with ngsFree method
  */
-ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
-                                                       int *filters,
+ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
+                                                       int* filters,
                                                        int filterCount)
 {
     // Create filter class from filter value.
@@ -607,7 +607,7 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
  * CREATE_UNIQUE [ON, OFF] - If name already exists in container, make it unique
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **options)
+int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char** options)
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject)
@@ -634,7 +634,7 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char **optio
  * @param path System path
  * @return Catalog path or empty string
  */
-const char *ngsCatalogPathFromSystem(const char *path)
+const char* ngsCatalogPathFromSystem(const char* path)
 {
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObjectByLocalPath(path);
@@ -658,8 +658,8 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
-                         char **options, ngsProgressFunc callback,
-                         void *callbackData)
+                         char** options, ngsProgressFunc callback,
+                         void* callbackData)
 {
     Object* srcCatalogObject = static_cast<Object*>(srcObject);
     Object* dstCatalogObject = static_cast<Object*>(dstObject);
@@ -719,7 +719,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
  * parent container
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
+int ngsCatalogObjectRename(CatalogObjectH object, const char* newName)
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject)
@@ -772,7 +772,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
  * @param path Path to the catalog object
  * @return handel or null
  */
-CatalogObjectH ngsCatalogObjectGet(const char *path)
+CatalogObjectH ngsCatalogObjectGet(const char* path)
 {
     CatalogPtr catalog = Catalog::getInstance();
     ObjectPtr object = catalog->getObject(path);
@@ -796,7 +796,7 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
  * @param object Object handler
  * @return Catalog object name
  */
-const char *ngsCatalogObjectName(CatalogObjectH object)
+const char* ngsCatalogObjectName(CatalogObjectH object)
 {
     if(nullptr == object)
         return "";
@@ -829,10 +829,10 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
  * @param callbackData The callback function data.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
-                                   ngsProgressFunc callback, void *callbackData)
+int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
+                                   ngsProgressFunc callback, void* callbackData)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
     }
@@ -854,7 +854,7 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
                             _("Source dataset type is incompatible"));
     }
 
-    FeatureClass *featureClass = dynamic_cast<FeatureClass*>(catalogObject);
+    FeatureClass* featureClass = dynamic_cast<FeatureClass*>(catalogObject);
     if(!featureClass) {
         return errorMessage(ngsCode::COD_INVALID,
                             _("Source dataset type is incompatible"));
@@ -896,7 +896,7 @@ unsigned char ngsMapCreate(const char* name, const char* description,
  * @param path Path to map file inside catalog in form ngc://some path/
  * @return 0 if open failed or map id.
  */
-unsigned char ngsMapOpen(const char *path)
+unsigned char ngsMapOpen(const char* path)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
@@ -913,7 +913,7 @@ unsigned char ngsMapOpen(const char *path)
  * @param path Path to store map data
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSave(unsigned char mapId, const char *path)
+int ngsMapSave(unsigned char mapId, const char* path)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -1121,7 +1121,7 @@ double ngsMapGetScale(unsigned char mapId)
  * @param path Path to map file inside catalog in form ngc://some path/
  * @return Layer Id or -1
  */
-int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
+int ngsMapCreateLayer(unsigned char mapId, const char* name, const char* path)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -1326,7 +1326,7 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
  * @param layer Layer handler
  * @return Layer name
  */
-const char *ngsLayerGetName(LayerH layer)
+const char* ngsLayerGetName(LayerH layer)
 {
     if(nullptr == layer) {
         errorMessage(ngsCode::COD_GET_FAILED, _("Layer pointer is null"));
@@ -1341,7 +1341,7 @@ const char *ngsLayerGetName(LayerH layer)
  * @param name New name
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsLayerSetName(LayerH layer, const char *name)
+int ngsLayerSetName(LayerH layer, const char* name)
 {
     if(nullptr == layer) {
         return errorMessage(ngsCode::COD_SET_FAILED,

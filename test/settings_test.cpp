@@ -23,42 +23,41 @@
 
 #include "ngstore/codes.h"
 #include "catalog/folder.h"
-//#include "util/jsondocument.h"
 #include "util/settings.h"
 
 constexpr const char* SETTINGS_FILE = "./tmp/settings.json";
 
-/*
+
 TEST(SettingsTests, WriteTest) {
     // just try to create directory
     ngs::Folder::mkDir("./tmp");
 
-    ngs::JSONDocument doc;
-    ngs::JSONObject root = doc.getRoot();
-    root.add("one_level", true);
-    root.add("two_level/second_level", false);
-    root.add("three_level/second_level/third_level", true);
-    root.add("four_level/second_level/third_level/forth_level", true);
-    root.destroy("four_level/second_level/third_level/forth_level");
-    root.add("three_level/second_level/third_level1", false);
-    root.set("three_level/second_level/third_level1", true);
-    EXPECT_EQ(doc.save(SETTINGS_FILE), true);
+    CPLJSONDocument doc;
+    CPLJSONObject root = doc.GetRoot();
+    root.Add("one_level", true);
+    root.Add("two_level/second_level", false);
+    root.Add("three_level/second_level/third_level", true);
+    root.Add("four_level/second_level/third_level/forth_level", true);
+    root.Delete("four_level/second_level/third_level/forth_level");
+    root.Add("three_level/second_level/third_level1", false);
+    root.Set("three_level/second_level/third_level1", true);
+    EXPECT_EQ(doc.Save(SETTINGS_FILE), true);
 }
 
 TEST(SettingsTests, ReadTest) {
-    ngs::JSONDocument doc;
-    ASSERT_EQ(doc.load(SETTINGS_FILE), true);
-    ngs::JSONObject root = doc.getRoot();
-    EXPECT_EQ(root.getBool("one_level", false), true);
-    EXPECT_EQ(root.getBool("two_level/second_level", true), false);
-    EXPECT_EQ(root.getBool("three_level/second_level/third_level", false), true);
-    EXPECT_EQ(root.getBool("four_level/second_level/third_level/forth_level", false), false);
-    EXPECT_EQ(root.getBool("three_level/second_level/third_level1", false), true);
+    CPLJSONDocument doc;
+    ASSERT_EQ(doc.Load(SETTINGS_FILE), true);
+    CPLJSONObject root = doc.GetRoot();
+    EXPECT_EQ(root.GetBool("one_level", false), true);
+    EXPECT_EQ(root.GetBool("two_level/second_level", true), false);
+    EXPECT_EQ(root.GetBool("three_level/second_level/third_level", false), true);
+    EXPECT_EQ(root.GetBool("four_level/second_level/third_level/forth_level", false), false);
+    EXPECT_EQ(root.GetBool("three_level/second_level/third_level1", false), true);
 
     // delete settings file
     VSIUnlink(SETTINGS_FILE);
 }
-*/
+
 
 TEST(SettingsTests, Settings) {
     ngs::Settings &settings = ngs::Settings::instance();

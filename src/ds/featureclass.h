@@ -27,6 +27,7 @@
 #include "geometry.h"
 #include "ngstore/codes.h"
 #include "table.h"
+#include "util/buffer.h"
 #include "util/options.h"
 #include "util/threadpool.h"
 
@@ -37,6 +38,7 @@ typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 
 class VectorTileItem
 {
+    friend class VectorTile;
 public:
     VectorTileItem();
     void addId(GIntBig id) { m_ids.insert(id); }
@@ -50,8 +52,6 @@ public:
     }
     void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
 
-    GByte *save(int &size);
-    bool load(GByte *data, int size);
     size_t pointCount() const { return m_points.size(); }
     const SimplePoint& point(size_t index) const { return m_points[index]; }
     bool isClosed() const;
@@ -67,6 +67,9 @@ public:
         return m_points == other.m_points;
     }
     bool isIdsPresent(std::set<GIntBig> other) const { return m_ids == other; }
+protected:
+    void save(Buffer* buffer);
+    bool load(Buffer& buffer);
 private:
     std::vector<SimplePoint> m_points;
     std::vector<unsigned short> m_indices;
@@ -81,9 +84,9 @@ class VectorTile
 {
 public:
     VectorTile() : m_valid(false) {}
-    void add(VectorTileItem item, bool checkDuplicates = false);
-    GByte *save(int &size);
-    bool load(GByte *data, int size);
+    void add(const VectorTileItem &item, bool checkDuplicates = false);
+    BufferPtr save();
+    bool load(Buffer& buffer);
     std::vector<VectorTileItem> items() const {
         return m_items;
     }
@@ -108,7 +111,7 @@ public:
     };
 
 public:
-    explicit FeatureClass(OGRLayer *layer,
+    explicit FeatureClass(OGRLayer* layer,
                  ObjectContainer * const parent = nullptr,
                  const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
                  const CPLString & name = "");
@@ -116,10 +119,10 @@ public:
 
     OGRwkbGeometryType geometryType() const;
     std::vector<OGRwkbGeometryType> geometryTypes();
-    const char *geometryColumn() const;
-    std::vector<const char *> geometryColumns() const;
-    bool setIgnoredFields(const std::vector<const char *> fields =
-            std::vector<const char *>());
+    const char* geometryColumn() const;
+    std::vector<const char*> geometryColumns() const;
+    bool setIgnoredFields(const std::vector<const char*> fields =
+            std::vector<const char*>());
     void setSpatialFilter(GeometryPtr geom);
     Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
@@ -131,55 +134,62 @@ public:
     int createOverviews(const Progress& progress = Progress(),
                         const Options& options = Options());
     VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope());
+    std::set<unsigned char> zoomLevels() const { return m_zoomLevels; }
+    void addOverviewItem(const Tile& tile, const VectorTileItem& item) {
+        CPLMutexHolder holder(m_genTileMutex, 50.0);
+        m_genTiles[tile].add(item);
+    }
 
     // static
-    static const char *geometryTypeName(OGRwkbGeometryType type,
+    static const char* geometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
-    static OGRwkbGeometryType geometryTypeFromName(const char *name);
+    static OGRwkbGeometryType geometryTypeFromName(const char* name);
+    static double pixelSize(int zoom);
 
     // Object interface
 public:
     virtual bool destroy() override;
 
 protected:
-    VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry *extent,
+    VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry* extent,
                                 float step) const;
-    void fillZoomLevels(const char *zoomLevels);
-    double pixelSize(int zoom) const;
+    void fillZoomLevels(const char* zoomLevels);
 
-    void tilePoint(OGRGeometry *geom, OGRGeometry *extent, float step,
-                   VectorTileItem *vitem) const;
-    void tileLine(OGRGeometry *geom, OGRGeometry *extent, float step,
-                   VectorTileItem *vitem)  const;
-    void tilePolygon(OGRGeometry *geom, OGRGeometry *extent, float step,
-                   VectorTileItem *vitem)  const;
-    void tileMultiPoint(OGRGeometry *geom, OGRGeometry *extent, float step,
-                   VectorTileItem *vitem)  const;
-    void tileMultiLine(OGRGeometry *geom, OGRGeometry *extent, float step,
-                   VectorTileItem *vitem)  const;
-    void tileMultiPolygon(OGRGeometry *geom, OGRGeometry *extent, float step,
-                   VectorTileItem *vitem)  const;
+    void tilePoint(OGRGeometry* geom, OGRGeometry* extent, float step,
+                   VectorTileItem* vitem) const;
+    void tileLine(OGRGeometry* geom, OGRGeometry* extent, float step,
+                   VectorTileItem* vitem)  const;
+    void tilePolygon(OGRGeometry* geom, OGRGeometry* extent, float step,
+                   VectorTileItem* vitem)  const;
+    void tileMultiPoint(OGRGeometry* geom, OGRGeometry* extent, float step,
+                   VectorTileItem* vitem)  const;
+    void tileMultiLine(OGRGeometry* geom, OGRGeometry* extent, float step,
+                   VectorTileItem* vitem)  const;
+    void tileMultiPolygon(OGRGeometry* geom, OGRGeometry* extent, float step,
+                   VectorTileItem* vitem)  const;
 
     // static
 protected:
     static bool tilingDataJobThreadFunc(ThreadData *threadData);
 
 protected:
-    OGRLayer *m_ovrTable;
+    OGRLayer* m_ovrTable;
     std::set<unsigned char> m_zoomLevels;
-    CPLMutex *m_fieldsMutex;
+    CPLMutex* m_fieldsMutex;
+    CPLMutex* m_genTileMutex;
     Envelope m_extent;
-    std::vector<const char *> m_ignoreFields;
+    std::vector<const char*> m_ignoreFields;
 
 private:
     class TilingData : public ThreadData {
     public:
-        TilingData(FeatureClass *featureClass, FeaturePtr feature, bool own) :
+        TilingData(FeatureClass* featureClass, FeaturePtr feature, bool own) :
             ThreadData(own), m_feature(feature), m_featureClass(featureClass) {}
         virtual ~TilingData() = default;
         FeaturePtr m_feature;
-        FeatureClass *m_featureClass;
+        FeatureClass* m_featureClass;
     };
+    std::map<Tile, VectorTile> m_genTiles;
 
 };
 

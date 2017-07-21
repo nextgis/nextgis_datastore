@@ -20,9 +20,10 @@
  ****************************************************************************/
 
 #include "test.h"
-/*
-#include "map/glview.h"
 
+#include "util/buffer.h"
+
+/*
 TEST(GlTests, TestCreate) {
 #ifdef OFFSCREEN_GL
     ngs::GlOffScreenView view;

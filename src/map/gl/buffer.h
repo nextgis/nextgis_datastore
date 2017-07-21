@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSBUFFER_H
-#define NGSBUFFER_H
+#ifndef NGSGLBUFFER_H
+#define NGSGLBUFFER_H
 
 #include "functions.h"
 
@@ -77,4 +77,4 @@ typedef std::shared_ptr<GlBuffer> GlBufferPtr;
 
 } // namespace ngs
 
-#endif // NGSBUFFER_H
+#endif // NGSGLBUFFER_H

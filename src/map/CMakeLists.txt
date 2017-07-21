@@ -26,7 +26,6 @@
 set(LIB_NAME map)
 
 set(HHEADERS
-#    glfillers.h
     layer.h
     map.h
     mapstore.h
@@ -47,7 +46,6 @@ set(HHEADERS
 )
 
 set(CSOURCES
-#    glfillers.cpp
     layer.cpp
     map.cpp
     mapstore.cpp

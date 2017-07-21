@@ -180,23 +180,19 @@ bool DatasetBase::open(const char *path, unsigned int openFlags,
 //------------------------------------------------------------------------------
 // Dataset
 //------------------------------------------------------------------------------
-constexpr const char *ADDS_EXT = "ngadds";
-constexpr const char *METHADATA_TABLE_NAME = "nga_meta";
+constexpr const char* ADDS_EXT = "ngadds";
+constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
 
-constexpr const char *NGS_VERSION_KEY = "version";
+constexpr const char* NGS_VERSION_KEY = "version";
 
 // Metadata
-constexpr const char *META_KEY = "key";
+constexpr const char* META_KEY = "key";
 constexpr unsigned short META_KEY_LIMIT = 128;
-constexpr const char *META_VALUE = "value";
+constexpr const char* META_VALUE = "value";
 constexpr unsigned short META_VALUE_LIMIT = 512;
 
 // Overviews
-constexpr const char *OVR_ADD = "_overviews";
-constexpr const char *OVR_ZOOM_KEY = "z";
-constexpr const char *OVR_X_KEY = "x";
-constexpr const char *OVR_Y_KEY = "y";
-constexpr const char *OVR_TILE_KEY = "tile";
+constexpr const char* OVR_ADD = "_overviews";
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -864,7 +860,9 @@ VectorTile Dataset::getTile(const char *name, int x, int y, unsigned short z)
         FeaturePtr ovrTile = queryResult->nextFeature();
         if(ovrTile) {
             int size = 0;
-            vtile.load(ovrTile->GetFieldAsBinary(0, &size), size);
+            GByte* data = ovrTile->GetFieldAsBinary(0, &size);
+            Buffer buff(data, size);
+            vtile.load(buff);
             return vtile;
         }
     }

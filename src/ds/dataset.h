@@ -31,6 +31,12 @@
 
 namespace ngs {
 
+constexpr const char* OVR_ZOOM_KEY = "z";
+constexpr const char* OVR_X_KEY = "x";
+constexpr const char* OVR_Y_KEY = "y";
+constexpr const char* OVR_TILE_KEY = "tile";
+
+
 /**
  * @brief The wrapper class around GDALDataset pointer
  */
@@ -92,27 +98,27 @@ public:
     virtual ~Dataset();
     virtual const char* options(enum ngsOptionType optionType) const override;
 
-    TablePtr executeSQL(const char *statement, const char *dialect = "");
-    TablePtr executeSQL(const char *statement,
+    TablePtr executeSQL(const char* statement, const char* dialect = "");
+    TablePtr executeSQL(const char* statement,
                             GeometryPtr spatialFilter,
-                            const char *dialect = "");
+                            const char* dialect = "");
 
 
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
-    virtual FeatureClass *createFeatureClass(const CPLString &name,
+    virtual FeatureClass* createFeatureClass(const CPLString &name,
                                              OGRFeatureDefn * const definition,
-                                             const OGRSpatialReference *spatialRef,
+                                             const OGRSpatialReference* spatialRef,
                                              OGRwkbGeometryType type,
                                              const Options& options = Options(),
                                              const Progress &progress = Progress());
-    virtual Table *createTable(const CPLString &name,
+    virtual Table* createTable(const CPLString &name,
                                OGRFeatureDefn * const definition,
                                const Options& options = Options(),
                                const Progress &progress = Progress());
 
-    virtual bool setMetadata(const char *key, const char *value);
-    virtual const char *metadata(const char *key, const char *defaultValue);
+    virtual bool setMetadata(const char* key, const char* value);
+    virtual const char* metadata(const char* key, const char* defaultValue);
 
 
     // Object interface
@@ -134,29 +140,29 @@ public:
     static const char *additionsDatasetExtension();
 
 protected:
-    static OGRLayer *createMetadataTable(GDALDataset *ds);
-    static bool destroyTable(GDALDataset *ds, OGRLayer *layer);
-    static OGRLayer *createOverviewsTable(GDALDataset *ds, const char *name);
+    static OGRLayer* createMetadataTable(GDALDataset* ds);
+    static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
+    static OGRLayer* createOverviewsTable(GDALDataset* ds, const char* name);
 
 //    static bool createAttachmentsTable(GDALDataset* ds, const char* name);
 //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
 
 protected:
-    virtual bool isNameValid(const char *name) const;
+    virtual bool isNameValid(const char* name) const;
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     virtual void fillFeatureClasses();
-    virtual GDALDataset *createAdditionsDataset();
-    virtual OGRLayer *createOverviewsTable(const char *name);
-    virtual bool destroyOverviewsTable(const char *name);
-    virtual bool clearOverviewsTable(const char *name);
-    virtual OGRLayer *getOverviewsTable(const char *name);
-    virtual bool destroyTable(Table *table);
-    virtual VectorTile getTile(const char *name, int x, int y, unsigned short z);
+    virtual GDALDataset* createAdditionsDataset();
+    virtual OGRLayer* createOverviewsTable(const char* name);
+    virtual bool destroyOverviewsTable(const char* name);
+    virtual bool clearOverviewsTable(const char* name);
+    virtual OGRLayer* getOverviewsTable(const char* name);
+    virtual bool destroyTable(Table* table);
+    virtual VectorTile getTile(const char* name, int x, int y, unsigned short z);
 
 protected:
-    GDALDataset *m_addsDS;
-    OGRLayer *m_metadata;
+    GDALDataset* m_addsDS;
+    OGRLayer* m_metadata;
 };
 
 }
