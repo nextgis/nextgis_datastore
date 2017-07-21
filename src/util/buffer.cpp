@@ -26,15 +26,20 @@ namespace ngs {
 
 constexpr unsigned int DEFAULT_BUFFER_SIZE = 1024;
 
-Buffer::Buffer() : m_size(DEFAULT_BUFFER_SIZE),
+Buffer::Buffer() :
+    m_size(0),
+    m_mallocSize(DEFAULT_BUFFER_SIZE),
     m_data(static_cast<GByte*>(CPLMalloc(DEFAULT_BUFFER_SIZE))),
     m_currentPos(0)
 {
 
 }
 
-Buffer::Buffer(GByte* data, int size) : m_size(size),
-    m_data(data)
+Buffer::Buffer(GByte* data, int size) :
+    m_size(size),
+    m_mallocSize(size),
+    m_data(data),
+    m_currentPos(0)
 {
 
 }
@@ -47,12 +52,14 @@ Buffer::~Buffer()
 Buffer&Buffer::put(GUInt32 val)
 {
     size_t size = sizeof(GUInt32);
-    if(static_cast<size_t>(m_size) < m_currentPos + size) {
-        m_size += DEFAULT_BUFFER_SIZE;
-        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_size)));
+    if(static_cast<size_t>(m_mallocSize) < m_currentPos + size) {
+        m_mallocSize += DEFAULT_BUFFER_SIZE;
+        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_mallocSize)));
     }
 
     std::memcpy(m_data + m_currentPos, &val, size);
+    m_currentPos += size;
+    m_size += size;
 
     return *this;
 }
@@ -60,12 +67,14 @@ Buffer&Buffer::put(GUInt32 val)
 Buffer&Buffer::put(float val)
 {
     size_t size = sizeof(float);
-    if(static_cast<size_t>(m_size) < m_currentPos + size) {
-        m_size += DEFAULT_BUFFER_SIZE;
-        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_size)));
+    if(static_cast<size_t>(m_mallocSize) < m_currentPos + size) {
+        m_mallocSize += DEFAULT_BUFFER_SIZE;
+        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_mallocSize)));
     }
 
     std::memcpy(m_data + m_currentPos, &val, size);
+    m_currentPos += size;
+    m_size += size;
 
     return *this;
 }
@@ -73,12 +82,14 @@ Buffer&Buffer::put(float val)
 Buffer&Buffer::put(GByte val)
 {
     size_t size = sizeof(GByte);
-    if(static_cast<size_t>(m_size) < m_currentPos + size) {
-        m_size += DEFAULT_BUFFER_SIZE;
-        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_size)));
+    if(static_cast<size_t>(m_mallocSize) < m_currentPos + size) {
+        m_mallocSize += DEFAULT_BUFFER_SIZE;
+        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_mallocSize)));
     }
 
     std::memcpy(m_data + m_currentPos, &val, size);
+    m_currentPos += size;
+    m_size += size;
 
     return *this;
 }
@@ -86,12 +97,14 @@ Buffer&Buffer::put(GByte val)
 Buffer&Buffer::put(GUInt16 val)
 {
     size_t size = sizeof(GUInt16);
-    if(static_cast<size_t>(m_size) < m_currentPos + size) {
-        m_size += DEFAULT_BUFFER_SIZE;
-        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_size)));
+    if(static_cast<size_t>(m_mallocSize) < m_currentPos + size) {
+        m_mallocSize += DEFAULT_BUFFER_SIZE;
+        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_mallocSize)));
     }
 
     std::memcpy(m_data + m_currentPos, &val, size);
+    m_currentPos += size;
+    m_size += size;
 
     return *this;
 }
@@ -99,12 +112,14 @@ Buffer&Buffer::put(GUInt16 val)
 Buffer&Buffer::put(GUIntBig val)
 {
     size_t size = sizeof(GUIntBig);
-    if(static_cast<size_t>(m_size) < m_currentPos + size) {
-        m_size += DEFAULT_BUFFER_SIZE;
-        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_size)));
+    if(static_cast<size_t>(m_mallocSize) < m_currentPos + size) {
+        m_mallocSize += DEFAULT_BUFFER_SIZE;
+        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_mallocSize)));
     }
 
     std::memcpy(m_data + m_currentPos, &val, size);
+    m_currentPos += size;
+    m_size += size;
 
     return *this;
 }
@@ -112,12 +127,14 @@ Buffer&Buffer::put(GUIntBig val)
 Buffer&Buffer::put(GIntBig val)
 {
     size_t size = sizeof(GIntBig);
-    if(static_cast<size_t>(m_size) < m_currentPos + size) {
-        m_size += DEFAULT_BUFFER_SIZE;
-        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_size)));
+    if(static_cast<size_t>(m_mallocSize) < m_currentPos + size) {
+        m_mallocSize += DEFAULT_BUFFER_SIZE;
+        m_data = static_cast<GByte*>(CPLRealloc(m_data, static_cast<size_t>(m_mallocSize)));
     }
 
     std::memcpy(m_data + m_currentPos, &val, size);
+    m_currentPos += size;
+    m_size += size;
 
     return *this;
 }

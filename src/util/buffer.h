@@ -56,6 +56,7 @@ public:
 
 private:
     int m_size;
+    int m_mallocSize;
     GByte* m_data;
     size_t m_currentPos;
 };

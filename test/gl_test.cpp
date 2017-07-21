@@ -21,7 +21,40 @@
 
 #include "test.h"
 
+#include "cpl_conv.h"
+
 #include "util/buffer.h"
+
+TEST(GlTests, TestTileBuffer) {
+    ngs::Buffer buffer1;
+
+    for(GUInt16 i = 0; i < 11; ++i)
+        buffer1.put(i);
+
+    for(float i = 0.0; i < 5; ++i)
+        buffer1.put(i);
+
+
+    GByte* dataBuff = buffer1.data();
+    int sizeBuff = buffer1.size();
+    EXPECT_GE(sizeBuff, 1);
+
+    GByte* dataBuff2 = static_cast<GByte*>(CPLMalloc(sizeBuff));
+    memcpy(dataBuff2, dataBuff, sizeBuff);
+
+    ngs::Buffer buffer2(dataBuff2, sizeBuff);
+    GUInt16 val = 0;
+    for(int i = 0; i < 11; ++i)
+        val = buffer2.getUShort();
+
+    EXPECT_EQ(val, 10);
+
+    float fval = 0.0;
+    for(int i = 0; i < 5; ++i)
+        fval = buffer2.getFloat();
+
+    EXPECT_FLOAT_EQ(4.0, fval);
+}
 
 /*
 TEST(GlTests, TestCreate) {
