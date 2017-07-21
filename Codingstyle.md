@@ -31,7 +31,7 @@ Dataset* parentDS;
 Dataset* const dataset;
 but:
 const char n = *name;
-const char* pm = &m;
+name = &m;
 ```
 
 7. Variable name and functions - use camel style from lower case
