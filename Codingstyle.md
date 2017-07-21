@@ -29,7 +29,9 @@ const char* name;
 char** list;
 Dataset* parentDS;
 Dataset* const dataset;
+```
 but:
+```
 const char n = *name;
 name = &m;
 ```
