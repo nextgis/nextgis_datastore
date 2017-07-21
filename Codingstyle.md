@@ -66,8 +66,7 @@ explicit CADWrapperRasterBand( GDALRasterBand* poBaseBandIn )
 ```
  for( CADClass cadClass : classes )
 ```
-18. Don't use endl. http://en.cppreference.com/w/cpp/io/manip/endl
-    In many implementations, standard output is line-buffered, and writing '\n' causes a flush anyway, unless std::cout.sync_with_stdio(false) was executed. In those situations, unnecessary endl only degrades the performance of file output, not standard output.
+18. Don't use endl. http://en.cppreference.com/w/cpp/io/manip/endl : "In many implementations, standard output is line-buffered, and writing '\n' causes a flush anyway, unless std::cout.sync_with_stdio(false) was executed. In those situations, unnecessary endl only degrades the performance of file output, not standard output."
 19. Fit to 80 cols.
 20. Capitalize indicate and add a period to the end of the sentence. Here and all your other comments. Writing in as close to complete sentences reduces fatigue on many readers.
 21. Explain what the future holds for commented out code.
