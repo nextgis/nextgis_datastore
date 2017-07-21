@@ -59,12 +59,12 @@ explicit CADWrapperRasterBand( GDALRasterBand* poBaseBandIn )
     m_anotherVar = complexInit();
 }
 ```
-14. Localize these loop counters to the individual for loops unless you have a specific reason that they need to have such a large scope. And if so, comment why they need to be here.
+14. Localize loop counters to the individual for loops unless you have a specific reason that they need to have such a large scope. And if so, comment why they need to be here.
 15. Use C++ cast, do not use C cast.
 16. Add const, where necessary.
 17. Use const& for speed and safety in for-loop.
 ```
- for( CADClass cadClass : classes )
+ for (CADClass& cadClass : classes)
 ```
 18. Don't use endl. http://en.cppreference.com/w/cpp/io/manip/endl : "In many implementations, standard output is line-buffered, and writing '\n' causes a flush anyway, unless std::cout.sync_with_stdio(false) was executed. In those situations, unnecessary endl only degrades the performance of file output, not standard output."
 19. Fit to 80 cols.
