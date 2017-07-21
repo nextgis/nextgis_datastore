@@ -20,15 +20,18 @@ void test(int type)
 }
 ```
 
-6. The pointer star should be at right (not left).
+6. The pointer asterisk and reference ampersand signs in the variable's declaration should be at left (not right). In the dereferencing operation, the pointer asterisk sign must be on the right, close to the variable name. In the operation of taking the address, the  ampersand signs must be on the right, close to the variable name too.
 
 For example:
 ```
-const char *name
-char **list
-Dataset *parentDS
+const char& m = 'g';
+const char* name;
+char** list;
+Dataset* parentDS;
+Dataset* const dataset;
 but:
-Dataset * const dataset
+const char n = *name;
+const char* name = &m;
 ```
 
 7. Variable name and functions - use camel style from lower case
