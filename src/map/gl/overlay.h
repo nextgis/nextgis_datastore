@@ -26,7 +26,7 @@
 // stl
 #include <memory>
 
-#include "gl/layer.h"
+#include "layer.h"
 #include "map/overlay.h"
 
 namespace ngs
