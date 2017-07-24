@@ -141,9 +141,9 @@ bool LocalConnections::hasChildren()
 
 ObjectPtr LocalConnections::getObjectByLocalPath(const char *path)
 {
-    size_t len = CPLStrnlen(path, Catalog::getMaxPathLength());
+    size_t len = CPLStrnlen(path, Catalog::maxPathLength());
     for(const ObjectPtr& child : m_children) {
-        const CPLString &testPath = child->getPath();
+        const CPLString &testPath = child->path();
         if(len <= testPath.length())
             continue;
 
@@ -163,9 +163,9 @@ ObjectPtr LocalConnections::getObjectByLocalPath(const char *path)
                 }
 #endif
                 const char* subPath = endPath.c_str();
-                if(EQUALN(subPath, Catalog::getSeparator(),
-                          Catalog::getSeparator().length())) {
-                    subPath += Catalog::getSeparator().length();
+                if(EQUALN(subPath, Catalog::separator(),
+                          Catalog::separator().length())) {
+                    subPath += Catalog::separator().length();
                 }
                 if(container->hasChildren()) {
                     return container->getObject(subPath);

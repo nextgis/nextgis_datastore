@@ -76,7 +76,7 @@ bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectConta
     ObjectPtr fcObject;
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        CatalogPtr catalog = Catalog::getInstance();
+        CatalogPtr catalog = Catalog::instance();
         fcObject = catalog->getObject(path);
     }
     else { // relative path
@@ -94,7 +94,7 @@ CPLJSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
     CPLJSONObject out = Layer::save(objectContainer);
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        out.Add(LAYER_SOURCE_KEY, m_featureClass->getPath());
+        out.Add(LAYER_SOURCE_KEY, m_featureClass->path());
     }
     else { // relative path
         out.Add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_featureClass.get(),
@@ -121,7 +121,7 @@ bool RasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContai
     ObjectPtr fcObject;
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        CatalogPtr catalog = Catalog::getInstance();
+        CatalogPtr catalog = Catalog::instance();
         fcObject = catalog->getObject(path);
     }
     else { // relative path
@@ -143,7 +143,7 @@ CPLJSONObject RasterLayer::save(const ObjectContainer *objectContainer) const
     CPLJSONObject out = Layer::save(objectContainer);
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
-        out.Add(LAYER_SOURCE_KEY, m_raster->getPath());
+        out.Add(LAYER_SOURCE_KEY, m_raster->path());
     }
     else { // relative path
         out.Add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_raster.get(),

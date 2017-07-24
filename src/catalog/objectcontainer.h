@@ -43,6 +43,7 @@ public:
     virtual void clear();
     virtual void refresh() {}
     virtual bool hasChildren() { return !m_children.empty(); }
+    virtual bool isReadOnly() const { return true; }
     virtual bool canCreate(const enum ngsCatalogObjectType /*type*/) const {
         return false;
     }

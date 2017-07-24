@@ -89,7 +89,7 @@ typedef void (*ngsNotifyFunc)(const char* uri, enum ngsChangeCode operation);
  */
 
 NGS_EXTERNC int ngsGetVersion(const char* request);
-NGS_EXTERNC const char *ngsGetVersionString(const char* request);
+NGS_EXTERNC const char* ngsGetVersionString(const char* request);
 NGS_EXTERNC int ngsInit(char** options);
 NGS_EXTERNC void ngsUnInit();
 NGS_EXTERNC void ngsFreeResources(char full);
@@ -126,8 +126,8 @@ NGS_EXTERNC const char* ngsMD5(const char* value);
  * Catalog functions
  */
 
-NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char *path);
-NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char *path);
+NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
+NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object,
                                                         int filter);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
@@ -138,6 +138,11 @@ NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char* name,
                                        char** options);
 NGS_EXTERNC int ngsCatalogObjectLoad(CatalogObjectH srcObject,
                                      CatalogObjectH dstObject,
+                                     char** options,
+                                     ngsProgressFunc callback,
+                                     void* callbackData);
+NGS_EXTERNC int ngsCatalogObjectCopy(CatalogObjectH srcObject,
+                                     CatalogObjectH dstObjectContainer,
                                      char** options,
                                      ngsProgressFunc callback,
                                      void* callbackData);

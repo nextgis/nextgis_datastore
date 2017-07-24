@@ -32,7 +32,7 @@ namespace ngs {
 
 class ObjectContainer;
 class Object;
-typedef std::shared_ptr< Object > ObjectPtr;
+typedef std::shared_ptr<Object> ObjectPtr;
 /**
  * @brief The base class for catalog items
  */
@@ -44,16 +44,16 @@ public:
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Object() = default;
-    const CPLString &getName() const { return m_name; }
-    const CPLString &getPath() const { return m_path; }
-    enum ngsCatalogObjectType getType() const { return m_type; }
-    virtual CPLString getFullName() const;
+    const CPLString &name() const { return m_name; }
+    const CPLString &path() const { return m_path; }
+    enum ngsCatalogObjectType type() const { return m_type; }
+    virtual CPLString fullName() const;
     virtual bool destroy() { return false; }
     virtual bool canDestroy() const { return false; }
     virtual bool rename(const CPLString &/*newName*/)  { return false; }
     virtual bool canRename() const  { return false; }
-    ObjectContainer *getParent() const { return m_parent; }
-    virtual ObjectPtr getPointer() const;
+    ObjectContainer* parent() const { return m_parent; }
+    virtual ObjectPtr pointer() const;
 
 protected:
     void setName(const CPLString &value) { m_name = value; }

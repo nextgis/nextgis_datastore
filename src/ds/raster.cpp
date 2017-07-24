@@ -219,10 +219,10 @@ bool Raster::destroy()
 {
     if(Filter::isFileBased(m_type)) {
         if(File::deleteFile(m_path)) {
-            CPLString fullName = getFullName();
+            CPLString name = fullName();
             if(m_parent)
                 m_parent->notifyChanges();
-            Notify::instance().onNotify(fullName, ngsChangeCode::CC_DELETE_OBJECT);
+            Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
             return  true;
         }
     }

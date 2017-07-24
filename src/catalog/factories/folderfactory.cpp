@@ -48,9 +48,9 @@ void FolderFactory::createObjects(ObjectContainer * const container,
     bool deleted;
     while(it != names->end()) {
         deleted = false;
-        const char* path = CPLFormFilename(container->getPath(), *it, nullptr);
+        const char* path = CPLFormFilename(container->path(), *it, nullptr);
         if(Folder::isDir(path)) {
-            if(container->getType() ==
+            if(container->type() ==
                                 ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_DIR) { // Check if this is archive folder
                 if(m_zipSupported) {
                     CPLString vsiPath = Archive::getPathPrefix(

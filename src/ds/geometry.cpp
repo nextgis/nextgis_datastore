@@ -241,10 +241,20 @@ const Envelope &Envelope::intersect(const Envelope &other)
 
 void Envelope::fix()
 {
-    if(m_minX > m_maxX)
+    if(m_minX > m_maxX) {
         std::swap(m_minX, m_maxX);
-    if(m_minY > m_maxY)
+    }
+    if(m_minY > m_maxY) {
         std::swap(m_minY, m_maxY);
+    }
+    if(isEqual(m_minX, m_maxX)) {
+        m_minX -= std::numeric_limits<double>::epsilon();
+        m_maxX += std::numeric_limits<double>::epsilon();
+    }
+    if(isEqual(m_minY, m_maxY)) {
+        m_minY -= std::numeric_limits<double>::epsilon();
+        m_maxY += std::numeric_limits<double>::epsilon();
+    }
 }
 
 Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end)

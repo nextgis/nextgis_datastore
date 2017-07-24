@@ -28,20 +28,20 @@
 
 namespace ngs {
 
-static const char *shpMainExts[] = {"shx", "dbf", nullptr};
-static const char *shpExtraExts[] = {"sbn", "sbx", "cpg", "prj", "qix", "osf",
+static const char* shpMainExts[] = {"shx", "dbf", nullptr};
+static const char* shpExtraExts[] = {"sbn", "sbx", "cpg", "prj", "qix", "osf",
                                      Dataset::additionsDatasetExtension(),
                                      nullptr};
 constexpr FORMAT_EXT shpExt = {"shp", shpMainExts, shpExtraExts};
 
-static const char *tabMainExts[] = {"dat", "map", "id", "ind", nullptr};
-static const char *tabExtraExts[] = {"cpg", "qix", "osf",
+static const char* tabMainExts[] = {"dat", "map", "id", "ind", nullptr};
+static const char* tabExtraExts[] = {"cpg", "qix", "osf",
                                      Dataset::additionsDatasetExtension(),
                                      nullptr};
 constexpr FORMAT_EXT tabExt = {"tab", tabMainExts, tabExtraExts};
 
-static const char *mifMainExts[] = {"mid", nullptr};
-static const char *mifExtraExts[] = {"cpg", "qix", "osf",
+static const char* mifMainExts[] = {"mid", nullptr};
+static const char* mifExtraExts[] = {"cpg", "qix", "osf",
                                      Dataset::additionsDatasetExtension(),
                                      nullptr};
 constexpr FORMAT_EXT mifExt = {"mif", mifMainExts, mifExtraExts};
@@ -54,13 +54,13 @@ SimpleDatasetFactory::SimpleDatasetFactory() : ObjectFactory()
                 ngsCatalogObjectType::CAT_FC_MAPINFO_TAB);
 }
 
-const char *SimpleDatasetFactory::getName() const
+const char* SimpleDatasetFactory::getName() const
 {
     return _("Feature classes and tables");
 }
 
 void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
-                                         std::vector<const char *> * const names)
+                                         std::vector<const char*> * const names)
 {
     nameExtMap nameExts;
     auto it = names->begin();
@@ -78,7 +78,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
         FORMAT_RESULT result = isFormatSupported(
                     nameExtsItem.first, nameExtsItem.second, shpExt);
         if(result.isSupported) {
-            const char* path = CPLFormFilename(container->getPath(), result.name,
+            const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE,
@@ -91,7 +91,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
         FORMAT_RESULT result = isFormatSupported(
                             nameExtsItem.first, nameExtsItem.second, tabExt);
         if(result.isSupported) {
-            const char* path = CPLFormFilename(container->getPath(), result.name,
+            const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_FC_MAPINFO_TAB,
@@ -102,7 +102,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
         result = isFormatSupported(
                             nameExtsItem.first, nameExtsItem.second, mifExt);
         if(result.isSupported) {
-            const char* path = CPLFormFilename(container->getPath(), result.name,
+            const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_FC_MAPINFO_MIF,
@@ -117,7 +117,7 @@ void SimpleDatasetFactory::addChild(ObjectContainer * const container,
                                     const CPLString &path,
                                     enum ngsCatalogObjectType subType,
                                     const std::vector<CPLString> &siblingFiles,
-                                    std::vector<const char *> * const names)
+                                    std::vector<const char*> * const names)
 {
     ObjectFactory::addChild(container,
                             ObjectPtr(new SimpleDataset(subType, siblingFiles,

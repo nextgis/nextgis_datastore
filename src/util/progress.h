@@ -29,14 +29,18 @@ class Progress
 {
 public:
     explicit Progress(ngsProgressFunc progressFunc = nullptr,
-             void *progressArguments = nullptr);
+             void* progressArguments = nullptr);
     virtual ~Progress() = default;
     virtual bool onProgress(enum ngsCode status,
                             double complete,
-                            const char *format, ...) const;
+                            const char* format, ...) const;
+    virtual void setTotalSteps(unsigned char value) { m_totalSteps = value; }
+    virtual void setStep(unsigned char value) { m_step = value; }
 protected:
     ngsProgressFunc m_progressFunc;
-    void *m_progressArguments;
+    void* m_progressArguments;
+    unsigned char m_totalSteps;
+    unsigned char m_step;
 };
 
 }

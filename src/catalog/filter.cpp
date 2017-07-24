@@ -39,25 +39,25 @@ bool Filter::canDisplay(ObjectPtr object) const
         return true;
 
     // Always display containers except filtering of container type
-    if(isContainer(object->getType()) && !isContainer(type))
+    if(isContainer(object->type()) && !isContainer(type))
         return true;
 
-    if(object->getType() == type)
+    if(object->type() == type)
         return true;
 
-    if(isFeatureClass(object->getType()) && (type == CAT_FC_ANY ||
+    if(isFeatureClass(object->type()) && (type == CAT_FC_ANY ||
                                              type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isRaster(object->getType()) && (type == CAT_RASTER_ANY ||
+    if(isRaster(object->type()) && (type == CAT_RASTER_ANY ||
                                        type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isDatabase(object->getType()) && (type == CAT_CONTAINER_GDB ||
+    if(isDatabase(object->type()) && (type == CAT_CONTAINER_GDB ||
                                          type == CAT_CONTAINER_POSTGRES))
         return true;
 
-    if(isTable(object->getType()) && type == CAT_TABLE_ANY)
+    if(isTable(object->type()) && type == CAT_TABLE_ANY)
         return true;
 
     return false;
@@ -252,19 +252,19 @@ MultiFilter::MultiFilter() : Filter(CAT_UNKNOWN)
 bool MultiFilter::canDisplay(ObjectPtr object) const
 {
     for(const auto thisType : types) {
-        if(object->getType() == thisType)
+        if(object->type() == thisType)
             return true;
 
-        if(isContainer(object->getType()) && thisType == CAT_CONTAINER_ANY)
+        if(isContainer(object->type()) && thisType == CAT_CONTAINER_ANY)
             return true;
 
-        if(isFeatureClass(object->getType()) && thisType == CAT_FC_ANY)
+        if(isFeatureClass(object->type()) && thisType == CAT_FC_ANY)
             return true;
 
-        if(isRaster(object->getType()) && thisType == CAT_RASTER_ANY)
+        if(isRaster(object->type()) && thisType == CAT_RASTER_ANY)
             return true;
 
-        if(isTable(object->getType()) && thisType == CAT_TABLE_ANY)
+        if(isTable(object->type()) && thisType == CAT_TABLE_ANY)
             return true;
     }
             return false;

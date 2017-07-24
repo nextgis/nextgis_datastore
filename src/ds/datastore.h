@@ -52,7 +52,7 @@ public:
                       const Options &options = Options()) override;
 
 protected:
-    virtual bool isNameValid(const char *name) const override;
+    virtual bool isNameValid(const char* name) const override;
     virtual void fillFeatureClasses() override;
 
 protected:

@@ -98,9 +98,9 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         FORMAT_RESULT result = isFormatSupported(
                     nameExtsItem.first, nameExtsItem.second, tifExt);
         if(result.isSupported) {
-            const char* path = CPLFormFilename(container->getPath(), result.name,
+            const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
-            checkAdditionalSiblings(container->getPath(), result.name, tifAdds,
+            checkAdditionalSiblings(container->path(), result.name, tifAdds,
                                     result.siblingFiles);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_RASTER_TIFF,
@@ -109,9 +109,9 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         result = isFormatSupported(
                     nameExtsItem.first, nameExtsItem.second, tiffExt);
         if(result.isSupported) {
-            const char* path = CPLFormFilename(container->getPath(), result.name,
+            const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
-            checkAdditionalSiblings(container->getPath(), result.name, tifAdds,
+            checkAdditionalSiblings(container->path(), result.name, tifAdds,
                                     result.siblingFiles);
             addChild(container, result.name, path,
                      ngsCatalogObjectType::CAT_RASTER_TIFF,
@@ -122,7 +122,7 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
             if(EQUAL(nameExtsItem.second[0], remoteConnectionExtension())) {
                 CPLJSONDocument connectionFile;
-                const char* path = CPLFormFilename(container->getPath(),
+                const char* path = CPLFormFilename(container->path(),
                                                    nameExtsItem.first,
                                                    remoteConnectionExtension());
                 if(connectionFile.Load(path)) {

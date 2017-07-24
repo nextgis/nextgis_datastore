@@ -63,7 +63,7 @@ bool SimpleDataset::destroy()
     }
 
     for(const auto &siblingFile : m_siblingFiles) {
-        const char* path = CPLFormFilename(m_parent->getPath(), siblingFile, nullptr);
+        const char* path = CPLFormFilename(m_parent->path(), siblingFile, nullptr);
         File::deleteFile(path);
     }
 
@@ -71,14 +71,14 @@ bool SimpleDataset::destroy()
         m_parent->notifyChanges();
     }
 
-    Notify::instance().onNotify(getFullName(), ngsChangeCode::CC_DELETE_OBJECT);
+    Notify::instance().onNotify(fullName(), ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
 }
 
 void SimpleDataset::fillFeatureClasses()
 {
-    for(int i = 0; i < m_DS->GetLayerCount(); ++i){
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer* layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();

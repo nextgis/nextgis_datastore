@@ -91,7 +91,7 @@ bool Map::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
         LayerPtr layer = createLayer(DEFAULT_LAYER_NAME, type);
         if(nullptr != layer) {
             if(layer->load(layerConfig, m_relativePaths ?
-                           mapFile->getParent() : nullptr)) {
+                           mapFile->parent() : nullptr)) {
                 m_layers.push_back(layer);
             }
         }
@@ -112,7 +112,7 @@ bool Map::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 
     CPLJSONArray layers("layers");
     for(LayerPtr layer : m_layers) {
-        layers.Add(layer->save(m_relativePaths ? mapFile->getParent() : nullptr));
+        layers.Add(layer->save(m_relativePaths ? mapFile->parent() : nullptr));
     }
     root.Add(MAP_LAYERS_KEY, layers);
 
@@ -122,7 +122,7 @@ bool Map::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 bool Map::open(MapFile * const mapFile)
 {
     CPLJSONDocument doc;
-    if(!doc.Load(mapFile->getPath())) {
+    if(!doc.Load(mapFile->path())) {
         return false;
     }
 
@@ -138,7 +138,7 @@ bool Map::save(MapFile * const mapFile)
     if(!saveInternal(root, mapFile))
         return false;
 
-    return doc.Save(mapFile->getPath());
+    return doc.Save(mapFile->path());
 }
 
 bool Map::close()
@@ -151,7 +151,7 @@ bool Map::close()
 int Map::createLayer(const char * name, const ObjectPtr &object)
 {
     LayerPtr layer;
-    if(object->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+    if(object->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
         simpleDS->hasChildren();
         ObjectPtr internalObject = simpleDS->internalObject();
@@ -161,13 +161,13 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
     }
 
 
-    if(Filter::isFeatureClass(object->getType())) {
+    if(Filter::isFeatureClass(object->type())) {
         layer = createLayer(name, Layer::Type::Vector);
         FeatureLayer* newFCLayer = ngsStaticCast(FeatureLayer, layer);
         FeatureClassPtr fc = std::dynamic_pointer_cast<FeatureClass>(object);
         newFCLayer->setFeatureClass(fc);
     }
-    else if(Filter::isRaster(object->getType())) {
+    else if(Filter::isRaster(object->type())) {
         layer = createLayer(name, Layer::Type::Raster);
         RasterLayer* newRasterLayer = ngsStaticCast(RasterLayer, layer);
         RasterPtr raster = std::dynamic_pointer_cast<Raster>(object);
@@ -183,7 +183,7 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
     }
 
     errorMessage(ngsCode::COD_INVALID,
-                 _("Source '%s' is not valid dataset"), object->getPath().c_str());
+                 _("Source '%s' is not a valid dataset"), object->path().c_str());
 
     return NOT_FOUND;
 }

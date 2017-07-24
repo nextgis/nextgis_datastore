@@ -43,10 +43,10 @@ constexpr const char* OVR_TILE_KEY = "tile";
 class GDALDatasetPtr : public std::shared_ptr<GDALDataset>
 {
 public:
-    explicit GDALDatasetPtr(GDALDataset *ds);
+    explicit GDALDatasetPtr(GDALDataset* ds);
     GDALDatasetPtr();
     explicit GDALDatasetPtr(const GDALDatasetPtr& ds);
-    GDALDatasetPtr& operator=(GDALDataset *ds);
+    GDALDatasetPtr& operator=(GDALDataset* ds);
     operator GDALDataset*() const;
 };
 
@@ -58,26 +58,24 @@ class DatasetBase
 public:
     DatasetBase();
     virtual ~DatasetBase();
-    virtual const char *options(enum ngsOptionType optionType) const = 0;
+    virtual const char* options(enum ngsOptionType optionType) const = 0;
     virtual GDALDataset *getGDALDataset() const { return m_DS; }
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
-    virtual char **metadata(const char *domain) const {
+    virtual char** metadata(const char* domain) const {
         if(nullptr == m_DS)
             return nullptr;
         return m_DS->GetMetadata(domain);
     }
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
-    virtual bool isReadOnly() const;
-
 protected:
-    bool open(const char *path, unsigned int openFlags,
+    bool open(const char* path, unsigned int openFlags,
               const Options &options = Options());
-    const char *options(const enum ngsCatalogObjectType type,
+    const char* options(const enum ngsCatalogObjectType type,
                            enum ngsOptionType optionType) const;
 
 protected:
-    GDALDataset *m_DS;
+    GDALDataset* m_DS;
 };
 
 /**
@@ -129,6 +127,7 @@ public:
     // ObjectContainer interface
 public:
     virtual bool hasChildren() override;
+    virtual bool isReadOnly() const override;
     virtual int paste(ObjectPtr child, bool move = false,
                       const Options & options = Options(),
                       const Progress &progress = Progress()) override;
@@ -137,7 +136,7 @@ public:
 
     // static
 public:
-    static const char *additionsDatasetExtension();
+    static const char* additionsDatasetExtension();
 
 protected:
     static OGRLayer* createMetadataTable(GDALDataset* ds);

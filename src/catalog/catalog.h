@@ -37,7 +37,7 @@ class Catalog : public ObjectContainer
 public:
     Catalog();
     virtual ~Catalog() = default;
-    virtual CPLString getFullName() const override;
+    virtual CPLString fullName() const override;
     virtual ObjectPtr getObject(const char* path) override;
     virtual ObjectPtr getObjectByLocalPath(const char* path);
     virtual void freeResources();
@@ -49,14 +49,14 @@ public:
 
     // Object interface
 public:
-    virtual ObjectPtr getPointer() const override;
+    virtual ObjectPtr pointer() const override;
 
     // static
 public:
     static void setInstance(Catalog* pointer);
-    static CatalogPtr getInstance();
-    static CPLString getSeparator();
-    static unsigned short getMaxPathLength();
+    static CatalogPtr instance();
+    static CPLString separator();
+    static unsigned short maxPathLength();
     static CPLString toRelativePath(const Object* object,
                                     const ObjectContainer *objectContainer);
     static ObjectPtr fromRelativePath(const char* path,

@@ -38,7 +38,7 @@ class SpatialDataset {
 public:
     SpatialDataset() : m_spatialReference(nullptr) {}
     virtual ~SpatialDataset() = default;
-    virtual OGRSpatialReference *getSpatialReference() const {
+    virtual OGRSpatialReference* getSpatialReference() const {
         return m_spatialReference; }
 protected:
     OGRSpatialReference* m_spatialReference;
@@ -47,10 +47,14 @@ protected:
 class CoordinateTransformation
 {
 public:
-    explicit CoordinateTransformation(OGRSpatialReference *srcSRS,
-                             OGRSpatialReference *dstSRS);
+    explicit CoordinateTransformation(OGRSpatialReference* srcSRS,
+                             OGRSpatialReference* dstSRS);
     ~CoordinateTransformation();
-    bool transform(OGRGeometry *geom);
+    bool transform(OGRGeometry* geom) {
+        if(nullptr == m_oCT)
+            return false;
+        return geom->transform(m_oCT) == OGRERR_NONE;
+    }
 protected:
     // no copy constructor
     CoordinateTransformation(const CoordinateTransformation& /*other*/) = default;

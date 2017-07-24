@@ -36,7 +36,13 @@ public:
 
 public:
     static bool deleteFile(const char* path);
-
+    static time_t modificationDate(const char* path);
+    static bool copyFile(const char* src, const char* dst,
+                         const Progress &progress = Progress());
+    static bool moveFile(const char* src, const char* dst,
+                         const Progress &progress = Progress());
+    static bool renameFile(const char* src, const char* dst,
+                         const Progress &progress = Progress());
     // Object interface
 public:
     virtual bool destroy() override;

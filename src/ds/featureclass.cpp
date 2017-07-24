@@ -304,7 +304,7 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
     progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
                        _("Start copy features from '%s' to '%s'"),
-                       srcFClass->getName().c_str(), m_name.c_str());
+                       srcFClass->name().c_str(), m_name.c_str());
 
     bool skipEmpty = options.boolOption("SKIP_EMPTY_GEOMETRY", false);
     bool skipInvalid = options.boolOption("SKIP_INVALID_GEOMETRY", false);
@@ -386,7 +386,7 @@ bool FeatureClass::hasOverviews() const
     if(nullptr == dataset)
         return false;
 
-    return dataset->getOverviewsTable(getName());
+    return dataset->getOverviewsTable(name());
 }
 
 double FeatureClass::pixelSize(int zoom)
@@ -527,6 +527,7 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
     OGREnvelope env;
     geom->getEnvelope(&env);
     Envelope extent = env;
+    extent.fix();
 
     for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
         std::vector<TileItem> items = MapTransform::getTilesForExtent(extent,
@@ -563,12 +564,12 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                             _("Unsupported feature class"));
     }
 
-    m_ovrTable = parentDS->getOverviewsTable(getName());
+    m_ovrTable = parentDS->getOverviewsTable(name());
     if(nullptr == m_ovrTable) {
-        m_ovrTable = parentDS->createOverviewsTable(getName());
+        m_ovrTable = parentDS->createOverviewsTable(name());
     }
     else {
-        parentDS->clearOverviewsTable(getName());
+        parentDS->clearOverviewsTable(name());
     }
 
     // Fill overview layer with data
@@ -579,7 +580,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         return ngsCode::COD_SUCCESS;
     }
 
-    CPLString key(getName());
+    CPLString key(name());
     key += ".zoom_levels";
 
     parentDS->setMetadata(key, zoomLevelListStr);
@@ -657,7 +658,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
             }
         }
 
-        vtile = dataset->getTile(getName(), tile.x, tile.y, z);
+        vtile = dataset->getTile(name(), tile.x, tile.y, z);
         if(vtile.isValid()) {
             return vtile;
         }
@@ -956,7 +957,7 @@ bool FeatureClass::destroy()
         return false;
     }
 
-    dataset->destroyOverviewsTable(getName()); // Overviews table maybe not exists
+    dataset->destroyOverviewsTable(name()); // Overviews table maybe not exists
 
     return true;
 }

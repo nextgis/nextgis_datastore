@@ -125,7 +125,7 @@ bool Table::insertFeature(const FeaturePtr &feature)
         return false;
 
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
-        Notify::instance().onNotify(getFullName(),
+        Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_CREATE_FEATURE);
         return true;
     }
@@ -139,7 +139,7 @@ bool Table::updateFeature(const FeaturePtr &feature)
         return false;
 
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
-        Notify::instance().onNotify(getFullName(),
+        Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_CHANGE_FEATURE);
         return true;
     }
@@ -153,7 +153,7 @@ bool Table::deleteFeature(GIntBig id)
         return false;
 
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
-        Notify::instance().onNotify(getFullName(),
+        Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_DELETE_FEATURE);
         return true;
     }
@@ -191,7 +191,7 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
 
     progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
-                       srcTable->getName().c_str(), m_name.c_str());
+                       srcTable->name().c_str(), m_name.c_str());
 
     GIntBig featureCount = srcTable->featureCount();
     double counter = 0;
@@ -243,9 +243,9 @@ bool Table::destroy()
     if(nullptr == dataset) {
         return errorMessage(_("Parent is not dataset"));
     }
-    CPLString fullName = getFullName();
+    CPLString name = fullName();
     if(dataset->destroyTable(this)) {
-        Notify::instance().onNotify(fullName, ngsChangeCode::CC_DELETE_OBJECT);
+        Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
         return true;
     }
     return false;

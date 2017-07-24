@@ -23,7 +23,7 @@
 namespace ngs {
 
 CoordinateTransformation::CoordinateTransformation(
-        OGRSpatialReference *srcSRS, OGRSpatialReference *dstSRS)
+        OGRSpatialReference* srcSRS, OGRSpatialReference* dstSRS)
 {
     if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
         m_oCT = static_cast<OGRCoordinateTransformation*>(
@@ -41,10 +41,6 @@ CoordinateTransformation::~CoordinateTransformation()
                     reinterpret_cast<OGRCoordinateTransformationH>(m_oCT));
 }
 
-bool CoordinateTransformation::transform(OGRGeometry* geom) {
-    if(nullptr == m_oCT)
-        return false;
-    return geom->transform(m_oCT) == OGRERR_NONE;
-}
+
 
 }

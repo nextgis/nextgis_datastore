@@ -32,9 +32,9 @@ public:
 
     // ObjectFactory interface
 public:
-    virtual const char *getName() const override;
+    virtual const char* getName() const override;
     virtual void createObjects(ObjectContainer * const container,
-                               std::vector<const char *> * const names) override;
+                               std::vector<const char*> * const names) override;
 
 private:
     void addChild(ObjectContainer * const container,
@@ -42,7 +42,7 @@ private:
                   const CPLString& path,
                   enum ngsCatalogObjectType subType,
                   const std::vector<CPLString> &siblingFiles,
-                  std::vector<const char *> * const names);
+                  std::vector<const char*> * const names);
 
 private:
     bool m_shpSupported, m_miSupported;

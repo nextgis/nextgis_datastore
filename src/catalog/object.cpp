@@ -36,17 +36,17 @@ Object::Object(ObjectContainer *const parent,
 
 }
 
-CPLString Object::getFullName() const
+CPLString Object::fullName() const
 {
     CPLString out;
     if(nullptr != m_parent)
-        out = m_parent->getFullName();
-    out += Catalog::getSeparator() + m_name;
+        out = m_parent->fullName();
+    out += Catalog::separator() + m_name;
 
     return out;
 }
 
-ObjectPtr Object::getPointer() const
+ObjectPtr Object::pointer() const
 {
     for(const auto& child : m_parent->getChildren()) {
         if(child.get() == this)

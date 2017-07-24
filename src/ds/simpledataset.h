@@ -31,9 +31,10 @@ public:
     explicit SimpleDataset(enum ngsCatalogObjectType subType,
                   std::vector<CPLString> siblingFiles,
                   ObjectContainer * const parent = nullptr,
-                  const CPLString & name = "",
-                  const CPLString & path = "");
+                  const CPLString& name = "",
+                  const CPLString& path = "");
     ObjectPtr internalObject() const;
+    std::vector<CPLString> siblingFiles() const { return m_siblingFiles; }
 
     // Object interface
 public:
@@ -42,8 +43,12 @@ public:
     // ObjectContainer interface
 public:
     virtual bool hasChildren() override;
-    virtual bool canCreate(const enum ngsCatalogObjectType) const override { return false; }
-    virtual bool canPaste(const enum ngsCatalogObjectType) const override { return false; }
+    virtual bool canCreate(const enum ngsCatalogObjectType) const override {
+        return false;
+    }
+    virtual bool canPaste(const enum ngsCatalogObjectType) const override {
+        return false;
+    }
 
     // Dataset interface
     enum ngsCatalogObjectType subType() const { return m_subType; }

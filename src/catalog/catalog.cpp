@@ -55,7 +55,7 @@ Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
     m_showHidden = Settings::instance().getBool("catalog/show_hidden", true);
 }
 
-CPLString Catalog::getFullName() const
+CPLString Catalog::fullName() const
 {
     return CATALOG_PREFIX;
 }
@@ -78,7 +78,7 @@ ObjectPtr Catalog::getObjectByLocalPath(const char *path)
     // Find LocalConnections
     LocalConnections* localConnections = nullptr;
     for(const ObjectPtr &rootObject : m_children) {
-        if(rootObject->getType() == CAT_CONTAINER_LOCALCONNECTION) {
+        if(rootObject->type() == CAT_CONTAINER_LOCALCONNECTION) {
             localConnections = ngsDynamicCast(LocalConnections, rootObject);
             break;
         }
@@ -152,12 +152,12 @@ bool Catalog::hasChildren()
     return ObjectContainer::hasChildren();
 }
 
-CPLString Catalog::getSeparator()
+CPLString Catalog::separator()
 {
     return "/";
 }
 
-unsigned short Catalog::getMaxPathLength()
+unsigned short Catalog::maxPathLength()
 {
     return 1024;
 }
@@ -165,36 +165,36 @@ unsigned short Catalog::getMaxPathLength()
 CPLString Catalog::toRelativePath(const Object *object,
                                   const ObjectContainer *objectContainer)
 {
-    CPLString sep = getSeparator();
+    CPLString sep = separator();
     if(nullptr == object || nullptr == objectContainer)
         return "";
 
     std::vector<ObjectContainer*> parents;
-    ObjectContainer* parent = object->getParent();
+    ObjectContainer* parent = object->parent();
     if(parent == objectContainer) {
-        return "." + sep + object->getName();
+        return "." + sep + object->name();
     }
 
     while(parent != nullptr) {
         parents.push_back(parent);
-        parent = parent->getParent();
+        parent = parent->parent();
     }
 
     CPLString prefix("..");
-    parent = objectContainer->getParent();
+    parent = objectContainer->parent();
     while(parent != nullptr) {
         auto it = std::find(parents.begin(), parents.end(), parent);
         if(it != parents.end()) {
             --it; // skip common container
             while(it != parents.begin()) {
-                prefix += sep + (*it)->getName();
+                prefix += sep + (*it)->name();
                 --it;
             }
-            prefix += sep + (*it)->getName();
-            return prefix += sep + object->getName();
+            prefix += sep + (*it)->name();
+            return prefix += sep + object->name();
         }
         prefix += sep + "..";
-        parent = parent->getParent();
+        parent = parent->parent();
     }
 
     return "";
@@ -203,7 +203,7 @@ CPLString Catalog::toRelativePath(const Object *object,
 ObjectPtr Catalog::fromRelativePath(const char *path,
                                     ObjectContainer *objectContainer)
 {
-    CPLString sep = getSeparator();
+    CPLString sep = separator();
     // Remove separator from begining
     if(EQUALN(sep, path, sep.size()))
         path += sep.size();
@@ -249,13 +249,13 @@ void Catalog::setInstance(Catalog *pointer)
     gCatalog.reset(pointer);
 }
 
-CatalogPtr Catalog::getInstance()
+CatalogPtr Catalog::instance()
 {
     return gCatalog;
 }
-ObjectPtr Catalog::getPointer() const
+ObjectPtr Catalog::pointer() const
 {
-    return Catalog::getInstance();
+    return Catalog::instance();
 }
 
 }

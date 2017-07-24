@@ -24,15 +24,17 @@
 
 namespace ngs {
 
-Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
+Progress::Progress(ngsProgressFunc progressFunc, void* progressArguments ) :
     m_progressFunc(progressFunc),
-    m_progressArguments(progressArguments)
+    m_progressArguments(progressArguments),
+    m_totalSteps(1),
+    m_step(0)
 {
 
 }
 
 bool Progress::onProgress(ngsCode status, double complete,
-                          const char *format, ...) const
+                          const char* format, ...) const
 {
     if(nullptr == m_progressFunc)
         return true; // No cancel from user
@@ -41,7 +43,12 @@ bool Progress::onProgress(ngsCode status, double complete,
     va_start( args, format );
     message.vPrintf( format, args );
     va_end( args );
-    return m_progressFunc(status, complete, message, m_progressArguments) == 1;
+
+    double newComplete = complete / m_totalSteps + 1.0 / m_totalSteps * m_step;
+    if(status == ngsCode::COD_FINISHED && newComplete < 1.0) {
+        status = ngsCode::COD_IN_PROCESS;
+    }
+    return m_progressFunc(status, newComplete, message, m_progressArguments) == 1;
 }
 
 }

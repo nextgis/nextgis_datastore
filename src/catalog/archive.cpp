@@ -53,7 +53,7 @@ bool Archive::destroy()
     if(m_parent)
         m_parent->notifyChanges();
 
-    Notify::instance().onNotify(getFullName(), ngsChangeCode::CC_DELETE_OBJECT);
+    Notify::instance().onNotify(fullName(), ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
 }

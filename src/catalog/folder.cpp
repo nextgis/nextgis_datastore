@@ -26,6 +26,7 @@
 #include "file.h"
 #include "ds/datastore.h"
 #include "ds/raster.h"
+#include "ds/simpledataset.h"
 #include "factories/rasterfactory.h"
 #include "ngstore/catalog/filter.h"
 #include "util/notify.h"
@@ -48,15 +49,15 @@ bool Folder::hasChildren()
 
     if(m_parent) {
         m_childrenLoaded = true;
-        char **items = CPLReadDir(m_path);
+        char** items = CPLReadDir(m_path);
 
         // No children in folder
         if(nullptr == items)
             return false;
 
-        std::vector< const char* > objectNames = fillChildrenNames(items);
+        std::vector< const char*> objectNames = fillChildrenNames(items);
 
-        Catalog::getInstance()->createObjects(m_parent->getChild(m_name), objectNames);
+        Catalog::instance()->createObjects(m_parent->getChild(m_name), objectNames);
 
         CSLDestroy(items);
     }
@@ -64,13 +65,13 @@ bool Folder::hasChildren()
     return !m_children.empty();
 }
 
-bool Folder::isExists(const char *path)
+bool Folder::isExists(const char* path)
 {
     VSIStatBufL sbuf;
     return VSIStatL(path, &sbuf) == 0;
 }
 
-bool Folder::mkDir(const char *path)
+bool Folder::mkDir(const char* path)
 {
     if( VSIMkdir( path, 0755 ) != 0 )
         return errorMessage(_("Create folder failed! Folder '%s'"), path);
@@ -83,7 +84,7 @@ bool Folder::mkDir(const char *path)
 
 }
 
-bool Folder::isDir(const char *path)
+bool Folder::isDir(const char* path)
 {
     VSIStatBufL sbuf;
     return VSIStatL(path, &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
@@ -120,18 +121,19 @@ bool Folder::destroy()
         }
     }
     
-    CPLString fullName = getFullName();
-    if(m_parent)
+    CPLString name = fullName();
+    if(m_parent) {
         m_parent->notifyChanges();
-    
-    Notify::instance().onNotify(fullName, ngsChangeCode::CC_DELETE_OBJECT);
+    }
+
+    Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
 }
 
 bool Folder::canDestroy() const
 {
-    return access(m_path, W_OK) == 0;
+    return !isReadOnly(); // FIXME: Do we need to check parent too?
 }
 
 void Folder::refresh()
@@ -145,7 +147,7 @@ void Folder::refresh()
     if(m_parent) {
 
         // Fill add names array
-        char **items = CPLReadDir(m_path);
+        char** items = CPLReadDir(m_path);
 
         // No children in folder
         if(nullptr == items) {
@@ -153,12 +155,12 @@ void Folder::refresh()
             return;
         }
 
-        std::vector< const char* > deleteNames, addNames;
+        std::vector<const char*> deleteNames, addNames;
         addNames = fillChildrenNames(items);
 
         // Fill delete names array
         for(const ObjectPtr& child : m_children)
-            deleteNames.push_back(child->getName());
+            deleteNames.push_back(child->name());
 
         // Remove same names from add and delete arrays
         removeDuplicates(deleteNames, addNames);
@@ -166,7 +168,7 @@ void Folder::refresh()
         // Delete objects
         auto it = m_children.begin();
         while(it != m_children.end()) {
-            const char* name = (*it)->getName();
+            const char* name = (*it)->name();
             auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
             if(itdn != deleteNames.end()) {
                 deleteNames.erase(itdn);
@@ -178,10 +180,92 @@ void Folder::refresh()
         }
 
         // Add objects
-        Catalog::getInstance()->createObjects(m_parent->getChild(m_name), addNames);
+        Catalog::instance()->createObjects(m_parent->getChild(m_name), addNames);
 
         CSLDestroy(items);
     }
+}
+
+int Folder::paste(ObjectPtr child, bool move, const Options& options,
+                  const Progress& progress)
+{
+    CPLString newPath;
+    if(options.boolOption("CREATE_UNIQUE")) {
+        newPath = createUniquePath(m_path, child->name());
+    }
+    else {
+        newPath = CPLFormFilename(m_path, child->name(), nullptr);
+    }
+
+    if(EQUAL(child->path(), newPath)) {
+        return ngsCode::COD_SUCCESS;
+    }
+
+    File* file = ngsDynamicCast(File, child);
+    if(nullptr != file) {
+        if(move) {
+            return File::moveFile(child->path(), newPath, progress);
+        }
+        else {
+            return File::copyFile(child->path(), newPath, progress);
+        }
+    }
+
+    // TODO: Add support for FeatureClass/Table from SimpleDataset
+
+    SimpleDataset* sdts = ngsDynamicCast(SimpleDataset, child);
+    if(nullptr != sdts) {
+        // Get file list and copy file one by one
+        std::vector<CPLString> files = sdts->siblingFiles();
+        CPLString parentPath = sdts->parent()->path();
+        for(CPLString& file : files) {
+            file = parentPath + Catalog::separator() + file;
+        }
+        files.push_back(child->path());
+        unsigned char step = 0;
+        Progress newProgress(progress);
+        newProgress.setTotalSteps(static_cast<unsigned char>(files.size()));
+
+        CPLString srcConstPath = CPLResetExtension(child->path(), "");
+        srcConstPath.pop_back();
+        size_t constPathLen = srcConstPath.length();
+        CPLString dstConstPath = CPLResetExtension(newPath, "");
+        dstConstPath.pop_back();
+        for(auto file : files) {
+            newProgress.setStep(step++);
+            CPLString newFilePath = dstConstPath + file.substr(constPathLen);
+            if(move) {
+                if(!File::moveFile(file, newFilePath, newProgress)) {
+                    return ngsCode::COD_MOVE_FAILED;
+                }
+            }
+            else {
+                if(!File::copyFile(file, newFilePath, newProgress)) {
+                    return ngsCode::COD_MOVE_FAILED;
+                }
+            }
+        }
+        return ngsCode::COD_SUCCESS;
+    }
+
+    return move ? ngsCode::COD_MOVE_FAILED : ngsCode::COD_COPY_FAILED;
+}
+
+bool Folder::canPaste(const enum ngsCatalogObjectType type) const
+{
+    if(isReadOnly())
+        return false;
+    return Filter::isFileBased(type);
+}
+
+bool Folder::isReadOnly() const
+{
+    //  Is is working on Windows?
+    return access(m_path, W_OK) != 0;
+//    VSIStatBufL sbuf;
+//    return VSIStatL(m_path, &sbuf) == 0 && (sbuf.st_mode & S_IWUSR ||
+//                                            sbuf.st_mode & S_IWGRP ||
+//                                            sbuf.st_mode & S_IWOTH);
 }
 
 bool Folder::canCreate(const enum ngsCatalogObjectType type) const
@@ -239,8 +323,8 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
     }
 
     if(result) {
-        CPLString fullName = getFullName() + Catalog::getSeparator() + newName;
-        Notify::instance().onNotify(fullName, ngsChangeCode::CC_CREATE_OBJECT);
+        CPLString name = fullName() + Catalog::separator() + newName;
+        Notify::instance().onNotify(name, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     return result;
@@ -272,10 +356,10 @@ CPLString Folder::createUniquePath(const CPLString &path, const CPLString &name,
         return resultPath;
 }
 
-std::vector<const char *> Folder::fillChildrenNames(char **items)
+std::vector<const char*> Folder::fillChildrenNames(char** items)
 {
     std::vector<const char*> names;
-    CatalogPtr catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::instance();
     for(int i = 0; items[i] != nullptr; ++i) {
         if(EQUAL(items[i], ".") || EQUAL(items[i], ".."))
             continue;

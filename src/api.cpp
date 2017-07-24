@@ -240,7 +240,7 @@ void ngsFreeResources(char full)
         mapStore->freeResources();
     }
     if(full) {
-        CatalogPtr catalog = Catalog::getInstance();
+        CatalogPtr catalog = Catalog::instance();
         if(catalog) {
             catalog->freeResources();
         }
@@ -481,7 +481,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
         errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
-    ObjectPtr catalogObjectPointer = catalogObject->getPointer();
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
 
     ngsCatalogObjectInfo* output = nullptr;
     size_t outputSize = 0;
@@ -493,17 +493,17 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
 
         output = static_cast<ngsCatalogObjectInfo*>(
                     CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-        output[0] = {catalogObject->getName(), catalogObject->getType(), catalogObject};
+        output[0] = {catalogObject->name(), catalogObject->type(), catalogObject};
         output[1] = {nullptr, -1, nullptr};
         return output;
     }
 
     if(!container->hasChildren()) {
-        if(container->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        if(container->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
             SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
             output = static_cast<ngsCatalogObjectInfo*>(
                         CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-            output[0] = {catalogObject->getName(), simpleDS->subType(), catalogObject};
+            output[0] = {catalogObject->name(), simpleDS->subType(), catalogObject};
             output[1] = {nullptr, -1, nullptr};
             return output;
         }
@@ -521,15 +521,15 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
             output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
 
-            if(child->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+            if(child->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
                 SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
-                output[outputSize - 1] = {child->getName(),
+                output[outputSize - 1] = {child->name(),
                                           simpleDS->subType(),
                                           simpleDS->internalObject().get()};
             }
             else {
-                output[outputSize - 1] = {child->getName(),
-                                          child->getType(), child.get()};
+                output[outputSize - 1] = {child->name(),
+                                          child->type(), child.get()};
             }
         }
     }
@@ -625,7 +625,7 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char** optio
 
     return errorMessage(ngsCode::COD_UNSUPPORTED,
                         _("Cannot create such object type (%d) in path: %s"),
-                        type, catalogObject->getFullName().c_str());
+                        type, catalogObject->fullName().c_str());
 }
 
 /**
@@ -636,10 +636,10 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char** optio
  */
 const char* ngsCatalogPathFromSystem(const char* path)
 {
-    CatalogPtr catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObjectByLocalPath(path);
     if(object) {
-        return CPLSPrintf("%s", object->getFullName().c_str());
+        return CPLSPrintf("%s", object->fullName().c_str());
     }
     return "";
 }
@@ -667,8 +667,8 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
         return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
     }
 
-    ObjectPtr srcCatalogObjectPointer = srcCatalogObject->getPointer();
-    ObjectPtr dstCatalogObjectPointer = dstCatalogObject->getPointer();
+    ObjectPtr srcCatalogObjectPointer = srcCatalogObject->pointer();
+    ObjectPtr dstCatalogObjectPointer = dstCatalogObject->pointer();
 
     Progress progress(callback, callbackData);
     Options loadOptions(options);
@@ -678,10 +678,10 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
     if(move && !srcCatalogObjectPointer->canDestroy()) {
         return  errorMessage(ngsCode::COD_MOVE_FAILED,
                              _("Cannot move source dataset '%s'"),
-                             srcCatalogObjectPointer->getFullName().c_str());
+                             srcCatalogObjectPointer->fullName().c_str());
     }
 
-    if(srcCatalogObjectPointer->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+    if(srcCatalogObjectPointer->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(srcCatalogObject);
         dataset->hasChildren();
         srcCatalogObjectPointer = dataset->internalObject();
@@ -700,16 +700,53 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
     dstDataset->hasChildren();
 
     // Check can paster
-    if(dstDataset->canPaste(srcCatalogObjectPointer->getType())) {
+    if(dstDataset->canPaste(srcCatalogObjectPointer->type())) {
         return dstDataset->paste(srcCatalogObjectPointer, move, loadOptions, progress);
     }
 
     return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
                                ngsCode::COD_COPY_FAILED,
                         _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
-                        dstCatalogObjectPointer->getFullName().c_str(),
-                        srcCatalogObjectPointer->getFullName().c_str());
+                        dstCatalogObjectPointer->fullName().c_str(),
+                        srcCatalogObjectPointer->fullName().c_str());
 
+}
+
+
+int ngsCatalogObjectCopy(CatalogObjectH srcObject,
+                         CatalogObjectH dstObjectContainer, char** options,
+                         ngsProgressFunc callback, void* callbackData)
+{
+    Object* srcCatalogObject = static_cast<Object*>(srcObject);
+    ObjectContainer* dstCatalogObjectContainer =
+            static_cast<ObjectContainer*>(dstObjectContainer);
+    if(!srcCatalogObject || !dstCatalogObjectContainer) {
+        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+    }
+
+    ObjectPtr srcCatalogObjectPointer = srcCatalogObject->pointer();
+
+    Progress progress(callback, callbackData);
+    Options copyOptions(options);
+    bool move = copyOptions.boolOption("MOVE", false);
+    copyOptions.removeOption("MOVE");
+
+    if(move && !srcCatalogObjectPointer->canDestroy()) {
+        return  errorMessage(ngsCode::COD_MOVE_FAILED,
+                             _("Cannot move source dataset '%s'"),
+                             srcCatalogObjectPointer->fullName().c_str());
+    }
+
+    if(dstCatalogObjectContainer->canPaste(srcCatalogObjectPointer->type())) {
+        return dstCatalogObjectContainer->paste(srcCatalogObjectPointer, move,
+                                                copyOptions, progress);
+    }
+
+    return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
+                               ngsCode::COD_COPY_FAILED,
+                        _("Destination container '%s' cannot accept source dataset '%s'"),
+                        dstCatalogObjectContainer->fullName().c_str(),
+                        srcCatalogObjectPointer->fullName().c_str());
 }
 
 /**
@@ -728,7 +765,7 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char* newName)
     if(!catalogObject->canRename())
         return errorMessage(ngsCode::COD_RENAME_FAILED,
                             _("Cannot rename catalog object '%s' to '%s'"),
-                            catalogObject->getFullName().c_str(), newName);
+                            catalogObject->fullName().c_str(), newName);
 
     return catalogObject->rename(newName) ? ngsCode::COD_SUCCESS :
                                      ngsCode::COD_RENAME_FAILED;
@@ -749,10 +786,10 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
         return "";
     }
     Object* catalogObject = static_cast<Object*>(object);
-    if(!Filter::isDatabase(catalogObject->getType())) {
+    if(!Filter::isDatabase(catalogObject->type())) {
         errorMessage(ngsCode::COD_INVALID,
                             _("The input object not a dataset. The type is %d. Options query not supported"),
-                     catalogObject->getType());
+                     catalogObject->type());
         return "";
     }
 
@@ -774,7 +811,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
  */
 CatalogObjectH ngsCatalogObjectGet(const char* path)
 {
-    CatalogPtr catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(path);
     return object.get();
 }
@@ -788,7 +825,7 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
 {
     if(nullptr == object)
         return ngsCatalogObjectType::CAT_UNKNOWN;
-    return static_cast<Object*>(object)->getType();
+    return static_cast<Object*>(object)->type();
 }
 
 /**
@@ -800,7 +837,7 @@ const char* ngsCatalogObjectName(CatalogObjectH object)
 {
     if(nullptr == object)
         return "";
-    return static_cast<Object*>(object)->getName();
+    return static_cast<Object*>(object)->name();
 }
 
 char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
@@ -837,8 +874,8 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
         return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
     }
 
-    ObjectPtr catalogObjectPointer = catalogObject->getPointer();
-    if(catalogObjectPointer->getType() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(catalogObjectPointer->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
         dataset->hasChildren();
         catalogObjectPointer = dataset->internalObject();
@@ -849,12 +886,12 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
                             _("Source dataset type is incompatible"));
     }
 
-    if(!Filter::isFeatureClass(catalogObjectPointer->getType())) {
+    if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
         return errorMessage(ngsCode::COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
 
-    FeatureClass* featureClass = dynamic_cast<FeatureClass*>(catalogObject);
+    FeatureClass* featureClass = ngsDynamicCast(FeatureClass, catalogObjectPointer);
     if(!featureClass) {
         return errorMessage(ngsCode::COD_INVALID,
                             _("Source dataset type is incompatible"));
@@ -901,7 +938,7 @@ unsigned char ngsMapOpen(const char* path)
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
         return MapStore::invalidMapId();
-    CatalogPtr catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(path);
     MapFile * const mapFile = ngsDynamicCast(MapFile, object);
     return mapStore->openMap(mapFile);
@@ -919,7 +956,7 @@ int ngsMapSave(unsigned char mapId, const char* path)
     if(nullptr == mapStore) {
         return MapStore::invalidMapId();
     }
-    CatalogPtr catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::instance();
     ObjectPtr mapFileObject = catalog->getObject(path);
     MapFile * mapFile;
     if(mapFileObject) {
@@ -932,7 +969,7 @@ int ngsMapSave(unsigned char mapId, const char* path)
         ObjectPtr object = catalog->getObject(saveFolder);
         ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
         mapFile = new MapFile(container, saveName,
-                        CPLFormFilename(object->getPath(), saveName, nullptr));
+                        CPLFormFilename(object->path(), saveName, nullptr));
         mapFileObject = ObjectPtr(mapFile);
     }
 
@@ -1130,7 +1167,7 @@ int ngsMapCreateLayer(unsigned char mapId, const char* name, const char* path)
         return NOT_FOUND;
     }
 
-    CatalogPtr catalog = Catalog::getInstance();
+    CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(path);
     if(!object) {
         errorMessage(ngsCode::COD_INVALID,
@@ -1389,3 +1426,4 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 
     return (static_cast<Layer*>(layer))->datasource().get();
 }
+

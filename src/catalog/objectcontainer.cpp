@@ -36,7 +36,7 @@ ObjectContainer::ObjectContainer(ObjectContainer * const parent,
 
 ObjectPtr ObjectContainer::getObject(const char *path)
 {
-    CPLString separator = Catalog::getSeparator();
+    CPLString separator = Catalog::separator();
     // check relative paths
     if(EQUALN("..", path, 2))
         return m_parent->getObject(path + 2 + separator.size());
@@ -44,7 +44,7 @@ ObjectPtr ObjectContainer::getObject(const char *path)
     hasChildren();
 
     CPLString searchName;
-    size_t pathLen = CPLStrnlen(path, Catalog::getMaxPathLength());
+    size_t pathLen = CPLStrnlen(path, Catalog::maxPathLength());
 
     // Get first element
     for(size_t i = 0; i < pathLen; ++i) {
@@ -59,9 +59,9 @@ ObjectPtr ObjectContainer::getObject(const char *path)
     // Search child with name searchName
     for(const ObjectPtr& child : m_children) {
 #ifdef _WIN32 // No case sensitive compare on Windows
-        if(EQUAL(child->getName(), searchName)) {
+        if(EQUAL(child->name(), searchName)) {
 #else
-        if(child->getName().compare(searchName) == 0) {
+        if(child->name().compare(searchName) == 0) {
 #endif
             if(EQUAL(path, "")) {
                 // No more path elements
@@ -87,7 +87,7 @@ void ObjectContainer::clear()
 ObjectPtr ObjectContainer::getChild(const CPLString &name) const
 {
     for(const ObjectPtr& child : m_children) {
-        if(child->getName() == name)
+        if(child->name() == name)
             return child;
     }
     return ObjectPtr();

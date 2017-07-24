@@ -119,7 +119,7 @@ DataStore::~DataStore()
     delete m_spatialReference;
 }
 
-bool DataStore::isNameValid(const char *name) const
+bool DataStore::isNameValid(const char* name) const
 {
     if(nullptr == name || EQUAL(name, ""))
         return false;
@@ -151,7 +151,7 @@ void DataStore::fillFeatureClasses()
     }
 }
 
-bool DataStore::create(const char *path)
+bool DataStore::create(const char* path)
 {
     CPLErrorReset();
     if(nullptr == path || EQUAL(path, "")) {
@@ -159,7 +159,7 @@ bool DataStore::create(const char *path)
                             _("The path is empty"));
     }
 
-    GDALDriver *poDriver = Filter::getGDALDriver(
+    GDALDriver* poDriver = Filter::getGDALDriver(
                 ngsCatalogObjectType::CAT_CONTAINER_NGS);
     if(poDriver == nullptr) {
         return errorMessage(ngsCode::COD_CREATE_FAILED,
@@ -192,7 +192,7 @@ bool DataStore::create(const char *path)
     return true;
 }
 
-const char *DataStore::extension()
+const char* DataStore::extension()
 {
     return STORE_EXT;
 }
