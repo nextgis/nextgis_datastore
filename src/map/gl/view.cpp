@@ -399,7 +399,7 @@ void GlView::createOverlays()
     OverlayPtr overlay = getOverlay(MOT_EDIT);
     GlEditLayerOverlay* editOverlay =
             ngsDynamicCast(GlEditLayerOverlay, overlay);
-    editOverlay->setGeometry(GeometryPtr(new OGRPoint(37.0, 55.0)));
+    editOverlay->setGeometry(GeometryPtr(new OGRPoint(3700000.0, 5500000.0)));
     editOverlay->setVisible(true);
 }
 

@@ -55,9 +55,14 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
 
     switch (OGR_GT_Flatten(geometry->getGeometryType())) {
         case wkbPoint:
-        case wkbMultiPoint:
+        case wkbMultiPoint: {
             m_style = StylePtr(Style::createStyle("simplePoint"));
+            SimpleVectorStyle* vectorStyle =
+                    ngsDynamicCast(SimpleVectorStyle, m_style);
+            ngsRGBA color{255, 0, 0, 255};
+            vectorStyle->setColor(color);
             break;
+        }
         default:
             break;  // Not supported yet
     }
