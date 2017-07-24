@@ -26,6 +26,7 @@
 // stl
 #include <memory>
 
+#include "layer.h"
 #include "map/overlay.h"
 
 namespace ngs
@@ -34,40 +35,38 @@ namespace ngs
 class GlRenderOverlay
 {
 public:
-    GlRenderOverlay();
-    virtual ~GlRenderOverlay() = default;
+    GlRenderOverlay(const Matrix4& sceneMatrix, const Matrix4& invViewMatrix);
+    virtual ~GlRenderOverlay();
 
+    virtual bool fill(bool isLastTry) = 0;
     virtual bool draw() = 0;
-};
 
-typedef std::shared_ptr<GlRenderOverlay> GlRenderOverlayPtr;
-
-class GlCurrentLocationOverlay : public CurrentLocationOverlay,
-                                 public GlRenderOverlay
-{
-public:
-    explicit GlCurrentLocationOverlay();
-    virtual ~GlCurrentLocationOverlay() = default;
-
-    virtual bool draw() override;
-};
-
-class GlCurrentTrackOverlay : public CurrentTrackOverlay, public GlRenderOverlay
-{
-public:
-    explicit GlCurrentTrackOverlay();
-    virtual ~GlCurrentTrackOverlay() = default;
-
-    virtual bool draw() override;
+protected:
+    GlObjectPtr m_glBuffer;
+    const Matrix4& m_sceneMatrix;
+    const Matrix4& m_invViewMatrix;
+    StylePtr m_style;
+    CPLMutex* m_dataMutex;
 };
 
 class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 {
 public:
-    explicit GlEditLayerOverlay();
+    explicit GlEditLayerOverlay(
+            const Matrix4& sceneMatrix, const Matrix4& invViewMatrix);
     virtual ~GlEditLayerOverlay() = default;
 
+    // EditLayerOverlay interface
+public:
+    void setGeometry(GeometryPtr geometry);
+
+    // GlRenderOverlay interface
+public:
+    virtual bool fill(bool isLastTry) override;
     virtual bool draw() override;
+
+protected:
+    VectorGlObject* fillPoint();
 };
 
 }  // namespace ngs

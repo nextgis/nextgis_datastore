@@ -140,7 +140,7 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
 
         m_style->prepare(tile->getSceneMatrix(), tile->getInvViewMatrix(),
                          buff->type());
-        m_style->draw(*buff.get());
+        m_style->draw(*buff);
     }
     return true;
 }

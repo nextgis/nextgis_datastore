@@ -26,6 +26,7 @@
 // stl
 #include <memory>
 
+#include "ds/geometry.h"
 #include "ngstore/codes.h"
 
 namespace ngs
@@ -48,9 +49,9 @@ public:
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
-                return 1;
+//                return 1; // TODO
             case MOT_LOCATION:
-                return 2;
+//                return 2; // TODO
             default:
                 return -1;
         }
@@ -63,25 +64,17 @@ protected:
 
 typedef std::shared_ptr<Overlay> OverlayPtr;
 
-class CurrentLocationOverlay : public Overlay
-{
-public:
-    explicit CurrentLocationOverlay();
-    virtual ~CurrentLocationOverlay() = default;
-};
-
-class CurrentTrackOverlay : public Overlay
-{
-public:
-    explicit CurrentTrackOverlay();
-    virtual ~CurrentTrackOverlay() = default;
-};
-
 class EditLayerOverlay : public Overlay
 {
 public:
     explicit EditLayerOverlay();
     virtual ~EditLayerOverlay() = default;
+
+    void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
+    GeometryPtr geometry() const { return m_geometry; }
+
+protected:
+    GeometryPtr m_geometry;
 };
 
 }  // namespace ngs

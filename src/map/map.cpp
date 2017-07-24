@@ -54,7 +54,6 @@ Map::Map() :
     m_relativePaths(true),
     m_isClosed(false)
 {
-    createOverlays();
 }
 
 Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
@@ -67,7 +66,6 @@ Map::Map(const CPLString& name, const CPLString& description, unsigned short eps
     m_relativePaths(true),
     m_isClosed(false)
 {
-    createOverlays();
 }
 
 bool Map::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
@@ -234,19 +232,6 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
     return true;
 }
 
-OverlayPtr Map::getOverlay(ngsMapOverlyType type) const
-{
-    int index = Overlay::getOverlayIndexFromType(type);
-    if (-1 == index)
-        return nullptr;
-
-    size_t overlayIndex = static_cast<size_t>(index);
-    if (overlayIndex >= m_overlays.size())
-        return nullptr;
-
-    return m_overlays[overlayIndex];
-}
-
 LayerPtr Map::createLayer(const char* name, Layer::Type type)
 {
     switch (type) {
@@ -258,14 +243,6 @@ LayerPtr Map::createLayer(const char* name, Layer::Type type)
     case Layer::Type::Invalid:
         return LayerPtr(new Layer);
     }
-}
-
-void Map::createOverlays()
-{
-    // Push in reverse order
-    m_overlays.push_back(OverlayPtr(new EditLayerOverlay()));
-    m_overlays.push_back(OverlayPtr(new CurrentTrackOverlay()));
-    m_overlays.push_back(OverlayPtr(new CurrentLocationOverlay()));
 }
 
 }

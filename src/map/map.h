@@ -25,7 +25,6 @@
 #include "api_priv.h"
 
 #include "layer.h"
-#include "overlay.h"
 
 #include "ds/datastore.h"
 #include "ngstore/codes.h"
@@ -75,16 +74,11 @@ public:
     virtual bool deleteLayer(Layer* layer);
     virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);
 
-    size_t overlayCount() const { return m_overlays.size(); }
-    OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
-
 protected:
     virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
                                  enum Layer::Type type = Layer::Type::Invalid);
     virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile);
     virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile);
-
-    virtual void createOverlays();
 
 protected:
     CPLString m_name;
@@ -92,7 +86,6 @@ protected:
     unsigned short m_epsg;
     Envelope m_bounds;
     std::vector<LayerPtr> m_layers;
-    std::vector<OverlayPtr> m_overlays;
     ngsRGBA m_bkColor;
     bool m_relativePaths, m_isClosed;
 };

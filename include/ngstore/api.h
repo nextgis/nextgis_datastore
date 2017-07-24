@@ -217,7 +217,8 @@ NGS_EXTERNC CatalogObjectH ngsLayerGetDataSource(LayerH layer);
 
 
 NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
-NGS_EXTERNC void ngsMapOverlayEnable(unsigned char mapId, int overlayMask);
+NGS_EXTERNC int ngsOverlaySetVisible(
+        unsigned char mapId, ngsMapOverlyType typeMask, char visible);
 NGS_EXTERNC void ngsMapTouch(
         unsigned char mapId, double x, double y, const ngsMapTouchType type);
 
