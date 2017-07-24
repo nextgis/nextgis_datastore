@@ -49,9 +49,9 @@ public:
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
-                return 1;
+//                return 1; // TODO
             case MOT_LOCATION:
-                return 2;
+//                return 2; // TODO
             default:
                 return -1;
         }

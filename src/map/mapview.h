@@ -43,6 +43,7 @@ public:
 
     size_t overlayCount() const { return m_overlays.size(); }
     OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
+    void setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible);
 
     // Map interface
 protected:

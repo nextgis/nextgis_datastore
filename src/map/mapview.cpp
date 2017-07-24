@@ -122,4 +122,23 @@ OverlayPtr MapView::getOverlay(ngsMapOverlyType type) const
     return m_overlays[overlayIndex];
 }
 
+void MapView::setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible)
+{
+    OverlayPtr overlay;
+
+    // TODO:
+    //if (MOT_LOCATION & typeMask) {
+    //    overlay = getOverlay(MOT_LOCATION);
+    //    overlay->setVisible(visible);
+    //}
+    //if (MOT_TRACK & typeMask) {
+    //    overlay = getOverlay(MOT_TRACK);
+    //    overlay->setVisible(visible);
+    //}
+    if (MOT_EDIT & typeMask) {
+        overlay = getOverlay(MOT_EDIT);
+        overlay->setVisible(visible);
+    }
+}
+
 } // namespace ngs

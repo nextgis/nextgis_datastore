@@ -370,4 +370,14 @@ MapStore* MapStore::getInstance()
     return gMapStore.get();
 }
 
+bool MapStore::setOverlayVisible(
+        unsigned char mapId, ngsMapOverlyType typeMask, bool visible)
+{
+    MapViewPtr map = getMap(mapId);
+    if (!map)
+        return false;
+    map->setOverlayVisible(typeMask, visible);
+    return true;
+}
+
 }

@@ -709,7 +709,6 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
                         _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
                         dstCatalogObjectPointer->getFullName().c_str(),
                         srcCatalogObjectPointer->getFullName().c_str());
-
 }
 
 /**
@@ -1388,4 +1387,17 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
     }
 
     return (static_cast<Layer*>(layer))->datasource().get();
+}
+
+int ngsOverlaySetVisible(
+        unsigned char mapId, ngsMapOverlyType typeMask, char visible)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if (nullptr == mapStore) {
+        return errorMessage(
+                ngsCode::COD_DELETE_FAILED, _("MapStore is not initialized"));
+    }
+    return mapStore->setOverlayVisible(mapId, typeMask, visible)
+            ? ngsCode::COD_SUCCESS
+            : ngsCode::COD_SET_FAILED;
 }
