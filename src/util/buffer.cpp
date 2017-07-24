@@ -20,6 +20,8 @@
  ****************************************************************************/
 #include "buffer.h"
 
+#include <cstring>
+
 #include "cpl_conv.h"
 
 namespace ngs {
