@@ -109,4 +109,17 @@ bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
     return true;
 }
 
+OverlayPtr MapView::getOverlay(ngsMapOverlyType type) const
+{
+    int index = Overlay::getOverlayIndexFromType(type);
+    if (-1 == index)
+        return nullptr;
+
+    size_t overlayIndex = static_cast<size_t>(index);
+    if (overlayIndex >= m_overlays.size())
+        return nullptr;
+
+    return m_overlays[overlayIndex];
+}
+
 } // namespace ngs

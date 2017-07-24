@@ -91,14 +91,30 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
     }
 }
 
-bool GlView::layerDataFillJobThreadFunc(ThreadData *threadData)
+bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
 {
-    LayerFillData* data = static_cast<LayerFillData*>(threadData);
-    GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer, data->m_layer);
-    if(nullptr != renderLayer) {
-        return renderLayer->fill(data->m_tile, data->tries() >= MAX_TRIES);
+    LayerFillData* layerData = dynamic_cast<LayerFillData*>(threadData);
+    if (nullptr != layerData) {
+        GlRenderLayer* renderLayer =
+                ngsDynamicCast(GlRenderLayer, layerData->m_layer);
+        if (nullptr != renderLayer) {
+            return renderLayer->fill(
+                    layerData->m_tile, layerData->tries() >= MAX_TRIES);
+        }
+        return true;
     }
-    return true;
+
+    OverlayFillData* overlayData = dynamic_cast<OverlayFillData*>(threadData);
+    if (nullptr != overlayData) {
+        GlRenderOverlay* renderOverlay =
+                ngsDynamicCast(GlRenderOverlay, overlayData->m_overlay);
+        if (nullptr != renderOverlay) {
+            return renderOverlay->fill(overlayData->tries() >= MAX_TRIES);
+        }
+        return true;
+    }
+
+	return true;
 }
 
 #ifdef NGS_GL_DEBUG
@@ -152,6 +168,13 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
                  ++layerIt) {
                 const LayerPtr &layer = *layerIt;
                 m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
+            }
+        }
+        for (auto overlayIt = m_overlays.rbegin();
+                overlayIt != m_overlays.rend(); ++overlayIt) {
+            const OverlayPtr& overlay = *overlayIt;
+            if (overlay->visible()) {
+                m_threadPool.addThreadData(new OverlayFillData(overlay, true));
             }
         }
     [[clang::fallthrough]]; case DS_PRESERVED:
@@ -352,6 +375,7 @@ void GlView::freeOldTiles()
 
 void GlView::initView()
 {
+    createOverlays();
     m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
 }
 
@@ -365,9 +389,18 @@ double GlView::pixelSize(int zoom)
 void GlView::createOverlays()
 {
     // Push in reverse order
-    m_overlays.push_back(OverlayPtr(new GlEditLayerOverlay()));
-    m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
-    m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
+    m_overlays.push_back(OverlayPtr(
+            new GlEditLayerOverlay(m_sceneMatrix, m_invSceneMatrix)));
+    // TODO: add track and location overlays
+    //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
+    //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
+
+    // FIXME: Only for test, remove it.
+    OverlayPtr overlay = getOverlay(MOT_EDIT);
+    GlEditLayerOverlay* editOverlay =
+            ngsDynamicCast(GlEditLayerOverlay, overlay);
+    editOverlay->setGeometry(GeometryPtr(new OGRPoint(37.0, 55.0)));
+    editOverlay->setVisible(true);
 }
 
 #ifdef NGS_GL_DEBUG

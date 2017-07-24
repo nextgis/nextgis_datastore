@@ -23,6 +23,7 @@
 #define NGSGLVIEW_H
 
 #include "map/mapview.h"
+#include "map/overlay.h"
 #include "style.h"
 #include "tile.h"
 #include "util/threadpool.h"
@@ -103,6 +104,17 @@ private:
         virtual ~LayerFillData() = default;
         GlTilePtr m_tile;
         LayerPtr m_layer;
+    };
+    class OverlayFillData : public ThreadData
+    {
+    public:
+        OverlayFillData(OverlayPtr overlay, bool own)
+                : ThreadData(own)
+                , m_overlay(overlay)
+        {
+        }
+        virtual ~OverlayFillData() = default;
+        OverlayPtr m_overlay;
     };
 };
 

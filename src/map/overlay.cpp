@@ -31,18 +31,9 @@ Overlay::Overlay(ngsMapOverlyType type)
 {
 }
 
-CurrentLocationOverlay::CurrentLocationOverlay()
-        : Overlay(MOT_LOCATION)
-{
-}
-
-CurrentTrackOverlay::CurrentTrackOverlay()
-        : Overlay(MOT_TRACK)
-{
-}
-
 EditLayerOverlay::EditLayerOverlay()
         : Overlay(MOT_EDIT)
+        , m_geometry(nullptr)
 {
 }
 

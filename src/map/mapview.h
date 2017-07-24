@@ -23,8 +23,9 @@
 #define NGSMAPVIEW_H
 
 #include "map.h"
-
 #include "maptransform.h"
+
+#include "overlay.h"
 
 namespace ngs {
 
@@ -40,6 +41,9 @@ public:
     virtual ~MapView() = default;
     virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress());
 
+    size_t overlayCount() const { return m_overlays.size(); }
+    OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
+
     // Map interface
 protected:
     virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile) override;
@@ -47,6 +51,10 @@ protected:
 
 protected:
     virtual void clearBackground() = 0;
+    virtual void createOverlays() = 0;
+
+protected:
+    std::vector<OverlayPtr> m_overlays;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;
