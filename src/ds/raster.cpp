@@ -177,7 +177,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     CPLMutex *dataLock = nullptr;
 
     Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
-    CPLAcquireMutex(m_dataLock, 50.0);
+    CPLAcquireMutex(m_dataLock, 5.0);
 
     for(auto &lock : m_dataLocks) {
         if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
@@ -189,14 +189,14 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 
     bool exists = dataLock != nullptr;
     if(!exists) {
-        CPLMutexHolder holder(m_dataLock, 50.0);
+        CPLMutexHolder holder(m_dataLock, 5.0);
 
         dataLock = CPLCreateMutex();
         m_dataLocks.push_back({testEnv, dataLock, zoom});
     }
 
     if(exists) {
-        CPLAcquireMutex(dataLock, 60.0);
+        CPLAcquireMutex(dataLock, 6.0);
     }
 
     CPLErr result = m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff,
@@ -304,7 +304,7 @@ void Raster::freeLocks(bool all)
             size_t freeCount = m_dataLocks.size() - threadCount;
             for(size_t i = 0; i < freeCount; ++i) {
                 if(m_dataLocks[i].mutexRef) {
-                    CPLAcquireMutex(m_dataLocks[i].mutexRef, 1000.0);
+                    CPLAcquireMutex(m_dataLocks[i].mutexRef, 5.0);
                     CPLReleaseMutex(m_dataLocks[i].mutexRef);
                     CPLDestroyMutex(m_dataLocks[i].mutexRef);
                     m_dataLocks[i].mutexRef = nullptr;

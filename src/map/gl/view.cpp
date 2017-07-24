@@ -104,16 +104,6 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
         return true;
     }
 
-    OverlayFillData* overlayData = dynamic_cast<OverlayFillData*>(threadData);
-    if (nullptr != overlayData) {
-        GlRenderOverlay* renderOverlay =
-                ngsDynamicCast(GlRenderOverlay, overlayData->m_overlay);
-        if (nullptr != renderOverlay) {
-            return renderOverlay->fill(overlayData->tries() >= MAX_TRIES);
-        }
-        return true;
-    }
-
 	return true;
 }
 
@@ -170,13 +160,16 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
                 m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
             }
         }
-        for (auto overlayIt = m_overlays.rbegin();
-                overlayIt != m_overlays.rend(); ++overlayIt) {
-            const OverlayPtr& overlay = *overlayIt;
-            if (overlay->visible()) {
-                m_threadPool.addThreadData(new OverlayFillData(overlay, true));
-            }
-        }
+// Why this is needed? Overlay use constant data stored in it. This data is
+// rather small to load it in separate thread.
+// It is responsible by caller to add some data to overlay and than call redraw
+//        for (auto overlayIt = m_overlays.rbegin();
+//                overlayIt != m_overlays.rend(); ++overlayIt) {
+//            const OverlayPtr& overlay = *overlayIt;
+//            if (overlay->visible()) {
+//                m_threadPool.addThreadData(new OverlayFillData(overlay, true));
+//            }
+//        }
     [[clang::fallthrough]]; case DS_PRESERVED:
         bool result = drawTiles(progress);
         // Free unnecessary Gl objects as this call is in Gl context
@@ -252,8 +245,7 @@ bool GlView::drawTiles(const Progress &progress)
     glGetIntegerv( GL_VIEWPORT, viewport );
 
     double done = 0.0;
-    double totalDrawCalls =
-            m_layers.size() * m_tiles.size() + m_overlays.size() - 0.0000001;
+    double totalDrawCalls = m_layers.size() * m_tiles.size() - 0.0000001;
     for (const GlTilePtr& tile : m_tiles) {
         bool drawTile = true;
         if(tile->filled()) {
@@ -328,7 +320,6 @@ bool GlView::drawTiles(const Progress &progress)
             glOverlay->draw();
         }
     }
-    done += m_overlays.size();
 
 //    CPLDebug("ngstore", "Drawing %f of %f", done, totalDrawCalls);
     if(done >= totalDrawCalls) {
