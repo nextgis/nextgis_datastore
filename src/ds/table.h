@@ -37,7 +37,7 @@ public:
     const int &operator[](int key) const;
 };
 
-class FeaturePtr : public std::shared_ptr< OGRFeature >
+class FeaturePtr : public std::shared_ptr<OGRFeature>
 {
 public:
     FeaturePtr(OGRFeature* feature);

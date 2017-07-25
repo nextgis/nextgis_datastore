@@ -855,7 +855,7 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
         return nullptr;
     }
 
-    return datasetBase->metadata(domain);
+    return datasetBase->getMetadata(domain);
 }
 
 /**

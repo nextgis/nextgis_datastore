@@ -61,7 +61,7 @@ public:
     virtual const char* options(enum ngsOptionType optionType) const = 0;
     virtual GDALDataset *getGDALDataset() const { return m_DS; }
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
-    virtual char** metadata(const char* domain) const {
+    virtual char** getMetadata(const char* domain) const {
         if(nullptr == m_DS)
             return nullptr;
         return m_DS->GetMetadata(domain);
@@ -115,8 +115,8 @@ public:
                                const Options& options = Options(),
                                const Progress &progress = Progress());
 
-    virtual bool setMetadata(const char* key, const char* value);
-    virtual const char* metadata(const char* key, const char* defaultValue);
+    virtual bool setProperty(const char* key, const char* value);
+    virtual const char* getProperty(const char* key, const char* defaultValue);
 
 
     // Object interface
@@ -162,6 +162,7 @@ protected:
 protected:
     GDALDataset* m_addsDS;
     OGRLayer* m_metadata;
+    CPLMutex* m_executeSQLMutex;
 };
 
 }

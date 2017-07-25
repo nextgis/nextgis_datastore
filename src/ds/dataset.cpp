@@ -194,12 +194,15 @@ Dataset::Dataset(ObjectContainer * const parent,
     ObjectContainer(parent, type, name, path),
     DatasetBase(),
     m_addsDS(nullptr),
-    m_metadata(nullptr)
+    m_metadata(nullptr),
+    m_executeSQLMutex(CPLCreateMutex())
 {
+    CPLReleaseMutex(m_executeSQLMutex);
 }
 
 Dataset::~Dataset()
 {
+    CPLDestroyMutex(m_executeSQLMutex);
     GDALClose(m_addsDS);
     m_addsDS = nullptr;
 }
@@ -268,7 +271,7 @@ Table* Dataset::createTable(const CPLString &name,
                                                   wkbNone, options, progress));
 }
 
-bool Dataset::setMetadata(const char* key, const char* value)
+bool Dataset::setProperty(const char* key, const char* value)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -287,11 +290,11 @@ bool Dataset::setMetadata(const char* key, const char* value)
     return m_metadata->CreateFeature(feature) != OGRERR_NONE;
 }
 
-const char* Dataset::metadata(const char* key, const char* defaultValue)
+const char* Dataset::getProperty(const char* key, const char* defaultValue)
 {
     if(!m_metadata)
         return defaultValue;
-    m_metadata->SetAttributeFilter(CPLSPrintf("%s ILIKE %s", META_KEY, key));
+    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s\"", META_KEY, key));
     m_metadata->ResetReading();
     OGRFeature* feature = m_metadata->GetNextFeature();
     CPLString out;
@@ -785,6 +788,9 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
                 if(m_addsDS == nullptr) {
                     warningMessage(CPLGetLastErrorMsg());
                 }
+                else {
+                    m_metadata = m_addsDS->GetLayerByName(METHADATA_TABLE_NAME);
+                }
             }
         }
     }
@@ -865,21 +871,36 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
 VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)
 {
     VectorTile vtile;
-    TablePtr queryResult = executeSQL(
-                CPLSPrintf("SELECT %s FROM %s%s WHERE %s = %d AND %s = %d AND %s = %d",
-                           OVR_TILE_KEY, name, OVR_ADD, OVR_X_KEY, x, OVR_Y_KEY,
-                           y, OVR_ZOOM_KEY, z));
+
+    CPLMutexHolder holder(m_executeSQLMutex);
+
+    // CPLAcquireMutex(m_executeSQLMutex, 5.0);
+    CPLString statement = CPLSPrintf("SELECT %s FROM %s%s WHERE %s = %d AND %s = %d AND %s = %d",
+                                     OVR_TILE_KEY, name, OVR_ADD, OVR_X_KEY, x,
+                                     OVR_Y_KEY, y, OVR_ZOOM_KEY, z);
+    OGRLayer* layer = m_addsDS->ExecuteSQL(statement, nullptr, "");
+    if(nullptr == layer) {
+        // CPLReleaseMutex(m_executeSQLMutex);
+        return vtile;
+    }
+    TablePtr queryResult(new Table(layer, this,
+                                      ngsCatalogObjectType::CAT_QUERY_RESULT));
+
     if(queryResult && queryResult->featureCount() > 0) {
         queryResult->reset();
         FeaturePtr ovrTile = queryResult->nextFeature();
         if(ovrTile) {
+            // CPLReleaseMutex(m_executeSQLMutex);
+
             int size = 0;
             GByte* data = ovrTile->GetFieldAsBinary(0, &size);
-            Buffer buff(data, size);
+            Buffer buff(data, size, false);
             vtile.load(buff);
             return vtile;
         }
     }
+    // CPLReleaseMutex(m_executeSQLMutex);
+
     return vtile;
 }
 

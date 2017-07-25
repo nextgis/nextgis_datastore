@@ -32,23 +32,27 @@ Buffer::Buffer() :
     m_size(0),
     m_mallocSize(DEFAULT_BUFFER_SIZE),
     m_data(static_cast<GByte*>(CPLMalloc(DEFAULT_BUFFER_SIZE))),
-    m_currentPos(0)
+    m_currentPos(0),
+    m_own(true)
 {
 
 }
 
-Buffer::Buffer(GByte* data, int size) :
+Buffer::Buffer(GByte* data, int size, bool own) :
     m_size(size),
     m_mallocSize(size),
     m_data(data),
-    m_currentPos(0)
+    m_currentPos(0),
+    m_own(own)
 {
 
 }
 
 Buffer::~Buffer()
 {
-    CPLFree(m_data);
+    if(m_own) {
+        CPLFree(m_data);
+    }
 }
 
 Buffer&Buffer::put(GUInt32 val)

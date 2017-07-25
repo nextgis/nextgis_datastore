@@ -40,7 +40,7 @@
 namespace ngs {
 
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
-constexpr unsigned short TILE_SIZE = 256;
+constexpr unsigned short TILE_SIZE = 512; // 256;
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
 constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
 
@@ -72,7 +72,7 @@ void VectorTileItem::save(Buffer* buffer)
     }
 
     // vector<unsigned short> m_indices
-    buffer->put(static_cast<GUInt32>(m_points.size()));
+    buffer->put(static_cast<GUInt32>(m_indices.size()));
     for(auto index : m_indices) {
         buffer->put(index);
     }
@@ -184,6 +184,9 @@ void VectorTileItem::loadIds(const VectorTileItem &item)
 
 void VectorTile::add(const VectorTileItem &item, bool checkDuplicates)
 {
+    if(!item.isValid()) {
+        return;
+    }
     if(checkDuplicates) {
         auto it = std::find(m_items.begin(), m_items.end(), item);
         if(it == m_items.end()) {
@@ -195,6 +198,10 @@ void VectorTile::add(const VectorTileItem &item, bool checkDuplicates)
     }
     else {
         m_items.push_back(item);
+    }
+
+    if(!m_valid) {
+        m_valid = !m_items.empty();
     }
 }
 
@@ -217,7 +224,7 @@ bool VectorTile::load(Buffer& buffer)
         m_items.push_back(item);
     }
     m_valid = true;
-    return false;
+    return true;
 }
 
 // TODO: OGRGeometry::DelaunayTriangulation
@@ -380,11 +387,14 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
 bool FeatureClass::hasOverviews() const
 {
-    if(nullptr != m_ovrTable)
+    if(nullptr != m_ovrTable) {
         return true;
+    }
+
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset)
+    if(nullptr == dataset) {
         return false;
+    }
 
     return dataset->getOverviewsTable(name());
 }
@@ -583,7 +593,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     CPLString key(name());
     key += ".zoom_levels";
 
-    parentDS->setMetadata(key, zoomLevelListStr);
+    parentDS->setProperty(key, zoomLevelListStr);
 
     // Tile and simplify geometry
     progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
@@ -598,12 +608,19 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         threadPool.addThreadData(new TilingData(this, feature, true));
     }
 
-    threadPool.waitComplete(progress);
+    Progress newProgress(progress);
+    newProgress.setTotalSteps(2);
+    threadPool.waitComplete(newProgress);
 
     // Save tiles
     // TODO: If ngstore disable journal in DS
 
+    double counter = 0.0;
+    newProgress.setStep(1);
     for(auto item : m_genTiles) {
+        if(!item.second.isValid()) {
+            continue;
+        }
         BufferPtr data = item.second.save();
 
         OGRFeature* feature = OGRFeature::CreateFeature(
@@ -620,6 +637,9 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         }
         OGRFeature::DestroyFeature(feature);
 
+        newProgress.onProgress(ngsCode::COD_IN_PROCESS, counter/m_genTiles.size(),
+                               _("Save tiles ..."));
+        counter++;
     }
 
     // TODO: Enable journal back
@@ -643,24 +663,33 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
         return vtile;
     }
 
-    if(hasOverviews() && tile.z <= *m_zoomLevels.rbegin()) {
-        // Get closest zoom level
-        unsigned char diff = 127;
-        unsigned char z = 0;
-        for(auto zoomLevel : m_zoomLevels) {
-            unsigned char newDiff = static_cast<unsigned char>(
-                        ABS(zoomLevel - tile.z));
-            if(newDiff < diff) {
-                z = zoomLevel;
-                diff = newDiff;
-                if(diff == 0)
-                    break;
-            }
+    if(hasOverviews()) {
+        if(m_zoomLevels.empty()) {
+            CPLString key(name());
+            key += ".zoom_levels";
+            fillZoomLevels(dataset->getProperty(key, ""));
         }
 
-        vtile = dataset->getTile(name(), tile.x, tile.y, z);
-        if(vtile.isValid()) {
-            return vtile;
+        if(tile.z <= *m_zoomLevels.rbegin()) {
+
+            // Get closest zoom level
+            unsigned char diff = 127;
+            unsigned char z = 0;
+            for(auto zoomLevel : m_zoomLevels) {
+                unsigned char newDiff = static_cast<unsigned char>(
+                            ABS(zoomLevel - tile.z));
+                if(newDiff < diff) {
+                    z = zoomLevel;
+                    diff = newDiff;
+                    if(diff == 0)
+                        break;
+                }
+            }
+
+            vtile = dataset->getTile(name(), tile.x, tile.y, z);
+//            if(vtile.isValid()) {
+                return vtile;
+//            }
         }
     }
 

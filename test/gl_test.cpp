@@ -23,6 +23,7 @@
 
 #include "cpl_conv.h"
 
+#include "ds/featureclass.h"
 #include "util/buffer.h"
 
 TEST(GlTests, TestTileBuffer) {
@@ -54,6 +55,61 @@ TEST(GlTests, TestTileBuffer) {
         fval = buffer2.getFloat();
 
     EXPECT_FLOAT_EQ(4.0, fval);
+}
+
+TEST(GlTests, TestTileBufferSaveLoad) {
+    ngs::VectorTile vtile0;
+
+    ngs::VectorTileItem vitem0;
+    vitem0.addPoint({12345.6f, 65432.1f});
+    vitem0.addIndex(0);
+    vitem0.addId(777);
+    vitem0.setValid(true);
+    vtile0.add(vitem0, true);
+
+    ngs::VectorTileItem vitem1;
+    vitem1.addPoint({23456.7f, 76543.2f});
+    vitem1.addIndex(0);
+    vitem1.addId(555);
+    vitem1.setValid(true);
+    vtile0.add(vitem1, true);
+
+    ngs::VectorTileItem vitem2;
+    vitem2.addPoint({12345.6f, 65432.1f});
+    vitem2.addIndex(0);
+    vitem2.addId(888);
+    vitem2.setValid(true);
+    vtile0.add(vitem2, true);
+
+    ngs::BufferPtr buffer = vtile0.save();
+
+    ngs::VectorTile vtile1;
+    buffer->seek(0);
+    vtile1.load(*buffer.get());
+
+    EXPECT_EQ(vtile1.items().size(), 2);
+
+    ngs::VectorTileItem vitem3 = vtile1.items()[0];
+    EXPECT_EQ(vitem3.pointCount(), 1);
+    ngs::SimplePoint pt0 = vitem3.point(0);
+    EXPECT_FLOAT_EQ(pt0.x, 12345.6f);
+    EXPECT_FLOAT_EQ(pt0.y, 65432.1f);
+
+    std::set<GIntBig> idset1;
+    idset1.insert(777);
+    idset1.insert(888);
+    EXPECT_EQ(vitem3.isIdsPresent(idset1), true);
+
+    ngs::VectorTileItem vitem4 = vtile1.items()[1];
+    EXPECT_EQ(vitem4.pointCount(), 1);
+
+    ngs::SimplePoint pt1 = vitem4.point(0);
+    EXPECT_FLOAT_EQ(pt1.x, 23456.7f);
+    EXPECT_FLOAT_EQ(pt1.y, 76543.2f);
+
+    std::set<GIntBig> idset2;
+    idset2.insert(555);
+    EXPECT_EQ(vitem4.isIdsPresent(idset2), true);
 }
 
 /*

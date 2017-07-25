@@ -31,7 +31,7 @@ class Buffer
 {
 public:
     Buffer();
-    Buffer(GByte* data, int size);
+    Buffer(GByte* data, int size, bool own = true);
     ~Buffer();
 
     // getters
@@ -59,6 +59,7 @@ private:
     int m_mallocSize;
     GByte* m_data;
     size_t m_currentPos;
+    bool m_own;
 };
 
 typedef std::shared_ptr<Buffer> BufferPtr;

@@ -62,12 +62,14 @@ public:
     }
     bool isValid() const { return m_valid; }
     void setValid(bool valid) { m_valid = valid; }
-    void loadIds(const VectorTileItem& item);
     bool operator==(const VectorTileItem& other) const {
         return m_points == other.m_points;
     }
-    bool isIdsPresent(std::set<GIntBig> other) const { return m_ids == other; }
+    bool isIdsPresent(std::set<GIntBig> other) const {
+        return std::includes(other.begin(), other.end(), m_ids.begin(), m_ids.end());
+    }
 protected:
+    void loadIds(const VectorTileItem& item);
     void save(Buffer* buffer);
     bool load(Buffer& buffer);
 private:
@@ -137,7 +139,7 @@ public:
     std::set<unsigned char> zoomLevels() const { return m_zoomLevels; }
     void addOverviewItem(const Tile& tile, const VectorTileItem& item) {
         CPLMutexHolder holder(m_genTileMutex, 50.0);
-        m_genTiles[tile].add(item);
+        m_genTiles[tile].add(item, true);
     }
 
     // static
