@@ -772,6 +772,10 @@ TablePtr Dataset::executeSQL(const char* statement,
 
 bool Dataset::open(unsigned int openFlags, const Options &options)
 {
+    if(isOpened()) {
+        return true;
+    }
+
     bool result = DatasetBase::open(m_path, openFlags, options);
     if(result) {
         if(Filter::isDatabase(type())) {

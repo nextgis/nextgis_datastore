@@ -383,6 +383,49 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     ngsUnInit();
 }
 
+TEST(DataStoreTests, TestCreateFeatureClass) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), ngsCode::COD_SUCCESS);
+
+    ngsDestroyList(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString storePath = catalogPath + "/tmp/main.ngst";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);
+    ngsFree(pathInfo);
+
+    options = nullptr;
+    options = ngsAddNameValue(options, "TYPE",
+                              CPLSPrintf("%d", ngsCatalogObjectType::CAT_FC_GPKG));
+    options = ngsAddNameValue(options, "SOURCE_URL", "https://nextgis.com");
+    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "POINT");
+    options = ngsAddNameValue(options, "FIELD_COUNT", "3");
+    options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsAddNameValue(options, "FIELD_0_NAME", "type");
+    options = ngsAddNameValue(options, "FIELD_0_ALIAS", "тип");
+    options = ngsAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsAddNameValue(options, "FIELD_2_TYPE", "REAL");
+    options = ngsAddNameValue(options, "FIELD_2_NAME", "val");
+    options = ngsAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options),
+              ngsCode::COD_SUCCESS);
+    ngsDestroyList(options);
+
+    CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/new_layer"));
+    EXPECT_NE(newFC, nullptr);
+
+    ngsUnInit();
+}
+
 TEST(DataStoreTest, TestCreateVectorOverviews) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");

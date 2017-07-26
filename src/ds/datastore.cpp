@@ -269,17 +269,25 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
                                 _("Unsupported geometry type"));
         }
 
-        FeatureClass* fc = createFeatureClass(newName, &fieldDefinition,
+        ObjectPtr fc(createFeatureClass(newName, &fieldDefinition,
                                               m_spatialReference, geomType,
-                                              options);
-        if(nullptr == fc) {
+                                              options));
+        if(!fc) {
             return false;
+        }
+
+        if(m_childrenLoaded) {
+            m_children.push_back(fc);
         }
     }
     else if(type == ngsCatalogObjectType::CAT_TABLE_GPKG) {
-        Table* t = createTable(newName, &fieldDefinition, options);
+        ObjectPtr t(createTable(newName, &fieldDefinition, options));
         if(nullptr == t) {
             return false;
+        }
+
+        if(m_childrenLoaded) {
+            m_children.push_back(t);
         }
     }
 
