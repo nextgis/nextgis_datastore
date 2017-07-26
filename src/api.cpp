@@ -1253,32 +1253,6 @@ ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
 }
 
 /**
- * @brief ngsDisplayGetPosition Display position for geographic coordinates
- * @param mapId Map id
- * @param x X coordinate
- * @param y Y coordinate
- * @return Display position
- */
-//ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
-//{
-//    initMapStore();
-//    return gMapStore->getDisplayPosition (mapId, x, y);
-//}
-
-/**
- * @brief ngsDisplayGetLength Display length from map distance
- * @param mapId Map id
- * @param w Width
- * @param h Height
- * @return ngsPosition where X length along x axis and Y along y axis
- */
-//ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
-//{
-//    initMapStore();
-//    return gMapStore->getDisplayLength (mapId, w, h);
-//}
-
-/**
  * @brief ngsMapLayerCount Returns layer count in map
  * @param mapId Map id
  * @return Layer count in map
@@ -1389,14 +1363,15 @@ int ngsLayerSetName(LayerH layer, const char* name)
 }
 
 /**
- * @brief ngsLayerGetVisible Gets if layer is visible
+ * @brief ngsLayerGetVisible Returns layer visible state
  * @param layer Layer handler
  * @return true if visible or false
  */
 char ngsLayerGetVisible(LayerH layer)
 {
     if(nullptr == layer) {
-        return errorMessage(ngsCode::COD_GET_FAILED, _("Layer pointer is null"));
+        return static_cast<char>(errorMessage(ngsCode::COD_GET_FAILED,
+                                              _("Layer pointer is null")));
     }
     return (static_cast<Layer*>(layer))->visible();
 }
@@ -1427,18 +1402,6 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
     return (static_cast<Layer*>(layer))->datasource().get();
 }
 
-int ngsOverlaySetVisible(
-        unsigned char mapId, ngsMapOverlyType typeMask, char visible)
-{
-    MapStore* const mapStore = MapStore::getInstance();
-    if (nullptr == mapStore) {
-        return errorMessage(
-                ngsCode::COD_DELETE_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->setOverlayVisible(mapId, typeMask, visible)
-            ? ngsCode::COD_SUCCESS
-            : ngsCode::COD_SET_FAILED;
-}
 
 int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
 {
@@ -1496,3 +1459,47 @@ int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
 
     return ngsCode::COD_SUCCESS;
 }
+
+//------------------------------------------------------------------------------
+// Overlay
+//------------------------------------------------------------------------------
+
+int ngsOverlaySetVisible(
+        unsigned char mapId, ngsMapOverlyType typeMask, char visible)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if (nullptr == mapStore) {
+        return errorMessage(
+                ngsCode::COD_DELETE_FAILED, _("MapStore is not initialized"));
+    }
+    return mapStore->setOverlayVisible(mapId, typeMask, visible)
+            ? ngsCode::COD_SUCCESS
+            : ngsCode::COD_SET_FAILED;
+}
+
+
+/**
+ * @brief ngsDisplayGetPosition Display position for geographic coordinates
+ * @param mapId Map id
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @return Display position
+ */
+//ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
+//{
+//    initMapStore();
+//    return gMapStore->getDisplayPosition (mapId, x, y);
+//}
+
+/**
+ * @brief ngsDisplayGetLength Display length from map distance
+ * @param mapId Map id
+ * @param w Width
+ * @param h Height
+ * @return ngsPosition where X length along x axis and Y along y axis
+ */
+//ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
+//{
+//    initMapStore();
+//    return gMapStore->getDisplayLength (mapId, w, h);
+//}

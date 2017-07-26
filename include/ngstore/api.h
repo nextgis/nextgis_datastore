@@ -200,6 +200,9 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom);
 NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
                                       double maxX, double maxY);
+NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
+NGS_EXTERNC void ngsMapTouch(
+        unsigned char mapId, double x, double y, const ngsMapTouchType type);
 
 /**
  * Layer functions
@@ -210,18 +213,17 @@ NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 NGS_EXTERNC char ngsLayerGetVisible(LayerH layer);
 NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, char visible);
 NGS_EXTERNC CatalogObjectH ngsLayerGetDataSource(LayerH layer);
+NGS_EXTERNC int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer);
+
+/**
+ * Overlay functions
+ */
+
+NGS_EXTERNC int ngsOverlaySetVisible(
+        unsigned char mapId, ngsMapOverlyType typeMask, char visible);
+
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
-
-
-NGS_EXTERNC int ngsOverlaySetVisible(
-        unsigned char mapId, ngsMapOverlyType typeMask, char visible);
-NGS_EXTERNC int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer);
-
-NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
-NGS_EXTERNC void ngsMapTouch(
-        unsigned char mapId, double x, double y, const ngsMapTouchType type);
-
 #endif // NGSAPI_H
