@@ -219,6 +219,86 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     return true;
 }
 
+bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
+{
+    if(!isOpened() || isReadOnly())
+        return false;
+    return type == ngsCatalogObjectType::CAT_FC_GPKG ||
+            type == ngsCatalogObjectType::CAT_TABLE_GPKG;
+
+}
+
+bool DataStore::create(const enum ngsCatalogObjectType type,
+                       const CPLString& name, const Options& options)
+{
+    CPLString newName = normalizeDatasetName(name);
+
+    // Get field definitions
+    OGRFeatureDefn fieldDefinition(newName);
+    int fieldCount = options.intOption("FIELD_COUNT", 0);
+    struct fieldData {
+        CPLString name, alias;
+    };
+    std::vector<fieldData> fields;
+
+    for(int i = 0; i < fieldCount; ++i) {
+        CPLString fieldName = options.stringOption(CPLSPrintf("FIELD_%d_NAME", i), "");
+        if(fieldName.empty()) {
+            return errorMessage(ngsCode::COD_CREATE_FAILED,
+                                _("Name for field %d is not defined"), i);
+        }
+
+        CPLString fieldAlias = options.stringOption(CPLSPrintf("FIELD_%d_ALIAS", i), "");
+        if(fieldAlias.empty()) {
+            fieldAlias = fieldName;
+        }
+        fieldData data = { fieldName, fieldAlias };
+        fields.push_back(data);
+
+        OGRFieldType fieldType = FeatureClass::fieldTypeFromName(
+                    options.stringOption(CPLSPrintf("FIELD_%d_TYPE", i), ""));
+        OGRFieldDefn field(fieldName, fieldType);
+        fieldDefinition.AddFieldDefn(&field);
+    }
+
+    if(type == ngsCatalogObjectType::CAT_FC_GPKG) {
+        OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
+                    options.stringOption("GEOMETRY_TYPE", ""));
+        if(wkbUnknown == geomType) {
+            return errorMessage(ngsCode::COD_CREATE_FAILED,
+                                _("Unsupported geometry type"));
+        }
+
+        FeatureClass* fc = createFeatureClass(newName, &fieldDefinition,
+                                              m_spatialReference, geomType,
+                                              options);
+        if(nullptr == fc) {
+            return false;
+        }
+    }
+    else if(type == ngsCatalogObjectType::CAT_TABLE_GPKG) {
+        Table* t = createTable(newName, &fieldDefinition, options);
+        if(nullptr == t) {
+            return false;
+        }
+    }
+
+    // Store aliases and field original names in properties
+    for(size_t i = 0; i < fields.size(); ++i) {
+        setProperty(CPLSPrintf("%s.FIELD_%ld_NAME", newName.c_str(), i),
+                    fields[i].name);
+        setProperty(CPLSPrintf("%s.FIELD_%ld_ALIAS", newName.c_str(), i),
+                    fields[i].alias);
+    }
+    // Store other options in properties
+    CPLString remoteURL = options.stringOption("SOURCE_URL", "");
+    if(!remoteURL.empty()) {
+        setProperty(CPLString(newName + ".source_url"), remoteURL);
+    }
+
+    return true;
+}
+
 bool DataStore::upgrade(int /* oldVersion */)
 {
     // no structure changes for version 1
@@ -236,82 +316,16 @@ void DataStore::enableJournal(bool enable)
         }
     }
     else {
-        CPLAssert (m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
+        CPLAssert(m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
             executeSQL("PRAGMA synchronous=OFF", "SQLITE");
-            //executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
             executeSQL("PRAGMA journal_mode=OFF", "SQLITE");
             executeSQL("PRAGMA count_changes=OFF", "SQLITE");
+            // executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
             // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
         }
     }
 }
 
-}
-
-/*
-DatasetPtr DataStore::createDataset(const CPLString &name,
-                                     OGRFeatureDefn * const definition,
-                                     const OGRSpatialReference *spatialRef,
-                                     OGRwkbGeometryType type,
-                                    ProgressInfo *progressInfo)
-{
-    char** options = nullptr;
-    if(progressInfo) {
-        progressInfo->onProgress (0, CPLSPrintf ("Create dataset '%s'",
-                                                 name.c_str ()));
-        options = progressInfo->options ();
-    }
-    DatasetPtr out;
-    OGRLayer *dstLayer = m_DS->CreateLayer(name, &m_storeSpatialRef, type, options);
-    if(dstLayer == nullptr) {
-        return out;
-    }
-
-    // create ovr layer
-    // create changes layer CPLString changesLayerName = name + "_changes";
-
-
-    // create history layer
-    CPLString historyLayerName = name + HISTORY_APPEND;
-    OGRLayer *dstHistoryLayer = m_DS->CreateLayer(historyLayerName,
-                                                 &m_storeSpatialRef, type, options);
-    if(dstHistoryLayer == nullptr) {
-        return out;
-    }
-
-    for (int i = 0; i < definition->GetFieldCount(); ++i) {
-        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
-        OGRFieldDefn dstField(srcField);
-        dstField.SetName(normalizeFieldName(srcField->GetNameRef()));
-        if (dstLayer->CreateField(&dstField) != OGRERR_NONE) {
-            return out;
-        }
-        if (dstHistoryLayer->CreateField(&dstField) != OGRERR_NONE) {
-            return out;
-        }
-    }
-
-    Dataset* dstDataset = nullptr;
-    if( type == wkbNone) {
-        // TODO: create special class StoreTable instead of table with history etc.
-        dstDataset = new Table(dstLayer);
-    }
-    else {
-        StoreFeatureDataset* storeFD = new StoreFeatureDataset(dstLayer);
-        // add link to history layer
-        storeFD->m_history.reset (new StoreFeatureDataset(dstHistoryLayer));
-        dstDataset = storeFD;
-    }
-
-    dstDataset->setNotifyFunc (m_notifyFunc);
-    dstDataset->m_DS = m_DS;
-    dstDataset->m_path = m_path + "/" + name;
-    out.reset(dstDataset);
-    if(dstDataset)
-        m_datasets[out->name ()] = out;
-
-    return out;
-}
-*/
+} // namespace ngs

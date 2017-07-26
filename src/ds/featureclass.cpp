@@ -916,6 +916,37 @@ OGRwkbGeometryType FeatureClass::geometryTypeFromName(const char* name)
     return wkbUnknown;
 }
 
+OGRFieldType FeatureClass::fieldTypeFromName(const char* name)
+{
+    if(nullptr == name || EQUAL(name, ""))
+        return OFTMaxType;
+    if(EQUAL(name, "INTEGER"))
+        return OFTInteger;
+    if(EQUAL(name, "INTEGER_LIST"))
+        return OFTIntegerList;
+    if(EQUAL(name, "REAL"))
+        return OFTReal;
+    if(EQUAL(name, "REAL_LIST"))
+        return OFTRealList;
+    if(EQUAL(name, "STRING"))
+        return OFTString;
+    if(EQUAL(name, "STRING_LIST"))
+        return OFTStringList;
+    if(EQUAL(name, "BINARY"))
+        return OFTBinary;
+    if(EQUAL(name, "DATE"))
+        return OFTDate;
+    if(EQUAL(name, "TIME"))
+        return OFTTime;
+    if(EQUAL(name, "DATE_TIME"))
+        return OFTDateTime;
+    if(EQUAL(name, "INTEGER64"))
+        return OFTInteger64;
+    if(EQUAL(name, "INTEGER64_LIST"))
+        return OFTInteger64List;
+    return OFTMaxType;
+}
+
 std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
 {
     std::vector<OGRwkbGeometryType> out;

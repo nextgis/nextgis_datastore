@@ -29,6 +29,8 @@
 
 namespace ngs {
 
+constexpr int GLTILE_SIZE = 256; //512; //
+
 class GlTile : public GlObject
 {
 public:
@@ -43,7 +45,9 @@ public:
     const Envelope& getExtent() const { return m_tileItem.env; }
     bool filled() const { return m_filled; }
     void setFilled(bool filled = true) { m_filled = filled; }
-    size_t getSizeInPixels() const { return m_image.getWidth() / 2; }
+    size_t getSizeInPixels() const {
+        return size_t(m_image.getWidth() * 256.0 / GLTILE_SIZE);
+    }
 
     // GlObject interface
 public:

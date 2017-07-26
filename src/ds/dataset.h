@@ -104,16 +104,16 @@ public:
 
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
-    virtual FeatureClass* createFeatureClass(const CPLString &name,
+    virtual FeatureClass* createFeatureClass(const CPLString& name,
                                              OGRFeatureDefn * const definition,
                                              const OGRSpatialReference* spatialRef,
                                              OGRwkbGeometryType type,
                                              const Options& options = Options(),
-                                             const Progress &progress = Progress());
-    virtual Table* createTable(const CPLString &name,
+                                             const Progress& progress = Progress());
+    virtual Table* createTable(const CPLString& name,
                                OGRFeatureDefn * const definition,
                                const Options& options = Options(),
-                               const Progress &progress = Progress());
+                               const Progress& progress = Progress());
 
     virtual bool setProperty(const char* key, const char* value);
     virtual const char* getProperty(const char* key, const char* defaultValue);
@@ -122,7 +122,7 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override { return !isReadOnly(); }
+    virtual bool canDestroy() const override { return access(m_path, W_OK) == 0; }
 
     // ObjectContainer interface
 public:

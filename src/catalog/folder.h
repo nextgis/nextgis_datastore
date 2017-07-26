@@ -47,12 +47,12 @@ public:
     virtual void refresh() override;
     virtual bool isReadOnly() const override;
     virtual int paste(ObjectPtr child, bool move = false,
-                      const Options & options = Options(),
+                      const Options& options = Options(),
                       const Progress& progress = Progress()) override;
     virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
     virtual bool create(const enum ngsCatalogObjectType type,
-                        const CPLString & name,
-                        const Options &options) override;
+                        const CPLString& name,
+                        const Options& options) override;
 
     // Object interface
 public:

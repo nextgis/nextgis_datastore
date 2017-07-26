@@ -207,12 +207,12 @@ Dataset::~Dataset()
     m_addsDS = nullptr;
 }
 
-FeatureClass* Dataset::createFeatureClass(const CPLString &name,
+FeatureClass* Dataset::createFeatureClass(const CPLString& name,
                                           OGRFeatureDefn * const definition,
                                           const OGRSpatialReference* spatialRef,
                                           OGRwkbGeometryType type,
-                                          const Options &options,
-                                          const Progress &progress)
+                                          const Options& options,
+                                          const Progress& progress)
 {
     if(nullptr == m_DS) {
         errorMessage(_("Not opened"));
@@ -248,8 +248,8 @@ FeatureClass* Dataset::createFeatureClass(const CPLString &name,
     FeatureClass* out = new FeatureClass(layer, this,
                                          ngsCatalogObjectType::CAT_FC_ANY, name);
 
-    if(options.boolOption("CREATE_OVERVIEWS_TABLE", false) ||
-            options.boolOption("CREATE_OVERVIEWS", false)) {
+    if(options.boolOption("CREATE_OVERVIEWS", false) &&
+            !options.stringOption("ZOOM_LEVELS_OPTION", "").empty()) {
         out->createOverviews(progress, options);
     }
 

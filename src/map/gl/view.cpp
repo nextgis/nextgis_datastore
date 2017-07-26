@@ -30,7 +30,6 @@
 namespace ngs {
 
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
-constexpr int GLTILE_SIZE = 512; //256; //
 constexpr unsigned char MAX_TRIES = 2;
 
 GlView::GlView() : MapView()

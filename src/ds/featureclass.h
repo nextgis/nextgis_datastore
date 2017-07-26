@@ -146,6 +146,7 @@ public:
     static const char* geometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
     static OGRwkbGeometryType geometryTypeFromName(const char* name);
+    static OGRFieldType fieldTypeFromName(const char* name);
     static double pixelSize(int zoom);
 
     // Object interface

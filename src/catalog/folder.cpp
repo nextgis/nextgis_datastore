@@ -280,8 +280,8 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
-bool Folder::create(const enum ngsCatalogObjectType type, const CPLString &name,
-                         const Options & options)
+bool Folder::create(const enum ngsCatalogObjectType type, const CPLString& name,
+                         const Options& options)
 {
     bool result = false;
     CPLString newPath;

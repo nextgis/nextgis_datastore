@@ -42,14 +42,16 @@ public:
     static bool create(const char* path);
     static const char* extension();
 
-    // Object interface
-public:
-    virtual bool canDestroy() const override { return access(m_path, W_OK) == 0; }
-
     // Dataset interface
 public:
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
+
+    // ObjectContainer interface
+public:
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
+    virtual bool create(const enum ngsCatalogObjectType type, const CPLString& name,
+                        const Options& options) override;
 
 protected:
     virtual bool isNameValid(const char* name) const override;
