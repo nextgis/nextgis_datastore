@@ -37,4 +37,18 @@ EditLayerOverlay::EditLayerOverlay()
 {
 }
 
+// static
+GeometryPtr EditLayerOverlay::createGeometry(
+        const OGRwkbGeometryType geometryType,
+        const OGRRawPoint& geometryCenter)
+{
+    switch (geometryType) {
+        case wkbPoint:
+            return GeometryPtr(
+                    new OGRPoint(geometryCenter.x, geometryCenter.y));
+        default:
+            return GeometryPtr();
+    }
+}
+
 }  // namespace ngs

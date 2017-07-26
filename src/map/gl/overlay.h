@@ -58,7 +58,7 @@ public:
 
     // EditLayerOverlay interface
 public:
-    void setGeometry(GeometryPtr geometry);
+    virtual void setGeometry(GeometryPtr geometry) override;
 
     // GlRenderOverlay interface
 public:

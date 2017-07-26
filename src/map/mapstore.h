@@ -83,6 +83,8 @@ public:
     bool reorderLayers(unsigned char mapId, Layer* beforeLayer, Layer* movedLayer);
     bool setZoomIncrement(unsigned char mapId, char extraZoom);
     bool setExtentLimits(unsigned char mapId, const Envelope& extentLimits);
+    OverlayPtr getOverlay(
+            unsigned char mapId, enum ngsMapOverlyType type) const;
     bool setOverlayVisible(
             unsigned char mapId, ngsMapOverlyType typeMask, bool visible);
 

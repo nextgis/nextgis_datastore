@@ -1439,3 +1439,60 @@ int ngsOverlaySetVisible(
             ? ngsCode::COD_SUCCESS
             : ngsCode::COD_SET_FAILED;
 }
+
+int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
+{
+    if (nullptr == layer) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("Layer pointer is null"));
+    }
+
+    Layer* pLayer = static_cast<Layer*>(layer);
+    FeatureClassPtr datasource =
+            std::dynamic_pointer_cast<FeatureClass>(pLayer->datasource());
+    if (!datasource) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("Layer datasource is null"));
+    }
+
+    MapStore* const mapStore = MapStore::getInstance();
+    if (nullptr == mapStore) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("MapStore is not initialized"));
+    }
+
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if (!mapView) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("MapView pointer is null"));
+    }
+
+    OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
+    if (!overlay) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("Overlay pointer is null"));
+    }
+
+    EditLayerOverlay* editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
+    if (!editOverlay) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("Edit overlay pointer is null"));
+    }
+
+    const CPLString& layerName = pLayer->getName();
+    const OGRwkbGeometryType geometryType = datasource->geometryType();
+    const OGRRawPoint mapCenter = mapView->getCenter();
+
+    GeometryPtr geometry =
+            EditLayerOverlay::createGeometry(geometryType, mapCenter);
+    if (!geometry) {
+        return errorMessage(
+                ngsCode::COD_CREATE_FAILED, _("Geometry pointer is null"));
+    }
+
+    editOverlay->setVisible(true);
+    editOverlay->setLayerName(layerName);
+    editOverlay->setGeometry(geometry);
+
+    return ngsCode::COD_SUCCESS;
+}
