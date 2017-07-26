@@ -21,6 +21,7 @@
 #ifndef NGSFEATUREDATASET_H
 #define NGSFEATUREDATASET_H
 
+#include <algorithm>
 #include <set>
 
 #include "coordinatetransformation.h"
