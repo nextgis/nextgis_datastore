@@ -26,6 +26,11 @@
 // stl
 #include <memory>
 
+// gdal
+#include "cpl_string.h"
+#include "ogr_core.h"
+#include "ogr_geometry.h"
+
 #include "ds/geometry.h"
 #include "ngstore/codes.h"
 
@@ -49,9 +54,9 @@ public:
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
-//                return 1; // TODO
+                //return 1; // TODO
             case MOT_LOCATION:
-//                return 2; // TODO
+                //return 2; // TODO
             default:
                 return -1;
         }
@@ -70,10 +75,16 @@ public:
     explicit EditLayerOverlay();
     virtual ~EditLayerOverlay() = default;
 
-    void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
-    GeometryPtr geometry() const { return m_geometry; }
+    void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
+    const CPLString& layerName() const { return m_layerName; }
+    virtual void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
+    virtual GeometryPtr geometry() const { return m_geometry; }
+
+    static GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
+            const OGRRawPoint& geometryCenter);
 
 protected:
+    CPLString m_layerName;
     GeometryPtr m_geometry;
 };
 

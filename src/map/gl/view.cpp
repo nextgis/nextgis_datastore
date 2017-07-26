@@ -101,7 +101,6 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
             return renderLayer->fill(
                     layerData->m_tile, layerData->tries() >= MAX_TRIES);
         }
-        return true;
     }
 
 	return true;
@@ -160,16 +159,6 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
                 m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
             }
         }
-// Why this is needed? Overlay use constant data stored in it. This data is
-// rather small to load it in separate thread.
-// It is responsible by caller to add some data to overlay and than call redraw
-//        for (auto overlayIt = m_overlays.rbegin();
-//                overlayIt != m_overlays.rend(); ++overlayIt) {
-//            const OverlayPtr& overlay = *overlayIt;
-//            if (overlay->visible()) {
-//                m_threadPool.addThreadData(new OverlayFillData(overlay, true));
-//            }
-//        }
     [[clang::fallthrough]]; case DS_PRESERVED:
         bool result = drawTiles(progress);
         // Free unnecessary Gl objects as this call is in Gl context
@@ -385,12 +374,6 @@ void GlView::createOverlays()
     // TODO: add track and location overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
     //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
-
-    // FIXME: Only for test, remove it.
-    OverlayPtr overlay = getOverlay(MOT_EDIT);
-    GlEditLayerOverlay* editOverlay =
-            ngsDynamicCast(GlEditLayerOverlay, overlay);
-    editOverlay->setGeometry(GeometryPtr(new OGRPoint(3700000.0, 5500000.0)));
 }
 
 #ifdef NGS_GL_DEBUG

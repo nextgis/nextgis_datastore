@@ -370,6 +370,15 @@ MapStore* MapStore::getInstance()
     return gMapStore.get();
 }
 
+OverlayPtr MapStore::getOverlay(
+        unsigned char mapId, enum ngsMapOverlyType type) const
+{
+    MapViewPtr map = getMap(mapId);
+    if (!map)
+        return nullptr;
+    return map->getOverlay(type);
+}
+
 bool MapStore::setOverlayVisible(
         unsigned char mapId, ngsMapOverlyType typeMask, bool visible)
 {

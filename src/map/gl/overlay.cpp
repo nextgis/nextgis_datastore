@@ -66,6 +66,8 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
         default:
             break;  // Not supported yet
     }
+
+    fill(false);
 }
 
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
