@@ -53,10 +53,10 @@ class Table : public Object
 {
     friend class Dataset;
 public:
-    explicit Table(OGRLayer * layer,
-          ObjectContainer * const parent = nullptr,
+    explicit Table(OGRLayer* layer,
+          ObjectContainer* const parent = nullptr,
           const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_TABLE_ANY,
-          const CPLString & name = "");
+          const CPLString& name = "");
     virtual ~Table();
     FeaturePtr createFeature() const;
     FeaturePtr getFeature(GIntBig id) const;
@@ -69,15 +69,15 @@ public:
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
-    OGRFeatureDefn *definition() const;
-    const char *fidColumn() const;
+    OGRFeatureDefn* definition() const;
+    const char* fidColumn() const;
 
     // Object interface
 public:
     virtual bool destroy() override;
 
 protected:
-    OGRLayer * m_layer;
+    OGRLayer* m_layer;
 };
 
 }

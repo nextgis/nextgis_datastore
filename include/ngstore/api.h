@@ -152,10 +152,62 @@ NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
 NGS_EXTERNC const char* ngsCatalogObjectName(CatalogObjectH object);
 NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain);
+
+/**
+ * Feature class
+ */
+
+typedef void* FeatureH;
+typedef void* GeometryH;
+
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char** options,
                                                ngsProgressFunc callback,
                                                void* callbackData);
+/*NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
+NGS_EXTERNC int ngsFeatureClassInsertFeature(FeatureH feature);
+NGS_EXTERNC int ngsFeatureClassUpdateFeature(FeatureH feature);
+NGS_EXTERNC int ngsFeatureClassDeleteFeature(long long id);
+NGS_EXTERNC int ngsFeatureClassCount(CatalogObjectH object);
+
+NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
+NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
+NGS_EXTERNC int ngsFeatureIsFieldSet(FeatureH feature);
+NGS_EXTERNC long long ngsFeatureGetId(FeatureH feature);
+NGS_EXTERNC GeometryH ngsFeatureGetGeometry(FeatureH feature);
+NGS_EXTERNC int ngsFeatureGetFieldAsInteger(FeatureH feature, int field);
+NGS_EXTERNC double ngsFeatureGetFieldAsDouble(FeatureH feature, int field);
+NGS_EXTERNC const char* ngsFeatureGetFieldAsString(FeatureH feature, int field);
+NGS_EXTERNC int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field,
+                                             int* year, int* month, int* day,
+                                             int* hour, int* minute, float* second,
+                                             int* TZFlag);
+
+NGS_EXTERNC void ngsFeatireSetId(FeatureH feature, long long id);
+NGS_EXTERNC void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry);
+NGS_EXTERNC void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value);
+NGS_EXTERNC void ngsFeatureSetFieldDouble(FeatureH feature, int field, double value);
+NGS_EXTERNC void ngsFeatureSetFieldString(FeatureH feature, int field, const char* value);
+NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int year,
+                                            int month, int day, int hour,
+                                            int minute, float second, int TZFlag);
+
+NGS_EXTERNC GeometryH ngsFeatureCreateGeometry();
+NGS_EXTERNC void ngsGeometryFree(GeometryH geometry);
+
+typedef struct _ngsFeatureAttachmentInfo {
+    long long id;
+    const char* name;
+    int type;
+    bool dataPresent;
+//    CatalogObjectH object;
+} ngsFeatureAttachmentInfo;
+
+NGS_EXTERNC ngsFeatureAttachmentInfo* ngsFeatureGetAttachments(FeatureH feature);
+NGS_EXTERNC void ngsFeatureDeleteAttachment(FeatureH feature, long long id);
+NGS_EXTERNC void ngsFeatureAddAttachment(FeatureH feature, long long id, const char* name, ...);
+NGS_EXTERNC void ngsFeatureUpdateAttachment(FeatureH feature, long long id, const char* name, ...);
+*/
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**

@@ -57,3 +57,4 @@ _ngsURLAuthAdd
 _ngsURLAuthGet
 _ngsURLAuthDelete
 _ngsMD5
+_ngsOverlaySetVisible
