@@ -8,6 +8,6 @@ cmake -DBUILD_SHARED_LIBS=ON -DBUILD_TARGET_PLATFORM=Desktop -DBUILD_TESTING=ON 
 cmake --build . --config release -- -j 4
 ls
 ls ./test
-./test/main_test
 ls ./test/data
+./test/matrix_test
 cmake --build . --config release --target test
