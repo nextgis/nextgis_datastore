@@ -47,7 +47,7 @@ class Archive : public ArchiveFolder
 {
 public:
     explicit Archive(ObjectContainer * const parent = nullptr,
-            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE,
+            const enum ngsCatalogObjectType type = CAT_CONTAINER_ARCHIVE,
             const CPLString & name = "",
             const CPLString & path = "");
 

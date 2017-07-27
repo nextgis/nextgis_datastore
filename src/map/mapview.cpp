@@ -47,7 +47,7 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
     clearBackground();
 
     if(m_layers.empty()) {
-        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
+        progress.onProgress(COD_FINISHED, 1.0,
                             _("No layers. Nothing to render."));
         return true;
     }
@@ -67,11 +67,9 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
 
     size_t size = m_layers.size() + m_overlays.size();
     if (isEqual(done, size)) {
-        progress.onProgress(
-                ngsCode::COD_FINISHED, 1.0, _("Map render finished."));
+        progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
     } else {
-        progress.onProgress(
-                ngsCode::COD_IN_PROCESS, done / (size), _("Rendering ..."));
+        progress.onProgress(COD_IN_PROCESS, done / (size), _("Rendering ..."));
     }
 
     return true;
@@ -82,9 +80,9 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     if(!Map::openInternal(root, mapFile))
         return false;
 
-    setRotate(ngsDirection::DIR_X, root.GetDouble(MAP_ROTATE_X_KEY, 0));
-    setRotate(ngsDirection::DIR_Y, root.GetDouble(MAP_ROTATE_Y_KEY, 0));
-    setRotate(ngsDirection::DIR_Z, root.GetDouble(MAP_ROTATE_Z_KEY, 0));
+    setRotate(DIR_X, root.GetDouble(MAP_ROTATE_X_KEY, 0));
+    setRotate(DIR_Y, root.GetDouble(MAP_ROTATE_Y_KEY, 0));
+    setRotate(DIR_Z, root.GetDouble(MAP_ROTATE_Z_KEY, 0));
 
     Envelope env;
     env.load(root.GetObject(MAP_EXTENT_KEY), DEFAULT_BOUNDS);
@@ -101,9 +99,9 @@ bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
         return false;
 
     root.Add(MAP_EXTENT_KEY, getExtent().save());
-    root.Add(MAP_ROTATE_X_KEY, getRotate(ngsDirection::DIR_X));
-    root.Add(MAP_ROTATE_Y_KEY, getRotate(ngsDirection::DIR_Y));
-    root.Add(MAP_ROTATE_Z_KEY, getRotate(ngsDirection::DIR_Z));
+    root.Add(MAP_ROTATE_X_KEY, getRotate(DIR_X));
+    root.Add(MAP_ROTATE_Y_KEY, getRotate(DIR_Y));
+    root.Add(MAP_ROTATE_Z_KEY, getRotate(DIR_Z));
 
     root.Add(MAP_X_LOOP_KEY, m_XAxisLooped);
     return true;

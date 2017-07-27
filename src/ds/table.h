@@ -55,7 +55,7 @@ class Table : public Object
 public:
     explicit Table(OGRLayer* layer,
           ObjectContainer* const parent = nullptr,
-          const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_TABLE_ANY,
+          const enum ngsCatalogObjectType type = CAT_TABLE_ANY,
           const CPLString& name = "");
     virtual ~Table();
     FeaturePtr createFeature() const;

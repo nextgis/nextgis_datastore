@@ -139,7 +139,7 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
                        const Options &options)
 {
     if(nullptr == path || EQUAL(path, "")) {
-        return errorMessage(ngsCode::COD_OPEN_FAILED, _("The path is empty"));
+        return errorMessage(COD_OPEN_FAILED, _("The path is empty"));
     }
 
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
@@ -233,7 +233,7 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
 
         CPLString newFieldName = normalizeFieldName(srcField->GetNameRef());
         if(!EQUAL(newFieldName, srcField->GetNameRef())) {
-            progress.onProgress(ngsCode::COD_WARNING, 0.0,
+            progress.onProgress(COD_WARNING, 0.0,
                                 _("Field %s of source table was renamed to %s in destination tables"),
                                 srcField->GetNameRef(), newFieldName.c_str());
         }
@@ -245,8 +245,7 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
         }
     }
 
-    FeatureClass* out = new FeatureClass(layer, this,
-                                         ngsCatalogObjectType::CAT_FC_ANY, name);
+    FeatureClass* out = new FeatureClass(layer, this, CAT_FC_ANY, name);
 
     if(options.boolOption("CREATE_OVERVIEWS", false) &&
             !options.stringOption("ZOOM_LEVELS_OPTION", "").empty()) {
@@ -418,11 +417,11 @@ void Dataset::fillFeatureClasses()
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
-                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName)));
+                        CAT_TABLE_ANY, layerName)));
             }
             else {
                 m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            ngsCatalogObjectType::CAT_FC_ANY, layerName)));
+                            CAT_FC_ANY, layerName)));
             }
         }
     }
@@ -442,10 +441,9 @@ GDALDataset* Dataset::createAdditionsDataset()
     else {
         CPLString ovrPath = CPLResetExtension(m_path, ADDS_EXT);
         CPLErrorReset();
-        GDALDriver* poDriver = Filter::getGDALDriver(
-                    ngsCatalogObjectType::CAT_CONTAINER_SQLITE);
+        GDALDriver* poDriver = Filter::getGDALDriver(CAT_CONTAINER_SQLITE);
         if(poDriver == nullptr) {
-            errorMessage(ngsCode::COD_CREATE_FAILED,
+            errorMessage(COD_CREATE_FAILED,
                                 _("SQLite driver is not present"));
             return nullptr;
         }
@@ -574,7 +572,7 @@ bool Dataset::hasChildren()
                 CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
                 const char* rasterName = pathPortions[pathPortions.size() - 1];
                 m_children.push_back(ObjectPtr(new Raster(siblingFiles, this,
-                    ngsCatalogObjectType::CAT_RASTER_ANY, rasterName, rasterPath)));
+                    CAT_RASTER_ANY, rasterName, rasterPath)));
             }
         }
         CSLDestroy(subdatasetList);
@@ -599,12 +597,12 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                                 CPLGetBasename(child->name()));
     newName = normalizeDatasetName(newName);
     if(move) {
-        progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
+        progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Move '%s' to '%s'"), newName.c_str (),
                             m_name.c_str ());
     }
     else {
-        progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
+        progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Copy '%s' to '%s'"), newName.c_str (),
                             m_name.c_str ());
     }
@@ -612,8 +610,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     if(Filter::isTable(child->type())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
-            return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
-                                       ngsCode::COD_COPY_FAILED,
+            return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                 _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->name().c_str());
         }
@@ -621,8 +618,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         std::unique_ptr<Table> dstTable(createTable(newName, srcDefinition,
                                                     options));
         if(nullptr == dstTable) {
-            return move ? ngsCode::COD_MOVE_FAILED :
-                          ngsCode::COD_COPY_FAILED;
+            return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
         OGRFeatureDefn * const dstDefinition = dstTable->definition();
         // Create fields map. We expected equal count of fields
@@ -633,7 +629,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         }
 
         int result = dstTable->copyRows(srcTable, fieldMap, progress);
-        if(result != ngsCode::COD_SUCCESS) {
+        if(result != COD_SUCCESS) {
             return result;
         }
 
@@ -641,8 +637,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     else if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
-            return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
-                                       ngsCode::COD_COPY_FAILED,
+            return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->name().c_str());
         }
@@ -674,8 +669,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                 srcDefinition, srcFClass->getSpatialReference(), newGeometryType,
                 options));
             if(nullptr == dstFClass) {
-                return move ? ngsCode::COD_MOVE_FAILED :
-                              ngsCode::COD_COPY_FAILED;
+                return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
             }
             OGRFeatureDefn * const dstDefinition = dstFClass->definition();
             // Create fields map. We expected equal count of fields
@@ -688,22 +682,21 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             int result = dstFClass->copyFeatures(srcFClass, fieldMap,
                                                  filterFeometryType,
                                                  progress, options);
-            if(result != ngsCode::COD_SUCCESS) {
+            if(result != COD_SUCCESS) {
                 return result;
             }
         }
     }
     else {
         // TODO: raster and container support
-        return errorMessage(ngsCode::COD_UNSUPPORTED,
+        return errorMessage(COD_UNSUPPORTED,
                             _("'%s' has unsuported type"), child->name().c_str());
     }
 
     if(move) {
-        return child->destroy() ? ngsCode::COD_SUCCESS :
-                                  ngsCode::COD_DELETE_FAILED;
+        return child->destroy() ? COD_SUCCESS : COD_DELETE_FAILED;
     }
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
@@ -737,11 +730,9 @@ TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
         return TablePtr();
     }
     if(layer->GetGeomType() == wkbNone)
-        return TablePtr(new Table(layer, this,
-                                  ngsCatalogObjectType::CAT_QUERY_RESULT));
+        return TablePtr(new Table(layer, this, CAT_QUERY_RESULT));
     else
-        return TablePtr(new FeatureClass(layer, this,
-                                         ngsCatalogObjectType::CAT_QUERY_RESULT_FC));
+        return TablePtr(new FeatureClass(layer, this, CAT_QUERY_RESULT_FC));
 }
 
 TablePtr Dataset::executeSQL(const char* statement,
@@ -762,11 +753,9 @@ TablePtr Dataset::executeSQL(const char* statement,
         return TablePtr();
     }
     if(layer->GetGeomType() == wkbNone)
-        return TablePtr(new Table(layer, this,
-                                  ngsCatalogObjectType::CAT_QUERY_RESULT));
+        return TablePtr(new Table(layer, this, CAT_QUERY_RESULT));
     else
-        return TablePtr(new FeatureClass(layer, this,
-                                         ngsCatalogObjectType::CAT_QUERY_RESULT_FC));
+        return TablePtr(new FeatureClass(layer, this, CAT_QUERY_RESULT_FC));
 
 }
 
@@ -830,7 +819,7 @@ OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
     feature->SetField(META_KEY, NGS_VERSION_KEY);
     feature->SetField(META_VALUE, NGS_VERSION_NUM);
     if(metadataLayer->CreateFeature(feature) != OGRERR_NONE) {
-        warningMessage(ngsCode::COD_WARNING, _("Failed to add version to methadata"));
+        warningMessage(COD_WARNING, _("Failed to add version to methadata"));
     }
 
     return metadataLayer;
@@ -852,7 +841,7 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
 {
     OGRLayer* ovrLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
     if (nullptr == ovrLayer) {
-        errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -865,7 +854,7 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
        ovrLayer->CreateField(&yField) != OGRERR_NONE ||
        ovrLayer->CreateField(&zField) != OGRERR_NONE ||
        ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-        errorMessage(ngsCode::COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -887,8 +876,7 @@ VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)
         // CPLReleaseMutex(m_executeSQLMutex);
         return vtile;
     }
-    TablePtr queryResult(new Table(layer, this,
-                                      ngsCatalogObjectType::CAT_QUERY_RESULT));
+    TablePtr queryResult(new Table(layer, this, CAT_QUERY_RESULT));
 
     if(queryResult && queryResult->featureCount() > 0) {
         queryResult->reset();
@@ -912,7 +900,7 @@ VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)
 //// Check version and upgrade if needed
 //OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
 //if(nullptr == pMetadataLayer) {
-//    return errorMessage(ngsCode::COD_OPEN_FAILED, _("Invalid structure"));
+//    return errorMessage(COD_OPEN_FAILED, _("Invalid structure"));
 //}
 
 //pMetadataLayer->ResetReading();

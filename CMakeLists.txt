@@ -72,10 +72,6 @@ enable_testing()
 include(FindAnyProject)
 include(extlib)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set (CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
-endif()
-
 add_subdirectory(bindings)
 add_subdirectory(src)
 add_subdirectory(include)

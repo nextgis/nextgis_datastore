@@ -306,10 +306,10 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                                const Progress& progress, const Options &options)
 {
     if(!srcFClass) {
-        return errorMessage(ngsCode::COD_COPY_FAILED, _("Source feature class is invalid"));
+        return errorMessage(COD_COPY_FAILED, _("Source feature class is invalid"));
     }
 
-    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
+    progress.onProgress(COD_IN_PROCESS, 0.0,
                        _("Start copy features from '%s' to '%s'"),
                        srcFClass->name().c_str(), m_name.c_str());
 
@@ -327,9 +327,9 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     FeaturePtr feature;
     while((feature = srcFClass->nextFeature())) {
         double complete = counter / featureCount;
-        if(!progress.onProgress(ngsCode::COD_IN_PROCESS, complete,
+        if(!progress.onProgress(COD_IN_PROCESS, complete,
                            _("Copy in process ..."))) {
-            return ngsCode::COD_CANCELED;
+            return COD_CANCELED;
         }
 
         OGRGeometry* geom = feature->GetGeometryRef();
@@ -371,18 +371,18 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            if(!progress.onProgress(ngsCode::COD_WARNING, complete,
+            if(!progress.onProgress(COD_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
                                feature->GetFID ())) {
-                return ngsCode::COD_CANCELED;
+                return COD_CANCELED;
             }
         }
         counter++;
     }
-    progress.onProgress(ngsCode::COD_FINISHED, 1.0, _("Done. Copied %d features"),
+    progress.onProgress(COD_FINISHED, 1.0, _("Done. Copied %d features"),
                        int(counter));
 
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 bool FeatureClass::hasOverviews() const
@@ -563,14 +563,14 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     m_genTiles.clear();
     bool force = options.boolOption("FORCE", false);
     if(!force && hasOverviews()) {
-        return ngsCode::COD_SUCCESS;
+        return COD_SUCCESS;
     }
 
     Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDS) {
-        progress.onProgress(ngsCode::COD_CREATE_FAILED, 0.0,
+        progress.onProgress(COD_CREATE_FAILED, 0.0,
                             _("Unsupported feature class"));
-        return errorMessage(ngsCode::COD_CREATE_FAILED,
+        return errorMessage(COD_CREATE_FAILED,
                             _("Unsupported feature class"));
     }
 
@@ -587,7 +587,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                 ZOOM_LEVELS_OPTION, "");
     fillZoomLevels(zoomLevelListStr);
     if(m_zoomLevels.empty()) {
-        return ngsCode::COD_SUCCESS;
+        return COD_SUCCESS;
     }
 
     CPLString key(name());
@@ -596,7 +596,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     parentDS->setProperty(key, zoomLevelListStr);
 
     // Tile and simplify geometry
-    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
+    progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Start tiling and simplifying geometry"));
 
     // Multithreaded thread pool
@@ -633,11 +633,11 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                           data->data());
 
         if(m_ovrTable->CreateFeature(feature) != OGRERR_NONE) {
-            errorMessage(ngsCode::COD_INSERT_FAILED, _("Failed to create feature"));
+            errorMessage(COD_INSERT_FAILED, _("Failed to create feature"));
         }
         OGRFeature::DestroyFeature(feature);
 
-        newProgress.onProgress(ngsCode::COD_IN_PROCESS, counter/m_genTiles.size(),
+        newProgress.onProgress(COD_IN_PROCESS, counter/m_genTiles.size(),
                                _("Save tiles ..."));
         counter++;
     }
@@ -646,9 +646,9 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     m_genTiles.clear();
 
 
-    progress.onProgress(ngsCode::COD_FINISHED, 1.0,
+    progress.onProgress(COD_FINISHED, 1.0,
                         _("Finish tiling and simplifying geometry"));
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)

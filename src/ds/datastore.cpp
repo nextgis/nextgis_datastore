@@ -107,7 +107,7 @@ bool createAttachmentsTable(GDALDataset* ds)
 DataStore::DataStore(ObjectContainer * const parent,
                      const CPLString &name,
                      const CPLString &path) :
-    Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_NGS, name, path),
+    Dataset(parent, CAT_CONTAINER_NGS, name, path),
     m_disableJournalCounter(0)
 {
     m_spatialReference = new OGRSpatialReference;
@@ -141,11 +141,11 @@ void DataStore::fillFeatureClasses()
             }
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
-                        ngsCatalogObjectType::CAT_TABLE_ANY, layerName)));
+                        CAT_TABLE_ANY, layerName)));
             }
             else {
                 m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            ngsCatalogObjectType::CAT_FC_ANY, layerName)));
+                            CAT_FC_ANY, layerName)));
             }
         }
     }
@@ -155,14 +155,12 @@ bool DataStore::create(const char* path)
 {
     CPLErrorReset();
     if(nullptr == path || EQUAL(path, "")) {
-        return errorMessage(ngsCode::COD_CREATE_FAILED,
-                            _("The path is empty"));
+        return errorMessage(COD_CREATE_FAILED, _("The path is empty"));
     }
 
-    GDALDriver* poDriver = Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_CONTAINER_NGS);
+    GDALDriver* poDriver = Filter::getGDALDriver(CAT_CONTAINER_NGS);
     if(poDriver == nullptr) {
-        return errorMessage(ngsCode::COD_CREATE_FAILED,
+        return errorMessage(COD_CREATE_FAILED,
                             _("GeoPackage driver is not present"));
     }
 
@@ -178,7 +176,7 @@ bool DataStore::create(const char* path)
     /* TODO: Add attachments support
     // Create system tables
     if(!createMetadataTable(DS))
-        return errorMessage(ngsCode::COD_CREATE_FAILED,
+        return errorMessage(COD_CREATE_FAILED,
                             _("Create metadata table failed"));
 
     if(!createAttachmentsTable(DS))
@@ -213,7 +211,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     }
 
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
-        return errorMessage(ngsCode::COD_OPEN_FAILED, _("Upgrade storage failed"));
+        return errorMessage(COD_OPEN_FAILED, _("Upgrade storage failed"));
     }
 
     return true;
@@ -223,8 +221,7 @@ bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 {
     if(!isOpened() || isReadOnly())
         return false;
-    return type == ngsCatalogObjectType::CAT_FC_GPKG ||
-            type == ngsCatalogObjectType::CAT_TABLE_GPKG;
+    return type == CAT_FC_GPKG || type == CAT_TABLE_GPKG;
 
 }
 
@@ -244,7 +241,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     for(int i = 0; i < fieldCount; ++i) {
         CPLString fieldName = options.stringOption(CPLSPrintf("FIELD_%d_NAME", i), "");
         if(fieldName.empty()) {
-            return errorMessage(ngsCode::COD_CREATE_FAILED,
+            return errorMessage(COD_CREATE_FAILED,
                                 _("Name for field %d is not defined"), i);
         }
 
@@ -261,12 +258,11 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         fieldDefinition.AddFieldDefn(&field);
     }
 
-    if(type == ngsCatalogObjectType::CAT_FC_GPKG) {
+    if(type == CAT_FC_GPKG) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.stringOption("GEOMETRY_TYPE", ""));
         if(wkbUnknown == geomType) {
-            return errorMessage(ngsCode::COD_CREATE_FAILED,
-                                _("Unsupported geometry type"));
+            return errorMessage(COD_CREATE_FAILED, _("Unsupported geometry type"));
         }
 
         ObjectPtr fc(createFeatureClass(newName, &fieldDefinition,
@@ -280,7 +276,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
             m_children.push_back(fc);
         }
     }
-    else if(type == ngsCatalogObjectType::CAT_TABLE_GPKG) {
+    else if(type == CAT_TABLE_GPKG) {
         ObjectPtr t(createTable(newName, &fieldDefinition, options));
         if(nullptr == t) {
             return false;

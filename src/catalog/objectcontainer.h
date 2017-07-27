@@ -35,7 +35,7 @@ class ObjectContainer : public Object
     friend class ObjectFactory;
 public:
     explicit ObjectContainer(ObjectContainer * const parent = nullptr,
-                    const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
+                    const enum ngsCatalogObjectType type = CAT_CONTAINER_ANY,
                     const CPLString & name = "",
                     const CPLString & path = "");
     virtual ~ObjectContainer() = default;
@@ -58,7 +58,7 @@ public:
     virtual int paste(ObjectPtr /*child*/, bool /*move*/ = false,
                       const Options& /*options*/ = Options(),
                       const Progress &/*progress*/ = Progress()) {
-        return ngsCode::COD_UNSUPPORTED;
+        return COD_UNSUPPORTED;
     }
 
     std::vector<ObjectPtr> getChildren() const;

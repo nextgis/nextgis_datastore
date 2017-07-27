@@ -113,11 +113,11 @@ bool MapTransform::setExtent(const Envelope &env)
 
     initMatrices();
 
-    if(isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)) {
+    if(isEqual(m_rotate[DIR_Z], 0.0)) {
         m_rotateExtent = m_extent;
     }
     else {
-        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
+        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[Z]);
         setRotateExtent();
     }
 
@@ -146,11 +146,11 @@ bool MapTransform::updateExtent()
 
     initMatrices();
 
-    if(isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)){
+    if(isEqual(m_rotate[DIR_Z], 0.0)){
         m_rotateExtent = m_extent;
     }
     else {
-        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[ngsDirection::Z]);
+        //m_rotateExtent = rotateEnvelope (m_extent, m_rotate[Z]);
         setRotateExtent();
     }
 
@@ -173,13 +173,13 @@ void MapTransform::initMatrices()
     }
 
 
-    if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
-        m_sceneMatrix.rotateX(m_rotate[ngsDirection::DIR_X]);
+    if(!isEqual(m_rotate[DIR_X], 0.0)){
+        m_sceneMatrix.rotateX(m_rotate[DIR_X]);
     }
 
     /* TODO: no idea about Y axis rotation
-    if(!isEqual(m_rotate[ngsDirection::Y], 0.0)){
-        m_sceneMatrix.rotateY (m_rotate[ngsDirection::Y]);
+    if(!isEqual(m_rotate[Y], 0.0)){
+        m_sceneMatrix.rotateY (m_rotate[Y]);
     }
     */
 
@@ -194,8 +194,8 @@ void MapTransform::initMatrices()
 
     m_invViewMatrix.ortho(0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);
 
-    if(!isEqual(m_rotate[ngsDirection::DIR_X], 0.0)){
-        m_invViewMatrix.rotateX(-m_rotate[ngsDirection::DIR_X]);
+    if(!isEqual(m_rotate[DIR_X], 0.0)){
+        m_invViewMatrix.rotateX(-m_rotate[DIR_X]);
     }
 
     // scene -> view matrix
@@ -209,14 +209,14 @@ void MapTransform::initMatrices()
     m_invWorldToDisplayMatrix.multiply(m_invViewMatrix);
 
     // Z axis rotation
-    if(!isEqual(m_rotate[ngsDirection::DIR_Z], 0.0)){
+    if(!isEqual(m_rotate[DIR_Z], 0.0)){
         OGRRawPoint center = m_extent.center();
         m_sceneMatrix.translate(center.x, center.y, 0);
-        m_sceneMatrix.rotateZ(m_rotate[ngsDirection::DIR_Z]);
+        m_sceneMatrix.rotateZ(m_rotate[DIR_Z]);
         m_sceneMatrix.translate(-center.x, -center.y, 0);
 
-        m_worldToDisplayMatrix.rotateZ(-m_rotate[ngsDirection::DIR_Z]);
-        m_invWorldToDisplayMatrix.rotateZ(m_rotate[ngsDirection::DIR_Z]);
+        m_worldToDisplayMatrix.rotateZ(-m_rotate[DIR_Z]);
+        m_invWorldToDisplayMatrix.rotateZ(m_rotate[DIR_Z]);
     }
 }
 

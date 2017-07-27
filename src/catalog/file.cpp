@@ -52,10 +52,10 @@ time_t File::modificationDate(const char* path)
 
 bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 {
-    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0, _("Start copying %s to %s"),
+    progress.onProgress(COD_IN_PROCESS, 0.0, _("Start copying %s to %s"),
                         src, dst);
     if(EQUAL(src, dst)) {
-        progress.onProgress(ngsCode::COD_FINISHED, 1.0, _("Copied %s to %s"),
+        progress.onProgress(COD_FINISHED, 1.0, _("Copied %s to %s"),
                             src, dst);
         return true;
     }
@@ -79,18 +79,18 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 
     fpOld = VSIFOpenL(src, "rb");
     if(fpOld == nullptr) {
-        progress.onProgress(ngsCode::COD_COPY_FAILED, 0.0, _("Open input file %s failed"),
+        progress.onProgress(COD_COPY_FAILED, 0.0, _("Open input file %s failed"),
                             src);
-        return errorMessage(ngsCode::COD_COPY_FAILED, _("Open input file %s failed"),
+        return errorMessage(COD_COPY_FAILED, _("Open input file %s failed"),
                             src);
     }
 
     fpNew = VSIFOpenL(dst, "wb");
     if(fpNew == nullptr) {
         VSIFCloseL(fpOld);
-        progress.onProgress(ngsCode::COD_COPY_FAILED, 0.0, _("Open output file %s failed"),
+        progress.onProgress(COD_COPY_FAILED, 0.0, _("Open output file %s failed"),
                             dst);
-        return errorMessage(ngsCode::COD_COPY_FAILED, _("Open output file %s failed"),
+        return errorMessage(COD_COPY_FAILED, _("Open output file %s failed"),
                             dst);
     }
 
@@ -111,14 +111,14 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 
         counter++;
 
-        if(!progress.onProgress(ngsCode::COD_IN_PROCESS, counter / totalCount,
+        if(!progress.onProgress(COD_IN_PROCESS, counter / totalCount,
                                _("Copying %s to %s"), src, dst)) {
             break;
         }
 
     } while(ret == 0 && bytesRead == BUFFER_SIZE);
 
-    progress.onProgress(ngsCode::COD_FINISHED, 1.0,  _("Copied %s to %s"),
+    progress.onProgress(COD_FINISHED, 1.0,  _("Copied %s to %s"),
                         src, dst);
 
     // Cleanup
@@ -133,10 +133,10 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 
 bool File::moveFile(const char* src, const char* dst, const Progress& progress)
 {
-    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0, _("Start moving %s to %s"),
+    progress.onProgress(COD_IN_PROCESS, 0.0, _("Start moving %s to %s"),
                         src, dst);
     if(EQUAL(src, dst)) {
-        progress.onProgress(ngsCode::COD_FINISHED, 1.0, _("Moved %s to %s"),
+        progress.onProgress(COD_FINISHED, 1.0, _("Moved %s to %s"),
                             src, dst);
         return true;
     }
@@ -164,15 +164,15 @@ bool File::moveFile(const char* src, const char* dst, const Progress& progress)
 
 bool File::renameFile(const char* src, const char* dst, const Progress& progress)
 {
-    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0, _("Start rename %s to %s"),
+    progress.onProgress(COD_IN_PROCESS, 0.0, _("Start rename %s to %s"),
                         src, dst);
     if(VSIRename(src, dst) != 0) {
-        progress.onProgress(ngsCode::COD_RENAME_FAILED, 0.0, _("Rename %s to %s failed"),
+        progress.onProgress(COD_RENAME_FAILED, 0.0, _("Rename %s to %s failed"),
                             src, dst);
-        return errorMessage(ngsCode::COD_RENAME_FAILED, _("Rename %s to %s failed"),
+        return errorMessage(COD_RENAME_FAILED, _("Rename %s to %s failed"),
                             src, dst);
     }
-    progress.onProgress(ngsCode::COD_FINISHED, 0.0, _("Rename %s to %s succeeded"),
+    progress.onProgress(COD_FINISHED, 0.0, _("Rename %s to %s succeeded"),
                         src, dst);
     return true;
 }

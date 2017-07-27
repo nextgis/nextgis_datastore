@@ -90,7 +90,7 @@ class Dataset : public ObjectContainer, public DatasetBase
 
 public:
     explicit Dataset(ObjectContainer * const parent = nullptr,
-            const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_CONTAINER_ANY,
+            const enum ngsCatalogObjectType type = CAT_CONTAINER_ANY,
             const CPLString & name = "",
             const CPLString & path = "");
     virtual ~Dataset();

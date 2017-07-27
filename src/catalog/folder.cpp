@@ -198,7 +198,7 @@ int Folder::paste(ObjectPtr child, bool move, const Options& options,
     }
 
     if(EQUAL(child->path(), newPath)) {
-        return ngsCode::COD_SUCCESS;
+        return COD_SUCCESS;
     }
 
     File* file = ngsDynamicCast(File, child);
@@ -236,19 +236,19 @@ int Folder::paste(ObjectPtr child, bool move, const Options& options,
             CPLString newFilePath = dstConstPath + file.substr(constPathLen);
             if(move) {
                 if(!File::moveFile(file, newFilePath, newProgress)) {
-                    return ngsCode::COD_MOVE_FAILED;
+                    return COD_MOVE_FAILED;
                 }
             }
             else {
                 if(!File::copyFile(file, newFilePath, newProgress)) {
-                    return ngsCode::COD_MOVE_FAILED;
+                    return COD_MOVE_FAILED;
                 }
             }
         }
-        return ngsCode::COD_SUCCESS;
+        return COD_SUCCESS;
     }
 
-    return move ? ngsCode::COD_MOVE_FAILED : ngsCode::COD_COPY_FAILED;
+    return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
 }
 
 bool Folder::canPaste(const enum ngsCatalogObjectType type) const

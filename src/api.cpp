@@ -206,7 +206,7 @@ int ngsInit(char** options)
 
 #ifdef NGS_MOBILE
     if(nullptr == dataPath) {
-        return errorMessage(ngsCode::COD_NOT_SPECIFIED,
+        return errorMessage(COD_NOT_SPECIFIED,
                            _("GDAL_DATA option is required"));
     }
 #endif
@@ -216,7 +216,7 @@ int ngsInit(char** options)
     Catalog::setInstance(new Catalog());
     MapStore::setInstance(new MapStore());
 
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 /**
@@ -371,7 +371,7 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
 
     if(result->nStatus != 0) {
-        errorMessage(ngsCode::COD_REQUEST_FAILED, result->pszErrBuf);
+        errorMessage(COD_REQUEST_FAILED, result->pszErrBuf);
         out->status = 543;
         out->headers = nullptr;
         out->dataLen = 0;
@@ -382,7 +382,7 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
         return out;
     }
     else if(result->pszErrBuf) {
-        warningMessage(ngsCode::COD_WARNING, result->pszErrBuf);
+        warningMessage(COD_WARNING, result->pszErrBuf);
     }
 
     unsigned char* buffer = new unsigned char[result->nDataLen];
@@ -478,7 +478,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        errorMessage(COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
@@ -499,7 +499,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
     }
 
     if(!container->hasChildren()) {
-        if(container->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+        if(container->type() == CAT_CONTAINER_SIMPLE) {
             SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
             output = static_cast<ngsCatalogObjectInfo*>(
                         CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
@@ -521,7 +521,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
             output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
 
-            if(child->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+            if(child->type() == CAT_CONTAINER_SIMPLE) {
                 SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
                 output[outputSize - 1] = {child->name(),
                                           simpleDS->subType(),
@@ -587,13 +587,12 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject)
-        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return errorMessage(COD_INVALID, _("The object handle is null"));
 
     // Check can delete
     if(catalogObject->canDestroy())
-        return catalogObject->destroy() ? ngsCode::COD_SUCCESS :
-                                   ngsCode::COD_DELETE_FAILED;
-    return errorMessage(ngsCode::COD_UNSUPPORTED,
+        return catalogObject->destroy() ? COD_SUCCESS : COD_DELETE_FAILED;
+    return errorMessage(COD_UNSUPPORTED,
                        _("The path cannot be deleted (write protected, locked, etc.)"));
 }
 
@@ -611,7 +610,7 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char** optio
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject)
-        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return errorMessage(COD_INVALID, _("The object handle is null"));
 
     Options createOptions(options);
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
@@ -621,9 +620,9 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char** optio
     // Check can create
     if(nullptr != container && container->canCreate(type))
         return container->create(type, name, createOptions) ?
-                    ngsCode::COD_SUCCESS : ngsCode::COD_CREATE_FAILED;
+                    COD_SUCCESS : COD_CREATE_FAILED;
 
-    return errorMessage(ngsCode::COD_UNSUPPORTED,
+    return errorMessage(COD_UNSUPPORTED,
                         _("Cannot create such object type (%d) in path: %s"),
                         type, catalogObject->fullName().c_str());
 }
@@ -664,7 +663,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
     Object* srcCatalogObject = static_cast<Object*>(srcObject);
     Object* dstCatalogObject = static_cast<Object*>(dstObject);
     if(!srcCatalogObject || !dstCatalogObject) {
-        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return errorMessage(COD_INVALID, _("The object handle is null"));
     }
 
     ObjectPtr srcCatalogObjectPointer = srcCatalogObject->pointer();
@@ -676,26 +675,25 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
     loadOptions.removeOption("MOVE");
 
     if(move && !srcCatalogObjectPointer->canDestroy()) {
-        return  errorMessage(ngsCode::COD_MOVE_FAILED,
+        return  errorMessage(COD_MOVE_FAILED,
                              _("Cannot move source dataset '%s'"),
                              srcCatalogObjectPointer->fullName().c_str());
     }
 
-    if(srcCatalogObjectPointer->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+    if(srcCatalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(srcCatalogObject);
         dataset->hasChildren();
         srcCatalogObjectPointer = dataset->internalObject();
     }
 
     if(!srcCatalogObjectPointer) {
-        return errorMessage(ngsCode::COD_INVALID,
+        return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
 
     Dataset * const dstDataset = dynamic_cast<Dataset*>(dstCatalogObject);
     if(nullptr == dstDataset) {
-        return move ? ngsCode::COD_MOVE_FAILED :
-                      ngsCode::COD_COPY_FAILED;
+        return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
     }
     dstDataset->hasChildren();
 
@@ -704,8 +702,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
         return dstDataset->paste(srcCatalogObjectPointer, move, loadOptions, progress);
     }
 
-    return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
-                               ngsCode::COD_COPY_FAILED,
+    return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                         _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
                         dstCatalogObjectPointer->fullName().c_str(),
                         srcCatalogObjectPointer->fullName().c_str());
@@ -721,7 +718,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
     ObjectContainer* dstCatalogObjectContainer =
             static_cast<ObjectContainer*>(dstObjectContainer);
     if(!srcCatalogObject || !dstCatalogObjectContainer) {
-        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return errorMessage(COD_INVALID, _("The object handle is null"));
     }
 
     ObjectPtr srcCatalogObjectPointer = srcCatalogObject->pointer();
@@ -732,7 +729,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
     copyOptions.removeOption("MOVE");
 
     if(move && !srcCatalogObjectPointer->canDestroy()) {
-        return  errorMessage(ngsCode::COD_MOVE_FAILED,
+        return  errorMessage(COD_MOVE_FAILED,
                              _("Cannot move source dataset '%s'"),
                              srcCatalogObjectPointer->fullName().c_str());
     }
@@ -742,8 +739,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                                                 copyOptions, progress);
     }
 
-    return errorMessage(move ? ngsCode::COD_MOVE_FAILED :
-                               ngsCode::COD_COPY_FAILED,
+    return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                         _("Destination container '%s' cannot accept source dataset '%s'"),
                         dstCatalogObjectContainer->fullName().c_str(),
                         srcCatalogObjectPointer->fullName().c_str());
@@ -760,15 +756,14 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char* newName)
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject)
-        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return errorMessage(COD_INVALID, _("The object handle is null"));
 
     if(!catalogObject->canRename())
-        return errorMessage(ngsCode::COD_RENAME_FAILED,
+        return errorMessage(COD_RENAME_FAILED,
                             _("Cannot rename catalog object '%s' to '%s'"),
                             catalogObject->fullName().c_str(), newName);
 
-    return catalogObject->rename(newName) ? ngsCode::COD_SUCCESS :
-                                     ngsCode::COD_RENAME_FAILED;
+    return catalogObject->rename(newName) ? COD_SUCCESS : COD_RENAME_FAILED;
 }
 
 /**
@@ -782,12 +777,12 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char* newName)
 const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
 {
     if(!object) {
-        errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        errorMessage(COD_INVALID, _("The object handle is null"));
         return "";
     }
     Object* catalogObject = static_cast<Object*>(object);
     if(!Filter::isDatabase(catalogObject->type())) {
-        errorMessage(ngsCode::COD_INVALID,
+        errorMessage(COD_INVALID,
                             _("The input object not a dataset. The type is %d. Options query not supported"),
                      catalogObject->type());
         return "";
@@ -795,7 +790,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
 
     Dataset * const dataset = dynamic_cast<Dataset*>(catalogObject);
     if(nullptr == dataset) {
-        errorMessage(ngsCode::COD_INVALID,
+        errorMessage(COD_INVALID,
                             _("The input object not a dataset. Options query not supported"));
         return "";
     }
@@ -824,7 +819,7 @@ CatalogObjectH ngsCatalogObjectGet(const char* path)
 enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
 {
     if(nullptr == object)
-        return ngsCatalogObjectType::CAT_UNKNOWN;
+        return CAT_UNKNOWN;
     return static_cast<Object*>(object)->type();
 }
 
@@ -844,14 +839,13 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        errorMessage(COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
 
     DatasetBase* datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
     if(!datasetBase) {
-        errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -871,29 +865,28 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        return errorMessage(ngsCode::COD_INVALID, _("The object handle is null"));
+        return errorMessage(COD_INVALID, _("The object handle is null"));
     }
 
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
-    if(catalogObjectPointer->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+    if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
         dataset->hasChildren();
         catalogObjectPointer = dataset->internalObject();
     }
 
     if(!catalogObjectPointer) {
-        return errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
     }
 
     if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
-        return errorMessage(ngsCode::COD_INVALID,
+        return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
 
     FeatureClass* featureClass = ngsDynamicCast(FeatureClass, catalogObjectPointer);
     if(!featureClass) {
-        return errorMessage(ngsCode::COD_INVALID,
+        return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
 
@@ -974,10 +967,10 @@ int ngsMapSave(unsigned char mapId, const char* path)
     }
 
     if(!mapStore->saveMap(mapId, mapFile)) {
-        return ngsCode::COD_SAVE_FAILED;
+        return COD_SAVE_FAILED;
     }
 
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 /**
@@ -989,10 +982,8 @@ int ngsMapClose(unsigned char mapId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
-        return errorMessage(ngsCode::COD_CLOSE_FAILED,
-                            _("MapStore is not initialized"));
-    return mapStore->closeMap(mapId) ? ngsCode::COD_SUCCESS :
-                                       ngsCode::COD_CLOSE_FAILED;
+        return errorMessage(COD_CLOSE_FAILED, _("MapStore is not initialized"));
+    return mapStore->closeMap(mapId) ? COD_SUCCESS : COD_CLOSE_FAILED;
 }
 
 
@@ -1007,11 +998,11 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
-        return errorMessage(ngsCode::COD_CLOSE_FAILED,
+        return errorMessage(COD_CLOSE_FAILED,
                             _("MapStore is not initialized"));
     return mapStore->setMapSize(mapId, width, height, isYAxisInverted == 1 ?
-                                    true : false) ? ngsCode::COD_SUCCESS :
-                                                    ngsCode::COD_SET_FAILED;
+                                    true : false) ? COD_SUCCESS :
+                                                    COD_SET_FAILED;
 }
 
 /**
@@ -1027,11 +1018,11 @@ int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore)
-        return errorMessage(ngsCode::COD_DRAW_FAILED,
+        return errorMessage(COD_DRAW_FAILED,
                             _("MapStore is not initialized"));
     Progress progress(callback, callbackData);
-    return mapStore->drawMap(mapId, state, progress) ? ngsCode::COD_SUCCESS :
-                                                       ngsCode::COD_DRAW_FAILED;
+    return mapStore->drawMap(mapId, state, progress) ? COD_SUCCESS :
+                                                       COD_DRAW_FAILED;
 }
 
 /**
@@ -1043,8 +1034,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                            _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return {0,0,0,0};
     }
     return mapStore->getMapBackgroundColor(mapId);
@@ -1060,11 +1050,10 @@ int ngsMapSetBackgroundColor(unsigned char mapId, ngsRGBA color)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_SET_FAILED,
-                            _("MapStore is not initialized"));
+        return errorMessage(COD_SET_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->setMapBackgroundColor(mapId, color) ?
-                ngsCode::COD_SUCCESS : ngsCode::COD_SET_FAILED;
+                COD_SUCCESS : COD_SET_FAILED;
 }
 
 /**
@@ -1078,11 +1067,9 @@ int ngsMapSetCenter(unsigned char mapId, double x, double y)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_SET_FAILED,
-                            _("MapStore is not initialized"));
+        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
     }
-    return mapStore->setMapCenter(mapId, x, y) ?
-                ngsCode::COD_SUCCESS : ngsCode::COD_SET_FAILED;
+    return mapStore->setMapCenter(mapId, x, y) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 /**
@@ -1094,8 +1081,7 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                            _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return {0, 0, 0};
     }
     return mapStore->getMapCenter(mapId);
@@ -1112,8 +1098,7 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                            _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return {0, 0, 0};
     }
     return mapStore->getMapCoordinate(mapId, x, y);
@@ -1129,8 +1114,7 @@ int ngsMapSetScale(unsigned char mapId, double scale)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_SET_FAILED,
-                            _("MapStore is not initialized"));
+        return errorMessage(COD_SET_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->setMapScale(mapId, scale);
 }
@@ -1144,8 +1128,7 @@ double ngsMapGetScale(unsigned char mapId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                            _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return 1.0;
     }
     return mapStore->getMapScale(mapId);
@@ -1162,16 +1145,14 @@ int ngsMapCreateLayer(unsigned char mapId, const char* name, const char* path)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_CREATE_FAILED,
-                     _("MapStore is not initialized"));
+        errorMessage(COD_CREATE_FAILED, _("MapStore is not initialized"));
         return NOT_FOUND;
     }
 
     CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(path);
     if(!object) {
-        errorMessage(ngsCode::COD_INVALID,
-                            _("Source dataset '%s' not found"), path);
+        errorMessage(COD_INVALID, _("Source dataset '%s' not found"), path);
         return NOT_FOUND;
     }
 
@@ -1190,12 +1171,11 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_INVALID,
-                     _("MapStore is not initialized"));
+        return errorMessage(COD_INVALID, _("MapStore is not initialized"));
     }
     return mapStore->reorderLayers(mapId, static_cast<Layer*>(beforeLayer),
                                    static_cast<Layer*>(movedLayer)) ?
-                ngsCode::COD_SUCCESS : ngsCode::COD_MOVE_FAILED;
+                COD_SUCCESS : COD_MOVE_FAILED;
 }
 
 
@@ -1211,7 +1191,7 @@ int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_INVALID,
+        return errorMessage(COD_INVALID,
                      _("MapStore is not initialized"));
     }
     return mapStore->setMapRotate(mapId, dir, rotate);
@@ -1227,8 +1207,7 @@ double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                            _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return 0.0;
     }
     return mapStore->getMapRotate(mapId, dir);
@@ -1245,8 +1224,7 @@ ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                            _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return {0.0, 0.0, 0.0};
     }
     return mapStore->getMapDistance(mapId, w, h);
@@ -1261,8 +1239,7 @@ int ngsMapLayerCount(unsigned char mapId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                     _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return 0;
     }
     return static_cast<int>(mapStore->getLayerCount(mapId));
@@ -1278,8 +1255,7 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(ngsCode::COD_GET_FAILED,
-                     _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return nullptr;
     }
     return mapStore->getLayer(mapId, layerId).get();
@@ -1295,11 +1271,10 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_DELETE_FAILED,
-                     _("MapStore is not initialized"));
+        return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->deleteLayer(mapId, static_cast<Layer*>(layer)) ?
-                ngsCode::COD_SUCCESS : ngsCode::COD_DELETE_FAILED;
+                COD_SUCCESS : COD_DELETE_FAILED;
 }
 
 
@@ -1307,11 +1282,10 @@ int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_DELETE_FAILED,
-                     _("MapStore is not initialized"));
+        return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->setZoomIncrement(mapId, extraZoom) ?
-                ngsCode::COD_SUCCESS : ngsCode::COD_SET_FAILED;
+                COD_SUCCESS : COD_SET_FAILED;
 }
 
 int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
@@ -1319,13 +1293,12 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(ngsCode::COD_DELETE_FAILED,
-                     _("MapStore is not initialized"));
+        return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
 
     Envelope extentLimits(minX, minY, maxX, maxY);
     return mapStore->setExtentLimits(mapId, extentLimits) ?
-                ngsCode::COD_SUCCESS : ngsCode::COD_SET_FAILED;
+                COD_SUCCESS : COD_SET_FAILED;
 }
 
 //------------------------------------------------------------------------------
@@ -1340,7 +1313,7 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
 const char* ngsLayerGetName(LayerH layer)
 {
     if(nullptr == layer) {
-        errorMessage(ngsCode::COD_GET_FAILED, _("Layer pointer is null"));
+        errorMessage(COD_GET_FAILED, _("Layer pointer is null"));
         return "";
     }
     return (static_cast<Layer*>(layer))->getName();
@@ -1355,11 +1328,10 @@ const char* ngsLayerGetName(LayerH layer)
 int ngsLayerSetName(LayerH layer, const char* name)
 {
     if(nullptr == layer) {
-        return errorMessage(ngsCode::COD_SET_FAILED,
-                            _("Layer pointer is null"));
+        return errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
     }
     (static_cast<Layer*>(layer))->setName(name);
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 /**
@@ -1370,7 +1342,7 @@ int ngsLayerSetName(LayerH layer, const char* name)
 char ngsLayerGetVisible(LayerH layer)
 {
     if(nullptr == layer) {
-        return static_cast<char>(errorMessage(ngsCode::COD_GET_FAILED,
+        return static_cast<char>(errorMessage(COD_GET_FAILED,
                                               _("Layer pointer is null")));
     }
     return (static_cast<Layer*>(layer))->visible();
@@ -1385,17 +1357,17 @@ char ngsLayerGetVisible(LayerH layer)
 int ngsLayerSetVisible(LayerH layer, char visible)
 {
     if(nullptr == layer) {
-        return errorMessage(ngsCode::COD_SET_FAILED, _("Layer pointer is null"));
+        return errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
     }
     (static_cast<Layer*>(layer))->setVisible(visible);
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 
 CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 {
     if(nullptr == layer) {
-        errorMessage(ngsCode::COD_SET_FAILED, _("Layer pointer is null"));
+        errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
         return nullptr;
     }
 
@@ -1406,40 +1378,34 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
 {
     if (nullptr == layer) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("Layer pointer is null"));
+        return errorMessage( COD_CREATE_FAILED, _("Layer pointer is null"));
     }
 
     Layer* pLayer = static_cast<Layer*>(layer);
     FeatureClassPtr datasource =
             std::dynamic_pointer_cast<FeatureClass>(pLayer->datasource());
     if (!datasource) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("Layer datasource is null"));
+        return errorMessage(COD_CREATE_FAILED, _("Layer datasource is null"));
     }
 
     MapStore* const mapStore = MapStore::getInstance();
     if (nullptr == mapStore) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("MapStore is not initialized"));
+        return errorMessage(COD_CREATE_FAILED, _("MapStore is not initialized"));
     }
 
     MapViewPtr mapView = mapStore->getMap(mapId);
     if (!mapView) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("MapView pointer is null"));
+        return errorMessage(COD_CREATE_FAILED, _("MapView pointer is null"));
     }
 
     OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
     if (!overlay) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("Overlay pointer is null"));
+        return errorMessage(COD_CREATE_FAILED, _("Overlay pointer is null"));
     }
 
     EditLayerOverlay* editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
     if (!editOverlay) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("Edit overlay pointer is null"));
+        return errorMessage(COD_CREATE_FAILED, _("Edit overlay pointer is null"));
     }
 
     const CPLString& layerName = pLayer->getName();
@@ -1449,15 +1415,14 @@ int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
     GeometryPtr geometry =
             EditLayerOverlay::createGeometry(geometryType, mapCenter);
     if (!geometry) {
-        return errorMessage(
-                ngsCode::COD_CREATE_FAILED, _("Geometry pointer is null"));
+        return errorMessage(COD_CREATE_FAILED, _("Geometry pointer is null"));
     }
 
     editOverlay->setVisible(true);
     editOverlay->setLayerName(layerName);
     editOverlay->setGeometry(geometry);
 
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1469,12 +1434,10 @@ int ngsOverlaySetVisible(
 {
     MapStore* const mapStore = MapStore::getInstance();
     if (nullptr == mapStore) {
-        return errorMessage(
-                ngsCode::COD_DELETE_FAILED, _("MapStore is not initialized"));
+        return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->setOverlayVisible(mapId, typeMask, visible)
-            ? ngsCode::COD_SUCCESS
-            : ngsCode::COD_SET_FAILED;
+            ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 

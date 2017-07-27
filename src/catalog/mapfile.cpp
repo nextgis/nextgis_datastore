@@ -32,7 +32,7 @@ constexpr int MAP_DOCUMENT_EXT_LEN = length(MAP_DOCUMENT_EXT);
 MapFile::MapFile(ObjectContainer * const parent,
                  const CPLString &name,
                  const CPLString &path) :
-    File(parent, ngsCatalogObjectType::CAT_FILE_NGMAPDOCUMENT, name, path)
+    File(parent, CAT_FILE_NGMAPDOCUMENT, name, path)
 {
 
 }

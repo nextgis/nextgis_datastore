@@ -83,8 +83,7 @@ Table::Table(OGRLayer *layer,
 
 Table::~Table()
 {
-    if(m_type == ngsCatalogObjectType::CAT_QUERY_RESULT ||
-       m_type == ngsCatalogObjectType::CAT_QUERY_RESULT_FC) {
+    if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
             GDALDataset * const DS = dataset->getGDALDataset();
@@ -186,10 +185,10 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
                      const Progress& progress)
 {
     if(!srcTable) {
-        return errorMessage(ngsCode::COD_COPY_FAILED, _("Source table is invalid"));
+        return errorMessage(COD_COPY_FAILED, _("Source table is invalid"));
     }
 
-    progress.onProgress(ngsCode::COD_IN_PROCESS, 0.0,
+    progress.onProgress(COD_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
                        srcTable->name().c_str(), m_name.c_str());
 
@@ -199,28 +198,28 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     FeaturePtr feature;
     while((feature = srcTable->nextFeature ())) {
         double complete = counter / featureCount;
-        if(!progress.onProgress(ngsCode::COD_IN_PROCESS, complete,
+        if(!progress.onProgress(COD_IN_PROCESS, complete,
                            _("Copy in process ..."))) {
-            return  ngsCode::COD_CANCELED;
+            return  COD_CANCELED;
         }
 
         FeaturePtr dstFeature = createFeature();
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
         if(!insertFeature(dstFeature)) {
-            if(!progress.onProgress(ngsCode::COD_WARNING, complete,
+            if(!progress.onProgress(COD_WARNING, complete,
                                _("Create feature failed. Source feature FID:%lld"),
                                feature->GetFID ())) {
-               return  ngsCode::COD_CANCELED;
+               return  COD_CANCELED;
             }
         }
         counter++;
     }
 
-    progress.onProgress(ngsCode::COD_FINISHED, 1.0, _("Done. Copied %d rows"),
+    progress.onProgress(COD_FINISHED, 1.0, _("Done. Copied %d rows"),
                        int(counter));
 
-    return ngsCode::COD_SUCCESS;
+    return COD_SUCCESS;
 }
 
 OGRFeatureDefn *Table::definition() const

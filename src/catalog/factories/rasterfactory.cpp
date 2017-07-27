@@ -56,11 +56,9 @@ constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
 
 RasterFactory::RasterFactory()
 {
-    m_tiffSupported = Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_RASTER_TIFF);
-    m_wmstmsSupported =  Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_RASTER_WMS) ||
-            Filter::getGDALDriver(ngsCatalogObjectType::CAT_RASTER_TMS);
+    m_tiffSupported = Filter::getGDALDriver(CAT_RASTER_TIFF);
+    m_wmstmsSupported =  Filter::getGDALDriver(CAT_RASTER_WMS) ||
+            Filter::getGDALDriver(CAT_RASTER_TMS);
 
 //    CAT_RASTER_BMP,
 //    CAT_RASTER_TIL,
@@ -102,8 +100,7 @@ void RasterFactory::createObjects(ObjectContainer * const container,
                                                nullptr);
             checkAdditionalSiblings(container->path(), result.name, tifAdds,
                                     result.siblingFiles);
-            addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_RASTER_TIFF,
+            addChild(container, result.name, path, CAT_RASTER_TIFF,
                      result.siblingFiles, names);
         }
         result = isFormatSupported(
@@ -113,8 +110,7 @@ void RasterFactory::createObjects(ObjectContainer * const container,
                                                nullptr);
             checkAdditionalSiblings(container->path(), result.name, tifAdds,
                                     result.siblingFiles);
-            addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_RASTER_TIFF,
+            addChild(container, result.name, path, CAT_RASTER_TIFF,
                      result.siblingFiles, names);
         }
         }
@@ -149,13 +145,13 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
     {
         CPLString url = options.stringOption(KEY_URL);
         if(url.empty()) {
-            return errorMessage(ngsCode::COD_CREATE_FAILED,
+            return errorMessage(COD_CREATE_FAILED,
                                 _("Missign required option 'url'"));
         }
 
         int epsg = options.intOption(KEY_EPSG, -1);
         if(epsg < 0) {
-            return errorMessage(ngsCode::COD_CREATE_FAILED,
+            return errorMessage(COD_CREATE_FAILED,
                                 _("Missign required option 'epsg'"));
         }
         int z_min = options.intOption(KEY_Z_MIN, 0);
@@ -199,7 +195,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         return connectionFile.Save(newPath);
     }
     default:
-        return errorMessage(ngsCode::COD_CREATE_FAILED,
+        return errorMessage(COD_CREATE_FAILED,
                             _("Unsupported connection type %d"), type);
     }
 }

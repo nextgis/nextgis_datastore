@@ -40,7 +40,7 @@ class Object
 {
 public:
     explicit Object(ObjectContainer * const parent = nullptr,
-           const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_UNKNOWN,
+           const enum ngsCatalogObjectType type = CAT_UNKNOWN,
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Object() = default;

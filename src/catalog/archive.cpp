@@ -30,7 +30,7 @@ ArchiveFolder::ArchiveFolder(ObjectContainer * const parent,
                              const CPLString &path) :
     Folder(parent, name, path)
 {
-    m_type = ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_DIR;
+    m_type = CAT_CONTAINER_ARCHIVE_DIR;
 }
 
 Archive::Archive(ObjectContainer * const parent,
@@ -61,7 +61,7 @@ bool Archive::destroy()
 const char *Archive::getExtension(const enum ngsCatalogObjectType type)
 {
     switch (type) {
-    case ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP:
+    case CAT_CONTAINER_ARCHIVE_ZIP:
         return "zip";
     default:
         return "";
@@ -71,7 +71,7 @@ const char *Archive::getExtension(const enum ngsCatalogObjectType type)
 const char *Archive::getPathPrefix(const enum ngsCatalogObjectType type)
 {
     switch (type) {
-    case ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP:
+    case CAT_CONTAINER_ARCHIVE_ZIP:
         return "/vsizip/";
     default:
         return "";

@@ -45,7 +45,7 @@ class Raster : public Object, public DatasetBase, public SpatialDataset
 public:
     explicit Raster(std::vector<CPLString> siblingFiles,
            ObjectContainer * const parent = nullptr,
-           const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_RASTER_ANY,
+           const enum ngsCatalogObjectType type = CAT_RASTER_ANY,
            const CPLString & name = "",
            const CPLString & path = "");
     virtual ~Raster();

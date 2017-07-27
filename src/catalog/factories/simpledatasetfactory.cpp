@@ -48,10 +48,8 @@ constexpr FORMAT_EXT mifExt = {"mif", mifMainExts, mifExtraExts};
 
 SimpleDatasetFactory::SimpleDatasetFactory() : ObjectFactory()
 {
-    m_shpSupported = Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE);
-    m_miSupported = Filter::getGDALDriver(
-                ngsCatalogObjectType::CAT_FC_MAPINFO_TAB);
+    m_shpSupported = Filter::getGDALDriver(CAT_FC_ESRI_SHAPEFILE);
+    m_miSupported = Filter::getGDALDriver(CAT_FC_MAPINFO_TAB);
 }
 
 const char* SimpleDatasetFactory::getName() const
@@ -80,8 +78,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
-            addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_FC_ESRI_SHAPEFILE,
+            addChild(container, result.name, path, CAT_FC_ESRI_SHAPEFILE,
                      result.siblingFiles, names);
         }
         }
@@ -93,8 +90,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
-            addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_FC_MAPINFO_TAB,
+            addChild(container, result.name, path, CAT_FC_MAPINFO_TAB,
                      result.siblingFiles, names);
         }
 
@@ -104,8 +100,7 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
         if(result.isSupported) {
             const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
-            addChild(container, result.name, path,
-                     ngsCatalogObjectType::CAT_FC_MAPINFO_MIF,
+            addChild(container, result.name, path, CAT_FC_MAPINFO_MIF,
                      result.siblingFiles, names);
         }
         }

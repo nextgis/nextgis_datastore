@@ -32,8 +32,7 @@ namespace ngs {
 FolderFactory::FolderFactory() : ObjectFactory()
 {
     m_zipSupported = VSIFileManager::GetHandler(
-                Archive::getPathPrefix(
-                    ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP)) != NULL;
+                Archive::getPathPrefix(CAT_CONTAINER_ARCHIVE_ZIP)) != NULL;
 }
 
 const char *FolderFactory::getName() const
@@ -50,11 +49,10 @@ void FolderFactory::createObjects(ObjectContainer * const container,
         deleted = false;
         const char* path = CPLFormFilename(container->path(), *it, nullptr);
         if(Folder::isDir(path)) {
-            if(container->type() ==
-                                ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_DIR) { // Check if this is archive folder
+            if(container->type() == CAT_CONTAINER_ARCHIVE_DIR) { // Check if this is archive folder
                 if(m_zipSupported) {
                     CPLString vsiPath = Archive::getPathPrefix(
-                                ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP);
+                                CAT_CONTAINER_ARCHIVE_ZIP);
                     vsiPath += path;
                     addChild(container, ObjectPtr(new ArchiveFolder(container,
                                                                     *it, vsiPath)));
@@ -70,14 +68,12 @@ void FolderFactory::createObjects(ObjectContainer * const container,
         }
         else if(m_zipSupported) {
             if(EQUAL(CPLGetExtension(*it),
-                     Archive::getExtension(
-                         ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP))) { // Check if this is archive file
+                     Archive::getExtension(CAT_CONTAINER_ARCHIVE_ZIP))) { // Check if this is archive file
                 CPLString vsiPath = Archive::getPathPrefix(
-                            ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP);
+                            CAT_CONTAINER_ARCHIVE_ZIP);
                 vsiPath += path;
                 addChild(container, ObjectPtr(
-                             new Archive(container,
-                                         ngsCatalogObjectType::CAT_CONTAINER_ARCHIVE_ZIP,
+                             new Archive(container, CAT_CONTAINER_ARCHIVE_ZIP,
                                          *it, vsiPath)));
                 it = names->erase(it);
                 deleted = true;

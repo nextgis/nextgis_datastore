@@ -116,7 +116,7 @@ public:
 public:
     explicit FeatureClass(OGRLayer* layer,
                  ObjectContainer* const parent = nullptr,
-                 const enum ngsCatalogObjectType type = ngsCatalogObjectType::CAT_FC_ANY,
+                 const enum ngsCatalogObjectType type = CAT_FC_ANY,
                  const CPLString & name = "");
     virtual ~FeatureClass();
 

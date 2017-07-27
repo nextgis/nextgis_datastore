@@ -31,7 +31,7 @@ static CPLString lastMsg;
 
 int errorMessage(enum ngsCode errorCode, const char *fmt, ...)
 {
-    if(errorCode >= ngsCode::COD_UNEXPECTED_ERROR) {
+    if(errorCode >= COD_UNEXPECTED_ERROR) {
         va_list args;
 
         // Expand the error message
@@ -46,7 +46,7 @@ int errorMessage(enum ngsCode errorCode, const char *fmt, ...)
 
 int warningMessage(enum ngsCode errorCode, const char *fmt, ...)
 {
-    if(errorCode >= ngsCode::COD_UNEXPECTED_ERROR) {
+    if(errorCode >= COD_UNEXPECTED_ERROR) {
         va_list args;
 
         // Expand the error message

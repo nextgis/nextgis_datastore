@@ -116,7 +116,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 
 
 #ifdef NGS_GL_DEBUG
-//    setRotate(ngsDirection::DIR_Z, M_PI/6);
+//    setRotate(DIR_Z, M_PI/6);
 
     clearBackground();
     // Test drawing without layers
@@ -132,8 +132,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 
     if(m_layers.empty()) {
         //clearBackground();
-        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
-                            _("No layers. Nothing to render."));
+        progress.onProgress(COD_FINISHED, 1.0, _("No layers. Nothing to render."));
         return true;
     }
 
@@ -312,13 +311,11 @@ bool GlView::drawTiles(const Progress &progress)
 //    CPLDebug("ngstore", "Drawing %f of %f", done, totalDrawCalls);
     if(done >= totalDrawCalls) {
         freeOldTiles();
-        progress.onProgress(ngsCode::COD_FINISHED, 1.0,
-                            _("Map render finished."));
+        progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
     }
     else {
         double complete = done / totalDrawCalls;
-        progress.onProgress(ngsCode::COD_IN_PROCESS, complete,
-                            _("Rendering ..."));
+        progress.onProgress(COD_IN_PROCESS, complete, _("Rendering ..."));
     }
 
     return true;

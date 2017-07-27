@@ -30,7 +30,7 @@ SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
                              ObjectContainer * const parent,
                              const CPLString &name,
                              const CPLString &path) :
-    Dataset(parent, ngsCatalogObjectType::CAT_CONTAINER_SIMPLE, name, path),
+    Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
     m_subType(subType), m_siblingFiles(siblingFiles)
 {
 

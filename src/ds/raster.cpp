@@ -227,7 +227,7 @@ bool Raster::destroy()
         }
     }
 
-    errorMessage(ngsCode::COD_DELETE_FAILED, _("The data type %d cannot be deleted. Path: %s"),
+    errorMessage(COD_DELETE_FAILED, _("The data type %d cannot be deleted. Path: %s"),
                  m_type, m_path.c_str());
 
     return false;

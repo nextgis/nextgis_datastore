@@ -149,7 +149,7 @@ bool Map::close()
 int Map::createLayer(const char * name, const ObjectPtr &object)
 {
     LayerPtr layer;
-    if(object->type() == ngsCatalogObjectType::CAT_CONTAINER_SIMPLE) {
+    if(object->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
         simpleDS->hasChildren();
         ObjectPtr internalObject = simpleDS->internalObject();
@@ -180,7 +180,7 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
         return static_cast<int>(m_layers.size() - 1);
     }
 
-    errorMessage(ngsCode::COD_INVALID,
+    errorMessage(COD_INVALID,
                  _("Source '%s' is not a valid dataset"), object->path().c_str());
 
     return NOT_FOUND;
