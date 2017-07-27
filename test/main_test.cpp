@@ -130,7 +130,7 @@ TEST(CatalogTests, TestCatalogQuery) {
     CatalogObjectH catalog = ngsCatalogObjectGet("ngc://");
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
-    size_t count = 0;
+    int count = 0;
     while(pathInfo[count].name) {
         count++;
     }
@@ -147,10 +147,16 @@ TEST(CatalogTests, TestCatalogQuery) {
         count++;
     }
     EXPECT_GE(count, 1);
-    path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[0].name);
+
+    for(int i = 0; i < count; ++i) {
+        path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[i].name);
+        path2testObject = ngsCatalogObjectGet(path2test);
+        if(path2testObject) {
+            break;
+        }
+    }
     ngsFree(pathInfo);
 
-    path2testObject = ngsCatalogObjectGet(path2test);
     pathInfo = ngsCatalogObjectQuery(path2testObject, 0);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;

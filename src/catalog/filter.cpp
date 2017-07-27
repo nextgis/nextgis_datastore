@@ -35,6 +35,9 @@ Filter::Filter(const enum ngsCatalogObjectType type) : type(type)
 
 bool Filter::canDisplay(ObjectPtr object) const
 {
+    if(!object)
+        return  false;
+
     if(type == CAT_UNKNOWN)
         return true;
 
@@ -251,6 +254,9 @@ MultiFilter::MultiFilter() : Filter(CAT_UNKNOWN)
 
 bool MultiFilter::canDisplay(ObjectPtr object) const
 {
+    if(!object)
+        return false;
+
     for(const auto thisType : types) {
         if(object->type() == thisType)
             return true;

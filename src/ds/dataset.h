@@ -106,7 +106,7 @@ public:
                       const Options &options = Options()) override;
     virtual FeatureClass* createFeatureClass(const CPLString& name,
                                              OGRFeatureDefn * const definition,
-                                             const OGRSpatialReference* spatialRef,
+                                             OGRSpatialReference* spatialRef,
                                              OGRwkbGeometryType type,
                                              const Options& options = Options(),
                                              const Progress& progress = Progress());

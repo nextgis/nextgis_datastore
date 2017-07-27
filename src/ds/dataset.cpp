@@ -209,7 +209,7 @@ Dataset::~Dataset()
 
 FeatureClass* Dataset::createFeatureClass(const CPLString& name,
                                           OGRFeatureDefn * const definition,
-                                          const OGRSpatialReference* spatialRef,
+                                          OGRSpatialReference* spatialRef,
                                           OGRwkbGeometryType type,
                                           const Options& options,
                                           const Progress& progress)
@@ -219,8 +219,8 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
         return nullptr;
     }
 
-    OGRLayer* layer = m_DS->CreateLayer(name,
-                    const_cast<OGRSpatialReference*>(spatialRef), type,
+    spatialRef->Reference();
+    OGRLayer* layer = m_DS->CreateLayer(name, spatialRef, type,
                                         options.getOptions().get());
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());

@@ -500,7 +500,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
 
     if(!container->hasChildren()) {
         if(container->type() == CAT_CONTAINER_SIMPLE) {
-            SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
+            SimpleDataset* const simpleDS = dynamic_cast<SimpleDataset*>(container);
             output = static_cast<ngsCatalogObjectInfo*>(
                         CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
             output[0] = {catalogObject->name(), simpleDS->subType(), catalogObject};
@@ -517,12 +517,16 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
 
     for(const auto &child : children) {
         if(objectFilter.canDisplay(child)) {
+            SimpleDataset* simpleDS = nullptr;
+            if(child->type() == CAT_CONTAINER_SIMPLE) {
+                simpleDS = ngsDynamicCast(SimpleDataset, child);
+            }
+
             outputSize++;
             output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
 
-            if(child->type() == CAT_CONTAINER_SIMPLE) {
-                SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, child);
+            if(simpleDS) {
                 output[outputSize - 1] = {child->name(),
                                           simpleDS->subType(),
                                           simpleDS->internalObject().get()};
