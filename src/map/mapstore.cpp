@@ -54,8 +54,7 @@ unsigned char MapStore::createMap(const CPLString &name,
     m_maps.push_back(MapViewPtr(new GlView(name, description, epsg, bounds)));
     unsigned char result = static_cast<unsigned char>(m_maps.size());
     if(result != INVALID_MAPID) {
-        Notify::instance().onNotify(std::to_string(result).c_str(),
-                                    ngsChangeCode::CC_CREATE_MAP);
+        Notify::instance().onNotify(CPLSPrintf("%d", result), CC_CREATE_MAP);
     }
     return result;
 }
@@ -142,8 +141,7 @@ bool MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
     if(!map)
         return false;
     map->setBackgroundColor(color);
-    Notify::instance().onNotify(std::to_string(mapId).c_str(),
-                                ngsChangeCode::CC_CREATE_MAP);
+    Notify::instance().onNotify(CPLSPrintf("%d", mapId), CC_CREATE_MAP);
 
     return true;
 }

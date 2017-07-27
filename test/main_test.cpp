@@ -192,8 +192,7 @@ TEST(CatalogTests, TestCreate) {
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
 
-    options = ngsAddNameValue(options, "TYPE",
-                              std::to_string(CAT_CONTAINER_DIR).c_str());
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_DIR));
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
 
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
@@ -214,8 +213,7 @@ TEST(CatalogTests, TestCreate) {
     EXPECT_GE(count, 2);
     ngsFree(pathInfo);
 
-    options = ngsAddNameValue(options, "TYPE",
-                              std::to_string(CAT_RASTER_TMS).c_str());
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_RASTER_TMS));
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
     options = ngsAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
     options = ngsAddNameValue(options, "epsg", "3857");
@@ -280,8 +278,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
 
-    options = ngsAddNameValue(options, "TYPE",
-                              std::to_string(CAT_CONTAINER_NGS).c_str());
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);

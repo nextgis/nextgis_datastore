@@ -372,7 +372,7 @@ CPLString Dataset::normalizeDatasetName(const CPLString &name) const
     CPLString originName = outName;
     int nameCounter = 0;
     while(!isNameValid (outName)) {
-        outName = originName + "_" + std::to_string(++nameCounter);
+        outName = originName + "_" + CPLSPrintf("%d", ++nameCounter);
         if(nameCounter == MAX_EQUAL_NAMES) {
             return "";
         }
