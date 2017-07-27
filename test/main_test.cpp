@@ -162,9 +162,11 @@ TEST(CatalogTests, TestCatalogQuery) {
     ngsFree(pathInfo);
 
     // Test zip support
-    std::cout << "Test zip support" << CPLGetCurrentDir() << '\n';
+    std::cout << "Test zip support " << CPLGetCurrentDir() << '\n';
     CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
+    std::cout << "catalogPath " << catalogPath << '\n';
     CPLString zipPath = catalogPath + "/data/railway.zip";
+    std::cout << "Zip path " << zipPath << '\n';
     CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath);
 
     pathInfo = ngsCatalogObjectQuery(zipObject, 0);

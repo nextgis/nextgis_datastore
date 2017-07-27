@@ -111,12 +111,15 @@ DataStore::DataStore(ObjectContainer * const parent,
     m_disableJournalCounter(0)
 {
     m_spatialReference = new OGRSpatialReference;
+    int refCount = m_spatialReference->Reference();
+    CPLDebug("ngstore", "datastore ref coutnt on init: %d", refCount);
     m_spatialReference->importFromEPSG(DEFAULT_EPSG);
 }
 
 DataStore::~DataStore()
 {
-    delete m_spatialReference;
+    if(m_spatialReference->Dereference() == 0)
+        delete m_spatialReference;
 }
 
 bool DataStore::isNameValid(const char* name) const
