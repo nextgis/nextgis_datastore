@@ -566,7 +566,8 @@ TEST(MiscTests, TestURLRequest) {
     ngsDestroyList(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "MAX_RETRY", "10");
+    options = ngsAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
 
     ngsURLRequestResult* result = ngsURLRequest(URT_GET,
                                                "http://ya.ru", options);
@@ -576,8 +577,12 @@ TEST(MiscTests, TestURLRequest) {
     ngsURLRequestDestroyResult(result);
     ngsDestroyList(options);
 
+    options = nullptr;
+    options = ngsAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     result = ngsURLRequest(URT_GET,
-            "http://demo.nextgis.com/api/component/pyramid/pkg_version", nullptr);
+            "http://demo.nextgis.com/api/component/pyramid/pkg_version", options);
+    ngsDestroyList(options);
 
     EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);
@@ -588,7 +593,8 @@ TEST(MiscTests, TestURLRequest) {
 
     options = nullptr;
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
-    options = ngsAddNameValue(options, "MAX_RETRY", "10");
+    options = ngsAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     result = ngsURLRequest(URT_GET,
             "https://nextgis.com", options);
 
@@ -598,7 +604,8 @@ TEST(MiscTests, TestURLRequest) {
     ngsDestroyList(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "MAX_RETRY", "10");
+    options = ngsAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     result = ngsURLRequest(URT_GET,
             "http://tile.openstreetmap.org/9/309/160.png", options);
 

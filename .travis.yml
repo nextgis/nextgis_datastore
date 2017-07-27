@@ -20,10 +20,10 @@ matrix:
       language: cpp
       dist: trusty
       sudo: required
-      cache:
-        apt: true
-        # directories:
-        #   - $HOME/.ccache
+    #   cache:
+    #     apt: true
+    #     directories:
+    #       - $HOME/.ccache
       env:
         - BUILD_NAME=linux_gcc
         - DETAILS=""
@@ -34,8 +34,8 @@ matrix:
       sudo: required
       cache:
         apt: true
-        # directories:
-        #   - $HOME/.ccache
+        directories:
+          - $HOME/.ccache
       env:
         - BUILD_NAME=linux_clang
         - DETAILS=""
@@ -44,8 +44,8 @@ matrix:
       compiler: clang
       cache:
         apt: true
-        # directories:
-        #   - $HOME/.ccache
+        directories:
+          - $HOME/.ccache
       env:
         - BUILD_NAME=osx
         - DETAILS=""
