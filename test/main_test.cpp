@@ -555,7 +555,6 @@ TEST(MapTests, MapOpen) {
     ngsUnInit();
 }
 
-#ifdef NETWORK_TESTS
 TEST(MiscTests, TestURLRequest) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
@@ -622,4 +621,3 @@ TEST(MiscTests, TestURLRequest) {
 
     ngsUnInit();
 }
-#endif // NETWORK_TESTS
