@@ -570,6 +570,7 @@ TEST(MiscTests, TestURLRequest) {
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
 
     ngsURLRequestResult* result = ngsURLRequest(URT_GET,
                                                "http://ya.ru", options);
@@ -582,6 +583,7 @@ TEST(MiscTests, TestURLRequest) {
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
     result = ngsURLRequest(URT_GET,
             "http://demo.nextgis.com/api/component/pyramid/pkg_version", options);
     ngsDestroyList(options);
