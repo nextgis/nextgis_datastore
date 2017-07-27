@@ -111,8 +111,6 @@ DataStore::DataStore(ObjectContainer * const parent,
     m_disableJournalCounter(0)
 {
     m_spatialReference = new OGRSpatialReference;
-    int refCount = m_spatialReference->GetReferenceCount();
-    CPLDebug("ngstore", "datastore ref coutnt on init: %d", refCount);
     m_spatialReference->importFromEPSG(DEFAULT_EPSG);
 }
 

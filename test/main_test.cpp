@@ -162,11 +162,8 @@ TEST(CatalogTests, TestCatalogQuery) {
     ngsFree(pathInfo);
 
     // Test zip support
-    std::cout << "Test zip support " << CPLGetCurrentDir() << '\n';
     CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
-    std::cout << "catalogPath " << catalogPath << '\n';
     CPLString zipPath = catalogPath + "/data/railway.zip";
-    std::cout << "Zip path " << zipPath << '\n';
     CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath);
 
     pathInfo = ngsCatalogObjectQuery(zipObject, 0);
@@ -566,7 +563,7 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
-    options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
+    // options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
     ngsDestroyList(options);
 

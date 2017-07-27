@@ -219,9 +219,9 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
         return nullptr;
     }
 
-    spatialRef->Reference();
     OGRLayer* layer = m_DS->CreateLayer(name, spatialRef, type,
                                         options.getOptions().get());
+
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
         return nullptr;
