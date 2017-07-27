@@ -135,7 +135,7 @@ TEST(CatalogTests, TestCatalogQuery) {
         count++;
     }
     ASSERT_GE(count, 1);
-    CPLString path2test = CPLSPrintf("ngc://%s", pathInfo[0].name);
+    CPLString path2test = CPLSPrintf("ngc://%s", pathInfo[0].name); // Local connections
     ngsFree(pathInfo);
 
     CatalogObjectH path2testObject = ngsCatalogObjectGet(path2test);
@@ -148,13 +148,7 @@ TEST(CatalogTests, TestCatalogQuery) {
     }
     EXPECT_GE(count, 1);
 
-    for(int i = 0; i < count; ++i) {
-        path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[i].name);
-        path2testObject = ngsCatalogObjectGet(path2test);
-        if(path2testObject) {
-            break;
-        }
-    }
+    path2test = CPLSPrintf("%s/%s", path2test.c_str(), pathInfo[0].name);
     ngsFree(pathInfo);
 
     pathInfo = ngsCatalogObjectQuery(path2testObject, 0);
@@ -168,10 +162,13 @@ TEST(CatalogTests, TestCatalogQuery) {
     ngsFree(pathInfo);
 
     // Test zip support
+    std::cout << "Test zip support" << CPLGetCurrentDir() << '\n';
     CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
     CPLString zipPath = catalogPath + "/data/railway.zip";
     CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath);
+
     pathInfo = ngsCatalogObjectQuery(zipObject, 0);
+    ASSERT_NE(pathInfo, nullptr);
     count = 0;
     while(pathInfo[count].name) {
         std::cout << count << ". " << zipPath << "/" <<  pathInfo[count].name << '\n';
