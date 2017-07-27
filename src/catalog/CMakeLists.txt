@@ -62,13 +62,14 @@ set(CSOURCES
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
-if(WITH_GDAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} GDAL_EP)
-endif()
-
 set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 11
     C_STANDARD 11
 )
+
+if(WITH_GDAL_EXTERNAL)
+    add_dependencies(${LIB_NAME} GDAL_EP)
+endif()
+
 
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)
