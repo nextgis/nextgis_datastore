@@ -23,6 +23,7 @@
 
 // gdal
 #include "cpl_conv.h"
+#include "cpl_json.h"
 
 
 #include "ds/datastore.h"
@@ -37,6 +38,37 @@ int ngsTestProgressFunc(enum ngsCode /*status*/, double /*complete*/,
                         const char* /*message*/, void* /*progressArguments*/) {
     counter++;
     return TRUE;
+}
+
+int ngsGDALProgressFunc(double /*dfComplete*/, const char */*pszMessage*/,
+                        void */*pProgressArg*/) {
+    counter++;
+    return TRUE;
+}
+
+TEST(StoreTests, TestJSONSAXPArser) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsDestroyList(options);
+
+    options = nullptr;
+    options = ngsAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+    counter = 0;
+    CPLJSONDocument doc;
+    EXPECT_EQ(doc.LoadUrl("http://demo.nextgis.com/api/component/pyramid/pkg_version",
+                          options, ngsGDALProgressFunc, nullptr), true);
+    ngsDestroyList(options);
+
+    CPLJSONObject obj = doc.GetRoot();
+    CPLString ngwVersion = obj.GetString("nextgisweb", "0");
+    EXPECT_STRNE(ngwVersion, "0");
 }
 
 /*
