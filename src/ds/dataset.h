@@ -117,7 +117,8 @@ public:
 
     virtual bool setProperty(const char* key, const char* value);
     virtual const char* getProperty(const char* key, const char* defaultValue);
-
+    virtual void startBatchOperation() {}
+    virtual void stopBatchOperation() {}
 
     // Object interface
 public:

@@ -46,6 +46,8 @@ public:
 public:
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
+    virtual void startBatchOperation() override { enableJournal(false); }
+    virtual void stopBatchOperation() override { enableJournal(true); }
 
     // ObjectContainer interface
 public:

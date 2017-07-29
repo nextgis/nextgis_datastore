@@ -609,7 +609,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     threadPool.waitComplete(newProgress);
 
     // Save tiles
-    // TODO: If ngstore disable journal in DS
+    parentDS->startBatchOperation();
 
     double counter = 0.0;
     newProgress.setStep(1);
@@ -638,7 +638,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         counter++;
     }
 
-    // TODO: Enable journal back
+    parentDS->stopBatchOperation();
     m_genTiles.clear();
 
 

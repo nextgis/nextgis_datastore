@@ -92,7 +92,6 @@ TEST(StoreTests, TestOpen) {
     EXPECT_NE(storage, nullptr);
 }
 
-/* TODO: test create and delete TMS
 TEST(StoreTests, TestCreateTMS){
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     EXPECT_NE(storage, nullptr);
@@ -103,7 +102,7 @@ TEST(StoreTests, TestCreateTMS){
                                              TMS_COPYING, TMS_EPSG, TMS_MIN_Z,
                                              TMS_MAX_Z, TMS_YORIG_TOP),
               ngsErrorCodes::SUCCESS);
-    // TODO: rasterCount EXPECT_EQ(storage->datasetCount (), 1);
+    // rasterCount EXPECT_EQ(storage->datasetCount (), 1);
     EXPECT_GE(counter, 1);
 }
 
@@ -119,8 +118,7 @@ TEST(StoreTests, TestDeleteTMS){
     EXPECT_EQ(storage.datasetCount (), 0);
     EXPECT_GE(counter, 1);
 }
-*/
-/*
+
 TEST(StoreTests, TestLoad) {
     ngs::DataStorePtr storage = ngs::DataStore::open("./tmp/ngs.gpkg");
     ASSERT_NE(storage, nullptr);
