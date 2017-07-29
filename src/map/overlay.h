@@ -54,9 +54,9 @@ public:
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
-                //return 1; // TODO
+                //return 1; // TODO: Add support to track overlay
             case MOT_LOCATION:
-                //return 2; // TODO
+                //return 2; // TODO: Add support to location overlay
             default:
                 return -1;
         }

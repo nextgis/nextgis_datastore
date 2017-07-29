@@ -216,6 +216,7 @@ NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int yea
                                             int minute, float second, int TZFlag);
 
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometry();
+NGS_EXTERNC GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry);
 NGS_EXTERNC void ngsGeometryFree(GeometryH geometry);
 
 typedef struct _ngsFeatureAttachmentInfo {

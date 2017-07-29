@@ -67,7 +67,7 @@ void VectorTileItem::save(Buffer* buffer)
             buffer->put(point.y);
         }
         else {
-            // TODO:
+            // TODO: Add point with z support
         }
     }
 
@@ -94,7 +94,7 @@ void VectorTileItem::save(Buffer* buffer)
             buffer->put(centroid.y);
         }
         else {
-            // TODO:
+            // TODO: Add point with z support
         }
     }
 
@@ -118,7 +118,7 @@ bool VectorTileItem::load(Buffer& buffer)
             m_points.push_back(pt);
         }
         else {
-            // TODO:
+            // TODO: Add point with z support
         }
     }
 
@@ -151,7 +151,7 @@ bool VectorTileItem::load(Buffer& buffer)
             m_centroids.push_back(pt);
         }
         else {
-            // TODO:
+            // TODO: Add point with z support
         }
     }
 
@@ -441,10 +441,6 @@ void FeatureClass::tileLine(OGRGeometry* geom, OGRGeometry* extent, float step,
     OGREnvelope extent;
     geometry->getEnvelope(&extent);
     Envelope geometryExtent(extent);
-
-    // TODO: Tile and simplify geometry
-
-
 
     //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMinY()) });
     //    vtile.add(0, { static_cast<float>(ext.getMinX()), static_cast<float>(ext.getMaxY()) });
