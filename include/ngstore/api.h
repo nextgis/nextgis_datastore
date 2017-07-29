@@ -112,7 +112,8 @@ NGS_EXTERNC void ngsFree(void* pointer);
 /**
  * Miscellaneous functions
  */
-
+typedef void* JsonDocumentH;
+typedef void* JsonObjectH;
 NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
@@ -121,6 +122,28 @@ NGS_EXTERNC int ngsURLAuthAdd(const char* url, char** options);
 NGS_EXTERNC char** ngsURLAuthGet(const char* url);
 NGS_EXTERNC int ngsURLAuthDelete(const char* url);
 NGS_EXTERNC const char* ngsMD5(const char* value);
+
+NGS_EXTERNC JsonDocumentH ngsJsonDocumentCreate();
+NGS_EXTERNC void ngsJsonDocumentDestroy(JsonDocumentH document);
+NGS_EXTERNC int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char* url,
+                                       char** options,
+                                       ngsProgressFunc callback,
+                                       void* callbackData);
+NGS_EXTERNC JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document);
+NGS_EXTERNC void ngsJsonObjectDestroy(JsonObjectH object);
+NGS_EXTERNC int ngsJsonObjectType(JsonObjectH object);
+NGS_EXTERNC const char* ngsJsonObjectName(JsonObjectH object);
+NGS_EXTERNC JsonObjectH* ngsJsonObjectChildren(JsonObjectH object);
+NGS_EXTERNC void ngsJsonObjectChildrenListDestroy(JsonObjectH* list);
+NGS_EXTERNC const char* ngsJsonObjectGetString(JsonObjectH object, const char* defaultValue);
+NGS_EXTERNC double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue);
+NGS_EXTERNC int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue);
+NGS_EXTERNC long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue);
+NGS_EXTERNC bool ngsJsonObjectGetBool(JsonObjectH object, bool defaultValue);
+NGS_EXTERNC JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* name);
+NGS_EXTERNC JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char* name);
+NGS_EXTERNC int ngsJsonArraySize(JsonObjectH object);
+NGS_EXTERNC JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index);
 
 /**
  * Catalog functions

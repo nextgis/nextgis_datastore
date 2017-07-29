@@ -49,6 +49,7 @@ enum ngsCode {
     COD_COPY_FAILED,        /**< Copy failed */
     COD_MOVE_FAILED,        /**< Move failed */
     COD_CLOSE_FAILED,       /**< Close failed */
+    COD_LOAD_FAILED,        /**< Load failed */
     COD_RENAME_FAILED,      /**< Rename failed */
     COD_DRAW_FAILED,        /**< Draw failed */
     COD_REQUEST_FAILED      /**< URL Request failed */

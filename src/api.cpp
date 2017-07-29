@@ -26,6 +26,7 @@
 
 // gdal
 #include "cpl_http.h"
+#include "cpl_json.h"
 
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
@@ -280,27 +281,53 @@ void ngsRemoveNotifyFunction(ngsNotifyFunc function)
 // GDAL proxy functions
 //------------------------------------------------------------------------------
 
+/**
+ * @brief ngsGetCurrentDirectory Returns curretnt working directory
+ * @return Current directory path in OS
+ */
 const char* ngsGetCurrentDirectory()
 {
     return CPLGetCurrentDir();
 }
 
+/**
+ * @brief ngsAddNameValue Add key=value pair into the list
+ * @param list The list pointer or NULL. If NULL provided the new list will be created
+ * @param name Key name to add
+ * @param value Value to add
+ * @return List with added key=value string. List must bree freed using ngsDestroyList.
+ */
 char** ngsAddNameValue(char** list, const char* name, const char* value)
 {
     return CSLAddNameValue(list, name, value);
 }
 
+/**
+ * @brief ngsDestroyList Destroy list created using ngsAddNameValue
+ * @param list The list to destroy.
+ */
 void ngsDestroyList(char** list)
 {
     CSLDestroy(list);
 }
 
+/**
+ * @brief ngsFormFileName Form new path string
+ * @param path A parent path
+ * @param name A file name
+ * @param extension A file extension
+ * @return The new path string
+ */
 const char* ngsFormFileName(const char* path, const char* name,
                             const char* extension)
 {
     return CPLFormFilename(path, name, extension);
 }
 
+/**
+ * @brief ngsFree Free pointer allocated using some function.
+ * @param pointer A pointer to free.
+ */
 void ngsFree(void* pointer)
 {
     CPLFree(pointer);
@@ -469,10 +496,200 @@ const char* ngsMD5(const char* value)
     return CPLSPrintf("%s", md5(value).c_str());
 }
 
+/**
+ * @brief ngsJsonDocumentCreate Creates new JSON document
+ * @return New JSON document handler. The hadler must be deallocated using ngsJsonDocumentDestroy function.
+ */
+JsonDocumentH ngsJsonDocumentCreate()
+{
+    return new CPLJSONDocument;
+}
+
+/**
+ * @brief ngsJsonDocumentDestroy Destroy JSON document created using ngsJsonDocumentCreate
+ * @param document JSON documetn hadler.
+ */
+void ngsJsonDocumentDestroy(JsonDocumentH document)
+{
+    delete static_cast<CPLJSONDocument*>(document);
+}
+
+/**
+ * @brief ngsJsonDocumentLoadUrl Load JSON request result parsing chunk by chunk
+ * @param document The document handler created using ngsJsonDocumentCreate
+ * @param url URL to load
+ * @param options A list of key=value items ot NULL. The JSON_DEPTH=10 is the
+ * JSON tokener option. The other options are the same of ngsURLRequest function.
+ * @param callback Function executed periodically during load process. If returns
+ * false the loading canceled. May be null.
+ * @param callbackData The data for callback function execution. May be NULL.
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char* url, char** options,
+                           ngsProgressFunc callback, void* callbackData)
+{
+    CPLJSONDocument* doc = static_cast<CPLJSONDocument*>(document);
+    if(nullptr == doc) {
+        return errorMessage(COD_LOAD_FAILED, _("Layer pointer is null"));
+    }
+
+    Progress progress(callback, callbackData);
+    return doc->LoadUrl(url, options, onGDALProgress, &progress) ? COD_SUCCESS :
+                                                                   COD_LOAD_FAILED;
+}
+
+/**
+ * @brief ngsJsonDocumentRoot Gets JSON document root object.
+ * @param document JSON document
+ * @return JSON object handle or NULL. The handle must be deallocated using
+ * ngsJsonObjectDestroy function.
+ */
+JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document)
+{
+    CPLJSONDocument* doc = static_cast<CPLJSONDocument*>(document);
+    if(nullptr == doc) {
+        errorMessage(COD_GET_FAILED, _("Layer pointer is null"));
+        return nullptr;
+    }
+    return new CPLJSONObject(doc->GetRoot());
+}
+
+
+void ngsJsonObjectDestroy(JsonObjectH object)
+{
+    if(nullptr != object)
+        delete static_cast<CPLJSONObject*>(object);
+}
+
+int ngsJsonObjectType(JsonObjectH object)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return CPLJSONObject::Type::Null;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetType();
+}
+
+const char* ngsJsonObjectName(JsonObjectH object)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return "";
+    }
+    return static_cast<CPLJSONObject*>(object)->GetName();
+}
+
+JsonObjectH* ngsJsonObjectChildren(JsonObjectH object)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return nullptr;
+    }
+    return reinterpret_cast<JsonObjectH*>(
+                static_cast<CPLJSONObject*>(object)->GetChildren());
+}
+
+void ngsJsonObjectChildrenListDestroy(JsonObjectH* list)
+{
+    if(nullptr == list) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+    }
+    CPLJSONObject::DestroyJSONObjectList(reinterpret_cast<CPLJSONObject**>(list));
+}
+
+const char* ngsJsonObjectGetString(JsonObjectH object, const char* defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetString(defaultValue);
+}
+
+double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetDouble(defaultValue);
+}
+
+int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetInteger(defaultValue);
+}
+
+long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetLong(defaultValue);
+}
+
+bool ngsJsonObjectGetBool(JsonObjectH object, bool defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetBool(defaultValue);
+}
+
+JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* name)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return nullptr;
+    }
+    return new CPLJSONArray(static_cast<CPLJSONObject*>(object)->GetArray(name));
+}
+
+JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char* name)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return nullptr;
+    }
+    return new CPLJSONObject(static_cast<CPLJSONObject*>(object)->GetObject(name));
+}
+
+int ngsJsonArraySize(JsonObjectH object)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
+    }
+    return static_cast<CPLJSONArray*>(object)->Size();
+}
+
+JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return nullptr;
+    }
+    return new CPLJSONObject(static_cast<CPLJSONArray*>(object)->operator[](index));
+}
+
+
 //------------------------------------------------------------------------------
 // Catalog
 //------------------------------------------------------------------------------
 
+/**
+ * @brief catalogObjectQuery Request the contents of some catalog conatiner object.
+ * @param object Catalog object. Must be container (containes some catalog objects).
+ * @param objectFilter Filter output results
+ * @return List of ngsCatalogObjectInfo items or NULL. The last element of list always NULL.
+ * The list must be deallocated using ngsFree function.
+ */
 ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
                                          const Filter& objectFilter)
 {
@@ -713,7 +930,19 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
 
 }
 
-
+/**
+ * @brief ngsCatalogObjectCopy Copies or moves catalog object to another location
+ * @param srcObject Source catalog object
+ * @param dstObjectContainer Destination catalog container
+ * @param options Copy options. This is a list of key=value items.
+ * The common value is MOVE=ON indicating to move object. The other values depends on
+ * destination container.
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled.
+ * @param callbackData Progress fuction parameter.
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
 int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                          CatalogObjectH dstObjectContainer, char** options,
                          ngsProgressFunc callback, void* callbackData)
@@ -839,6 +1068,13 @@ const char* ngsCatalogObjectName(CatalogObjectH object)
     return static_cast<Object*>(object)->name();
 }
 
+/**
+ * @brief ngsCatalogObjectMetadata Returns catalog object metadata
+ * @param object Catalog object the metadata requested
+ * @param domain The metadata specific domain or NULL
+ * @return The list of key=value items or NULL. The list must be deallocated
+ * using ngsFree. The last item of list always NULL.
+ */
 char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
 {
     Object* catalogObject = static_cast<Object*>(object);
@@ -912,7 +1148,7 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
  * @param minY minimum Y coordinate
  * @param maxX maximum X coordinate
  * @param maxY maximum Y coordinate
- * @return 0 if create failed or map id.
+ * @return 0 if create failed or map identificator.
  */
 unsigned char ngsMapCreate(const char* name, const char* description,
                  unsigned short epsg, double minX, double minY,
@@ -943,7 +1179,7 @@ unsigned char ngsMapOpen(const char* path)
 
 /**
  * @brief ngsMapSave Saves map to file
- * @param mapId Map id to save
+ * @param mapId Map identificator to save
  * @param path Path to store map data
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -979,7 +1215,7 @@ int ngsMapSave(unsigned char mapId, const char* path)
 
 /**
  * @brief ngsMapClose Closes map and free resources
- * @param mapId Map id to close
+ * @param mapId Map identificator to close
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapClose(unsigned char mapId)
@@ -993,7 +1229,7 @@ int ngsMapClose(unsigned char mapId)
 
 /**
  * @brief ngsMapSetSize Sets map size in pixels
- * @param mapId Map id received from create or open map functions
+ * @param mapId Map identificator received from create or open map functions
  * @param width Output image width
  * @param height Output image height
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -1011,7 +1247,7 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
 
 /**
  * @brief ngsDrawMap Starts drawing map in specified (in ngsInitMap) extent
- * @param mapId Map id received from create or open map functions
+ * @param mapId Map identificator received from create or open map functions
  * @param state Draw state (NORMAL, PRESERVED, REDRAW)
  * @param callback Progress function
  * @param callbackData Progress function arguments
@@ -1031,7 +1267,7 @@ int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
 
 /**
  * @brief ngsGetMapBackgroundColor Map background color
- * @param mapId Map id received from create or open map functions
+ * @param mapId Map identificator received from create or open map functions
  * @return map background color struct
  */
 ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
@@ -1046,7 +1282,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
 
 /**
  * @brief ngsSetMapBackgroundColor Sets map background color
- * @param mapId Map id received from create or open map functions
+ * @param mapId Map identificator received from create or open map functions
  * @param color Background color
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -1062,7 +1298,7 @@ int ngsMapSetBackgroundColor(unsigned char mapId, ngsRGBA color)
 
 /**
  * @brief ngsMapSetCenter Sets new map center coordinates
- * @param mapId Map id
+ * @param mapId Map identificator
  * @param x X coordinate
  * @param y Y coordinate
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -1078,7 +1314,7 @@ int ngsMapSetCenter(unsigned char mapId, double x, double y)
 
 /**
  * @brief ngsMapGetCenter Gets map center for current view (extent)
- * @param mapId Map id
+ * @param mapId Map identificator
  * @return Coordinate structure. If error occurred all coordinates set to 0.0
  */
 ngsCoordinate ngsMapGetCenter(unsigned char mapId)
@@ -1093,7 +1329,7 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 
 /**
  * @brief ngsMapGetCoordinate Geographic coordinates for display position
- * @param mapId Map id
+ * @param mapId Map identificator
  * @param x X position
  * @param y Y position
  * @return Geographic coordinates
@@ -1109,8 +1345,8 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
 }
 
 /**
- * @brief ngsMapSetScale Set current map scale
- * @param mapId Map id
+ * @brief ngsMapSetScale Sets current map scale
+ * @param mapId Map identificator
  * @param scale value to set
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -1124,8 +1360,8 @@ int ngsMapSetScale(unsigned char mapId, double scale)
 }
 
 /**
- * @brief ngsMapGetScale Return current map scale
- * @param mapId Map id
+ * @brief ngsMapGetScale Returns current map scale
+ * @param mapId Map identificator
  * @return Current map scale or 1
  */
 double ngsMapGetScale(unsigned char mapId)
@@ -1140,7 +1376,7 @@ double ngsMapGetScale(unsigned char mapId)
 
 /**
  * @brief ngsMapCreateLayer Creates new layer in map
- * @param mapId Map id
+ * @param mapId Map identificator
  * @param name Layer name
  * @param path Path to map file inside catalog in form ngc://some path/
  * @return Layer Id or -1
@@ -1164,8 +1400,8 @@ int ngsMapCreateLayer(unsigned char mapId, const char* name, const char* path)
 }
 
 /**
- * @brief ngsMapLayerReorder Reorder layers in map
- * @param mapId Map id
+ * @brief ngsMapLayerReorder Reorders layers in map
+ * @param mapId Map identificator
  * @param beforeLayer Before this layer insert movedLayer. May be null. In that
  * case layer will be moved to the end of map
  * @param movedLayer Layer to move
@@ -1182,11 +1418,9 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
                 COD_SUCCESS : COD_MOVE_FAILED;
 }
 
-
-
 /**
- * @brief ngsMapSetRotate Set map rotate
- * @param mapId Map id
+ * @brief ngsMapSetRotate Sets map rotate
+ * @param mapId Map identificator
  * @param dir Rotate direction. May be X, Y or Z
  * @param rotate value to set
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -1202,8 +1436,8 @@ int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
 }
 
 /**
- * @brief ngsMapGetRotate Return map rotate value
- * @param mapId Map id
+ * @brief ngsMapGetRotate Returns map rotate value
+ * @param mapId Map identificator
  * @param dir Rotate direction. May be X, Y or Z
  * @return rotate value or 0 if error occured
  */
@@ -1219,7 +1453,7 @@ double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
 
 /**
  * @brief ngsMapGetDistance Map distance from display length
- * @param mapId Map id
+ * @param mapId Map identificator
  * @param w Width
  * @param h Height
  * @return ngsCoordinate where X distance along x axis and Y along y axis
@@ -1236,7 +1470,7 @@ ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
 
 /**
  * @brief ngsMapLayerCount Returns layer count in map
- * @param mapId Map id
+ * @param mapId Map identificator
  * @return Layer count in map
  */
 int ngsMapLayerCount(unsigned char mapId)
@@ -1251,7 +1485,7 @@ int ngsMapLayerCount(unsigned char mapId)
 
 /**
  * @brief ngsMapLayerGet Returns map layer handle
- * @param mapId Map id
+ * @param mapId Map identificator
  * @param layerId Layer index
  * @return Layer handle. The caller should not delete it.
  */
@@ -1267,7 +1501,7 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
 
 /**
  * @brief ngsMapLayerDelete Deletes layer from map
- * @param mapId Map id
+ * @param mapId Map identificator
  * @param layer Layer handler get from ngsMapLayerGet() function.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -1281,7 +1515,13 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
                 COD_SUCCESS : COD_DELETE_FAILED;
 }
 
-
+/**
+ * @brief ngsMapSetZoomIncrement Add value to calculated zoom level for current
+ * map scale. Usually needed if raster tiles content are very small.
+ * @param mapId Map identificator
+ * @param extraZoom A value to add. May be negative too.
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
 int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom)
 {
     MapStore* const mapStore = MapStore::getInstance();
@@ -1292,6 +1532,15 @@ int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom)
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
+/**
+ * @brief ngsMapSetExtentLimits Set limits to prevent pan out of them.
+ * @param mapId Map identificator
+ * @param minX Minimum X coordinate
+ * @param minY Minimum Y coordinate
+ * @param maxX Maximum X coordinate
+ * @param maxY Maximum Y coordinate
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
 int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
                                       double maxX, double maxY)
 {
@@ -1367,7 +1616,11 @@ int ngsLayerSetVisible(LayerH layer, char visible)
     return COD_SUCCESS;
 }
 
-
+/**
+ * @brief ngsLayerGetDataSource Layer datasource
+ * @param layer Layer handler
+ * @return Layer datasource catalog object or NULL
+ */
 CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 {
     if(nullptr == layer) {
@@ -1377,7 +1630,6 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 
     return (static_cast<Layer*>(layer))->datasource().get();
 }
-
 
 int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
 {

@@ -625,3 +625,45 @@ TEST(MiscTests, TestURLRequest) {
 
     ngsUnInit();
 }
+
+TEST(MiscTests, TestJSONURLLoad) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    // options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsDestroyList(options);
+
+    options = nullptr;
+    options = ngsAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+
+    JsonDocumentH doc = ngsJsonDocumentCreate();
+    ASSERT_NE(doc, nullptr);
+    counter = 0;
+    EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
+                                     "http://demo.nextgis.com/api/component/pyramid/pkg_version",
+                                     options, ngsTestProgressFunc, nullptr),
+              COD_SUCCESS);
+    EXPECT_GE(counter, 1);
+    ngsDestroyList(options);
+
+
+    JSONObjectH root = ngsJsonDocumentRoot(doc);
+    ASSERT_NE(root, nullptr);
+
+    JSONObjectH ngwVersion = ngsJsonObjectGetObject(root, "nextgisweb");
+    ASSERT_NE(ngwVersion, nullptr);
+
+    CPLString version = ngsJsonObjectGetString(ngwVersion, "0");
+    EXPECT_STRNE(version, "0");
+
+    ngsJsonObjectDestroy(ngwVersion);
+    ngsJsonObjectDestroy(root);
+    ngsJsonDocumentDestroy(doc);
+
+    ngsUnInit();
+}

@@ -51,4 +51,14 @@ bool Progress::onProgress(ngsCode status, double complete,
     return m_progressFunc(status, newComplete, message, m_progressArguments) == 1;
 }
 
+int onGDALProgress(double complete, const char *message,  void *progressArg) {
+    Progress* progress = static_cast<Progress*>(progressArg);
+    if(nullptr == progress)
+        return 1;
+    ngsCode status = COD_FINISHED;
+    if(complete < 1.0)
+        status = COD_IN_PROCESS;
+    return progress->onProgress(status, complete, message) ? 1 : 0;
+}
+
 }

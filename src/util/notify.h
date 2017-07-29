@@ -27,6 +27,10 @@
 
 namespace ngs {
 
+/**
+ * @brief The Notify class to subscribe/unsubscribe to various library
+ * notifications.
+ */
 class Notify
 {
 public:

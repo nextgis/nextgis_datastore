@@ -25,6 +25,9 @@
 
 namespace ngs {
 
+/**
+ * @brief The Progress class The class for indication progress of some operation.
+ */
 class Progress
 {
 public:
@@ -34,6 +37,7 @@ public:
     virtual bool onProgress(enum ngsCode status,
                             double complete,
                             const char* format, ...) const;
+
     virtual void setTotalSteps(unsigned char value) { m_totalSteps = value; }
     virtual void setStep(unsigned char value) { m_step = value; }
 protected:
@@ -42,6 +46,8 @@ protected:
     unsigned char m_totalSteps;
     unsigned char m_step;
 };
+
+int onGDALProgress(double complete, const char *message,  void *progressArg);
 
 }
 
