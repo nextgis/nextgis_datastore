@@ -51,7 +51,7 @@ bool Progress::onProgress(ngsCode status, double complete,
     return m_progressFunc(status, newComplete, message, m_progressArguments) == 1;
 }
 
-int onGDALProgress(double complete, const char *message,  void *progressArg) {
+int ngsGDALProgress(double complete, const char *message,  void *progressArg) {
     Progress* progress = static_cast<Progress*>(progressArg);
     if(nullptr == progress)
         return 1;

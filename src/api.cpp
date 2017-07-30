@@ -536,7 +536,7 @@ int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char* url, char** optio
     }
 
     Progress progress(callback, callbackData);
-    return doc->LoadUrl(url, options, onGDALProgress, &progress) ? COD_SUCCESS :
+    return doc->LoadUrl(url, options, ngsGDALProgress, &progress) ? COD_SUCCESS :
                                                                    COD_LOAD_FAILED;
 }
 
@@ -1384,6 +1384,8 @@ GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry)
         errorMessage(COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
+
+    return ngsCreateGeometryFromGeoJson(*jsonGeometry);
 }
 
 /**

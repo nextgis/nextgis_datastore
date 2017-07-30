@@ -133,6 +133,8 @@ typedef struct _tileItem{
     Envelope env;
 } TileItem;
 
+OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json);
+
 } // namespace ngs
 
 

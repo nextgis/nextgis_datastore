@@ -277,6 +277,11 @@ Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end)
     return {normX, normY};
 }
 
+OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json)
+{
+    return OGRGeometryFactory::createFromGeoJson(json);
+}
+
 } // namespace ngs
 
 //const static array<pair<double, char>, 4> gSampleDists = {

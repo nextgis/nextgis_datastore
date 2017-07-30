@@ -47,7 +47,7 @@ protected:
     unsigned char m_step;
 };
 
-int onGDALProgress(double complete, const char *message,  void *progressArg);
+int ngsGDALProgress(double complete, const char *message,  void *progressArg);
 
 }
 
