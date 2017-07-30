@@ -104,7 +104,7 @@ NGS_EXTERNC void ngsRemoveNotifyFunction(ngsNotifyFunc function);
 NGS_EXTERNC const char* ngsGetCurrentDirectory();
 NGS_EXTERNC char** ngsAddNameValue(char** list, const char* name,
                                    const char* value);
-NGS_EXTERNC void ngsDestroyList(char** list);
+NGS_EXTERNC void ngsListFree(char** list);
 NGS_EXTERNC const char* ngsFormFileName(const char* path, const char* name,
                                         const char* extension);
 NGS_EXTERNC void ngsFree(void* pointer);
@@ -117,24 +117,24 @@ typedef void* JsonObjectH;
 NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
-NGS_EXTERNC void ngsURLRequestDestroyResult(ngsURLRequestResult* result);
+NGS_EXTERNC void ngsURLRequestResultFree(ngsURLRequestResult* result);
 NGS_EXTERNC int ngsURLAuthAdd(const char* url, char** options);
 NGS_EXTERNC char** ngsURLAuthGet(const char* url);
 NGS_EXTERNC int ngsURLAuthDelete(const char* url);
 NGS_EXTERNC const char* ngsMD5(const char* value);
 
 NGS_EXTERNC JsonDocumentH ngsJsonDocumentCreate();
-NGS_EXTERNC void ngsJsonDocumentDestroy(JsonDocumentH document);
+NGS_EXTERNC void ngsJsonDocumentFree(JsonDocumentH document);
 NGS_EXTERNC int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char* url,
                                        char** options,
                                        ngsProgressFunc callback,
                                        void* callbackData);
 NGS_EXTERNC JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document);
-NGS_EXTERNC void ngsJsonObjectDestroy(JsonObjectH object);
+NGS_EXTERNC void ngsJsonObjectFree(JsonObjectH object);
 NGS_EXTERNC int ngsJsonObjectType(JsonObjectH object);
 NGS_EXTERNC const char* ngsJsonObjectName(JsonObjectH object);
 NGS_EXTERNC JsonObjectH* ngsJsonObjectChildren(JsonObjectH object);
-NGS_EXTERNC void ngsJsonObjectChildrenListDestroy(JsonObjectH* list);
+NGS_EXTERNC void ngsJsonObjectChildrenListFree(JsonObjectH* list);
 NGS_EXTERNC const char* ngsJsonObjectGetString(JsonObjectH object, const char* defaultValue);
 NGS_EXTERNC double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue);
 NGS_EXTERNC int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue);
@@ -187,15 +187,15 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char** options,
                                                ngsProgressFunc callback,
                                                void* callbackData);
-/*NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
-NGS_EXTERNC int ngsFeatureClassInsertFeature(FeatureH feature);
-NGS_EXTERNC int ngsFeatureClassUpdateFeature(FeatureH feature);
-NGS_EXTERNC int ngsFeatureClassDeleteFeature(long long id);
-NGS_EXTERNC int ngsFeatureClassCount(CatalogObjectH object);
+NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
+NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature);
+NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature);
+NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id);
+NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
 
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
-NGS_EXTERNC int ngsFeatureIsFieldSet(FeatureH feature);
+NGS_EXTERNC int ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex);
 NGS_EXTERNC long long ngsFeatureGetId(FeatureH feature);
 NGS_EXTERNC GeometryH ngsFeatureGetGeometry(FeatureH feature);
 NGS_EXTERNC int ngsFeatureGetFieldAsInteger(FeatureH feature, int field);
@@ -215,22 +215,23 @@ NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int yea
                                             int month, int day, int hour,
                                             int minute, float second, int TZFlag);
 
-NGS_EXTERNC GeometryH ngsFeatureCreateGeometry();
+NGS_EXTERNC GeometryH ngsFeatureCreateGeometry(FeatureH feature);
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry);
 NGS_EXTERNC void ngsGeometryFree(GeometryH geometry);
 
+/*
 typedef struct _ngsFeatureAttachmentInfo {
     long long id;
     const char* name;
     int type;
     bool dataPresent;
-//    CatalogObjectH object;
+    CatalogObjectH object or system path (NSURL);
 } ngsFeatureAttachmentInfo;
 
 NGS_EXTERNC ngsFeatureAttachmentInfo* ngsFeatureGetAttachments(FeatureH feature);
 NGS_EXTERNC void ngsFeatureDeleteAttachment(FeatureH feature, long long id);
-NGS_EXTERNC void ngsFeatureAddAttachment(FeatureH feature, long long id, const char* name, ...);
-NGS_EXTERNC void ngsFeatureUpdateAttachment(FeatureH feature, long long id, const char* name, ...);
+NGS_EXTERNC void ngsFeatureAddAttachment(FeatureH feature, long long id, const char* name, const char* path, char** options);
+NGS_EXTERNC void ngsFeatureUpdateAttachment(FeatureH feature, long long id, const char* name, char** options);
 */
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 

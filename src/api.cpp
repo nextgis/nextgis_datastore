@@ -306,7 +306,7 @@ char** ngsAddNameValue(char** list, const char* name, const char* value)
  * @brief ngsDestroyList Destroy list created using ngsAddNameValue
  * @param list The list to destroy.
  */
-void ngsDestroyList(char** list)
+void ngsListFree(char** list)
 {
     CSLDestroy(list);
 }
@@ -427,7 +427,7 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     return out;
 }
 
-void ngsURLRequestDestroyResult(ngsURLRequestResult* result)
+void ngsURLRequestResultFree(ngsURLRequestResult* result)
 {
     if(nullptr == result)
         return;
@@ -498,7 +498,8 @@ const char* ngsMD5(const char* value)
 
 /**
  * @brief ngsJsonDocumentCreate Creates new JSON document
- * @return New JSON document handler. The hadler must be deallocated using ngsJsonDocumentDestroy function.
+ * @return New JSON document handle. The handle must be deallocated using
+ * ngsJsonDocumentDestroy function.
  */
 JsonDocumentH ngsJsonDocumentCreate()
 {
@@ -506,17 +507,18 @@ JsonDocumentH ngsJsonDocumentCreate()
 }
 
 /**
- * @brief ngsJsonDocumentDestroy Destroy JSON document created using ngsJsonDocumentCreate
+ * @brief ngsJsonDocumentDestroy Destroy JSON document created using
+ * ngsJsonDocumentCreate
  * @param document JSON documetn hadler.
  */
-void ngsJsonDocumentDestroy(JsonDocumentH document)
+void ngsJsonDocumentFree(JsonDocumentH document)
 {
     delete static_cast<CPLJSONDocument*>(document);
 }
 
 /**
  * @brief ngsJsonDocumentLoadUrl Load JSON request result parsing chunk by chunk
- * @param document The document handler created using ngsJsonDocumentCreate
+ * @param document The document handle created using ngsJsonDocumentCreate
  * @param url URL to load
  * @param options A list of key=value items ot NULL. The JSON_DEPTH=10 is the
  * JSON tokener option. The other options are the same of ngsURLRequest function.
@@ -555,7 +557,7 @@ JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document)
 }
 
 
-void ngsJsonObjectDestroy(JsonObjectH object)
+void ngsJsonObjectFree(JsonObjectH object)
 {
     if(nullptr != object)
         delete static_cast<CPLJSONObject*>(object);
@@ -589,7 +591,7 @@ JsonObjectH* ngsJsonObjectChildren(JsonObjectH object)
                 static_cast<CPLJSONObject*>(object)->GetChildren());
 }
 
-void ngsJsonObjectChildrenListDestroy(JsonObjectH* list)
+void ngsJsonObjectChildrenListFree(JsonObjectH* list)
 {
     if(nullptr == list) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -1045,8 +1047,8 @@ CatalogObjectH ngsCatalogObjectGet(const char* path)
 }
 
 /**
- * @brief ngsCatalogObjectType Returns input object handler type
- * @param object Object handler
+ * @brief ngsCatalogObjectType Returns input object handle type
+ * @param object Object handle
  * @return Object type - the value from ngsCatalogObjectType
  */
 enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
@@ -1057,8 +1059,8 @@ enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object)
 }
 
 /**
- * @brief ngsCatalogObjectName Returns input object handler name
- * @param object Object handler
+ * @brief ngsCatalogObjectName Returns input object handle name
+ * @param object Object handle
  * @return Catalog object name
  */
 const char* ngsCatalogObjectName(CatalogObjectH object)
@@ -1092,6 +1094,38 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
     return datasetBase->getMetadata(domain);
 }
 
+//------------------------------------------------------------------------------
+// Feature class
+//------------------------------------------------------------------------------
+
+FeatureClass* getFeatureClassFromHandle(CatalogObjectH object)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
+        dataset->hasChildren();
+        catalogObjectPointer = dataset->internalObject();
+    }
+
+    if(!catalogObjectPointer) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return ngsDynamicCast(FeatureClass, catalogObjectPointer);
+}
+
 /**
  * @brief ngsFeatureClassCreateOverviews Creates Gl optimized vector tiles
  * @param object Catalog object handle. Must be feature class or simple datasource.
@@ -1103,28 +1137,7 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
 int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
                                    ngsProgressFunc callback, void* callbackData)
 {
-    Object* catalogObject = static_cast<Object*>(object);
-    if(!catalogObject) {
-        return errorMessage(COD_INVALID, _("The object handle is null"));
-    }
-
-    ObjectPtr catalogObjectPointer = catalogObject->pointer();
-    if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
-        dataset->hasChildren();
-        catalogObjectPointer = dataset->internalObject();
-    }
-
-    if(!catalogObjectPointer) {
-        return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
-    }
-
-    if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
-    }
-
-    FeatureClass* featureClass = ngsDynamicCast(FeatureClass, catalogObjectPointer);
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(!featureClass) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
@@ -1133,6 +1146,256 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
     Options createOptions(options);
     Progress createProgress(callback, callbackData);
     return featureClass->createOverviews(createProgress, createOptions);
+}
+
+/**
+ * @brief ngsFeatureClassCreateFeature Creates new feature
+ * @param object Handle to FeatureClass or SimpleDataset catalog object
+ * @return Feature handle or NULL
+ */
+FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    FeaturePtr feature = featureClass->createFeature();
+    return new FeaturePtr(feature);
+}
+
+int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        return errorMessage(COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    return featureClass->insertFeature(*featurePtrPointer) ? COD_SUCCESS :
+                                                             COD_INSERT_FAILED;
+}
+
+int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        return errorMessage(COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    return featureClass->updateFeature(*featurePtrPointer) ? COD_SUCCESS :
+                                                             COD_UPDATE_FAILED;
+}
+
+int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        return errorMessage(COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+    return featureClass->deleteFeature(id) ? COD_SUCCESS : COD_DELETE_FAILED;
+}
+
+long long ngsFeatureClassCount(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return 0;
+    }
+    return featureClass->featureCount();
+}
+
+void ngsFeatureFree(FeatureH feature)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(featurePtrPointer)
+        delete featurePtrPointer;
+}
+
+int ngsFeatureFieldCount(FeatureH feature)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return 0;
+    }
+    return (*featurePtrPointer)->GetFieldCount();
+}
+
+int ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return false;
+    }
+    return (*featurePtrPointer)->IsFieldSetAndNotNull(fieldIndex) ? 1 : 0;
+
+}
+
+long long ngsFeatureGetId(FeatureH feature)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return 0;
+    }
+    return (*featurePtrPointer)->GetFID();
+}
+
+GeometryH ngsFeatureGetGeometry(FeatureH feature)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+    return (*featurePtrPointer)->GetGeometryRef();
+}
+
+int ngsFeatureGetFieldAsInteger(FeatureH feature, int field)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return 0;
+    }
+    return (*featurePtrPointer)->GetFieldAsInteger(field);
+
+}
+
+double ngsFeatureGetFieldAsDouble(FeatureH feature, int field)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return 0.0;
+    }
+    return (*featurePtrPointer)->GetFieldAsDouble(field);
+}
+
+const char*ngsFeatureGetFieldAsString(FeatureH feature, int field)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return "";
+    }
+    return (*featurePtrPointer)->GetFieldAsString(field);
+}
+
+int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field, int* year,
+                                 int* month, int* day, int* hour,
+                                 int* minute, float* second, int* TZFlag)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        return errorMessage(COD_INVALID, _("The object handle is null"));
+    }
+    return (*featurePtrPointer)->GetFieldAsDateTime(field, year, month, day,
+        hour, minute, second, TZFlag) == 1 ? COD_SUCCESS : COD_GET_FAILED;
+}
+
+void ngsFeatireSetId(FeatureH feature, long long id)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    (*featurePtrPointer)->SetFID(id);
+}
+
+void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    (*featurePtrPointer)->SetGeometryDirectly(static_cast<OGRGeometry*>(
+                                                   geometry));
+}
+
+void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    (*featurePtrPointer)->SetField(field, value);
+}
+
+void ngsFeatureSetFieldDouble(FeatureH feature, int field, double value)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    (*featurePtrPointer)->SetField(field, value);
+}
+
+void ngsFeatureSetFieldString(FeatureH feature, int field, const char* value)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    (*featurePtrPointer)->SetField(field, value);
+}
+
+void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int year, int month,
+                                int day, int hour, int minute, float second,
+                                int TZFlag)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    (*featurePtrPointer)->SetField(field, year, month, day, hour, minute, second,
+                                   TZFlag);
+}
+
+GeometryH ngsFeatureCreateGeometry(FeatureH feature)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+    OGRGeomFieldDefn *defn = (*featurePtrPointer)->GetGeomFieldDefnRef(0);
+    return OGRGeometryFactory::createGeometry(defn->GetType());
+}
+
+GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry)
+{
+    CPLJSONObject* jsonGeometry = static_cast<CPLJSONObject*>(geometry);
+    if(!jsonGeometry) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+}
+
+/**
+ * @brief ngsGeometryFree Free geometry handle. Only usefull if geometry created,
+ * but not addet to feature
+ * @param geometry Geometry handle
+ */
+void ngsGeometryFree(GeometryH geometry)
+{
+    OGRGeometry* geom = static_cast<OGRGeometry*>(geometry);
+    if(geom)
+        OGRGeometryFactory::destroyGeometry(geom);
 }
 
 //------------------------------------------------------------------------------
@@ -1206,7 +1469,7 @@ int ngsMapSave(unsigned char mapId, const char* path)
         mapFileObject = ObjectPtr(mapFile);
     }
 
-    if(!mapStore->saveMap(mapId, mapFile)) {
+    if(!mapFile || !mapStore->saveMap(mapId, mapFile)) {
         return COD_SAVE_FAILED;
     }
 
@@ -1502,7 +1765,7 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
 /**
  * @brief ngsMapLayerDelete Deletes layer from map
  * @param mapId Map identificator
- * @param layer Layer handler get from ngsMapLayerGet() function.
+ * @param layer Layer handle get from ngsMapLayerGet() function.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
@@ -1560,7 +1823,7 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
 
 /**
  * @brief ngsLayerGetName Returns layer name
- * @param layer Layer handler
+ * @param layer Layer handle
  * @return Layer name
  */
 const char* ngsLayerGetName(LayerH layer)
@@ -1574,7 +1837,7 @@ const char* ngsLayerGetName(LayerH layer)
 
 /**
  * @brief ngsLayerSetName Sets new layer name
- * @param layer Layer handler
+ * @param layer Layer handle
  * @param name New name
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -1589,7 +1852,7 @@ int ngsLayerSetName(LayerH layer, const char* name)
 
 /**
  * @brief ngsLayerGetVisible Returns layer visible state
- * @param layer Layer handler
+ * @param layer Layer handle
  * @return true if visible or false
  */
 char ngsLayerGetVisible(LayerH layer)
@@ -1603,7 +1866,7 @@ char ngsLayerGetVisible(LayerH layer)
 
 /**
  * @brief ngsLayerSetVisible Sets layer visibility
- * @param layer Layer handler
+ * @param layer Layer handle
  * @param visible
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -1618,7 +1881,7 @@ int ngsLayerSetVisible(LayerH layer, char visible)
 
 /**
  * @brief ngsLayerGetDataSource Layer datasource
- * @param layer Layer handler
+ * @param layer Layer handle
  * @return Layer datasource catalog object or NULL
  */
 CatalogObjectH ngsLayerGetDataSource(LayerH layer)
@@ -1722,3 +1985,5 @@ int ngsOverlaySetVisible(
 //    initMapStore();
 //    return gMapStore->getDisplayLength (mapId, w, h);
 //}
+
+

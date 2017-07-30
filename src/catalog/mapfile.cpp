@@ -47,6 +47,9 @@ bool MapFile::open()
 
 bool MapFile::save(MapViewPtr mapView)
 {
+    if(!mapView) {
+        return false;
+    }
     bool change = false;
     if(m_mapView == mapView) {
         change = true;

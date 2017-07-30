@@ -34,7 +34,7 @@ public:
             const CPLString & path = "");
     MapViewPtr getMap() const { return m_mapView; }
     bool open();
-    bool save(MapViewPtr mapView = MapViewPtr());
+    bool save(MapViewPtr mapView);
 
     // static
 public:

@@ -54,7 +54,7 @@ TEST(StoreTests, TestJSONSAXPArser) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
@@ -64,7 +64,7 @@ TEST(StoreTests, TestJSONSAXPArser) {
     CPLJSONDocument doc;
     EXPECT_EQ(doc.LoadUrl("http://demo.nextgis.com/api/component/pyramid/pkg_version",
                           options, ngsGDALProgressFunc, nullptr), true);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLJSONObject obj = doc.GetRoot();
     CPLString ngwVersion = obj.GetString("nextgisweb", "0");

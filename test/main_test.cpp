@@ -98,7 +98,7 @@ TEST(BasicTests, TestVersions) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
 
 
     const char* formats = ngsGetVersionString("formats");
@@ -126,7 +126,7 @@ TEST(CatalogTests, TestCatalogQuery) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
     CatalogObjectH catalog = ngsCatalogObjectGet("ngc://");
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
@@ -187,7 +187,7 @@ TEST(CatalogTests, TestCreate) {
                                               nullptr));
     // TODO: CACHE_DIR, GDAL_DATA, LOCALE
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
     options = nullptr;
 
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
@@ -202,7 +202,7 @@ TEST(CatalogTests, TestCreate) {
               COD_SUCCESS);
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
               COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
     options = nullptr;
 
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
@@ -245,7 +245,7 @@ TEST(CatalogTests, TestDelete) {
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
@@ -273,7 +273,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
     options = nullptr;
 
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
@@ -304,7 +304,7 @@ TEST(DataStoreTests, TestOpenDataStore) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
@@ -335,7 +335,7 @@ TEST(DataStoreTests, TestLoadDataStore) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -349,7 +349,7 @@ TEST(DataStoreTests, TestLoadDataStore) {
 
     EXPECT_EQ(ngsCatalogObjectLoad(shape, store, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
     EXPECT_GE(counter, 1);
 
     ngsUnInit();
@@ -365,7 +365,7 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -387,7 +387,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -412,7 +412,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     options = ngsAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
 
     EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/new_layer"));
     EXPECT_NE(newFC, nullptr);
@@ -428,7 +428,7 @@ TEST(DataStoreTest, TestCreateVectorOverviews) {
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
-    ngsDestroyList(options);
+    ngsListFree(options);
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
     CPLString storePath = catalogPath + "/tmp";
@@ -450,7 +450,7 @@ TEST(DataStoreTest, TestCreateVectorOverviews) {
     counter = 0;
     EXPECT_EQ(ngsFeatureClassCreateOverviews(cpdShape, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
     EXPECT_GE(counter, 1);
 
     // Check db exists
@@ -467,7 +467,7 @@ TEST(DataStoreTests, TestDeleteDataStore) {
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
@@ -488,7 +488,7 @@ TEST(MapTests, MapSave) {
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -523,7 +523,7 @@ TEST(MapTests, MapOpen) {
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -565,7 +565,7 @@ TEST(MiscTests, TestURLRequest) {
                                               nullptr));
     // options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
@@ -577,8 +577,8 @@ TEST(MiscTests, TestURLRequest) {
     ASSERT_NE(result, nullptr);
     EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);
-    ngsURLRequestDestroyResult(result);
-    ngsDestroyList(options);
+    ngsURLRequestResultFree(result);
+    ngsListFree(options);
 
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
@@ -586,14 +586,14 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
     result = ngsURLRequest(URT_GET,
             "http://demo.nextgis.com/api/component/pyramid/pkg_version", options);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);
     CPLString data(reinterpret_cast<const char*>(result->data),
                    static_cast<size_t>(result->dataLen));
     std::cout << data << std::endl;
-    ngsURLRequestDestroyResult(result);
+    ngsURLRequestResultFree(result);
 
     options = nullptr;
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
@@ -604,8 +604,8 @@ TEST(MiscTests, TestURLRequest) {
 
     EXPECT_GE(result->status, 200);
     EXPECT_LT(result->status, 400);
-    ngsURLRequestDestroyResult(result);
-    ngsDestroyList(options);
+    ngsURLRequestResultFree(result);
+    ngsListFree(options);
 
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
@@ -620,8 +620,8 @@ TEST(MiscTests, TestURLRequest) {
 //    outFile.open("osm.png", std::ios::out | std::ios::binary);
 //    outFile.write(reinterpret_cast<const char*>(result->data), result->dataLen);
 
-    ngsURLRequestDestroyResult(result);
-    ngsDestroyList(options);
+    ngsURLRequestResultFree(result);
+    ngsListFree(options);
 
     ngsUnInit();
 }
@@ -634,7 +634,7 @@ TEST(MiscTests, TestJSONURLLoad) {
                                               nullptr));
     // options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
     options = nullptr;
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
@@ -649,7 +649,7 @@ TEST(MiscTests, TestJSONURLLoad) {
                                      options, ngsTestProgressFunc, nullptr),
               COD_SUCCESS);
     EXPECT_GE(counter, 1);
-    ngsDestroyList(options);
+    ngsListFree(options);
 
 
     JSONObjectH root = ngsJsonDocumentRoot(doc);
@@ -661,9 +661,9 @@ TEST(MiscTests, TestJSONURLLoad) {
     CPLString version = ngsJsonObjectGetString(ngwVersion, "0");
     EXPECT_STRNE(version, "0");
 
-    ngsJsonObjectDestroy(ngwVersion);
-    ngsJsonObjectDestroy(root);
-    ngsJsonDocumentDestroy(doc);
+    ngsJsonObjectFree(ngwVersion);
+    ngsJsonObjectFree(root);
+    ngsJsonDocumentFree(doc);
 
     ngsUnInit();
 }
