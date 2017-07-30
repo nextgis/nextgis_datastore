@@ -139,7 +139,7 @@ NGS_EXTERNC const char* ngsJsonObjectGetString(JsonObjectH object, const char* d
 NGS_EXTERNC double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue);
 NGS_EXTERNC int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue);
 NGS_EXTERNC long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue);
-NGS_EXTERNC bool ngsJsonObjectGetBool(JsonObjectH object, bool defaultValue);
+NGS_EXTERNC int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue);
 NGS_EXTERNC JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* name);
 NGS_EXTERNC JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char* name);
 NGS_EXTERNC int ngsJsonArraySize(JsonObjectH object);
@@ -279,7 +279,7 @@ NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double m
                                       double maxX, double maxY);
 NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
 NGS_EXTERNC void ngsMapTouch(
-        unsigned char mapId, double x, double y, const ngsMapTouchType type);
+        unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 
 /**
  * Layer functions
@@ -297,7 +297,7 @@ NGS_EXTERNC int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer);
  */
 
 NGS_EXTERNC int ngsOverlaySetVisible(
-        unsigned char mapId, ngsMapOverlyType typeMask, char visible);
+        unsigned char mapId, enum ngsMapOverlyType typeMask, char visible);
 
 
 ///** Map canvas functions */

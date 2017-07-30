@@ -635,13 +635,13 @@ long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue)
     return static_cast<CPLJSONObject*>(object)->GetLong(defaultValue);
 }
 
-bool ngsJsonObjectGetBool(JsonObjectH object, bool defaultValue)
+int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue)
 {
     if(nullptr == object) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
         return defaultValue;
     }
-    return static_cast<CPLJSONObject*>(object)->GetBool(defaultValue);
+    return static_cast<CPLJSONObject*>(object)->GetBool(defaultValue) ? 1 : 0;
 }
 
 JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* name)
