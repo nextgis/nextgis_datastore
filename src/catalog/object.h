@@ -54,6 +54,7 @@ public:
     virtual bool canRename() const  { return false; }
     ObjectContainer* parent() const { return m_parent; }
     virtual ObjectPtr pointer() const;
+    virtual char** getMetadata(const char* /*domain*/) const { return nullptr; }
 
 protected:
     void setName(const CPLString &value) { m_name = value; }

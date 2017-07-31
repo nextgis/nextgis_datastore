@@ -289,7 +289,7 @@ bool Dataset::setProperty(const char* key, const char* value)
     return m_metadata->CreateFeature(feature) != OGRERR_NONE;
 }
 
-const char* Dataset::getProperty(const char* key, const char* defaultValue)
+CPLString Dataset::getProperty(const char* key, const char* defaultValue)
 {
     if(!m_metadata)
         return defaultValue;
@@ -300,6 +300,24 @@ const char* Dataset::getProperty(const char* key, const char* defaultValue)
     if(feature) {
         out = feature->GetFieldAsString(1);
         OGRFeature::DestroyFeature(feature);
+    }
+    return out;
+}
+
+std::map<CPLString, CPLString> Dataset::getProperties(const char* table)
+{
+    std::map<CPLString, CPLString> out;
+    if(!m_metadata || nullptr == table)
+        return out;
+    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY, table));
+    m_metadata->ResetReading();
+    OGRFeature* feature = nullptr;
+    while((feature = m_metadata->GetNextFeature()) != nullptr) {
+        CPLString key = feature->GetFieldAsString(0) + CPLStrnlen(table, 255) + 1;
+        CPLString value = feature->GetFieldAsString(1);
+        OGRFeature::DestroyFeature(feature);
+
+        out[key] = value;
     }
     return out;
 }
@@ -620,11 +638,11 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         if(nullptr == dstTable) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
-        OGRFeatureDefn * const dstDefinition = dstTable->definition();
+
+        auto dstFields = dstTable->fields();
         // Create fields map. We expected equal count of fields
-        FieldMapPtr fieldMap(static_cast<unsigned long>(
-                                 dstDefinition->GetFieldCount()));
-        for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
+        FieldMapPtr fieldMap(dstFields.size());
+        for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
             fieldMap[i] = i;
         }
 
@@ -671,11 +689,10 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             if(nullptr == dstFClass) {
                 return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
             }
-            OGRFeatureDefn * const dstDefinition = dstFClass->definition();
+            auto dstFields = dstFClass->fields();
             // Create fields map. We expected equal count of fields
-            FieldMapPtr fieldMap(static_cast<unsigned long>(
-                                               dstDefinition->GetFieldCount()));
-            for(int i = 0; i < dstDefinition->GetFieldCount(); ++i) {
+            FieldMapPtr fieldMap(dstFields.size());
+            for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
                 fieldMap[i] = i;
             }
 

@@ -13,6 +13,8 @@ _ngsCatalogObjectType
 _ngsCatalogPathFromSystem
 _ngsListFree
 _ngsFeatureClassCreateOverviews
+_ngsFeatureClassFields
+_ngsFeatureClassGeometryType
 _ngsFeatureClassCreateFeature
 _ngsFeatureClassInsertFeature
 _ngsFeatureClassUpdateFeature
@@ -27,7 +29,7 @@ _ngsFeatureGetFieldAsInteger
 _ngsFeatureGetFieldAsDouble
 _ngsFeatureGetFieldAsString
 _ngsFeatureGetFieldAsDateTime
-_ngsFeatireSetId
+_ngsFeatureSetId
 _ngsFeatureSetGeometry
 _ngsFeatureSetFieldInteger
 _ngsFeatureSetFieldDouble

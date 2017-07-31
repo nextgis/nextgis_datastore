@@ -79,6 +79,7 @@ Table::Table(OGRLayer *layer,
              const CPLString &name) :
     Object(parent, type, name, ""), m_layer(layer)
 {
+    fillFields();
 }
 
 Table::~Table()
@@ -222,18 +223,18 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     return COD_SUCCESS;
 }
 
-OGRFeatureDefn *Table::definition() const
-{
-    if(nullptr == m_layer)
-        return nullptr;
-    return m_layer->GetLayerDefn();
-}
-
 const char* Table::fidColumn() const
 {
     if(nullptr == m_layer)
         return "";
     return m_layer->GetFIDColumn();
+}
+
+char**Table::getMetadata(const char* domain) const
+{
+    if(nullptr == m_layer)
+        return nullptr;
+    return m_layer->GetMetadata(domain);
 }
 
 bool Table::destroy()
@@ -248,6 +249,47 @@ bool Table::destroy()
         return true;
     }
     return false;
+}
+
+OGRFeatureDefn*Table::definition() const
+{
+    if(nullptr == m_layer)
+        return nullptr;
+    return m_layer->GetLayerDefn();
+}
+
+void Table::fillFields()
+{
+    m_fields.clear();
+    if(nullptr != m_layer) {
+        Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+        OGRFeatureDefn* defn = m_layer->GetLayerDefn();
+        if(nullptr == defn || nullptr == parentDataset) {
+            return;
+        }
+
+        auto properties = parentDataset->getProperties(m_name);
+
+        for(int i = 0; i < defn->GetFieldCount(); ++i) {
+            OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
+            Field fieldDesc;
+            fieldDesc.m_type = fieldDefn->GetType();
+            fieldDesc.m_name = fieldDefn->GetNameRef();
+
+            fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+            fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
+
+            m_fields.push_back(fieldDesc);
+        }
+
+        // Fill metadata
+        for(auto it = properties.begin(); it != properties.end(); ++it) {
+            if(EQUALN(it->first, "FIELD_", 6)) {
+                continue;
+            }
+            m_layer->SetMetadataItem(it->first, it->second, KEY_USER);
+        }
+    }
 }
 
 } // namespace ngs

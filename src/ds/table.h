@@ -37,6 +37,13 @@ public:
     const int &operator[](int key) const;
 };
 
+typedef struct _Field {
+    CPLString m_name;
+    CPLString m_originalName;
+    CPLString m_alias;
+    OGRFieldType m_type;
+} Field;
+
 class FeaturePtr : public std::shared_ptr<OGRFeature>
 {
 public:
@@ -69,15 +76,21 @@ public:
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
-    OGRFeatureDefn* definition() const;
-    const char* fidColumn() const;
+    const char* fidColumn() const;    
+    std::vector<Field> fields() const { return m_fields; }
+    virtual char** getMetadata(const char* domain) const override;
+    void fillFields();
 
     // Object interface
 public:
     virtual bool destroy() override;
 
 protected:
+    OGRFeatureDefn * definition() const;
+
+protected:
     OGRLayer* m_layer;
+    std::vector<Field> m_fields;
 };
 
 }

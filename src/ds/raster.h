@@ -34,7 +34,6 @@ constexpr const char *KEY_Z_MAX = "z_max";
 constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
 constexpr const char *KEY_EXTENT = "extent";
 constexpr const char *KEY_LIMIT_EXTENT = "limit_extent";
-constexpr const char *KEY_USER = "user";
 constexpr const char *KEY_BAND_COUNT = "band_count";
 
 /**

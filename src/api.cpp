@@ -1085,13 +1085,7 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
         return nullptr;
     }
 
-    DatasetBase* datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
-    if(!datasetBase) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
-
-    return datasetBase->getMetadata(domain);
+    return catalogObject->getMetadata(domain);
 }
 
 //------------------------------------------------------------------------------
@@ -1124,6 +1118,50 @@ FeatureClass* getFeatureClassFromHandle(CatalogObjectH object)
     }
 
     return ngsDynamicCast(FeatureClass, catalogObjectPointer);
+}
+
+/**
+ * @brief ngsFeatureClassFields Feature class fields
+ * @param object Feature class handle
+ * @return NULL or list of ngsField structure pointers. The list last element
+ * always has nullptr name and alias, The list must be deallocated using ngsFree
+ * function.
+ */
+ngsField* ngsFeatureClassFields(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    auto fields = featureClass->fields();
+    ngsField* fieldsList = static_cast<ngsField*>(
+                CPLMalloc(size_t(fields.size() + 1) * sizeof(ngsField)));
+
+    for(size_t i = 0; i < fields.size(); ++i) {
+        fieldsList[i] = {fields[i].m_name, fields[i].m_alias, fields[i].m_type};
+    }
+
+    fieldsList[fields.size()] = {nullptr, nullptr, 0};
+    return fieldsList;
+}
+
+/**
+ * @brief ngsFeatureClassGeometryType Feature class geometry type
+ * @param object Feature class handle
+ * @return 0 or geometry type enum value
+ *  wkbPoint = 1,  wkbLineString = 2,  wkbPolygon = 3,  wkbMultiPoint = 4,
+ *  wkbMultiLineString = 5, wkbMultiPolygon = 6, wkbGeometryCollection = 7
+ */
+unsigned int ngsFeatureClassGeometryType(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return 0;
+    }
+    return featureClass->geometryType();
 }
 
 /**
@@ -1302,7 +1340,7 @@ int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field, int* year,
         hour, minute, second, TZFlag) == 1 ? COD_SUCCESS : COD_GET_FAILED;
 }
 
-void ngsFeatireSetId(FeatureH feature, long long id)
+void ngsFeatureSetId(FeatureH feature, long long id)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {

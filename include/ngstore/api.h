@@ -182,7 +182,14 @@ NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* d
 
 typedef void* FeatureH;
 typedef void* GeometryH;
+typedef struct _ngsField {
+    const char* name;
+    const char* alias;
+    int type;
+} ngsField;
 
+NGS_EXTERNC ngsField* ngsFeatureClassFields(CatalogObjectH object);
+NGS_EXTERNC unsigned int ngsFeatureClassGeometryType(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char** options,
                                                ngsProgressFunc callback,
@@ -206,7 +213,7 @@ NGS_EXTERNC int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field,
                                              int* hour, int* minute, float* second,
                                              int* TZFlag);
 
-NGS_EXTERNC void ngsFeatireSetId(FeatureH feature, long long id);
+NGS_EXTERNC void ngsFeatureSetId(FeatureH feature, long long id);
 NGS_EXTERNC void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry);
 NGS_EXTERNC void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value);
 NGS_EXTERNC void ngsFeatureSetFieldDouble(FeatureH feature, int field, double value);
@@ -224,7 +231,7 @@ typedef struct _ngsFeatureAttachmentInfo {
     long long id;
     const char* name;
     int type;
-    bool dataPresent;
+    int dataPresent;
     CatalogObjectH object or system path (NSURL);
 } ngsFeatureAttachmentInfo;
 

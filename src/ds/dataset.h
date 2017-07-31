@@ -35,7 +35,7 @@ constexpr const char* OVR_ZOOM_KEY = "z";
 constexpr const char* OVR_X_KEY = "x";
 constexpr const char* OVR_Y_KEY = "y";
 constexpr const char* OVR_TILE_KEY = "tile";
-
+constexpr const char *KEY_USER = "user";
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -61,11 +61,6 @@ public:
     virtual const char* options(enum ngsOptionType optionType) const = 0;
     virtual GDALDataset *getGDALDataset() const { return m_DS; }
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
-    virtual char** getMetadata(const char* domain) const {
-        if(nullptr == m_DS)
-            return nullptr;
-        return m_DS->GetMetadata(domain);
-    }
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
 protected:
@@ -116,7 +111,9 @@ public:
                                const Progress& progress = Progress());
 
     virtual bool setProperty(const char* key, const char* value);
-    virtual const char* getProperty(const char* key, const char* defaultValue);
+    virtual CPLString getProperty(const char* key, const char* defaultValue);
+    virtual std::map<CPLString, CPLString> getProperties(
+            const char* table);
     virtual void startBatchOperation() {}
     virtual void stopBatchOperation() {}
 
@@ -124,6 +121,11 @@ public:
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override { return access(m_path, W_OK) == 0; }
+    virtual char** getMetadata(const char* domain) const override {
+        if(nullptr == m_DS)
+            return nullptr;
+        return m_DS->GetMetadata(domain);
+    }
 
     // ObjectContainer interface
 public:

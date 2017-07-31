@@ -301,6 +301,13 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         setProperty(CPLString(newName + ".source_url"), remoteURL);
     }
 
+    if(m_childrenLoaded) {
+        Table* table = ngsDynamicCast(Table, m_children.back());
+        if(nullptr != table) {
+            table->fillFields();
+        }
+    }
+
     return true;
 }
 
