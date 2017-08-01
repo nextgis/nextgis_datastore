@@ -85,14 +85,14 @@ public:
     const char* fidColumn() const;    
     std::vector<Field> fields() const { return m_fields; }
     virtual void fillFields();
-//    virtual GIntBig addAttachment(GIntBig fid, GIntBig aid, const char* name,
-//                          const char* description, const char* path,
-//                          char** options = nullptr);
+    virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
+                          const char* description, const char* filePath,
+                          char** options = nullptr);
     virtual bool deleteAttachment(GIntBig aid);
     virtual bool deleteAttachments(GIntBig fid);
-//    virtual bool updateAttachment(GIntBig aid, GIntBig newId, const char* name,
-//                          const char* description);
-//    virtual std::vector<ngsFeatureAttachmentInfo> getAttachments(GIntBig fid) const;
+    virtual bool updateAttachment(GIntBig aid, const char* fileName,
+                          const char* description);
+    virtual std::vector<ngsFeatureAttachmentInfo> getAttachments(GIntBig fid) const;
 
     // Object interface
 public:
@@ -101,9 +101,12 @@ public:
 
 protected:
     OGRFeatureDefn* definition() const;
+    bool getAttachmentsTable();
+    CPLString getAttachmentsPath() const;
 
 protected:
     OGRLayer* m_layer;
+    OGRLayer* m_attTable;
     std::vector<Field> m_fields;
     CPLMutex* m_featureMutex;
 };

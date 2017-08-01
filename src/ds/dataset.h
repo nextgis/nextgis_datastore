@@ -147,12 +147,14 @@ public:
     // static
 public:
     static const char* additionsDatasetExtension();
+    static const char* attachmentsFolderExtension();
 
 protected:
     static OGRLayer* createMetadataTable(GDALDataset* ds);
     static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
     static OGRLayer* createOverviewsTable(GDALDataset* ds, const char* name);
-    static OGRLayer* createAttachmentsTable(GDALDataset* ds, const char* name);
+    static OGRLayer* createAttachmentsTable(GDALDataset* ds, const char* path,
+                                            const char* name);
 
     //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
 
@@ -161,13 +163,15 @@ protected:
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     virtual void fillFeatureClasses();
+    virtual bool destroyTable(Table* table);
     virtual GDALDataset* createAdditionsDataset();
     virtual OGRLayer* createOverviewsTable(const char* name);
     virtual bool destroyOverviewsTable(const char* name);
     virtual bool clearOverviewsTable(const char* name);
     virtual OGRLayer* getOverviewsTable(const char* name);
-    virtual bool destroyTable(Table* table);
-    virtual VectorTile getTile(const char* name, int x, int y, unsigned short z);
+    virtual OGRLayer* createAttachmentsTable(const char* name);
+    virtual bool destroyAttachmentsTable(const char* name);
+    virtual OGRLayer* getAttachmentsTable(const char* name);
 
 protected:
     GDALDataset* m_addsDS;

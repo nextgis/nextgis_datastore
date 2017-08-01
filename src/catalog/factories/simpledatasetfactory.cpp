@@ -31,18 +31,21 @@ namespace ngs {
 static const char* shpMainExts[] = {"shx", "dbf", nullptr};
 static const char* shpExtraExts[] = {"sbn", "sbx", "cpg", "prj", "qix", "osf",
                                      Dataset::additionsDatasetExtension(),
+                                     Dataset::attachmentsFolderExtension(),
                                      nullptr};
 constexpr FORMAT_EXT shpExt = {"shp", shpMainExts, shpExtraExts};
 
 static const char* tabMainExts[] = {"dat", "map", "id", "ind", nullptr};
 static const char* tabExtraExts[] = {"cpg", "qix", "osf",
                                      Dataset::additionsDatasetExtension(),
+                                     Dataset::attachmentsFolderExtension(),
                                      nullptr};
 constexpr FORMAT_EXT tabExt = {"tab", tabMainExts, tabExtraExts};
 
 static const char* mifMainExts[] = {"mid", nullptr};
 static const char* mifExtraExts[] = {"cpg", "qix", "osf",
                                      Dataset::additionsDatasetExtension(),
+                                     Dataset::attachmentsFolderExtension(),
                                      nullptr};
 constexpr FORMAT_EXT mifExt = {"mif", mifMainExts, mifExtraExts};
 

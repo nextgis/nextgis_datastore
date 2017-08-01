@@ -37,7 +37,8 @@ public:
 public:
     static bool isExists(const char* path);
     static bool mkDir(const char* path);
-    static bool isDir(const char* path);    
+    static bool rmDir(const char* path);
+    static bool isDir(const char* path);
     static bool isSymlink(const char* path);
     static bool isHidden(const char* path);
 

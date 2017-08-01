@@ -22,6 +22,8 @@
 
 #include "api_priv.h"
 #include "dataset.h"
+#include "catalog/file.h"
+#include "catalog/folder.h"
 #include "ngstore/api.h"
 #include "util/error.h"
 #include "util/notify.h"
@@ -88,6 +90,7 @@ Table::Table(OGRLayer *layer,
              const CPLString &name) :
     Object(parent, type, name, ""),
     m_layer(layer),
+    m_attTable(nullptr),
     m_featureMutex(CPLCreateMutex())
 {
     CPLReleaseMutex(m_featureMutex);
@@ -264,11 +267,15 @@ bool Table::destroy()
     if(nullptr == dataset) {
         return errorMessage(_("Parent is not dataset"));
     }
-    CPLString name = fullName();
+    CPLString fullNameStr = fullName();
     if(dataset->destroyTable(this)) {
-        Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
+        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
         return true;
     }
+
+    dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
+    Folder::rmDir(getAttachmentsPath());
+
     return false;
 }
 
@@ -277,6 +284,32 @@ OGRFeatureDefn*Table::definition() const
     if(nullptr == m_layer)
         return nullptr;
     return m_layer->GetLayerDefn();
+}
+
+bool Table::getAttachmentsTable()
+{
+    if(m_attTable) {
+        return true;
+    }
+
+    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDS) {
+        return false;
+    }
+
+    m_attTable = parentDS->getAttachmentsTable(name());
+    if(nullptr == m_attTable) {
+        m_attTable = parentDS->createAttachmentsTable(name());
+    }
+
+    return m_attTable != nullptr;
+}
+
+CPLString Table::getAttachmentsPath() const
+{
+    const char* dstRootPath = CPLResetExtension(
+                m_parent->path(), Dataset::attachmentsFolderExtension());
+    return CPLFormFilename(dstRootPath, name(), nullptr);
 }
 
 void Table::fillFields()
@@ -313,6 +346,50 @@ void Table::fillFields()
     }
 }
 
+GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
+                             const char* description, const char* filePath,
+                             char** options)
+{
+    if(!getAttachmentsTable()) {
+        return -1;
+    }
+    bool move = CPLFetchBool(options, "MOVE", false);
+
+    FeaturePtr newAttachment = OGRFeature::CreateFeature(
+                m_attTable->GetLayerDefn());
+
+    newAttachment->SetField(ATTACH_FEATURE_ID, fid);
+    newAttachment->SetField(ATTACH_FILE_NAME, fileName);
+    newAttachment->SetField(ATTACH_DESCRIPTION, description);
+
+    if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
+        CPLString dstTablePath = getAttachmentsPath();
+        if(!Folder::isExists(dstTablePath)) {
+            Folder::mkDir(dstTablePath);
+        }
+        CPLString dstFeaturePath = CPLFormFilename(dstTablePath,
+                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
+                                                   nullptr);
+        if(!Folder::isExists(dstFeaturePath)) {
+            Folder::mkDir(dstFeaturePath);
+        }
+
+        CPLString dstPath = CPLFormFilename(dstFeaturePath,
+                                            CPLSPrintf(CPL_FRMT_GIB,
+                                                       newAttachment->GetFID()),
+                                            nullptr);
+        if(move) {
+            File::moveFile(filePath, dstPath);
+        }
+        else {
+            File::copyFile(filePath, dstPath);
+        }
+        return newAttachment->GetFID();
+    }
+
+    return -1;
+}
+
 bool Table::deleteAttachment(GIntBig aid)
 {
     return false; // TODO:
@@ -321,6 +398,18 @@ bool Table::deleteAttachment(GIntBig aid)
 bool Table::deleteAttachments(GIntBig fid)
 {
     return false; // TODO:
+}
+
+bool Table::updateAttachment(GIntBig aid, const char* fileName,
+                             const char* description)
+{
+    return false; // TODO:
+}
+
+std::vector<ngsFeatureAttachmentInfo> Table::getAttachments(GIntBig fid) const
+{
+    std::vector<ngsFeatureAttachmentInfo> out;
+    return out;
 }
 
 } // namespace ngs

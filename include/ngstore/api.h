@@ -225,10 +225,10 @@ NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int yea
                                             int month, int day, int hour,
                                             int minute, float second, int TZFlag);
 
-NGS_EXTERNC FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(
-        CatalogObjectH object, long long id);
+NGS_EXTERNC FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(CatalogObjectH object,
+                                                              long long rid);
 NGS_EXTERNC long long ngsStoreFeatureGetRemoteId(FeatureH feature);
-NGS_EXTERNC void ngsStoreFeatureSetRemoteId(FeatureH feature, long long id);
+NGS_EXTERNC void ngsStoreFeatureSetRemoteId(FeatureH feature, long long rid);
 
 
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometry(FeatureH feature);
@@ -243,22 +243,25 @@ typedef struct _ngsFeatureAttachmentInfo {
     const char* name;
     const char* description;
     const char* mime;
-    unsigned char dataPresent;
     const char* path;
     long long size;
+    long long rid;
 } ngsFeatureAttachmentInfo;
 
-NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature, long long id,
+NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature,
                                          const char* name,
                                          const char* description,
                                          const char* path, char** options);
-NGS_EXTERNC int ngsFeatureAttachmentDelete(FeatureH feature, long long id);
+NGS_EXTERNC int ngsFeatureAttachmentDelete(FeatureH feature, long long aid);
 NGS_EXTERNC ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature);
-NGS_EXTERNC void ngsFeatureAttachmentUpdate(FeatureH feature,
-                                            long long id,
-                                            long long newId,
+NGS_EXTERNC int ngsFeatureAttachmentUpdate(FeatureH feature,
+                                            long long aid,
                                             const char* name,
                                             const char* description);
+NGS_EXTERNC void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature,
+                                                      long long aid,
+                                                      long long rid);
+
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**

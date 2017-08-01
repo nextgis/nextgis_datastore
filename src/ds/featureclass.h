@@ -181,6 +181,7 @@ protected:
                    VectorTileItem* vitem)  const;
     bool getTilesTable();
     FeaturePtr getTileFeature(const Tile& tile);
+    VectorTile getTileInternal(const Tile& tile);
     bool setTileFeature(FeaturePtr tile);
     bool createTileFeature(FeaturePtr tile);
 

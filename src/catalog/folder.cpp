@@ -84,6 +84,23 @@ bool Folder::mkDir(const char* path)
 
 }
 
+bool Folder::rmDir(const char* path)
+{
+    //test if symlink
+    if(isSymlink(path)) {
+        if(!File::deleteFile(path)) {
+            return false;
+        }
+    }
+    else {
+        if (CPLUnlinkTree(path) == -1) {
+            return errorMessage(_("Delete folder failed! Folder '%s'"),  path);
+        }
+    }
+
+    return true;
+}
+
 bool Folder::isDir(const char* path)
 {
     VSIStatBufL sbuf;
@@ -108,17 +125,8 @@ bool Folder::isHidden(const char *path)
 
 bool Folder::destroy()
 {
-    //test if symlink
-    if(isSymlink(m_path)) {
-        if(!File::deleteFile(m_path)) {
-            return false;
-        }
-    }
-    else {
-        if (CPLUnlinkTree(m_path) == -1) {
-            return errorMessage(_("Delete folder failed! Folder '%s'"), 
-                                m_path.c_str());
-        }
+    if(!rmDir(m_path)) {
+        return false;
     }
     
     CPLString name = fullName();

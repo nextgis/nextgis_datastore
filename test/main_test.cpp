@@ -484,6 +484,27 @@ TEST(DataStoreTests, TestCreateFeature) {
     EXPECT_EQ(newFeature, nullptr);
     ngsFeatureFree(newFeature);
 
+    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass,
+                                                                   25000);
+    ASSERT_NE(newFeature, nullptr);
+
+    CPLString testAttachmentPath = CPLFormFilename(testPath, "download.cmake", nullptr);
+    long long id = ngsFeatureAttachmentAdd(newFeature, "test.txt",
+                                           "test add atachment",
+                                           testAttachmentPath, nullptr);
+    EXPECT_NE(id, -1);
+    ngsFeatureFree(newFeature);
+
+    VSIStatBufL sbuf;
+    CPLString path1 = testPath + "/tmp/main.attachments";
+    EXPECT_EQ(VSIStatL(path1, &sbuf), 0);
+
+    CPLString path2 = testPath + "/tmp/main.attachments/new_layer";
+    EXPECT_EQ(VSIStatL(path2, &sbuf), 0);
+
+    CPLString path3 = testPath + "/tmp/main.attachments/new_layer/1";
+    EXPECT_EQ(VSIStatL(path3, &sbuf), 0);
+
     ngsUnInit();
 }
 

@@ -571,6 +571,8 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
+    CPLMutexHolder holder(m_featureMutex);
+
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
@@ -580,6 +582,19 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
     m_ovrTable->SetAttributeFilter(nullptr);
 
     return out;
+}
+
+VectorTile FeatureClass::getTileInternal(const Tile& tile)
+{
+    VectorTile vtile;
+    FeaturePtr ovrTile = getTileFeature(tile);
+    if(ovrTile) {
+        int size = 0;
+        GByte* data = ovrTile->GetFieldAsBinary(0, &size);
+        Buffer buff(data, size, false);
+        vtile.load(buff);
+    }
+    return vtile;
 }
 
 bool FeatureClass::setTileFeature(FeaturePtr tile)
@@ -699,7 +714,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         }
         BufferPtr data = item.second.save();
 
-        OGRFeature* feature = OGRFeature::CreateFeature(
+        FeaturePtr feature = OGRFeature::CreateFeature(
                     m_ovrTable->GetLayerDefn() );
 
         feature->SetField(OVR_ZOOM_KEY, item.first.z);
@@ -711,7 +726,6 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         if(m_ovrTable->CreateFeature(feature) != OGRERR_NONE) {
             errorMessage(COD_INSERT_FAILED, _("Failed to create feature"));
         }
-        OGRFeature::DestroyFeature(feature);
 
         newProgress.onProgress(COD_IN_PROCESS, counter/m_genTiles.size(),
                                _("Save tiles ..."));
@@ -762,7 +776,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
                 }
             }
 
-            vtile = dataset->getTile(name(), tile.x, tile.y, z);
+            vtile = getTileInternal(tile); //dataset->getTile(name(), tile.x, tile.y, z);
 //            if(vtile.isValid()) {
                 return vtile;
 //            }

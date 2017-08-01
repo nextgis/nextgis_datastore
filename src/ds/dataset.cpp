@@ -190,6 +190,7 @@ constexpr const char* OVR_ADD = "_overviews";
 
 // Attachments
 constexpr const char* ATTACH_ADD = "_attachments";
+constexpr const char* ATTACH_EXT = "attachments";
 
 
 Dataset::Dataset(ObjectContainer * const parent,
@@ -362,6 +363,10 @@ bool Dataset::destroy()
         const char* ovrPath = CPLResetExtension(m_path, ADDS_EXT);
         if(Folder::isExists(ovrPath)) {
             File::deleteFile(ovrPath);
+        }
+        const char* attachmentsPath = CPLResetExtension(m_path, ATTACH_EXT);
+        if(Folder::isExists(attachmentsPath)) {
+            Folder::rmDir(attachmentsPath);
         }
     }
 
@@ -751,6 +756,11 @@ const char* Dataset::additionsDatasetExtension()
     return ADDS_EXT;
 }
 
+const char*Dataset::attachmentsFolderExtension()
+{
+    return ATTACH_EXT;
+}
+
 TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
 {
     if(nullptr == m_DS) {
@@ -894,7 +904,8 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
     return ovrLayer;
 }
 
-OGRLayer*Dataset::createAttachmentsTable(GDALDataset* ds, const char* name)
+OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
+                                          const char* name)
 {
     OGRLayer* attLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
@@ -903,100 +914,65 @@ OGRLayer*Dataset::createAttachmentsTable(GDALDataset* ds, const char* name)
     }
 
     // Create folder for files
-
-//    OGRFieldDefn featureId(OVR_X_KEY, OFTInteger64);
-//    OGRFieldDefn attachId(OVR_X_KEY, OFTInteger64);
-//    fileName(, OFTString)
-//            fileDescription(, OFTString)
-//            fileMime(, OFTString)
-
-//    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
-//    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
-//    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
-//    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
-
-//    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
-//       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
-//       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
-//       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-//        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-//        return nullptr;
-//    }
-/*
-    OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
-    oTable.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oFeatureID(ATTACH_FEATURE, OFTInteger64);
-
-    OGRFieldDefn oAttachID(ATTACH_ID, OFTInteger64);
-    OGRFieldDefn oAttachSize(ATTACH_SIZE, OFTInteger64);
-    OGRFieldDefn oFileName(ATTACH_FILE_NAME, OFTString);
-    oFileName.SetWidth(ALIAS_FIELD_LIMIT);
-    OGRFieldDefn oMime(ATTACH_FILE_MIME, OFTString);
-    oMime.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oDescription(ATTACH_DESCRIPTION, OFTString);
-    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
-    OGRFieldDefn oData(ATTACH_DATA, OFTBinary);
-    OGRFieldDefn oDate(ATTACH_FILE_DATE, OFTDateTime);
-
-    if(pAttachmentsLayer->CreateField(&oTable) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oFeatureID) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oAttachID) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oAttachSize) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oFileName) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oMime) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
+    if(nullptr != path) {
+        CPLString attachmentsPath = CPLResetExtension(path, ATTACH_EXT);
+        if(!Folder::isExists(attachmentsPath)) {
+            Folder::mkDir(attachmentsPath);
+        }
     }
-*/
+
+    // Create table  fields
+    OGRFieldDefn fidField(ATTACH_FEATURE_ID, OFTInteger64);
+    OGRFieldDefn nameField(ATTACH_FILE_NAME, OFTString);
+    OGRFieldDefn mimeField(ATTACH_FILE_MIME, OFTString);
+    OGRFieldDefn descField(ATTACH_DESCRIPTION, OFTString);
+
+    if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
+       attLayer->CreateField(&nameField) != OGRERR_NONE ||
+       attLayer->CreateField(&mimeField) != OGRERR_NONE ||
+       attLayer->CreateField(&descField) != OGRERR_NONE) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
 
     return attLayer;
 }
 
-VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)
+OGRLayer*Dataset::createAttachmentsTable(const char* name)
 {
-    VectorTile vtile;
-
-    CPLMutexHolder holder(m_executeSQLMutex);
-
-    // CPLAcquireMutex(m_executeSQLMutex, 5.0);
-    CPLString statement = CPLSPrintf("SELECT %s FROM %s%s WHERE %s = %d AND %s = %d AND %s = %d",
-                                     OVR_TILE_KEY, name, OVR_ADD, OVR_X_KEY, x,
-                                     OVR_Y_KEY, y, OVR_ZOOM_KEY, z);
-    OGRLayer* layer = m_addsDS->ExecuteSQL(statement, nullptr, "");
-    if(nullptr == layer) {
-        // CPLReleaseMutex(m_executeSQLMutex);
-        return vtile;
+    if(!m_addsDS) {
+        createAdditionsDataset();
     }
-    TablePtr queryResult(new Table(layer, this, CAT_QUERY_RESULT));
 
-    if(queryResult && queryResult->featureCount() > 0) {
-        queryResult->reset();
-        FeaturePtr ovrTile = queryResult->nextFeature();
-        if(ovrTile) {
-            // CPLReleaseMutex(m_executeSQLMutex);
+    if(!m_addsDS)
+        return nullptr;
 
-            int size = 0;
-            GByte* data = ovrTile->GetFieldAsBinary(0, &size);
-            Buffer buff(data, size, false);
-            vtile.load(buff);
-            return vtile;
-        }
-    }
-    // CPLReleaseMutex(m_executeSQLMutex);
+    CPLString attLayerName(name);
+    attLayerName += ATTACH_ADD;
 
-    return vtile;
+    return createAttachmentsTable(m_addsDS, m_path, attLayerName);
 }
 
+bool Dataset::destroyAttachmentsTable(const char* name)
+{
+    if(!m_addsDS)
+        return false;
+    CPLString attLayerName(name);
+    attLayerName += ATTACH_ADD;
+    OGRLayer* layer = m_addsDS->GetLayerByName(attLayerName);
+    if(!layer)
+        return false;
+    return destroyTable(m_DS, layer);
+}
 
-//// Check version and upgrade if needed
-//OGRLayer* pMetadataLayer = m_DS->GetLayerByName (METHADATA_TABLE_NAME);
-//if(nullptr == pMetadataLayer) {
-//    return errorMessage(COD_OPEN_FAILED, _("Invalid structure"));
-//}
+OGRLayer* Dataset::getAttachmentsTable(const char* name)
+{
+    if(!m_addsDS)
+        return nullptr;
+    CPLString attLayerName(name);
+    attLayerName += ATTACH_ADD;
+    return m_addsDS->GetLayerByName(attLayerName);
 
-//pMetadataLayer->ResetReading();
-
+}
 
 } // namespace ngs
