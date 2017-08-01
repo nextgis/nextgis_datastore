@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -29,13 +29,18 @@
 #include <iostream>
 
 #include "api_priv.h"
+#include "geometry.h"
+#include "storefeatureclass.h"
+
 #include "catalog/catalog.h"
 #include "catalog/folder.h"
-#include "geometry.h"
+
 #include "ngstore/catalog/filter.h"
 #include "ngstore/codes.h"
 #include "ngstore/util/constants.h"
 #include "ngstore/version.h"
+
+#include "util/notify.h"
 #include "util/error.h"
 #include "util/stringutil.h"
 
@@ -43,62 +48,6 @@ namespace ngs {
 
 constexpr const char* STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
-
-//------------------------------------------------------------------------------
-// Static functions
-//------------------------------------------------------------------------------
-
-/* TODO: Add support fo attachments
-
-// Attachments
-#define ATTACH_TABLE "table"
-#define ATTACH_FEATURE "fid"
-#define ATTACH_ID "attid"
-#define ATTACH_SIZE "size"
-#define ATTACH_FILE_NAME "file_name"
-#define ATTACH_FILE_MIME "file_mime"
-#define ATTACH_DESCRIPTION "descript"
-#define ATTACH_DATA "data"
-#define ATTACH_FILE_DATE "date"
-
-bool createAttachmentsTable(GDALDataset* ds)
-{
-    OGRLayer* pAttachmentsLayer = DS->CreateLayer(ATTACHEMENTS_TABLE_NAME, NULL,
-                                                   wkbNone, NULL);
-    if (NULL == pAttachmentsLayer) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
-    oTable.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oFeatureID(ATTACH_FEATURE, OFTInteger64);
-
-    OGRFieldDefn oAttachID(ATTACH_ID, OFTInteger64);
-    OGRFieldDefn oAttachSize(ATTACH_SIZE, OFTInteger64);
-    OGRFieldDefn oFileName(ATTACH_FILE_NAME, OFTString);
-    oFileName.SetWidth(ALIAS_FIELD_LIMIT);
-    OGRFieldDefn oMime(ATTACH_FILE_MIME, OFTString);
-    oMime.SetWidth(NAME_FIELD_LIMIT);
-    OGRFieldDefn oDescription(ATTACH_DESCRIPTION, OFTString);
-    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
-    OGRFieldDefn oData(ATTACH_DATA, OFTBinary);
-    OGRFieldDefn oDate(ATTACH_FILE_DATE, OFTDateTime);
-
-    if(pAttachmentsLayer->CreateField(&oTable) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oFeatureID) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oAttachID) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oAttachSize) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oFileName) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oMime) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
-       pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
-        return ngsErrorCodes::EC_CREATE_FAILED;
-    }
-
-    return ngsErrorCodes::EC_SUCCESS;
-}
-*/
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -130,6 +79,19 @@ bool DataStore::isNameValid(const char* name) const
     return Dataset::isNameValid(name);
 }
 
+CPLString DataStore::normalizeFieldName(const CPLString& name) const
+{
+    if(EQUAL(REMOTE_ID_KEY, name)) {
+        CPLString out = name + "_";
+        return out;
+    }
+    if(EQUAL("fid", name) || EQUAL("geom", name)) {
+        CPLString out = name + "_";
+        return out;
+    }
+    return Dataset::normalizeFieldName(name);
+}
+
 void DataStore::fillFeatureClasses()
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i){
@@ -142,11 +104,12 @@ void DataStore::fillFeatureClasses()
             }
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
-                        CAT_TABLE_ANY, layerName)));
+                                                         CAT_TABLE_ANY,
+                                                         layerName)));
             }
             else {
-                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            CAT_FC_ANY, layerName)));
+                m_children.push_back(ObjectPtr(new StoreFeatureClass(layer, this,
+                                                                     layerName)));
             }
         }
     }
@@ -173,19 +136,6 @@ bool DataStore::create(const char* path)
 
     // Set user version
     DS->ExecuteSQL(CPLSPrintf("PRAGMA user_version = %d;", NGS_VERSION_NUM), nullptr, nullptr);
-
-    /* TODO: Add attachments support
-    // Create system tables
-    if(!createMetadataTable(DS))
-        return errorMessage(COD_CREATE_FAILED,
-                            _("Create metadata table failed"));
-
-    if(!createAttachmentsTable(DS))
-        return errorMessage(ngsErrorCodes::EC_CREATE_FAILED,
-                            _("Create attachments table failed"));
-
-       // 4.4. create mapping of fields and original spatial reference metadata
-    */
 
     GDALClose(DS);
     return true;
@@ -216,6 +166,66 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     }
 
     return true;
+}
+
+FeatureClass*DataStore::createFeatureClass(const CPLString& name,
+                                           OGRFeatureDefn* const definition,
+                                           OGRSpatialReference* spatialRef,
+                                           OGRwkbGeometryType type,
+                                           const Options& options,
+                                           const Progress& progress)
+{
+    if(nullptr == m_DS) {
+        errorMessage(_("Not opened"));
+        return nullptr;
+    }
+
+    OGRLayer* layer = m_DS->CreateLayer(name, spatialRef, type,
+                                        options.getOptions().get());
+
+    if(layer == nullptr) {
+        errorMessage(CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
+        OGRFieldDefn* srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn dstField(srcField);
+
+        CPLString newFieldName;
+        if(definition->GetFieldCount() - 1 == i) {
+            newFieldName = srcField->GetNameRef();
+        }
+        else {
+            newFieldName = normalizeFieldName(srcField->GetNameRef());
+            if(!EQUAL(newFieldName, srcField->GetNameRef())) {
+                progress.onProgress(COD_WARNING, 0.0,
+                                    _("Field %s of source table was renamed to %s in destination tables"),
+                                    srcField->GetNameRef(), newFieldName.c_str());
+            }
+        }
+
+        dstField.SetName(newFieldName);
+        if (layer->CreateField(&dstField) != OGRERR_NONE) {
+            errorMessage(CPLGetLastErrorMsg());
+            return nullptr;
+        }
+    }
+
+    FeatureClass* out = new StoreFeatureClass(layer, this, name);
+
+    if(options.boolOption("CREATE_OVERVIEWS", false) &&
+            !options.stringOption("ZOOM_LEVELS_OPTION", "").empty()) {
+        out->createOverviews(progress, options);
+    }
+
+    if(m_parent) {
+        m_parent->notifyChanges();
+    }
+
+    Notify::instance().onNotify(out->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
+
+    return out;
 }
 
 bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
@@ -259,6 +269,10 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         fieldDefinition.AddFieldDefn(&field);
     }
 
+    // Add remote id field
+    OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
+    fieldDefinition.AddFieldDefn(&ridField);
+
     if(type == CAT_FC_GPKG) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.stringOption("GEOMETRY_TYPE", ""));
@@ -295,10 +309,12 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         setProperty(CPLSPrintf("%s.FIELD_%ld_ALIAS", newName.c_str(), i),
                     fields[i].alias);
     }
-    // Store other options in properties
-    CPLString remoteURL = options.stringOption("SOURCE_URL", "");
-    if(!remoteURL.empty()) {
-        setProperty(CPLString(newName + ".source_url"), remoteURL);
+    // Store user defined options in properties
+    for(auto it = options.begin(); it != options.end(); ++it) {
+        if(EQUALN(it->first, "USER.", 5)) {
+            setProperty(CPLSPrintf("%s.%s", newName.c_str(),
+                                   it->first.c_str() + 5), it->second);
+        }
     }
 
     if(m_childrenLoaded) {
@@ -322,18 +338,18 @@ void DataStore::enableJournal(bool enable)
     if(enable) {        
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
-            executeSQL("PRAGMA synchronous=ON", "SQLITE");
-            executeSQL("PRAGMA journal_mode=ON", "SQLITE");
-            executeSQL("PRAGMA count_changes=ON", "SQLITE");
+            // executeSQL("PRAGMA synchronous = FULL", "SQLITE");
+            executeSQL("PRAGMA journal_mode = DELETE", "SQLITE");
+            //executeSQL("PRAGMA count_changes=ON", "SQLITE"); // This pragma is deprecated
         }
     }
     else {
         CPLAssert(m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
-            executeSQL("PRAGMA synchronous=OFF", "SQLITE");
-            executeSQL("PRAGMA journal_mode=OFF", "SQLITE");
-            executeSQL("PRAGMA count_changes=OFF", "SQLITE");
+            // executeSQL("PRAGMA synchronous = OFF", "SQLITE");
+            executeSQL("PRAGMA journal_mode = OFF", "SQLITE");
+            //executeSQL("PRAGMA count_changes=OFF", "SQLITE"); // This pragma is deprecated
             // executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
             // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
         }

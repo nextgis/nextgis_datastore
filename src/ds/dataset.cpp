@@ -1,22 +1,23 @@
 /******************************************************************************
-*  Project: NextGIS ...
-*  Purpose: Application for ...
-*  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
-*******************************************************************************
-*  Copyright (C) 2012-2016 NextGIS, info@nextgis.ru
-*
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 2 of the License, or
-*   (at your option) any later version.
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-******************************************************************************/
+ * Project:  libngstore
+ * Purpose:  NextGIS store and visualization support library
+ * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ ******************************************************************************
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 
 #include "dataset.h"
 
@@ -174,7 +175,6 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
 // Dataset
 //------------------------------------------------------------------------------
 constexpr const char* ADDS_EXT = "ngadds";
-constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
 
 constexpr const char* NGS_VERSION_KEY = "version";
 
@@ -183,9 +183,14 @@ constexpr const char* META_KEY = "key";
 constexpr unsigned short META_KEY_LIMIT = 128;
 constexpr const char* META_VALUE = "value";
 constexpr unsigned short META_VALUE_LIMIT = 512;
+constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
 
 // Overviews
 constexpr const char* OVR_ADD = "_overviews";
+
+// Attachments
+constexpr const char* ATTACH_ADD = "_attachments";
+
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -322,9 +327,18 @@ std::map<CPLString, CPLString> Dataset::getProperties(const char* table)
     return out;
 }
 
+void Dataset::deleteProperties(const char* table)
+{
+    if(!m_metadata)
+        return;
+    executeSQL(CPLSPrintf("DELETE FROM %s WHERE %s LIKE \"%s.%%\"",
+                          METHADATA_TABLE_NAME, META_KEY, table));
+}
+
 bool Dataset::destroyTable(Table* table)
 {
     if(destroyTable(m_DS, table->m_layer)) {
+        deleteProperties(table->name());
         notifyChanges();
         return true;
     }
@@ -366,6 +380,8 @@ bool Dataset::isNameValid(const char* name) const
     for(const ObjectPtr& object : m_children)
         if(EQUAL(object->name(), name))
             return false;
+    if(EQUAL(METHADATA_TABLE_NAME, name) && Filter::isDatabase(m_type))
+        return false;
     return true;
 }
 
@@ -876,6 +892,66 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
     }
 
     return ovrLayer;
+}
+
+OGRLayer*Dataset::createAttachmentsTable(GDALDataset* ds, const char* name)
+{
+    OGRLayer* attLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
+    if (nullptr == attLayer) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    // Create folder for files
+
+//    OGRFieldDefn featureId(OVR_X_KEY, OFTInteger64);
+//    OGRFieldDefn attachId(OVR_X_KEY, OFTInteger64);
+//    fileName(, OFTString)
+//            fileDescription(, OFTString)
+//            fileMime(, OFTString)
+
+//    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
+//    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
+//    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
+//    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
+
+//    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
+//       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
+//       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
+//       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
+//        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+//        return nullptr;
+//    }
+/*
+    OGRFieldDefn oTable(ATTACH_TABLE, OFTString);
+    oTable.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oFeatureID(ATTACH_FEATURE, OFTInteger64);
+
+    OGRFieldDefn oAttachID(ATTACH_ID, OFTInteger64);
+    OGRFieldDefn oAttachSize(ATTACH_SIZE, OFTInteger64);
+    OGRFieldDefn oFileName(ATTACH_FILE_NAME, OFTString);
+    oFileName.SetWidth(ALIAS_FIELD_LIMIT);
+    OGRFieldDefn oMime(ATTACH_FILE_MIME, OFTString);
+    oMime.SetWidth(NAME_FIELD_LIMIT);
+    OGRFieldDefn oDescription(ATTACH_DESCRIPTION, OFTString);
+    oDescription.SetWidth(DESCRIPTION_FIELD_LIMIT);
+    OGRFieldDefn oData(ATTACH_DATA, OFTBinary);
+    OGRFieldDefn oDate(ATTACH_FILE_DATE, OFTDateTime);
+
+    if(pAttachmentsLayer->CreateField(&oTable) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oFeatureID) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oAttachID) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oAttachSize) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oFileName) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oMime) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oDescription) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oData) != OGRERR_NONE ||
+       pAttachmentsLayer->CreateField(&oDate) != OGRERR_NONE) {
+        return ngsErrorCodes::EC_CREATE_FAILED;
+    }
+*/
+
+    return attLayer;
 }
 
 VectorTile Dataset::getTile(const char* name, int x, int y, unsigned short z)

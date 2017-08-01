@@ -31,7 +31,7 @@ set(HHEADERS
     featureclass.h
     raster.h
     table.h
-    storefeaturedataset.h
+    storefeatureclass.h
     coordinatetransformation.h
     geometry.h
 )
@@ -43,7 +43,7 @@ set(CSOURCES
     featureclass.cpp
     raster.cpp
     table.cpp
-    storefeaturedataset.cpp
+    storefeatureclass.cpp
     coordinatetransformation.cpp
     geometry.cpp
 )

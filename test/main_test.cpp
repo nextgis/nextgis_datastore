@@ -373,8 +373,10 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     CPLString shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
+    ngsFeatureClassBatchMode(store, 1);
     EXPECT_EQ(ngsCatalogObjectLoad(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFeatureClassBatchMode(store, 0);
     EXPECT_GE(counter, 1);
     ngsUnInit();
 }
@@ -398,9 +400,10 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
 
     options = nullptr;
     options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
-    options = ngsAddNameValue(options, "SOURCE_URL", "https://nextgis.com");
+    options = ngsAddNameValue(options, "USER.SOURCE_URL", "https://nextgis.com");
+    options = ngsAddNameValue(options, "USER.SOURCE_SRS", "4326");
     options = ngsAddNameValue(options, "GEOMETRY_TYPE", "POINT");
-    options = ngsAddNameValue(options, "FIELD_COUNT", "3");
+    options = ngsAddNameValue(options, "FIELD_COUNT", "4");
     options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
     options = ngsAddNameValue(options, "FIELD_0_NAME", "type");
     options = ngsAddNameValue(options, "FIELD_0_ALIAS", "тип");
@@ -410,12 +413,76 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     options = ngsAddNameValue(options, "FIELD_2_TYPE", "REAL");
     options = ngsAddNameValue(options, "FIELD_2_NAME", "val");
     options = ngsAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
+    options = ngsAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
+    options = ngsAddNameValue(options, "FIELD_3_NAME", "date");
+    options = ngsAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
 
     EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options), COD_SUCCESS);
     ngsListFree(options);
 
     CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/new_layer"));
     EXPECT_NE(newFC, nullptr);
+
+    ngsUnInit();
+}
+
+TEST(DataStoreTests, TestCreateFeature) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString fcPath = catalogPath + "/tmp/main.ngst/new_layer";
+    CatalogObjectH featureClass = ngsCatalogObjectGet(fcPath);
+
+    ASSERT_NE(featureClass, nullptr);
+    EXPECT_EQ(ngsFeatureClassCount(featureClass), 0);
+
+    FeatureH newFeature = ngsFeatureClassCreateFeature(featureClass);
+    ASSERT_NE(newFeature, nullptr);
+
+    ngsStoreFeatureSetRemoteId(newFeature, 100000);
+
+    GeometryH geom = ngsFeatureCreateGeometry(newFeature);
+    ASSERT_NE(geom, nullptr);
+
+    ngsGeometrySetPoint(geom, 0, 37.5, 55.1, 0.0, 0.0);
+    ngsFeatureSetGeometry(newFeature, geom); // NOTE: Node need to free geometry as we attach it to feature
+    ngsFeatureSetFieldInteger(newFeature, 0, 500);
+    ngsFeatureSetFieldString(newFeature, 1, "Test");
+    ngsFeatureSetFieldDateTime(newFeature, 3, 1961, 4, 12, 6, 7, 0, 0);
+
+    ngsFeatureClassBatchMode(featureClass, 1);
+    EXPECT_EQ(ngsFeatureClassInsertFeature(featureClass, newFeature), COD_SUCCESS);
+    ngsFeatureClassBatchMode(featureClass, 0);
+
+    ngsFeatureFree(newFeature);
+
+    EXPECT_EQ(ngsFeatureClassCount(featureClass), 1);
+    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 100000);
+    ASSERT_NE(newFeature, nullptr);
+
+    EXPECT_EQ(ngsFeatureIsFieldSet(newFeature, 2), 0);
+    EXPECT_EQ(ngsFeatureGetFieldAsInteger(newFeature, 0), 500);
+    ngsStoreFeatureSetRemoteId(newFeature, 25000);
+    ngsFeatureSetFieldDouble(newFeature, 2, 555.777);
+
+    EXPECT_EQ(ngsFeatureClassUpdateFeature(featureClass, newFeature), COD_SUCCESS);
+    ngsFeatureFree(newFeature);
+
+    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 25000);
+    ASSERT_NE(newFeature, nullptr);
+    ngsFeatureFree(newFeature);
+
+    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 100000);
+    EXPECT_EQ(newFeature, nullptr);
+    ngsFeatureFree(newFeature);
 
     ngsUnInit();
 }
@@ -568,6 +635,8 @@ TEST(MiscTests, TestURLRequest) {
     ngsListFree(options);
 
     options = nullptr;
+    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsAddNameValue(options, "TIMEOUT", "20");
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
@@ -581,6 +650,8 @@ TEST(MiscTests, TestURLRequest) {
     ngsListFree(options);
 
     options = nullptr;
+    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsAddNameValue(options, "TIMEOUT", "20");
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
@@ -596,6 +667,8 @@ TEST(MiscTests, TestURLRequest) {
     ngsURLRequestResultFree(result);
 
     options = nullptr;
+    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsAddNameValue(options, "TIMEOUT", "20");
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
@@ -608,6 +681,8 @@ TEST(MiscTests, TestURLRequest) {
     ngsListFree(options);
 
     options = nullptr;
+    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsAddNameValue(options, "TIMEOUT", "20");
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     result = ngsURLRequest(URT_GET,
@@ -637,6 +712,8 @@ TEST(MiscTests, TestJSONURLLoad) {
     ngsListFree(options);
 
     options = nullptr;
+    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsAddNameValue(options, "TIMEOUT", "20");
     options = ngsAddNameValue(options, "MAX_RETRY", "20");
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");

@@ -31,6 +31,7 @@
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
 #include "ds/simpledataset.h"
+#include "ds/storefeatureclass.h"
 #include "map/mapstore.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
@@ -1186,6 +1187,42 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
     return featureClass->createOverviews(createProgress, createOptions);
 }
 
+
+void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char enable)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+
+    Dataset* dataset = dynamic_cast<Dataset*>(catalogObject);
+    if(!dataset) {
+        FeatureClass* featureClass = getFeatureClassFromHandle(object);
+        if(!featureClass) {
+            errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+            return;
+        }
+
+        dataset = dynamic_cast<Dataset*>(featureClass->parent());
+        if(!dataset) {
+            errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+            return;
+        }
+    }
+
+    if(!dataset->isOpened()) {
+        dataset->open(GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR);
+    }
+
+    if(enable == 1) {
+        dataset->startBatchOperation();
+    }
+    else {
+        dataset->stopBatchOperation();
+    }
+}
+
 /**
  * @brief ngsFeatureClassCreateFeature Creates new feature
  * @param object Handle to FeatureClass or SimpleDataset catalog object
@@ -1200,7 +1237,9 @@ FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
     }
 
     FeaturePtr feature = featureClass->createFeature();
-    return new FeaturePtr(feature);
+    if(feature)
+        return new FeaturePtr(feature);
+    return nullptr;
 }
 
 int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
@@ -1247,6 +1286,43 @@ long long ngsFeatureClassCount(CatalogObjectH object)
         return 0;
     }
     return featureClass->featureCount();
+}
+
+
+void ngsFeatureClassResetReading(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return;
+    }
+    featureClass->reset();
+}
+
+FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+    FeaturePtr out = featureClass->nextFeature();
+    if(out)
+        return new FeaturePtr();
+    return nullptr;
+}
+
+FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+    FeaturePtr out = featureClass->getFeature(id);
+    if(out)
+        return new FeaturePtr(out);
+    return nullptr;
 }
 
 void ngsFeatureFree(FeatureH feature)
@@ -1340,16 +1416,6 @@ int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field, int* year,
         hour, minute, second, TZFlag) == 1 ? COD_SUCCESS : COD_GET_FAILED;
 }
 
-void ngsFeatureSetId(FeatureH feature, long long id)
-{
-    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    if(!featurePtrPointer) {
-        errorMessage(COD_INVALID, _("The object handle is null"));
-        return;
-    }
-    (*featurePtrPointer)->SetFID(id);
-}
-
 void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -1357,6 +1423,9 @@ void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry)
         errorMessage(COD_INVALID, _("The object handle is null"));
         return;
     }
+
+    // TODO: Reproject if differs srs
+
     (*featurePtrPointer)->SetGeometryDirectly(static_cast<OGRGeometry*>(
                                                    geometry));
 }
@@ -1404,6 +1473,46 @@ void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int year, int month
                                    TZFlag);
 }
 
+//------------------------------------------------------------------------------
+// StoreFeature
+//------------------------------------------------------------------------------
+
+long long ngsStoreFeatureGetRemoteId(FeatureH feature)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return -1;
+    }
+    return StoreFeatureClass::getRemoteId(*featurePtrPointer);
+}
+
+
+void ngsStoreFeatureSetRemoteId(FeatureH feature, long long id)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+    StoreFeatureClass::setRemoteId(*featurePtrPointer, id);
+}
+
+FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(CatalogObjectH object,
+                                                  long long id)
+{
+    StoreFeatureClass* featureClass = dynamic_cast<StoreFeatureClass*>(
+                getFeatureClassFromHandle(object));
+    if(!featureClass) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+    FeaturePtr remoteIdFeature = featureClass->getFeatureByRemoteId(id);
+    if(remoteIdFeature)
+        return new FeaturePtr(remoteIdFeature);
+    return nullptr;
+}
+
 GeometryH ngsFeatureCreateGeometry(FeatureH feature)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -1437,6 +1546,56 @@ void ngsGeometryFree(GeometryH geometry)
     if(geom)
         OGRGeometryFactory::destroyGeometry(geom);
 }
+
+void ngsGeometrySetPoint(GeometryH geometry, int point, double x, double y,
+                         double z, double m)
+{
+    OGR_G_SetPointZM(geometry, point, x, y, z, m);
+}
+
+
+long long ngsFeatureAttachmentAdd(FeatureH feature, long long id,
+                                  const char* name, const char* description,
+                                  const char* path, char** options)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return -1;
+    }
+
+    GIntBig fid = (*featurePtrPointer)->GetFID();
+    Table* table = featurePtrPointer->table();
+    if(!table) {
+        errorMessage(COD_INVALID, _("The feature detached from table"));
+        return -1;
+    }
+
+    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
+        errorMessage(COD_INVALID, _("The table is result of query"));
+        return -1;
+    }
+
+    //return table->addAttachment(fid, id, name, description, path, options);
+    return -1;
+}
+
+int ngsFeatureAttachmentDelete(FeatureH feature, long long id)
+{
+    return COD_SUCCESS;
+}
+
+ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature)
+{
+    return nullptr;
+}
+
+void ngsFeatureAttachmentUpdate(FeatureH feature, long long id, long long newId,
+                                const char* name, const char* description)
+{
+
+}
+
 
 //------------------------------------------------------------------------------
 // Map

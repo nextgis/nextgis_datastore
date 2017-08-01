@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -53,6 +53,17 @@ VectorTileItem::VectorTileItem() :
      m_2d(true)
 {
 
+}
+
+void VectorTileItem::removeId(GIntBig id)
+{
+    auto it = m_ids.find(id);
+    if(it != m_ids.end()) {
+        m_ids.erase(it);
+        if(m_ids.empty()) {
+            m_valid = false;
+        }
+    }
 }
 
 void VectorTileItem::save(Buffer* buffer)
@@ -202,6 +213,20 @@ void VectorTile::add(const VectorTileItem &item, bool checkDuplicates)
 
     if(!m_valid) {
         m_valid = !m_items.empty();
+    }
+}
+
+void VectorTile::remove(GIntBig id)
+{
+    auto it = m_items.begin();
+    while(it != m_items.end()) {
+        (*it).removeId(id);
+        if(!(*it).isValid()) {
+            it = m_items.erase(it);
+        }
+        else {
+            ++it;
+        }
     }
 }
 
@@ -521,6 +546,60 @@ void FeatureClass::tileMultiPolygon(OGRGeometry* geom, OGRGeometry* extent,
     }
 }
 
+bool FeatureClass::getTilesTable()
+{
+    if(m_ovrTable) {
+        return true;
+    }
+
+    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDS) {
+        return false;
+    }
+
+    m_ovrTable = parentDS->getOverviewsTable(name());
+    if(nullptr == m_ovrTable) {
+        m_ovrTable = parentDS->createOverviewsTable(name());
+    }
+
+    return m_ovrTable != nullptr;
+}
+
+FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
+{
+    if(!getTilesTable()) {
+        return FeaturePtr();
+    }
+
+    m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
+                                              OVR_X_KEY, tile.x,
+                                              OVR_Y_KEY, tile.y,
+                                              OVR_ZOOM_KEY, tile.z));
+    m_ovrTable->ResetReading();
+    FeaturePtr out(m_ovrTable->GetNextFeature());
+    m_ovrTable->SetAttributeFilter(nullptr);
+
+    return out;
+}
+
+bool FeatureClass::setTileFeature(FeaturePtr tile)
+{
+    if(!getTilesTable()) {
+        return false;
+    }
+
+    return m_ovrTable->SetFeature(tile) == OGRERR_NONE;
+}
+
+bool FeatureClass::createTileFeature(FeaturePtr tile)
+{
+    if(!getTilesTable()) {
+        return false;
+    }
+
+    return m_ovrTable->CreateFeature(tile) == OGRERR_NONE;
+}
+
 bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
 {
     TilingData* data = static_cast<TilingData*>(threadData);
@@ -536,10 +615,8 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
     extent.fix();
 
     for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
-        std::vector<TileItem> items = MapTransform::getTilesForExtent(extent,
-                                                                      zoomLevel,
-                                                                      false,
-                                                                      true);
+        std::vector<TileItem> items =
+                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(tileItem.tile.z));
             auto vItem =
@@ -570,7 +647,10 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                             _("Unsupported feature class"));
     }
 
-    m_ovrTable = parentDS->getOverviewsTable(name());
+    if(nullptr == m_ovrTable) {
+        m_ovrTable = parentDS->getOverviewsTable(name());
+    }
+
     if(nullptr == m_ovrTable) {
         m_ovrTable = parentDS->createOverviewsTable(name());
     }
@@ -700,6 +780,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     OGREnvelope extEnv = ext.toOgrEnvelope();
 
     // Lock threads here
+    CPLAcquireMutex(m_featureMutex, 55.0);
     CPLAcquireMutex(m_fieldsMutex, 50.0);
     setSpatialFilter(ext.toGeometry(nullptr));
     setIgnoredFields(m_ignoreFields);
@@ -718,6 +799,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     setSpatialFilter(GeometryPtr());
     setIgnoredFields(std::vector<const char*>());
     CPLReleaseMutex(m_fieldsMutex);
+    CPLReleaseMutex(m_featureMutex);
 
     if(!features.empty()) {
         GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
@@ -1024,55 +1106,232 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
     int i = 0;
     const char* zoomLevel;
     while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
-        m_zoomLevels.insert(static_cast<unsigned short>(atoi(zoomLevel)));
+        m_zoomLevels.insert(static_cast<unsigned char>(atoi(zoomLevel)));
     }
     CSLDestroy(zoomLevelArray);
 }
 
-/*
-char RenderLayer::getCloseOvr()
+
+bool FeatureClass::insertFeature(const FeaturePtr& feature)
 {
-    float diff = 18;
-    float currentDiff;
-    char zoom = 18;
-    for(auto sampleDist : gSampleDists) {
-        currentDiff = sampleDist.second - m_renderZoom;
-        if(currentDiff > 0 && currentDiff < diff) {
-            diff = currentDiff;
-            zoom = sampleDist.second;
+    bool result =  Table::insertFeature(feature);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset || dataset->isBatchOperation()) {
+        return result;
+    }
+
+    OGRGeometry* geom = feature->GetGeometryRef();
+    if( nullptr == geom) {
+        return result;
+    }
+
+    if(!result) {
+        return result;
+    }
+
+    OGREnvelope env;
+    geom->getEnvelope(&env);
+    Envelope extent = env;
+    extent.fix();
+
+    for(auto zoomLevel : zoomLevels()) {
+        std::vector<TileItem> items =
+                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+        for(auto tileItem : items) {
+            float step = static_cast<float>(FeatureClass::pixelSize(
+                                                tileItem.tile.z));
+            auto vItem = tileGeometry(feature,
+                                      tileItem.env.toGeometry(nullptr).get(),
+                                      step);
+
+            FeaturePtr tile = getTileFeature(tileItem.tile);
+            VectorTile  vtile;
+            bool create = true;
+            if(tile) {
+                int size = 0;
+                GByte* data = tile->GetFieldAsBinary(0, &size);
+                Buffer buff(data, size, false);
+                vtile.load(buff);
+                create = false;
+            }
+            else {
+                tile = OGRFeature::CreateFeature(m_ovrTable->GetLayerDefn());
+
+                tile->SetField(OVR_ZOOM_KEY, tileItem.tile.z);
+                tile->SetField(OVR_X_KEY, tileItem.tile.x);
+                tile->SetField(OVR_Y_KEY, tileItem.tile.y);
+            }
+            vtile.add(vItem, true);
+
+            // Add tile back
+            if(vtile.isValid()) {
+                BufferPtr data = vtile.save();
+                tile->SetField(tile->GetFieldIndex(OVR_TILE_KEY), data->size(),
+                                                     data->data());
+
+                if(create) {
+                    createTileFeature(tile);
+                }
+                else {
+                    setTileFeature(tile);
+                }
+            }
         }
     }
-    return zoom;
+
+
+    return result;
 }
 
-ResultSetPtr FeatureClass::getGeometries(unsigned char zoom,
-                                           GeometryPtr spatialFilter) const
+bool FeatureClass::updateFeature(const FeaturePtr& feature)
 {
-    // check geometry column
-    CPLString geomFieldName;
-    //bool originalGeom = true;
-    //if(m_renderZoom > 15) {
-        geomFieldName = getGeometryColumn ();
+    // Get previous geometry extent to get modified
+    GIntBig id = feature->GetFID();
+    FeaturePtr updateFeature = getFeature(id);
+    if(!updateFeature) {
+        return Table::updateFeature(feature);
     }
-    else {
-        char zoom = getCloseOvr();
-        if(zoom < 18) {
-            geomFieldName.Printf ("ngs_geom_%d, %s", zoom,
-                                  featureDataset->getGeometryColumn ().c_str ());
-            originalGeom = false;
-        }
-        else {
-            geomFieldName = featureDataset->getGeometryColumn ();
+
+    // 1. original feature has no geometry but feature has
+    //       just add new geometries to tiles
+    // 2. original feature has geometry and feature has
+    //       remove old geometries and add new ones
+    // 3. original feature has geometry and feature has not
+    //       add new geometries
+
+    OGRGeometry* originalGeom = updateFeature->GetGeometryRef();
+    OGRGeometry* newGeom = feature->GetGeometryRef();
+    Envelope extent;
+
+    if(nullptr != originalGeom) {
+        OGREnvelope env;
+        originalGeom->getEnvelope(&env);
+        extent = env;
+    }
+
+    if(nullptr != newGeom) {
+        OGREnvelope env;
+        newGeom->getEnvelope(&env);
+        extent.intersect(env);
+    }
+
+    extent.fix();
+
+
+    bool result =  Table::updateFeature(feature);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        return result;
+    }
+
+    if(!result) {
+        return result;
+    }
+
+    for(auto zoomLevel : zoomLevels()) {
+        std::vector<TileItem> items =
+                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+        for(auto tileItem : items) {
+            FeaturePtr tile = getTileFeature(tileItem.tile);
+            VectorTile  vtile;
+            bool create = true;
+            if(tile) {
+                int size = 0;
+                GByte* data = tile->GetFieldAsBinary(0, &size);
+                Buffer buff(data, size, false);
+                vtile.load(buff);
+                create = false;
+            }
+            else {
+                tile = OGRFeature::CreateFeature(m_ovrTable->GetLayerDefn());
+
+                tile->SetField(OVR_ZOOM_KEY, tileItem.tile.z);
+                tile->SetField(OVR_X_KEY, tileItem.tile.x);
+                tile->SetField(OVR_Y_KEY, tileItem.tile.y);
+            }
+
+            vtile.remove(id);
+
+            float step = static_cast<float>(FeatureClass::pixelSize(
+                                                tileItem.tile.z));
+            auto vItem = tileGeometry(feature,
+                                      tileItem.env.toGeometry(nullptr).get(),
+                                      step);
+            vtile.add(vItem, true);
+
+            // Add tile back
+            if(vtile.isValid()) {
+                BufferPtr data = vtile.save();
+                tile->SetField(tile->GetFieldIndex(OVR_TILE_KEY), data->size(),
+                                                     data->data());
+
+                if(create) {
+                    createTileFeature(tile);
+                }
+                else {
+                    setTileFeature(tile);
+                }
+            }
         }
     }
 
-    CPLString statement;
-    statement.Printf ("SELECT %s,%s FROM %s", getFIDColumn().c_str(), geomFieldName.c_str (),
-                      name ().c_str ());
-
-    return executeSQL (statement, spatialFilter, "");
+    return result;
 }
 
-*/
+bool FeatureClass::deleteFeature(GIntBig id)
+{
+    // Get previous geometry extent to get modified tiles
+    FeaturePtr deleteFeature = getFeature(id);
+    if(!deleteFeature) {
+        return Table::deleteFeature(id);
+    }
+
+    OGRGeometry* geom = deleteFeature->GetGeometryRef();
+    OGREnvelope env;
+    geom->getEnvelope(&env);
+    Envelope extent = env;
+    extent.fix();
+
+    bool result = Table::deleteFeature(id);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        return result;
+    }
+
+    if(!result) {
+        return result;
+    }
+
+    for(auto zoomLevel : zoomLevels()) {
+        std::vector<TileItem> items =
+                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+        for(auto tileItem : items) {
+            FeaturePtr tile = getTileFeature(tileItem.tile);
+
+            VectorTile  vtile;
+            if(tile) {
+                int size = 0;
+                GByte* data = tile->GetFieldAsBinary(0, &size);
+                Buffer buff(data, size, false);
+                vtile.load(buff);
+            }
+
+            vtile.remove(id);
+
+            // Add tile back
+            if(vtile.isValid()) {
+                BufferPtr data = vtile.save();
+                tile->SetField(tile->GetFieldIndex(OVR_TILE_KEY), data->size(),
+                                                     data->data());
+
+                setTileFeature(tile);
+            }
+        }
+    }
+    // Delete attachments
+    result = deleteAttachments(id);
+    return result;
+}
 
 } // namespace ngs
+

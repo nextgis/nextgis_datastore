@@ -195,10 +195,14 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                ngsProgressFunc callback,
                                                void* callbackData);
 NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
+NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char enable);
 NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature);
 NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature);
 NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id);
 NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
+NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
+NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);
+NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id);
 
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
@@ -213,7 +217,6 @@ NGS_EXTERNC int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field,
                                              int* hour, int* minute, float* second,
                                              int* TZFlag);
 
-NGS_EXTERNC void ngsFeatureSetId(FeatureH feature, long long id);
 NGS_EXTERNC void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry);
 NGS_EXTERNC void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value);
 NGS_EXTERNC void ngsFeatureSetFieldDouble(FeatureH feature, int field, double value);
@@ -222,24 +225,40 @@ NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int yea
                                             int month, int day, int hour,
                                             int minute, float second, int TZFlag);
 
+NGS_EXTERNC FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(
+        CatalogObjectH object, long long id);
+NGS_EXTERNC long long ngsStoreFeatureGetRemoteId(FeatureH feature);
+NGS_EXTERNC void ngsStoreFeatureSetRemoteId(FeatureH feature, long long id);
+
+
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometry(FeatureH feature);
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry);
 NGS_EXTERNC void ngsGeometryFree(GeometryH geometry);
+NGS_EXTERNC void ngsGeometrySetPoint(GeometryH geometry, int point, double x,
+                                     double y, double z, double m);
 
-/*
+
 typedef struct _ngsFeatureAttachmentInfo {
     long long id;
     const char* name;
-    int type;
-    int dataPresent;
-    CatalogObjectH object or system path (NSURL);
+    const char* description;
+    const char* mime;
+    unsigned char dataPresent;
+    const char* path;
+    long long size;
 } ngsFeatureAttachmentInfo;
 
-NGS_EXTERNC ngsFeatureAttachmentInfo* ngsFeatureGetAttachments(FeatureH feature);
-NGS_EXTERNC void ngsFeatureDeleteAttachment(FeatureH feature, long long id);
-NGS_EXTERNC void ngsFeatureAddAttachment(FeatureH feature, long long id, const char* name, const char* path, char** options);
-NGS_EXTERNC void ngsFeatureUpdateAttachment(FeatureH feature, long long id, const char* name, char** options);
-*/
+NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature, long long id,
+                                         const char* name,
+                                         const char* description,
+                                         const char* path, char** options);
+NGS_EXTERNC int ngsFeatureAttachmentDelete(FeatureH feature, long long id);
+NGS_EXTERNC ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature);
+NGS_EXTERNC void ngsFeatureAttachmentUpdate(FeatureH feature,
+                                            long long id,
+                                            long long newId,
+                                            const char* name,
+                                            const char* description);
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
 /**

@@ -44,16 +44,22 @@ typedef struct _Field {
     OGRFieldType m_type;
 } Field;
 
+class Table;
+
 class FeaturePtr : public std::shared_ptr<OGRFeature>
 {
 public:
-    FeaturePtr(OGRFeature* feature);
+    FeaturePtr(OGRFeature* feature, Table* table = nullptr);
+    FeaturePtr(OGRFeature* feature, const Table* table);
     FeaturePtr();
     FeaturePtr& operator=(OGRFeature* feature);
     operator OGRFeature*() const { return get(); }
+    Table* table() const { return m_table; }
+    void setTable(Table* table) { m_table = table; }
+private:
+    Table* m_table;
 };
 
-class Table;
 typedef std::shared_ptr<Table> TablePtr;
 
 class Table : public Object
@@ -67,9 +73,9 @@ public:
     virtual ~Table();
     FeaturePtr createFeature() const;
     FeaturePtr getFeature(GIntBig id) const;
-    bool insertFeature(const FeaturePtr& feature);
-    bool updateFeature(const FeaturePtr& feature);
-    bool deleteFeature(GIntBig id);
+    virtual bool insertFeature(const FeaturePtr& feature);
+    virtual bool updateFeature(const FeaturePtr& feature);
+    virtual bool deleteFeature(GIntBig id);
     GIntBig featureCount(bool force = true) const;
     void reset() const;
     FeaturePtr nextFeature() const;
@@ -78,19 +84,28 @@ public:
                          const Progress& progress = Progress());
     const char* fidColumn() const;    
     std::vector<Field> fields() const { return m_fields; }
-    virtual char** getMetadata(const char* domain) const override;
-    void fillFields();
+    virtual void fillFields();
+//    virtual GIntBig addAttachment(GIntBig fid, GIntBig aid, const char* name,
+//                          const char* description, const char* path,
+//                          char** options = nullptr);
+    virtual bool deleteAttachment(GIntBig aid);
+    virtual bool deleteAttachments(GIntBig fid);
+//    virtual bool updateAttachment(GIntBig aid, GIntBig newId, const char* name,
+//                          const char* description);
+//    virtual std::vector<ngsFeatureAttachmentInfo> getAttachments(GIntBig fid) const;
 
     // Object interface
 public:
     virtual bool destroy() override;
+    virtual char** getMetadata(const char* domain) const override;
 
 protected:
-    OGRFeatureDefn * definition() const;
+    OGRFeatureDefn* definition() const;
 
 protected:
     OGRLayer* m_layer;
     std::vector<Field> m_fields;
+    CPLMutex* m_featureMutex;
 };
 
 }

@@ -52,14 +52,23 @@ const int &FieldMapPtr::operator[](int key) const
 // FeaturePtr
 //------------------------------------------------------------------------------
 
-FeaturePtr::FeaturePtr(OGRFeature* feature) :
-    shared_ptr( feature, OGRFeature::DestroyFeature )
+FeaturePtr::FeaturePtr(OGRFeature* feature, Table* table) :
+    shared_ptr( feature, OGRFeature::DestroyFeature ),
+    m_table(table)
+{
+
+}
+
+FeaturePtr::FeaturePtr(OGRFeature* feature, const Table* table) :
+    shared_ptr( feature, OGRFeature::DestroyFeature ),
+    m_table(const_cast<Table*>(table))
 {
 
 }
 
 FeaturePtr:: FeaturePtr() :
-    shared_ptr( nullptr, OGRFeature::DestroyFeature )
+    shared_ptr( nullptr, OGRFeature::DestroyFeature ),
+    m_table(nullptr)
 {
 
 }
@@ -77,13 +86,17 @@ Table::Table(OGRLayer *layer,
              ObjectContainer * const parent,
              const enum ngsCatalogObjectType type,
              const CPLString &name) :
-    Object(parent, type, name, ""), m_layer(layer)
+    Object(parent, type, name, ""),
+    m_layer(layer),
+    m_featureMutex(CPLCreateMutex())
 {
+    CPLReleaseMutex(m_featureMutex);
     fillFields();
 }
 
 Table::~Table()
 {
+    CPLDestroyMutex(m_featureMutex);
     if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
@@ -104,7 +117,7 @@ FeaturePtr Table::createFeature() const
     if (nullptr == pFeature)
         return FeaturePtr();
 
-    return FeaturePtr(pFeature);
+    return FeaturePtr(pFeature, this);
 }
 
 FeaturePtr Table::getFeature(GIntBig id) const
@@ -112,11 +125,12 @@ FeaturePtr Table::getFeature(GIntBig id) const
     if(nullptr == m_layer)
         return FeaturePtr();
 
+    CPLMutexHolder holder(m_featureMutex);
     OGRFeature* pFeature = m_layer->GetFeature(id);
     if (nullptr == pFeature)
         return FeaturePtr();
 
-    return FeaturePtr(pFeature);
+    return FeaturePtr(pFeature, this);
 }
 
 bool Table::insertFeature(const FeaturePtr &feature)
@@ -124,13 +138,17 @@ bool Table::insertFeature(const FeaturePtr &feature)
    if(nullptr == m_layer)
         return false;
 
+   CPLErrorReset();
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
-        Notify::instance().onNotify(fullName(),
+        Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+        if(dataset && !dataset->isBatchOperation()) {
+            Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_CREATE_FEATURE);
+        }
         return true;
     }
 
-    return false;
+    return errorMessage(COD_INSERT_FAILED, CPLGetLastErrorMsg());
 }
 
 bool Table::updateFeature(const FeaturePtr &feature)
@@ -138,13 +156,14 @@ bool Table::updateFeature(const FeaturePtr &feature)
     if(nullptr == m_layer)
         return false;
 
+    CPLErrorReset();
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
         Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_CHANGE_FEATURE);
         return true;
     }
 
-    return false;
+    return errorMessage(COD_UPDATE_FAILED, CPLGetLastErrorMsg());
 }
 
 bool Table::deleteFeature(GIntBig id)
@@ -152,13 +171,14 @@ bool Table::deleteFeature(GIntBig id)
     if(nullptr == m_layer)
         return false;
 
+    CPLErrorReset();
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_DELETE_FEATURE);
         return true;
     }
 
-    return false;
+    return errorMessage(COD_DELETE_FAILED, CPLGetLastErrorMsg());
 }
 
 GIntBig Table::featureCount(bool force) const
@@ -179,7 +199,8 @@ FeaturePtr Table::nextFeature() const
 {
     if(nullptr == m_layer)
         return FeaturePtr();
-    return m_layer->GetNextFeature();
+    CPLMutexHolder holder(m_featureMutex);
+    return FeaturePtr(m_layer->GetNextFeature(), this);
 }
 
 int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
@@ -290,6 +311,16 @@ void Table::fillFields()
             m_layer->SetMetadataItem(it->first, it->second, KEY_USER);
         }
     }
+}
+
+bool Table::deleteAttachment(GIntBig aid)
+{
+    return false; // TODO:
+}
+
+bool Table::deleteAttachments(GIntBig fid)
+{
+    return false; // TODO:
 }
 
 } // namespace ngs

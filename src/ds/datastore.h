@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -24,6 +24,9 @@
 #include "dataset.h"
 
 namespace ngs {
+
+
+constexpr const char* REMOTE_ID_KEY = "rid";
 
 /**
  * @brief The geodata storage and manipulation class for raster, vector geodata
@@ -48,6 +51,16 @@ public:
                       const Options &options = Options()) override;
     virtual void startBatchOperation() override { enableJournal(false); }
     virtual void stopBatchOperation() override { enableJournal(true); }
+    virtual bool isBatchOperation() const override {
+        return m_disableJournalCounter != 0;
+    }
+
+    virtual FeatureClass* createFeatureClass(const CPLString& name,
+                                             OGRFeatureDefn * const definition,
+                                             OGRSpatialReference* spatialRef,
+                                             OGRwkbGeometryType type,
+                                             const Options& options = Options(),
+                                             const Progress& progress = Progress()) override;
 
     // ObjectContainer interface
 public:
@@ -57,6 +70,7 @@ public:
 
 protected:
     virtual bool isNameValid(const char* name) const override;
+    virtual CPLString normalizeFieldName(const CPLString& name) const override;
     virtual void fillFeatureClasses() override;
 
 protected:
@@ -67,6 +81,6 @@ protected:
     unsigned char m_disableJournalCounter;
 };
 
-}
+} // namespace ngs
 
 #endif // NGSDATASTORE_H

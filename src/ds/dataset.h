@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -35,6 +35,11 @@ constexpr const char* OVR_ZOOM_KEY = "z";
 constexpr const char* OVR_X_KEY = "x";
 constexpr const char* OVR_Y_KEY = "y";
 constexpr const char* OVR_TILE_KEY = "tile";
+constexpr const char* ATTACH_FEATURE_ID = "afid";
+constexpr const char* ATTACH_FILE_NAME = "name";
+constexpr const char* ATTACH_FILE_MIME = "mime";
+constexpr const char* ATTACH_DESCRIPTION = "descript";
+
 constexpr const char *KEY_USER = "user";
 
 /**
@@ -114,8 +119,10 @@ public:
     virtual CPLString getProperty(const char* key, const char* defaultValue);
     virtual std::map<CPLString, CPLString> getProperties(
             const char* table);
+    virtual void deleteProperties(const char* table);
     virtual void startBatchOperation() {}
     virtual void stopBatchOperation() {}
+    virtual bool isBatchOperation() const { return false; }
 
     // Object interface
 public:
@@ -145,9 +152,9 @@ protected:
     static OGRLayer* createMetadataTable(GDALDataset* ds);
     static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
     static OGRLayer* createOverviewsTable(GDALDataset* ds, const char* name);
+    static OGRLayer* createAttachmentsTable(GDALDataset* ds, const char* name);
 
-//    static bool createAttachmentsTable(GDALDataset* ds, const char* name);
-//    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
+    //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
 
 protected:
     virtual bool isNameValid(const char* name) const;

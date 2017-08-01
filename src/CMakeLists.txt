@@ -141,8 +141,22 @@ else()
 endif()
 
 if(IOS)
+    file(STRINGS ${PROJECT_SOURCE_DIR}/include/ngstore/api.h apis REGEX "ngs[a-zA-z0-9]*\\(" )
+    set(apis2)
+    foreach(api ${apis})
+        string(SUBSTRING ${api} 0 2 testComment)
+        if(NOT testComment STREQUAL "//")
+            string(REGEX MATCH "ngs[a-zA-z0-9]*\\(" api2 ${api})
+            string(REPLACE "(" "" api3 ${api2})
+            string(STRIP ${api3} api4 )
+            set(apis2 "${apis2}\n_${api4}")
+        endif()
+    endforeach()
+    message(STATUS "Exported functions: ${apis2}")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/sym.exp ${apis2})
     set_target_properties(${LIB_NAME} PROPERTIES
-        COMPILE_FLAGS "-arch ${IOS_ARCH}" LINK_FLAGS "-arch ${IOS_ARCH} -Wl,-exported_symbols_list,${CMAKE_SOURCE_DIR}/opt/sym.exp"
+        COMPILE_FLAGS "-arch ${IOS_ARCH}"
+        LINK_FLAGS "-arch ${IOS_ARCH} -Wl,-exported_symbols_list,${CMAKE_CURRENT_BINARY_DIR}/sym.exp"
     )
 endif()
 
