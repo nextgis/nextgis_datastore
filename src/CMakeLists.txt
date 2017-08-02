@@ -152,6 +152,7 @@ if(IOS)
             set(apis2 "${apis2}\n_${api4}")
         endif()
     endforeach()
+    set(apis2 "${apis2}\n")
     message(STATUS "Exported functions: ${apis2}")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/sym.exp ${apis2})
     set_target_properties(${LIB_NAME} PROPERTIES
