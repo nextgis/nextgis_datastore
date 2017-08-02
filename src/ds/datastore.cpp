@@ -356,4 +356,49 @@ void DataStore::enableJournal(bool enable)
     }
 }
 
+OGRLayer* DataStore::createAttachmentsTable(const char* name)
+{
+    if(!m_addsDS) {
+        createAdditionsDataset();
+    }
+
+    if(!m_addsDS)
+        return nullptr;
+
+    CPLString attLayerName(name);
+    attLayerName += CPLString("_") + attachmentsFolderExtension();
+
+    OGRLayer* attLayer = m_addsDS->CreateLayer(attLayerName, nullptr, wkbNone, nullptr);
+    if (nullptr == attLayer) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    // Create folder for files
+    if(nullptr != m_path) {
+        CPLString attachmentsPath = CPLResetExtension(m_path,
+                                                      attachmentsFolderExtension());
+        if(!Folder::isExists(attachmentsPath)) {
+            Folder::mkDir(attachmentsPath);
+        }
+    }
+
+    // Create table  fields
+    OGRFieldDefn fidField(ATTACH_FEATURE_ID, OFTInteger64);
+    OGRFieldDefn nameField(ATTACH_FILE_NAME, OFTString);
+    OGRFieldDefn descField(ATTACH_DESCRIPTION, OFTString);
+    OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
+
+    if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
+       attLayer->CreateField(&nameField) != OGRERR_NONE ||
+       attLayer->CreateField(&descField) != OGRERR_NONE ||
+       attLayer->CreateField(&ridField) != OGRERR_NONE) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    return attLayer;
+}
+
 } // namespace ngs
+

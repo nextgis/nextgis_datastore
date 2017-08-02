@@ -1596,6 +1596,7 @@ int ngsFeatureAttachmentDelete(FeatureH feature, long long aid)
     return table->deleteAttachment(aid);
 }
 
+static std::vector<Table::AttachmentInfo> info;
 ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -1616,15 +1617,19 @@ ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature)
     }
 
     GIntBig fid = (*featurePtrPointer)->GetFID();
-    std::vector<ngsFeatureAttachmentInfo> info = table->getAttachments(fid);
+    info = table->getAttachments(fid);
     ngsFeatureAttachmentInfo* out = static_cast<ngsFeatureAttachmentInfo*>(
                 CPLMalloc((info.size() + 1) * sizeof(ngsFeatureAttachmentInfo)));
     int counter = 0;
-    for(auto infoItem : info) {
-        out[counter++] = infoItem;
+    for(const Table::AttachmentInfo& infoItem : info) {
+        ngsFeatureAttachmentInfo outInfo = {infoItem.id, infoItem.name,
+                                            infoItem.description, infoItem.path,
+                                            infoItem.size, infoItem.rid};
+
+        out[counter++] = outInfo;
     }
 
-    out[info.size()] = {-1, nullptr, nullptr, nullptr, nullptr, 0, -1};
+    out[info.size()] = {-1, nullptr, nullptr, nullptr, 0, -1};
     return out;
 }
 

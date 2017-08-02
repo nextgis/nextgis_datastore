@@ -62,6 +62,10 @@ public:
                                              const Options& options = Options(),
                                              const Progress& progress = Progress()) override;
 
+    // Dataset interface
+protected:
+    virtual OGRLayer* createAttachmentsTable(const char* name) override;
+
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
@@ -79,6 +83,7 @@ protected:
 
 protected:
     unsigned char m_disableJournalCounter;
+
 };
 
 } // namespace ngs

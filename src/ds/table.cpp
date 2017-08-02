@@ -91,15 +91,18 @@ Table::Table(OGRLayer *layer,
     Object(parent, type, name, ""),
     m_layer(layer),
     m_attTable(nullptr),
-    m_featureMutex(CPLCreateMutex())
+    m_featureMutex(CPLCreateMutex()),
+    m_attMutex(CPLCreateMutex())
 {
     CPLReleaseMutex(m_featureMutex);
+    CPLReleaseMutex(m_attMutex);
     fillFields();
 }
 
 Table::~Table()
 {
     CPLDestroyMutex(m_featureMutex);
+    CPLDestroyMutex(m_attMutex);
     if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
@@ -176,6 +179,7 @@ bool Table::deleteFeature(GIntBig id)
 
     CPLErrorReset();
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
+        deleteAttachments(id);
         Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_DELETE_FEATURE);
         return true;
@@ -392,23 +396,94 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
 
 bool Table::deleteAttachment(GIntBig aid)
 {
-    return false; // TODO:
+    if(!getAttachmentsTable()) {
+        return false;
+    }
+
+    FeaturePtr attFeature = m_attTable->GetFeature(aid);
+    bool result = m_attTable->DeleteFeature(aid) == OGRERR_NONE;
+    if(result) {
+        GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID);
+        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
+                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
+                                                   nullptr);
+        CPLString attPath = CPLFormFilename(attFeaturePath,
+                                                   CPLSPrintf(CPL_FRMT_GIB, aid),
+                                                   nullptr);
+
+        result = File::deleteFile(attPath);
+    }
+
+    return result;
 }
 
 bool Table::deleteAttachments(GIntBig fid)
 {
-    return false; // TODO:
+    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        return false;
+    }
+
+    dataset->executeSQL(CPLSPrintf("DELETE FROM %s_%s WHERE %s = " CPL_FRMT_GIB,
+                                   m_name.c_str(), Dataset::attachmentsFolderExtension(),
+                                   ATTACH_FEATURE_ID, fid));
+
+    CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
+                                               CPLSPrintf(CPL_FRMT_GIB, fid),
+                                               nullptr);
+    Folder::rmDir(attFeaturePath);
+    return true;
 }
 
 bool Table::updateAttachment(GIntBig aid, const char* fileName,
                              const char* description)
 {
-    return false; // TODO:
+    if(!getAttachmentsTable()) {
+        return false;
+    }
+
+    FeaturePtr attFeature = m_attTable->GetFeature(aid);
+    if(!attFeature)
+        return false;
+
+    if(fileName)
+        attFeature->SetField(ATTACH_FILE_NAME, fileName);
+    if(description)
+        attFeature->SetField(ATTACH_DESCRIPTION, description);
+
+    return m_attTable->SetFeature(attFeature) == OGRERR_NONE;
 }
 
-std::vector<ngsFeatureAttachmentInfo> Table::getAttachments(GIntBig fid) const
+std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
 {
-    std::vector<ngsFeatureAttachmentInfo> out;
+    std::vector<AttachmentInfo> out;
+
+    if(!getAttachmentsTable()) {
+        return out;
+    }
+
+    CPLMutexHolder holder(m_attMutex);
+    m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
+                                              ATTACH_FEATURE_ID, fid));
+    m_attTable->ResetReading();
+    FeaturePtr attFeature;
+    while((attFeature = m_attTable->GetNextFeature()) != nullptr) {
+        AttachmentInfo info;
+        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME);
+        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION);
+        info.id = attFeature->GetFID();
+
+        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
+                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
+                                                   nullptr);
+        info.path = CPLFormFilename(attFeaturePath,
+                                    CPLSPrintf(CPL_FRMT_GIB, info.id),
+                                    nullptr);
+
+        info.size = File::fileSize(info.path);
+
+        out.push_back(info);
+    }
     return out;
 }
 

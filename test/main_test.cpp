@@ -493,7 +493,6 @@ TEST(DataStoreTests, TestCreateFeature) {
                                            "test add atachment",
                                            testAttachmentPath, nullptr);
     EXPECT_NE(id, -1);
-    ngsFeatureFree(newFeature);
 
     VSIStatBufL sbuf;
     CPLString path1 = testPath + "/tmp/main.attachments";
@@ -504,6 +503,22 @@ TEST(DataStoreTests, TestCreateFeature) {
 
     CPLString path3 = testPath + "/tmp/main.attachments/new_layer/1";
     EXPECT_EQ(VSIStatL(path3, &sbuf), 0);
+
+    ngsFeatureAttachmentInfo* list = ngsFeatureAttachmentsGet(newFeature);
+    ASSERT_NE(list, nullptr);
+    int counter = 0;
+    while (list[counter].id != -1) {
+        std::cout << "Attach -- name: " << list[counter].name <<
+                     " | description: " << list[counter].description <<
+                     "\n     path: " << list[counter].path << " | size: " <<
+                     list[counter].size << "\n";
+        counter++;
+    }
+
+    ngsFree(list);
+    ngsFeatureFree(newFeature);
+
+    EXPECT_GE(counter, 1);
 
     ngsUnInit();
 }

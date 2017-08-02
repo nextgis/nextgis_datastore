@@ -189,7 +189,6 @@ constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
 constexpr const char* OVR_ADD = "_overviews";
 
 // Attachments
-constexpr const char* ATTACH_ADD = "_attachments";
 constexpr const char* ATTACH_EXT = "attachments";
 
 
@@ -924,12 +923,10 @@ OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
     // Create table  fields
     OGRFieldDefn fidField(ATTACH_FEATURE_ID, OFTInteger64);
     OGRFieldDefn nameField(ATTACH_FILE_NAME, OFTString);
-    OGRFieldDefn mimeField(ATTACH_FILE_MIME, OFTString);
     OGRFieldDefn descField(ATTACH_DESCRIPTION, OFTString);
 
     if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
-       attLayer->CreateField(&mimeField) != OGRERR_NONE ||
        attLayer->CreateField(&descField) != OGRERR_NONE) {
         errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
@@ -938,7 +935,7 @@ OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
     return attLayer;
 }
 
-OGRLayer*Dataset::createAttachmentsTable(const char* name)
+OGRLayer* Dataset::createAttachmentsTable(const char* name)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -948,7 +945,7 @@ OGRLayer*Dataset::createAttachmentsTable(const char* name)
         return nullptr;
 
     CPLString attLayerName(name);
-    attLayerName += ATTACH_ADD;
+    attLayerName += CPLString("_") + ATTACH_EXT;
 
     return createAttachmentsTable(m_addsDS, m_path, attLayerName);
 }
@@ -958,7 +955,7 @@ bool Dataset::destroyAttachmentsTable(const char* name)
     if(!m_addsDS)
         return false;
     CPLString attLayerName(name);
-    attLayerName += ATTACH_ADD;
+    attLayerName += CPLString("_") + ATTACH_EXT;
     OGRLayer* layer = m_addsDS->GetLayerByName(attLayerName);
     if(!layer)
         return false;
@@ -970,9 +967,8 @@ OGRLayer* Dataset::getAttachmentsTable(const char* name)
     if(!m_addsDS)
         return nullptr;
     CPLString attLayerName(name);
-    attLayerName += ATTACH_ADD;
+    attLayerName += CPLString("_") + ATTACH_EXT;
     return m_addsDS->GetLayerByName(attLayerName);
-
 }
 
 } // namespace ngs

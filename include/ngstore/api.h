@@ -242,7 +242,6 @@ typedef struct _ngsFeatureAttachmentInfo {
     long long id;
     const char* name;
     const char* description;
-    const char* mime;
     const char* path;
     long long size;
     long long rid;

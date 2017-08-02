@@ -37,7 +37,6 @@ constexpr const char* OVR_Y_KEY = "y";
 constexpr const char* OVR_TILE_KEY = "tile";
 constexpr const char* ATTACH_FEATURE_ID = "afid";
 constexpr const char* ATTACH_FILE_NAME = "name";
-constexpr const char* ATTACH_FILE_MIME = "mime";
 constexpr const char* ATTACH_DESCRIPTION = "descript";
 
 constexpr const char *KEY_USER = "user";

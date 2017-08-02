@@ -50,6 +50,12 @@ time_t File::modificationDate(const char* path)
     return VSIStatL(path, &sbuf) == 0 ? sbuf.st_mtime : 0;
 }
 
+GIntBig File::fileSize(const char* path)
+{
+    VSIStatBufL sbuf;
+    return VSIStatL(path, &sbuf) == 0 ? sbuf.st_size : 0;
+}
+
 bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 {
     progress.onProgress(COD_IN_PROCESS, 0.0, _("Start copying %s to %s"),

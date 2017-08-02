@@ -66,6 +66,15 @@ class Table : public Object
 {
     friend class Dataset;
 public:
+    typedef struct _attachmentInfo {
+        GIntBig id;
+        CPLString name;
+        CPLString description;
+        CPLString path;
+        GIntBig size;
+        GIntBig rid;
+    } AttachmentInfo;
+public:
     explicit Table(OGRLayer* layer,
           ObjectContainer* const parent = nullptr,
           const enum ngsCatalogObjectType type = CAT_TABLE_ANY,
@@ -92,7 +101,7 @@ public:
     virtual bool deleteAttachments(GIntBig fid);
     virtual bool updateAttachment(GIntBig aid, const char* fileName,
                           const char* description);
-    virtual std::vector<ngsFeatureAttachmentInfo> getAttachments(GIntBig fid) const;
+    virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid);
 
     // Object interface
 public:
@@ -109,6 +118,7 @@ protected:
     OGRLayer* m_attTable;
     std::vector<Field> m_fields;
     CPLMutex* m_featureMutex;
+    CPLMutex* m_attMutex;
 };
 
 }
