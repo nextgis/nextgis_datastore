@@ -1654,6 +1654,24 @@ int ngsFeatureAttachmentUpdate(FeatureH feature, long long aid,
                                                              COD_UPDATE_FAILED;
 }
 
+void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,
+                                          long long rid)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+
+    StoreFeatureClass* table = dynamic_cast<StoreFeatureClass*>(
+                featurePtrPointer->table());
+    if(!table) {
+        errorMessage(COD_INVALID, _("The feature detached from table"));
+        return;
+    }
+
+    table->setFeatureAttachmentRemoteId(aid, rid);
+}
 
 //------------------------------------------------------------------------------
 // Map
@@ -2242,5 +2260,7 @@ int ngsOverlaySetVisible(
 //    initMapStore();
 //    return gMapStore->getDisplayLength (mapId, w, h);
 //}
+
+
 
 

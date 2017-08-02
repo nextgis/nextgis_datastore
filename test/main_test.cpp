@@ -514,11 +514,17 @@ TEST(DataStoreTests, TestCreateFeature) {
                      list[counter].size << "\n";
         counter++;
     }
+    ASSERT_GE(counter, 1);
 
+    ngsStoreFeatureSetAttachmentRemoteId(newFeature, list[0].id, 777);
     ngsFree(list);
-    ngsFeatureFree(newFeature);
 
-    EXPECT_GE(counter, 1);
+    list = ngsFeatureAttachmentsGet(newFeature);
+
+    ngsFeatureFree(newFeature);
+    ASSERT_NE(list, nullptr);
+    EXPECT_EQ(list[0].rid, 777);
+    ngsFree(list);
 
     ngsUnInit();
 }

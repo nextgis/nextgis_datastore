@@ -21,6 +21,7 @@
 #include "storefeatureclass.h"
 
 #include "datastore.h"
+#include "catalog/file.h"
 
 namespace ngs {
 
@@ -43,6 +44,21 @@ FeaturePtr StoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
     }
     m_layer->SetAttributeFilter(nullptr);
     return out;
+}
+
+bool StoreFeatureClass::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
+{
+    if(!getAttachmentsTable()) {
+        return false;
+    }
+
+    FeaturePtr attFeature = m_attTable->GetFeature(aid);
+    if(!attFeature) {
+        return false;
+    }
+
+    attFeature->SetField(REMOTE_ID_KEY, rid);
+    return m_attTable->SetFeature(attFeature) == OGRERR_NONE;
 }
 
 void StoreFeatureClass::setRemoteId(FeaturePtr feature, GIntBig rid)
@@ -92,24 +108,38 @@ void StoreFeatureClass::fillFields()
     }
 }
 
+std::vector<Table::AttachmentInfo> StoreFeatureClass::getAttachments(GIntBig fid)
+{
+    std::vector<AttachmentInfo> out;
 
-//bool StoreFeatureClass::updateFeature(const FeaturePtr& feature)
-//{
-//    int ridIndex = feature->GetFieldIndex(REMOTE_ID_KEY);
-//    if(feature->IsFieldSet(ridIndex)) {
-//        GIntBig oldId = feature->GetFieldAsInteger64(ridIndex);
-//        // execute sql to change old id to new id in this table
-//        feature->SetField(feature->GetFieldIndex(REMOTE_ID_KEY), newId);
-//        // execute sql to change old id to new id in attachment table
+    if(!getAttachmentsTable()) {
+        return out;
+    }
 
-//        // set attachment id
-//        // sql to change old att id to new att id in attachment table
+    CPLMutexHolder holder(m_attMutex);
+    m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
+                                              ATTACH_FEATURE_ID, fid));
+    m_attTable->ResetReading();
+    FeaturePtr attFeature;
+    while((attFeature = m_attTable->GetNextFeature()) != nullptr) {
+        AttachmentInfo info;
+        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME);
+        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION);
+        info.id = attFeature->GetFID();
+        info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
 
-//        // folder fo db_name.attachments/fc_name/fid
-//    }
-//    return FeatureClass::updateFeature(feature);
-//}
+        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
+                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
+                                                   nullptr);
+        info.path = CPLFormFilename(attFeaturePath,
+                                    CPLSPrintf(CPL_FRMT_GIB, info.id),
+                                    nullptr);
+
+        info.size = File::fileSize(info.path);
+
+        out.push_back(info);
+    }
+    return out;
+}
 
 } // namespace ngs
-
-

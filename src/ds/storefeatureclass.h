@@ -32,6 +32,7 @@ public:
                       const CPLString & name = "");
     virtual ~StoreFeatureClass() = default;
     FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
+    bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
 
     // static
     static void setRemoteId(FeaturePtr feature, GIntBig rid);
@@ -40,6 +41,7 @@ public:
     // Table interface
 public:
     virtual void fillFields() override;
+    virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid) override;
 };
 
 } // namespace ngs
