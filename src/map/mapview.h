@@ -25,6 +25,8 @@
 #include "map.h"
 #include "maptransform.h"
 
+#include "ogr_geometry.h"
+
 #include "overlay.h"
 
 namespace ngs {
@@ -44,6 +46,7 @@ public:
     size_t overlayCount() const { return m_overlays.size(); }
     OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
     void setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible);
+    ngsDrawState mapTouch(double x, double y, enum ngsMapTouchType type);
 
     // Map interface
 protected:
@@ -56,6 +59,8 @@ protected:
 
 protected:
     std::vector<OverlayPtr> m_overlays;
+    OGRRawPoint m_touchStartPoint;
+    bool m_touchMoved;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;

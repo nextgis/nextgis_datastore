@@ -87,6 +87,8 @@ public:
             unsigned char mapId, enum ngsMapOverlyType type) const;
     bool setOverlayVisible(
             unsigned char mapId, ngsMapOverlyType typeMask, bool visible);
+    ngsDrawState mapTouch(
+            unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 
     // static
 public:

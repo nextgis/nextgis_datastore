@@ -2092,6 +2092,17 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
+ngsDrawState ngsMapTouch(
+        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        return DS_NOTHING;
+    }
+    return mapStore->mapTouch(mapId, x, y, type);
+}
+
 //------------------------------------------------------------------------------
 // Layer
 //------------------------------------------------------------------------------
