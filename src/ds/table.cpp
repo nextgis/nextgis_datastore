@@ -382,11 +382,13 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
                                             CPLSPrintf(CPL_FRMT_GIB,
                                                        newAttachment->GetFID()),
                                             nullptr);
-        if(move) {
-            File::moveFile(filePath, dstPath);
-        }
-        else {
-            File::copyFile(filePath, dstPath);
+        if(Folder::isExists(filePath)) {
+            if(move) {
+                File::moveFile(filePath, dstPath);
+            }
+            else {
+                File::copyFile(filePath, dstPath);
+            }
         }
         return newAttachment->GetFID();
     }

@@ -144,6 +144,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
             tile->setFilled(false);
         }
     [[clang::fallthrough]]; case DS_NORMAL:
+//        CPLDebug("ngstore", "DS_NORMAL");
         // Get tiles for extent and mark to delete out of bounds tiles
         updateTilesList();
         // Start load layers data for tiles
@@ -158,6 +159,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
             }
         }
     [[clang::fallthrough]]; case DS_PRESERVED:
+//        CPLDebug("ngstore", "DS_PRESERVED");
         bool result = drawTiles(progress);
         // Free unnecessary Gl objects as this call is in Gl context
         freeResources();
