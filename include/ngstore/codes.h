@@ -88,7 +88,8 @@ enum ngsDrawState {
     DS_NORMAL = 1,  /**< Normal draw */
     DS_REDRAW,      /**< Free all caches and draw from the scratch */
     DS_REFILL,      /**< Refill tiles from layers */
-    DS_PRESERVED    /**< Draw from caches */
+    DS_PRESERVED,   /**< Draw from caches */
+    DS_NOTHING      /**< Draw nothing */
 };
 
 /**

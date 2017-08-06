@@ -139,4 +139,44 @@ void MapView::setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible)
     }
 }
 
+ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
+{
+    switch(type) {
+        case MTT_ON_DOWN: {
+            m_touchStartPoint = OGRRawPoint(x, y);
+            return DS_NOTHING;
+        }
+        case MTT_ON_MOVE: {
+            if (!m_touchMoved) {
+                m_touchMoved = true;
+            }
+
+            OGRRawPoint pt = OGRRawPoint(x, y);
+            OGRRawPoint offset(
+                    pt.x - m_touchStartPoint.x, pt.y - m_touchStartPoint.y);
+            OGRRawPoint beg = displayToWorld(OGRRawPoint(0, 0));
+            OGRRawPoint end = displayToWorld(OGRRawPoint(offset.x, offset.y));
+            OGRRawPoint mapOffset(end.x - beg.x, end.y - beg.y);
+
+            if(!getYAxisInverted())
+                mapOffset.y = -mapOffset.y; // NOTE: The Y axis orientation differs in matrix and view
+
+            OGRRawPoint mapCenter = getCenter();
+            setCenter(mapCenter.x - mapOffset.x, mapCenter.y - mapOffset.y);
+
+            m_touchStartPoint = pt;
+            return DS_PRESERVED;
+        }
+        case MTT_ON_UP: {
+            if (m_touchMoved) {
+                m_touchMoved = false;
+                return DS_REDRAW;
+            }
+            return DS_NOTHING;
+        }
+        default:
+            return DS_NOTHING;
+    }
+}
+
 } // namespace ngs
