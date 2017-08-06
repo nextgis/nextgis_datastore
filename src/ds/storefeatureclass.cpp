@@ -143,3 +143,4 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::getAttachments(GIntBig fid
 }
 
 } // namespace ngs
+

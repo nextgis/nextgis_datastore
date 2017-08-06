@@ -199,6 +199,7 @@ NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char e
 NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature);
 NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature);
 NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id);
+NGS_EXTERNC int ngsFeatureClassDeleteFeatures(CatalogObjectH object);
 NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);

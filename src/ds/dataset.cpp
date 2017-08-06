@@ -532,12 +532,7 @@ bool Dataset::destroyOverviewsTable(const char* name)
 
 bool Dataset::clearOverviewsTable(const char* name)
 {
-    if(!m_addsDS)
-        return false;
-    CPLErrorReset();
-    m_addsDS->ExecuteSQL(CPLSPrintf("DELETE * from %s%s", name, OVR_ADD),
-                         nullptr, nullptr);
-    return CPLGetLastErrorType() < CE_Failure;
+    return deleteFeatures(CPLSPrintf("%s%s", name, OVR_ADD));
 }
 
 OGRLayer* Dataset::getOverviewsTable(const char* name)
@@ -969,6 +964,99 @@ OGRLayer* Dataset::getAttachmentsTable(const char* name)
     CPLString attLayerName(name);
     attLayerName += CPLString("_") + ATTACH_EXT;
     return m_addsDS->GetLayerByName(attLayerName);
+}
+
+bool Dataset::deleteFeatures(const char* name)
+{
+    if(!m_addsDS)
+        return false;
+    CPLErrorReset();
+    m_addsDS->ExecuteSQL(CPLSPrintf("DELETE * from %s", name),
+                         nullptr, nullptr);
+    return CPLGetLastErrorType() < CE_Failure;
+}
+
+void Dataset::refresh()
+{
+    if(!m_childrenLoaded) {
+        hasChildren();
+        return;
+    }
+
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
+        OGRLayer* layer = m_DS->GetLayer(i);
+        if(nullptr != layer) {
+            OGRwkbGeometryType geometryType = layer->GetGeomType();
+            const char* layerName = layer->GetName();
+            // Hide metadata, overviews, history tables
+            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
+                m_metadata = layer;
+                continue;
+            }
+
+            // layer->GetLayerDefn()->GetGeomFieldCount() == 0
+            if(geometryType == wkbNone) {
+                m_children.push_back(ObjectPtr(new Table(layer, this,
+                        CAT_TABLE_ANY, layerName)));
+            }
+            else {
+                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
+                            CAT_FC_ANY, layerName)));
+            }
+        }
+    }
+
+    std::vector<const char*> deleteNames, addNames;
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
+        OGRLayer* layer = m_DS->GetLayer(i);
+        if(nullptr != layer) {
+            const char* layerName = layer->GetName();
+            // Hide metadata, overviews, history tables
+            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
+                m_metadata = layer;
+                continue;
+            }
+
+            addNames.push_back(layerName);
+        }
+    }
+
+    // Fill delete names array
+    for(const ObjectPtr& child : m_children)
+        deleteNames.push_back(child->name());
+
+    // Remove same names from add and delete arrays
+    removeDuplicates(deleteNames, addNames);
+
+    // Delete objects
+    auto it = m_children.begin();
+    while(it != m_children.end()) {
+        const char* name = (*it)->name();
+        auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
+        if(itdn != deleteNames.end()) {
+            deleteNames.erase(itdn);
+            it = m_children.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+
+    // Create new objects
+    for(auto layerName: addNames) {
+        OGRLayer* layer = m_DS->GetLayerByName(layerName);
+        if(nullptr != layer) {
+            OGRwkbGeometryType geometryType = layer->GetGeomType();
+            if(geometryType == wkbNone) {
+                m_children.push_back(ObjectPtr(new Table(layer, this,
+                        CAT_TABLE_ANY, layerName)));
+            }
+            else {
+                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
+                            CAT_FC_ANY, layerName)));
+            }
+        }
+    }
 }
 
 } // namespace ngs

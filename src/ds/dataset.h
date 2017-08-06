@@ -24,10 +24,12 @@
 #include <memory>
 
 #include "api_priv.h"
-#include "catalog/objectcontainer.h"
 #include "featureclass.h"
 #include "geometry.h"
+
+#include "catalog/objectcontainer.h"
 #include "ngstore/codes.h"
+#include "util/stringutil.h"
 
 namespace ngs {
 
@@ -40,6 +42,8 @@ constexpr const char* ATTACH_FILE_NAME = "name";
 constexpr const char* ATTACH_DESCRIPTION = "descript";
 
 constexpr const char *KEY_USER = "user";
+constexpr const char *KEY_USER_PREFIX = "USER.";
+constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -142,6 +146,7 @@ public:
                       const Progress &progress = Progress()) override;
     virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
+    virtual void refresh() override;
 
     // static
 public:
@@ -171,6 +176,7 @@ protected:
     virtual OGRLayer* createAttachmentsTable(const char* name);
     virtual bool destroyAttachmentsTable(const char* name);
     virtual OGRLayer* getAttachmentsTable(const char* name);
+    virtual bool deleteFeatures(const char* name);
 
 protected:
     GDALDataset* m_addsDS;

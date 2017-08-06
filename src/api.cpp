@@ -28,6 +28,10 @@
 #include "cpl_http.h"
 #include "cpl_json.h"
 
+#if __APPLE__
+    #include "TargetConditionals.h"
+#endif
+
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
 #include "ds/simpledataset.h"
@@ -45,9 +49,9 @@
 
 using namespace ngs;
 
-constexpr const char* HTTP_TIMEOUT = "2";
+constexpr const char* HTTP_TIMEOUT = "10";
 constexpr const char* HTTP_USE_GZIP = "ON";
-#if (TARGET_OS_IPHONE == 1) || (TARGET_IPHONE_SIMULATOR == 1)
+#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
 constexpr const char* CACHEMAX = "8";
 #elif __ANDROID__
 constexpr const char* CACHEMAX = "4";
@@ -1276,6 +1280,16 @@ int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id)
                             _("Source dataset type is incompatible"));
     }
     return featureClass->deleteFeature(id) ? COD_SUCCESS : COD_DELETE_FAILED;
+}
+
+int ngsFeatureClassDeleteFeatures(CatalogObjectH object)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        return errorMessage(COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+    return featureClass->deleteFeatures() ? COD_SUCCESS : COD_DELETE_FAILED;
 }
 
 long long ngsFeatureClassCount(CatalogObjectH object)

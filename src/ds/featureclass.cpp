@@ -1102,8 +1102,9 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
 bool FeatureClass::destroy()
 {
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset)
+    if(nullptr == dataset) {
         return false;
+    }
 
     if(!Table::destroy()) {
         return false;
@@ -1347,5 +1348,16 @@ bool FeatureClass::deleteFeature(GIntBig id)
     return result;
 }
 
-} // namespace ngs
 
+bool FeatureClass::deleteFeatures()
+{
+    if(Table::deleteFeatures()) {
+        Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+        if(nullptr != dataset) {
+            return dataset->clearOverviewsTable(name());
+        }
+    }
+    return false;
+}
+
+} // namespace ngs

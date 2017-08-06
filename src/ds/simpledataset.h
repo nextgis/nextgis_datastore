@@ -53,12 +53,17 @@ public:
     // Dataset interface
     enum ngsCatalogObjectType subType() const { return m_subType; }
 
+    // Dataset interface
+protected:
+    virtual GDALDataset* createAdditionsDataset() override;
+
 protected:
     virtual void fillFeatureClasses() override;
 
 private:
     enum ngsCatalogObjectType m_subType;
     std::vector<CPLString> m_siblingFiles;
+
 };
 
 }

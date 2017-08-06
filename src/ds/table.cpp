@@ -188,6 +188,27 @@ bool Table::deleteFeature(GIntBig id)
     return errorMessage(COD_DELETE_FAILED, CPLGetLastErrorMsg());
 }
 
+bool Table::deleteFeatures()
+{
+    if(nullptr == m_layer) {
+        return false;
+    }
+
+    CPLErrorReset();
+    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        return false;
+    }
+
+    if(dataset->deleteFeatures(name())) {
+        Notify::instance().onNotify(fullName(),
+                                    ngsChangeCode::CC_DELETEALL_FEATURES);
+        dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
+        Folder::rmDir(getAttachmentsPath());
+        return true;
+    }
+}
+
 GIntBig Table::featureCount(bool force) const
 {
     if(nullptr == m_layer)
@@ -274,12 +295,11 @@ bool Table::destroy()
     CPLString fullNameStr = fullName();
     if(dataset->destroyTable(this)) {
         Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
+
+        dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
+        Folder::rmDir(getAttachmentsPath());
         return true;
     }
-
-    dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
-    Folder::rmDir(getAttachmentsPath());
-
     return false;
 }
 
@@ -487,6 +507,15 @@ std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
         out.push_back(info);
     }
     return out;
+}
+
+
+bool Table::canDestroy() const
+{
+    Dataset* const dataSet= dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataSet)
+        return false;
+    return !dataSet->isReadOnly();
 }
 
 } // namespace ngs

@@ -21,6 +21,7 @@
 #include "simpledataset.h"
 
 #include "catalog/file.h"
+#include "catalog/folder.h"
 #include "util/notify.h"
 
 namespace ngs {
@@ -64,7 +65,12 @@ bool SimpleDataset::destroy()
 
     for(const auto &siblingFile : m_siblingFiles) {
         const char* path = CPLFormFilename(m_parent->path(), siblingFile, nullptr);
-        File::deleteFile(path);
+        if(Folder::isDir(path)) {
+            Folder::rmDir(path);
+        }
+        else {
+            File::deleteFile(path);
+        }
     }
 
     if(m_parent) {
@@ -98,10 +104,16 @@ void SimpleDataset::fillFeatureClasses()
     }
 }
 
+GDALDataset* SimpleDataset::createAdditionsDataset()
+{
+    GDALDataset* out = Dataset::createAdditionsDataset();
+    if(out) {
+        m_siblingFiles.push_back(
+                    CPLResetExtension(m_path, Dataset::additionsDatasetExtension()));
+        m_siblingFiles.push_back(
+                    CPLResetExtension(m_path, Dataset::attachmentsFolderExtension()));
+    }
+    return out;
+}
+
 } // namespace ngs
-
-
-
-
-
-

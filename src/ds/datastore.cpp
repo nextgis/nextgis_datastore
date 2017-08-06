@@ -311,7 +311,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     }
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, "USER.", 5)) {
+        if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
             setProperty(CPLSPrintf("%s.%s", newName.c_str(),
                                    it->first.c_str() + 5), it->second);
         }

@@ -85,6 +85,7 @@ public:
     virtual bool insertFeature(const FeaturePtr& feature);
     virtual bool updateFeature(const FeaturePtr& feature);
     virtual bool deleteFeature(GIntBig id);
+    virtual bool deleteFeatures();
     GIntBig featureCount(bool force = true) const;
     void reset() const;
     FeaturePtr nextFeature() const;
@@ -105,6 +106,7 @@ public:
 
     // Object interface
 public:
+    virtual bool canDestroy() const override;
     virtual bool destroy() override;
     virtual char** getMetadata(const char* domain) const override;
 

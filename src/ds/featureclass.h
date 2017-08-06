@@ -161,6 +161,7 @@ public:
     virtual bool insertFeature(const FeaturePtr& feature) override;
     virtual bool updateFeature(const FeaturePtr& feature) override;
     virtual bool deleteFeature(GIntBig id) override;
+    virtual bool deleteFeatures() override;
 
 protected:
     VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry* extent,
@@ -207,7 +208,6 @@ private:
         FeatureClass* m_featureClass;
     };
     std::map<Tile, VectorTile> m_genTiles;
-
 };
 
 }
