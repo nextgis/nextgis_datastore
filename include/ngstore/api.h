@@ -132,6 +132,7 @@ NGS_EXTERNC int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char* url,
 NGS_EXTERNC JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document);
 NGS_EXTERNC void ngsJsonObjectFree(JsonObjectH object);
 NGS_EXTERNC int ngsJsonObjectType(JsonObjectH object);
+NGS_EXTERNC int ngsJsonObjectValid(JsonObjectH object);
 NGS_EXTERNC const char* ngsJsonObjectName(JsonObjectH object);
 NGS_EXTERNC JsonObjectH* ngsJsonObjectChildren(JsonObjectH object);
 NGS_EXTERNC void ngsJsonObjectChildrenListFree(JsonObjectH* list);

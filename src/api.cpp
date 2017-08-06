@@ -577,6 +577,15 @@ int ngsJsonObjectType(JsonObjectH object)
     return static_cast<CPLJSONObject*>(object)->GetType();
 }
 
+int ngsJsonObjectValid(JsonObjectH object)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
+    }
+    return static_cast<CPLJSONObject*>(object)->IsValid() ? 1 : 0;
+}
+
 const char* ngsJsonObjectName(JsonObjectH object)
 {
     if(nullptr == object) {
