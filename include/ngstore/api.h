@@ -314,7 +314,7 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom);
 NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
                                       double maxX, double maxY);
-NGS_EXTERNC ngsDrawState ngsMapTouch(
+NGS_EXTERNC enum ngsDrawState ngsMapTouch(
         unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 //NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
 
