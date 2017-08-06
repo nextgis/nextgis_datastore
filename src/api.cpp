@@ -1588,14 +1588,14 @@ int ngsGeometryTransformTo(GeometryH geometry, int EPSG)
                 COD_SUCCESS : COD_UPDATE_FAILED;
 }
 
-int ngsGeometryTransform(GeometryH geometry, CoordinateTransfomtaionH ct)
+int ngsGeometryTransform(GeometryH geometry, CoordinateTransformationH ct)
 {
     return static_cast<OGRGeometry*>(geometry)->transform(
                 static_cast<OGRCoordinateTransformation*>(ct)) == OGRERR_NONE ?
                 COD_SUCCESS : COD_UPDATE_FAILED;
 }
 
-CoordinateTransfomtaionH ngsCoordinateTransfomtaionCreate(int fromEPSG, int toEPSG)
+CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG, int toEPSG)
 {
     if(fromEPSG == toEPSG) {
         errorMessage(COD_INVALID, _("From/To EPSG codes are equal"));
@@ -1619,7 +1619,7 @@ CoordinateTransfomtaionH ngsCoordinateTransfomtaionCreate(int fromEPSG, int toEP
     return  OGRCreateCoordinateTransformation(&from, &to);
 }
 
-void ngsCoordinateTransfomtaionFree(CoordinateTransfomtaionH ct)
+void ngsCoordinateTransformationFree(CoordinateTransformationH ct)
 {
     OGRCoordinateTransformation::DestroyCT(
                 static_cast<OGRCoordinateTransformation*>(ct));

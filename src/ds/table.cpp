@@ -207,6 +207,8 @@ bool Table::deleteFeatures()
         Folder::rmDir(getAttachmentsPath());
         return true;
     }
+
+    return false;
 }
 
 GIntBig Table::featureCount(bool force) const
