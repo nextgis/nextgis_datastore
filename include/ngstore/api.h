@@ -183,6 +183,7 @@ NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* d
 
 typedef void* FeatureH;
 typedef void* GeometryH;
+typedef void* CoordinateTransfomtaionH;
 typedef struct _ngsField {
     const char* name;
     const char* alias;
@@ -238,7 +239,12 @@ NGS_EXTERNC GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry);
 NGS_EXTERNC void ngsGeometryFree(GeometryH geometry);
 NGS_EXTERNC void ngsGeometrySetPoint(GeometryH geometry, int point, double x,
                                      double y, double z, double m);
+NGS_EXTERNC int ngsGeometryTransformTo(GeometryH geometry, int EPSG);
+NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry, CoordinateTransfomtaionH ct);
 
+NGS_EXTERNC CoordinateTransfomtaionH ngsCoordinateTransfomtaionCreate(int fromEPSG,
+                                                                      int toEPSG);
+NGS_EXTERNC void ngsCoordinateTransfomtaionFree(CoordinateTransfomtaionH ct);
 
 typedef struct _ngsFeatureAttachmentInfo {
     long long id;

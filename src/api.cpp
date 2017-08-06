@@ -1576,6 +1576,55 @@ void ngsGeometrySetPoint(GeometryH geometry, int point, double x, double y,
     OGR_G_SetPointZM(geometry, point, x, y, z, m);
 }
 
+int ngsGeometryTransformTo(GeometryH geometry, int EPSG)
+{
+    OGRSpatialReference to;
+    if(to.importFromEPSG(EPSG) != OGRERR_NONE) {
+        return errorMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
+                     EPSG);
+    }
+
+    return static_cast<OGRGeometry*>(geometry)->transformTo(&to) == OGRERR_NONE ?
+                COD_SUCCESS : COD_UPDATE_FAILED;
+}
+
+int ngsGeometryTransform(GeometryH geometry, CoordinateTransfomtaionH ct)
+{
+    return static_cast<OGRGeometry*>(geometry)->transform(
+                static_cast<OGRCoordinateTransformation*>(ct)) == OGRERR_NONE ?
+                COD_SUCCESS : COD_UPDATE_FAILED;
+}
+
+CoordinateTransfomtaionH ngsCoordinateTransfomtaionCreate(int fromEPSG, int toEPSG)
+{
+    if(fromEPSG == toEPSG) {
+        errorMessage(COD_INVALID, _("From/To EPSG codes are equal"));
+        return nullptr;
+    }
+
+    OGRSpatialReference from;
+    if(from.importFromEPSG(fromEPSG) != OGRERR_NONE) {
+        errorMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
+                     fromEPSG);
+        return nullptr;
+    }
+
+    OGRSpatialReference to;
+    if(to.importFromEPSG(toEPSG) != OGRERR_NONE) {
+        errorMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
+                     toEPSG);
+        return nullptr;
+    }
+
+    return  OGRCreateCoordinateTransformation(&from, &to);
+}
+
+void ngsCoordinateTransfomtaionFree(CoordinateTransfomtaionH ct)
+{
+    OGRCoordinateTransformation::DestroyCT(
+                static_cast<OGRCoordinateTransformation*>(ct));
+}
+
 long long ngsFeatureAttachmentAdd(FeatureH feature, const char* name,
                                   const char* description, const char* path,
                                   char** options)
