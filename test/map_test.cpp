@@ -353,18 +353,18 @@ TEST(MapTests, TestDeleteMap) {
 TEST(MapTests, TestOverlayStruct) {
     ngs::OverlayPtr overlay;
 
-    ngs::GlView glView;
-    EXPECT_EQ(glView.overlayCount(), 1);
-    overlay = glView.getOverlay(MOT_EDIT);
+    ngs::MapViewPtr mapView(new ngs::GlView());
+
+    EXPECT_EQ(mapView->overlayCount(), 1);
+    overlay = mapView->getOverlay(MOT_EDIT);
     EXPECT_EQ(overlay->type(), MOT_EDIT);
 
     // TODO: make full TestOverlayStruct
-    //ngs::GlView glView;
-    //EXPECT_EQ(glView.overlayCount(), 3);
-    //overlay = glView.getOverlay(MOT_LOCATION);
+    //EXPECT_EQ(mapView->overlayCount(), 3);
+    //overlay = mapView->getOverlay(MOT_LOCATION);
     //EXPECT_EQ(overlay->type(), MOT_LOCATION);
-    //overlay = glView.getOverlay(MOT_TRACK);
+    //overlay = mapView->getOverlay(MOT_TRACK);
     //EXPECT_EQ(overlay->type(), MOT_TRACK);
-    //overlay = glView.getOverlay(MOT_EDIT);
+    //overlay = mapView->getOverlay(MOT_EDIT);
     //EXPECT_EQ(overlay->type(), MOT_EDIT);
 }

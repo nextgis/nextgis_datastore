@@ -346,11 +346,13 @@ bool MapStore::setExtentLimits(unsigned char mapId, const Envelope &extentLimits
     return true;
 }
 
+// static
 unsigned char MapStore::invalidMapId()
 {
     return INVALID_MAPID;
 }
 
+// static
 MapViewPtr MapStore::initMap()
 {
     return MapViewPtr(new GlView);

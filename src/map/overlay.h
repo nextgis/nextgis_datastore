@@ -34,13 +34,16 @@
 #include "ds/geometry.h"
 #include "ngstore/codes.h"
 
+#include <memory>
 namespace ngs
 {
+
+class MapView;
 
 class Overlay
 {
 public:
-    explicit Overlay(ngsMapOverlyType type = MOT_UNKNOWN);
+    explicit Overlay(const MapView& map, ngsMapOverlyType type = MOT_UNKNOWN);
     virtual ~Overlay() = default;
 
     ngsMapOverlyType type() const { return m_type; }
@@ -63,6 +66,7 @@ public:
     }
 
 protected:
+    const MapView& m_map;
     enum ngsMapOverlyType m_type;
     bool m_visible;
 };
@@ -72,7 +76,7 @@ typedef std::shared_ptr<Overlay> OverlayPtr;
 class EditLayerOverlay : public Overlay
 {
 public:
-    explicit EditLayerOverlay();
+    explicit EditLayerOverlay(const MapView& map);
     virtual ~EditLayerOverlay() = default;
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
