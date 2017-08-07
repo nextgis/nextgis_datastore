@@ -1141,6 +1141,7 @@ FeatureClass* getFeatureClassFromHandle(CatalogObjectH object)
  * always has nullptr name and alias, The list must be deallocated using ngsFree
  * function.
  */
+
 ngsField* ngsFeatureClassFields(CatalogObjectH object)
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
@@ -1153,11 +1154,14 @@ ngsField* ngsFeatureClassFields(CatalogObjectH object)
     ngsField* fieldsList = static_cast<ngsField*>(
                 CPLMalloc(size_t(fields.size() + 1) * sizeof(ngsField)));
 
-    for(size_t i = 0; i < fields.size(); ++i) {
-        fieldsList[i] = {fields[i].m_name, fields[i].m_alias, fields[i].m_type};
+    int count = 0;
+    for(const Field& field : fields) {
+        fieldsList[count++] = {field.m_originalName,
+                               CPLSPrintf("%s", field.m_alias.c_str()),
+                               field.m_type};
     }
 
-    fieldsList[fields.size()] = {nullptr, nullptr, 0};
+    fieldsList[count] = {nullptr, nullptr, 0};
     return fieldsList;
 }
 

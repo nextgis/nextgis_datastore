@@ -31,6 +31,9 @@ StoreFeatureClass::StoreFeatureClass(OGRLayer* layer,
                                      const CPLString& name) :
     FeatureClass(layer, parent, CAT_FC_GPKG, name)
 {
+    if(EQUAL(m_fields.back().m_name, REMOTE_ID_KEY)) {
+        m_fields.pop_back();
+    }
 }
 
 FeaturePtr StoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
@@ -74,38 +77,10 @@ GIntBig StoreFeatureClass::getRemoteId(FeaturePtr feature)
 
 void StoreFeatureClass::fillFields()
 {
-    m_fields.clear();
-    if(nullptr != m_layer) {
-        Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
-        OGRFeatureDefn* defn = m_layer->GetLayerDefn();
-        if(nullptr == defn || nullptr == parentDataset) {
-            return;
-        }
-
-        auto properties = parentDataset->getProperties(m_name);
-
-        for(int i = 0; i < defn->GetFieldCount(); ++i) {
-            OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
-            if(EQUAL(fieldDefn->GetNameRef(), REMOTE_ID_KEY)) { // Hide remote key
-                continue;
-            }
-            Field fieldDesc;
-            fieldDesc.m_type = fieldDefn->GetType();
-            fieldDesc.m_name = fieldDefn->GetNameRef();
-
-            fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
-            fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
-
-            m_fields.push_back(fieldDesc);
-        }
-
-        // Fill metadata
-        for(auto it = properties.begin(); it != properties.end(); ++it) {
-            if(EQUALN(it->first, "FIELD_", 6)) {
-                continue;
-            }
-            m_layer->SetMetadataItem(it->first, it->second, KEY_USER);
-        }
+    Table::fillFields();
+    // Hide remote id field from user
+    if(EQUAL(m_fields.back().m_name, REMOTE_ID_KEY)) {
+        m_fields.pop_back();
     }
 }
 

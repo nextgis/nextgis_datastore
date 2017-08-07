@@ -590,7 +590,7 @@ VectorTile FeatureClass::getTileInternal(const Tile& tile)
     FeaturePtr ovrTile = getTileFeature(tile);
     if(ovrTile) {
         int size = 0;
-        GByte* data = ovrTile->GetFieldAsBinary(0, &size);
+        GByte* data = ovrTile->GetFieldAsBinary(ovrTile->GetFieldIndex(OVR_TILE_KEY), &size);
         Buffer buff(data, size, false);
         vtile.load(buff);
     }
@@ -784,6 +784,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     }
 
     // Tiling on the fly
+    CPLDebug("ngstore", "Tiling on the fly");
 
     // Calc grid step for zoom
     float step = static_cast<float>(pixelSize(tile.z)); // 0.0f;//

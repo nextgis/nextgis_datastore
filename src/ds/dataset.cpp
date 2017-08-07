@@ -811,17 +811,17 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
         else {
             const char* ovrPath = CPLResetExtension(m_path, ADDS_EXT);
             if(Folder::isExists(ovrPath)) {
-                m_addsDS = static_cast<GDALDataset*>(GDALOpenEx(ovrPath, openFlags,
-                                                               nullptr, nullptr,
-                                                               nullptr));
-
-                if(m_addsDS == nullptr) {
-                    warningMessage(CPLGetLastErrorMsg());
-                }
-                else {
-                    m_metadata = m_addsDS->GetLayerByName(METHADATA_TABLE_NAME);
-                }
+                m_addsDS = static_cast<GDALDataset*>(
+                            GDALOpenEx(ovrPath, openFlags, nullptr, nullptr,
+                                       nullptr));
             }
+        }
+
+        if(m_addsDS == nullptr) {
+            warningMessage(CPLGetLastErrorMsg());
+        }
+        else {
+            m_metadata = m_addsDS->GetLayerByName(METHADATA_TABLE_NAME);
         }
     }
     return result;

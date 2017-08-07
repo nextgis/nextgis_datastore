@@ -93,7 +93,7 @@ public:
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
     const char* fidColumn() const;    
-    std::vector<Field> fields() const { return m_fields; }
+    const std::vector<Field>& fields() const { return m_fields; }
     virtual void fillFields();
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                           const char* description, const char* filePath,
