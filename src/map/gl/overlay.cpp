@@ -115,8 +115,9 @@ VectorGlObject* GlEditLayerOverlay::fillPoint()
 
 bool GlEditLayerOverlay::draw()
 {
-    if (!m_style) {
-        return true;  // Should never happened
+    if (!visible() || !m_style) {
+        // !m_style should never happened
+        return true;
     }
 
     CPLMutexHolder holder(m_dataMutex, 0.5);

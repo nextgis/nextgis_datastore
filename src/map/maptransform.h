@@ -56,6 +56,10 @@ public:
     unsigned char getZoom() const;
     double getScale() const { return m_scale; }
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
+    Matrix4 getSceneMatrixYAxisInverted() const
+    {
+        return m_sceneMatrixYAxisInverted;
+    }
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
 
     bool getXAxisLooped() const { return m_XAxisLooped; }
@@ -96,7 +100,8 @@ protected:
     /* NOTE: sceneMatrix transform from world coordinates to GL coordinates -1 x 1
      * viewMatrix transform from GL coordinates to display coordinates 640 x 480
      */
-    Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
+    Matrix4 m_sceneMatrix, m_sceneMatrixYAxisInverted, m_viewMatrix,
+            m_worldToDisplayMatrix;
     Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
 
     // Limits

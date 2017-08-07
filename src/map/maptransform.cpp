@@ -161,14 +161,21 @@ void MapTransform::initMatrices()
 {
     // world -> scene matrix
     m_sceneMatrix.clear();
+    m_sceneMatrixYAxisInverted.clear();
 
     if (m_YAxisInverted) {
         m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
                             m_extent.maxY(), m_extent.minY(),
                             DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
+        m_sceneMatrixYAxisInverted.ortho(m_extent.minX(), m_extent.maxX(),
+                            m_extent.minY(), m_extent.maxY(),
+                            DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
     } else {
         m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
                             m_extent.minY(), m_extent.maxY(),
+                            DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
+        m_sceneMatrixYAxisInverted.ortho(m_extent.minX(), m_extent.maxX(),
+                            m_extent.maxY(), m_extent.minY(),
                             DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
     }
 
@@ -314,6 +321,7 @@ void MapTransform::setExtentLimits(const Envelope &extentLimit)
         setScale(minScale);
 }
 
+// static
 std::vector<TileItem> MapTransform::getTilesForExtent(
         const Envelope &extent, unsigned char zoom, bool reverseY, bool unlimitX)
 {
@@ -388,9 +396,10 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
                 realX -= tilesInMapOneDim;
             }
 
-            realY = y;
             if (reverseY) {
                 realY = tilesInMapOneDim - y - 1;
+            } else {
+                realY = y;
             }
 
             if (realY < 0 || realY >= tilesInMapOneDim) {

@@ -297,8 +297,8 @@ bool GlView::drawTiles(const Progress &progress)
         if(drawTile) { // Don't draw tiles with only background
             m_fboDrawStyle.setImage(tile->getImageRef());
             tile->getBuffer().rebind();
-            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(),
-                                   tile->getBuffer().type());
+            m_fboDrawStyle.prepare(getSceneMatrixYAxisInverted(),
+                    getInvViewMatrix(), tile->getBuffer().type());
             m_fboDrawStyle.draw(tile->getBuffer());
         }
     }
@@ -307,7 +307,7 @@ bool GlView::drawTiles(const Progress &progress)
             ++overlayIt) {
         const OverlayPtr& overlay = *overlayIt;
         GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
-        if (glOverlay && overlay->visible()) {
+        if (glOverlay) {
             glOverlay->draw();
         }
     }
@@ -331,8 +331,8 @@ void GlView::drawOldTiles()
         if(oldTile->filled()){
             m_fboDrawStyle.setImage(oldTile->getImageRef());
             oldTile->getBuffer().rebind();
-            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(),
-                                   oldTile->getBuffer().type());
+            m_fboDrawStyle.prepare(getSceneMatrixYAxisInverted(),
+                    getInvViewMatrix(), oldTile->getBuffer().type());
             m_fboDrawStyle.draw(oldTile->getBuffer());
         }
     }
@@ -370,7 +370,7 @@ void GlView::createOverlays()
 {
     // Push in reverse order
     m_overlays.push_back(OverlayPtr(
-            new GlEditLayerOverlay(m_sceneMatrix, m_invSceneMatrix)));
+            new GlEditLayerOverlay(m_sceneMatrixYAxisInverted, m_invSceneMatrix)));
     // TODO: add track and location overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
     //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
