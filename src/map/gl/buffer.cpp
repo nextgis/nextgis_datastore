@@ -100,7 +100,6 @@ void GlBuffer::rebind() const
 {
     ngsCheckGLError(glBindBuffer(GL_ARRAY_BUFFER, id(true)));
     ngsCheckGLError(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id(false)));
-
 }
 
 } // namespace ngs

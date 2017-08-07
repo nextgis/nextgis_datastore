@@ -24,6 +24,7 @@
 
 #include "ds/datastore.h"
 #include "map/gl/view.h"
+#include "map/mapstore.h"
 #include "map/mapview.h"
 #include "map/overlay.h"
 #include "ngstore/codes.h"
@@ -70,18 +71,24 @@ TEST(MapTests, TestInitMap) {
     EXPECT_NE(mapStore.initMap (2), ngsErrorCodes::EC_SUCCESS);
     EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::EC_SUCCESS);
 }
+*/
 
-TEST(MapTests, TestProject) {
+constexpr const char* DEFAULT_MAP_NAME = "test map";
+
+TEST(MapTests, TestProject)
+{
+
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
-    ngs::MapPtr defMap = mapStore.getMap (1);
+    unsigned char mapId = mapStore.createMap(
+            DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG, ngs::DEFAULT_BOUNDS);
+    EXPECT_GE(mapId, 1);
+    ngs::MapViewPtr defMap = mapStore.getMap(mapId);
     ASSERT_NE(defMap, nullptr);
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.initMap (1), ngsErrorCodes::EC_SUCCESS);
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize(mapId, 640, 480, true), true);
 
-    ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
+    ngs::MapView* mapView = static_cast<ngs::MapView*>(defMap.get());
     OGREnvelope env;
     OGRRawPoint pt;
     OGRRawPoint wdPt;
@@ -89,189 +96,200 @@ TEST(MapTests, TestProject) {
 
 
     // World is from (-1560, -1420) to (3560, 2420), 5120x3840
-    env.MinX = -1560; env.MinY = -1420;
-    env.MaxX = 3560; env.MaxY = 2420;
-    mapView->setExtent (env);
-    EXPECT_EQ(mapView->getScale (), 0.125);
+    env.MinX = -1560;
+    env.MinY = -1420;
+    env.MaxX = 3560;
+    env.MaxY = 2420;
+    mapView->setExtent(env);
+    EXPECT_EQ(mapView->getScale(), 0.125);
 
     pt.x = -1560;
     pt.y = 2420;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 0;
     pt.y = 0;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, -1560);
     EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = 2420;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 640);
     EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 640;
     pt.y = 0;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 3560);
     EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = -1420;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 640);
     EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 640;
     pt.y = 480;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 3560);
     EXPECT_DOUBLE_EQ(dwPt.y, -1420);
 
     pt.x = -1560;
     pt.y = -1420;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 0;
     pt.y = 480;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, -1560);
     EXPECT_DOUBLE_EQ(dwPt.y, -1420);
 
     pt.x = 0;
     pt.y = 0;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 195);
     EXPECT_DOUBLE_EQ(wdPt.y, 302.5);
     pt.x = 195;
     pt.y = 302.5;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_NEAR(dwPt.x, 0, 0.00000001);
     EXPECT_NEAR(dwPt.y, 0, 0.00000001);
 
 
     // axis Y is normal
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, false), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize(mapId, 640, 480, false), true);
 
     // World is from (1000, 500) to (3560, 2420), 2560x1920
-    env.MinX = 1000; env.MinY = 500;
-    env.MaxX = 3560; env.MaxY = 2420;
-    mapView->setExtent (env);
-    EXPECT_DOUBLE_EQ(mapView->getScale (), 0.25);
+    env.MinX = 1000;
+    env.MinY = 500;
+    env.MaxX = 3560;
+    env.MaxY = 2420;
+    mapView->setExtent(env);
+    EXPECT_DOUBLE_EQ(mapView->getScale(), 0.25);
 
     pt.x = 1000;
     pt.y = 2420;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 0;
     pt.y = 480;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 1000);
     EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = 2420;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 640);
     EXPECT_DOUBLE_EQ(wdPt.y, 480);
     pt.x = 640;
     pt.y = 480;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 3560);
     EXPECT_DOUBLE_EQ(dwPt.y, 2420);
 
     pt.x = 3560;
     pt.y = 500;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 640);
     EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 640;
     pt.y = 0;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 3560);
     EXPECT_DOUBLE_EQ(dwPt.y, 500);
 
     pt.x = 1000;
     pt.y = 500;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 0);
     pt.x = 0;
     pt.y = 0;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 1000);
     EXPECT_DOUBLE_EQ(dwPt.y, 500);
 
     pt.x = 0;
     pt.y = 0;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, -250);
     EXPECT_DOUBLE_EQ(wdPt.y, -125);
     pt.x = -250;
     pt.y = -125;
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_NEAR(dwPt.x, 0, 0.00000001);
     EXPECT_NEAR(dwPt.y, 0, 0.00000001);
 
 
     // axis Y inverted
-    EXPECT_EQ(mapStore.setMapSize (1, 480, 640, true), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(mapStore.setMapSize(mapId, 480, 640, true), true);
 
-    env.MinX = 0; env.MinY = 0;
-    env.MaxX = 480; env.MaxY = 640;
-    mapView->setExtent (env);
-    EXPECT_DOUBLE_EQ(mapView->getScale (), 1);
+    env.MinX = 0;
+    env.MinY = 0;
+    env.MaxX = 480;
+    env.MaxY = 640;
+    mapView->setExtent(env);
+    EXPECT_DOUBLE_EQ(mapView->getScale(), 1);
 
     pt.x = 0;
     pt.y = 0;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 640);
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 0);
     EXPECT_DOUBLE_EQ(dwPt.y, 640);
 
     pt.x = 480;
     pt.y = 640;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 480);
     EXPECT_DOUBLE_EQ(wdPt.y, 0);
-    dwPt = mapView->displayToWorld (pt);
+    dwPt = mapView->displayToWorld(pt);
     EXPECT_DOUBLE_EQ(dwPt.x, 480);
     EXPECT_DOUBLE_EQ(dwPt.y, 0);
 
-    EXPECT_EQ(mapStore.setMapSize (1, 640, 480, true), ngsErrorCodes::EC_SUCCESS);
-    env.MinX = 0; env.MinY = 0;
-    env.MaxX = 5120; env.MaxY = 3840;
-    mapView->setExtent (env);
+    EXPECT_EQ(mapStore.setMapSize(mapId, 640, 480, true), true);
+    env.MinX = 0;
+    env.MinY = 0;
+    env.MaxX = 5120;
+    env.MaxY = 3840;
+    mapView->setExtent(env);
     pt.x = 0;
     pt.y = 0;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 480);
 
-    env.MinX = -1560.0; env.MinY = -1420.0;
-    env.MaxX = 3560.0; env.MaxY = 2420;
-    mapView->setExtent (env);
+    env.MinX = -1560.0;
+    env.MinY = -1420.0;
+    env.MaxX = 3560.0;
+    env.MaxY = 2420;
+    mapView->setExtent(env);
     pt.x = -1560.0;
     pt.y = -1420.0;
-    wdPt = mapView->worldToDisplay (pt);
+    wdPt = mapView->worldToDisplay(pt);
     EXPECT_DOUBLE_EQ(wdPt.x, 0);
     EXPECT_DOUBLE_EQ(wdPt.y, 480);
 }
 
+/*
 TEST(MapTests, TestDrawing) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
-    /*unsigned char buffer[480 * 640 * 4];
+    *//*unsigned char buffer[480 * 640 * 4];
     EXPECT_EQ(mapStore.initMap (0, buffer, 480, 640, true), ngsErrorCodes::SUCCESS);
     *//*
     ngs::MapPtr defMap = mapStore.getMap (1);
     ASSERT_NE(defMap, nullptr);
     ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
     mapView->setBackgroundColor ({255, 0, 0, 255}); // RED color
-    /* no drawing executed as we need to prepare GL surface and make it current
+    *//* no drawing executed as we need to prepare GL surface and make it current
     counter = 0;
     mapView->draw(ngsTestProgressFunc, nullptr);
     CPLSleep(0.3);
@@ -335,18 +353,18 @@ TEST(MapTests, TestDeleteMap) {
 TEST(MapTests, TestOverlayStruct) {
     ngs::OverlayPtr overlay;
 
-    ngs::GlView glView;
-    EXPECT_EQ(glView.overlayCount(), 1);
-    overlay = glView.getOverlay(MOT_EDIT);
+    ngs::MapViewPtr mapView(new ngs::GlView());
+
+    EXPECT_EQ(mapView->overlayCount(), 1);
+    overlay = mapView->getOverlay(MOT_EDIT);
     EXPECT_EQ(overlay->type(), MOT_EDIT);
 
     // TODO: make full TestOverlayStruct
-    //ngs::GlView glView;
-    //EXPECT_EQ(glView.overlayCount(), 3);
-    //overlay = glView.getOverlay(MOT_LOCATION);
+    //EXPECT_EQ(mapView->overlayCount(), 3);
+    //overlay = mapView->getOverlay(MOT_LOCATION);
     //EXPECT_EQ(overlay->type(), MOT_LOCATION);
-    //overlay = glView.getOverlay(MOT_TRACK);
+    //overlay = mapView->getOverlay(MOT_TRACK);
     //EXPECT_EQ(overlay->type(), MOT_TRACK);
-    //overlay = glView.getOverlay(MOT_EDIT);
+    //overlay = mapView->getOverlay(MOT_EDIT);
     //EXPECT_EQ(overlay->type(), MOT_EDIT);
 }

@@ -22,17 +22,20 @@
 
 #include "overlay.h"
 
+#include "map/mapview.h"
+
 namespace ngs
 {
 
-Overlay::Overlay(ngsMapOverlyType type)
-        : m_type(type)
+Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
+        : m_map(map)
+        , m_type(type)
         , m_visible(false)
 {
 }
 
-EditLayerOverlay::EditLayerOverlay()
-        : Overlay(MOT_EDIT)
+EditLayerOverlay::EditLayerOverlay(const MapView& map)
+        : Overlay(map, MOT_EDIT)
         , m_geometry(nullptr)
 {
 }

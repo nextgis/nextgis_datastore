@@ -22,17 +22,16 @@
 
 #include "overlay.h"
 
+#include "map/mapview.h"
+
 // gdal
 #include "ogr_core.h"
 
 namespace ngs
 {
 
-GlRenderOverlay::GlRenderOverlay(
-        const Matrix4& sceneMatrix, const Matrix4& invViewMatrix)
-        : m_sceneMatrix(sceneMatrix)
-        , m_invViewMatrix(invViewMatrix)
-        , m_dataMutex(CPLCreateMutex())
+GlRenderOverlay::GlRenderOverlay()
+        : m_dataMutex(CPLCreateMutex())
 {
     CPLReleaseMutex(m_dataMutex);
 }
@@ -42,10 +41,9 @@ GlRenderOverlay::~GlRenderOverlay()
     CPLDestroyMutex(m_dataMutex);
 }
 
-GlEditLayerOverlay::GlEditLayerOverlay(
-        const Matrix4& sceneMatrix, const Matrix4& invViewMatrix)
-        : EditLayerOverlay()
-        , GlRenderOverlay(sceneMatrix, invViewMatrix)
+GlEditLayerOverlay::GlEditLayerOverlay(const MapView& map)
+        : EditLayerOverlay(map)
+        , GlRenderOverlay()
 {
 }
 
@@ -115,8 +113,9 @@ VectorGlObject* GlEditLayerOverlay::fillPoint()
 
 bool GlEditLayerOverlay::draw()
 {
-    if (!m_style) {
-        return true;  // Should never happened
+    if (!visible() || !m_style) {
+        // !m_style should never happened
+        return true;
     }
 
     CPLMutexHolder holder(m_dataMutex, 0.5);
@@ -134,7 +133,8 @@ bool GlEditLayerOverlay::draw()
             buff->bind();
         }
 
-        m_style->prepare(m_sceneMatrix, m_invViewMatrix, buff->type());
+        m_style->prepare(m_map.getSceneMatrixYAxisInverted(),
+                m_map.getInvViewMatrix(), buff->type());
         m_style->draw(*buff);
     }
     return true;

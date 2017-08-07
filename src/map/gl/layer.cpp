@@ -973,7 +973,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
     bands[3] = m_alpha;
 
     int overview = 18;
-    if(outWidth > width && outHeight > height ) { // Read origina raster
+    if(outWidth > width && outHeight > height ) { // Read original raster
         outWidth = width;
         outHeight = height;
     }

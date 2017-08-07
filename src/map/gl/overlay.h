@@ -35,7 +35,7 @@ namespace ngs
 class GlRenderOverlay
 {
 public:
-    GlRenderOverlay(const Matrix4& sceneMatrix, const Matrix4& invViewMatrix);
+    GlRenderOverlay();
     virtual ~GlRenderOverlay();
 
     virtual bool fill(bool isLastTry) = 0;
@@ -43,8 +43,6 @@ public:
 
 protected:
     GlObjectPtr m_glBuffer;
-    const Matrix4& m_sceneMatrix;
-    const Matrix4& m_invViewMatrix;
     StylePtr m_style;
     CPLMutex* m_dataMutex;
 };
@@ -52,8 +50,7 @@ protected:
 class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 {
 public:
-    explicit GlEditLayerOverlay(
-            const Matrix4& sceneMatrix, const Matrix4& invViewMatrix);
+    explicit GlEditLayerOverlay(const MapView& map);
     virtual ~GlEditLayerOverlay() = default;
 
     // EditLayerOverlay interface
