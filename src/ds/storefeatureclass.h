@@ -42,6 +42,9 @@ public:
 public:
     virtual void fillFields() override;
     virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid) override;
+    virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
+                                  const char* description, const char* filePath,
+                                  char** options) override;
 };
 
 } // namespace ngs

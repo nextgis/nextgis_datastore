@@ -22,6 +22,7 @@
 
 #include "datastore.h"
 #include "catalog/file.h"
+#include "catalog/folder.h"
 
 namespace ngs {
 
@@ -140,6 +141,54 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::getAttachments(GIntBig fid
         out.push_back(info);
     }
     return out;
+}
+
+GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
+                             const char* description, const char* filePath,
+                             char** options)
+{
+    if(!getAttachmentsTable()) {
+        return -1;
+    }
+    bool move = CPLFetchBool(options, "MOVE", false);
+    GIntBig rid = atoll(CSLFetchNameValueDef(options, "RID", "-1"));
+
+    FeaturePtr newAttachment = OGRFeature::CreateFeature(
+                m_attTable->GetLayerDefn());
+
+    newAttachment->SetField(ATTACH_FEATURE_ID, fid);
+    newAttachment->SetField(ATTACH_FILE_NAME, fileName);
+    newAttachment->SetField(ATTACH_DESCRIPTION, description);
+    newAttachment->SetField(REMOTE_ID_KEY, rid);
+
+    if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
+        CPLString dstTablePath = getAttachmentsPath();
+        if(!Folder::isExists(dstTablePath)) {
+            Folder::mkDir(dstTablePath);
+        }
+        CPLString dstFeaturePath = CPLFormFilename(dstTablePath,
+                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
+                                                   nullptr);
+        if(!Folder::isExists(dstFeaturePath)) {
+            Folder::mkDir(dstFeaturePath);
+        }
+
+        CPLString dstPath = CPLFormFilename(dstFeaturePath,
+                                            CPLSPrintf(CPL_FRMT_GIB,
+                                                       newAttachment->GetFID()),
+                                            nullptr);
+        if(Folder::isExists(filePath)) {
+            if(move) {
+                File::moveFile(filePath, dstPath);
+            }
+            else {
+                File::copyFile(filePath, dstPath);
+            }
+        }
+        return newAttachment->GetFID();
+    }
+
+    return -1;
 }
 
 } // namespace ngs
