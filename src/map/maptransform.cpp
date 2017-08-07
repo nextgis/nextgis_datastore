@@ -162,15 +162,9 @@ void MapTransform::initMatrices()
     // world -> scene matrix
     m_sceneMatrix.clear();
 
-    if (m_YAxisInverted) {
-        m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
-                            m_extent.maxY(), m_extent.minY(),
-                            DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
-    } else {
-        m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
-                            m_extent.minY(), m_extent.maxY(),
-                            DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
-    }
+    m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
+                        m_extent.minY(), m_extent.maxY(),
+                        DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
 
 
     if(!isEqual(m_rotate[DIR_X], 0.0)){
@@ -270,6 +264,7 @@ void MapTransform::fixExtent()
             m_extent.setMaxX(m_extent.maxX() + DEFAULT_BOUNDS_X2.maxX());
         }
     }
+    m_extent.fix();
     m_center = m_extent.center();
 }
 

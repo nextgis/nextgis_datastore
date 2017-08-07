@@ -43,10 +43,18 @@ public:
     Envelope getExtent() const { return m_rotateExtent; }
     OGRRawPoint getCenter() const { return m_center; }
     OGRRawPoint worldToDisplay(const OGRRawPoint &pt) const {
-        return m_worldToDisplayMatrix.project(pt);
+        OGRRawPoint newPt(m_worldToDisplayMatrix.project(pt));
+        if(m_YAxisInverted) {
+            newPt.y = m_displayHeight - newPt.y;
+        }
+        return newPt;
     }
     OGRRawPoint displayToWorld(const OGRRawPoint &pt) const {
-        return m_invWorldToDisplayMatrix.project(pt);
+        OGRRawPoint newPt(pt);
+        if(m_YAxisInverted) {
+            newPt.y = m_displayHeight - newPt.y;
+        }
+        return m_invWorldToDisplayMatrix.project(newPt);
     }
     void setDisplaySize(int width, int height, bool isYAxisInverted);
     bool setScale(double scale);

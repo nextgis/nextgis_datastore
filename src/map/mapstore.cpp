@@ -225,10 +225,7 @@ ngsCoordinate MapStore::getMapCoordinate(unsigned char mapId,
 
     OGRRawPoint pt = map->displayToWorld(OGRRawPoint(x, y));
     out.X = pt.x;
-    if(map->getYAxisInverted())
-        out.Y = pt.y;
-    else
-        out.Y = -pt.y; // NOTE: The Y axis orientation differs in matrix and view
+    out.Y = pt.y;
     return out;
 }
 
