@@ -133,8 +133,8 @@ bool GlEditLayerOverlay::draw()
             buff->bind();
         }
 
-        m_style->prepare(m_map.getSceneMatrixYAxisInverted(),
-                m_map.getInvViewMatrix(), buff->type());
+        m_style->prepare(m_map.getSceneMatrix(), m_map.getInvViewMatrix(),
+                         buff->type());
         m_style->draw(*buff);
     }
     return true;

@@ -370,7 +370,7 @@ void GlView::createOverlays()
 {
     // Push in reverse order
     m_overlays.push_back(OverlayPtr(
-            new GlEditLayerOverlay(m_sceneMatrix, m_invSceneMatrix)));
+            new GlEditLayerOverlay(*this)));
     // TODO: add track and location overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
     //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
