@@ -309,6 +309,7 @@ void MapTransform::setExtentLimits(const Envelope &extentLimit)
         setScale(minScale);
 }
 
+// static
 std::vector<TileItem> MapTransform::getTilesForExtent(
         const Envelope &extent, unsigned char zoom, bool reverseY, bool unlimitX)
 {
@@ -383,9 +384,10 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
                 realX -= tilesInMapOneDim;
             }
 
-            realY = y;
             if (reverseY) {
                 realY = tilesInMapOneDim - y - 1;
+            } else {
+                realY = y;
             }
 
             if (realY < 0 || realY >= tilesInMapOneDim) {

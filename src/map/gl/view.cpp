@@ -307,7 +307,7 @@ bool GlView::drawTiles(const Progress &progress)
             ++overlayIt) {
         const OverlayPtr& overlay = *overlayIt;
         GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
-        if (glOverlay && overlay->visible()) {
+        if (glOverlay) {
             glOverlay->draw();
         }
     }
@@ -369,11 +369,10 @@ double GlView::pixelSize(int zoom)
 void GlView::createOverlays()
 {
     // Push in reverse order
-    m_overlays.push_back(OverlayPtr(
-            new GlEditLayerOverlay(*this)));
+    m_overlays.push_back(OverlayPtr(new GlEditLayerOverlay(*this)));
     // TODO: add track and location overlays
-    //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay()));
-    //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay()));
+    //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay(*this)));
+    //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay(*this)));
 }
 
 #ifdef NGS_GL_DEBUG
