@@ -54,6 +54,33 @@ bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
     return updateExtent();
 }
 
+Envelope MapTransform::worldToDisplay(const Envelope& env) const
+{
+    OGRRawPoint minPt = worldToDisplay(OGRRawPoint(env.minX(), env.minY()));
+    OGRRawPoint maxPt = worldToDisplay(OGRRawPoint(env.maxX(), env.maxY()));
+    return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
+}
+
+Envelope MapTransform::displayToWorld(const Envelope& env) const
+{
+    OGRRawPoint minPt = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
+    OGRRawPoint maxPt = displayToWorld(OGRRawPoint(env.maxX(), env.maxY()));
+    return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
+}
+
+OGRRawPoint MapTransform::getMapDistance(double w, double h) const
+{
+    OGRRawPoint beg = displayToWorld(OGRRawPoint(0, 0));
+    OGRRawPoint end = displayToWorld(OGRRawPoint(w, h));
+    return OGRRawPoint(end.x - beg.x, end.y - beg.y);
+}
+
+OGRRawPoint MapTransform::getDisplayLength(double w, double h) const
+{
+    OGRRawPoint beg = worldToDisplay(OGRRawPoint(0, 0));
+    OGRRawPoint end = worldToDisplay(OGRRawPoint(w, h));
+    return OGRRawPoint(end.x - beg.x, end.y - beg.y);
+}
 
 void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {

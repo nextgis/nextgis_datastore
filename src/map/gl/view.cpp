@@ -351,6 +351,17 @@ void GlView::freeOldTiles()
         freeResource(std::dynamic_pointer_cast<GlObject>(oldTile));
     }
     m_oldTiles.clear();
+
+    for (const OverlayPtr& overlay : m_overlays) {
+        if (!overlay || overlay->visible()) {
+            continue;
+        }
+        GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
+        if (!glOverlay || !glOverlay->getGlBuffer()) {
+            continue;
+        }
+        freeResource(glOverlay->getGlBuffer());
+    }
 }
 
 void GlView::initView()

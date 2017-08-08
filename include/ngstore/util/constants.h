@@ -42,4 +42,6 @@ constexpr int NOT_FOUND = -1;
 
 constexpr double DEG2RAD = M_PI / 180.0;
 
+constexpr double TOLERANCE_PX = 7.0;
+
 #endif // NGSCONSTANTS_H
