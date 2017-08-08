@@ -65,6 +65,7 @@ void GlView::setBackgroundColor(const ngsRGBA &color)
 bool GlView::close()
 {
     freeOldTiles();
+    freeOverlayResources();
     freeResources();
     clearTiles();
     return MapView::close();
@@ -146,7 +147,6 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
             tile->setFilled(false);
         }
     [[clang::fallthrough]]; case DS_NORMAL:
-//        CPLDebug("ngstore", "DS_NORMAL");
         // Get tiles for extent and mark to delete out of bounds tiles
         updateTilesList();
         // Start load layers data for tiles
@@ -161,7 +161,6 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
             }
         }
     [[clang::fallthrough]]; case DS_PRESERVED:
-//        CPLDebug("ngstore", "DS_PRESERVED");
         bool result = drawTiles(progress);
         // Free unnecessary Gl objects as this call is in Gl context
         freeResources();
@@ -218,8 +217,6 @@ void GlView::freeResources()
     auto freeResorceIt = m_freeResources.begin();
     while(freeResorceIt != m_freeResources.end()) {
         (*freeResorceIt)->destroy();
-        //if((*freeResorceIt).use_count() != 1)
-        //    CPLDebug("ngstore", "Free GL resource. Reference count %ld", (*freeResorceIt).use_count());
         freeResorceIt = m_freeResources.erase(freeResorceIt);
     }
 }
@@ -274,7 +271,6 @@ bool GlView::drawTiles(const Progress &progress)
                                                                  layer);
                     if(renderLayer) {
                         renderLayer->free(tile);
-                        // CPLDebug("ngstore", "Free tile data z: %d, x: %d, y: %d", tile->getTile().z, tile->getTile().x, tile->getTile().y);
                     }
                 }
                 tile->setFilled();
@@ -315,6 +311,7 @@ bool GlView::drawTiles(const Progress &progress)
 //    CPLDebug("ngstore", "Drawing %f of %f", done, totalDrawCalls);
     if(done >= totalDrawCalls) {
         freeOldTiles();
+        freeOverlayResources();
         progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
     }
     else {
@@ -338,6 +335,18 @@ void GlView::drawOldTiles()
     }
 }
 
+void GlView::freeOverlayResources() {
+    for (const OverlayPtr& overlay : m_overlays) {
+        if (overlay && overlay->visible()) {
+            continue;
+        }
+        GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
+        if (glOverlay && glOverlay->getGlBuffer()) {
+            freeResource(glOverlay->getGlBuffer());
+        }
+    }
+}
+
 void GlView::freeOldTiles()
 {
     for(const GlTilePtr& oldTile : m_oldTiles) {
@@ -351,17 +360,6 @@ void GlView::freeOldTiles()
         freeResource(std::dynamic_pointer_cast<GlObject>(oldTile));
     }
     m_oldTiles.clear();
-
-    for (const OverlayPtr& overlay : m_overlays) {
-        if (!overlay || overlay->visible()) {
-            continue;
-        }
-        GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
-        if (!glOverlay || !glOverlay->getGlBuffer()) {
-            continue;
-        }
-        freeResource(glOverlay->getGlBuffer());
-    }
 }
 
 void GlView::initView()

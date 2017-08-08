@@ -351,7 +351,7 @@ long getPolygonPointId(const OGRPolygon& polygon, Envelope env)
 long getGeometryPointId(const OGRGeometry& geometry, Envelope env)
 {
     long id = NOT_FOUND;
-    switch(geometry.getGeometryType()) {
+    switch(OGR_GT_Flatten(geometry.getGeometryType())) {
         case wkbPoint: {
             const OGRPoint& pt =
                     static_cast<const OGRPoint&>(geometry);
@@ -445,7 +445,7 @@ bool shiftPolygonPoint(
 bool shiftGeometryPoint(
         OGRGeometry& geometry, long id, const OGRRawPoint& offset)
 {
-    switch(geometry.getGeometryType()) {
+    switch(OGR_GT_Flatten(geometry.getGeometryType())) {
         case wkbPoint: {
             OGRPoint& pt = static_cast<OGRPoint&>(geometry);
             return shiftPoint(pt, id, offset);
@@ -476,35 +476,3 @@ bool shiftGeometryPoint(
 }
 
 } // namespace ngs
-
-//const static array<pair<double, char>, 4> gSampleDists = {
-//{{ getPixelSize(6)  * SAMPLE_DISTANCE_PX, 6 },
-// { getPixelSize(9)  * SAMPLE_DISTANCE_PX, 9 },
-// { getPixelSize(12) * SAMPLE_DISTANCE_PX, 12 },
-// { getPixelSize(15) * SAMPLE_DISTANCE_PX, 15 }
-//}};
-
-//OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
-//OGRGeometry *ngs::simplifyGeometry(const OGRGeometry *geometry, double distance)
-//{
-//    OGREnvelope env;
-//    geometry->getEnvelope (&env);
-//    double envH = getEnvelopeHeight (env);
-//    double envW = getEnvelopeWidth (env);
-//    double tripleDist = distance / 3;
-
-//    if(envH < tripleDist || envW < tripleDist) {
-//        return new OGRPoint(env.MinX + envW * .5, env.MinY + envH * .5);
-//    }
-
-//    if(envH < distance || envW < distance) {
-//        OGRLineString *out = new OGRLineString;
-//        out->addPoint(env.MinX, env.MinY);
-//        out->addPoint(env.MaxX, env.MaxY);
-//        return out;
-//    }
-
-//    // TODO: do we need this?
-//    // geometry->SimplifyPreserveTopology
-//    return geometry->Simplify (distance * 3);
-//}

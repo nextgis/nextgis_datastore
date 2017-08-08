@@ -24,9 +24,11 @@
 
 #include "ds/geometry.h"
 #include "map/mapview.h"
+#include "util/settings.h"
 
-namespace ngs
-{
+namespace ngs {
+
+constexpr double TOLERANCE_PX = 7.0;
 
 Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
         : m_map(map)
@@ -38,8 +40,9 @@ Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
 EditLayerOverlay::EditLayerOverlay(const MapView& map)
         : Overlay(map, MOT_EDIT)
         , m_geometry(nullptr)
-        , m_tolerancePx(TOLERANCE_PX)
 {
+    Settings& settings = Settings::instance();
+    m_tolerancePx = settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
 }
 
 // static

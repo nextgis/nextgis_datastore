@@ -26,22 +26,6 @@
 
 constexpr int NOT_FOUND = -1;
 
-/*
-
-#define DEFAULT_TILE_SIZE 256
-
-// Common
-#define NAME_FIELD_LIMIT 64
-#define ALIAS_FIELD_LIMIT 255
-#define DESCRIPTION_FIELD_LIMIT 1024
-
-// Draw
-#define NOTIFY_PERCENT 0.1
-
-*/
-
 constexpr double DEG2RAD = M_PI / 180.0;
-
-constexpr double TOLERANCE_PX = 7.0;
 
 #endif // NGSCONSTANTS_H

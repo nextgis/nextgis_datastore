@@ -53,6 +53,7 @@ protected:
     bool drawTiles(const Progress &progress);
     void drawOldTiles();
     void freeOldTiles();
+    void freeOverlayResources();
     void initView();
     double pixelSize(int zoom);
 
