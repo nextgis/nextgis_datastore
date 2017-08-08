@@ -42,19 +42,17 @@ size_t featureCount() <-- Right
 ```
 10. For smart pointers use Ptr and UPtr and WPtr postfix
 11. The destructor should be virtual for any class with virtual methods.
-12. Do one initialization per line in constructor's init list. It will make search and replace much easier.
+12. Do one initialization per line in constructor's init list. It will make search and replace much easier. First parameter or parent class in same line as function. The others at new line. The comma after the parameter.
 
 ```
-GDALCADDataset::GDALCADDataset()
-    : poCADFile(NULL)
-    , papoLayers(NULL)
-    , nLayers(0)
-    , poRasterDS(NULL)
+GDALCADDataset::GDALCADDataset() : poCADFile(NULL)
+    papoLayers(NULL),
+    nLayers(0),
+    poRasterDS(NULL)
 ```
 13. All class members should be set in an initializer list or in an constructor's body.
 ```
-explicit CADWrapperRasterBand( GDALRasterBand* poBaseBandIn )
-    : m_poBaseBand(poBaseBandIn)
+explicit CADWrapperRasterBand(GDALRasterBand* poBaseBandIn) : m_poBaseBand(poBaseBandIn)
 {
     m_anotherVar = complexInit();
 }
@@ -64,13 +62,16 @@ explicit CADWrapperRasterBand( GDALRasterBand* poBaseBandIn )
 16. Add const, where necessary.
 17. Use const& for speed and safety in for-loop.
 ```
- for (CADClass& cadClass : classes)
+ for (const CADClass& cadClass : classes)
 ```
 18. Don't use endl. http://en.cppreference.com/w/cpp/io/manip/endl : "In many implementations, standard output is line-buffered, and writing '\n' causes a flush anyway, unless std::cout.sync_with_stdio(false) was executed. In those situations, unnecessary endl only degrades the performance of file output, not standard output."
 19. Fit to 80 cols.
 20. Capitalize indicate and add a period to the end of the sentence. Here and all your other comments. Writing in as close to complete sentences reduces fatigue on many readers.
 21. Explain what the future holds for commented out code.
-
+22. Using brackets and operators. Brackets not separated from other letters. The operators (+,-,/,=,\*) are separated from other letters with spaces.
+```
+for(i = 0; i < 10; ++1)
+```
 
 # TBD
 
