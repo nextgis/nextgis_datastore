@@ -1352,6 +1352,35 @@ FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
     return nullptr;
 }
 
+int ngsFeatureClassSetFilter(CatalogObjectH object, GeometryH geometryFilter,
+                                         const char* attributeFilter)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+    }
+    featureClass->setAttributeFilter(attributeFilter);
+    if(nullptr == geometryFilter) {
+        featureClass->setSpatialFilter(GeometryPtr());
+    }
+    else {
+        featureClass->setSpatialFilter(
+                    GeometryPtr(static_cast<OGRGeometry*>(geometryFilter)->clone()));
+    }
+    return COD_SUCCESS;
+}
+
+int ngsFeatureClassSetSpatialFilter(CatalogObjectH object, double minX,
+                                    double minY, double maxX, double maxY)
+{
+    FeatureClass* featureClass = getFeatureClassFromHandle(object);
+    if(!featureClass) {
+        return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+    }
+    featureClass->setSpatialFilter(minX, minY, maxX, maxY);
+    return COD_SUCCESS;
+}
+
 void ngsFeatureFree(FeatureH feature)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);

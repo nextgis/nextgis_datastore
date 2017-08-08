@@ -206,6 +206,12 @@ NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id);
+NGS_EXTERNC int ngsFeatureClassSetFilter(CatalogObjectH object,
+                                         GeometryH geometryFilter,
+                                         const char* attributeFilter);
+NGS_EXTERNC int ngsFeatureClassSetSpatialFilter(CatalogObjectH object,
+                                                double minX, double minY,
+                                                double maxX, double maxY);
 
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
@@ -316,7 +322,7 @@ NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double m
                                       double maxX, double maxY);
 NGS_EXTERNC enum ngsDrawState ngsMapTouch(
         unsigned char mapId, double x, double y, enum ngsMapTouchType type);
-//NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y);
+//NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y, double azimuth);
 
 
 /**

@@ -129,6 +129,9 @@ public:
     bool setIgnoredFields(const std::vector<const char*> fields =
             std::vector<const char*>());
     void setSpatialFilter(GeometryPtr geom);
+    void setSpatialFilter(double minX, double minY, double maxX, double maxY);
+    void setAttributeFilter(const char* filter);
+
     Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
                              const FieldMapPtr fieldMap,

@@ -931,6 +931,21 @@ void FeatureClass::setSpatialFilter(GeometryPtr geom)
     }
 }
 
+void FeatureClass::setSpatialFilter(double minX, double minY,
+                                    double maxX, double maxY)
+{
+    if(nullptr != m_layer) {
+        m_layer->SetSpatialFilterRect(minX, minY, maxX, maxY);
+    }
+}
+
+void FeatureClass::setAttributeFilter(const char* filter)
+{
+    if(nullptr != m_layer) {
+        m_layer->SetAttributeFilter(filter);
+    }
+}
+
 Envelope FeatureClass::extent() const
 {
     if(nullptr == m_layer) {
