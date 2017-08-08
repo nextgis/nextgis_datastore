@@ -21,8 +21,9 @@
 #ifndef NGSGEOMETRY_H
 #define NGSGEOMETRY_H
 
-#include "ogrsf_frmts.h"
 #include "cpl_json.h"
+#include "ogrsf_frmts.h"
+#include "ogr_geometry.h"
 
 #include <array>
 #include <memory>
@@ -134,6 +135,10 @@ typedef struct _tileItem{
 } TileItem;
 
 OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json);
+
+long getGeometryPointId(const OGRGeometry& geometry, Envelope env);
+bool shiftGeometryPoint(
+        OGRGeometry& geometry, long id, const OGRRawPoint& offset);
 
 } // namespace ngs
 

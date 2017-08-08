@@ -56,6 +56,10 @@ public:
         }
         return m_invWorldToDisplayMatrix.project(newPt);
     }
+    Envelope worldToDisplay(const Envelope& env) const;
+    Envelope displayToWorld(const Envelope& env) const;
+    OGRRawPoint getMapDistance(double w, double h) const;
+    OGRRawPoint getDisplayLength(double w, double h) const;
     void setDisplaySize(int width, int height, bool isYAxisInverted);
     bool setScale(double scale);
     bool setCenter(double x, double y);

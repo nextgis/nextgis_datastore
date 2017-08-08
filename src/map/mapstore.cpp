@@ -251,11 +251,9 @@ ngsCoordinate MapStore::getMapDistance(unsigned char mapId,
     if(!map)
         return out;
 
-    OGRRawPoint beg = map->displayToWorld (OGRRawPoint(0, 0));
-    OGRRawPoint end = map->displayToWorld (OGRRawPoint(w, h));
-
-    out.X = end.x - beg.x;
-    out.Y = end.y - beg.y;
+    OGRRawPoint dist = map->getMapDistance(w, h);
+    out.X = dist.x;
+    out.Y = dist.y;
     return out;
 }
 
@@ -267,10 +265,9 @@ ngsPosition MapStore::getDisplayLength(unsigned char mapId,
     if(!map)
         return out;
 
-    OGRRawPoint beg = map->worldToDisplay(OGRRawPoint(0, 0));
-    OGRRawPoint end = map->worldToDisplay(OGRRawPoint(w, h));
-    out.X = (end.x - beg.x);
-    out.Y = (end.y - beg.y);
+    OGRRawPoint dist = map->getDisplayLength(w, h);
+    out.X = dist.x;
+    out.Y = dist.y;
     return out;
 }
 
@@ -343,11 +340,13 @@ bool MapStore::setExtentLimits(unsigned char mapId, const Envelope &extentLimits
     return true;
 }
 
+// static
 unsigned char MapStore::invalidMapId()
 {
     return INVALID_MAPID;
 }
 
+// static
 MapViewPtr MapStore::initMap()
 {
     return MapViewPtr(new GlView);

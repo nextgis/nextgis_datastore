@@ -23,6 +23,7 @@
 
 #include "api_priv.h"
 #include "catalog/mapfile.h"
+#include "ngstore/util/constants.h"
 
 namespace ngs {
 
@@ -32,13 +33,22 @@ constexpr const char* MAP_ROTATE_Y_KEY = "rotate_y";
 constexpr const char* MAP_ROTATE_Z_KEY = "rotate_z";
 constexpr const char* MAP_X_LOOP_KEY = "x_looped";
 
-MapView::MapView() : Map(), MapTransform(480, 640)
+MapView::MapView()
+        : Map()
+        , MapTransform(480, 640)
+        , m_touchMoved(false)
+        , m_pointId(NOT_FOUND)
 {
 }
 
-MapView::MapView(const CPLString &name, const CPLString &description,
-                 unsigned short epsg, const Envelope &bounds) :
-    Map(name, description, epsg, bounds), MapTransform(480, 640)
+MapView::MapView(const CPLString& name,
+        const CPLString& description,
+        unsigned short epsg,
+        const Envelope& bounds)
+        : Map(name, description, epsg, bounds)
+        , MapTransform(480, 640)
+        , m_touchMoved(false)
+        , m_pointId(NOT_FOUND)
 {
 }
 
@@ -151,18 +161,42 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
                 m_touchMoved = true;
             }
 
+            OverlayPtr overlay = getOverlay(MOT_EDIT);
+            EditLayerOverlay* editOverlay = nullptr;
+            if (overlay && overlay->visible()) {
+                editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
+            }
+            bool editMode = editOverlay;
+
+            // If the id is not known, get it.
+            if (editMode && NOT_FOUND == m_pointId) {
+                OGRRawPoint mapPt = displayToWorld(
+                        OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
+                if (!getYAxisInverted()) {
+                    mapPt.y = -mapPt.y;
+                }
+
+                m_pointId =
+                        editOverlay->getGeometryPointIdByCoordinates(mapPt);
+            }
+
             OGRRawPoint pt = OGRRawPoint(x, y);
             OGRRawPoint offset(
                     pt.x - m_touchStartPoint.x, pt.y - m_touchStartPoint.y);
-            OGRRawPoint beg = displayToWorld(OGRRawPoint(0, 0));
-            OGRRawPoint end = displayToWorld(OGRRawPoint(offset.x, offset.y));
-            OGRRawPoint mapOffset(end.x - beg.x, end.y - beg.y);
+            OGRRawPoint mapOffset = getMapDistance(offset.x, offset.y);
+            if (!getYAxisInverted()) {
+                mapOffset.y = -mapOffset.y;
+            }
 
-            if(!getYAxisInverted())
-                mapOffset.y = -mapOffset.y; // NOTE: The Y axis orientation differs in matrix and view
+            bool moveMap = true;
+            if (editMode && 0 <= m_pointId) {
+                moveMap = !editOverlay->shiftPoint(m_pointId, mapOffset);
+            }
 
-            OGRRawPoint mapCenter = getCenter();
-            setCenter(mapCenter.x - mapOffset.x, mapCenter.y - mapOffset.y);
+            if (moveMap) {
+                OGRRawPoint mapCenter = getCenter();
+                setCenter(mapCenter.x - mapOffset.x, mapCenter.y - mapOffset.y);
+            }
 
             m_touchStartPoint = pt;
             return DS_PRESERVED;
@@ -170,6 +204,7 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
         case MTT_ON_UP: {
             if (m_touchMoved) {
                 m_touchMoved = false;
+                m_pointId = NOT_FOUND;
                 return DS_REDRAW;
             }
             return DS_NOTHING;

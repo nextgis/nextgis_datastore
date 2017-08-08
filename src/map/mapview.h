@@ -61,6 +61,7 @@ protected:
     std::vector<OverlayPtr> m_overlays;
     OGRRawPoint m_touchStartPoint;
     bool m_touchMoved;
+    long m_pointId;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;

@@ -22,6 +22,7 @@
 
 #include "overlay.h"
 
+#include "ds/geometry.h"
 #include "map/mapview.h"
 
 namespace ngs
@@ -37,6 +38,7 @@ Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
 EditLayerOverlay::EditLayerOverlay(const MapView& map)
         : Overlay(map, MOT_EDIT)
         , m_geometry(nullptr)
+        , m_tolerancePx(TOLERANCE_PX)
 {
 }
 
@@ -52,6 +54,34 @@ GeometryPtr EditLayerOverlay::createGeometry(
         default:
             return GeometryPtr();
     }
+}
+
+long EditLayerOverlay::getGeometryPointIdByCoordinates(
+        const OGRRawPoint& mapCoordinates) const
+{
+    if (!m_geometry) {
+        return NOT_FOUND;
+    }
+
+    OGRRawPoint mapTolerance =
+            m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
+
+    double minX = mapCoordinates.x - mapTolerance.x;
+    double maxX = mapCoordinates.x + mapTolerance.x;
+    double minY = mapCoordinates.y - mapTolerance.y;
+    double maxY = mapCoordinates.y + mapTolerance.y;
+    Envelope mapEnv(minX, minY, maxX, maxY);
+
+    return getGeometryPointId(*m_geometry, mapEnv);
+}
+
+bool EditLayerOverlay::shiftPoint(long id, const OGRRawPoint& mapOffset)
+{
+    if (!m_geometry) {
+        return false;
+    }
+
+    return shiftGeometryPoint(*m_geometry, id, mapOffset);
 }
 
 }  // namespace ngs

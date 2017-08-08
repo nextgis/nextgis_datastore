@@ -38,6 +38,7 @@ public:
     GlRenderOverlay();
     virtual ~GlRenderOverlay();
 
+    GlObjectPtr getGlBuffer() { return m_glBuffer; }
     virtual bool fill(bool isLastTry) = 0;
     virtual bool draw() = 0;
 
@@ -56,6 +57,7 @@ public:
     // EditLayerOverlay interface
 public:
     virtual void setGeometry(GeometryPtr geometry) override;
+    virtual bool shiftPoint(long id, const OGRRawPoint& mapOffset) override;
 
     // GlRenderOverlay interface
 public:

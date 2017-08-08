@@ -68,6 +68,15 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
     fill(false);
 }
 
+bool GlEditLayerOverlay::shiftPoint(long id, const OGRRawPoint& mapOffset)
+{
+    bool ret = EditLayerOverlay::shiftPoint(id, mapOffset);
+    if (ret) {
+        fill(false);
+    }
+    return ret;
+}
+
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));

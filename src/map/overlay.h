@@ -33,6 +33,7 @@
 
 #include "ds/geometry.h"
 #include "ngstore/codes.h"
+#include "ngstore/util/constants.h"
 
 #include <memory>
 namespace ngs
@@ -57,11 +58,11 @@ public:
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
-                //return 1; // TODO: Add support to track overlay
+            //return 1; // TODO: Add support to track overlay
             case MOT_LOCATION:
-                //return 2; // TODO: Add support to location overlay
+            //return 2; // TODO: Add support to location overlay
             default:
-                return -1;
+                return NOT_FOUND;
         }
     }
 
@@ -83,6 +84,9 @@ public:
     const CPLString& layerName() const { return m_layerName; }
     virtual void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
     virtual GeometryPtr geometry() const { return m_geometry; }
+    virtual long getGeometryPointIdByCoordinates(
+            const OGRRawPoint& mapCoordinates) const;
+    virtual bool shiftPoint(long id, const OGRRawPoint& mapOffset);
 
     static GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
@@ -90,6 +94,7 @@ public:
 protected:
     CPLString m_layerName;
     GeometryPtr m_geometry;
+    double m_tolerancePx;
 };
 
 }  // namespace ngs
