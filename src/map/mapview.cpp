@@ -151,6 +151,13 @@ void MapView::setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible)
 
 ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
 {
+    OverlayPtr overlay = getOverlay(MOT_EDIT);
+    EditLayerOverlay* editOverlay = nullptr;
+    if (overlay && overlay->visible()) {
+        editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
+    }
+    bool editMode = editOverlay;
+
     switch(type) {
         case MTT_ON_DOWN: {
             m_touchStartPoint = OGRRawPoint(x, y);
@@ -160,13 +167,6 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
             if (!m_touchMoved) {
                 m_touchMoved = true;
             }
-
-            OverlayPtr overlay = getOverlay(MOT_EDIT);
-            EditLayerOverlay* editOverlay = nullptr;
-            if (overlay && overlay->visible()) {
-                editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
-            }
-            bool editMode = editOverlay;
 
             // If the id is not known, get it.
             if (editMode && NOT_FOUND == m_pointId) {
@@ -204,8 +204,9 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
         case MTT_ON_UP: {
             if (m_touchMoved) {
                 m_touchMoved = false;
-                m_pointId = NOT_FOUND;
-                return DS_REDRAW;
+                if (!editMode) { // if normal mode
+                    return DS_REDRAW;
+                }
             }
             return DS_NOTHING;
         }
