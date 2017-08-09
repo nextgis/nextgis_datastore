@@ -112,6 +112,10 @@ bool GlView::draw(ngsDrawState /*state*/, const Progress &/*progress*/)
 bool GlView::draw(ngsDrawState state, const Progress &progress)
 #endif // NGS_GL_DEBUG
 {
+    if (DS_NOTHING == state) {
+        return true;
+    }
+
     // Prepare
     prepareContext();
 
@@ -129,6 +133,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     return true;
 #else
 
+
     clearBackground();
 
     if(m_layers.empty()) {
@@ -138,8 +143,6 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     }
 
     switch (state) {
-    case DS_NOTHING:
-        return true;
     case DS_REDRAW:
         clearTiles();
     [[clang::fallthrough]]; case DS_REFILL:
