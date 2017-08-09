@@ -205,7 +205,7 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
             if (m_touchMoved) {
                 m_touchMoved = false;
                 if (!editMode) { // if normal mode
-                    return DS_REDRAW;
+                    return DS_NORMAL;
                 }
             }
             return DS_NOTHING;
