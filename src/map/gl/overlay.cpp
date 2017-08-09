@@ -22,6 +22,7 @@
 
 #include "overlay.h"
 
+#include "map/gl/view.h"
 #include "map/mapview.h"
 
 // gdal
@@ -90,6 +91,13 @@ bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
         case Style::T_FILL:
         case Style::T_IMAGE:
             break;
+    }
+
+    if (m_glBuffer) {
+        GlView* glView = dynamic_cast<GlView*>(const_cast<MapView*>(&m_map));
+        if (glView) {
+            glView->freeResource(m_glBuffer);
+        }
     }
 
     if (!bufferArray) {

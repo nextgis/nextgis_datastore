@@ -133,7 +133,6 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     return true;
 #else
 
-
     clearBackground();
 
     if(m_layers.empty()) {
