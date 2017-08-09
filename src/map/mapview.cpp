@@ -204,7 +204,11 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
         case MTT_ON_UP: {
             if (m_touchMoved) {
                 m_touchMoved = false;
-                if (!editMode) { // if normal mode
+                bool pointWasMoved = (0 <= m_pointId);
+                if (pointWasMoved) {
+                    m_pointId = NOT_FOUND;
+                }
+                if (!(editMode && pointWasMoved)) { // if normal mode
                     return DS_NORMAL;
                 }
             }
