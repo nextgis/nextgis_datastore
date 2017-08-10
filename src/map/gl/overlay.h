@@ -36,7 +36,7 @@ class GlRenderOverlay
 {
 public:
     GlRenderOverlay();
-    virtual ~GlRenderOverlay();
+    virtual ~GlRenderOverlay() = default;
 
     GlObjectPtr getGlBuffer() { return m_glBuffer; }
     virtual bool fill(bool isLastTry) = 0;
@@ -45,7 +45,6 @@ public:
 protected:
     GlObjectPtr m_glBuffer;
     StylePtr m_style;
-    CPLMutex* m_dataMutex;
 };
 
 class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay

@@ -32,14 +32,7 @@ namespace ngs
 {
 
 GlRenderOverlay::GlRenderOverlay()
-        : m_dataMutex(CPLCreateMutex())
 {
-    CPLReleaseMutex(m_dataMutex);
-}
-
-GlRenderOverlay::~GlRenderOverlay()
-{
-    CPLDestroyMutex(m_dataMutex);
 }
 
 GlEditLayerOverlay::GlEditLayerOverlay(const MapView& map)
@@ -80,7 +73,6 @@ bool GlEditLayerOverlay::shiftPoint(long id, const OGRRawPoint& mapOffset)
 
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
-    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     VectorGlObject* bufferArray = nullptr;
 
     switch (m_style->type()) {
@@ -94,21 +86,19 @@ bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
     }
 
     if (m_glBuffer) {
-        GlView* glView = dynamic_cast<GlView*>(const_cast<MapView*>(&m_map));
-        if (glView) {
+        const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
+        if (constGlView) {
+            GlView* glView = const_cast<GlView*>(constGlView);
             glView->freeResource(m_glBuffer);
         }
     }
 
     if (!bufferArray) {
-        CPLMutexHolder holder(m_dataMutex, lockTime);
         m_glBuffer = GlObjectPtr();
         return true;
     }
 
-    CPLMutexHolder holder(m_dataMutex, lockTime);
     m_glBuffer = GlObjectPtr(bufferArray);
-
     return true;
 }
 
@@ -134,8 +124,6 @@ bool GlEditLayerOverlay::draw()
         // !m_style should never happened
         return true;
     }
-
-    CPLMutexHolder holder(m_dataMutex, 0.5);
 
     if (!m_glBuffer) {
         return false;  // Data not yet loaded
