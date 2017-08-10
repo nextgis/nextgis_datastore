@@ -403,6 +403,7 @@ TEST(DataStoreTests, TestCopyFCToGeoJSON) {
 
     options = nullptr;
     options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GEOJSON));
+    options = ngsAddNameValue(options, "OVERWRITE", "ON");
     EXPECT_EQ(ngsCatalogObjectCopy(store, json, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
 

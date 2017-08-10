@@ -775,6 +775,14 @@ Dataset* Dataset::create(ObjectContainer* const parent,
     Dataset* out;
     CPLString path = CPLFormFilename(parent->path(), name,
                                      Filter::getExtension(type));
+    if(options.boolOption("OVERWRITE")) {
+        auto ovr = parent->getChild(CPLFormFilename(nullptr, name,
+                                 Filter::getExtension(type)));
+        if(ovr && !ovr->destroy()) {
+            return nullptr;
+        }
+    }
+
     if(Filter::isSimpleDataset(type)) {
         out = new Dataset(parent, CAT_CONTAINER_SIMPLE, name, path);
     }
