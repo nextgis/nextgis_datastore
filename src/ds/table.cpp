@@ -221,6 +221,7 @@ GIntBig Table::featureCount(bool force) const
 
 void Table::reset() const
 {
+    CPLMutexHolder holder(m_featureMutex);
     if(nullptr != m_layer)
         m_layer->ResetReading();
 }
@@ -290,10 +291,12 @@ char**Table::getMetadata(const char* domain) const
 
 bool Table::destroy()
 {
+    CPLMutexHolder holder(m_featureMutex);
     Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
         return errorMessage(_("Parent is not dataset"));
     }
+
     CPLString fullNameStr = fullName();
     if(dataset->destroyTable(this)) {
         Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);

@@ -169,7 +169,7 @@ public:
 protected:
     VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry* extent,
                                 float step) const;
-    void fillZoomLevels(const char* zoomLevels);
+    void fillZoomLevels(const char* zoomLevels = nullptr);
 
     void tilePoint(OGRGeometry* geom, OGRGeometry* extent, float step,
                    VectorTileItem* vitem) const;
@@ -198,7 +198,7 @@ protected:
     std::set<unsigned char> m_zoomLevels;
     CPLMutex* m_fieldsMutex;
     CPLMutex* m_genTileMutex;
-    Envelope m_extent;
+    CPLMutex* m_layersMutex;
     std::vector<const char*> m_ignoreFields;
 
 private:

@@ -1312,7 +1312,7 @@ long long ngsFeatureClassCount(CatalogObjectH object)
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return 0;
     }
-    return featureClass->featureCount();
+    return featureClass->featureCount(false);
 }
 
 
@@ -1335,7 +1335,7 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
     }
     FeaturePtr out = featureClass->nextFeature();
     if(out)
-        return new FeaturePtr();
+        return new FeaturePtr(out);
     return nullptr;
 }
 
@@ -1414,7 +1414,7 @@ long long ngsFeatureGetId(FeatureH feature)
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
         errorMessage(COD_INVALID, _("The object handle is null"));
-        return 0;
+        return NOT_FOUND;
     }
     return (*featurePtrPointer)->GetFID();
 }
@@ -1538,7 +1538,7 @@ long long ngsStoreFeatureGetRemoteId(FeatureH feature)
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
         errorMessage(COD_INVALID, _("The object handle is null"));
-        return -1;
+        return NOT_FOUND;
     }
     return StoreFeatureClass::getRemoteId(*featurePtrPointer);
 }
@@ -1665,17 +1665,17 @@ long long ngsFeatureAttachmentAdd(FeatureH feature, const char* name,
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
         errorMessage(COD_INVALID, _("The object handle is null"));
-        return -1;
+        return NOT_FOUND;
     }
     Table* table = featurePtrPointer->table();
     if(!table) {
         errorMessage(COD_INVALID, _("The feature detached from table"));
-        return -1;
+        return NOT_FOUND;
     }
 
     if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
         errorMessage(COD_INVALID, _("The feature from table that is result of query"));
-        return -1;
+        return NOT_FOUND;
     }
 
     GIntBig fid = (*featurePtrPointer)->GetFID();

@@ -44,6 +44,7 @@ constexpr const char* ATTACH_DESCRIPTION = "descript";
 constexpr const char *KEY_USER = "user";
 constexpr const char *KEY_USER_PREFIX = "USER.";
 constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
+constexpr const char* NGS_VERSION_KEY = "version";
 
 /**
  * @brief The wrapper class around GDALDataset pointer

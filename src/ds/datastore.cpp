@@ -134,8 +134,7 @@ bool DataStore::create(const char* path)
         return false;
     }
 
-    // Set user version
-    DS->ExecuteSQL(CPLSPrintf("PRAGMA user_version = %d;", NGS_VERSION_NUM), nullptr, nullptr);
+    createMetadataTable(DS);
 
     GDALClose(DS);
     return true;
@@ -153,13 +152,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 
     CPLErrorReset();
 
-    TablePtr userVersion = executeSQL("PRAGMA user_version", "SQLITE");
-    userVersion->reset();
-    FeaturePtr feature = userVersion->nextFeature();
-    int version = 0;
-    if(feature) {
-        version = feature->GetFieldAsInteger(0);
-    }
+    int version = atoi(getProperty(NGS_VERSION_KEY, "0"));
 
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
         return errorMessage(COD_OPEN_FAILED, _("Upgrade storage failed"));

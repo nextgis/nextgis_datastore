@@ -176,8 +176,6 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
 //------------------------------------------------------------------------------
 constexpr const char* ADDS_EXT = "ngadds";
 
-constexpr const char* NGS_VERSION_KEY = "version";
-
 // Metadata
 constexpr const char* META_KEY = "key";
 constexpr unsigned short META_KEY_LIMIT = 128;
@@ -277,9 +275,12 @@ Table* Dataset::createTable(const CPLString &name,
 
 bool Dataset::setProperty(const char* key, const char* value)
 {
+    CPLMutexHolder holder(m_executeSQLMutex);
+
     if(!m_addsDS) {
         createAdditionsDataset();
-    }
+    }    
+
     if(!m_metadata) {
         m_metadata = createMetadataTable(m_addsDS);
     }
@@ -298,6 +299,9 @@ CPLString Dataset::getProperty(const char* key, const char* defaultValue)
 {
     if(!m_metadata)
         return defaultValue;
+
+    CPLMutexHolder holder(m_executeSQLMutex);
+
     m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s\"", META_KEY, key));
     m_metadata->ResetReading();
     OGRFeature* feature = m_metadata->GetNextFeature();
@@ -314,6 +318,9 @@ std::map<CPLString, CPLString> Dataset::getProperties(const char* table)
     std::map<CPLString, CPLString> out;
     if(!m_metadata || nullptr == table)
         return out;
+
+    CPLMutexHolder holder(m_executeSQLMutex);
+
     m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY, table));
     m_metadata->ResetReading();
     OGRFeature* feature = nullptr;
@@ -761,6 +768,9 @@ TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
         errorMessage(_("Not opened."));
         return TablePtr();
     }
+
+    CPLMutexHolder holder(m_executeSQLMutex);
+
     OGRLayer* layer = m_DS->ExecuteSQL(statement, nullptr, dialect);
     if(nullptr == layer) {
         errorMessage(CPLGetLastErrorMsg());

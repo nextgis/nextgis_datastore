@@ -58,6 +58,7 @@ public:
     void operator=(const OGREnvelope& env);
 
     bool isInit() const;
+    void clear();
     OGRRawPoint center() const;
     void rotate(double angle);
     void setRatio(double ratio);
