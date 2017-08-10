@@ -381,6 +381,36 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     ngsUnInit();
 }
 
+TEST(DataStoreTests, TestCopyFCToGeoJSON) {
+    counter = 0;
+
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString storePath = catalogPath + "/tmp/main.ngst/bld";
+    CPLString jsonPath = catalogPath + "/tmp";
+
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    CatalogObjectH json = ngsCatalogObjectGet(jsonPath);
+
+    options = nullptr;
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GEOJSON));
+    EXPECT_EQ(ngsCatalogObjectCopy(store, json, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+
+    ngsListFree(options);
+    EXPECT_GE(counter, 1);
+    ngsUnInit();
+}
+
 TEST(DataStoreTests, TestCreateFeatureClass) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");

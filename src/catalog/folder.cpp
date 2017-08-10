@@ -194,6 +194,140 @@ void Folder::refresh()
     }
 }
 
+int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath,
+                            const Progress& progress)
+{
+    File* file = ngsDynamicCast(File, child);
+    int result = move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+    if(nullptr != file) {
+        if(move) {
+            result = File::moveFile(child->path(), newPath, progress);
+        }
+        else {
+            result = File::copyFile(child->path(), newPath, progress);
+        }
+    }
+    else {
+        // TODO: Add support for FeatureClass/Table from SimpleDataset
+
+        SimpleDataset* sdts = ngsDynamicCast(SimpleDataset, child);
+        if(nullptr != sdts) {
+            // Get file list and copy file one by one
+            std::vector<CPLString> files = sdts->siblingFiles();
+            CPLString parentPath = sdts->parent()->path();
+            for(CPLString& file : files) {
+                file = parentPath + Catalog::separator() + file;
+            }
+            files.push_back(child->path());
+            unsigned char step = 0;
+            Progress newProgress(progress);
+            newProgress.setTotalSteps(static_cast<unsigned char>(files.size()));
+
+            CPLString srcConstPath = CPLResetExtension(child->path(), "");
+            srcConstPath.pop_back();
+            size_t constPathLen = srcConstPath.length();
+            CPLString dstConstPath = CPLResetExtension(newPath, "");
+            dstConstPath.pop_back();
+            for(auto file : files) {
+                newProgress.setStep(step++);
+                CPLString newFilePath = dstConstPath + file.substr(constPathLen);
+                if(move) {
+                    if(!File::moveFile(file, newFilePath, newProgress)) {
+                        return COD_MOVE_FAILED;
+                    }
+                }
+                else {
+                    if(!File::copyFile(file, newFilePath, newProgress)) {
+                        return COD_COPY_FAILED;
+                    }
+                }
+            }
+            result = COD_SUCCESS;
+        }
+    }
+
+    if(result == COD_SUCCESS) {
+        refresh();
+    }
+    return result;
+}
+
+int Folder::pasteFeatureClass(ObjectPtr child, bool move,
+                              const CPLString& newPath,
+                              const Options& options, const Progress& progress)
+{
+    enum ngsCatalogObjectType dstType = static_cast<enum ngsCatalogObjectType>(
+                options.intOption("TYPE", 0));
+
+    GDALDriver* driver = Filter::getGDALDriver(dstType);
+    if(nullptr == driver || !Filter::isFileBased(dstType)) {
+        return errorMessage(COD_UNSUPPORTED,
+                            _("Destination type %d is not supported"), dstType);
+    }
+
+    FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
+    if(!srcFClass) {
+        return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                            _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
+                            child->name().c_str());
+    }
+
+    CPLString newName = CPLGetBasename(newPath);
+
+    bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
+    OGRFeatureDefn * const srcDefinition = srcFClass->definition();
+    std::vector<OGRwkbGeometryType> geometryTypes =
+            srcFClass->geometryTypes();
+    OGRwkbGeometryType filterFeometryType =
+            FeatureClass::geometryTypeFromName(
+                options.stringOption("ACCEPT_GEOMETRY", "ANY"));
+    for(OGRwkbGeometryType geometryType : geometryTypes) {
+        if(filterFeometryType != geometryType &&
+                filterFeometryType != wkbUnknown) {
+            continue;
+        }
+        CPLString createName = newName;
+        OGRwkbGeometryType newGeometryType = geometryType;
+        if(geometryTypes.size () > 1 && filterFeometryType == wkbUnknown) {
+            createName += "_";
+            createName += FeatureClass::geometryTypeName(geometryType,
+                                    FeatureClass::GeometryReportType::SIMPLE);
+            if(toMulti && geometryType < wkbMultiPoint) {
+                newGeometryType =
+                        static_cast<OGRwkbGeometryType>(geometryType + 3);
+            }
+        }
+
+        std::unique_ptr<Dataset> ds(Dataset::create(this, dstType, createName, options));
+        if(!ds || !ds->isOpened()) {
+            return errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        }
+
+        std::unique_ptr<FeatureClass> dstFClass(ds->createFeatureClass(createName,
+            srcDefinition, srcFClass->getSpatialReference(), newGeometryType,
+            options));
+        if(nullptr == dstFClass) {
+            return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+        }
+        auto dstFields = dstFClass->fields();
+        // Create fields map. We expected equal count of fields
+        FieldMapPtr fieldMap(dstFields.size());
+        for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
+            fieldMap[i] = i;
+        }
+
+        int result = dstFClass->copyFeatures(srcFClass, fieldMap,
+                                             filterFeometryType,
+                                             progress, options);
+        if(result != COD_SUCCESS) {
+            return result;
+        }
+    }
+
+    refresh();
+    return COD_SUCCESS;
+}
+
 int Folder::paste(ObjectPtr child, bool move, const Options& options,
                   const Progress& progress)
 {
@@ -209,51 +343,11 @@ int Folder::paste(ObjectPtr child, bool move, const Options& options,
         return COD_SUCCESS;
     }
 
-    File* file = ngsDynamicCast(File, child);
-    if(nullptr != file) {
-        if(move) {
-            return File::moveFile(child->path(), newPath, progress);
-        }
-        else {
-            return File::copyFile(child->path(), newPath, progress);
-        }
+    if(Filter::isFileBased(child->type())) {
+        return pasteFileSource(child, move, newPath, progress);
     }
-
-    // TODO: Add support for FeatureClass/Table from SimpleDataset
-
-    SimpleDataset* sdts = ngsDynamicCast(SimpleDataset, child);
-    if(nullptr != sdts) {
-        // Get file list and copy file one by one
-        std::vector<CPLString> files = sdts->siblingFiles();
-        CPLString parentPath = sdts->parent()->path();
-        for(CPLString& file : files) {
-            file = parentPath + Catalog::separator() + file;
-        }
-        files.push_back(child->path());
-        unsigned char step = 0;
-        Progress newProgress(progress);
-        newProgress.setTotalSteps(static_cast<unsigned char>(files.size()));
-
-        CPLString srcConstPath = CPLResetExtension(child->path(), "");
-        srcConstPath.pop_back();
-        size_t constPathLen = srcConstPath.length();
-        CPLString dstConstPath = CPLResetExtension(newPath, "");
-        dstConstPath.pop_back();
-        for(auto file : files) {
-            newProgress.setStep(step++);
-            CPLString newFilePath = dstConstPath + file.substr(constPathLen);
-            if(move) {
-                if(!File::moveFile(file, newFilePath, newProgress)) {
-                    return COD_MOVE_FAILED;
-                }
-            }
-            else {
-                if(!File::copyFile(file, newFilePath, newProgress)) {
-                    return COD_MOVE_FAILED;
-                }
-            }
-        }
-        return COD_SUCCESS;
+    else if(Filter::isFeatureClass(child->type())) {
+        return pasteFeatureClass(child, move, newPath, options, progress);
     }
 
     return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
@@ -263,7 +357,7 @@ bool Folder::canPaste(const enum ngsCatalogObjectType type) const
 {
     if(isReadOnly())
         return false;
-    return Filter::isFileBased(type);
+    return Filter::isFileBased(type) || Filter::isFeatureClass(type);
 }
 
 bool Folder::isReadOnly() const

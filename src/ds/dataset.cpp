@@ -762,6 +762,32 @@ const char*Dataset::attachmentsFolderExtension()
     return ATTACH_EXT;
 }
 
+Dataset* Dataset::create(ObjectContainer* const parent,
+                        const enum ngsCatalogObjectType type,
+                        const CPLString& name,
+                        const Options& options)
+{
+    GDALDriver* driver = Filter::getGDALDriver(type);
+    if(nullptr == driver) {
+        return nullptr;
+    }
+
+    Dataset* out;
+    CPLString path = CPLFormFilename(parent->path(), name,
+                                     Filter::getExtension(type));
+    if(Filter::isSimpleDataset(type)) {
+        out = new Dataset(parent, CAT_CONTAINER_SIMPLE, name, path);
+    }
+    else {
+        out = new Dataset(parent, type, name, path);
+    }
+
+    auto ptrOpt = options.getOptions();
+    out->m_DS = driver->Create(path, 0, 0, 0, GDT_Unknown, ptrOpt.get());
+
+    return out;
+}
+
 TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
 {
     if(nullptr == m_DS) {

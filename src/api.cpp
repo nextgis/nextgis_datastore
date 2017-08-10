@@ -934,7 +934,7 @@ int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
     }
     dstDataset->hasChildren();
 
-    // Check can paster
+    // Check can paste
     if(dstDataset->canPaste(srcCatalogObjectPointer->type())) {
         return dstDataset->paste(srcCatalogObjectPointer, move, loadOptions, progress);
     }

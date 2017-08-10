@@ -71,6 +71,16 @@ bool Filter::isFeatureClass(const enum ngsCatalogObjectType type)
     return type >= CAT_FC_ANY && type < CAT_FC_ALL;
 }
 
+bool Filter::isSimpleDataset(const enum ngsCatalogObjectType type)
+{
+    return type ==  CAT_FC_ESRI_SHAPEFILE ||
+            type == CAT_FC_MAPINFO_TAB ||
+            type == CAT_FC_MAPINFO_MIF ||
+            type == CAT_FC_GML ||
+            type == CAT_FC_GEOJSON ||
+            type == CAT_FC_CSV;
+}
+
 bool Filter::isContainer(const enum ngsCatalogObjectType type)
 {
     return type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL;
@@ -212,13 +222,14 @@ const char *Filter::getExtension(const enum ngsCatalogObjectType type)
     case CAT_FC_MAPINFO_MIF:
     case CAT_TABLE_MAPINFO_MIF:
         return "mif";
+    case CAT_FC_GEOJSON:
+        return "geojson";
     case CAT_CONTAINER_GDB:
     case CAT_CONTAINER_KML:
     case CAT_CONTAINER_SXF:
     case CAT_FC_ESRI_SHAPEFILE:
     case CAT_FC_DXF:
     case CAT_FC_GML:
-    case CAT_FC_GEOJSON:
     case CAT_FC_CSV:
     case CAT_RASTER_BMP:
     case CAT_RASTER_TIFF:

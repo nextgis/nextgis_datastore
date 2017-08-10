@@ -41,6 +41,7 @@ public:
 
 public:
     static bool isFeatureClass(const enum ngsCatalogObjectType type);
+    static bool isSimpleDataset(const enum ngsCatalogObjectType type);
     static bool isRaster(const enum ngsCatalogObjectType type);
     static bool isTable(const enum ngsCatalogObjectType type);
     static bool isContainer(const enum ngsCatalogObjectType type);

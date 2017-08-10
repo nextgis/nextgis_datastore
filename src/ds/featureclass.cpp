@@ -566,7 +566,6 @@ bool FeatureClass::getTilesTable()
 
 FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
 {
-    CPLDebug("ngstore", "FeatureClass::getTileFeature");
     if(!getTilesTable()) {
         return FeaturePtr();
     }
@@ -583,7 +582,6 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
 
 VectorTile FeatureClass::getTileInternal(const Tile& tile)
 {
-    CPLDebug("ngstore", "FeatureClass::getTileInternal");
     VectorTile vtile;
     FeaturePtr ovrTile = getTileFeature(tile);
     if(ovrTile) {
@@ -591,8 +589,6 @@ VectorTile FeatureClass::getTileInternal(const Tile& tile)
         GByte* data = ovrTile->GetFieldAsBinary(ovrTile->GetFieldIndex(OVR_TILE_KEY), &size);
         Buffer buff(data, size, false);
         vtile.load(buff);
-
-        CPLDebug("ngstore", "FeatureClass::getTileInternal::load tile data");
     }
     return vtile;
 }
@@ -745,8 +741,6 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
 VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 {
-    CPLDebug("ngstore", "FeatureClass::getTile");
-
     VectorTile vtile;
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
@@ -754,7 +748,6 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     }
 
     if(!extent().intersects(tileExtent)) {
-        CPLDebug("ngstore", "!m_extent.intersects(tileExtent)");
         return vtile;
     }
 

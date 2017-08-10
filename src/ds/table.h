@@ -65,6 +65,7 @@ typedef std::shared_ptr<Table> TablePtr;
 class Table : public Object
 {
     friend class Dataset;
+    friend class Folder;
 public:
     typedef struct _attachmentInfo {
         GIntBig id;

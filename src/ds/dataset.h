@@ -153,6 +153,10 @@ public:
 public:
     static const char* additionsDatasetExtension();
     static const char* attachmentsFolderExtension();
+    static Dataset* create(ObjectContainer * const parent,
+                           const enum ngsCatalogObjectType type,
+                           const CPLString & name,
+                           const Options & options = Options());
 
 protected:
     static OGRLayer* createMetadataTable(GDALDataset* ds);

@@ -69,6 +69,10 @@ protected:
 
 protected:
     std::vector<const char*> fillChildrenNames(char **items);
+    int pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath,
+                        const Progress& progress);
+    int pasteFeatureClass(ObjectPtr child, bool move, const CPLString& newPath,
+                          const Options& options, const Progress& progress);
 };
 
 }
