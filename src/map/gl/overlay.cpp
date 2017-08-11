@@ -69,9 +69,9 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
     fill(false);
 }
 
-bool GlEditLayerOverlay::shiftPoint(long id, const OGRRawPoint& mapOffset)
+bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 {
-    bool ret = EditLayerOverlay::shiftPoint(id, mapOffset);
+    bool ret = EditLayerOverlay::shiftPoint(mapOffset);
     if(ret) {
         fill(false);
     }

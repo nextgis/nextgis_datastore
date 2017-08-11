@@ -37,7 +37,7 @@ MapView::MapView()
         : Map()
         , MapTransform(480, 640)
         , m_touchMoved(false)
-        , m_pointId(NOT_FOUND)
+        , m_touchSelectedPoint(false)
 {
 }
 
@@ -48,7 +48,7 @@ MapView::MapView(const CPLString& name,
         : Map(name, description, epsg, bounds)
         , MapTransform(480, 640)
         , m_touchMoved(false)
-        , m_pointId(NOT_FOUND)
+        , m_touchSelectedPoint(false)
 {
 }
 
@@ -151,33 +151,29 @@ void MapView::setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible)
 
 ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
 {
-    OverlayPtr overlay = getOverlay(MOT_EDIT);
     EditLayerOverlay* editOverlay = nullptr;
-    if (overlay && overlay->visible()) {
+    OverlayPtr overlay = getOverlay(MOT_EDIT);
+    if (overlay) {
         editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
     }
-    bool editMode = editOverlay;
+    bool editMode = editOverlay && editOverlay->visible();
 
     switch(type) {
         case MTT_ON_DOWN: {
             m_touchStartPoint = OGRRawPoint(x, y);
-            return DS_NOTHING;
-        }
-        case MTT_ON_MOVE: {
-            if (!m_touchMoved) {
-                m_touchMoved = true;
-            }
-
-            // If the id is not known, get it.
-            if (editMode && NOT_FOUND == m_pointId) {
+            if (editMode) {
                 OGRRawPoint mapPt = displayToWorld(
                         OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
                 if (!getYAxisInverted()) {
                     mapPt.y = -mapPt.y;
                 }
-
-                m_pointId =
-                        editOverlay->getGeometryPointIdByCoordinates(mapPt);
+                m_touchSelectedPoint = editOverlay->isSelectedPoint(&mapPt);
+            }
+            return DS_NOTHING;
+        }
+        case MTT_ON_MOVE: {
+            if (!m_touchMoved) {
+                m_touchMoved = true;
             }
 
             OGRRawPoint pt = OGRRawPoint(x, y);
@@ -189,8 +185,8 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
             }
 
             bool moveMap = true;
-            if (editMode && 0 <= m_pointId) {
-                moveMap = !editOverlay->shiftPoint(m_pointId, mapOffset);
+            if (editMode && m_touchSelectedPoint) {
+                moveMap = !editOverlay->shiftPoint(mapOffset);
             }
 
             if (moveMap) {
@@ -204,12 +200,21 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
         case MTT_ON_UP: {
             if (m_touchMoved) {
                 m_touchMoved = false;
-                bool pointWasMoved = (0 <= m_pointId);
-                if (pointWasMoved) {
-                    m_pointId = NOT_FOUND;
+                bool pointWasMoved = m_touchSelectedPoint;
+                if (m_touchSelectedPoint) {
+                    m_touchSelectedPoint = false;
                 }
                 if (!(editMode && pointWasMoved)) { // if normal mode
                     return DS_NORMAL;
+                }
+            } else if(editMode) {
+                OGRRawPoint mapPt = displayToWorld(
+                        OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
+                if(!getYAxisInverted()) {
+                    mapPt.y = -mapPt.y;
+                }
+                if(editOverlay->selectPoint(mapPt)) {
+                    return DS_PRESERVED;
                 }
             }
             return DS_NOTHING;

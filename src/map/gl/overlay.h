@@ -56,7 +56,7 @@ public:
     // EditLayerOverlay interface
 public:
     virtual void setGeometry(GeometryPtr geometry) override;
-    virtual bool shiftPoint(long id, const OGRRawPoint& mapOffset) override;
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
     // GlRenderOverlay interface
 public:
