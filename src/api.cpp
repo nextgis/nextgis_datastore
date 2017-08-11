@@ -2322,9 +2322,8 @@ int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
     const OGRwkbGeometryType geometryType = datasource->geometryType();
     const OGRRawPoint mapCenter = mapView->getCenter();
 
-    GeometryPtr geometry =
-            EditLayerOverlay::createGeometry(geometryType, mapCenter);
-    if (!geometry) {
+    GeometryPtr geometry = editOverlay->createGeometry(geometryType, mapCenter);
+    if(!geometry) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry pointer is null"));
     }
 

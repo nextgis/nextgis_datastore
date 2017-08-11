@@ -88,7 +88,7 @@ public:
             const OGRRawPoint& mapCoordinates) const;
     virtual bool shiftPoint(long id, const OGRRawPoint& mapOffset);
 
-    static GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
+    GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
 
 protected:

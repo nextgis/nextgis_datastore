@@ -65,6 +65,7 @@ public:
 
 protected:
     VectorGlObject* fillPoint();
+    VectorGlObject* fillLine();
 };
 
 }  // namespace ngs

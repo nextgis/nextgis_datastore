@@ -29,6 +29,7 @@
 namespace ngs {
 
 constexpr double TOLERANCE_PX = 7.0;
+constexpr double GEOMETRY_SIZE_PX = 50.0;
 
 Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
         : m_map(map)
@@ -45,17 +46,41 @@ EditLayerOverlay::EditLayerOverlay(const MapView& map)
     m_tolerancePx = settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
 }
 
-// static
 GeometryPtr EditLayerOverlay::createGeometry(
         const OGRwkbGeometryType geometryType,
         const OGRRawPoint& geometryCenter)
 {
-    switch (geometryType) {
-        case wkbPoint:
+    OGRRawPoint mapDist =
+            m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+
+    switch (OGR_GT_Flatten(geometryType)) {
+        case wkbPoint: {
             return GeometryPtr(
                     new OGRPoint(geometryCenter.x, geometryCenter.y));
-        default:
+        }
+        case wkbLineString: {
+            OGRLineString* line = new OGRLineString();
+            line->addPoint(
+                    geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
+            line->addPoint(
+                    geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
+            return GeometryPtr(line);
+        }
+        case wkbMultiPoint: {
+            OGRMultiPoint* mpt = new OGRMultiPoint();
+            mpt->addGeometryDirectly(
+                    new OGRPoint(geometryCenter.x, geometryCenter.y));
+
+            // FIXME: remove it, only for test
+            mpt->addGeometryDirectly(
+                    new OGRPoint(geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y));
+            mpt->addGeometryDirectly(
+                    new OGRPoint(geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y));
+            return GeometryPtr(mpt);
+        }
+        default: {
             return GeometryPtr();
+        }
     }
 }
 

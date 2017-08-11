@@ -28,8 +28,7 @@
 // gdal
 #include "ogr_core.h"
 
-namespace ngs
-{
+namespace ngs {
 
 GlRenderOverlay::GlRenderOverlay()
 {
@@ -45,18 +44,26 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
 {
     EditLayerOverlay::setGeometry(geometry);
 
-    switch (OGR_GT_Flatten(geometry->getGeometryType())) {
+    switch(OGR_GT_Flatten(geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
             m_style = StylePtr(Style::createStyle("simplePoint"));
             SimpleVectorStyle* vectorStyle =
                     ngsDynamicCast(SimpleVectorStyle, m_style);
-            ngsRGBA color{255, 0, 0, 255};
-            vectorStyle->setColor(color);
+            vectorStyle->setColor({255, 0, 0, 255});
+            break;
+        }
+
+        case wkbLineString:
+        case wkbMultiLineString: {
+            m_style = StylePtr(Style::createStyle("simpleLine"));
+            SimpleVectorStyle* vectorStyle =
+                    ngsDynamicCast(SimpleVectorStyle, m_style);
+            vectorStyle->setColor({255, 0, 0, 255});
             break;
         }
         default:
-            break;  // Not supported yet
+            break; // Not supported yet
     }
 
     fill(false);
@@ -65,7 +72,7 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
 bool GlEditLayerOverlay::shiftPoint(long id, const OGRRawPoint& mapOffset)
 {
     bool ret = EditLayerOverlay::shiftPoint(id, mapOffset);
-    if (ret) {
+    if(ret) {
         fill(false);
     }
     return ret;
@@ -75,25 +82,27 @@ bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
     VectorGlObject* bufferArray = nullptr;
 
-    switch (m_style->type()) {
+    switch(m_style->type()) {
         case Style::T_POINT:
             bufferArray = fillPoint();
             break;
         case Style::T_LINE:
+            bufferArray = fillLine();
+            break;
         case Style::T_FILL:
         case Style::T_IMAGE:
             break;
     }
 
-    if (m_glBuffer) {
+    if(m_glBuffer) {
         const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
-        if (constGlView) {
+        if(constGlView) {
             GlView* glView = const_cast<GlView*>(constGlView);
             glView->freeResource(m_glBuffer);
         }
     }
 
-    if (!bufferArray) {
+    if(!bufferArray) {
         m_glBuffer = GlObjectPtr();
         return true;
     }
@@ -104,13 +113,55 @@ bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 
 VectorGlObject* GlEditLayerOverlay::fillPoint()
 {
-    OGRPoint* pt = static_cast<OGRPoint*>(m_geometry.get());
+    OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
+    if(wkbPoint != type && wkbMultiPoint != type) {
+        return nullptr;
+    }
 
+    auto addPoint = [](GlBuffer* buffer, const OGRPoint* pt, int index) {
+        buffer->addVertex(pt->getX());
+        buffer->addVertex(pt->getY());
+        buffer->addVertex(0.0f);
+        buffer->addIndex(index);
+    };
+
+    VectorGlObject* bufferArray = new VectorGlObject();
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
-    buffer->addVertex(pt->getX());
-    buffer->addVertex(pt->getY());
-    buffer->addVertex(0.0f);
-    buffer->addIndex(0);
+
+    switch(type) {
+        case wkbPoint: {
+            const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
+            addPoint(buffer, pt, 0);
+            break;
+        }
+        case wkbMultiPoint: {
+            const OGRMultiPoint* mpt =
+                    static_cast<const OGRMultiPoint*>(m_geometry.get());
+            int index = 0;
+            for(int i = 0, num = mpt->getNumGeometries(); i < num; ++i) {
+                if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
+                    bufferArray->addBuffer(buffer);
+                    index = 0;
+                    buffer = new GlBuffer(GlBuffer::BF_PT);
+                }
+                const OGRPoint* pt =
+                        static_cast<const OGRPoint*>(mpt->getGeometryRef(i));
+                addPoint(buffer, pt, index++);
+            }
+            break;
+        }
+    }
+
+    bufferArray->addBuffer(buffer);
+    return bufferArray;
+}
+
+VectorGlObject* GlEditLayerOverlay::fillLine()
+{
+    OGRLineString* line = static_cast<OGRLineString*>(m_geometry.get());
+
+    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
+    // TODO
 
     VectorGlObject* bufferArray = new VectorGlObject();
     bufferArray->addBuffer(buffer);
@@ -120,29 +171,29 @@ VectorGlObject* GlEditLayerOverlay::fillPoint()
 
 bool GlEditLayerOverlay::draw()
 {
-    if (!visible() || !m_style) {
+    if(!visible() || !m_style) {
         // !m_style should never happened
         return true;
     }
 
-    if (!m_glBuffer) {
-        return false;  // Data not yet loaded
+    if(!m_glBuffer) {
+        return false; // Data not yet loaded
     }
 
     VectorGlObject* vectorGlBuffer = ngsDynamicCast(VectorGlObject, m_glBuffer);
-    for (const GlBufferPtr& buff : vectorGlBuffer->buffers()) {
+    for(const GlBufferPtr& buff : vectorGlBuffer->buffers()) {
 
-        if (buff->bound()) {
+        if(buff->bound()) {
             buff->rebind();
         } else {
             buff->bind();
         }
 
-        m_style->prepare(m_map.getSceneMatrix(), m_map.getInvViewMatrix(),
-                         buff->type());
+        m_style->prepare(
+                m_map.getSceneMatrix(), m_map.getInvViewMatrix(), buff->type());
         m_style->draw(*buff);
     }
     return true;
 }
 
-}  // namespace ngs
+} // namespace ngs
