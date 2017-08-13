@@ -454,6 +454,29 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/new_layer"));
     EXPECT_NE(newFC, nullptr);
 
+    options = nullptr;
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
+    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "LINESTRING");
+    options = ngsAddNameValue(options, "FIELD_COUNT", "3");
+    options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsAddNameValue(options, "FIELD_0_NAME", "id");
+    options = ngsAddNameValue(options, "FIELD_0_ALIAS", "идентификатор");
+    options = ngsAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsAddNameValue(options, "FIELD_2_TYPE", "DATE_TIME");
+    options = ngsAddNameValue(options, "FIELD_2_NAME", "date");
+    options = ngsAddNameValue(options, "FIELD_2_ALIAS", "Это дата");
+    options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
+    options = ngsAddNameValue(options, "ZOOM_LEVELS", "3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(store, "r_1502560461_99719", options), COD_SUCCESS);
+    ngsListFree(options);
+
+    CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/rusgisuser_1502560461_99719"));
+    EXPECT_NE(newFC1, nullptr);
+
+
     ngsUnInit();
 }
 

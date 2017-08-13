@@ -237,7 +237,7 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
         CPLString newFieldName = normalizeFieldName(srcField->GetNameRef());
         if(!EQUAL(newFieldName, srcField->GetNameRef())) {
             progress.onProgress(COD_WARNING, 0.0,
-                                _("Field %s of source table was renamed to %s in destination tables"),
+                                _("Field %s of source table was renamed to %s in destination table"),
                                 srcField->GetNameRef(), newFieldName.c_str());
         }
 
@@ -251,7 +251,7 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
     FeatureClass* out = new FeatureClass(layer, this, CAT_FC_ANY, name);
 
     if(options.boolOption("CREATE_OVERVIEWS", false) &&
-            !options.stringOption("ZOOM_LEVELS_OPTION", "").empty()) {
+            !options.stringOption("ZOOM_LEVELS", "").empty()) {
         out->createOverviews(progress, options);
     }
 
@@ -437,8 +437,9 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
 
     if(Filter::isDatabase(m_type)) {
         // Check for sql forbidden names
+        CPLString testFb = out.toupper();
         if(find(forbiddenSQLFieldNames.begin (), forbiddenSQLFieldNames.end(),
-                out) != forbiddenSQLFieldNames.end()) {
+                testFb) != forbiddenSQLFieldNames.end()) {
             out += "_";
         }
     }

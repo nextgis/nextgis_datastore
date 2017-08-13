@@ -161,7 +161,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     return true;
 }
 
-FeatureClass*DataStore::createFeatureClass(const CPLString& name,
+FeatureClass* DataStore::createFeatureClass(const CPLString& name,
                                            OGRFeatureDefn* const definition,
                                            OGRSpatialReference* spatialRef,
                                            OGRwkbGeometryType type,
@@ -208,7 +208,7 @@ FeatureClass*DataStore::createFeatureClass(const CPLString& name,
     FeatureClass* out = new StoreFeatureClass(layer, this, name);
 
     if(options.boolOption("CREATE_OVERVIEWS", false) &&
-            !options.stringOption("ZOOM_LEVELS_OPTION", "").empty()) {
+            !options.stringOption("ZOOM_LEVELS", "").empty()) {
         out->createOverviews(progress, options);
     }
 

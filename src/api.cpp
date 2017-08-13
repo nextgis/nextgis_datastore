@@ -108,6 +108,9 @@ void initGDAL(const char* dataPath, const char* cachePath)
 
     CPLDebug("ngstore", "HTTP user agent set to: %s", NGS_USERAGENT);
 
+    CPLSetConfigOption("GDAL_VALIDATE_CREATION_OPTIONS", "OFF");
+    CPLSetConfigOption("GDAL_VALIDATE_OPEN_OPTIONS", "OFF");
+
     // Register drivers
 #ifdef NGS_MOBILE // NOTE: Keep in sync with extlib.cmake gdal options. For mobile devices
     GDALRegister_VRT();
