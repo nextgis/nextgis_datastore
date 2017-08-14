@@ -473,7 +473,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     EXPECT_EQ(ngsCatalogObjectCreate(store, "r_1502560461_99719", options), COD_SUCCESS);
     ngsListFree(options);
 
-    CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/rusgisuser_1502560461_99719"));
+    CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/r_1502560461_99719"));
     EXPECT_NE(newFC1, nullptr);
 
 
