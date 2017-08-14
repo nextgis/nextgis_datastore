@@ -1661,6 +1661,19 @@ void ngsCoordinateTransformationFree(CoordinateTransformationH ct)
                 static_cast<OGRCoordinateTransformation*>(ct));
 }
 
+ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
+                                            ngsCoordinate coordinates)
+{
+    OGRCoordinateTransformation* pct = static_cast<OGRCoordinateTransformation*>(ct);
+    if(!pct) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return {0.0, 0.0, 0.0};
+    }
+
+    pct->Transform(1, &coordinates.X, &coordinates.Y, &coordinates.Z);
+    return coordinates;
+}
+
 long long ngsFeatureAttachmentAdd(FeatureH feature, const char* name,
                                   const char* description, const char* path,
                                   char** options)
@@ -2198,6 +2211,65 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
     Envelope extentLimits(minX, minY, maxX, maxY);
     return mapStore->setExtentLimits(mapId, extentLimits) ?
                 COD_SUCCESS : COD_SET_FAILED;
+}
+
+ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
+        return {0.0, 0.0, 0.0, 0.0};
+    }
+
+    auto map = mapStore->getMap(mapId);
+    if(map) {
+        unsigned short fromEPSG = map->getEpsg();
+        Envelope env = map->getExtent();
+
+        OGRSpatialReference from;
+        if(from.importFromEPSG(fromEPSG) != OGRERR_NONE) {
+            errorMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
+                     fromEPSG);
+            return {0.0, 0.0, 0.0, 0.0};
+        }
+
+        OGRSpatialReference to;
+        if(to.importFromEPSG(epsg) != OGRERR_NONE) {
+            errorMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
+                         epsg);
+            return {0.0, 0.0, 0.0, 0.0};
+        }
+
+        OGRCoordinateTransformation* ct = OGRCreateCoordinateTransformation(&from, &to);
+        if(nullptr != ct) {
+            double x[4], y[4];
+            x[0] = env.minX();
+            y[0] = env.minY();
+            x[1] = env.minX();
+            y[1] = env.maxY();
+            x[2] = env.maxX();
+            y[2] = env.maxY();
+            x[3] = env.maxX();
+            y[3] = env.minY();
+            ct->Transform(4, x, y, nullptr);
+
+            ngsExtent out = {100000000.0, 100000000.0, -100000000.0, -100000000.0};
+            for(int i = 0; i < 4; ++i) {
+                if(x[i] < out.minX)
+                    out.minX = x[i];
+                if(x[i] > out.maxX)
+                    out.maxX = x[i];
+                if(y[i] < out.minY)
+                    out.minY = y[i];
+                if(y[i] > out.maxY)
+                    out.maxY = y[i];
+            }
+
+            return out;
+        }
+    }
+
+    return {0.0, 0.0, 0.0, 0.0};
 }
 
 ngsDrawState ngsMapTouch(

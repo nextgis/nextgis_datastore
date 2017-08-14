@@ -46,6 +46,14 @@ typedef struct _ngsPosition {
     double Y;
 } ngsPosition;
 
+/* Spatial extent */
+typedef struct _ngsExtent {
+    double minX;
+    double minY;
+    double maxX;
+    double maxY;
+} ngsExtent;
+
 /**
  * @brief Catalog object short information. Int type coded both
  * ngsCatalogObjectType and subtype (according to type).
@@ -252,6 +260,8 @@ NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
 NGS_EXTERNC CoordinateTransformationH ngsCoordinateTransformationCreate(
         int fromEPSG, int toEPSG);
 NGS_EXTERNC void ngsCoordinateTransformationFree(CoordinateTransformationH ct);
+NGS_EXTERNC ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
+                                                        ngsCoordinate coordinates);
 
 typedef struct _ngsFeatureAttachmentInfo {
     long long id;
@@ -320,6 +330,8 @@ NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom);
 NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
                                       double maxX, double maxY);
+NGS_EXTERNC ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg);
+
 NGS_EXTERNC enum ngsDrawState ngsMapTouch(
         unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 //NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y, double azimuth);
