@@ -63,6 +63,7 @@ Envelope MapTransform::worldToDisplay(const Envelope& env) const
 
 Envelope MapTransform::displayToWorld(const Envelope& env) const
 {
+    // TODO: make for rotated map
     OGRRawPoint minPt = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
     OGRRawPoint maxPt = displayToWorld(OGRRawPoint(env.maxX(), env.maxY()));
     return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
@@ -70,6 +71,7 @@ Envelope MapTransform::displayToWorld(const Envelope& env) const
 
 OGRRawPoint MapTransform::getMapDistance(double w, double h) const
 {
+    // TODO: make for rotated map
     OGRRawPoint beg = displayToWorld(OGRRawPoint(0, 0));
     OGRRawPoint end = displayToWorld(OGRRawPoint(w, h));
     return OGRRawPoint(end.x - beg.x, end.y - beg.y);

@@ -137,9 +137,13 @@ typedef struct _tileItem{
 
 OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json);
 
-long getGeometryPointId(const OGRGeometry& geometry, Envelope env);
-bool shiftGeometryPoint(
-        OGRGeometry& geometry, long id, const OGRRawPoint& offset);
+bool geometryIntersects(const OGRGeometry& geometry, const Envelope env);
+long getGeometryPointId(
+        const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates);
+bool shiftGeometryPoint(OGRGeometry& geometry,
+        long id,
+        const OGRRawPoint& offset,
+        OGRPoint* coordinates);
 
 } // namespace ngs
 

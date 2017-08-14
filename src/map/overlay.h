@@ -84,16 +84,18 @@ public:
     const CPLString& layerName() const { return m_layerName; }
     virtual void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
     virtual GeometryPtr geometry() const { return m_geometry; }
-    virtual long getGeometryPointIdByCoordinates(
-            const OGRRawPoint& mapCoordinates) const;
-    virtual bool shiftPoint(long id, const OGRRawPoint& mapOffset);
+    virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
+    virtual bool isSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
-    static GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
+    GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
 
 protected:
     CPLString m_layerName;
     GeometryPtr m_geometry;
+    long m_selectedPointId;
+    OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
 };
 

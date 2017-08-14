@@ -29,6 +29,7 @@
 namespace ngs {
 
 constexpr double TOLERANCE_PX = 7.0;
+constexpr double GEOMETRY_SIZE_PX = 50.0;
 
 Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
         : m_map(map)
@@ -40,30 +41,55 @@ Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
 EditLayerOverlay::EditLayerOverlay(const MapView& map)
         : Overlay(map, MOT_EDIT)
         , m_geometry(nullptr)
+        , m_selectedPointId(NOT_FOUND)
 {
     Settings& settings = Settings::instance();
-    m_tolerancePx = settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
+    m_tolerancePx =
+            settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
 }
 
-// static
 GeometryPtr EditLayerOverlay::createGeometry(
         const OGRwkbGeometryType geometryType,
         const OGRRawPoint& geometryCenter)
 {
-    switch (geometryType) {
-        case wkbPoint:
+    OGRRawPoint mapDist =
+            m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+
+    switch(OGR_GT_Flatten(geometryType)) {
+        case wkbPoint: {
             return GeometryPtr(
                     new OGRPoint(geometryCenter.x, geometryCenter.y));
-        default:
+        }
+        case wkbLineString: {
+            OGRLineString* line = new OGRLineString();
+            line->addPoint(
+                    geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
+            line->addPoint(
+                    geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
+            return GeometryPtr(line);
+        }
+        case wkbMultiPoint: {
+            OGRMultiPoint* mpt = new OGRMultiPoint();
+            mpt->addGeometryDirectly(
+                    new OGRPoint(geometryCenter.x, geometryCenter.y));
+
+            // FIXME: remove it, only for test
+            mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x - mapDist.x,
+                    geometryCenter.y - mapDist.y));
+            mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x + mapDist.x,
+                    geometryCenter.y + mapDist.y));
+            return GeometryPtr(mpt);
+        }
+        default: {
             return GeometryPtr();
+        }
     }
 }
 
-long EditLayerOverlay::getGeometryPointIdByCoordinates(
-        const OGRRawPoint& mapCoordinates) const
+bool EditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 {
-    if (!m_geometry) {
-        return NOT_FOUND;
+    if(!m_geometry) {
+        m_selectedPointId = NOT_FOUND;
     }
 
     OGRRawPoint mapTolerance =
@@ -75,16 +101,43 @@ long EditLayerOverlay::getGeometryPointIdByCoordinates(
     double maxY = mapCoordinates.y + mapTolerance.y;
     Envelope mapEnv(minX, minY, maxX, maxY);
 
-    return getGeometryPointId(*m_geometry, mapEnv);
+    OGRPoint coordinates;
+    long id = getGeometryPointId(*m_geometry, mapEnv, &coordinates);
+
+    if(0 <= id) {
+        m_selectedPointId = id;
+        m_selectedPointCoordinates = coordinates;
+    }
+
+    return (0 <= m_selectedPointId);
 }
 
-bool EditLayerOverlay::shiftPoint(long id, const OGRRawPoint& mapOffset)
+bool EditLayerOverlay::isSelectedPoint(const OGRRawPoint* mapCoordinates) const
 {
-    if (!m_geometry) {
+    bool ret = (0 <= m_selectedPointId);
+    if(ret && mapCoordinates) {
+        OGRRawPoint mapTolerance =
+                m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
+
+        double minX = mapCoordinates->x - mapTolerance.x;
+        double maxX = mapCoordinates->x + mapTolerance.x;
+        double minY = mapCoordinates->y - mapTolerance.y;
+        double maxY = mapCoordinates->y + mapTolerance.y;
+        Envelope mapEnv(minX, minY, maxX, maxY);
+
+        ret = geometryIntersects(m_selectedPointCoordinates, mapEnv);
+    }
+    return ret;
+}
+
+bool EditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
+{
+    if(!m_geometry || 0 > m_selectedPointId) {
         return false;
     }
 
-    return shiftGeometryPoint(*m_geometry, id, mapOffset);
+    return shiftGeometryPoint(*m_geometry, m_selectedPointId, mapOffset,
+            &m_selectedPointCoordinates);
 }
 
-}  // namespace ngs
+} // namespace ngs
