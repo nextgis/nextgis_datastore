@@ -56,22 +56,50 @@ bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
 
 Envelope MapTransform::worldToDisplay(const Envelope& env) const
 {
-    OGRRawPoint minPt = worldToDisplay(OGRRawPoint(env.minX(), env.minY()));
-    OGRRawPoint maxPt = worldToDisplay(OGRRawPoint(env.maxX(), env.maxY()));
-    return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
+    OGRRawPoint pt1 = worldToDisplay(OGRRawPoint(env.minX(), env.minY()));
+    OGRRawPoint pt2 = worldToDisplay(OGRRawPoint(env.maxX(), env.minY()));
+    OGRRawPoint pt3 = worldToDisplay(OGRRawPoint(env.maxX(), env.maxY()));
+    OGRRawPoint pt4 = worldToDisplay(OGRRawPoint(env.minX(), env.maxY()));
+
+    double minX = std::min({pt1.x, pt2.x, pt3.x, pt4.x});
+    minX = std::max(minX, 0.0);
+
+    double minY = std::min({pt1.y, pt2.y, pt3.y, pt4.y});
+    minY = std::max(minY, 0.0);
+
+    double maxX = std::max({pt1.x, pt2.x, pt3.x, pt4.x});
+    maxX = std::min(maxX, static_cast<double>(m_displayWidht));
+
+    double maxY = std::max({pt1.y, pt2.y, pt3.y, pt4.y});
+    maxY = std::min(maxY, static_cast<double>(m_displayHeight));
+
+    return Envelope(minX, minY, maxX, maxY);
 }
 
 Envelope MapTransform::displayToWorld(const Envelope& env) const
 {
-    // TODO: make for rotated map
-    OGRRawPoint minPt = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
-    OGRRawPoint maxPt = displayToWorld(OGRRawPoint(env.maxX(), env.maxY()));
-    return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
+    OGRRawPoint pt1 = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
+    OGRRawPoint pt2 = displayToWorld(OGRRawPoint(env.maxX(), env.minY()));
+    OGRRawPoint pt3 = displayToWorld(OGRRawPoint(env.maxX(), env.maxY()));
+    OGRRawPoint pt4 = displayToWorld(OGRRawPoint(env.minX(), env.maxY()));
+
+    double minX = std::min({pt1.x, pt2.x, pt3.x, pt4.x});
+    minX = std::max(minX, m_extentLimit.minX());
+
+    double minY = std::min({pt1.y, pt2.y, pt3.y, pt4.y});
+    minY = std::max(minY, m_extentLimit.minY());
+
+    double maxX = std::max({pt1.x, pt2.x, pt3.x, pt4.x});
+    maxX = std::min(maxX, m_extentLimit.maxX());
+
+    double maxY = std::max({pt1.y, pt2.y, pt3.y, pt4.y});
+    maxY = std::min(maxY, m_extentLimit.maxY());
+
+    return Envelope(minX, minY, maxX, maxY);
 }
 
 OGRRawPoint MapTransform::getMapDistance(double w, double h) const
 {
-    // TODO: make for rotated map
     OGRRawPoint beg = displayToWorld(OGRRawPoint(0, 0));
     OGRRawPoint end = displayToWorld(OGRRawPoint(w, h));
     return OGRRawPoint(end.x - beg.x, end.y - beg.y);
