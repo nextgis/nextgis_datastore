@@ -56,22 +56,66 @@ bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
 
 Envelope MapTransform::worldToDisplay(const Envelope& env) const
 {
-    OGRRawPoint minPt = worldToDisplay(OGRRawPoint(env.minX(), env.minY()));
-    OGRRawPoint maxPt = worldToDisplay(OGRRawPoint(env.maxX(), env.maxY()));
+    OGRRawPoint pt[4];
+    pt[0] = worldToDisplay(OGRRawPoint(env.minX(), env.minY()));
+    pt[1] = worldToDisplay(OGRRawPoint(env.minX(), env.maxY()));
+    pt[2] = worldToDisplay(OGRRawPoint(env.maxX(), env.maxY()));
+    pt[3] = worldToDisplay(OGRRawPoint(env.maxX(), env.minY()));
+
+    OGRRawPoint minPt(BIG_VALUE, BIG_VALUE);
+    OGRRawPoint maxPt(-BIG_VALUE, -BIG_VALUE);
+
+    for(const OGRRawPoint &cpt : pt) {
+        if(cpt.x < minPt.x) {
+            minPt.x = cpt.x;
+        }
+        if(cpt.x > maxPt.x) {
+            maxPt.x = cpt.x;
+        }
+
+        if(cpt.y < minPt.y) {
+            minPt.y = cpt.y;
+        }
+        if(cpt.y > maxPt.y) {
+            maxPt.y = cpt.y;
+        }
+    }
+
     return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
 }
 
 Envelope MapTransform::displayToWorld(const Envelope& env) const
 {
-    // TODO: make for rotated map
-    OGRRawPoint minPt = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
-    OGRRawPoint maxPt = displayToWorld(OGRRawPoint(env.maxX(), env.maxY()));
+    OGRRawPoint pt[4];
+    pt[0] = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
+    pt[1] = displayToWorld(OGRRawPoint(env.minX(), env.maxY()));
+    pt[2] = displayToWorld(OGRRawPoint(env.maxX(), env.maxY()));
+    pt[3] = displayToWorld(OGRRawPoint(env.maxX(), env.minY()));
+
+    OGRRawPoint minPt(BIG_VALUE, BIG_VALUE);
+    OGRRawPoint maxPt(-BIG_VALUE, -BIG_VALUE);
+
+    for(const OGRRawPoint &cpt : pt) {
+        if(cpt.x < minPt.x) {
+            minPt.x = cpt.x;
+        }
+        if(cpt.x > maxPt.x) {
+            maxPt.x = cpt.x;
+        }
+
+        if(cpt.y < minPt.y) {
+            minPt.y = cpt.y;
+        }
+        if(cpt.y > maxPt.y) {
+            maxPt.y = cpt.y;
+        }
+    }
+
     return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
 }
 
 OGRRawPoint MapTransform::getMapDistance(double w, double h) const
 {
-    // TODO: make for rotated map
     OGRRawPoint beg = displayToWorld(OGRRawPoint(0, 0));
     OGRRawPoint end = displayToWorld(OGRRawPoint(w, h));
     return OGRRawPoint(end.x - beg.x, end.y - beg.y);

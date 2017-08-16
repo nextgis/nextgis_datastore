@@ -130,7 +130,6 @@ public:
             std::vector<const char*>());
     void setSpatialFilter(GeometryPtr geom);
     void setSpatialFilter(double minX, double minY, double maxX, double maxY);
-    void setAttributeFilter(const char* filter);
 
     Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
@@ -144,7 +143,7 @@ public:
     VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope());
     std::set<unsigned char> zoomLevels() const { return m_zoomLevels; }
     void addOverviewItem(const Tile& tile, const VectorTileItem& item) {
-        CPLMutexHolder holder(m_genTileMutex, 50.0);
+        CPLMutexHolder holder(m_genTileMutex, 150.0);
         m_genTiles[tile].add(item, true);
     }
 
@@ -200,6 +199,7 @@ protected:
     CPLMutex* m_genTileMutex;
     CPLMutex* m_layersMutex;
     std::vector<const char*> m_ignoreFields;
+    Envelope m_extent;
 
 private:
     class TilingData : public ThreadData {

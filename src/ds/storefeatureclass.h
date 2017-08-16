@@ -40,11 +40,19 @@ public:
 
     // Table interface
 public:
-    virtual void fillFields() override;
     virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid) override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
                                   char** options) override;
+    virtual bool setProperty(const char* key, const char* value,
+                             const char* domain) override;
+    virtual CPLString getProperty(const char* key, const char* defaultValue,
+                                  const char* domain) override;
+    virtual std::map<CPLString, CPLString> getProperties(const char* domain) override;
+    virtual void deleteProperties() override;
+
+protected:
+    virtual void fillFields() override;
 };
 
 } // namespace ngs

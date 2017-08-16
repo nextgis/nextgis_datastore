@@ -87,15 +87,19 @@ public:
     virtual bool updateFeature(const FeaturePtr& feature);
     virtual bool deleteFeature(GIntBig id);
     virtual bool deleteFeatures();
-    GIntBig featureCount(bool force = true) const;
+    GIntBig featureCount(bool force = false) const;
     void reset() const;
+    void setAttributeFilter(const char* filter);
     FeaturePtr nextFeature() const;
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
     const char* fidColumn() const;    
-    const std::vector<Field>& fields() const { return m_fields; }
-    virtual void fillFields();
+    const std::vector<Field>& fields() {
+        if(m_fields.empty())
+            fillFields();
+        return m_fields;
+    }
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                           const char* description, const char* filePath,
                           char** options = nullptr);
@@ -104,6 +108,11 @@ public:
     virtual bool updateAttachment(GIntBig aid, const char* fileName,
                           const char* description);
     virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid);
+    virtual bool setProperty(const char* key, const char* value, const char* domain);
+    virtual CPLString getProperty(const char* key, const char* defaultValue,
+                                  const char* domain);
+    virtual std::map<CPLString, CPLString> getProperties(const char* domain);
+    virtual void deleteProperties();
 
     // Object interface
 public:
@@ -115,6 +124,7 @@ protected:
     OGRFeatureDefn* definition() const;
     bool getAttachmentsTable();
     CPLString getAttachmentsPath() const;
+    virtual void fillFields();
 
 protected:
     OGRLayer* m_layer;

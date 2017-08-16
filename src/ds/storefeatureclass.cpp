@@ -31,16 +31,14 @@ StoreFeatureClass::StoreFeatureClass(OGRLayer* layer,
                                      const CPLString& name) :
     FeatureClass(layer, parent, CAT_FC_GPKG, name)
 {
-    if(EQUAL(m_fields.back().m_name, REMOTE_ID_KEY)) {
-        m_fields.pop_back();
-    }
 }
 
 FeaturePtr StoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
 {
+    CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     m_layer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, REMOTE_ID_KEY, rid));
-    m_layer->ResetReading();
+//    m_layer->ResetReading();
     OGRFeature* pFeature = m_layer->GetNextFeature();
     FeaturePtr out;
     if (nullptr != pFeature) {
@@ -164,6 +162,48 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
     }
 
     return -1;
+}
+
+bool StoreFeatureClass::setProperty(const char* key, const char* value,
+                                    const char* domain)
+{
+    return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
+}
+
+CPLString StoreFeatureClass::getProperty(const char* key, const char* defaultValue,
+                                         const char* domain)
+{
+    const char* item = m_layer->GetMetadataItem(key, domain);
+    return item == nullptr ? item : defaultValue;
+}
+
+std::map<CPLString, CPLString> StoreFeatureClass::getProperties(const char* domain)
+{
+    std::map<CPLString, CPLString> out;
+    char** list = m_layer->GetMetadata(domain);
+    if(nullptr != list) {
+        int i = 0;
+        while (list[i] != nullptr) {
+            const char* item = list[i];
+            size_t len = CPLStrnlen(item, 1024);
+            CPLString key, value;
+            for(size_t j = 0; j < len; ++j) {
+                if(item[j] == '=' || item[j] == ':' ) {
+                    value = item + 1 + j;
+                    break;
+                }
+                key += item[j];
+            }
+            out[key] = value;
+            i++;
+        }
+    }
+    return out;
+}
+
+void StoreFeatureClass::deleteProperties()
+{
+    m_layer->SetMetadata(nullptr, nullptr);
 }
 
 } // namespace ngs

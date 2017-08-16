@@ -52,7 +52,7 @@ public:
     virtual void startBatchOperation() override { enableJournal(false); }
     virtual void stopBatchOperation() override { enableJournal(true); }
     virtual bool isBatchOperation() const override {
-        return m_disableJournalCounter != 0;
+        return m_disableJournalCounter > 0;
     }
 
     virtual FeatureClass* createFeatureClass(const CPLString& name,
@@ -61,7 +61,10 @@ public:
                                              OGRwkbGeometryType type,
                                              const Options& options = Options(),
                                              const Progress& progress = Progress()) override;
-
+    virtual bool setProperty(const char* key, const char* value) override;
+    virtual CPLString getProperty(const char* key, const char* defaultValue) override;
+    virtual std::map<CPLString, CPLString> getProperties(
+            const char* table, const char* domain) override;
     // Dataset interface
 protected:
     virtual OGRLayer* createAttachmentsTable(const char* name) override;

@@ -381,6 +381,60 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     ngsUnInit();
 }
 
+TEST(DataStoreTests, TestLoadAndDelete) {
+    counter = 0;
+
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString storePath = catalogPath + "/tmp/main.ngst";
+    CPLString shapePath = catalogPath + "/data/bld.shp";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
+
+    options = nullptr;
+    options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
+    options = ngsAddNameValue(options, "NEW_NAME", "delete_me");
+
+    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsListFree(options);
+    EXPECT_GE(counter, 1);
+
+    CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/delete_me"));
+    EXPECT_NE(newFC1, nullptr);
+
+    counter = 0;
+    options = nullptr;
+    options = ngsAddNameValue(options, "FORCE", "ON");
+    options = ngsAddNameValue(options, "ZOOM_LEVELS",
+                              "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
+    EXPECT_EQ(ngsFeatureClassCreateOverviews(newFC1, options, ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    EXPECT_GE(counter, 1);
+    ngsListFree(options);
+
+    EXPECT_EQ(ngsCatalogObjectDelete(newFC1), COD_SUCCESS);
+
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);
+    int count = 0;
+    while(pathInfo[count].name != nullptr) {
+        std::cout << "Path:" << storePath << "/" << pathInfo[count].name << "\n";
+        count++;
+    }
+
+    ngsFree(pathInfo);
+
+    ngsUnInit();
+}
+
 TEST(DataStoreTests, TestCopyFCToGeoJSON) {
     counter = 0;
 
@@ -497,6 +551,18 @@ TEST(DataStoreTests, TestCreateFeature) {
 
     ASSERT_NE(featureClass, nullptr);
     EXPECT_EQ(ngsFeatureClassCount(featureClass), 0);
+
+    ngsField* fields = ngsFeatureClassFields(featureClass);
+    ASSERT_NE(fields, nullptr);
+    int count = 0;
+    while(fields[count].name != nullptr) {
+        EXPECT_NE(fields[count].name, "");
+        std::cout << "Name: " << fields[count].name << " Alias: " << fields[count].alias << "\n";
+        count++;
+    }
+    ngsFree(fields);
+
+    EXPECT_GE(count, 1);
 
     FeatureH newFeature = ngsFeatureClassCreateFeature(featureClass);
     ASSERT_NE(newFeature, nullptr);

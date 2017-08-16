@@ -42,9 +42,15 @@ constexpr const char* ATTACH_FILE_NAME = "name";
 constexpr const char* ATTACH_DESCRIPTION = "descript";
 
 constexpr const char *KEY_USER = "user";
+constexpr const char *KEY_NG_ADDITIONS = "nga";
 constexpr const char *KEY_USER_PREFIX = "USER.";
 constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
 constexpr const char* NGS_VERSION_KEY = "version";
+
+constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
+// Overviews
+constexpr const char* OVR_PREFIX = "overviews_";
+constexpr int OVR_PREFIX_LEN = length(OVR_PREFIX);
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -122,7 +128,7 @@ public:
     virtual bool setProperty(const char* key, const char* value);
     virtual CPLString getProperty(const char* key, const char* defaultValue);
     virtual std::map<CPLString, CPLString> getProperties(
-            const char* table);
+            const char* table, const char* domain);
     virtual void deleteProperties(const char* table);
     virtual void startBatchOperation() {}
     virtual void stopBatchOperation() {}

@@ -26,7 +26,6 @@
 
 namespace ngs {
 
-constexpr double BIG_VALUE = 10000000.0;
 constexpr double DBLNAN = 0.0;
 
 constexpr const char* MAP_MIN_X_KEY = "min_x";
@@ -218,11 +217,18 @@ bool Envelope::contains(const Envelope &other) const
 
 const Envelope &Envelope::merge(const Envelope &other)
 {
-    m_minX = std::min(m_minX, other.m_minX);
-    m_maxX = std::max(m_maxX, other.m_maxX);
-    m_minY = std::min(m_minY, other.m_minY);
-    m_maxY = std::max(m_maxY, other.m_maxY);
-
+    if(isInit()) {
+        m_minX = std::min(m_minX, other.m_minX);
+        m_maxX = std::max(m_maxX, other.m_maxX);
+        m_minY = std::min(m_minY, other.m_minY);
+        m_maxY = std::max(m_maxY, other.m_maxY);
+    }
+    else {
+        m_minX = other.m_minX;
+        m_maxX = other.m_maxX;
+        m_minY = other.m_minY;
+        m_maxY = other.m_maxY;
+    }
     return *this;
 }
 

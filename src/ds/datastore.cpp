@@ -99,9 +99,14 @@ void DataStore::fillFeatureClasses()
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             const char* layerName = layer->GetName();
-            if(EQUALN(layerName, STORE_EXT, STORE_EXT_LEN)) {
+            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
+                m_metadata = layer;
                 continue;
             }
+            if(EQUALN(layerName, OVR_PREFIX, OVR_PREFIX_LEN)) {
+                continue;
+            }
+
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
                                                          CAT_TABLE_ANY,
@@ -147,6 +152,10 @@ const char* DataStore::extension()
 
 bool DataStore::open(unsigned int openFlags, const Options &options)
 {
+    if(isOpened()) {
+        return true;
+    }
+
     if(!Dataset::open(openFlags, options))
         return false;
 
@@ -221,6 +230,26 @@ FeatureClass* DataStore::createFeatureClass(const CPLString& name,
     return out;
 }
 
+bool DataStore::setProperty(const char* key, const char* value)
+{
+    return m_DS->SetMetadataItem(key, value, KEY_NG_ADDITIONS) == OGRERR_NONE;
+}
+
+CPLString DataStore::getProperty(const char* key, const char* defaultValue)
+{
+    const char* out = m_DS->GetMetadataItem(key, KEY_NG_ADDITIONS);
+    return nullptr == out ? defaultValue : out;
+}
+
+std::map<CPLString, CPLString> DataStore::getProperties(const char* table, const char* domain)
+{
+    ObjectPtr child = getChild(table);
+    Table* tablePtr = ngsDynamicCast(Table, child);
+    if(nullptr != tablePtr)
+        return tablePtr->getProperties(domain);
+    return std::map<CPLString, CPLString>();
+}
+
 bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 {
     if(!isOpened() || isReadOnly())
@@ -266,6 +295,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
     fieldDefinition.AddFieldDefn(&ridField);
 
+    ObjectPtr object;
     if(type == CAT_FC_GPKG) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.stringOption("GEOMETRY_TYPE", ""));
@@ -273,48 +303,34 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
             return errorMessage(COD_CREATE_FAILED, _("Unsupported geometry type"));
         }
 
-        ObjectPtr fc(createFeatureClass(newName, &fieldDefinition,
+        object = ObjectPtr(createFeatureClass(newName, &fieldDefinition,
                                               m_spatialReference, geomType,
                                               options));
-        if(!fc) {
-            return false;
-        }
-
-        if(m_childrenLoaded) {
-            m_children.push_back(fc);
-        }
     }
     else if(type == CAT_TABLE_GPKG) {
-        ObjectPtr t(createTable(newName, &fieldDefinition, options));
-        if(nullptr == t) {
-            return false;
-        }
-
-        if(m_childrenLoaded) {
-            m_children.push_back(t);
-        }
+        object = ObjectPtr(createTable(newName, &fieldDefinition, options));
     }
+
+    if(!object) {
+        return false;
+    }
+
+    Table* table = ngsDynamicCast(Table, object);
 
     // Store aliases and field original names in properties
     for(size_t i = 0; i < fields.size(); ++i) {
-        setProperty(CPLSPrintf("%s.FIELD_%ld_NAME", newName.c_str(), i),
-                    fields[i].name);
-        setProperty(CPLSPrintf("%s.FIELD_%ld_ALIAS", newName.c_str(), i),
-                    fields[i].alias);
+        table->setProperty(CPLSPrintf("FIELD_%ld_NAME", i), fields[i].name, KEY_NG_ADDITIONS);
+        table->setProperty(CPLSPrintf("FIELD_%ld_ALIAS", i), fields[i].alias, KEY_NG_ADDITIONS);
     }
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {
         if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
-            setProperty(CPLSPrintf("%s.%s", newName.c_str(),
-                                   it->first.c_str() + 5), it->second);
+            table->setProperty(CPLSPrintf("%s", it->first.c_str() + 5), it->second, KEY_USER);
         }
     }
 
     if(m_childrenLoaded) {
-        Table* table = ngsDynamicCast(Table, m_children.back());
-        if(nullptr != table) {
-            table->fillFields();
-        }
+        m_children.push_back(object);
     }
 
     return true;

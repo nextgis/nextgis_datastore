@@ -96,12 +96,13 @@ Table::Table(OGRLayer *layer,
 {
     CPLReleaseMutex(m_featureMutex);
     CPLReleaseMutex(m_attMutex);
-    fillFields();
 }
 
 Table::~Table()
 {
+    CPLDebug("ngstore", "CPLDestroyMutex(m_featureMutex)");
     CPLDestroyMutex(m_featureMutex);
+    CPLDebug("ngstore", "CPLDestroyMutex(m_attMutex)");
     CPLDestroyMutex(m_attMutex);
     if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
@@ -130,7 +131,7 @@ FeaturePtr Table::getFeature(GIntBig id) const
 {
     if(nullptr == m_layer)
         return FeaturePtr();
-
+CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     OGRFeature* pFeature = m_layer->GetFeature(id);
     if (nullptr == pFeature)
@@ -141,10 +142,10 @@ FeaturePtr Table::getFeature(GIntBig id) const
 
 bool Table::insertFeature(const FeaturePtr &feature)
 {
-   if(nullptr == m_layer)
+    if(nullptr == m_layer)
         return false;
 
-   CPLErrorReset();
+    CPLErrorReset();
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
         Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
         if(dataset && !dataset->isBatchOperation()) {
@@ -221,6 +222,7 @@ GIntBig Table::featureCount(bool force) const
 
 void Table::reset() const
 {
+    CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     if(nullptr != m_layer)
         m_layer->ResetReading();
@@ -230,6 +232,7 @@ FeaturePtr Table::nextFeature() const
 {
     if(nullptr == m_layer)
         return FeaturePtr();
+    CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     return FeaturePtr(m_layer->GetNextFeature(), this);
 }
@@ -282,7 +285,7 @@ const char* Table::fidColumn() const
     return m_layer->GetFIDColumn();
 }
 
-char**Table::getMetadata(const char* domain) const
+char** Table::getMetadata(const char* domain) const
 {
     if(nullptr == m_layer)
         return nullptr;
@@ -291,13 +294,14 @@ char**Table::getMetadata(const char* domain) const
 
 bool Table::destroy()
 {
-    CPLMutexHolder holder(m_featureMutex);
     Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
         return errorMessage(_("Parent is not dataset"));
     }
 
     CPLString fullNameStr = fullName();
+    m_layer->SetAttributeFilter(nullptr);
+    reset();
     if(dataset->destroyTable(this)) {
         Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
 
@@ -307,6 +311,14 @@ bool Table::destroy()
     }
     return false;
 }
+
+void Table::setAttributeFilter(const char* filter)
+{
+    if(nullptr != m_layer) {
+        m_layer->SetAttributeFilter(filter);
+    }
+}
+
 
 OGRFeatureDefn*Table::definition() const
 {
@@ -351,7 +363,7 @@ void Table::fillFields()
             return;
         }
 
-        auto properties = parentDataset->getProperties(m_name);
+        auto properties = getProperties(KEY_NG_ADDITIONS);
 
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
@@ -366,11 +378,11 @@ void Table::fillFields()
         }
 
         // Fill metadata
+        properties = getProperties(KEY_USER);
         for(auto it = properties.begin(); it != properties.end(); ++it) {
-            if(EQUALN(it->first, "FIELD_", 6)) {
-                continue;
+            if(m_layer->GetMetadataItem(it->first, KEY_USER) == nullptr) {
+                m_layer->SetMetadataItem(it->first, it->second, KEY_USER);
             }
-            m_layer->SetMetadataItem(it->first, it->second, KEY_USER);
         }
     }
 }
@@ -521,6 +533,63 @@ bool Table::canDestroy() const
     if(nullptr == dataSet)
         return false;
     return !dataSet->isReadOnly();
+}
+
+bool Table::setProperty(const char* key, const char* value, const char* domain)
+{
+    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return false;
+    }
+
+    CPLString name = m_name;
+    if(nullptr != domain) {
+        name += CPLString(".") + domain;
+    }
+
+    name += CPLString(".") + key;
+
+    return parentDataset->setProperty(name, value);
+}
+
+CPLString Table::getProperty(const char* key, const char* defaultValue,
+                              const char* domain)
+{
+    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return "";
+    }
+
+    CPLString name = m_name;
+    if(nullptr != domain) {
+        name += CPLString(".") + domain;
+    }
+
+    name += CPLString(".") + key;
+
+    return parentDataset->getProperty(name, defaultValue);
+
+}
+
+std::map<CPLString, CPLString> Table::getProperties(const char* domain)
+{
+    std::map<CPLString, CPLString> out;
+    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return out;
+    }
+
+    return  parentDataset->getProperties(m_name, domain);
+}
+
+void Table::deleteProperties()
+{
+    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return;
+    }
+
+    return parentDataset->deleteProperties(m_name);
 }
 
 } // namespace ngs

@@ -142,6 +142,8 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     }
 
     switch (state) {
+    case DS_NOTHING:
+        return true;
     case DS_REDRAW:
         clearTiles();
     [[clang::fallthrough]]; case DS_REFILL:

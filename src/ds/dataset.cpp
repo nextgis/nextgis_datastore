@@ -181,10 +181,6 @@ constexpr const char* META_KEY = "key";
 constexpr unsigned short META_KEY_LIMIT = 128;
 constexpr const char* META_VALUE = "value";
 constexpr unsigned short META_VALUE_LIMIT = 512;
-constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
-
-// Overviews
-constexpr const char* OVR_ADD = "_overviews";
 
 // Attachments
 constexpr const char* ATTACH_EXT = "attachments";
@@ -303,26 +299,31 @@ CPLString Dataset::getProperty(const char* key, const char* defaultValue)
     CPLMutexHolder holder(m_executeSQLMutex);
 
     m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s\"", META_KEY, key));
-    m_metadata->ResetReading();
     OGRFeature* feature = m_metadata->GetNextFeature();
     CPLString out;
     if(feature) {
         out = feature->GetFieldAsString(1);
         OGRFeature::DestroyFeature(feature);
     }
+
+    m_metadata->SetAttributeFilter(nullptr);
     return out;
 }
 
-std::map<CPLString, CPLString> Dataset::getProperties(const char* table)
+std::map<CPLString, CPLString> Dataset::getProperties(const char* table, const char* domain)
 {
     std::map<CPLString, CPLString> out;
     if(!m_metadata || nullptr == table)
         return out;
 
+    CPLString name = table;
+    if(nullptr != domain) {
+        name += CPLString(".") + domain;
+    }
+
     CPLMutexHolder holder(m_executeSQLMutex);
 
-    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY, table));
-    m_metadata->ResetReading();
+    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY, name.c_str()));
     OGRFeature* feature = nullptr;
     while((feature = m_metadata->GetNextFeature()) != nullptr) {
         CPLString key = feature->GetFieldAsString(0) + CPLStrnlen(table, 255) + 1;
@@ -331,6 +332,8 @@ std::map<CPLString, CPLString> Dataset::getProperties(const char* table)
 
         out[key] = value;
     }
+    m_metadata->SetAttributeFilter(nullptr);
+//    m_metadata->ResetReading();
     return out;
 }
 
@@ -459,6 +462,9 @@ void Dataset::fillFeatureClasses()
                 m_metadata = layer;
                 continue;
             }
+            if(EQUALN(layerName, OVR_PREFIX, OVR_PREFIX_LEN)) {
+                continue;
+            }
 
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
             if(geometryType == wkbNone) {
@@ -520,8 +526,8 @@ OGRLayer* Dataset::createOverviewsTable(const char* name)
     if(!m_addsDS)
         return nullptr;
 
-    CPLString ovrLayerName(name);
-    ovrLayerName += OVR_ADD;
+    CPLString ovrLayerName(OVR_PREFIX);
+    ovrLayerName += name;
 
     return createOverviewsTable(m_addsDS, ovrLayerName);
 }
@@ -530,8 +536,8 @@ bool Dataset::destroyOverviewsTable(const char* name)
 {
     if(!m_addsDS)
         return false;
-    CPLString ovrLayerName(name);
-    ovrLayerName += OVR_ADD;
+    CPLString ovrLayerName(OVR_PREFIX);
+    ovrLayerName += name;
     OGRLayer* layer = m_addsDS->GetLayerByName(ovrLayerName);
     if(!layer)
         return false;
@@ -540,15 +546,15 @@ bool Dataset::destroyOverviewsTable(const char* name)
 
 bool Dataset::clearOverviewsTable(const char* name)
 {
-    return deleteFeatures(CPLSPrintf("%s%s", name, OVR_ADD));
+    return deleteFeatures(CPLSPrintf("%s%s", OVR_PREFIX, name));
 }
 
 OGRLayer* Dataset::getOverviewsTable(const char* name)
 {
     if(!m_addsDS)
         return nullptr;
-    CPLString ovrLayerName(name);
-    ovrLayerName += OVR_ADD;
+    CPLString ovrLayerName(OVR_PREFIX);
+    ovrLayerName += name;
     return m_addsDS->GetLayerByName(ovrLayerName);
 }
 
@@ -648,6 +654,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                             m_name.c_str ());
     }
 
+    CPLString fullNameStr;
     if(Filter::isTable(child->type())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
@@ -673,7 +680,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         if(result != COD_SUCCESS) {
             return result;
         }
-
+        fullNameStr = dstTable->fullName();
     }
     else if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
@@ -725,12 +732,18 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             if(result != COD_SUCCESS) {
                 return result;
             }
+            fullNameStr = dstFClass->fullName();
         }
     }
     else {
         // TODO: raster and container support
         return errorMessage(COD_UNSUPPORTED,
                             _("'%s' has unsuported type"), child->name().c_str());
+    }
+
+    if(m_childrenLoaded) {
+        notifyChanges();
+        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     if(move) {
@@ -904,6 +917,8 @@ OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
         warningMessage(COD_WARNING, _("Failed to add version to methadata"));
     }
 
+    ds->SetMetadataItem(NGS_VERSION_KEY, CPLSPrintf("%d", NGS_VERSION_NUM), KEY_NG_ADDITIONS);
+
     return metadataLayer;
 }
 
@@ -911,6 +926,7 @@ bool Dataset::destroyTable(GDALDataset* ds, OGRLayer* layer)
 {
     for(int i = 0; i < ds->GetLayerCount (); ++i){
         if(ds->GetLayer(i) == layer) {
+            layer->ResetReading();
             if(ds->DeleteLayer(i) == OGRERR_NONE) {
                 return true;
             }
@@ -1028,29 +1044,6 @@ void Dataset::refresh()
         return;
     }
 
-    for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
-        OGRLayer* layer = m_DS->GetLayer(i);
-        if(nullptr != layer) {
-            OGRwkbGeometryType geometryType = layer->GetGeomType();
-            const char* layerName = layer->GetName();
-            // Hide metadata, overviews, history tables
-            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
-                m_metadata = layer;
-                continue;
-            }
-
-            // layer->GetLayerDefn()->GetGeomFieldCount() == 0
-            if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new Table(layer, this,
-                        CAT_TABLE_ANY, layerName)));
-            }
-            else {
-                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                            CAT_FC_ANY, layerName)));
-            }
-        }
-    }
-
     std::vector<const char*> deleteNames, addNames;
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer* layer = m_DS->GetLayer(i);
@@ -1061,14 +1054,14 @@ void Dataset::refresh()
                 m_metadata = layer;
                 continue;
             }
-
             addNames.push_back(layerName);
         }
     }
 
     // Fill delete names array
-    for(const ObjectPtr& child : m_children)
+    for(const ObjectPtr& child : m_children) {
         deleteNames.push_back(child->name());
+    }
 
     // Remove same names from add and delete arrays
     removeDuplicates(deleteNames, addNames);

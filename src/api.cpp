@@ -723,15 +723,15 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
     size_t outputSize = 0;
     ObjectContainer* const container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(!container) {
-        if(!objectFilter.canDisplay(catalogObjectPointer)) {
+//        if(!objectFilter.canDisplay(catalogObjectPointer)) {
             return nullptr;
-        }
+//        }
 
-        output = static_cast<ngsCatalogObjectInfo*>(
-                    CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-        output[0] = {catalogObject->name(), catalogObject->type(), catalogObject};
-        output[1] = {nullptr, -1, nullptr};
-        return output;
+//        output = static_cast<ngsCatalogObjectInfo*>(
+//                    CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
+//        output[0] = {catalogObject->name(), catalogObject->type(), catalogObject};
+//        output[1] = {nullptr, -1, nullptr};
+//        return output;
     }
 
     if(!container->hasChildren()) {

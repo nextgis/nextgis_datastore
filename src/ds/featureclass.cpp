@@ -269,10 +269,7 @@ FeatureClass::FeatureClass(OGRLayer* layer,
     m_genTileMutex(CPLCreateMutex()),
     m_layersMutex(CPLCreateMutex())
 {
-    CPLReleaseMutex(m_fieldsMutex);
-    CPLReleaseMutex(m_genTileMutex);
-    CPLReleaseMutex(m_layersMutex);
-    if(m_layer) {
+    if(nullptr != m_layer) {
         m_spatialReference = m_layer->GetSpatialRef();
 
         OGRFeatureDefn* defn = m_layer->GetLayerDefn();
@@ -283,19 +280,32 @@ FeatureClass::FeatureClass(OGRLayer* layer,
         m_ignoreFields.push_back("OGR_STYLE");
 
         fillZoomLevels();
+
+        OGREnvelope env;
+        if(m_layer->GetExtent(&env, 0) == OGRERR_NONE) {
+            m_extent = env;
+        }
+        else {
+            CPLDebug("ngstore", "GetExent failed");
+        }
     }
+    CPLReleaseMutex(m_fieldsMutex);
+    CPLReleaseMutex(m_genTileMutex);
+    CPLReleaseMutex(m_layersMutex);
 }
 
 FeatureClass::~FeatureClass()
 {
+    CPLDebug("ngstore", "CPLDestroyMutex(m_fieldsMutex)");
     CPLDestroyMutex(m_fieldsMutex);
+    CPLDebug("ngstore", "CPLDestroyMutex(m_genTileMutex)");
     CPLDestroyMutex(m_genTileMutex);
+    CPLDebug("ngstore", "CPLDestroyMutex(m_layersMutex)");
     CPLDestroyMutex(m_layersMutex);
 }
 
 OGRwkbGeometryType FeatureClass::geometryType() const
 {
-
     if(nullptr == m_layer)
         return wkbUnknown;
     return m_layer->GetGeomType();
@@ -570,13 +580,14 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
-    CPLMutexHolder holder(m_featureMutex);
+    CPLDebug("ngstore", __FUNCTION__);
+    CPLMutexHolder holder(m_genTileMutex);
 
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
                                               OVR_ZOOM_KEY, tile.z));
-    m_ovrTable->ResetReading();
+//    m_ovrTable->ResetReading();
     return FeaturePtr(m_ovrTable->GetNextFeature());
 }
 
@@ -638,7 +649,6 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
         }
     }
 
-
     return true;
 }
 
@@ -677,10 +687,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         return COD_SUCCESS;
     }
 
-    CPLString key(name());
-    key += ".zoom_levels";
-
-    parentDS->setProperty(key, zoomLevelListStr);
+    setProperty("zoom_levels", zoomLevelListStr, KEY_NG_ADDITIONS);
 
     // Tile and simplify geometry
     progress.onProgress(COD_IN_PROCESS, 0.0,
@@ -691,6 +698,9 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     threadPool.init(getNumberThreads(), tilingDataJobThreadFunc);
 
     FeaturePtr feature;
+    setIgnoredFields(m_ignoreFields);
+    reset();
+
     while((feature = nextFeature()) != nullptr) {
         threadPool.addThreadData(new TilingData(this, feature, true));
     }
@@ -698,6 +708,10 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     Progress newProgress(progress);
     newProgress.setTotalSteps(2);
     threadPool.waitComplete(newProgress);
+    threadPool.clearThreadData();
+
+    setIgnoredFields(std::vector<const char*>());
+    reset();
 
     // Save tiles
     parentDS->startBatchOperation();
@@ -728,11 +742,8 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         counter++;
     }
 
-    m_ovrTable->SyncToDisk();
-
     parentDS->stopBatchOperation();
     m_genTiles.clear();
-
 
     progress.onProgress(COD_FINISHED, 1.0,
                         _("Finish tiling and simplifying geometry"));
@@ -787,6 +798,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     OGREnvelope extEnv = ext.toOgrEnvelope();
 
     // Lock threads here
+    CPLDebug("ngstore", __FUNCTION__);
     CPLAcquireMutex(m_featureMutex, 55.0);
     CPLAcquireMutex(m_fieldsMutex, 50.0);
     setSpatialFilter(ext.toGeometry(nullptr));
@@ -931,22 +943,9 @@ void FeatureClass::setSpatialFilter(double minX, double minY,
     }
 }
 
-void FeatureClass::setAttributeFilter(const char* filter)
-{
-    if(nullptr != m_layer) {
-        m_layer->SetAttributeFilter(filter);
-    }
-}
-
 Envelope FeatureClass::extent() const
 {
-    if(nullptr != m_layer) {
-        OGREnvelope env;
-        if(m_layer->GetExtent(&env, 0) == OGRERR_NONE) {
-            return Envelope(env);
-        }
-    }
-    return Envelope();
+    return m_extent;
 }
 
 const char* FeatureClass::geometryTypeName(OGRwkbGeometryType type,
@@ -1116,6 +1115,10 @@ bool FeatureClass::destroy()
         return false;
     }
 
+    if(m_ovrTable) {
+        m_ovrTable->ResetReading();
+    }
+    m_layer->SetSpatialFilter(nullptr);
     if(!Table::destroy()) {
         return false;
     }
@@ -1132,14 +1135,12 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
         _zoomLevels = zoomLevels;
     }
     else {
-        CPLString key(m_name);
-        key += ".zoom_levels";
-        Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
-        _zoomLevels = dataset->getProperty(key, "");
+        _zoomLevels = getProperty("zoom_levels", "", KEY_USER);
     }
     char** zoomLevelArray = CSLTokenizeString2(_zoomLevels, ",", 0);
     int i = 0;
     const char* zoomLevel;
+    m_zoomLevels.clear();
     while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
         m_zoomLevels.insert(static_cast<unsigned char>(atoi(zoomLevel)));
     }
@@ -1150,24 +1151,25 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
 bool FeatureClass::insertFeature(const FeaturePtr& feature)
 {
     bool result =  Table::insertFeature(feature);
-    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset || dataset->isBatchOperation()) {
-        return result;
-    }
-
-    OGRGeometry* geom = feature->GetGeometryRef();
-    if( nullptr == geom) {
-        return result;
-    }
-
     if(!result) {
         return result;
     }
 
+    OGRGeometry* geom = feature->GetGeometryRef();
+    if(nullptr == geom) {
+        return result;
+    }
     OGREnvelope env;
     geom->getEnvelope(&env);
     Envelope extent = env;
     extent.fix();
+
+    m_extent.merge(extent);
+
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset || dataset->isBatchOperation()) {
+        return result;
+    }
 
     for(auto zoomLevel : zoomLevels()) {
         std::vector<TileItem> items =
@@ -1246,21 +1248,24 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
     if(nullptr != newGeom) {
         OGREnvelope env;
         newGeom->getEnvelope(&env);
-        extent.intersect(env);
+        extent.merge(env);
     }
 
     extent.fix();
 
 
     bool result =  Table::updateFeature(feature);
-    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset) {
-        return result;
-    }
+
+    m_extent.merge(extent);
 
     if(!result) {
         return result;
     }    
+
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset || dataset->isBatchOperation()) {
+        return result;
+    }
 
     for(auto zoomLevel : zoomLevels()) {
         std::vector<TileItem> items =
@@ -1327,12 +1332,13 @@ bool FeatureClass::deleteFeature(GIntBig id)
     extent.fix();
 
     bool result = Table::deleteFeature(id);
-    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset) {
+
+    if(!result) {
         return result;
     }
 
-    if(!result) {
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset || dataset->isBatchOperation()) {
         return result;
     }
 
