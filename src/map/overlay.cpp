@@ -41,7 +41,8 @@ Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
 EditLayerOverlay::EditLayerOverlay(const MapView& map)
         : Overlay(map, MOT_EDIT)
         , m_geometry(nullptr)
-        , m_selectedPointId(NOT_FOUND)
+        , m_selectedPointId()
+        , m_selectedPointCoordinates()
 {
     Settings& settings = Settings::instance();
     m_tolerancePx =
@@ -88,33 +89,34 @@ GeometryPtr EditLayerOverlay::createGeometry(
 
 bool EditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 {
-    if(!m_geometry) {
-        m_selectedPointId = NOT_FOUND;
+    if(m_geometry) {
+        OGRRawPoint mapTolerance =
+                m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
+
+        double minX = mapCoordinates.x - mapTolerance.x;
+        double maxX = mapCoordinates.x + mapTolerance.x;
+        double minY = mapCoordinates.y - mapTolerance.y;
+        double maxY = mapCoordinates.y + mapTolerance.y;
+        Envelope mapEnv(minX, minY, maxX, maxY);
+
+        OGRPoint coordinates;
+        PointId id = getGeometryPointId(*m_geometry, mapEnv, &coordinates);
+
+        if(id.isInit()) {
+            m_selectedPointId = id;
+            m_selectedPointCoordinates = coordinates;
+            return true;
+        }
     }
 
-    OGRRawPoint mapTolerance =
-            m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
-
-    double minX = mapCoordinates.x - mapTolerance.x;
-    double maxX = mapCoordinates.x + mapTolerance.x;
-    double minY = mapCoordinates.y - mapTolerance.y;
-    double maxY = mapCoordinates.y + mapTolerance.y;
-    Envelope mapEnv(minX, minY, maxX, maxY);
-
-    OGRPoint coordinates;
-    long id = getGeometryPointId(*m_geometry, mapEnv, &coordinates);
-
-    if(0 <= id) {
-        m_selectedPointId = id;
-        m_selectedPointCoordinates = coordinates;
-    }
-
-    return (0 <= m_selectedPointId);
+    m_selectedPointId = PointId();
+    m_selectedPointCoordinates = OGRPoint();
+    return false;
 }
 
-bool EditLayerOverlay::isSelectedPoint(const OGRRawPoint* mapCoordinates) const
+bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint* mapCoordinates) const
 {
-    bool ret = (0 <= m_selectedPointId);
+    bool ret = m_selectedPointId.isInit();
     if(ret && mapCoordinates) {
         OGRRawPoint mapTolerance =
                 m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
@@ -132,7 +134,7 @@ bool EditLayerOverlay::isSelectedPoint(const OGRRawPoint* mapCoordinates) const
 
 bool EditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 {
-    if(!m_geometry || 0 > m_selectedPointId) {
+    if(!m_geometry || !m_selectedPointId.isInit()) {
         return false;
     }
 

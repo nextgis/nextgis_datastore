@@ -36,8 +36,7 @@
 #include "ngstore/util/constants.h"
 
 #include <memory>
-namespace ngs
-{
+namespace ngs {
 
 class MapView;
 
@@ -54,7 +53,7 @@ public:
     static int getOverlayIndexFromType(ngsMapOverlyType type)
     {
         // Overlays stored in reverse order
-        switch (type) {
+        switch(type) {
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
@@ -85,7 +84,7 @@ public:
     virtual void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
     virtual GeometryPtr geometry() const { return m_geometry; }
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
-    virtual bool isSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
     GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
@@ -94,11 +93,11 @@ public:
 protected:
     CPLString m_layerName;
     GeometryPtr m_geometry;
-    long m_selectedPointId;
+    PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
 };
 
-}  // namespace ngs
+} // namespace ngs
 
-#endif  // NGSOVERLAY_H
+#endif // NGSOVERLAY_H

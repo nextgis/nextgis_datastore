@@ -21,8 +21,6 @@
 #include "geometry.h"
 
 #include "api_priv.h"
-#include "ngstore/util/constants.h"
-
 
 namespace ngs {
 
@@ -302,28 +300,28 @@ bool geometryIntersects(const OGRGeometry& geometry, const Envelope env)
     return geometry.Intersects(env.toGeometry(nullptr).get());
 }
 
-inline long getPointId(
+PointId getPointId(
         const OGRPoint& pt, const Envelope env, OGRPoint* coordinates)
 {
     if(!geometryIntersects(pt, env)) {
-        return NOT_FOUND;
+        return PointId();
     }
 
     if(coordinates) {
         coordinates->setX(pt.getX());
         coordinates->setY(pt.getY());
     }
-    return 0;
+    return PointId(0);
 }
 
-long getLineStringPointId(
+PointId getLineStringPointId(
         const OGRLineString& line, const Envelope env, OGRPoint* coordinates)
 {
     if(!geometryIntersects(line, env)) {
-        return NOT_FOUND;
+        return PointId();
     }
 
-    long id = 0;
+    int id = 0;
     bool found = false;
     OGRPointIterator* it = line.getPointIterator();
     OGRPoint pt;
@@ -341,199 +339,155 @@ long getLineStringPointId(
             coordinates->setX(pt.getX());
             coordinates->setY(pt.getY());
         }
-        return id;
+        return PointId(id);
     } else {
-        return NOT_FOUND;
+        return PointId();
     }
 }
 
-long getPolygonPointId(
+PointId getPolygonPointId(
         const OGRPolygon& polygon, const Envelope env, OGRPoint* coordinates)
 {
     if(!geometryIntersects(polygon, env)) {
-        return NOT_FOUND;
+        return PointId();
     }
 
     const OGRLinearRing* ring = polygon.getExteriorRing();
     int numInteriorRings = polygon.getNumInteriorRings();
-    long totalPointCount = 0;
-    int k = 0;
+    int pointId = 0;
+    int ringId = 0;
 
     while(true) {
         if(!ring) {
-            return NOT_FOUND;
+            return PointId();
         }
 
-        long id = getLineStringPointId(*ring, env, coordinates);
-        if(id >= 0) {
-            return totalPointCount + id;
+        PointId id = getLineStringPointId(*ring, env, coordinates);
+        if(id.isInit()) {
+            return PointId(id.pointId(), ringId);
         }
 
-        if(k >= numInteriorRings) {
+        if(ringId >= numInteriorRings) {
             break;
         }
 
-        totalPointCount += ring->getNumPoints();
-        ring = polygon.getInteriorRing(k++);
+        ring = polygon.getInteriorRing(ringId++);
     }
 
-    return NOT_FOUND;
+    return PointId();
 }
 
-long getPolygonNumPoints(const OGRPolygon& polygon)
-{
-    const OGRLinearRing* ring = polygon.getExteriorRing();
-    int numInteriorRings = polygon.getNumInteriorRings();
-    long totalPointCount = 0;
-    int k = 0;
-
-    while(true) {
-        if(!ring) {
-            return totalPointCount;
-        }
-
-        totalPointCount += ring->getNumPoints();
-
-        if(k >= numInteriorRings) {
-            return totalPointCount;
-        }
-
-        ring = polygon.getInteriorRing(k++);
-    }
-}
-
-long getMultiPointPointId(
+PointId getMultiPointPointId(
         const OGRMultiPoint& mpt, const Envelope env, OGRPoint* coordinates)
 {
     if(!geometryIntersects(mpt, env)) {
-        return NOT_FOUND;
+        return PointId();
     }
 
-    long id = 0;
-    for(int k = 0, num = mpt.getNumGeometries(); k < num; ++k) {
+    for(int geometryId = 0, num = mpt.getNumGeometries(); geometryId < num;
+            ++geometryId) {
         const OGRPoint* pt =
-                static_cast<const OGRPoint*>(mpt.getGeometryRef(k));
+                static_cast<const OGRPoint*>(mpt.getGeometryRef(geometryId));
         if(geometryIntersects(*pt, env)) {
             if(coordinates) {
                 coordinates->setX(pt->getX());
                 coordinates->setY(pt->getY());
             }
-            return id;
+            return PointId(0, NOT_FOUND, geometryId);
         }
-        ++id;
     }
 
-    return NOT_FOUND;
+    return PointId();
 }
 
-long getMultiLineStringPointId(const OGRMultiLineString& mline,
+PointId getMultiLineStringPointId(const OGRMultiLineString& mline,
         const Envelope env,
         OGRPoint* coordinates)
 {
     if(!geometryIntersects(mline, env)) {
-        return NOT_FOUND;
+        return PointId();
     }
 
-    int numGeoms = mline.getNumGeometries();
-    long totalPointCount = 0;
-    int k = 0;
+    for(int geometryId = 0, numGeoms = mline.getNumGeometries();
+            geometryId < numGeoms; ++geometryId) {
 
-    while(true) {
-        const OGRLineString* line =
-                static_cast<const OGRLineString*>(mline.getGeometryRef(k++));
-        long id = getLineStringPointId(*line, env, coordinates);
-        if(id >= 0) {
-            return totalPointCount + id;
+        const OGRLineString* line = static_cast<const OGRLineString*>(
+                mline.getGeometryRef(geometryId));
+
+        PointId id = getLineStringPointId(*line, env, coordinates);
+        if(id.isInit()) {
+            return PointId(id.pointId(), NOT_FOUND, geometryId);
         }
-
-        if(k >= numGeoms) {
-            break;
-        }
-
-        totalPointCount += line->getNumPoints();
     }
 
-    return NOT_FOUND;
+    return PointId();
 }
 
-long getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
+PointId getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
         const Envelope env,
         OGRPoint* coordinates)
 {
     if(!geometryIntersects(mpolygon, env)) {
-        return NOT_FOUND;
+        return PointId();
     }
 
-    int numGeoms = mpolygon.getNumGeometries();
-    long totalPointCount = 0;
-    int k = 0;
+    for(int geometryId = 0, numGeoms = mpolygon.getNumGeometries();
+            geometryId < numGeoms; ++geometryId) {
 
-    while(true) {
-        const OGRPolygon* polygon =
-                static_cast<const OGRPolygon*>(mpolygon.getGeometryRef(k++));
-        long id = getPolygonPointId(*polygon, env, coordinates);
-        if(id >= 0) {
-            return totalPointCount + id;
+        const OGRPolygon* polygon = static_cast<const OGRPolygon*>(
+                mpolygon.getGeometryRef(geometryId));
+        PointId id = getPolygonPointId(*polygon, env, coordinates);
+        if(id.isInit()) {
+            return PointId(id.pointId(), id.ringId(), geometryId);
         }
-
-        if(k >= numGeoms) {
-            break;
-        }
-
-        totalPointCount += getPolygonNumPoints(*polygon);
     }
 
-    return NOT_FOUND;
+    return PointId();
 }
 
-long getGeometryPointId(
+PointId getGeometryPointId(
         const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates)
 {
-    long id = NOT_FOUND;
     switch(OGR_GT_Flatten(geometry.getGeometryType())) {
         case wkbPoint: {
             const OGRPoint& pt = static_cast<const OGRPoint&>(geometry);
-            id = getPointId(pt, env, coordinates);
-            break;
+            return getPointId(pt, env, coordinates);
         }
         case wkbLineString: {
             const OGRLineString& lineString =
                     static_cast<const OGRLineString&>(geometry);
-            id = getLineStringPointId(lineString, env, coordinates);
-            break;
+            return getLineStringPointId(lineString, env, coordinates);
         }
         case wkbPolygon: {
             const OGRPolygon& polygon =
                     static_cast<const OGRPolygon&>(geometry);
-            id = getPolygonPointId(polygon, env, coordinates);
-            break;
+            return getPolygonPointId(polygon, env, coordinates);
         }
         case wkbMultiPoint: {
             const OGRMultiPoint& mpt =
                     static_cast<const OGRMultiPoint&>(geometry);
-            id = getMultiPointPointId(mpt, env, coordinates);
-            break;
+            return getMultiPointPointId(mpt, env, coordinates);
         }
         case wkbMultiLineString: {
             const OGRMultiLineString& mline =
                     static_cast<const OGRMultiLineString&>(geometry);
-            id = getMultiLineStringPointId(mline, env, coordinates);
-            break;
+            return getMultiLineStringPointId(mline, env, coordinates);
         }
         case wkbMultiPolygon: {
             const OGRMultiPolygon& mpolygon =
                     static_cast<const OGRMultiPolygon&>(geometry);
-            id = getMultiPolygonPointId(mpolygon, env, coordinates);
-            break;
+            return getMultiPolygonPointId(mpolygon, env, coordinates);
         }
     }
-    return id;
+    return PointId();
 }
 
-bool shiftPoint(
-        OGRPoint& pt, long id, const OGRRawPoint& offset, OGRPoint* coordinates)
+bool shiftPoint(OGRPoint& pt,
+        const PointId& id,
+        const OGRRawPoint& offset,
+        OGRPoint* coordinates)
 {
-    if(0 != id) {
+    if(0 != id.pointId()) {
         return false;
     }
 
@@ -547,17 +501,18 @@ bool shiftPoint(
 }
 
 bool shiftLineStringPoint(OGRLineString& lineString,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates)
 {
-    if(id < 0 && id >= lineString.getNumPoints()) {
+    int pointId = id.pointId();
+    if(pointId < 0 || pointId >= lineString.getNumPoints()) {
         return false;
     }
 
     OGRPoint pt;
-    lineString.getPoint(id, &pt);
-    lineString.setPoint(id, pt.getX() + offset.x, pt.getY() + offset.y);
+    lineString.getPoint(pointId, &pt);
+    lineString.setPoint(pointId, pt.getX() + offset.x, pt.getY() + offset.y);
     if(coordinates) {
         coordinates->setX(pt.getX());
         coordinates->setY(pt.getY());
@@ -566,101 +521,92 @@ bool shiftLineStringPoint(OGRLineString& lineString,
 }
 
 bool shiftPolygonPoint(OGRPolygon& polygon,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates)
 {
-    if(id < 0) {
+    int pointId = id.pointId();
+    int ringId = id.ringId();
+    int numInteriorRings = polygon.getNumInteriorRings();
+
+    // ringId == 0 - exterior ring, 1+ - interior rings
+    if(pointId < 0 || ringId < 0 || ringId > numInteriorRings) {
         return false;
     }
 
-    OGRLinearRing* ring = polygon.getExteriorRing();
-    int numInteriorRings = polygon.getNumInteriorRings();
-    long totalPointCount = 0;
-    int i = 0;
-
-    while(true) {
-        if(!ring) {
-            return false;
-        }
-
-        long ringPtId = id - totalPointCount;
-        int ringNumPoints = ring->getNumPoints();
-        if(ringPtId < ringNumPoints) {
-            return shiftLineStringPoint(*ring, ringPtId, offset, coordinates);
-        }
-
-        if(i >= numInteriorRings) {
-            return false;
-        }
-
-        totalPointCount += ringNumPoints;
-        ring = polygon.getInteriorRing(i++);
+    OGRLinearRing* ring = (0 == ringId) ? polygon.getExteriorRing()
+                                        : polygon.getInteriorRing(ringId - 1);
+    if(!ring) {
+        return false;
     }
+
+    int ringNumPoints = ring->getNumPoints();
+    if(pointId >= ringNumPoints) {
+        return false;
+    }
+
+    return shiftLineStringPoint(*ring, PointId(pointId), offset, coordinates);
 }
 
 bool shiftMultiPointPoint(OGRMultiPoint& mpt,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates)
 {
-    if(id < 0 || id >= mpt.getNumGeometries()) {
+    int pointId = id.pointId();
+    int geometryId = id.geometryId();
+    if(pointId != 0 || geometryId < 0 || geometryId >= mpt.getNumGeometries()) {
         return false;
     }
-    OGRPoint* pt = static_cast<OGRPoint*>(mpt.getGeometryRef(id));
-    return shiftPoint(*pt, 0, offset, coordinates);
+    OGRPoint* pt = static_cast<OGRPoint*>(mpt.getGeometryRef(geometryId));
+    return shiftPoint(*pt, PointId(0), offset, coordinates);
 }
 
 bool shiftMultiLineStringPoint(OGRMultiLineString& mline,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates)
 {
-    if(id < 0) {
+    int pointId = id.pointId();
+    int geometryId = id.geometryId();
+    if(pointId < 0 || geometryId < 0
+            || geometryId >= mline.getNumGeometries()) {
         return false;
     }
 
-    long totalPointCount = 0;
-    for(int k = 0, num = mline.getNumGeometries(); k < num; ++k) {
-        OGRLineString* line =
-                static_cast<OGRLineString*>(mline.getGeometryRef(k));
-        int lineNumPoints = line->getNumPoints();
-        long linePtId = id - totalPointCount;
+    OGRLineString* line =
+            static_cast<OGRLineString*>(mline.getGeometryRef(geometryId));
 
-        if(linePtId < lineNumPoints) {
-            return shiftLineStringPoint(*line, linePtId, offset, coordinates);
-        }
-        totalPointCount += lineNumPoints;
+    int lineNumPoints = line->getNumPoints();
+    if(pointId >= lineNumPoints) {
+        return false;
     }
-    return false;
+
+    return shiftLineStringPoint(*line, PointId(pointId), offset, coordinates);
 }
 
 bool shiftMultiPolygonPoint(OGRMultiPolygon& mpolygon,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates)
 {
-    if(id < 0) {
+    int pointId = id.pointId();
+    int ringId = id.ringId();
+    int geometryId = id.geometryId();
+    if(pointId < 0 || ringId < 0 || geometryId < 0
+            || geometryId >= mpolygon.getNumGeometries()) {
         return false;
     }
 
-    long totalPointCount = 0;
-    for(int k = 0, num = mpolygon.getNumGeometries(); k < num; ++k) {
-        OGRPolygon* polygon =
-                static_cast<OGRPolygon*>(mpolygon.getGeometryRef(k));
-        int polyNumPoints = getPolygonNumPoints(*polygon);
-        long polyPtId = id - totalPointCount;
+    OGRPolygon* polygon =
+            static_cast<OGRPolygon*>(mpolygon.getGeometryRef(geometryId));
 
-        if(polyPtId < polyNumPoints) {
-            return shiftPolygonPoint(*polygon, polyPtId, offset, coordinates);
-        }
-        totalPointCount += polyNumPoints;
-    }
-    return false;
+    return shiftPolygonPoint(
+            *polygon, PointId(pointId, ringId), offset, coordinates);
 }
 
 bool shiftGeometryPoint(OGRGeometry& geometry,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates)
 {

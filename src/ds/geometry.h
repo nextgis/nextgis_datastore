@@ -29,6 +29,7 @@
 #include <memory>
 
 #include "api_priv.h"
+#include "ngstore/util/constants.h"
 
 namespace ngs {
 constexpr double BIG_VALUE = 10000000.0;
@@ -138,11 +139,34 @@ typedef struct _tileItem{
 
 OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json);
 
+class PointId
+{
+public:
+    explicit PointId(int pointId = NOT_FOUND,
+            int ringId = NOT_FOUND,
+            int geometryId = NOT_FOUND)
+            : m_pointId(pointId)
+            , m_ringId(ringId)
+            , m_geometryId(geometryId)
+    {
+    }
+
+    int pointId() const { return m_pointId; }
+    int ringId() const { return m_ringId; }
+    int geometryId() const { return m_geometryId; }
+    bool isInit() const { return 0 <= pointId(); }
+
+private:
+    int m_pointId;
+    int m_ringId; // 0 - exterior ring, 1+ - interior rings.
+    int m_geometryId;
+};
+
 bool geometryIntersects(const OGRGeometry& geometry, const Envelope env);
-long getGeometryPointId(
+PointId getGeometryPointId(
         const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates);
 bool shiftGeometryPoint(OGRGeometry& geometry,
-        long id,
+        const PointId& id,
         const OGRRawPoint& offset,
         OGRPoint* coordinates);
 
