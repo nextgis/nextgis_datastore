@@ -87,20 +87,43 @@ GeometryPtr EditLayerOverlay::createGeometry(
     }
 }
 
+void EditLayerOverlay::setGeometry(GeometryPtr geometry)
+{
+    m_geometry = geometry;
+    selectFirstPoint();
+}
+
 bool EditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 {
+    return selectPoint(false, mapCoordinates);
+}
+
+bool EditLayerOverlay::selectFirstPoint()
+{
+    return selectPoint(true, OGRRawPoint());
+}
+
+bool EditLayerOverlay::selectPoint(
+        bool selectFirstPoint, const OGRRawPoint& mapCoordinates)
+{
     if(m_geometry) {
-        OGRRawPoint mapTolerance =
-                m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
-
-        double minX = mapCoordinates.x - mapTolerance.x;
-        double maxX = mapCoordinates.x + mapTolerance.x;
-        double minY = mapCoordinates.y - mapTolerance.y;
-        double maxY = mapCoordinates.y + mapTolerance.y;
-        Envelope mapEnv(minX, minY, maxX, maxY);
-
         OGRPoint coordinates;
-        PointId id = getGeometryPointId(*m_geometry, mapEnv, &coordinates);
+        PointId id;
+
+        if(selectFirstPoint) {
+            id = getGeometryPointId(*m_geometry, DEFAULT_BOUNDS, &coordinates);
+        } else {
+            OGRRawPoint mapTolerance =
+                    m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
+
+            double minX = mapCoordinates.x - mapTolerance.x;
+            double maxX = mapCoordinates.x + mapTolerance.x;
+            double minY = mapCoordinates.y - mapTolerance.y;
+            double maxY = mapCoordinates.y + mapTolerance.y;
+            Envelope mapEnv(minX, minY, maxX, maxY);
+
+            id = getGeometryPointId(*m_geometry, mapEnv, &coordinates);
+        }
 
         if(id.isInit()) {
             m_selectedPointId = id;
@@ -108,9 +131,6 @@ bool EditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
             return true;
         }
     }
-
-    m_selectedPointId = PointId();
-    m_selectedPointCoordinates = OGRPoint();
     return false;
 }
 

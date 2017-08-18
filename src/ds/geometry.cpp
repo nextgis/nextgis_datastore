@@ -295,6 +295,12 @@ OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json)
     return OGRGeometryFactory::createFromGeoJson(json);
 }
 
+bool PointId::operator==(const PointId& other) const
+{
+    return m_pointId == other.m_pointId && m_ringId == other.m_ringId
+            && m_geometryId == other.m_geometryId;
+}
+
 bool geometryIntersects(const OGRGeometry& geometry, const Envelope env)
 {
     return geometry.Intersects(env.toGeometry(nullptr).get());

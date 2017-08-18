@@ -48,7 +48,7 @@ public:
 
     ngsMapOverlyType type() const { return m_type; }
     bool visible() const { return m_visible; }
-    void setVisible(bool visible) { m_visible = visible; }
+    virtual void setVisible(bool visible) { m_visible = visible; }
 
     static int getOverlayIndexFromType(ngsMapOverlyType type)
     {
@@ -79,16 +79,20 @@ public:
     explicit EditLayerOverlay(const MapView& map);
     virtual ~EditLayerOverlay() = default;
 
-    void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
-    const CPLString& layerName() const { return m_layerName; }
-    virtual void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
+    virtual void setGeometry(GeometryPtr geometry);
     virtual GeometryPtr geometry() const { return m_geometry; }
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
     virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
+    void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
+    const CPLString& layerName() const { return m_layerName; }
     GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
+
+private:
+    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
+    bool selectFirstPoint();
 
 protected:
     CPLString m_layerName;

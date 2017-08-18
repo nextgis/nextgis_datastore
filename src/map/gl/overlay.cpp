@@ -40,26 +40,56 @@ GlEditLayerOverlay::GlEditLayerOverlay(const MapView& map)
 {
 }
 
+void GlEditLayerOverlay::setVisible(bool visible)
+{
+    EditLayerOverlay::setVisible(visible);
+    if(!visible) {
+        freeResources();
+    }
+}
+
+// TODO: set colors
+constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedGeometryColor = {0, 0, 255, 255};
+constexpr ngsRGBA lineColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedLineColor = {0, 0, 255, 255};
+constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
+constexpr ngsRGBA pointColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
+
 void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
 {
     EditLayerOverlay::setGeometry(geometry);
 
+    freeResources();
+    m_elements.clear();
+
     switch(OGR_GT_Flatten(geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
-            m_style = StylePtr(Style::createStyle("simplePoint"));
+            OverlayElement points;
+            points.m_style = StylePtr(Style::createStyle("simplePoint"));
             SimpleVectorStyle* vectorStyle =
-                    ngsDynamicCast(SimpleVectorStyle, m_style);
-            vectorStyle->setColor({255, 0, 0, 255});
+                    ngsDynamicCast(SimpleVectorStyle, points.m_style);
+            vectorStyle->setColor(pointColor);
+            m_elements[ElementType::points] = points;
+
+            OverlayElement selectedPoint;
+            selectedPoint.m_style = StylePtr(Style::createStyle("simplePoint"));
+            vectorStyle =
+                    ngsDynamicCast(SimpleVectorStyle, selectedPoint.m_style);
+            vectorStyle->setColor(selectedPointColor);
+            m_elements[ElementType::selectedPoint] = selectedPoint;
             break;
         }
 
         case wkbLineString:
         case wkbMultiLineString: {
-            m_style = StylePtr(Style::createStyle("simpleLine"));
-            SimpleVectorStyle* vectorStyle =
-                    ngsDynamicCast(SimpleVectorStyle, m_style);
-            vectorStyle->setColor({255, 0, 0, 255});
+            // TODO
+            //m_style = StylePtr(Style::createStyle("simpleLine"));
+            //SimpleVectorStyle* vectorStyle =
+            //        ngsDynamicCast(SimpleVectorStyle, m_style);
+            //vectorStyle->setColor(lineColor);
             break;
         }
         default:
@@ -67,6 +97,15 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
     }
 
     fill(false);
+}
+
+bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
+{
+    bool ret = EditLayerOverlay::selectPoint(mapCoordinates);
+    if(ret) {
+        fill(false);
+    }
+    return ret;
 }
 
 bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
@@ -80,42 +119,29 @@ bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
-    VectorGlObject* bufferArray = nullptr;
-
-    switch(m_style->type()) {
-        case Style::T_POINT:
-            bufferArray = fillPoint();
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
+        case wkbPoint:
+        case wkbMultiPoint: {
+            fillPoint();
             break;
-        case Style::T_LINE:
-            bufferArray = fillLine();
-            break;
-        case Style::T_FILL:
-        case Style::T_IMAGE:
-            break;
-    }
-
-    if(m_glBuffer) {
-        const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
-        if(constGlView) {
-            GlView* glView = const_cast<GlView*>(constGlView);
-            glView->freeResource(m_glBuffer);
         }
-    }
 
-    if(!bufferArray) {
-        m_glBuffer = GlObjectPtr();
-        return true;
+        case wkbLineString:
+        case wkbMultiLineString: {
+            fillLine();
+            break;
+        }
+        default:
+            break; // Not supported yet
     }
-
-    m_glBuffer = GlObjectPtr(bufferArray);
     return true;
 }
 
-VectorGlObject* GlEditLayerOverlay::fillPoint()
+void GlEditLayerOverlay::fillPoint()
 {
     OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
     if(wkbPoint != type && wkbMultiPoint != type) {
-        return nullptr;
+        return;
     }
 
     auto addPoint = [](GlBuffer* buffer, const OGRPoint* pt, int index) {
@@ -125,73 +151,136 @@ VectorGlObject* GlEditLayerOverlay::fillPoint()
         buffer->addIndex(index);
     };
 
-    VectorGlObject* bufferArray = new VectorGlObject();
-    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
-
     switch(type) {
         case wkbPoint: {
             const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
+
+            GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
             addPoint(buffer, pt, 0);
+
+            VectorGlObject* bufferArray = new VectorGlObject();
+            bufferArray->addBuffer(buffer);
+
+            freeResource(m_elements.at(ElementType::points));
+            freeResource(m_elements.at(ElementType::selectedPoint));
+
+            if(PointId(0) == m_selectedPointId) {
+                m_elements.at(ElementType::selectedPoint).m_glBuffer =
+                        GlObjectPtr(bufferArray);
+            } else {
+                m_elements.at(ElementType::points).m_glBuffer =
+                        GlObjectPtr(bufferArray);
+            }
             break;
         }
         case wkbMultiPoint: {
             const OGRMultiPoint* mpt =
                     static_cast<const OGRMultiPoint*>(m_geometry.get());
+
+            GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
+            VectorGlObject* bufferArray = new VectorGlObject();
+
             int index = 0;
             for(int i = 0, num = mpt->getNumGeometries(); i < num; ++i) {
+                const OGRPoint* pt =
+                        static_cast<const OGRPoint*>(mpt->getGeometryRef(i));
+
+                if(PointId(0, NOT_FOUND, i) == m_selectedPointId) {
+                    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
+                    addPoint(buffer, pt, 0);
+
+                    VectorGlObject* bufferArray = new VectorGlObject();
+                    bufferArray->addBuffer(buffer);
+
+                    freeResource(m_elements.at(ElementType::selectedPoint));
+                    m_elements.at(ElementType::selectedPoint).m_glBuffer =
+                            GlObjectPtr(bufferArray);
+                    continue;
+                }
+
                 if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
                     bufferArray->addBuffer(buffer);
                     index = 0;
                     buffer = new GlBuffer(GlBuffer::BF_PT);
                 }
-                const OGRPoint* pt =
-                        static_cast<const OGRPoint*>(mpt->getGeometryRef(i));
                 addPoint(buffer, pt, index++);
             }
+            bufferArray->addBuffer(buffer);
+
+            freeResource(m_elements.at(ElementType::points));
+            m_elements.at(ElementType::points).m_glBuffer =
+                    GlObjectPtr(bufferArray);
             break;
         }
     }
-
-    bufferArray->addBuffer(buffer);
-    return bufferArray;
 }
 
-VectorGlObject* GlEditLayerOverlay::fillLine()
+void GlEditLayerOverlay::fillLine()
 {
-    OGRLineString* line = static_cast<OGRLineString*>(m_geometry.get());
+    // TODO
+    //OGRLineString* line = static_cast<OGRLineString*>(m_geometry.get());
 
-    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
+    //GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
     // TODO
 
-    VectorGlObject* bufferArray = new VectorGlObject();
-    bufferArray->addBuffer(buffer);
+    //VectorGlObject* bufferArray = new VectorGlObject();
+    //bufferArray->addBuffer(buffer);
 
-    return bufferArray;
+    //return bufferArray;
+}
+
+void GlEditLayerOverlay::freeResource(OverlayElement& element)
+{
+    if(element.m_glBuffer) {
+        const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
+        if(constGlView) {
+            GlView* glView = const_cast<GlView*>(constGlView);
+            glView->freeResource(element.m_glBuffer);
+            element.m_glBuffer = nullptr;
+        }
+    }
+}
+
+void GlEditLayerOverlay::freeResources()
+{
+    for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
+        freeResource(it->second);
+    }
 }
 
 bool GlEditLayerOverlay::draw()
 {
-    if(!visible() || !m_style) {
-        // !m_style should never happened
+    if(!visible() || !m_elements.size()) {
+        // !m_elements.size() should never happen.
         return true;
     }
 
-    if(!m_glBuffer) {
-        return false; // Data not yet loaded
+    if(!m_elements.at(ElementType::selectedPoint).m_glBuffer) {
+        return false; // Data is not yet loaded.
     }
 
-    VectorGlObject* vectorGlBuffer = ngsDynamicCast(VectorGlObject, m_glBuffer);
-    for(const GlBufferPtr& buff : vectorGlBuffer->buffers()) {
-
-        if(buff->bound()) {
-            buff->rebind();
-        } else {
-            buff->bind();
+    for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
+        GlObjectPtr glBuffer = it->second.m_glBuffer;
+        if(!glBuffer) {
+            continue;
         }
 
-        m_style->prepare(
-                m_map.getSceneMatrix(), m_map.getInvViewMatrix(), buff->type());
-        m_style->draw(*buff);
+        StylePtr style = it->second.m_style;
+
+        VectorGlObject* vectorGlBuffer =
+                ngsDynamicCast(VectorGlObject, glBuffer);
+        for(const GlBufferPtr& buff : vectorGlBuffer->buffers()) {
+
+            if(buff->bound()) {
+                buff->rebind();
+            } else {
+                buff->bind();
+            }
+
+            style->prepare(m_map.getSceneMatrix(), m_map.getInvViewMatrix(),
+                    buff->type());
+            style->draw(*buff);
+        }
     }
     return true;
 }

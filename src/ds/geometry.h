@@ -155,6 +155,7 @@ public:
     int ringId() const { return m_ringId; }
     int geometryId() const { return m_geometryId; }
     bool isInit() const { return 0 <= pointId(); }
+    bool operator==(const PointId& other) const;
 
 private:
     int m_pointId;

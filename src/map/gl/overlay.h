@@ -24,13 +24,13 @@
 #define NGSGLOVERLAY_H
 
 // stl
+#include <map>
 #include <memory>
 
 #include "layer.h"
 #include "map/overlay.h"
 
-namespace ngs
-{
+namespace ngs {
 
 class GlRenderOverlay
 {
@@ -38,24 +38,41 @@ public:
     GlRenderOverlay();
     virtual ~GlRenderOverlay() = default;
 
-    GlObjectPtr getGlBuffer() { return m_glBuffer; }
     virtual bool fill(bool isLastTry) = 0;
     virtual bool draw() = 0;
-
-protected:
-    GlObjectPtr m_glBuffer;
-    StylePtr m_style;
 };
 
 class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 {
+    struct OverlayElement
+    {
+        GlObjectPtr m_glBuffer;
+        StylePtr m_style;
+    };
+
+    enum class ElementType
+    {
+        geometries = 0,
+        selectedGeometry,
+        lines,
+        selectedLine,
+        medianPoints,
+        points,
+        selectedPoint
+    };
+
 public:
     explicit GlEditLayerOverlay(const MapView& map);
     virtual ~GlEditLayerOverlay() = default;
 
+    // Overlay interface
+public:
+    virtual void setVisible(bool visible) override;
+
     // EditLayerOverlay interface
 public:
     virtual void setGeometry(GeometryPtr geometry) override;
+    virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
 
     // GlRenderOverlay interface
@@ -64,10 +81,15 @@ public:
     virtual bool draw() override;
 
 protected:
-    VectorGlObject* fillPoint();
-    VectorGlObject* fillLine();
+    void fillPoint();
+    void fillLine();
+    void freeResource(OverlayElement& element);
+    void freeResources();
+
+private:
+    std::map<ElementType, OverlayElement> m_elements;
 };
 
-}  // namespace ngs
+} // namespace ngs
 
-#endif  // NGSGLOVERLAY_H
+#endif // NGSGLOVERLAY_H
