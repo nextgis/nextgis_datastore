@@ -392,8 +392,8 @@ VectorGlObject *GlFeatureLayer::fillPrimitivePoints(const VectorTile& tile)
                 buffer->addVertex(point.x);
                 buffer->addVertex(point.y);
                 buffer->addVertex(0.0f);
-                buffer->addVertex(1.0f);
                 buffer->addVertex(0.0f);
+                buffer->addVertex(1.0f);
 
                 // 1
                 buffer->addVertex(point.x);
@@ -1453,7 +1453,7 @@ CPLJSONObject GlRasterLayer::save(const ObjectContainer *objectContainer) const
     raster.Add("green", m_green);
     raster.Add("blue", m_blue);
     raster.Add("alpha", m_alpha);
-    raster.Add("transparancy", m_transparency);
+    raster.Add("transparency", m_transparency);
     out.Add("raster", raster);
     return out;
 }

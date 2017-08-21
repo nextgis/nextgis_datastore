@@ -40,7 +40,7 @@
 namespace ngs {
 
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
-constexpr unsigned short TILE_SIZE = 512; // 256;
+constexpr unsigned short TILE_SIZE = 512;//256; //
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
 constexpr double TILE_RESIZE = 1.2;  // FIXME: Is it enouth extra size for tile?
 

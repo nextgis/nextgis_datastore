@@ -2481,7 +2481,7 @@ JsonObjectH ngsLayerGetStyle(LayerH layer)
         return nullptr;
     }
 
-    return new CPLJSONObject(renderLayerPtr->style()->save());
+    return new CPLJSONObject(renderLayerPtr->style()->save()); // FIXME: Memory leak here. The handle never delete
 }
 
 int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
