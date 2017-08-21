@@ -33,6 +33,8 @@
 
 namespace ngs {
 
+constexpr float normal45 = 0.70710678f;
+
 //------------------------------------------------------------------------------
 // IGlRenderLayer
 //------------------------------------------------------------------------------
@@ -119,7 +121,7 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
         return true; // Should never happened
     }
 
-    CPLMutexHolder holder(m_dataMutex, 0.5);
+    CPLMutexHolder holder(m_dataMutex, 5);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
         return false; // Data not yet loaded
@@ -175,7 +177,7 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
     switch(OGR_GT_Flatten(featureClass->geometryType())) {
     case wkbPoint:
     case wkbMultiPoint:
-        m_style = StylePtr(Style::createStyle("simplePoint"));
+        m_style = StylePtr(Style::createStyle("primitivePoint"));
         break;
     case wkbLineString:
     case wkbMultiLineString:
@@ -189,7 +191,7 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
     }
 }
 
-VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
+VectorGlObject *GlFeatureLayer::fillSimplePoints(const VectorTile &tile)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
     auto items = tile.items();
@@ -227,6 +229,262 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
     bufferArray->addBuffer(buffer);
 
     return bufferArray;
+}
+
+VectorGlObject *GlFeatureLayer::fillPrimitivePoints(const VectorTile &tile)
+{
+    VectorGlObject *bufferArray = new VectorGlObject;
+
+    PrimitivePointStyle* style = dynamic_cast<PrimitivePointStyle*>(m_style.get());
+    if(nullptr == style) {
+        return bufferArray;
+    }
+
+    auto items = tile.items();
+    auto it = items.begin();
+    unsigned short index = 0;
+    GlBuffer *buffer = new GlBuffer(GlBuffer::BF_LINE);
+
+    while(it != items.end()) {
+        VectorTileItem tileItem = *it;
+        if(!m_skipFIDs.empty() && tileItem.isIdsPresent(m_skipFIDs)) {
+            ++it;
+            continue;
+        }
+
+        if(tileItem.pointCount() < 1) {
+            ++it;
+            continue;
+        }
+
+        for(size_t i = 0; i < tileItem.pointCount(); ++i) {
+            if(!buffer->canStoreVertices(12, true)) {
+                bufferArray->addBuffer(buffer);
+                index = 0;
+                buffer = new GlBuffer(GlBuffer::BF_LINE);
+            }
+
+            const SimplePoint& point = tileItem.point(i);
+
+            switch(style->pointType()) {
+            case PT_SQUARE:
+                {
+                // 0
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-normal45);
+                buffer->addVertex(normal45);
+
+                // 1
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(normal45);
+                buffer->addVertex(normal45);
+
+                // 2
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(normal45);
+                buffer->addVertex(-normal45);
+
+                // 3
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-normal45);
+                buffer->addVertex(-normal45);
+
+                buffer->addIndex(index + 0);
+                buffer->addIndex(index + 1);
+                buffer->addIndex(index + 2);
+
+                buffer->addIndex(index + 0);
+                buffer->addIndex(index + 2);
+                buffer->addIndex(index + 3);
+
+                index += 4;
+                }
+                break;
+            case PT_RECTANGLE:
+                {
+                // 0
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-0.86602540f);
+                buffer->addVertex(0.5f);
+
+                // 1
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.86602540f);
+                buffer->addVertex(0.5f);
+
+                // 2
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.86602540f);
+                buffer->addVertex(-0.5f);
+
+                // 3
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-0.86602540f);
+                buffer->addVertex(-0.5f);
+
+                buffer->addIndex(index + 0);
+                buffer->addIndex(index + 1);
+                buffer->addIndex(index + 2);
+
+                buffer->addIndex(index + 0);
+                buffer->addIndex(index + 2);
+                buffer->addIndex(index + 3);
+
+                index += 4;
+                }
+                break;
+            case PT_CIRCLE:
+                {
+                    unsigned char segmentCount = style->segmentCount();
+                    float start = 0.0f;
+                    float end = M_PI_F + M_PI_F;
+                    float step = (end - start) / segmentCount;
+                    float current = start;
+                    for(int i = 0 ; i < segmentCount; ++i) {
+                        float x = cosf(current);
+                        float y = sinf(current);
+                        current += step;
+                        buffer->addVertex(point.x);
+                        buffer->addVertex(point.y);
+                        buffer->addVertex(0.0f);
+                        buffer->addVertex(x);
+                        buffer->addVertex(y);
+
+                        x = cosf(current);
+                        y = sinf(current);
+                        buffer->addVertex(point.x);
+                        buffer->addVertex(point.y);
+                        buffer->addVertex(0.0f);
+                        buffer->addVertex(x);
+                        buffer->addVertex(y);
+
+                        buffer->addVertex(point.x);
+                        buffer->addVertex(point.y);
+                        buffer->addVertex(0.0f);
+                        buffer->addVertex(0.0f);
+                        buffer->addVertex(0.0f);
+
+                        buffer->addIndex(index++);
+                        buffer->addIndex(index++);
+                        buffer->addIndex(index++);
+                    }
+                }
+                break;
+            case PT_TRIANGLE:
+                {
+                // 0
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(1.0f);
+                buffer->addVertex(0.0f);
+
+                // 1
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.86602540f);
+                buffer->addVertex(-0.5f);
+
+                // 2
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-0.86602540f);
+                buffer->addVertex(-0.5f);
+
+                buffer->addIndex(index + 0);
+                buffer->addIndex(index + 1);
+                buffer->addIndex(index + 2);
+
+                index += 3;
+                }
+                break;
+            case PT_DIAMOND:
+                {
+                // 0
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(1.0f);
+                buffer->addVertex(0.0f);
+
+                // 1
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(normal45);
+                buffer->addVertex(0.0f);
+
+                // 2
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-normal45);
+                buffer->addVertex(0.0f);
+
+                // 3
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(-1.0f);
+                buffer->addVertex(0.0f);
+
+                buffer->addIndex(index + 0);
+                buffer->addIndex(index + 1);
+                buffer->addIndex(index + 2);
+
+                buffer->addIndex(index + 1);
+                buffer->addIndex(index + 2);
+                buffer->addIndex(index + 3);
+
+                index += 4;
+                }
+                break;
+            case PT_STAR:
+                // TODO: Star drawing
+                break;
+            default:
+                break;
+            }
+
+//            buffer->addVertex(pt.x);
+//            buffer->addVertex(pt.y);
+//            buffer->addVertex(0.0f);
+//            buffer->addIndex(index++);
+        }
+        ++it;
+    }
+
+    bufferArray->addBuffer(buffer);
+
+    return bufferArray;
+}
+
+VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
+{
+    if(EQUAL(m_style->name(), "simplePoint")) {
+         return fillSimplePoints(tile);
+    }
+    else {
+         return fillPrimitivePoints(tile);
+    }
 }
 
 VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
@@ -874,7 +1132,7 @@ GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
     m_green(2),
     m_blue(3),
     m_alpha(0),
-    m_transparancy(0),
+    m_transparency(0),
     m_dataType(GDT_Byte)
 {
 }
@@ -995,7 +1253,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
                                             dataSize * 4); // NOTE: We use RGBA to store textures
     GLubyte* pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
     if(m_alpha == 0) {
-        std::memset(pixData, 255 - m_transparancy, bufferSize);
+        std::memset(pixData, 255 - m_transparency, bufferSize);
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
                                 outHeight, m_dataType, bandCount, bands, true, true,
                                 static_cast<unsigned char>(18 - overview))) {
@@ -1179,8 +1437,8 @@ bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectCont
         m_green = static_cast<unsigned char>(raster.GetInteger("green", m_green));
         m_blue = static_cast<unsigned char>(raster.GetInteger("blue", m_blue));
         m_alpha = static_cast<unsigned char>(raster.GetInteger("alpha", m_alpha));
-        m_transparancy = static_cast<unsigned char>(raster.GetInteger("transparancy",
-                                                                      m_transparancy));
+        m_transparency = static_cast<unsigned char>(raster.GetInteger("transparency",
+                                                                      m_transparency));
     }
 
     m_style = StylePtr(Style::createStyle("simpleImage"));
@@ -1195,7 +1453,7 @@ CPLJSONObject GlRasterLayer::save(const ObjectContainer *objectContainer) const
     raster.Add("green", m_green);
     raster.Add("blue", m_blue);
     raster.Add("alpha", m_alpha);
-    raster.Add("transparancy", m_transparancy);
+    raster.Add("transparancy", m_transparency);
     out.Add("raster", raster);
     return out;
 }

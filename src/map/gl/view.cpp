@@ -142,7 +142,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     }
 
     switch (state) {
-    case DS_NOTHING:
+    case DS_NOTHING: // Pleased compiler
         return true;
     case DS_REDRAW:
         clearTiles();

@@ -33,17 +33,31 @@
 /**
   * useful functions
   */
-inline int ngsRGBA2HEX(const ngsRGBA& color) {
-    return ((color.R & 0xff) << 24) + ((color.G & 0xff) << 16) +
-            ((color.B & 0xff) << 8) + (color.A & 0xff);
+//inline int ngsRGBA2HEX(const ngsRGBA& color) {
+//    return ((color.R & 0xff) << 24) + ((color.G & 0xff) << 16) +
+//            ((color.B & 0xff) << 8) + (color.A & 0xff);
+//}
+
+//inline ngsRGBA ngsHEX2RGBA(int color) {
+//    ngsRGBA out;
+//    out.R = (color >> 24) & 0xff;
+//    out.G = (color >> 16) & 0xff;
+//    out.B = (color >> 8) & 0xff;
+//    out.A = (color) & 0xff;
+//    return out;
+//}
+
+inline CPLString ngsRGBA2HEX(const ngsRGBA& color) {
+    return CPLSPrintf("#%02x%02x%02x%02x", color.R, color.G, color.B, color.A);
 }
 
-inline ngsRGBA ngsHEX2RGBA(int color) {
-    ngsRGBA out;
-    out.R = (color >> 24) & 0xff;
-    out.G = (color >> 16) & 0xff;
-    out.B = (color >> 8) & 0xff;
-    out.A = (color) & 0xff;
+inline ngsRGBA ngsHEX2RGBA(const CPLString& color) {
+    unsigned int r, g, b, a;
+    sscanf(color, "#%02x%02x%02x%02x", &r, &g, &b, &a);
+    ngsRGBA out = {static_cast<unsigned char>(r),
+                   static_cast<unsigned char>(g),
+                   static_cast<unsigned char>(b),
+                   static_cast<unsigned char>(a)};
     return out;
 }
 

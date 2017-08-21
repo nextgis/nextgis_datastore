@@ -42,7 +42,7 @@ namespace ngs {
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 constexpr unsigned short TILE_SIZE = 512; // 256;
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
-constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
+constexpr double TILE_RESIZE = 1.2;  // FIXME: Is it enouth extra size for tile?
 
 //------------------------------------------------------------------------------
 // VectorTileItem
@@ -289,6 +289,9 @@ FeatureClass::FeatureClass(OGRLayer* layer,
             CPLDebug("ngstore", "GetExent failed");
         }
     }
+
+    getTilesTable();
+
     CPLReleaseMutex(m_fieldsMutex);
     CPLReleaseMutex(m_genTileMutex);
     CPLReleaseMutex(m_layersMutex);
@@ -567,9 +570,9 @@ bool FeatureClass::getTilesTable()
     }
 
     m_ovrTable = parentDS->getOverviewsTable(name());
-    if(nullptr == m_ovrTable) {
-        m_ovrTable = parentDS->createOverviewsTable(name());
-    }
+//    if(nullptr == m_ovrTable) {
+//        m_ovrTable = parentDS->createOverviewsTable(name());
+//    }
 
     return m_ovrTable != nullptr;
 }
@@ -580,14 +583,11 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
-    CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_genTileMutex);
-
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
                                               OVR_ZOOM_KEY, tile.z));
-//    m_ovrTable->ResetReading();
     return FeaturePtr(m_ovrTable->GetNextFeature());
 }
 
@@ -641,9 +641,11 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(tileItem.tile.z));
+            Envelope env = tileItem.env;
+            env.resize(TILE_RESIZE);
             auto vItem =
                     data->m_featureClass->tileGeometry(data->m_feature,
-                                                       tileItem.env.toGeometry(nullptr).get(),
+                                                       env.toGeometry(nullptr).get(),
                                                        step);
             data->m_featureClass->addOverviewItem(tileItem.tile, vItem);
         }
@@ -798,7 +800,6 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     OGREnvelope extEnv = ext.toOgrEnvelope();
 
     // Lock threads here
-    CPLDebug("ngstore", __FUNCTION__);
     CPLAcquireMutex(m_featureMutex, 55.0);
     CPLAcquireMutex(m_fieldsMutex, 50.0);
     setSpatialFilter(ext.toGeometry(nullptr));
@@ -1177,8 +1178,10 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(
                                                 tileItem.tile.z));
+            Envelope env = tileItem.env;
+            env.resize(TILE_RESIZE);
             auto vItem = tileGeometry(feature,
-                                      tileItem.env.toGeometry(nullptr).get(),
+                                      env.toGeometry(nullptr).get(),
                                       step);
 
             FeaturePtr tile = getTileFeature(tileItem.tile);
@@ -1293,8 +1296,10 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
 
             float step = static_cast<float>(FeatureClass::pixelSize(
                                                 tileItem.tile.z));
+            Envelope env = tileItem.env;
+            env.resize(TILE_RESIZE);
             auto vItem = tileGeometry(feature,
-                                      tileItem.env.toGeometry(nullptr).get(),
+                                      env.toGeometry(nullptr).get(),
                                       step);
             vtile.add(vItem, true);
 

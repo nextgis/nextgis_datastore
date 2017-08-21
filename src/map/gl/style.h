@@ -113,24 +113,23 @@ protected:
 //------------------------------------------------------------------------------
 // SimplePointStyle
 //------------------------------------------------------------------------------
+enum PointType {
+    PT_UNKNOWN = 0,
+    PT_SQUARE,
+    PT_RECTANGLE,
+    PT_CIRCLE,
+    PT_TRIANGLE,
+    PT_DIAMOND,
+    PT_STAR
+};
 
 class SimplePointStyle : public SimpleVectorStyle
 {
 public:
-    enum PointType {
-        PT_UNKNOWN = 0,
-        PT_SQUARE,
-        PT_RECTANGLE,
-        PT_CIRCLE,
-        PT_TRIANGLE,
-        PT_DIAMOND,
-        PT_STAR
-    };
-public:
     explicit SimplePointStyle(enum PointType type = PT_CIRCLE);
 
-    enum SimplePointStyle::PointType pointType() const { return m_type; }
-    void setType(enum SimplePointStyle::PointType type) { m_type = type; }
+    enum PointType pointType() const { return m_type; }
+    void setType(enum PointType type) { m_type = type; }
 
     float size() const { return m_size; }
     void setSize(float size) { m_size = size; }
@@ -147,6 +146,40 @@ public:
 protected:
     enum PointType m_type;
     float m_size;
+};
+
+
+//------------------------------------------------------------------------------
+// PrimitivePointStyle
+// https://stackoverflow.com/a/11923070/2901140
+//------------------------------------------------------------------------------
+class PrimitivePointStyle : public SimpleVectorStyle
+{
+public:
+    explicit PrimitivePointStyle(enum PointType type = PT_CIRCLE);
+
+    enum PointType pointType() const { return m_type; }
+    void setType(enum PointType type) { m_type = type; }
+
+    float size() const { return m_size; }
+    void setSize(float size) { m_size = size; }
+
+    unsigned char segmentCount() const { return m_segmentCount; }
+    void setSegmentCount(unsigned char segmentCount) { m_segmentCount = segmentCount; }
+
+    // Style interface
+public:
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type) override;
+    virtual void draw(const GlBuffer& buffer) const override;
+    virtual bool load(const CPLJSONObject &store) override;
+    virtual CPLJSONObject save() const override;
+    virtual const char* name() override { return "primitivePoint"; }
+
+protected:
+    enum PointType m_type;
+    float m_size;
+    unsigned char m_segmentCount;
 };
 
 //------------------------------------------------------------------------------

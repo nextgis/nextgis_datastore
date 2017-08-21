@@ -54,6 +54,7 @@ public:
      */
     virtual bool draw(GlTilePtr tile) = 0;
 
+    StylePtr style() const { return m_style; }
 protected:
     std::map<Tile, GlObjectPtr> m_tiles;
     StylePtr m_style;
@@ -103,9 +104,9 @@ public:
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
 
 protected:
-    VectorGlObject *fillPoints(const VectorTile &tile);
-    VectorGlObject *fillLines(const VectorTile &tile);
-    VectorGlObject *fillPolygons(const VectorTile &tile);
+    VectorGlObject* fillPoints(const VectorTile& tile);
+    VectorGlObject* fillLines(const VectorTile& tile);
+    VectorGlObject* fillPolygons(const VectorTile& tile);
     unsigned short addLineCap(const SimplePoint& point, const Normal& normal,
                               unsigned short index, GlBuffer* buffer);
     size_t lineCapVerticesCount() const;
@@ -113,6 +114,8 @@ protected:
                                const Normal& normal, unsigned short index,
                                GlBuffer* buffer);
     size_t lineJoinVerticesCount() const;
+    VectorGlObject* fillSimplePoints(const VectorTile& tile);
+    VectorGlObject* fillPrimitivePoints(const VectorTile& tile);
 protected:
     std::set<GIntBig> m_skipFIDs;
 };
@@ -161,7 +164,7 @@ public:
     virtual void setRaster(const RasterPtr &raster) override;
 
 private:
-    unsigned char m_red, m_green, m_blue, m_alpha, m_transparancy;
+    unsigned char m_red, m_green, m_blue, m_alpha, m_transparency;
     GDALDataType m_dataType;
 };
 

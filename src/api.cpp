@@ -37,6 +37,7 @@
 #include "ds/simpledataset.h"
 #include "ds/storefeatureclass.h"
 #include "map/mapstore.h"
+#include "map/gl/layer.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
@@ -659,6 +660,107 @@ int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue)
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->GetBool(defaultValue) ? 1 : 0;
+}
+
+
+const char* ngsJsonObjectGetStringForKey(JsonObjectH object, const char* name, const char* defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetString(name, defaultValue);
+}
+
+double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char* name, double defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetDouble(name, defaultValue);
+}
+
+int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char* name, int defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetInteger(name, defaultValue);
+}
+
+long ngsJsonObjectGetLongForKey(JsonObjectH object, const char* name, long defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetLong(name, defaultValue);
+}
+
+int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name, int defaultValue)
+{
+    if(nullptr == object) {
+        errorMessage(COD_GET_FAILED, _("The object handle is null"));
+        return defaultValue;
+    }
+    return static_cast<CPLJSONObject*>(object)->GetBool(name, defaultValue) ? 1 : 0;
+}
+
+int ngsJsonObjectSetString(JsonObjectH object, const char* name, const char* value)
+{
+    if(nullptr == object) {
+        return errorMessage(COD_GET_FAILED, _("The object handle is null"));
+    }
+
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(object);
+    gdalJsonObject->Set(name, value);
+    return COD_SUCCESS;
+}
+
+int ngsJsonObjectSetDouble(JsonObjectH object, const char* name, double value)
+{
+    if(nullptr == object) {
+        return errorMessage(COD_GET_FAILED, _("The object handle is null"));
+    }
+
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(object);
+    gdalJsonObject->Set(name, value);
+    return COD_SUCCESS;
+}
+
+int ngsJsonObjectSetInteger(JsonObjectH object, const char* name, int value)
+{
+    if(nullptr == object) {
+        return errorMessage(COD_GET_FAILED, _("The object handle is null"));
+    }
+
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(object);
+    gdalJsonObject->Set(name, value);
+    return COD_SUCCESS;
+}
+
+int ngsJsonObjectSetLong(JsonObjectH object, const char* name, long value)
+{
+    if(nullptr == object) {
+        return errorMessage(COD_GET_FAILED, _("The object handle is null"));
+    }
+
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(object);
+    gdalJsonObject->Set(name, value);
+    return COD_SUCCESS;
+}
+
+int ngsJsonObjectSetBool(JsonObjectH object, const char* name, int value)
+{
+    if(nullptr == object) {
+        return errorMessage(COD_GET_FAILED, _("The object handle is null"));
+    }
+
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(object);
+    gdalJsonObject->Set(name, value);
+    return COD_SUCCESS;
 }
 
 JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* name)
@@ -2358,6 +2460,78 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
     }
 
     return (static_cast<Layer*>(layer))->datasource().get();
+}
+
+JsonObjectH ngsLayerGetStyle(LayerH layer)
+{
+    if(nullptr == layer) {
+        errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
+        return nullptr;
+    }
+
+    Layer* layerPtr = static_cast<Layer*>(layer);
+    GlRenderLayer* renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    if(nullptr == renderLayerPtr) {
+        errorMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+        return nullptr;
+    }
+
+    if(!renderLayerPtr->style()){
+        errorMessage(COD_GET_FAILED, _("Style is not set"));
+        return nullptr;
+    }
+
+    return new CPLJSONObject(renderLayerPtr->style()->save());
+}
+
+int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
+{
+    if(nullptr == layer) {
+        return errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
+    }
+
+    Layer* layerPtr = static_cast<Layer*>(layer);
+    GlRenderLayer* renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    if(nullptr == renderLayerPtr) {
+        errorMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+    }
+
+    if(!renderLayerPtr->style()){
+        errorMessage(COD_GET_FAILED, _("Style is not set"));
+    }
+
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(style);
+    renderLayerPtr->style()->load(*gdalJsonObject);
+
+    return COD_SUCCESS;
+}
+
+const char* ngsLayerGetStyleName(LayerH layer)
+{
+    if(nullptr == layer) {
+        errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
+        return "";
+    }
+
+    Layer* layerPtr = static_cast<Layer*>(layer);
+    GlRenderLayer* renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    if(nullptr == renderLayerPtr) {
+        errorMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+        return "";
+    }
+
+    if(!renderLayerPtr->style()){
+        errorMessage(COD_GET_FAILED, _("Style is not set"));
+        return "";
+    }
+
+    return renderLayerPtr->style()->name();
+}
+
+int ngsLayerSetStyleName(LayerH /*layer*/, const char* /*name*/)
+{
+    // TODO: Create style for provided name and set it for layer
+    return COD_UNEXPECTED_ERROR;
 }
 
 int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)

@@ -131,7 +131,6 @@ FeaturePtr Table::getFeature(GIntBig id) const
 {
     if(nullptr == m_layer)
         return FeaturePtr();
-CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     OGRFeature* pFeature = m_layer->GetFeature(id);
     if (nullptr == pFeature)
@@ -222,7 +221,6 @@ GIntBig Table::featureCount(bool force) const
 
 void Table::reset() const
 {
-    CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     if(nullptr != m_layer)
         m_layer->ResetReading();
@@ -232,7 +230,6 @@ FeaturePtr Table::nextFeature() const
 {
     if(nullptr == m_layer)
         return FeaturePtr();
-    CPLDebug("ngstore", __FUNCTION__);
     CPLMutexHolder holder(m_featureMutex);
     return FeaturePtr(m_layer->GetNextFeature(), this);
 }

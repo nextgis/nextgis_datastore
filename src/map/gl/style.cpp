@@ -89,6 +89,8 @@ Style *Style::createStyle(const char *name)
         return new SimpleFillStyle;
     else if(EQUAL(name, "simpleFillBordered"))
         return new SimpleFillBorderedStyle;
+    else if(EQUAL(name, "primitivePoint"))
+        return new PrimitivePointStyle;
     return nullptr;
 }
 
@@ -116,7 +118,7 @@ bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix
 
 bool SimpleVectorStyle::load(const CPLJSONObject &store)
 {
-    ngsRGBA color = ngsHEX2RGBA(store.GetInteger("color",
+    ngsRGBA color = ngsHEX2RGBA(store.GetString("color",
                                              ngsRGBA2HEX({255, 255, 255, 255})));
     setColor(color);
     return true;
@@ -303,6 +305,7 @@ CPLJSONObject SimplePointStyle::save() const
     return out;
 }
 
+
 //------------------------------------------------------------------------------
 // SimpleLineStyle
 //------------------------------------------------------------------------------
@@ -333,8 +336,7 @@ constexpr const GLchar* const lineFragmentShaderSource = R"(
 )";
 
 
-SimpleLineStyle::SimpleLineStyle()
-        : SimpleVectorStyle(),
+SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
           m_width(1.0),
           m_capType(CT_ROUND),
           m_joinType(JT_ROUND),
@@ -417,6 +419,62 @@ void SimpleLineStyle::setSegmentCount(unsigned char segmentCount)
 {
     m_segmentCount = segmentCount;
 }
+
+
+//------------------------------------------------------------------------------
+// PrimitivePointStyle
+//------------------------------------------------------------------------------
+PrimitivePointStyle::PrimitivePointStyle(enum PointType type) : SimpleVectorStyle(),
+    m_type(type),
+    m_size(6.0),
+    m_segmentCount(10)
+{
+    m_vertexShaderSource = lineVertexShaderSource;
+    m_fragmentShaderSource = lineFragmentShaderSource;
+    m_styleType = Style::T_POINT;
+}
+
+bool PrimitivePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                              enum GlBuffer::BufferType type)
+{
+    if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
+        return false;
+
+    m_program.setFloat("u_vLineWidth", m_size);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_normal", 2, 5 * sizeof(float),
+                            reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
+    return true;
+}
+
+void PrimitivePointStyle::draw(const GlBuffer& buffer) const
+{
+    if(buffer.indexSize() == 0)
+        return;
+    SimpleVectorStyle::draw(buffer);
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
+                                   GL_UNSIGNED_SHORT, nullptr));
+}
+
+bool PrimitivePointStyle::load(const CPLJSONObject &store)
+{
+    if(!SimpleVectorStyle::load(store))
+        return false;
+    m_size = static_cast<float>(store.GetDouble("size", 6.0));
+    m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
+    m_segmentCount = static_cast<unsigned char>(store.GetInteger("segments", m_segmentCount));
+    return true;
+}
+
+CPLJSONObject PrimitivePointStyle::save() const
+{
+    CPLJSONObject out = SimpleVectorStyle::save();
+    out.Add("size", static_cast<double>(m_size));
+    out.Add("type", m_type);
+    out.Add("segments", m_segmentCount);
+    return out;
+}
+
 
 //------------------------------------------------------------------------------
 // SimpleFillStyle

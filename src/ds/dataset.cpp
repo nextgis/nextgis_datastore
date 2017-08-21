@@ -917,7 +917,10 @@ OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
         warningMessage(COD_WARNING, _("Failed to add version to methadata"));
     }
 
-    ds->SetMetadataItem(NGS_VERSION_KEY, CPLSPrintf("%d", NGS_VERSION_NUM), KEY_NG_ADDITIONS);
+    if(ds->GetDriver() == Filter::getGDALDriver(CAT_CONTAINER_GPKG)) {
+        ds->SetMetadataItem(NGS_VERSION_KEY, CPLSPrintf("%d", NGS_VERSION_NUM),
+                            KEY_NG_ADDITIONS);
+    }
 
     return metadataLayer;
 }

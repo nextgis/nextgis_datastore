@@ -153,6 +153,16 @@ NGS_EXTERNC JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* na
 NGS_EXTERNC JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char* name);
 NGS_EXTERNC int ngsJsonArraySize(JsonObjectH object);
 NGS_EXTERNC JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index);
+NGS_EXTERNC const char* ngsJsonObjectGetStringForKey(JsonObjectH object, const char* name, const char* defaultValue);
+NGS_EXTERNC double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char* name, double defaultValue);
+NGS_EXTERNC int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char* name, int defaultValue);
+NGS_EXTERNC long ngsJsonObjectGetLongForKey(JsonObjectH object, const char* name, long defaultValue);
+NGS_EXTERNC int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name, int defaultValue);
+NGS_EXTERNC JsonObjectH ngsJsonObjectSetStringForKey(JsonObjectH object, const char* name, const char* value);
+NGS_EXTERNC JsonObjectH ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char* name, double value);
+NGS_EXTERNC JsonObjectH ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name, int value);
+NGS_EXTERNC JsonObjectH ngsJsonObjectSetLongForKey(JsonObjectH object, const char* name, long value);
+NGS_EXTERNC JsonObjectH ngsJsonObjectSetBoolForKey(JsonObjectH object, const char* name, int value);
 
 /**
  * Catalog functions
@@ -346,6 +356,10 @@ NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char* name);
 NGS_EXTERNC char ngsLayerGetVisible(LayerH layer);
 NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, char visible);
 NGS_EXTERNC CatalogObjectH ngsLayerGetDataSource(LayerH layer);
+NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
+NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
+NGS_EXTERNC const char* ngsLayerGetStyleName(LayerH layer);
+NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char* name);
 NGS_EXTERNC int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer);
 
 /**

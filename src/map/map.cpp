@@ -76,7 +76,7 @@ bool Map::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     m_epsg = static_cast<unsigned short>(root.GetInteger(MAP_EPSG_KEY,
                                                          DEFAULT_EPSG));
     m_bounds.load(root.GetObject(MAP_BOUNDS_KEY), DEFAULT_BOUNDS);
-    setBackgroundColor(ngsHEX2RGBA(root.GetInteger (MAP_BKCOLOR_KEY,
+    setBackgroundColor(ngsHEX2RGBA(root.GetString(MAP_BKCOLOR_KEY,
                                              ngsRGBA2HEX(m_bkColor))));
 
     CPLJSONArray layers = root.GetArray("layers");
