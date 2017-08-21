@@ -40,6 +40,37 @@ namespace ngs {
 
 class MapView;
 
+class PointId
+{
+public:
+    explicit PointId(int pointId = NOT_FOUND,
+            int ringId = NOT_FOUND,
+            int geometryId = NOT_FOUND)
+            : m_pointId(pointId)
+            , m_ringId(ringId)
+            , m_geometryId(geometryId)
+    {
+    }
+
+    int pointId() const { return m_pointId; }
+    int ringId() const { return m_ringId; }
+    int geometryId() const { return m_geometryId; }
+    bool isInit() const { return 0 <= pointId(); }
+    bool operator==(const PointId& other) const;
+
+private:
+    int m_pointId;
+    int m_ringId; // 0 - exterior ring, 1+ - interior rings.
+    int m_geometryId;
+};
+
+PointId getGeometryPointId(
+        const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates);
+bool shiftGeometryPoint(OGRGeometry& geometry,
+        const PointId& id,
+        const OGRRawPoint& offset,
+        OGRPoint* coordinates);
+
 class Overlay
 {
 public:
@@ -100,6 +131,8 @@ protected:
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
+
+
 };
 
 } // namespace ngs

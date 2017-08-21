@@ -708,7 +708,7 @@ int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name, int default
     return static_cast<CPLJSONObject*>(object)->GetBool(name, defaultValue) ? 1 : 0;
 }
 
-int ngsJsonObjectSetString(JsonObjectH object, const char* name, const char* value)
+int ngsJsonObjectSetStringForKey(JsonObjectH object, const char* name, const char* value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -719,7 +719,7 @@ int ngsJsonObjectSetString(JsonObjectH object, const char* name, const char* val
     return COD_SUCCESS;
 }
 
-int ngsJsonObjectSetDouble(JsonObjectH object, const char* name, double value)
+int ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char* name, double value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -730,7 +730,7 @@ int ngsJsonObjectSetDouble(JsonObjectH object, const char* name, double value)
     return COD_SUCCESS;
 }
 
-int ngsJsonObjectSetInteger(JsonObjectH object, const char* name, int value)
+int ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name, int value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -741,7 +741,7 @@ int ngsJsonObjectSetInteger(JsonObjectH object, const char* name, int value)
     return COD_SUCCESS;
 }
 
-int ngsJsonObjectSetLong(JsonObjectH object, const char* name, long value)
+int ngsJsonObjectSetLongForKey(JsonObjectH object, const char* name, long value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -752,7 +752,7 @@ int ngsJsonObjectSetLong(JsonObjectH object, const char* name, long value)
     return COD_SUCCESS;
 }
 
-int ngsJsonObjectSetBool(JsonObjectH object, const char* name, int value)
+int ngsJsonObjectSetBoolForKey(JsonObjectH object, const char* name, int value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
