@@ -231,7 +231,7 @@ VectorGlObject *GlFeatureLayer::fillSimplePoints(const VectorTile &tile)
     return bufferArray;
 }
 
-VectorGlObject *GlFeatureLayer::fillPrimitivePoints(const VectorTile &tile)
+VectorGlObject *GlFeatureLayer::fillPrimitivePoints(const VectorTile& tile)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
 

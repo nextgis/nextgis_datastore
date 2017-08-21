@@ -265,7 +265,6 @@ FeatureClass::FeatureClass(OGRLayer* layer,
                                const CPLString &name) :
     Table(layer, parent, type, name),
     m_ovrTable(nullptr),
-    m_fieldsMutex(CPLCreateMutex()),
     m_genTileMutex(CPLCreateMutex()),
     m_layersMutex(CPLCreateMutex())
 {
@@ -292,15 +291,12 @@ FeatureClass::FeatureClass(OGRLayer* layer,
 
     getTilesTable();
 
-    CPLReleaseMutex(m_fieldsMutex);
     CPLReleaseMutex(m_genTileMutex);
     CPLReleaseMutex(m_layersMutex);
 }
 
 FeatureClass::~FeatureClass()
 {
-    CPLDebug("ngstore", "CPLDestroyMutex(m_fieldsMutex)");
-    CPLDestroyMutex(m_fieldsMutex);
     CPLDebug("ngstore", "CPLDestroyMutex(m_genTileMutex)");
     CPLDestroyMutex(m_genTileMutex);
     CPLDebug("ngstore", "CPLDestroyMutex(m_layersMutex)");
@@ -800,11 +796,10 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     OGREnvelope extEnv = ext.toOgrEnvelope();
 
     // Lock threads here
-    CPLAcquireMutex(m_featureMutex, 55.0);
-    CPLAcquireMutex(m_fieldsMutex, 50.0);
-    setSpatialFilter(ext.toGeometry(nullptr));
+    CPLAcquireMutex(m_featureMutex, 10.5);
     setIgnoredFields(m_ignoreFields);
-    reset();
+    setSpatialFilter(ext.toGeometry(nullptr));
+    //reset();
     FeaturePtr feature;
     while((feature = nextFeature())) {
         OGRGeometry* geom = feature->GetGeometryRef();
@@ -816,9 +811,8 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
             }
         }
     }
-    setSpatialFilter(GeometryPtr());
     setIgnoredFields(std::vector<const char*>());
-    CPLReleaseMutex(m_fieldsMutex);
+    setSpatialFilter(GeometryPtr());
     CPLReleaseMutex(m_featureMutex);
 
     if(!features.empty()) {
@@ -840,9 +834,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 //    if(features) {
 //        FeaturePtr feature;
 //        while(true) {
-//            CPLAcquireMutex(m_fieldsMutex, 1000.0);
 //            feature = features->nextFeature();
-//            CPLReleaseMutex(m_fieldsMutex);
 //            if(!feature)
 //                break;
 //            VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
