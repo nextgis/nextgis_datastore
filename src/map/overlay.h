@@ -36,8 +36,7 @@
 #include "ngstore/util/constants.h"
 
 #include <memory>
-namespace ngs
-{
+namespace ngs {
 
 class MapView;
 
@@ -49,12 +48,12 @@ public:
 
     ngsMapOverlyType type() const { return m_type; }
     bool visible() const { return m_visible; }
-    void setVisible(bool visible) { m_visible = visible; }
+    virtual void setVisible(bool visible) { m_visible = visible; }
 
     static int getOverlayIndexFromType(ngsMapOverlyType type)
     {
         // Overlays stored in reverse order
-        switch (type) {
+        switch(type) {
             case MOT_EDIT:
                 return 0;
             case MOT_TRACK:
@@ -80,25 +79,29 @@ public:
     explicit EditLayerOverlay(const MapView& map);
     virtual ~EditLayerOverlay() = default;
 
-    void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
-    const CPLString& layerName() const { return m_layerName; }
-    virtual void setGeometry(GeometryPtr geometry) { m_geometry = geometry; }
+    virtual void setGeometry(GeometryPtr geometry);
     virtual GeometryPtr geometry() const { return m_geometry; }
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
-    virtual bool isSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
+    void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
+    const CPLString& layerName() const { return m_layerName; }
     GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
+
+private:
+    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
+    bool selectFirstPoint();
 
 protected:
     CPLString m_layerName;
     GeometryPtr m_geometry;
-    long m_selectedPointId;
+    PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
 };
 
-}  // namespace ngs
+} // namespace ngs
 
-#endif  // NGSOVERLAY_H
+#endif // NGSOVERLAY_H

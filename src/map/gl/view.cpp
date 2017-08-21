@@ -65,7 +65,6 @@ void GlView::setBackgroundColor(const ngsRGBA &color)
 bool GlView::close()
 {
     freeOldTiles();
-    freeOverlayResources();
     freeResources();
     clearTiles();
     return MapView::close();
@@ -315,7 +314,6 @@ bool GlView::drawTiles(const Progress &progress)
 //    CPLDebug("ngstore", "Drawing %f of %f", done, totalDrawCalls);
     if(done >= totalDrawCalls) {
         freeOldTiles();
-        freeOverlayResources();
         progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
     }
     else {
@@ -335,18 +333,6 @@ void GlView::drawOldTiles()
             m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(),
                                    oldTile->getBuffer().type());
             m_fboDrawStyle.draw(oldTile->getBuffer());
-        }
-    }
-}
-
-void GlView::freeOverlayResources() {
-    for (const OverlayPtr& overlay : m_overlays) {
-        if (overlay && overlay->visible()) {
-            continue;
-        }
-        GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
-        if (glOverlay && glOverlay->getGlBuffer()) {
-            freeResource(glOverlay->getGlBuffer());
         }
     }
 }
