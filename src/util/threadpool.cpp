@@ -133,8 +133,18 @@ bool ThreadPool::process()
 
 void ThreadPool::finished()
 {
-    CPLMutexHolder holder(m_threadMutex, 9.5);
+    CPLAcquireMutex(m_threadMutex, 9.5);
     m_threadCount--;
+    CPLReleaseMutex(m_threadMutex);
+
+    CPLAcquireMutex(m_dataMutex, 9.5);
+    if(m_threadData.empty()) {
+        CPLReleaseMutex(m_dataMutex);
+        return;
+    }
+    CPLReleaseMutex(m_dataMutex);
+
+    newWorker();
 }
 
 void ThreadPool::newWorker()

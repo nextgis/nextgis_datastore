@@ -29,6 +29,8 @@
 
 namespace ngs {
 
+constexpr float resolutionFactor = 2.0f;
+
 class MapTransform
 {
 public:
@@ -47,13 +49,22 @@ public:
         if(m_YAxisInverted) {
             newPt.y = m_displayHeight - newPt.y;
         }
+
+        newPt.x *= resolutionFactor;
+        newPt.y *= resolutionFactor;
+
         return newPt;
     }
     OGRRawPoint displayToWorld(const OGRRawPoint &pt) const {
         OGRRawPoint newPt(pt);
+
+        newPt.x /= resolutionFactor;
+        newPt.y /= resolutionFactor;
+
         if(m_YAxisInverted) {
             newPt.y = m_displayHeight - newPt.y;
         }
+
         return m_invWorldToDisplayMatrix.project(newPt);
     }
     Envelope worldToDisplay(const Envelope& env) const;

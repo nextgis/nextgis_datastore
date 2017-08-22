@@ -118,7 +118,7 @@ unsigned char getNumberThreads()
         }
     }
 
-    if(numThreads < 1) {
+    if(numThreads < 2) {
         numThreads = 1;
     }
 

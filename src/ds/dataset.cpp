@@ -373,10 +373,10 @@ bool Dataset::destroy()
         if(Folder::isExists(ovrPath)) {
             File::deleteFile(ovrPath);
         }
-        const char* attachmentsPath = CPLResetExtension(m_path, ATTACH_EXT);
-        if(Folder::isExists(attachmentsPath)) {
-            Folder::rmDir(attachmentsPath);
-        }
+    }
+    const char* attachmentsPath = CPLResetExtension(m_path, ATTACH_EXT);
+    if(Folder::isExists(attachmentsPath)) {
+        Folder::rmDir(attachmentsPath);
     }
 
     CPLString name = fullName();

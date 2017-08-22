@@ -130,8 +130,8 @@ OGRRawPoint MapTransform::getDisplayLength(double w, double h) const
 
 void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
-    m_displayWidht = width;
-    m_displayHeight = height;
+    m_displayWidht = width / resolutionFactor;
+    m_displayHeight = height / resolutionFactor;
 
     m_YAxisInverted = isYAxisInverted;
 
