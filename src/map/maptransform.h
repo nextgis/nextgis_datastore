@@ -29,7 +29,7 @@
 
 namespace ngs {
 
-constexpr float resolutionFactor = 2.0f;
+constexpr float resolutionFactor = 1.0f;
 
 class MapTransform
 {
