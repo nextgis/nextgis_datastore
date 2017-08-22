@@ -47,6 +47,7 @@ public:
     OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
     void setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible);
     ngsDrawState mapTouch(double x, double y, enum ngsMapTouchType type);
+    virtual bool setOptions(const Options& options);
 
     // Map interface
 protected:

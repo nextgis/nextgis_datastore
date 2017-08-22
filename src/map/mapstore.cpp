@@ -322,13 +322,12 @@ bool MapStore::reorderLayers(unsigned char mapId, Layer *beforeLayer, Layer *mov
     return result;
 }
 
-bool MapStore::setZoomIncrement(unsigned char mapId, char extraZoom)
+bool MapStore::setOptions(unsigned char mapId, const Options& options)
 {
     MapViewPtr map = getMap(mapId);
     if(!map)
         return false;
-    map->setZoomIncrement(extraZoom);
-    return true;
+    return map->setOptions(options);
 }
 
 bool MapStore::setExtentLimits(unsigned char mapId, const Envelope &extentLimits)

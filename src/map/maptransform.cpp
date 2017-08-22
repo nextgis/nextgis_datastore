@@ -41,7 +41,8 @@ MapTransform::MapTransform(int width, int height) :
     m_extraZoom(0),
     m_scaleMax(std::numeric_limits<double>::max()),
     m_scaleMin(std::numeric_limits<double>::min()),
-    m_extentLimit(DEFAULT_BOUNDS_Y2X4)
+    m_extentLimit(DEFAULT_BOUNDS_Y2X4),
+    m_reduceFactor(1.0)
 {
     setExtent(DEFAULT_BOUNDS);
     setDisplaySize(width, height, false);
@@ -130,8 +131,8 @@ OGRRawPoint MapTransform::getDisplayLength(double w, double h) const
 
 void MapTransform::setDisplaySize(int width, int height, bool isYAxisInverted)
 {
-    m_displayWidht = width / resolutionFactor;
-    m_displayHeight = height / resolutionFactor;
+    m_displayWidht = static_cast<int>(double(width) / m_reduceFactor);
+    m_displayHeight = static_cast<int>(double(height) / m_reduceFactor);
 
     m_YAxisInverted = isYAxisInverted;
 

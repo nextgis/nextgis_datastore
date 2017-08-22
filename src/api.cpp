@@ -2277,20 +2277,22 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
 }
 
 /**
- * @brief ngsMapSetZoomIncrement Add value to calculated zoom level for current
- * map scale. Usually needed if raster tiles content are very small.
+ * @brief ngsMapSetOptions Set map options
  * @param mapId Map identificator
- * @param extraZoom A value to add. May be negative too.
+ * @param options Key=Value list of options. Available options are:
+ *   ZOOM_INCREMENT - Add integer value to zomm level correspondent to scale. May be negative
+ *   VIEWPORT_REDUCE_FACTOR - Reduce view size on provided value. Make sense to
+ *     reduce number of tiles in map extent. The tiles will be more pixelate
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetZoomIncrement(unsigned char mapId, char extraZoom)
+int ngsMapSetOptions(unsigned char mapId, char** options)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
         return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
-    return mapStore->setZoomIncrement(mapId, extraZoom) ?
-                COD_SUCCESS : COD_SET_FAILED;
+    Options mapOptions(options);
+    return mapStore->setOptions(mapId, mapOptions) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 /**

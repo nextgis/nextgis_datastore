@@ -29,8 +29,6 @@
 
 namespace ngs {
 
-constexpr float resolutionFactor = 1.0f;
-
 class MapTransform
 {
 public:
@@ -50,16 +48,16 @@ public:
             newPt.y = m_displayHeight - newPt.y;
         }
 
-        newPt.x *= resolutionFactor;
-        newPt.y *= resolutionFactor;
+        newPt.x *= m_reduceFactor;
+        newPt.y *= m_reduceFactor;
 
         return newPt;
     }
     OGRRawPoint displayToWorld(const OGRRawPoint &pt) const {
         OGRRawPoint newPt(pt);
 
-        newPt.x /= resolutionFactor;
-        newPt.y /= resolutionFactor;
+        newPt.x /= m_reduceFactor;
+        newPt.y /= m_reduceFactor;
 
         if(m_YAxisInverted) {
             newPt.y = m_displayHeight - newPt.y;
@@ -89,6 +87,7 @@ public:
     }
     void setExtentLimits(const Envelope& extentLimit);
     void setZoomIncrement(char increment) { m_extraZoom = increment; }
+    void setReduceFactor(double factor) { m_reduceFactor = factor; }
 
     // static
 public:
@@ -126,6 +125,7 @@ protected:
     char m_extraZoom;
     double m_scaleMax, m_scaleMin;
     Envelope m_extentLimit;
+    double m_reduceFactor;
 };
 
 }

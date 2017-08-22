@@ -219,9 +219,19 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
             }
             return DS_NOTHING;
         }
-        default:
-            return DS_NOTHING;
+//        default:
+//            return DS_NOTHING;
     }
+}
+
+bool MapView::setOptions(const Options& options)
+{
+    double reduceFactor = options.doubleOption("VIEWPORT_REDUCE_FACTOR", 1.0);
+    setReduceFactor(reduceFactor);
+
+    char zoomIncrement = static_cast<char>(options.intOption("ZOOM_INCREMENT", 0));
+    setZoomIncrement(zoomIncrement);
+    return true;
 }
 
 } // namespace ngs
