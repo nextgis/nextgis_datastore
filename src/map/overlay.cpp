@@ -89,8 +89,8 @@ GeometryPtr EditLayerOverlay::createGeometry(
 
 bool EditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
 {
-    OGRRawPoint mapDist =
-            m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+    if(!m_geometry)
+        return false;
 
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
         case wkbMultiPoint: {
@@ -99,11 +99,53 @@ bool EditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
                 return false;
 
             OGRPoint* pt = new OGRPoint(geometryCenter.x, geometryCenter.y);
-            mpt->addGeometryDirectly(pt);
+
+            if(OGRERR_NONE != mpt->addGeometryDirectly(pt)) {
+                delete pt;
+                return false;
+            }
 
             int num = mpt->getNumGeometries();
             m_selectedPointId = PointId(0, NOT_FOUND, num - 1);
             m_selectedPointCoordinates = *pt;
+            return true;
+        }
+        default: {
+            return false;
+        }
+    }
+}
+
+bool EditLayerOverlay::deleteGeometry()
+{
+    if(!m_geometry)
+        return false;
+
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
+        case wkbMultiPoint: {
+            OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
+            if(!mpt)
+                return false;
+
+            if(mpt->getNumGeometries() == 0)
+                return false;
+
+            if(OGRERR_NONE
+                    != mpt->removeGeometry(m_selectedPointId.geometryId())) {
+                return false;
+            }
+
+            int lastGeomId = mpt->getNumGeometries() - 1;
+            if(lastGeomId >= 0) {
+                const OGRGeometry* lastGeom = mpt->getGeometryRef(lastGeomId);
+                const OGRPoint* lastPt =
+                        dynamic_cast<const OGRPoint*>(lastGeom);
+                m_selectedPointId = PointId(0, NOT_FOUND, lastGeomId);
+                m_selectedPointCoordinates = *lastPt;
+            } else {
+                m_selectedPointId = PointId();
+                m_selectedPointCoordinates = OGRPoint();
+            }
             return true;
         }
         default: {

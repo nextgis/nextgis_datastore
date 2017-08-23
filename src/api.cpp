@@ -2616,6 +2616,35 @@ int ngsLayerEditAddGeometry(unsigned char mapId)
     return COD_SUCCESS;
 }
 
+int ngsLayerEditDeleteGeometry(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if (nullptr == mapStore) {
+        return errorMessage(COD_CREATE_FAILED, _("MapStore is not initialized"));
+    }
+
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if (!mapView) {
+        return errorMessage(COD_CREATE_FAILED, _("MapView pointer is null"));
+    }
+
+    OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
+    if (!overlay) {
+        return errorMessage(COD_CREATE_FAILED, _("Overlay pointer is null"));
+    }
+
+    EditLayerOverlay* editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
+    if (!editOverlay) {
+        return errorMessage(COD_CREATE_FAILED, _("Edit overlay pointer is null"));
+    }
+
+    if(!editOverlay->deleteGeometry()) {
+        return errorMessage(COD_CREATE_FAILED, _("Geometry pointer is null"));
+    }
+
+    return COD_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Overlay
 //------------------------------------------------------------------------------

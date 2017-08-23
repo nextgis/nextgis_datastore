@@ -115,6 +115,7 @@ public:
     virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
     virtual bool addGeometry(const OGRRawPoint& geometryCenter);
+    virtual bool deleteGeometry();
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
     const CPLString& layerName() const { return m_layerName; }

@@ -126,6 +126,15 @@ bool GlEditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
     return ret;
 }
 
+bool GlEditLayerOverlay::deleteGeometry()
+{
+    bool ret = EditLayerOverlay::deleteGeometry();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
@@ -162,6 +171,9 @@ void GlEditLayerOverlay::fillPoint()
 
     switch(type) {
         case wkbPoint: {
+            freeResource(m_elements.at(ElementType::points));
+            freeResource(m_elements.at(ElementType::selectedPoint));
+
             const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
 
             GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
@@ -169,9 +181,6 @@ void GlEditLayerOverlay::fillPoint()
 
             VectorGlObject* bufferArray = new VectorGlObject();
             bufferArray->addBuffer(buffer);
-
-            freeResource(m_elements.at(ElementType::points));
-            freeResource(m_elements.at(ElementType::selectedPoint));
 
             if(PointId(0) == m_selectedPointId) {
                 m_elements.at(ElementType::selectedPoint).m_glBuffer =
@@ -183,6 +192,9 @@ void GlEditLayerOverlay::fillPoint()
             break;
         }
         case wkbMultiPoint: {
+            freeResource(m_elements.at(ElementType::selectedPoint));
+            freeResource(m_elements.at(ElementType::points));
+
             const OGRMultiPoint* mpt =
                     static_cast<const OGRMultiPoint*>(m_geometry.get());
 
@@ -201,7 +213,6 @@ void GlEditLayerOverlay::fillPoint()
                     VectorGlObject* bufferArray = new VectorGlObject();
                     bufferArray->addBuffer(buffer);
 
-                    freeResource(m_elements.at(ElementType::selectedPoint));
                     m_elements.at(ElementType::selectedPoint).m_glBuffer =
                             GlObjectPtr(bufferArray);
                     continue;
@@ -214,9 +225,8 @@ void GlEditLayerOverlay::fillPoint()
                 }
                 addPoint(buffer, pt, index++);
             }
-            bufferArray->addBuffer(buffer);
 
-            freeResource(m_elements.at(ElementType::points));
+            bufferArray->addBuffer(buffer);
             m_elements.at(ElementType::points).m_glBuffer =
                     GlObjectPtr(bufferArray);
             break;
