@@ -117,6 +117,15 @@ bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
     return ret;
 }
 
+bool GlEditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
+{
+    bool ret = EditLayerOverlay::addGeometry(geometryCenter);
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {

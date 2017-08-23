@@ -87,6 +87,31 @@ GeometryPtr EditLayerOverlay::createGeometry(
     }
 }
 
+bool EditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
+{
+    OGRRawPoint mapDist =
+            m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
+        case wkbMultiPoint: {
+            OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
+            if(!mpt)
+                return false;
+
+            OGRPoint* pt = new OGRPoint(geometryCenter.x, geometryCenter.y);
+            mpt->addGeometryDirectly(pt);
+
+            int num = mpt->getNumGeometries();
+            m_selectedPointId = PointId(0, NOT_FOUND, num - 1);
+            m_selectedPointCoordinates = *pt;
+            return true;
+        }
+        default: {
+            return false;
+        }
+    }
+}
+
 void EditLayerOverlay::setGeometry(GeometryPtr geometry)
 {
     m_geometry = geometry;

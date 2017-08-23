@@ -360,7 +360,8 @@ NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
 NGS_EXTERNC const char* ngsLayerGetStyleName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char* name);
-NGS_EXTERNC int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer);
+NGS_EXTERNC int ngsLayerEditCreateGeometry(unsigned char mapId, LayerH layer);
+NGS_EXTERNC int ngsLayerEditAddGeometry(unsigned char mapId);
 
 /**
  * Overlay functions

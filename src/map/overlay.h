@@ -35,7 +35,6 @@
 #include "ngstore/codes.h"
 #include "ngstore/util/constants.h"
 
-#include <memory>
 namespace ngs {
 
 class MapView;
@@ -115,6 +114,7 @@ public:
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
     virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
+    virtual bool addGeometry(const OGRRawPoint& geometryCenter);
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
     const CPLString& layerName() const { return m_layerName; }
@@ -131,8 +131,6 @@ protected:
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
-
-
 };
 
 } // namespace ngs
