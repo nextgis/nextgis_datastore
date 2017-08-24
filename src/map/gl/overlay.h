@@ -76,6 +76,8 @@ public:
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
     virtual bool addGeometry(const OGRRawPoint& geometryCenter) override;
     virtual bool deleteGeometry() override;
+    virtual bool historyUndo() override;
+    virtual bool historyRedo() override;
 
     // GlRenderOverlay interface
 public:

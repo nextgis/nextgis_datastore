@@ -363,6 +363,10 @@ NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char* name);
 NGS_EXTERNC int ngsLayerEditCreateGeometry(unsigned char mapId, LayerH layer);
 NGS_EXTERNC int ngsLayerEditAddGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsLayerEditDeleteGeometry(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditHistoryUndo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditHistoryRedo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditCanHistoryUndo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditCanHistoryRedo(unsigned char mapId);
 
 /**
  * Overlay functions

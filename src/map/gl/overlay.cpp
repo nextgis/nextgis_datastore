@@ -135,6 +135,24 @@ bool GlEditLayerOverlay::deleteGeometry()
     return ret;
 }
 
+bool GlEditLayerOverlay::historyUndo()
+{
+    bool ret = EditLayerOverlay::historyUndo();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::historyRedo()
+{
+    bool ret = EditLayerOverlay::historyRedo();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
