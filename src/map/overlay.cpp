@@ -250,7 +250,8 @@ bool EditLayerOverlay::selectPoint(
         PointId id;
 
         if(selectFirstPoint) {
-            id = getGeometryPointId(*m_geometry, DEFAULT_BOUNDS, &coordinates);
+            id = getGeometryPointId(
+                    *m_geometry, m_map.getExtentLimit(), &coordinates);
         } else {
             OGRRawPoint mapTolerance =
                     m_map.getMapDistance(m_tolerancePx, m_tolerancePx);

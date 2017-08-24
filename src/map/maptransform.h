@@ -41,6 +41,7 @@ public:
     bool setRotate(enum ngsDirection dir, double rotate);
 
     Envelope getExtent() const { return m_rotateExtent; }
+    Envelope getExtentLimit() const { return m_extentLimit; }
     OGRRawPoint getCenter() const { return m_center; }
     OGRRawPoint worldToDisplay(const OGRRawPoint &pt) const {
         OGRRawPoint newPt(m_worldToDisplayMatrix.project(pt));

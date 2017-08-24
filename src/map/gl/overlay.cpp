@@ -293,6 +293,7 @@ bool GlEditLayerOverlay::draw()
     }
 
     if(!m_elements.at(ElementType::selectedPoint).m_glBuffer) {
+        // One of the vertices must always be selected.
         return false; // Data is not yet loaded.
     }
 
