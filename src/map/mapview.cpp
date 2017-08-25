@@ -221,8 +221,8 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
             }
             return DS_NOTHING;
         }
-//        default:
-//            return DS_NOTHING;
+        default:
+            return DS_NOTHING;
     }
 }
 
