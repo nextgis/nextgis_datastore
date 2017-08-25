@@ -204,7 +204,9 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
                 if (m_touchSelectedPoint) {
                     m_touchSelectedPoint = false;
                 }
-                if (!(editMode && pointWasMoved)) { // if normal mode
+                if (editMode && pointWasMoved) {
+                    editOverlay->saveToHistory();
+                } else { // if normal mode
                     return DS_NORMAL;
                 }
             } else if(editMode) {

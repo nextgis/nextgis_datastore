@@ -24,6 +24,7 @@
 #define NGSOVERLAY_H
 
 // stl
+#include <list>
 #include <memory>
 
 // gdal
@@ -35,7 +36,6 @@
 #include "ngstore/codes.h"
 #include "ngstore/util/constants.h"
 
-#include <memory>
 namespace ngs {
 
 class MapView;
@@ -115,15 +115,24 @@ public:
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
     virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
+    virtual bool addGeometry(const OGRRawPoint& geometryCenter);
+    virtual bool deleteGeometry();
+    virtual bool historyUndo();
+    virtual bool historyRedo();
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
     const CPLString& layerName() const { return m_layerName; }
     GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
+    void saveToHistory();
+    void clearHistory();
+    bool canHistoryUndo();
+    bool canHistoryRedo();
 
 private:
     bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
     bool selectFirstPoint();
+    bool restoreFromHistory(int historyId);
 
 protected:
     CPLString m_layerName;
@@ -131,8 +140,8 @@ protected:
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
-
-
+    std::list<GeometryPtr> m_history;
+    int m_historyState;
 };
 
 } // namespace ngs

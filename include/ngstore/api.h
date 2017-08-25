@@ -350,6 +350,7 @@ NGS_EXTERNC int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType 
 NGS_EXTERNC const char* ngsMapGetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType);
 NGS_EXTERNC int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType, const char* name);
 
+
 /**
  * Layer functions
  */
@@ -363,11 +364,13 @@ NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
 NGS_EXTERNC const char* ngsLayerGetStyleName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char* name);
-NGS_EXTERNC int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer);
-NGS_EXTERNC int ngsLayerAddSelectedIDs(LayerH layer, long long* ids, int size);
-NGS_EXTERNC int ngsLayerRemoveSelectedIDs(LayerH layer, long long* ids, int size);
-NGS_EXTERNC int ngsLayerAddSkipRenderIDs(LayerH layer, long long* ids, int size);
-NGS_EXTERNC int ngsLayerRemoveSkipRenderIDs(LayerH layer, long long* ids, int size);
+NGS_EXTERNC int ngsLayerEditCreateGeometry(unsigned char mapId, LayerH layer);
+NGS_EXTERNC int ngsLayerEditAddGeometry(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditDeleteGeometry(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditHistoryUndo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditHistoryRedo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditCanHistoryUndo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerEditCanHistoryRedo(unsigned char mapId);
 
 /**
  * Overlay functions
