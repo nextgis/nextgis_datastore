@@ -364,7 +364,7 @@ MapStore* MapStore::getInstance()
 }
 
 OverlayPtr MapStore::getOverlay(
-        unsigned char mapId, enum ngsMapOverlyType type) const
+        unsigned char mapId, enum ngsMapOverlayType type) const
 {
     MapViewPtr map = getMap(mapId);
     if (!map)
@@ -373,7 +373,7 @@ OverlayPtr MapStore::getOverlay(
 }
 
 bool MapStore::setOverlayVisible(
-        unsigned char mapId, ngsMapOverlyType typeMask, bool visible)
+        unsigned char mapId, ngsMapOverlayType typeMask, bool visible)
 {
     MapViewPtr map = getMap(mapId);
     if (!map)
@@ -389,6 +389,44 @@ ngsDrawState MapStore::mapTouch(
     if (!map)
         return DS_NOTHING;
     return map->mapTouch(x, y, type);
+}
+
+bool MapStore::setMapSelectionStyleName(unsigned char mapId,
+                                        enum ngsStyleType styleType,
+                                        const char* name)
+{
+    MapViewPtr map = getMap(mapId);
+    if (!map)
+        return false;
+    return map->setSelectionStyleName(styleType, name);
+}
+
+bool MapStore::setMapSelectionStyle(unsigned char mapId,
+                                    enum ngsStyleType styleType,
+                                    const CPLJSONObject& style)
+{
+    MapViewPtr map = getMap(mapId);
+    if (!map)
+        return false;
+    return map->setSelectionStyle(styleType, style);
+}
+
+const char*MapStore::getMapSelectionStyleName(unsigned char mapId,
+                                              ngsStyleType styleType) const
+{
+    MapViewPtr map = getMap(mapId);
+    if (!map)
+        return "";
+    return map->selectionStyleName(styleType);
+}
+
+CPLJSONObject MapStore::getMapSelectionStyle(unsigned char mapId,
+                                             enum ngsStyleType styleType) const
+{
+    MapViewPtr map = getMap(mapId);
+    if (!map)
+        return CPLJSONObject();
+    return map->selectionStyle(styleType);
 }
 
 }

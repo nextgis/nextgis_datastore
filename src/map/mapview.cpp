@@ -117,7 +117,7 @@ bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
     return true;
 }
 
-OverlayPtr MapView::getOverlay(ngsMapOverlyType type) const
+OverlayPtr MapView::getOverlay(ngsMapOverlayType type) const
 {
     int index = Overlay::getOverlayIndexFromType(type);
     if (-1 == index)
@@ -130,7 +130,7 @@ OverlayPtr MapView::getOverlay(ngsMapOverlyType type) const
     return m_overlays[overlayIndex];
 }
 
-void MapView::setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible)
+void MapView::setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible)
 {
     OverlayPtr overlay;
 

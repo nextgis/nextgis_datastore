@@ -31,7 +31,7 @@ namespace ngs {
 constexpr double TOLERANCE_PX = 7.0;
 constexpr double GEOMETRY_SIZE_PX = 50.0;
 
-Overlay::Overlay(const MapView& map, ngsMapOverlyType type)
+Overlay::Overlay(const MapView& map, ngsMapOverlayType type)
         : m_map(map)
         , m_type(type)
         , m_visible(false)

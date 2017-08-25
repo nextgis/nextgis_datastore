@@ -31,6 +31,7 @@ namespace ngs {
 
 constexpr double EXTENT_EXTRA_BUFFER = 1.5;
 constexpr unsigned char MAX_TRIES = 2;
+constexpr const char* SELECTION_KEY = "selection";
 
 GlView::GlView() : MapView()
 {
@@ -78,12 +79,22 @@ void GlView::clearBackground()
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
+bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const char* name)
+{
+    Style* newStyle = Style::createStyle(name);
+    if(nullptr != newStyle) {
+        m_selectionStyles[styleType] = StylePtr(newStyle);
+        return true;
+    }
+    return false;
+}
+
 LayerPtr GlView::createLayer(const char *name, Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Vector:
-        return LayerPtr(new GlFeatureLayer(name));
-    case Layer::Type::Raster:
+        return LayerPtr(new GlSelectableFeatureLayer(m_selectionStyles, name));
+     case Layer::Type::Raster:
         return LayerPtr(new GlRasterLayer(name));
     default:
         return MapView::createLayer(name, type);
@@ -170,6 +181,51 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         return result;
     }
 #endif // NGS_GL_DEBUG
+}
+
+bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
+{
+    if(!MapView::openInternal(root, mapFile))
+        return false;
+    CPLJSONObject selection = root.GetObject(SELECTION_KEY);
+    Style* style = Style::createStyle(selection.GetString("point_style_name",
+                                                          "primitivePoint"));
+    if(nullptr != style) {
+        style->load(selection.GetObject("point_style"));
+        m_selectionStyles[ST_POINT] = StylePtr(style);
+    }
+
+    style = Style::createStyle(selection.GetString("line_style_name",
+                                                   "simpleLine"));
+    if(nullptr != style) {
+        style->load(selection.GetObject("line_style"));
+        m_selectionStyles[ST_LINE] = StylePtr(style);
+    }
+
+    style = Style::createStyle(selection.GetString("fill_style_name",
+                                                   "simpleFillBordered"));
+    if(nullptr != style) {
+        style->load(selection.GetObject("fill_style"));
+        m_selectionStyles[ST_FILL] = StylePtr(style);
+    }
+
+    return true;
+}
+
+bool GlView::saveInternal(CPLJSONObject& root, MapFile* const mapFile)
+{
+    if(!MapView::saveInternal(root, mapFile))
+        return false;
+
+    CPLJSONObject selection;
+    selection.Add("point_style_name", m_selectionStyles[ST_POINT]->name());
+    selection.Add("point_style", m_selectionStyles[ST_POINT]->save());
+    selection.Add("line_style_name", m_selectionStyles[ST_LINE]->name());
+    selection.Add("line_style", m_selectionStyles[ST_LINE]->save());
+    selection.Add("fill_style_name", m_selectionStyles[ST_FILL]->name());
+    selection.Add("fill_style", m_selectionStyles[ST_FILL]->save());
+    root.Add(SELECTION_KEY, selection);
+    return true;
 }
 
 void GlView::updateTilesList()
@@ -267,6 +323,16 @@ bool GlView::drawTiles(const Progress &progress)
                 }
             }
 
+            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+                 ++layerIt) {
+                const LayerPtr &layer = *layerIt;
+                GlSelectableFeatureLayer *renderLayer =
+                        ngsDynamicCast(GlSelectableFeatureLayer, layer);
+                if(renderLayer) {
+                    renderLayer->drawSelection(tile);
+                }
+            }
+
             if(filled == m_layers.size()) {
                 // Free layer data
                 for(const LayerPtr &layer : m_layers) {
@@ -354,6 +420,12 @@ void GlView::freeOldTiles()
 
 void GlView::initView()
 {
+    m_selectionStyles[ST_POINT] = StylePtr(
+                Style::createStyle("primitivePoint"));
+    m_selectionStyles[ST_LINE] = StylePtr(
+                Style::createStyle("simpleLine"));
+    m_selectionStyles[ST_FILL] = StylePtr(
+                Style::createStyle("simpleFillBordered"));
     createOverlays();
     m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
 }

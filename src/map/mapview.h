@@ -44,10 +44,14 @@ public:
     virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress());
 
     size_t overlayCount() const { return m_overlays.size(); }
-    OverlayPtr getOverlay(enum ngsMapOverlyType type) const;
-    void setOverlayVisible(enum ngsMapOverlyType typeMask, bool visible);
+    OverlayPtr getOverlay(enum ngsMapOverlayType type) const;
+    void setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible);
     ngsDrawState mapTouch(double x, double y, enum ngsMapTouchType type);
     virtual bool setOptions(const Options& options);
+    virtual bool setSelectionStyleName(enum ngsStyleType styleType, const char* name) = 0;
+    virtual bool setSelectionStyle(enum ngsStyleType styleType, const CPLJSONObject& style) = 0;
+    virtual const char* selectionStyleName(enum ngsStyleType styleType) const = 0;
+    virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const = 0;
 
     // Map interface
 protected:

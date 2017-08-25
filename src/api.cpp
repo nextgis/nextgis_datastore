@@ -2387,6 +2387,55 @@ ngsDrawState ngsMapTouch(
     return mapStore->mapTouch(mapId, x, y, type);
 }
 
+/**
+ * @brief ngsMapGetSelectionStyle Map selection style as json
+ * @param mapId Map identificator
+ * @param styleType Style type (Point, Line or fill)
+ * @return NULL or JSON style handle. The handle must be freed by ngsJsonObjectFree.
+ */
+JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId, enum ngsStyleType styleType)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        return nullptr;
+    }
+    return new CPLJSONObject(mapStore->getMapSelectionStyle(mapId, styleType));
+}
+
+int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
+                             JsonObjectH style)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+    }
+    CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(style);
+
+    return mapStore->setMapSelectionStyle(mapId, styleType, *gdalJsonObject) ?
+                COD_SUCCESS : COD_SET_FAILED;
+}
+
+const char*ngsMapGetSelectionStyleName(unsigned char mapId, ngsStyleType styleType)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        return "";
+    }
+    return mapStore->getMapSelectionStyleName(mapId, styleType);
+}
+
+int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType,
+                                const char* name)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+    }
+    return mapStore->setMapSelectionStyleName(mapId, styleType, name) ?
+                COD_SUCCESS : COD_SET_FAILED;
+}
 //------------------------------------------------------------------------------
 // Layer
 //------------------------------------------------------------------------------
@@ -2590,7 +2639,7 @@ int ngsLayerCreateGeometry(unsigned char mapId, LayerH layer)
 //------------------------------------------------------------------------------
 
 int ngsOverlaySetVisible(
-        unsigned char mapId, ngsMapOverlyType typeMask, char visible)
+        unsigned char mapId, ngsMapOverlayType typeMask, char visible)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if (nullptr == mapStore) {
@@ -2626,7 +2675,4 @@ int ngsOverlaySetVisible(
 //    initMapStore();
 //    return gMapStore->getDisplayLength (mapId, w, h);
 //}
-
-
-
 

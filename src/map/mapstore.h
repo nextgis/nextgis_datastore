@@ -84,11 +84,19 @@ public:
     bool setOptions(unsigned char mapId, const Options& options);
     bool setExtentLimits(unsigned char mapId, const Envelope& extentLimits);
     OverlayPtr getOverlay(
-            unsigned char mapId, enum ngsMapOverlyType type) const;
+            unsigned char mapId, enum ngsMapOverlayType type) const;
     bool setOverlayVisible(
-            unsigned char mapId, ngsMapOverlyType typeMask, bool visible);
+            unsigned char mapId, ngsMapOverlayType typeMask, bool visible);
     ngsDrawState mapTouch(
             unsigned char mapId, double x, double y, enum ngsMapTouchType type);
+    bool setMapSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType,
+                               const char* name);
+    bool setMapSelectionStyle(unsigned char mapId, enum ngsStyleType styleType,
+                           const CPLJSONObject& style);
+    const char* getMapSelectionStyleName(unsigned char mapId,
+                                   enum ngsStyleType styleType) const;
+    CPLJSONObject getMapSelectionStyle(unsigned char mapId,
+                                       enum ngsStyleType styleType) const;
 
     // static
 public:

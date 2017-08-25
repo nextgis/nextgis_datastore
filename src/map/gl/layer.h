@@ -76,8 +76,29 @@ public:
     virtual void bind() override;
     virtual void rebind() const override;
     virtual void destroy() override;
-private:
+protected:
     std::vector<GlBufferPtr> m_buffers;
+};
+
+class VectorSelectableGlObject : public VectorGlObject
+{
+public:
+    VectorSelectableGlObject();
+    const std::vector<GlBufferPtr>& selectionBuffers() const {
+        return m_selectionBuffers;
+    }
+    void addSelectionBuffer(GlBuffer* buffer) {
+        m_selectionBuffers.push_back(GlBufferPtr(buffer));
+    }
+
+    // GlObject interface
+public:
+    virtual void bind() override;
+    virtual void rebind() const override;
+    virtual void destroy() override;
+
+private:
+    std::vector<GlBufferPtr> m_selectionBuffers;
 };
 
 /**
@@ -104,20 +125,38 @@ public:
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
 
 protected:
-    VectorGlObject* fillPoints(const VectorTile& tile);
-    VectorGlObject* fillLines(const VectorTile& tile);
-    VectorGlObject* fillPolygons(const VectorTile& tile);
-    unsigned short addLineCap(const SimplePoint& point, const Normal& normal,
-                              unsigned short index, GlBuffer* buffer);
-    size_t lineCapVerticesCount() const;
-    unsigned short addLineJoin(const SimplePoint& point, const Normal& prevNormal,
-                               const Normal& normal, unsigned short index,
-                               GlBuffer* buffer);
-    size_t lineJoinVerticesCount() const;
-    VectorGlObject* fillSimplePoints(const VectorTile& tile);
-    VectorGlObject* fillPrimitivePoints(const VectorTile& tile);
+    virtual VectorGlObject* fillPoints(const VectorTile& tile);
+    virtual VectorGlObject* fillLines(const VectorTile& tile);
+    virtual VectorGlObject* fillPolygons(const VectorTile& tile);
+
 protected:
     std::set<GIntBig> m_skipFIDs;
+};
+
+/**
+ * @brief The GlFeatureClassSelectable class Renderable feature class with
+ * feature selection
+ */
+class GlSelectableFeatureLayer : public GlFeatureLayer
+{
+public:
+    explicit GlSelectableFeatureLayer(std::array<StylePtr, 3> m_selectionStyles,
+                                      const CPLString& name = DEFAULT_LAYER_NAME);
+    virtual ~GlSelectableFeatureLayer() = default;
+    virtual StylePtr selectionStyle() const;
+
+    // IGlRenderLayer interface
+public:
+    virtual bool drawSelection(GlTilePtr tile);
+
+protected:
+    virtual VectorGlObject* fillPoints(const VectorTile& tile) override;
+    virtual VectorGlObject* fillLines(const VectorTile& tile) override;
+    virtual VectorGlObject* fillPolygons(const VectorTile& tile) override;
+
+protected:
+    std::set<GIntBig> m_selectedFIDs;
+    std::array<StylePtr, 3> m_selectionStyles;
 };
 
 /**

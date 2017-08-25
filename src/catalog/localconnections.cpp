@@ -69,8 +69,8 @@ bool LocalConnections::hasChildren()
 
     CPLJSONDocument doc;
     if(doc.Load (m_path)) {
-        CPLJSONObject root = doc.GetRoot ();
-        if(root.GetType () == CPLJSONObject::Object) {
+        CPLJSONObject root = doc.GetRoot();
+        if(root.GetType() == CPLJSONObject::Object) {
             CPLJSONArray connections = root.GetArray("connections");
             for(int i = 0; i < connections.Size(); ++i) {
                 CPLJSONObject connection = connections[i];
@@ -83,7 +83,7 @@ bool LocalConnections::hasChildren()
         }
     }
     else {
-       CPLJSONObject root = doc.GetRoot ();
+       CPLJSONObject root = doc.GetRoot();
        CPLJSONArray connections("connections");
        std::vector<std::pair<CPLString, CPLString>> connectionPaths;
 #ifdef _WIN32

@@ -67,9 +67,24 @@ public:
     bool operator==(const VectorTileItem& other) const {
         return m_points == other.m_points;
     }
-    bool isIdsPresent(std::set<GIntBig> other) const {
-        return std::includes(other.begin(), other.end(), m_ids.begin(), m_ids.end());
+    bool isIdsPresent(std::set<GIntBig> other, bool full = true) const {
+        if(full) {
+            return std::includes(other.begin(), other.end(),
+                                 m_ids.begin(), m_ids.end());
+        }
+        else {
+            return std::search(other.begin(), other.end(),
+                               m_ids.begin(), m_ids.end()) != other.end();
+        }
     }
+    std::set<GIntBig> idsIntesect(std::set<GIntBig> other) const {
+        std::set<GIntBig> common_data;
+        std::set_intersection(other.begin(), other.end(),
+                              m_ids.begin(), m_ids.end(),
+                              std::inserter(common_data, common_data.begin()));
+        return common_data;
+    }
+
 protected:
     void loadIds(const VectorTileItem& item);
     void save(Buffer* buffer);

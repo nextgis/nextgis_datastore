@@ -208,7 +208,7 @@ enum ngsURLRequestType {
     URT_DELETE
 };
 
-enum ngsMapOverlyType
+enum ngsMapOverlayType
 {
     MOT_UNKNOWN = 1 << 0,
     MOT_LOCATION = 1 << 1,
@@ -221,6 +221,13 @@ enum ngsMapTouchType
     MTT_ON_DOWN,
     MTT_ON_MOVE,
     MTT_ON_UP
+};
+
+enum ngsStyleType {
+    ST_POINT = 0,
+    ST_LINE,
+    ST_FILL,
+    ST_IMAGE
 };
 
 #endif // NGSCODES_H

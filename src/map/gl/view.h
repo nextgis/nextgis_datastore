@@ -22,6 +22,8 @@
 #ifndef NGSGLVIEW_H
 #define NGSGLVIEW_H
 
+#include <array>
+
 #include "map/mapview.h"
 #include "map/overlay.h"
 #include "style.h"
@@ -65,14 +67,29 @@ public:
 protected:
     virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
                                  Layer::Type type = Layer::Type::Invalid) override;
-    virtual void createOverlays() override;
+    virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile) override;
+    virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile) override;
 
     // MapView interface
 public:
     virtual bool draw(ngsDrawState state, const Progress &progress) override;
+    virtual bool setSelectionStyleName(enum ngsStyleType styleType,
+                                       const char* name) override;
+    virtual bool setSelectionStyle(enum ngsStyleType styleType,
+                                   const CPLJSONObject& style) override {
+        return m_selectionStyles[styleType]->load(style);
+    }
+    virtual const char* selectionStyleName(enum ngsStyleType styleType) const override {
+        return m_selectionStyles[styleType]->name();
+    }
+    virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const override {
+        return m_selectionStyles[styleType]->save();
+    }
 
+    // MapView interface
 protected:
     virtual void clearBackground() override;
+    virtual void createOverlays() override;
 
     // static
 protected:
@@ -95,6 +112,7 @@ private:
     std::vector<GlObjectPtr> m_freeResources;
     std::vector<GlTilePtr> m_tiles, m_oldTiles;
     SimpleImageStyle m_fboDrawStyle;
+    std::array<StylePtr, 3> m_selectionStyles;
     ThreadPool m_threadPool;
 
     class LayerFillData : public ThreadData {

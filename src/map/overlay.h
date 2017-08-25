@@ -74,14 +74,14 @@ bool shiftGeometryPoint(OGRGeometry& geometry,
 class Overlay
 {
 public:
-    explicit Overlay(const MapView& map, ngsMapOverlyType type = MOT_UNKNOWN);
+    explicit Overlay(const MapView& map, ngsMapOverlayType type = MOT_UNKNOWN);
     virtual ~Overlay() = default;
 
-    ngsMapOverlyType type() const { return m_type; }
+    ngsMapOverlayType type() const { return m_type; }
     bool visible() const { return m_visible; }
     virtual void setVisible(bool visible) { m_visible = visible; }
 
-    static int getOverlayIndexFromType(ngsMapOverlyType type)
+    static int getOverlayIndexFromType(ngsMapOverlayType type)
     {
         // Overlays stored in reverse order
         switch(type) {
@@ -98,7 +98,7 @@ public:
 
 protected:
     const MapView& m_map;
-    enum ngsMapOverlyType m_type;
+    enum ngsMapOverlayType m_type;
     bool m_visible;
 };
 

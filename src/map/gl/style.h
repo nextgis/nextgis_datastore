@@ -29,6 +29,7 @@
 #include "image.h"
 #include "program.h"
 
+#include "ds/geometry.h"
 #include "map/matrix.h"
 #include "ngstore/api.h"
 
@@ -47,13 +48,6 @@ public:
         SH_FRAGMENT
     };
 
-    enum Type {
-        T_POINT,
-        T_LINE,
-        T_FILL,
-        T_IMAGE
-    };
-
 public:
     Style();
     virtual ~Style() = default;
@@ -63,7 +57,7 @@ public:
     virtual bool load(const CPLJSONObject &store) = 0;
     virtual CPLJSONObject save() const = 0;
     virtual const char* name() = 0;
-    virtual enum Type type() const { return m_styleType; }
+    virtual enum ngsStyleType type() const { return m_styleType; }
 
     //static
 public:
@@ -83,7 +77,7 @@ protected:
     const GLchar* m_vertexShaderSource;
     const GLchar* m_fragmentShaderSource;
     GlProgram m_program;
-    enum Type m_styleType;
+    enum ngsStyleType m_styleType;
 };
 
 typedef std::shared_ptr<Style> StylePtr;
@@ -98,6 +92,7 @@ public:
     SimpleVectorStyle();
     virtual void setColor(const ngsRGBA& color) { m_color = ngsRGBA2Gl(color); }
     virtual ngsRGBA color() const { return ngsGl2RGBA(m_color); }
+    virtual enum GlBuffer::BufferType bufferType() const = 0;
 
     // Style interface
 public:
@@ -120,32 +115,54 @@ enum PointType {
     PT_CIRCLE,
     PT_TRIANGLE,
     PT_DIAMOND,
-    PT_STAR
+    PT_STAR,
+    PT_MARKER
 };
 
-class SimplePointStyle : public SimpleVectorStyle
+class PointStyle : public SimpleVectorStyle
 {
 public:
-    explicit SimplePointStyle(enum PointType type = PT_CIRCLE);
-
+    explicit PointStyle(enum PointType type = PT_CIRCLE);
     enum PointType pointType() const { return m_type; }
     void setType(enum PointType type) { m_type = type; }
 
     float size() const { return m_size; }
     void setSize(float size) { m_size = size; }
 
+    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+                                    GlBuffer* buffer) = 0;
+    virtual size_t pointVerticesCount() const = 0;
+
+    // Style interface
+public:
+    virtual bool load(const CPLJSONObject &store) override;
+    virtual CPLJSONObject save() const override;
+
+protected:
+    enum PointType m_type;
+    float m_size;
+};
+
+class SimplePointStyle : public PointStyle
+{
+public:
+    explicit SimplePointStyle(enum PointType type = PT_CIRCLE);
+
+    // PointStyle interface
+public:
+    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+                                    GlBuffer* buffer) override;
+    virtual size_t pointVerticesCount() const override { return 3; }
+    virtual enum GlBuffer::BufferType bufferType() const override {
+        return GlBuffer::BF_PT;
+    }
+
     // Style interface
 public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool load(const CPLJSONObject &store) override;
-    virtual CPLJSONObject save() const override;
     virtual const char* name() override { return "simplePoint"; }
-
-protected:
-    enum PointType m_type;
-    float m_size;
 };
 
 
@@ -153,19 +170,22 @@ protected:
 // PrimitivePointStyle
 // https://stackoverflow.com/a/11923070/2901140
 //------------------------------------------------------------------------------
-class PrimitivePointStyle : public SimpleVectorStyle
+class PrimitivePointStyle : public PointStyle
 {
 public:
     explicit PrimitivePointStyle(enum PointType type = PT_CIRCLE);
 
-    enum PointType pointType() const { return m_type; }
-    void setType(enum PointType type) { m_type = type; }
-
-    float size() const { return m_size; }
-    void setSize(float size) { m_size = size; }
-
     unsigned char segmentCount() const { return m_segmentCount; }
     void setSegmentCount(unsigned char segmentCount) { m_segmentCount = segmentCount; }
+
+    // PointStyle interface
+public:
+    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+                                    GlBuffer* buffer) override;
+    virtual size_t pointVerticesCount() const override;
+    virtual enum GlBuffer::BufferType bufferType() const override {
+        return GlBuffer::BF_FILL;
+    }
 
     // Style interface
 public:
@@ -177,8 +197,6 @@ public:
     virtual const char* name() override { return "primitivePoint"; }
 
 protected:
-    enum PointType m_type;
-    float m_size;
     unsigned char m_segmentCount;
 };
 
@@ -210,6 +228,23 @@ public:
     void setJoinType(const JoinType &joinType);
     unsigned char segmentCount() const;
     void setSegmentCount(unsigned char segmentCount);
+
+    unsigned short addLineCap(const SimplePoint& point, const Normal& normal,
+                              unsigned short index, GlBuffer* buffer);
+    size_t lineCapVerticesCount() const;
+    unsigned short addLineJoin(const SimplePoint& point, const Normal& prevNormal,
+                               const Normal& normal, unsigned short index,
+                               GlBuffer* buffer);
+    size_t lineJoinVerticesCount() const;
+    virtual unsigned short addSegment(const SimplePoint& pt1, const SimplePoint& pt2,
+                              const Normal& normal,
+                              unsigned short index, GlBuffer* buffer);
+
+    // SimpleVectorStyle
+public:
+    virtual enum GlBuffer::BufferType bufferType() const override {
+        return GlBuffer::BF_LINE;
+    }
 
     // Style interface
 public:
@@ -245,6 +280,12 @@ public:
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual const char* name() override { return "simpleFill"; }
+
+    // SimpleVectorStyle
+public:
+    virtual enum GlBuffer::BufferType bufferType() const override {
+        return GlBuffer::BF_FILL;
+    }
 };
 
 //------------------------------------------------------------------------------
@@ -267,6 +308,8 @@ public:
     void setJoinType(const JoinType &joinType);
     unsigned char segmentCount() const;
     void setSegmentCount(unsigned char segmentCount);
+    SimpleLineStyle* lineStyle() { return &m_line; }
+    SimpleFillStyle* fillStyle() { return &m_fill; }
 
     // Style interface
 public:

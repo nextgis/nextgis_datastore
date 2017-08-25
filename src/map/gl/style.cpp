@@ -28,6 +28,37 @@
 
 namespace ngs {
 
+constexpr float normal45 = 0.70710678f;
+
+float angle(const Normal &normal) {
+    if(isEqual(normal.y, 0.0f)) {
+        if(normal.x > 0.0f) {
+            return 0.0f;
+        }
+        else {
+            return M_PI_F;
+        }
+    }
+
+    if(isEqual(normal.x, 0.0f)) {
+        if(normal.y > 0.0f) {
+            return M_PI_2_F;
+        }
+        else {
+            return -M_PI_2_F;
+        }
+    }
+
+    float angle = std::fabs(asinf(normal.y));
+    if(normal.x < 0.0f && normal.y >= 0.0f)
+        angle = M_PI_F - angle;
+    else if(normal.x < 0.0f && normal.y <= 0.0f)
+        angle = angle - M_PI_F;
+    else if(normal.x > 0.0f && normal.y <= 0.0f)
+        angle = -angle;
+    return angle;
+}
+
 //------------------------------------------------------------------------------
 // Style
 //------------------------------------------------------------------------------
@@ -128,6 +159,34 @@ CPLJSONObject SimpleVectorStyle::save() const
 {
     CPLJSONObject out;
     out.Add("color", ngsRGBA2HEX(ngsGl2RGBA(m_color)));
+    return out;
+}
+
+//------------------------------------------------------------------------------
+// PointStyle
+//------------------------------------------------------------------------------
+PointStyle::PointStyle(enum PointType type)
+        : SimpleVectorStyle(),
+          m_type(type),
+          m_size(6.0)
+{
+    m_styleType = ST_POINT;
+}
+
+bool PointStyle::load(const CPLJSONObject &store)
+{
+    if(!SimpleVectorStyle::load(store))
+        return false;
+    m_size = static_cast<float>(store.GetDouble("size", 6.0));
+    m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
+    return true;
+}
+
+CPLJSONObject PointStyle::save() const
+{
+    CPLJSONObject out = SimpleVectorStyle::save();
+    out.Add("size", static_cast<double>(m_size));
+    out.Add("type", m_type);
     return out;
 }
 
@@ -258,13 +317,20 @@ constexpr const GLchar* const pointFragmentShaderSource = R"(
 )";
 
 SimplePointStyle::SimplePointStyle(enum PointType type)
-        : SimpleVectorStyle(),
-          m_type(type),
-          m_size(6.0)
+        : PointStyle(type)
 {
     m_vertexShaderSource = pointVertexShaderSource;
     m_fragmentShaderSource = pointFragmentShaderSource;
-    m_styleType = Style::T_POINT;
+}
+
+unsigned short SimplePointStyle::addPoint(const SimplePoint& pt,
+                                          unsigned short index, GlBuffer* buffer)
+{
+    buffer->addVertex(pt.x);
+    buffer->addVertex(pt.y);
+    buffer->addVertex(0.0f);
+    buffer->addIndex(index++);
+    return index;
 }
 
 bool SimplePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
@@ -286,23 +352,6 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
 
     ngsCheckGLError(glDrawElements(GL_POINTS, buffer.indexSize(),
                                    GL_UNSIGNED_SHORT, nullptr));
-}
-
-bool SimplePointStyle::load(const CPLJSONObject &store)
-{
-    if(!SimpleVectorStyle::load(store))
-        return false;
-    m_size = static_cast<float>(store.GetDouble("size", 6.0));
-    m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
-    return true;
-}
-
-CPLJSONObject SimplePointStyle::save() const
-{
-    CPLJSONObject out = SimpleVectorStyle::save();
-    out.Add("size", static_cast<double>(m_size));
-    out.Add("type", m_type);
-    return out;
 }
 
 
@@ -344,7 +393,7 @@ SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
 {
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
-    m_styleType = Style::T_LINE;
+    m_styleType = ST_LINE;
 }
 
 bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
@@ -420,18 +469,551 @@ void SimpleLineStyle::setSegmentCount(unsigned char segmentCount)
     m_segmentCount = segmentCount;
 }
 
+unsigned short SimpleLineStyle::addLineCap(const SimplePoint& point,
+                                           const Normal& normal,
+                                           unsigned short index, GlBuffer* buffer)
+{
+    switch(m_capType) {
+        case CapType::CT_ROUND:
+        {
+            float start = asinf(normal.y);
+            if(normal.x < 0.0f && normal.y <= 0.0f)
+                start = M_PI_F + -(start);
+            else if(normal.x < 0.0f && normal.y >= 0.0f)
+                start = M_PI_2_F + start;
+            else if(normal.x > 0.0f && normal.y <= 0.0f)
+                start = M_PI_F + M_PI_F + start;
+
+            float end = M_PI_F + start;
+            float step = (end - start) / m_segmentCount;
+            float current = start;
+            for(int i = 0 ; i < m_segmentCount; ++i) {
+                float x = cosf(current);
+                float y = sinf(current);
+                current += step;
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                x = cosf(current);
+                y = sinf(current);
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                buffer->addVertex(point.x);
+                buffer->addVertex(point.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.0f);
+
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+            }
+        }
+            break;
+        case CapType::CT_BUTT:
+            break;
+        case CapType::CT_SQUARE:
+        {
+        float scX1 = -(normal.y + normal.x);
+        float scY1 = -(normal.y - normal.x);
+        float scX2 = normal.x - normal.y;
+        float scY2 = normal.x + normal.y;
+
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(scX1);
+        buffer->addVertex(scY1);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(scX2);
+        buffer->addVertex(scY2);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-normal.x);
+        buffer->addVertex(-normal.y);
+
+        // 3
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal.x);
+        buffer->addVertex(normal.y);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+
+        buffer->addIndex(index + 3);
+        buffer->addIndex(index + 2);
+        buffer->addIndex(index + 1);
+
+        index += 4;
+        }
+    }
+
+    return index;
+}
+
+size_t SimpleLineStyle::lineCapVerticesCount() const
+{
+    switch(m_capType) {
+        case CapType::CT_ROUND:
+            return 3 * m_segmentCount;
+        case CapType::CT_BUTT:
+            return 0;
+        case CapType::CT_SQUARE:
+            return 2;
+    }
+
+    return 0;
+}
+
+unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
+                                            const Normal& prevNormal,
+                                            const Normal& normal,
+                                            unsigned short index,
+                                            GlBuffer* buffer)
+{
+//    float maxWidth = width() * 5;
+    float start = angle(prevNormal);
+    float end = angle(normal);
+
+    float angle = end - start;
+    char mult = angle >= 0 ? -1 : 1;
+
+    switch(m_joinType) {
+    case JoinType::JT_ROUND:
+    {
+        float step = angle / m_segmentCount;
+        float current = start;
+        for(int i = 0 ; i < m_segmentCount; ++i) {
+            float x = cosf(current) * mult;
+            float y = sinf(current) * mult;
+
+            buffer->addVertex(point.x);
+            buffer->addVertex(point.y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(x);
+            buffer->addVertex(y);
+
+            current += step;
+            x = cosf(current) * mult;
+            y = sinf(current) * mult;
+            buffer->addVertex(point.x);
+            buffer->addVertex(point.y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(x);
+            buffer->addVertex(y);
+
+            buffer->addVertex(point.x);
+            buffer->addVertex(point.y);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(0.0f);
+            buffer->addVertex(0.0f);
+
+            buffer->addIndex(index++);
+            buffer->addIndex(index++);
+            buffer->addIndex(index++);
+        }
+    }
+        break;
+    case JoinType::JT_MITER:
+    {
+        Normal newNormal;
+        newNormal.x = (prevNormal.x + normal.x);
+        newNormal.y = (prevNormal.y + normal.y);
+        float cosHalfAngle = newNormal.x * normal.x + newNormal.y * normal.y;
+        float miterLength = cosHalfAngle == 0.0f ? 0.0f : 1.0f / cosHalfAngle;
+        newNormal.x *= miterLength;
+        newNormal.y *= miterLength;
+
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(prevNormal.x * mult);
+        buffer->addVertex(prevNormal.y * mult);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(newNormal.x * mult);
+        buffer->addVertex(newNormal.y * mult);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal.x * mult);
+        buffer->addVertex(normal.y * mult);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(newNormal.x * mult);
+        buffer->addVertex(newNormal.y * mult);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+    }
+        break;
+    case JoinType::JT_BEVELED:
+    {
+        // 0
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(prevNormal.x * mult);
+        buffer->addVertex(prevNormal.y * mult);
+
+        // 1
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal.x * mult);
+        buffer->addVertex(normal.y * mult);
+
+        // 2
+        buffer->addVertex(point.x);
+        buffer->addVertex(point.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+        buffer->addIndex(index++);
+    }
+    }
+    return index;
+}
+
+size_t SimpleLineStyle::lineJoinVerticesCount() const
+{
+    switch(m_joinType) {
+    case JoinType::JT_ROUND:
+        return 3 * m_segmentCount;
+    case JoinType::JT_MITER:
+        return 6;
+    case JoinType::JT_BEVELED:
+        return 3;
+    }
+
+    return 0;
+}
+
+unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
+                                           const SimplePoint& pt2,
+                                           const Normal& normal,
+                                           unsigned short index,
+                                           GlBuffer* buffer)
+{
+    // 0
+    buffer->addVertex(pt1.x);
+    buffer->addVertex(pt1.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(-normal.x);
+    buffer->addVertex(-normal.y);
+    buffer->addIndex(index++); // 0
+
+    // 1
+    buffer->addVertex(pt2.x);
+    buffer->addVertex(pt2.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(-normal.x);
+    buffer->addVertex(-normal.y);
+    buffer->addIndex(index++); // 1
+
+    // 2
+    buffer->addVertex(pt1.x);
+    buffer->addVertex(pt1.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(normal.x);
+    buffer->addVertex(normal.y);
+    buffer->addIndex(index++); // 2
+
+    // 3
+    buffer->addVertex(pt2.x);
+    buffer->addVertex(pt2.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(normal.x);
+    buffer->addVertex(normal.y);
+
+    buffer->addIndex(index - 2); // index = 3 at that point
+    buffer->addIndex(index - 1);
+    buffer->addIndex(index++);
+
+    return index;
+}
+
 
 //------------------------------------------------------------------------------
 // PrimitivePointStyle
 //------------------------------------------------------------------------------
-PrimitivePointStyle::PrimitivePointStyle(enum PointType type) : SimpleVectorStyle(),
-    m_type(type),
-    m_size(6.0),
+PrimitivePointStyle::PrimitivePointStyle(enum PointType type) : PointStyle(type),
     m_segmentCount(10)
 {
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
-    m_styleType = Style::T_POINT;
+    m_styleType = ST_POINT;
+}
+
+unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
+                                             unsigned short index,
+                                             GlBuffer* buffer)
+{
+    switch(pointType()) {
+    case PT_SQUARE:
+        {
+        // 0
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-normal45);
+        buffer->addVertex(normal45);
+
+        // 1
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal45);
+        buffer->addVertex(normal45);
+
+        // 2
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal45);
+        buffer->addVertex(-normal45);
+
+        // 3
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-normal45);
+        buffer->addVertex(-normal45);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 2);
+        buffer->addIndex(index + 3);
+
+        index += 4;
+        }
+        break;
+    case PT_RECTANGLE:
+        {
+        // 0
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-0.86602540f);
+        buffer->addVertex(0.5f);
+
+        // 1
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.86602540f);
+        buffer->addVertex(0.5f);
+
+        // 2
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.86602540f);
+        buffer->addVertex(-0.5f);
+
+        // 3
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-0.86602540f);
+        buffer->addVertex(-0.5f);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 2);
+        buffer->addIndex(index + 3);
+
+        index += 4;
+        }
+        break;
+    case PT_CIRCLE:
+        {
+            float start = 0.0f;
+            float end = M_PI_F + M_PI_F;
+            float step = (end - start) / m_segmentCount;
+            float current = start;
+            for(int i = 0 ; i < m_segmentCount; ++i) {
+                float x = cosf(current);
+                float y = sinf(current);
+                current += step;
+                buffer->addVertex(pt.x);
+                buffer->addVertex(pt.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                x = cosf(current);
+                y = sinf(current);
+                buffer->addVertex(pt.x);
+                buffer->addVertex(pt.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                buffer->addVertex(pt.x);
+                buffer->addVertex(pt.y);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.0f);
+                buffer->addVertex(0.0f);
+
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+            }
+        }
+        break;
+    case PT_TRIANGLE:
+        {
+        // 0
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(1.0f);
+
+        // 1
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(0.86602540f);
+        buffer->addVertex(-0.5f);
+
+        // 2
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-0.86602540f);
+        buffer->addVertex(-0.5f);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+
+        index += 3;
+        }
+        break;
+    case PT_DIAMOND:
+        {
+        // 0
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(1.0f);
+        buffer->addVertex(0.0f);
+
+        // 1
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(normal45);
+        buffer->addVertex(0.0f);
+
+        // 2
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-normal45);
+        buffer->addVertex(0.0f);
+
+        // 3
+        buffer->addVertex(pt.x);
+        buffer->addVertex(pt.y);
+        buffer->addVertex(0.0f);
+        buffer->addVertex(-1.0f);
+        buffer->addVertex(0.0f);
+
+        buffer->addIndex(index + 0);
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+
+        buffer->addIndex(index + 1);
+        buffer->addIndex(index + 2);
+        buffer->addIndex(index + 3);
+
+        index += 4;
+        }
+        break;
+    case PT_STAR:
+        // TODO: Star drawing
+        break;
+    default:
+        break;
+    }
+    return index;
+}
+
+size_t PrimitivePointStyle::pointVerticesCount() const
+{
+    switch(pointType()) {
+    case PT_SQUARE:
+    case PT_RECTANGLE:
+        return 4;
+    case PT_CIRCLE:
+        return m_segmentCount * 3;
+    case PT_TRIANGLE:
+        return 3;
+    case PT_DIAMOND:
+        return 4;
+    case PT_STAR:
+        // TODO: Star drawing
+    default:
+        return 0;
+    }
 }
 
 bool PrimitivePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
@@ -458,23 +1040,18 @@ void PrimitivePointStyle::draw(const GlBuffer& buffer) const
 
 bool PrimitivePointStyle::load(const CPLJSONObject &store)
 {
-    if(!SimpleVectorStyle::load(store))
+    if(!PointStyle::load(store))
         return false;
-    m_size = static_cast<float>(store.GetDouble("size", 6.0));
-    m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
     m_segmentCount = static_cast<unsigned char>(store.GetInteger("segments", m_segmentCount));
     return true;
 }
 
 CPLJSONObject PrimitivePointStyle::save() const
 {
-    CPLJSONObject out = SimpleVectorStyle::save();
-    out.Add("size", static_cast<double>(m_size));
-    out.Add("type", m_type);
+    CPLJSONObject out = PointStyle::save();
     out.Add("segments", m_segmentCount);
     return out;
 }
-
 
 //------------------------------------------------------------------------------
 // SimpleFillStyle
@@ -504,7 +1081,7 @@ SimpleFillStyle::SimpleFillStyle()
 {
     m_vertexShaderSource = fillVertexShaderSource;
     m_fragmentShaderSource = fillFragmentShaderSource;
-    m_styleType = Style::T_FILL;
+    m_styleType = ST_FILL;
 }
 
 bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
@@ -531,7 +1108,7 @@ void SimpleFillStyle::draw(const GlBuffer& buffer) const
 SimpleFillBorderedStyle::SimpleFillBorderedStyle()
         : Style()
 {
-    m_styleType = Style::T_FILL;
+    m_styleType = ST_FILL;
 }
 
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
@@ -638,7 +1215,7 @@ SimpleImageStyle::SimpleImageStyle() : Style(), m_image(nullptr)
 {
     m_vertexShaderSource = imageVertexShaderSource;
     m_fragmentShaderSource = imageFragmentShaderSource;
-    m_styleType = Style::T_IMAGE;
+    m_styleType = ST_IMAGE;
 }
 
 bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
