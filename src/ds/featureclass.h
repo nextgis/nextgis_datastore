@@ -77,7 +77,7 @@ public:
                                m_ids.begin(), m_ids.end()) != other.end();
         }
     }
-    std::set<GIntBig> idsIntesect(std::set<GIntBig> other) const {
+    std::set<GIntBig> idsIntersect(std::set<GIntBig> other) const {
         std::set<GIntBig> common_data;
         std::set_intersection(other.begin(), other.end(),
                               m_ids.begin(), m_ids.end(),
