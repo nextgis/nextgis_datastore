@@ -57,14 +57,16 @@ constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 
-void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
+void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
 {
-    EditLayerOverlay::setGeometry(geometry);
-
+    EditLayerOverlay::setGeometry(std::move(geometry));
     freeResources();
-    m_elements.clear();
 
-    switch(OGR_GT_Flatten(geometry->getGeometryType())) {
+    if(!m_geometry) {
+        return;
+    }
+
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
             OverlayElement points;
@@ -97,6 +99,19 @@ void GlEditLayerOverlay::setGeometry(GeometryPtr geometry)
     }
 
     fill(false);
+}
+
+OGRGeometry* GlEditLayerOverlay::releaseGeometry()
+{
+    OGRGeometry* geom = EditLayerOverlay::releaseGeometry();
+    freeResources();
+    return geom;
+}
+
+void GlEditLayerOverlay::resetGeometry()
+{
+    EditLayerOverlay::resetGeometry();
+    freeResources();
 }
 
 bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
@@ -155,6 +170,10 @@ bool GlEditLayerOverlay::redo()
 
 bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 {
+    if(!m_geometry) {
+        return false;
+    }
+
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
@@ -175,6 +194,10 @@ bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
 
 void GlEditLayerOverlay::fillPoint()
 {
+    if(!m_geometry) {
+        return;
+    }
+
     OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
     if(wkbPoint != type && wkbMultiPoint != type) {
         return;
@@ -283,6 +306,7 @@ void GlEditLayerOverlay::freeResources()
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
         freeResource(it->second);
     }
+    m_elements.clear();
 }
 
 bool GlEditLayerOverlay::draw()

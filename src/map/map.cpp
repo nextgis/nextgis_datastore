@@ -146,6 +146,16 @@ bool Map::close()
     return true;
 }
 
+LayerPtr Map::getLayer(const CPLString& layerName) const
+{
+    for(LayerPtr layer : m_layers) {
+        if(layer->getName() == layerName) {
+            return layer;
+        }
+    }
+    return nullptr;
+}
+
 int Map::createLayer(const char * name, const ObjectPtr &object)
 {
     LayerPtr layer;

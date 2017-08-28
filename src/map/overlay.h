@@ -110,8 +110,9 @@ public:
     explicit EditLayerOverlay(const MapView& map);
     virtual ~EditLayerOverlay() = default;
 
-    virtual void setGeometry(GeometryPtr geometry);
-    virtual GeometryPtr geometry() const { return m_geometry; }
+    virtual void setGeometry(GeometryUPtr geometry);
+    virtual OGRGeometry* releaseGeometry() { return m_geometry.release(); }
+    virtual void resetGeometry() { m_geometry.reset(); }
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
     virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
@@ -122,7 +123,7 @@ public:
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
     const CPLString& layerName() const { return m_layerName; }
-    GeometryPtr createGeometry(const OGRwkbGeometryType geometryType,
+    GeometryUPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
     void saveToHistory();
     void clearHistory();
@@ -136,11 +137,11 @@ private:
 
 protected:
     CPLString m_layerName;
-    GeometryPtr m_geometry;
+    GeometryUPtr m_geometry;
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
     double m_tolerancePx;
-    std::list<GeometryPtr> m_history;
+    std::list<GeometryUPtr> m_history;
     int m_historyState;
 };
 

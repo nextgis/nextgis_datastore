@@ -35,6 +35,7 @@ namespace ngs {
 constexpr double BIG_VALUE = 10000000.0;
 
 typedef std::shared_ptr< OGRGeometry > GeometryPtr;
+typedef std::unique_ptr< OGRGeometry > GeometryUPtr;
 
 class Envelope
 {

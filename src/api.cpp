@@ -2647,164 +2647,128 @@ int ngsLayerSetHideIds(LayerH layer, long long* ids, int size)
 // Overlay
 //------------------------------------------------------------------------------
 
-EditLayerOverlay* getEditOverlay(unsigned char mapId)
-{
-    MapStore* const mapStore = MapStore::getInstance();
-    if(nullptr == mapStore) {
-        errorMessage(
-                COD_CREATE_FAILED, _("MapStore is not initialized"));
-        return nullptr;
-    }
-
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        errorMessage(COD_CREATE_FAILED, _("MapView pointer is null"));
-        return nullptr;
-    }
-
-    OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
-    if(!overlay) {
-        errorMessage(COD_CREATE_FAILED, _("Overlay pointer is null"));
-        return nullptr;
-    }
-
-    return ngsDynamicCast(EditLayerOverlay, overlay);
-}
-
 int ngsOverlaySetVisible(
         unsigned char mapId, ngsMapOverlayType typeMask, char visible)
 {
     MapStore* const mapStore = MapStore::getInstance();
-    if (nullptr == mapStore) {
-        return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
+    if(nullptr == mapStore) {
+        return errorMessage(
+                COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->setOverlayVisible(mapId, typeMask, visible)
-            ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
-{
-    if (nullptr == layer) {
-        return errorMessage( COD_CREATE_FAILED, _("Layer pointer is null"));
-    }
-
-    Layer* pLayer = static_cast<Layer*>(layer);
-    FeatureClassPtr datasource =
-            std::dynamic_pointer_cast<FeatureClass>(pLayer->datasource());
-    if (!datasource) {
-        return errorMessage(COD_CREATE_FAILED, _("Layer datasource is null"));
-    }
-
-    MapStore* const mapStore = MapStore::getInstance();
-    if (nullptr == mapStore) {
-        return errorMessage(COD_CREATE_FAILED, _("MapStore is not initialized"));
-    }
-
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if (!mapView) {
-        return errorMessage(COD_CREATE_FAILED, _("MapView pointer is null"));
-    }
-
-    const CPLString& layerName = pLayer->getName();
-    const OGRwkbGeometryType geometryType = datasource->geometryType();
-    const OGRRawPoint mapCenter = mapView->getCenter();
-
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
-    }
-
-    GeometryPtr geometry = editOverlay->createGeometry(geometryType, mapCenter);
-    if(!geometry) {
-        return errorMessage(COD_CREATE_FAILED, _("Geometry pointer is null"));
-    }
-
-    editOverlay->setVisible(true);
-    editOverlay->setLayerName(layerName);
-    editOverlay->setGeometry(geometry);
-
-    return COD_SUCCESS;
-}
-
-int ngsEditOverlayAddPart(unsigned char mapId)
-{
-    MapStore* const mapStore = MapStore::getInstance();
-    if (nullptr == mapStore) {
-        return errorMessage(COD_INSERT_FAILED, _("MapStore is not initialized"));
-    }
-
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if (!mapView) {
-        return errorMessage(COD_INSERT_FAILED, _("MapView pointer is null"));
-    }
-
-    const OGRRawPoint mapCenter = mapView->getCenter();
-
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
-    }
-
-    if(!editOverlay->addGeometryPart(mapCenter)) {
-        return errorMessage(COD_INSERT_FAILED, _("Geometry adding is failed"));
-    }
-
-    return COD_SUCCESS;
-}
-
-int ngsEditOverlayDeletePart(unsigned char mapId)
-{
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
-    }
-
-
-    if(!editOverlay->deleteGeometryPart()) {
-        return errorMessage(COD_DELETE_FAILED, _("Geometry deleting is failed"));
-    }
-
-    return COD_SUCCESS;
+            ? COD_SUCCESS
+            : COD_SET_FAILED;
 }
 
 int ngsEditOverlayUndo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_INVALID, _("MapStore is not initialized"));
+        return false;
     }
-
-    return editOverlay->undo();
+    return mapStore->undo(mapId);
 }
 
 int ngsEditOverlayRedo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_INVALID, _("MapStore is not initialized"));
+        return false;
     }
-
-    return editOverlay->redo();
+    return mapStore->redo(mapId);
 }
 
 int ngsEditOverlayCanUndo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_INVALID, _("MapStore is not initialized"));
+        return false;
     }
-
-    return editOverlay->canUndo();
+    return mapStore->canUndo(mapId);
 }
 
 int ngsEditOverlayCanRedo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
-    if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_INVALID, _("MapStore is not initialized"));
+        return false;
     }
+    return mapStore->canRedo(mapId);
+}
 
-    return editOverlay->canRedo();
+int ngsEditOverlaySave(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(COD_SAVE_FAILED, _("MapStore is not initialized"));
+    }
+    if(!mapStore->saveEdit(mapId)) {
+        return errorMessage(COD_SAVE_FAILED, _("Edit saving is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+int ngsEditOverlayCancel(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(COD_INVALID, _("MapStore is not initialized"));
+    }
+    if(!mapStore->cancelEdit(mapId)) {
+        return errorMessage(COD_INVALID, _("Edit canceling is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+int ngsEditOverlayCreateGeometry(unsigned char mapId, const LayerH layer)
+{
+    if(nullptr == layer) {
+        return errorMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
+    }
+    const Layer* pLayer = static_cast<const Layer*>(layer);
+
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(
+                COD_CREATE_FAILED, _("MapStore is not initialized"));
+    }
+    if(!mapStore->createGeometry(mapId, pLayer)) {
+        return errorMessage(
+                COD_CREATE_FAILED, _("Geometry creation is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+int ngsEditOverlayAddGeometryPart(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(
+                COD_INSERT_FAILED, _("MapStore is not initialized"));
+    }
+    if(!mapStore->addGeometryPart(mapId)) {
+        return errorMessage(
+                COD_INSERT_FAILED, _("Geometry part adding is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(
+                COD_DELETE_FAILED, _("MapStore is not initialized"));
+    }
+    if(!mapStore->deleteGeometryPart(mapId)) {
+        return errorMessage(
+                COD_DELETE_FAILED, _("Geometry part deleting is failed"));
+    }
+    return COD_SUCCESS;
 }
 
 /**

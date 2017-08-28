@@ -53,7 +53,7 @@ EditLayerOverlay::EditLayerOverlay(const MapView& map)
             settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
 }
 
-GeometryPtr EditLayerOverlay::createGeometry(
+GeometryUPtr EditLayerOverlay::createGeometry(
         const OGRwkbGeometryType geometryType,
         const OGRRawPoint& geometryCenter)
 {
@@ -62,7 +62,7 @@ GeometryPtr EditLayerOverlay::createGeometry(
 
     switch(OGR_GT_Flatten(geometryType)) {
         case wkbPoint: {
-            return GeometryPtr(
+            return GeometryUPtr(
                     new OGRPoint(geometryCenter.x, geometryCenter.y));
         }
         case wkbLineString: {
@@ -71,7 +71,7 @@ GeometryPtr EditLayerOverlay::createGeometry(
                     geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
             line->addPoint(
                     geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
-            return GeometryPtr(line);
+            return GeometryUPtr(line);
         }
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = new OGRMultiPoint();
@@ -83,10 +83,10 @@ GeometryPtr EditLayerOverlay::createGeometry(
                     geometryCenter.y - mapDist.y));
             mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x + mapDist.x,
                     geometryCenter.y + mapDist.y));
-            return GeometryPtr(mpt);
+            return GeometryUPtr(mpt);
         }
         default: {
-            return GeometryPtr();
+            return nullptr;
         }
     }
 }
@@ -200,6 +200,10 @@ void EditLayerOverlay::clearHistory()
 
 void EditLayerOverlay::saveToHistory()
 {
+    if(!m_geometry) {
+        return;
+    }
+
     int stateToDelete = m_historyState + 1;
     if(stateToDelete >= 1 && stateToDelete < m_history.size()) {
         auto it = std::next(m_history.begin(), stateToDelete);
@@ -209,7 +213,7 @@ void EditLayerOverlay::saveToHistory()
     if(m_history.size() >= MAX_UNDO + 1)
         m_history.pop_front();
 
-    m_history.push_back(GeometryPtr(m_geometry->clone()));
+    m_history.push_back(GeometryUPtr(m_geometry->clone()));
     m_historyState = m_history.size() - 1;
 }
 
@@ -219,14 +223,14 @@ bool EditLayerOverlay::restoreFromHistory(int historyState)
         return false;
 
     auto it = std::next(m_history.begin(), historyState);
-    m_geometry = GeometryPtr((*it)->clone());
+    m_geometry = GeometryUPtr((*it)->clone());
     selectFirstPoint();
     return true;
 }
 
-void EditLayerOverlay::setGeometry(GeometryPtr geometry)
+void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
 {
-    m_geometry = geometry;
+    m_geometry = std::move(geometry);
     clearHistory();
     saveToHistory();
     selectFirstPoint();
