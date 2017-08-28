@@ -586,6 +586,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
     SimpleLineStyle* drawStyle = ngsDynamicCast(SimpleLineStyle, m_style);
     SimpleLineStyle* selectStyle = ngsDynamicCast(SimpleLineStyle, selectionStyle());
     SimpleLineStyle* style = nullptr;
+    unsigned short drawIndex = 0;
+    unsigned short selectIndex = 0;
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
@@ -603,11 +605,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
         if(tileItem.isIdsPresent(m_selectedFIDs, false)) {
             buffer = select;
             style = selectStyle;
+            index = selectIndex;
             isSelect = true;
         }
         else {
             buffer = draw;
             style = drawStyle;
+            index = drawIndex;
         }
 
         // Check if line is closed or not
@@ -627,11 +631,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                                 bufferArray->addSelectionBuffer(buffer);
                                 select = new GlBuffer(GlBuffer::BF_LINE);
                                 buffer = select;
+                                selectIndex = 0;
                             }
                             else {
                                 bufferArray->addBuffer(buffer);
                                 draw = new GlBuffer(GlBuffer::BF_LINE);
                                 buffer = draw;
+                                drawIndex = 0;
                             }
                             index = 0;
                         }
@@ -644,11 +650,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                                 bufferArray->addSelectionBuffer(buffer);
                                 select = new GlBuffer(GlBuffer::BF_LINE);
                                 buffer = select;
+                                selectIndex = 0;
                             }
                             else {
                                 bufferArray->addBuffer(buffer);
                                 draw = new GlBuffer(GlBuffer::BF_LINE);
                                 buffer = draw;
+                                drawIndex = 0;
                             }
                             index = 0;
                         }
@@ -667,11 +675,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                         bufferArray->addSelectionBuffer(buffer);
                         select = new GlBuffer(GlBuffer::BF_LINE);
                         buffer = select;
+                        selectIndex = 0;
                     }
                     else {
                         bufferArray->addBuffer(buffer);
                         draw = new GlBuffer(GlBuffer::BF_LINE);
                         buffer = draw;
+                        drawIndex = 0;
                     }
                     index = 0;
                 }
@@ -683,11 +693,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                     bufferArray->addSelectionBuffer(buffer);
                     select = new GlBuffer(GlBuffer::BF_LINE);
                     buffer = select;
+                    selectIndex = 0;
                 }
                 else {
                     bufferArray->addBuffer(buffer);
                     draw = new GlBuffer(GlBuffer::BF_LINE);
                     buffer = draw;
+                    drawIndex = 0;
                 }
                 index = 0;
                 buffer = new GlBuffer(GlBuffer::BF_LINE);
@@ -697,6 +709,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
             prevNormal = normal;
         }
         ++it;
+
+        if(isSelect) {
+            selectIndex = index;
+        }
+        else {
+            drawIndex = index;
+        }
     }
     bufferArray->addBuffer(draw);
     bufferArray->addSelectionBuffer(select);
@@ -727,6 +746,11 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
     SimpleFillBorderedStyle* style;
     SimpleLineStyle* lineStyle;
 
+    unsigned short selectFillIndex = 0;
+    unsigned short selectLineIndex = 0;
+    unsigned short drawFillIndex = 0;
+    unsigned short drawLineIndex = 0;
+
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
         if(tileItem.isIdsPresent(m_skipFIDs)) {
@@ -750,12 +774,16 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
             style = selectStyle;
             lineStyle = selectLineStyle;
             isSelect = true;
+            fillIndex = selectFillIndex;
+            lineIndex = selectLineIndex;
         }
         else {
             fillBuffer = drawFillBuffer;
             lineBuffer = drawLineBuffer;
             style = drawStyle;
             lineStyle = drawLineStyle;
+            fillIndex = drawFillIndex;
+            lineIndex = drawLineIndex;
         }
 
         // Fill polygons
@@ -765,11 +793,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
                 bufferArray->addSelectionBuffer(fillBuffer);
                 selectFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
                 fillBuffer = selectFillBuffer;
+                selectFillIndex = 0;
             }
             else {
                 bufferArray->addBuffer(fillBuffer);
                 drawFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
                 fillBuffer = drawFillBuffer;
+                drawFillIndex = 0;
             }
         }
 
@@ -811,11 +841,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
                             bufferArray->addSelectionBuffer(lineBuffer);
                             selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                             lineBuffer = selectLineBuffer;
+                            selectLineIndex = 0;
                         }
                         else {
                             bufferArray->addBuffer(lineBuffer);
                             drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                             lineBuffer = drawLineBuffer;
+                            drawLineIndex = 0;
                         }
                     }
 
@@ -833,11 +865,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
                             bufferArray->addSelectionBuffer(lineBuffer);
                             selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                             lineBuffer = selectLineBuffer;
+                            selectLineIndex = 0;
                         }
                         else {
                             bufferArray->addBuffer(lineBuffer);
                             drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                             lineBuffer = drawLineBuffer;
+                            drawLineIndex = 0;
                         }
                     }
                     lineIndex = lineStyle->addLineJoin(points[borderIndex], prevNormal,
@@ -850,11 +884,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
                         bufferArray->addSelectionBuffer(lineBuffer);
                         selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                         lineBuffer = selectLineBuffer;
+                        selectLineIndex = 0;
                     }
                     else {
                         bufferArray->addBuffer(lineBuffer);
                         drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                         lineBuffer = drawLineBuffer;
+                        drawLineIndex = 0;
                     }
                 }
 
@@ -873,6 +909,15 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
         }
 
         ++it;
+
+        if(isSelect) {
+            selectLineIndex = lineIndex;
+            selectFillIndex = fillIndex;
+        }
+        else {
+            drawLineIndex = lineIndex;
+            drawFillIndex = fillIndex;
+        }
     }
 
     bufferArray->addBuffer(drawFillBuffer);

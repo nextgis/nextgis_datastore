@@ -383,6 +383,9 @@ NGS_EXTERNC int ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanUndo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanRedo(unsigned char mapId);
 
+//NGS_EXTERNC int ngsGraphicsOverlayDrawRectangle(unsigned char mapId, double minX, double minY, double maxX, double maxY);
+//NGS_EXTERNC int ngsGraphicsOverlayDrawCircle(unsigned char mapId, double X, double Y, double radius);
+
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
