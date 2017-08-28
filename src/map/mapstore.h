@@ -61,6 +61,7 @@ public:
     // Map manipulation
     bool drawMap(unsigned char mapId, enum ngsDrawState state,
                 const Progress &progress = Progress());
+    void invalidateMap(unsigned char mapId, const Envelope& bounds);
 
     bool setMapSize(unsigned char mapId, int width, int height,
                    bool YAxisInverted);

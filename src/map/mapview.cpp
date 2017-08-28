@@ -69,13 +69,14 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
         IRenderLayer* const renderLayer = ngsDynamicCast(IRenderLayer, layer);
         done += renderLayer->draw(state, this, level++, progress);
     }
+
     for (auto it = m_overlays.rbegin(); it != m_overlays.rend(); ++it) {
         OverlayPtr overlay = *it;
         IOverlay* const iOverlay = ngsDynamicCast(IOverlay, overlay);
-        done += iOverlay->draw(state, this, level++, progress);
+        iOverlay->draw(state, this, level++, progress);
     }
 
-    size_t size = m_layers.size() + m_overlays.size();
+    size_t size = m_layers.size();
     if (isEqual(done, size)) {
         progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
     } else {

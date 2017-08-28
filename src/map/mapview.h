@@ -42,6 +42,7 @@ public:
             unsigned short epsg, const Envelope& bounds);
     virtual ~MapView() = default;
     virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress());
+    virtual void invalidate(const Envelope& bounds) = 0;
 
     size_t overlayCount() const { return m_overlays.size(); }
     OverlayPtr getOverlay(enum ngsMapOverlayType type) const;

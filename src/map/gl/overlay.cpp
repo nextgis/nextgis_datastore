@@ -117,36 +117,36 @@ bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
     return ret;
 }
 
-bool GlEditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
+bool GlEditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
 {
-    bool ret = EditLayerOverlay::addGeometry(geometryCenter);
+    bool ret = EditLayerOverlay::addGeometryPart(geometryCenter);
     if(ret) {
         fill(false);
     }
     return ret;
 }
 
-bool GlEditLayerOverlay::deleteGeometry()
+bool GlEditLayerOverlay::deleteGeometryPart()
 {
-    bool ret = EditLayerOverlay::deleteGeometry();
+    bool ret = EditLayerOverlay::deleteGeometryPart();
     if(ret) {
         fill(false);
     }
     return ret;
 }
 
-bool GlEditLayerOverlay::historyUndo()
+bool GlEditLayerOverlay::undo()
 {
-    bool ret = EditLayerOverlay::historyUndo();
+    bool ret = EditLayerOverlay::undo();
     if(ret) {
         fill(false);
     }
     return ret;
 }
 
-bool GlEditLayerOverlay::historyRedo()
+bool GlEditLayerOverlay::redo()
 {
-    bool ret = EditLayerOverlay::historyRedo();
+    bool ret = EditLayerOverlay::redo();
     if(ret) {
         fill(false);
     }

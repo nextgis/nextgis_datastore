@@ -91,7 +91,7 @@ GeometryPtr EditLayerOverlay::createGeometry(
     }
 }
 
-bool EditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
+bool EditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
 {
     if(!m_geometry)
         return false;
@@ -127,7 +127,7 @@ bool EditLayerOverlay::addGeometry(const OGRRawPoint& geometryCenter)
     return ret;
 }
 
-bool EditLayerOverlay::deleteGeometry()
+bool EditLayerOverlay::deleteGeometryPart()
 {
     if(!m_geometry)
         return false;
@@ -172,22 +172,22 @@ bool EditLayerOverlay::deleteGeometry()
     return ret;
 }
 
-bool EditLayerOverlay::historyUndo()
+bool EditLayerOverlay::undo()
 {
     return restoreFromHistory(--m_historyState);
 }
 
-bool EditLayerOverlay::historyRedo()
+bool EditLayerOverlay::redo()
 {
     return restoreFromHistory(++m_historyState);
 }
 
-bool EditLayerOverlay::canHistoryUndo()
+bool EditLayerOverlay::canUndo()
 {
     return m_historyState > 0 && m_historyState < m_history.size();
 }
 
-bool EditLayerOverlay::canHistoryRedo()
+bool EditLayerOverlay::canRedo()
 {
     return m_historyState >= 0 && m_historyState < m_history.size() - 1;
 }

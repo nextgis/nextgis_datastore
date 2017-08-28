@@ -263,6 +263,7 @@ NGS_EXTERNC GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry);
 NGS_EXTERNC void ngsGeometryFree(GeometryH geometry);
 NGS_EXTERNC void ngsGeometrySetPoint(GeometryH geometry, int point, double x,
                                      double y, double z, double m);
+NGS_EXTERNC ngsExtent ngsGeometryGetEnvelope(GeometryH geometry);
 NGS_EXTERNC int ngsGeometryTransformTo(GeometryH geometry, int EPSG);
 NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
                                      CoordinateTransformationH ct);
@@ -323,6 +324,7 @@ NGS_EXTERNC int ngsMapSetSize(unsigned char mapId, int width, int height,
                            int YAxisInverted);
 NGS_EXTERNC int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
                            ngsProgressFunc callback, void* callbackData);
+NGS_EXTERNC int ngsMapInvalidate(unsigned char mapId, ngsExtent bounds);
 NGS_EXTERNC int ngsMapSetBackgroundColor(unsigned char mapId, const ngsRGBA color);
 NGS_EXTERNC ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId);
 NGS_EXTERNC int ngsMapSetCenter(unsigned char mapId, double x, double y);
@@ -350,7 +352,6 @@ NGS_EXTERNC int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType 
 NGS_EXTERNC const char* ngsMapGetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType);
 NGS_EXTERNC int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType, const char* name);
 
-
 /**
  * Layer functions
  */
@@ -364,21 +365,23 @@ NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
 NGS_EXTERNC const char* ngsLayerGetStyleName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char* name);
-NGS_EXTERNC int ngsLayerEditCreateGeometry(unsigned char mapId, LayerH layer);
-NGS_EXTERNC int ngsLayerEditAddGeometry(unsigned char mapId);
-NGS_EXTERNC int ngsLayerEditDeleteGeometry(unsigned char mapId);
-NGS_EXTERNC int ngsLayerEditHistoryUndo(unsigned char mapId);
-NGS_EXTERNC int ngsLayerEditHistoryRedo(unsigned char mapId);
-NGS_EXTERNC int ngsLayerEditCanHistoryUndo(unsigned char mapId);
-NGS_EXTERNC int ngsLayerEditCanHistoryRedo(unsigned char mapId);
+NGS_EXTERNC int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size);
+NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
 
 /**
  * Overlay functions
  */
 
-NGS_EXTERNC int ngsOverlaySetVisible(
-        unsigned char mapId, enum ngsMapOverlayType typeMask, char visible);
-
+NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
+                                     enum ngsMapOverlayType typeMask,
+                                     char visible);
+NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
+NGS_EXTERNC int ngsEditOverlayAddPart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayDeletePart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayUndo(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayRedo(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayCanUndo(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayCanRedo(unsigned char mapId);
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);

@@ -46,12 +46,7 @@ public:
     void removeId(GIntBig id);
     void addPoint(const SimplePoint& pt) { m_points.push_back(pt); }
     void addIndex(unsigned short index) { m_indices.push_back(index); }
-    void addBorderIndex(unsigned short ring, unsigned short index) {
-        for(unsigned short i = 0; i < ring + 1; ++i) {
-            m_borderIndices.push_back(std::vector<unsigned short>());
-        }
-        m_borderIndices[ring].push_back(index);
-    }
+    void addBorderIndex(unsigned short ring, unsigned short index);
     void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
 
     size_t pointCount() const { return m_points.size(); }
@@ -67,23 +62,8 @@ public:
     bool operator==(const VectorTileItem& other) const {
         return m_points == other.m_points;
     }
-    bool isIdsPresent(std::set<GIntBig> other, bool full = true) const {
-        if(full) {
-            return std::includes(other.begin(), other.end(),
-                                 m_ids.begin(), m_ids.end());
-        }
-        else {
-            return std::search(other.begin(), other.end(),
-                               m_ids.begin(), m_ids.end()) != other.end();
-        }
-    }
-    std::set<GIntBig> idsIntesect(std::set<GIntBig> other) const {
-        std::set<GIntBig> common_data;
-        std::set_intersection(other.begin(), other.end(),
-                              m_ids.begin(), m_ids.end(),
-                              std::inserter(common_data, common_data.begin()));
-        return common_data;
-    }
+    bool isIdsPresent(const std::set<GIntBig> &other, bool full = true) const;
+    std::set<GIntBig> idsIntesect(const std::set<GIntBig> &other) const;
 
 protected:
     void loadIds(const VectorTileItem& item);

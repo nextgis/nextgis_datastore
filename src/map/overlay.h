@@ -115,10 +115,10 @@ public:
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
     virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
-    virtual bool addGeometry(const OGRRawPoint& geometryCenter);
-    virtual bool deleteGeometry();
-    virtual bool historyUndo();
-    virtual bool historyRedo();
+    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter);
+    virtual bool deleteGeometryPart();
+    virtual bool undo();
+    virtual bool redo();
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
     const CPLString& layerName() const { return m_layerName; }
@@ -126,8 +126,8 @@ public:
             const OGRRawPoint& geometryCenter);
     void saveToHistory();
     void clearHistory();
-    bool canHistoryUndo();
-    bool canHistoryRedo();
+    bool canUndo();
+    bool canRedo();
 
 private:
     bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);

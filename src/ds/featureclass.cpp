@@ -66,6 +66,14 @@ void VectorTileItem::removeId(GIntBig id)
     }
 }
 
+void VectorTileItem::addBorderIndex(unsigned short ring, unsigned short index)
+{
+    for(unsigned short i = 0; i < ring + 1; ++i) {
+        m_borderIndices.push_back(std::vector<unsigned short>());
+    }
+    m_borderIndices[ring].push_back(index);
+}
+
 void VectorTileItem::save(Buffer* buffer)
 {
     buffer->put(static_cast<GByte>(m_2d));
@@ -188,6 +196,32 @@ void VectorTileItem::loadIds(const VectorTileItem &item)
         m_ids.insert(id);
     }
 }
+
+bool VectorTileItem::isIdsPresent(const std::set<GIntBig> &other, bool full) const
+{
+    if(other.empty())
+        return false;
+
+    if(full) {
+        return std::includes(other.begin(), other.end(),
+                             m_ids.begin(), m_ids.end());
+    }
+    else {
+        return std::search(other.begin(), other.end(),
+                           m_ids.begin(), m_ids.end()) != other.end();
+    }
+}
+std::set<GIntBig> VectorTileItem::idsIntesect(const std::set<GIntBig> &other) const
+{
+    std::set<GIntBig> common_data;
+    if(other.empty())
+        return common_data;
+    std::set_intersection(other.begin(), other.end(),
+                          m_ids.begin(), m_ids.end(),
+                          std::inserter(common_data, common_data.begin()));
+    return common_data;
+}
+
 
 //------------------------------------------------------------------------------
 // VectorTile

@@ -73,6 +73,7 @@ protected:
     // MapView interface
 public:
     virtual bool draw(ngsDrawState state, const Progress &progress) override;
+    virtual void invalidate(const Envelope& bounds) override;
     virtual bool setSelectionStyleName(enum ngsStyleType styleType,
                                        const char* name) override;
     virtual bool setSelectionStyle(enum ngsStyleType styleType,
@@ -110,7 +111,7 @@ private:
 private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
-    std::vector<GlTilePtr> m_tiles, m_oldTiles;
+    std::vector<GlTilePtr> m_tiles, m_oldTiles, m_invalidTiles;
     SimpleImageStyle m_fboDrawStyle;
     std::array<StylePtr, 3> m_selectionStyles;
     ThreadPool m_threadPool;

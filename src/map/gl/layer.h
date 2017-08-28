@@ -109,6 +109,7 @@ class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 public:
     explicit GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlFeatureLayer() = default;
+    virtual void setHideIds(const std::set<GIntBig>& hideIds);
 
     // IGlRenderLayer interface
 public:
@@ -144,6 +145,7 @@ public:
                                       const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlSelectableFeatureLayer() = default;
     virtual StylePtr selectionStyle() const;
+    virtual void setSelectedIds(const std::set<GIntBig>& selectedIds);
 
     // IGlRenderLayer interface
 public:

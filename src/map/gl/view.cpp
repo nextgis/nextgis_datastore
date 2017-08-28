@@ -29,7 +29,7 @@
 
 namespace ngs {
 
-constexpr double EXTENT_EXTRA_BUFFER = 1.5;
+constexpr double EXTENT_EXTRA_BUFFER = 1.2;
 constexpr unsigned char MAX_TRIES = 2;
 constexpr const char* SELECTION_KEY = "selection";
 
@@ -183,6 +183,22 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 #endif // NGS_GL_DEBUG
 }
 
+void GlView::invalidate(const Envelope& bounds)
+{
+    for(GlTilePtr& tile : m_invalidTiles) {
+        tile->setFilled(false);
+    }
+    m_invalidTiles.clear();
+    for(GlTilePtr& tile : m_tiles) {
+        Envelope env = tile->getExtent();
+        env.resize(EXTENT_EXTRA_BUFFER);
+        if(env.intersects(bounds)) {
+            tile->setFilled(false);
+            m_invalidTiles.push_back(tile);
+        }
+    }
+}
+
 bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
 {
     if(!MapView::openInternal(root, mapFile))
@@ -267,6 +283,8 @@ void GlView::updateTilesList()
         m_tiles.push_back(GlTilePtr(new GlTile(GLTILE_SIZE, tileItem)));
     }
 
+//    m_invalidTiles.clear();
+
 //    CPLDebug("ngstore", "Tile count: %ld", m_tiles.size());
 //    CPLDebug("ngstore", "Old tile count: %ld", m_oldTiles.size());
 }
@@ -290,6 +308,7 @@ bool GlView::drawTiles(const Progress &progress)
     // Preserve current viewport
     GLint viewport[4];
     glGetIntegerv( GL_VIEWPORT, viewport );
+
 
     double done = 0.0;
     double totalDrawCalls = m_layers.size() * m_tiles.size() - 0.0000001;

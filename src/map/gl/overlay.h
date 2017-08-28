@@ -74,10 +74,10 @@ public:
     virtual void setGeometry(GeometryPtr geometry) override;
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
-    virtual bool addGeometry(const OGRRawPoint& geometryCenter) override;
-    virtual bool deleteGeometry() override;
-    virtual bool historyUndo() override;
-    virtual bool historyRedo() override;
+    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter) override;
+    virtual bool deleteGeometryPart() override;
+    virtual bool undo() override;
+    virtual bool redo() override;
 
     // GlRenderOverlay interface
 public:

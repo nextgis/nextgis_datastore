@@ -71,6 +71,12 @@ GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
 {
 }
 
+void GlFeatureLayer::setHideIds(const std::set<GIntBig>& hideIds)
+{
+    m_skipFIDs.clear();
+    m_skipFIDs.insert(hideIds.begin(), hideIds.end());
+}
+
 bool GlFeatureLayer::fill(GlTilePtr tile, bool /*isLastTry*/)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
@@ -445,6 +451,12 @@ StylePtr GlSelectableFeatureLayer::selectionStyle() const
     }
 
     return m_selectionStyles[m_style->type()];
+}
+
+void GlSelectableFeatureLayer::setSelectedIds(const std::set<GIntBig>& selectedIds)
+{
+    m_selectedFIDs.clear();
+    m_selectedFIDs.insert(selectedIds.begin(), selectedIds.end());
 }
 
 bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)

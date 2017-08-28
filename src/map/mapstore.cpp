@@ -127,6 +127,14 @@ bool MapStore::drawMap(unsigned char mapId, ngsDrawState state, const Progress &
     return map->draw(state, progress);
 }
 
+void MapStore::invalidateMap(unsigned char mapId, const Envelope& bounds)
+{
+    MapViewPtr map = getMap(mapId);
+    if(!map)
+        return;
+    map->invalidate(bounds);
+}
+
 ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId) const
 {
     MapViewPtr map = getMap(mapId);
