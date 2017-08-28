@@ -375,16 +375,16 @@ NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
 NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
                                      enum ngsMapOverlayType typeMask,
                                      char visible);
-NGS_EXTERNC int ngsEditOverlayCreateGeometry(
-        unsigned char mapId, const LayerH layer);
-NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanUndo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySave(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayCreateGeometry(
+        unsigned char mapId, const LayerH layer);
+NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
