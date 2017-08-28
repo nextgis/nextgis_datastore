@@ -382,6 +382,8 @@ NGS_EXTERNC int ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanUndo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanRedo(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlaySave(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
 
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);

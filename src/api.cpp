@@ -2714,14 +2714,14 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
 
-    GeometryPtr geometry = editOverlay->createGeometry(geometryType, mapCenter);
+    GeometryUPtr geometry = editOverlay->createGeometry(geometryType, mapCenter);
     if(!geometry) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry pointer is null"));
     }
 
     editOverlay->setVisible(true);
     editOverlay->setLayerName(layerName);
-    editOverlay->setGeometry(geometry);
+    editOverlay->setGeometry(std::move(geometry));
 
     return COD_SUCCESS;
 }
@@ -2758,7 +2758,6 @@ int ngsEditOverlayDeletePart(unsigned char mapId)
     if(nullptr == editOverlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
-
 
     if(!editOverlay->deleteGeometryPart()) {
         return errorMessage(COD_DELETE_FAILED, _("Geometry deleting is failed"));
@@ -2805,6 +2804,70 @@ int ngsEditOverlayCanRedo(unsigned char mapId)
     }
 
     return editOverlay->canRedo();
+}
+
+int ngsEditOverlaySave(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+    }
+
+    MapStore* const mapStore = MapStore::getInstance();
+    if (nullptr == mapStore) {
+        return errorMessage(COD_SAVE_FAILED, _("MapStore is not initialized"));
+    }
+
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if (!mapView) {
+        return errorMessage(COD_SAVE_FAILED, _("MapView pointer is null"));
+    }
+
+    const CPLString& layerName = editOverlay->layerName();
+    LayerPtr layer = mapView->getLayer(layerName);
+    if (!layer) {
+        return errorMessage(COD_SAVE_FAILED, _("Layer pointer is null"));
+    }
+
+    FeatureClassPtr datasource =
+            std::dynamic_pointer_cast<FeatureClass>(layer->datasource());
+    if (!datasource) {
+        return errorMessage(COD_SAVE_FAILED, _("Datasource pointer is null"));
+    }
+
+    FeaturePtr feature = datasource->createFeature();
+    if(!feature) {
+        return errorMessage(COD_SAVE_FAILED, _("Feature pointer is null"));
+    }
+
+    OGRGeometry* geom = editOverlay->releaseGeometry();
+    if(!geom) {
+        return errorMessage(COD_SAVE_FAILED, _("Geometry pointer is null"));
+    }
+
+    if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
+        delete geom;
+        return errorMessage(COD_SAVE_FAILED, _("Geometry insert is failed"));
+    }
+
+    if(!datasource->insertFeature(feature)) {
+        return errorMessage(COD_SAVE_FAILED, _("Feature insert is failed"));
+    }
+
+    editOverlay->setVisible(false);
+    return COD_SUCCESS;
+}
+
+int ngsEditOverlayCancel(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+    }
+
+    editOverlay->resetGeometry();
+    editOverlay->setVisible(false);
+    return COD_SUCCESS;
 }
 
 /**

@@ -71,7 +71,9 @@ public:
 
     // EditLayerOverlay interface
 public:
-    virtual void setGeometry(GeometryPtr geometry) override;
+    virtual void setGeometry(GeometryUPtr geometry) override;
+    virtual OGRGeometry* releaseGeometry() override;
+    virtual void resetGeometry() override;
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
     virtual bool addGeometryPart(const OGRRawPoint& geometryCenter) override;
