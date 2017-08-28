@@ -2770,7 +2770,8 @@ int ngsEditOverlayUndo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getEditOverlay(mapId);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return false;
     }
 
     return editOverlay->undo();
@@ -2780,7 +2781,8 @@ int ngsEditOverlayRedo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getEditOverlay(mapId);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return false;
     }
 
     return editOverlay->redo();
@@ -2790,7 +2792,8 @@ int ngsEditOverlayCanUndo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getEditOverlay(mapId);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return false;
     }
 
     return editOverlay->canUndo();
@@ -2800,7 +2803,8 @@ int ngsEditOverlayCanRedo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getEditOverlay(mapId);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return false;
     }
 
     return editOverlay->canRedo();
