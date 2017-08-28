@@ -189,7 +189,6 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
     case wkbMultiLineString:
         m_style = StylePtr(Style::createStyle("simpleLine"));
         break;
-
     case wkbPolygon:
     case wkbMultiPolygon:        
         m_style = StylePtr(Style::createStyle("simpleFillBordered"));
@@ -478,7 +477,9 @@ bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
     VectorSelectableGlObject *vectorGlObject =
             ngsDynamicCast(VectorSelectableGlObject, tileDataIt->second);
     for(const GlBufferPtr& buff : vectorGlObject->selectionBuffers()) {
-
+        if(buff->indexSize() == 0) {
+            continue;
+        }
         if(buff->bound()) {
             buff->rebind();
         }
@@ -507,6 +508,9 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
     PointStyle* selectStyle = ngsDynamicCast(PointStyle, selectionStyle());
     GlBuffer* draw = new GlBuffer(drawStyle->bufferType());
     GlBuffer* select = new GlBuffer(selectStyle->bufferType());
+    unsigned short drawIndex = 0;
+    unsigned short selectIndex = 0;
+
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
@@ -524,11 +528,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
         if(tileItem.isIdsPresent(m_selectedFIDs, false)) {
             buffer = select;
             style = selectStyle;
+            index = selectIndex;
             isSelect = true;
         }
         else {
             buffer = draw;
             style = drawStyle;
+            index = drawIndex;
         }
 
         for(size_t i = 0; i < tileItem.pointCount(); ++i) {
@@ -537,11 +543,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
                     bufferArray->addSelectionBuffer(select);
                     select = new GlBuffer(style->bufferType());
                     buffer = select;
+                    selectIndex = 0;
                 }
                 else {
                     bufferArray->addBuffer(buffer);
                     draw = new GlBuffer(style->bufferType());
                     buffer = draw;
+                    drawIndex = 0;
                 }
                 index = 0;
             }
@@ -550,6 +558,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
             index = style->addPoint(pt, index, buffer);
         }
         ++it;
+
+        if(isSelect) {
+            selectIndex = index;
+        }
+        else {
+            drawIndex = index;
+        }
     }
 
     bufferArray->addBuffer(draw);

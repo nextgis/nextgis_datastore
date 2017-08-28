@@ -185,24 +185,23 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 
 void GlView::invalidate(const Envelope& bounds)
 {
-    for(GlTilePtr& tile : m_invalidTiles) {
-        tile->setFilled(false);
-    }
-    m_invalidTiles.clear();
     for(GlTilePtr& tile : m_tiles) {
         Envelope env = tile->getExtent();
         env.resize(EXTENT_EXTRA_BUFFER);
         if(env.intersects(bounds)) {
             tile->setFilled(false);
-            m_invalidTiles.push_back(tile);
+        }
+
+        if(env.intersects(m_invalidRegion)) {
+            tile->setFilled(false);
         }
     }
+
+    m_invalidRegion = bounds;
 }
 
 bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
 {
-    if(!MapView::openInternal(root, mapFile))
-        return false;
     CPLJSONObject selection = root.GetObject(SELECTION_KEY);
     Style* style = Style::createStyle(selection.GetString("point_style_name",
                                                           "primitivePoint"));
@@ -224,6 +223,9 @@ bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
         style->load(selection.GetObject("fill_style"));
         m_selectionStyles[ST_FILL] = StylePtr(style);
     }
+
+    if(!MapView::openInternal(root, mapFile))
+        return false;
 
     return true;
 }

@@ -111,7 +111,8 @@ private:
 private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
-    std::vector<GlTilePtr> m_tiles, m_oldTiles, m_invalidTiles;
+    std::vector<GlTilePtr> m_tiles, m_oldTiles;
+    Envelope m_invalidRegion;
     SimpleImageStyle m_fboDrawStyle;
     std::array<StylePtr, 3> m_selectionStyles;
     ThreadPool m_threadPool;
