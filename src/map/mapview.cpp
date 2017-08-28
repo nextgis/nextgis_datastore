@@ -131,6 +131,14 @@ OverlayPtr MapView::getOverlay(ngsMapOverlayType type) const
     return m_overlays[overlayIndex];
 }
 
+EditLayerOverlay* MapView::getEditOverlay() const
+{
+    OverlayPtr overlay = getOverlay(MOT_EDIT);
+    if(!overlay)
+        return nullptr;
+    return ngsDynamicCast(EditLayerOverlay, overlay);
+}
+
 void MapView::setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible)
 {
     OverlayPtr overlay;
@@ -148,6 +156,130 @@ void MapView::setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible)
         overlay = getOverlay(MOT_EDIT);
         overlay->setVisible(visible);
     }
+}
+
+bool MapView::undo() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+    return editOverlay->undo();
+}
+
+bool MapView::redo() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+    return editOverlay->redo();
+}
+
+bool MapView::canUndo() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+    return editOverlay->canUndo();
+}
+
+bool MapView::canRedo() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+    return editOverlay->canRedo();
+}
+
+bool MapView::saveEdit() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+
+    LayerPtr layer = getLayer(editOverlay->layerName());
+    if(!layer) {
+        return false;
+    }
+
+    FeatureClassPtr datasource =
+            std::dynamic_pointer_cast<FeatureClass>(layer->datasource());
+    if(!datasource) {
+        return false;
+    }
+
+    FeaturePtr feature = datasource->createFeature();
+    if(!feature) {
+        return false;
+    }
+
+    OGRGeometry* geom = editOverlay->releaseGeometry();
+    if(!geom) {
+        return false;
+    }
+
+    if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
+        delete geom;
+        return false;
+    }
+
+    if(!datasource->insertFeature(feature)) {
+        return false;
+    }
+
+    editOverlay->setVisible(false);
+    return true;
+}
+
+bool MapView::cancelEdit() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+
+    editOverlay->resetGeometry();
+    editOverlay->setVisible(false);
+    return true;
+}
+
+bool MapView::createGeometry(const Layer* layer) const
+{
+    if(!layer)
+        return false;
+
+    const FeatureClassPtr datasource =
+            std::dynamic_pointer_cast<FeatureClass>(layer->datasource());
+    if(!datasource)
+        return false;
+
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+
+    GeometryUPtr geometry = editOverlay->createGeometry(
+            datasource->geometryType(), getCenter());
+    if(!geometry)
+        return false;
+
+    editOverlay->setLayerName(layer->getName());
+    editOverlay->setGeometry(std::move(geometry));
+    editOverlay->setVisible(true);
+    return true;
+}
+
+bool MapView::addGeometryPart() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+    return editOverlay->addGeometryPart(getCenter());
+}
+
+bool MapView::deletePart() const
+{
+    EditLayerOverlay* editOverlay = getEditOverlay();
+    if(nullptr == editOverlay)
+        return false;
+    return editOverlay->deleteGeometryPart();
 }
 
 ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)

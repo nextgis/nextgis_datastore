@@ -375,9 +375,10 @@ NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
 NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
                                      enum ngsMapOverlayType typeMask,
                                      char visible);
-NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
-NGS_EXTERNC int ngsEditOverlayAddPart(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayDeletePart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayCreateGeometry(
+        unsigned char mapId, const LayerH layer);
+NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCanUndo(unsigned char mapId);

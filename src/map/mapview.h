@@ -47,6 +47,15 @@ public:
     size_t overlayCount() const { return m_overlays.size(); }
     OverlayPtr getOverlay(enum ngsMapOverlayType type) const;
     void setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible);
+    bool undo() const;
+    bool redo() const;
+    bool canUndo() const;
+    bool canRedo() const;
+    bool saveEdit() const;
+    bool cancelEdit() const;
+    bool createGeometry(const Layer* layer) const;
+    bool addGeometryPart() const;
+    bool deletePart() const;
     ngsDrawState mapTouch(double x, double y, enum ngsMapTouchType type);
     virtual bool setOptions(const Options& options);
     virtual bool setSelectionStyleName(enum ngsStyleType styleType, const char* name) = 0;
@@ -62,6 +71,7 @@ protected:
 protected:
     virtual void clearBackground() = 0;
     virtual void createOverlays() = 0;
+    EditLayerOverlay* getEditOverlay() const;
 
 protected:
     std::vector<OverlayPtr> m_overlays;
