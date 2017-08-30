@@ -71,15 +71,17 @@ public:
 
     // EditLayerOverlay interface
 public:
+    virtual bool undo() override;
+    virtual bool redo() override;
+
+    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter) override;
+    virtual bool deleteGeometryPart() override;
+
     virtual void setGeometry(GeometryUPtr geometry) override;
     virtual OGRGeometry* releaseGeometry() override;
     virtual void resetGeometry() override;
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
-    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter) override;
-    virtual bool deleteGeometryPart() override;
-    virtual bool undo() override;
-    virtual bool redo() override;
 
     // GlRenderOverlay interface
 public:

@@ -48,6 +48,42 @@ void GlEditLayerOverlay::setVisible(bool visible)
     }
 }
 
+bool GlEditLayerOverlay::undo()
+{
+    bool ret = EditLayerOverlay::undo();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::redo()
+{
+    bool ret = EditLayerOverlay::redo();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
+{
+    bool ret = EditLayerOverlay::addGeometryPart(geometryCenter);
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::deleteGeometryPart()
+{
+    bool ret = EditLayerOverlay::deleteGeometryPart();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
 // TODO: set colors
 constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedGeometryColor = {0, 0, 255, 255};
@@ -126,42 +162,6 @@ bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 {
     bool ret = EditLayerOverlay::shiftPoint(mapOffset);
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
-{
-    bool ret = EditLayerOverlay::addGeometryPart(geometryCenter);
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::deleteGeometryPart()
-{
-    bool ret = EditLayerOverlay::deleteGeometryPart();
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::undo()
-{
-    bool ret = EditLayerOverlay::undo();
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::redo()
-{
-    bool ret = EditLayerOverlay::redo();
     if(ret) {
         fill(false);
     }
