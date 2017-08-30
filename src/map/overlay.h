@@ -110,30 +110,33 @@ public:
     explicit EditLayerOverlay(const MapView& map);
     virtual ~EditLayerOverlay() = default;
 
-    virtual void setGeometry(GeometryUPtr geometry);
-    virtual OGRGeometry* releaseGeometry() { return m_geometry.release(); }
-    virtual void resetGeometry() { m_geometry.reset(); }
-    virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
-    virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
-    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter);
-    virtual bool deleteGeometryPart();
     virtual bool undo();
     virtual bool redo();
+    bool canUndo();
+    bool canRedo();
+    void saveToHistory();
+    void clearHistory();
 
     void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
     const CPLString& layerName() const { return m_layerName; }
+
     GeometryUPtr createGeometry(const OGRwkbGeometryType geometryType,
             const OGRRawPoint& geometryCenter);
-    void saveToHistory();
-    void clearHistory();
-    bool canUndo();
-    bool canRedo();
+    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter);
+    virtual bool deleteGeometryPart();
+
+    virtual void setGeometry(GeometryUPtr geometry);
+    virtual OGRGeometry* releaseGeometry() { return m_geometry.release(); }
+    virtual void resetGeometry() { m_geometry.reset(); }
+
+    virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
+    virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
 private:
-    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
-    bool selectFirstPoint();
     bool restoreFromHistory(int historyId);
+    bool selectFirstPoint();
+    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
 
 protected:
     CPLString m_layerName;

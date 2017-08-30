@@ -53,6 +53,62 @@ EditLayerOverlay::EditLayerOverlay(const MapView& map)
             settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
 }
 
+bool EditLayerOverlay::undo()
+{
+    return restoreFromHistory(--m_historyState);
+}
+
+bool EditLayerOverlay::redo()
+{
+    return restoreFromHistory(++m_historyState);
+}
+
+bool EditLayerOverlay::canUndo()
+{
+    return m_historyState > 0 && m_historyState < m_history.size();
+}
+
+bool EditLayerOverlay::canRedo()
+{
+    return m_historyState >= 0 && m_historyState < m_history.size() - 1;
+}
+
+void EditLayerOverlay::saveToHistory()
+{
+    if(!m_geometry) {
+        return;
+    }
+
+    int stateToDelete = m_historyState + 1;
+    if(stateToDelete >= 1 && stateToDelete < m_history.size()) {
+        auto it = std::next(m_history.begin(), stateToDelete);
+        m_history.erase(it, m_history.end());
+    }
+
+    if(m_history.size() >= MAX_UNDO + 1)
+        m_history.pop_front();
+
+    m_history.push_back(GeometryUPtr(m_geometry->clone()));
+    m_historyState = m_history.size() - 1;
+}
+
+void EditLayerOverlay::clearHistory()
+{
+    m_history.clear();
+    m_historyState = -1;
+}
+
+bool EditLayerOverlay::restoreFromHistory(int historyState)
+{
+    if(historyState < 0 || historyState >= m_history.size())
+        return false;
+
+    auto it = std::next(m_history.begin(), historyState);
+    m_geometry = GeometryUPtr((*it)->clone());
+    selectFirstPoint();
+    return true;
+}
+
 GeometryUPtr EditLayerOverlay::createGeometry(
         const OGRwkbGeometryType geometryType,
         const OGRRawPoint& geometryCenter)
@@ -170,62 +226,6 @@ bool EditLayerOverlay::deleteGeometryPart()
         saveToHistory();
     }
     return ret;
-}
-
-bool EditLayerOverlay::undo()
-{
-    return restoreFromHistory(--m_historyState);
-}
-
-bool EditLayerOverlay::redo()
-{
-    return restoreFromHistory(++m_historyState);
-}
-
-bool EditLayerOverlay::canUndo()
-{
-    return m_historyState > 0 && m_historyState < m_history.size();
-}
-
-bool EditLayerOverlay::canRedo()
-{
-    return m_historyState >= 0 && m_historyState < m_history.size() - 1;
-}
-
-void EditLayerOverlay::clearHistory()
-{
-    m_history.clear();
-    m_historyState = -1;
-}
-
-void EditLayerOverlay::saveToHistory()
-{
-    if(!m_geometry) {
-        return;
-    }
-
-    int stateToDelete = m_historyState + 1;
-    if(stateToDelete >= 1 && stateToDelete < m_history.size()) {
-        auto it = std::next(m_history.begin(), stateToDelete);
-        m_history.erase(it, m_history.end());
-    }
-
-    if(m_history.size() >= MAX_UNDO + 1)
-        m_history.pop_front();
-
-    m_history.push_back(GeometryUPtr(m_geometry->clone()));
-    m_historyState = m_history.size() - 1;
-}
-
-bool EditLayerOverlay::restoreFromHistory(int historyState)
-{
-    if(historyState < 0 || historyState >= m_history.size())
-        return false;
-
-    auto it = std::next(m_history.begin(), historyState);
-    m_geometry = GeometryUPtr((*it)->clone());
-    selectFirstPoint();
-    return true;
 }
 
 void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
