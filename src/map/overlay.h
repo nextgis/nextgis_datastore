@@ -124,11 +124,13 @@ public:
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
-    virtual void setGeometry(GeometryUPtr geometry);
-
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
     bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
+
+protected:
+    virtual void setGeometry(GeometryUPtr geometry);
+    virtual void freeResources();
 
 private:
     bool restoreFromHistory(int historyId);

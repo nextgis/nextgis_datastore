@@ -77,10 +77,12 @@ public:
     virtual bool addGeometryPart() override;
     virtual bool deleteGeometryPart() override;
 
-    virtual void setGeometry(GeometryUPtr geometry) override;
-
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
+
+protected:
+    virtual void setGeometry(GeometryUPtr geometry) override;
+    virtual void freeResources() override;
 
     // GlRenderOverlay interface
 public:
@@ -90,8 +92,8 @@ public:
 protected:
     void fillPoint();
     void fillLine();
-    void freeResource(OverlayElement& element);
-    void freeResources();
+    void freeGlBuffer(OverlayElement& element);
+    void freeGlBuffers();
 
 private:
     std::map<ElementType, OverlayElement> m_elements;

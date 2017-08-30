@@ -44,7 +44,7 @@ void GlEditLayerOverlay::setVisible(bool visible)
 {
     EditLayerOverlay::setVisible(visible);
     if(!visible) {
-        freeResources();
+        freeGlBuffers();
     }
 }
 
@@ -96,7 +96,7 @@ constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
 {
     EditLayerOverlay::setGeometry(std::move(geometry));
-    freeResources();
+    freeGlBuffers();
 
     if(!m_geometry) {
         return;
@@ -199,8 +199,8 @@ void GlEditLayerOverlay::fillPoint()
 
     switch(type) {
         case wkbPoint: {
-            freeResource(m_elements.at(ElementType::points));
-            freeResource(m_elements.at(ElementType::selectedPoint));
+            freeGlBuffer(m_elements.at(ElementType::points));
+            freeGlBuffer(m_elements.at(ElementType::selectedPoint));
 
             const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
 
@@ -220,8 +220,8 @@ void GlEditLayerOverlay::fillPoint()
             break;
         }
         case wkbMultiPoint: {
-            freeResource(m_elements.at(ElementType::selectedPoint));
-            freeResource(m_elements.at(ElementType::points));
+            freeGlBuffer(m_elements.at(ElementType::selectedPoint));
+            freeGlBuffer(m_elements.at(ElementType::points));
 
             const OGRMultiPoint* mpt =
                     static_cast<const OGRMultiPoint*>(m_geometry.get());
@@ -276,7 +276,13 @@ void GlEditLayerOverlay::fillLine()
     //return bufferArray;
 }
 
-void GlEditLayerOverlay::freeResource(OverlayElement& element)
+void GlEditLayerOverlay::freeResources()
+{
+    EditLayerOverlay::freeResources();
+    freeGlBuffers();
+}
+
+void GlEditLayerOverlay::freeGlBuffer(OverlayElement& element)
 {
     if(element.m_glBuffer) {
         const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
@@ -288,10 +294,10 @@ void GlEditLayerOverlay::freeResource(OverlayElement& element)
     }
 }
 
-void GlEditLayerOverlay::freeResources()
+void GlEditLayerOverlay::freeGlBuffers()
 {
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
-        freeResource(it->second);
+        freeGlBuffer(it->second);
     }
     m_elements.clear();
 }

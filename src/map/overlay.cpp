@@ -134,6 +134,7 @@ bool EditLayerOverlay::save()
         return false;
     }
 
+    freeResources();
     setVisible(false);
     return true;
 }
@@ -141,6 +142,7 @@ bool EditLayerOverlay::save()
 void EditLayerOverlay::cancel()
 {
     m_geometry.reset();
+    freeResources();
     setVisible(false);
 }
 
@@ -354,6 +356,12 @@ bool EditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 
     return shiftGeometryPoint(*m_geometry, m_selectedPointId, mapOffset,
             &m_selectedPointCoordinates);
+}
+
+void EditLayerOverlay::freeResources()
+{
+    clearHistory();
+    m_datasource.reset();
 }
 
 bool PointId::operator==(const PointId& other) const
