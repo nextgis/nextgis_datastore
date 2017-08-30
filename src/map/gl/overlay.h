@@ -74,12 +74,11 @@ public:
     virtual bool undo() override;
     virtual bool redo() override;
 
-    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter) override;
+    virtual bool addGeometryPart() override;
     virtual bool deleteGeometryPart() override;
 
     virtual void setGeometry(GeometryUPtr geometry) override;
-    virtual OGRGeometry* releaseGeometry() override;
-    virtual void resetGeometry() override;
+
     virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
 

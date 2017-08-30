@@ -66,9 +66,9 @@ bool GlEditLayerOverlay::redo()
     return ret;
 }
 
-bool GlEditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
+bool GlEditLayerOverlay::addGeometryPart()
 {
-    bool ret = EditLayerOverlay::addGeometryPart(geometryCenter);
+    bool ret = EditLayerOverlay::addGeometryPart();
     if(ret) {
         fill(false);
     }
@@ -135,19 +135,6 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
     }
 
     fill(false);
-}
-
-OGRGeometry* GlEditLayerOverlay::releaseGeometry()
-{
-    OGRGeometry* geom = EditLayerOverlay::releaseGeometry();
-    freeResources();
-    return geom;
-}
-
-void GlEditLayerOverlay::resetGeometry()
-{
-    EditLayerOverlay::resetGeometry();
-    freeResources();
 }
 
 bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)

@@ -55,11 +55,15 @@ EditLayerOverlay::EditLayerOverlay(const MapView& map)
 
 bool EditLayerOverlay::undo()
 {
+    if(!canUndo())
+        return false;
     return restoreFromHistory(--m_historyState);
 }
 
 bool EditLayerOverlay::redo()
 {
+    if(!canRedo())
+        return false;
     return restoreFromHistory(++m_historyState);
 }
 
@@ -98,6 +102,37 @@ void EditLayerOverlay::clearHistory()
     m_historyState = -1;
 }
 
+bool EditLayerOverlay::save()
+{
+    FeaturePtr feature = m_datasource->createFeature();
+    if(!feature) {
+        return false;
+    }
+
+    OGRGeometry* geom = m_geometry.release();
+    if(!geom) {
+        return false;
+    }
+
+    if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
+        delete geom;
+        return false;
+    }
+
+    if(!m_datasource->insertFeature(feature)) {
+        return false;
+    }
+
+    setVisible(false);
+    return true;
+}
+
+void EditLayerOverlay::cancel()
+{
+    m_geometry.reset();
+    setVisible(false);
+}
+
 bool EditLayerOverlay::restoreFromHistory(int historyState)
 {
     if(historyState < 0 || historyState >= m_history.size())
@@ -109,17 +144,21 @@ bool EditLayerOverlay::restoreFromHistory(int historyState)
     return true;
 }
 
-GeometryUPtr EditLayerOverlay::createGeometry(
-        const OGRwkbGeometryType geometryType,
-        const OGRRawPoint& geometryCenter)
+bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
 {
+    m_datasource = datasource;
+
+    OGRwkbGeometryType geometryType = m_datasource->geometryType();
+    OGRRawPoint geometryCenter = m_map.getCenter();
     OGRRawPoint mapDist =
             m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
 
+    GeometryUPtr geometry = GeometryUPtr();
     switch(OGR_GT_Flatten(geometryType)) {
         case wkbPoint: {
-            return GeometryUPtr(
+            geometry = GeometryUPtr(
                     new OGRPoint(geometryCenter.x, geometryCenter.y));
+            break;
         }
         case wkbLineString: {
             OGRLineString* line = new OGRLineString();
@@ -127,7 +166,8 @@ GeometryUPtr EditLayerOverlay::createGeometry(
                     geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
             line->addPoint(
                     geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
-            return GeometryUPtr(line);
+            geometry = GeometryUPtr(line);
+            break;
         }
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = new OGRMultiPoint();
@@ -139,20 +179,30 @@ GeometryUPtr EditLayerOverlay::createGeometry(
                     geometryCenter.y - mapDist.y));
             mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x + mapDist.x,
                     geometryCenter.y + mapDist.y));
-            return GeometryUPtr(mpt);
+            geometry = GeometryUPtr(mpt);
+            break;
         }
         default: {
-            return nullptr;
+            break;
         }
     }
+
+    setGeometry(std::move(geometry));
+    if(!m_geometry) {
+        return false;
+    }
+    setVisible(true);
+    return true;
 }
 
-bool EditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
+bool EditLayerOverlay::addGeometryPart()
 {
     if(!m_geometry)
         return false;
 
+    OGRRawPoint geometryCenter = m_map.getCenter();
     bool ret = false;
+
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
