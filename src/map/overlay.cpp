@@ -96,6 +96,17 @@ void EditLayerOverlay::saveToHistory()
     m_historyState = m_history.size() - 1;
 }
 
+bool EditLayerOverlay::restoreFromHistory(int historyState)
+{
+    if(historyState < 0 || historyState >= m_history.size())
+        return false;
+
+    auto it = std::next(m_history.begin(), historyState);
+    m_geometry = GeometryUPtr((*it)->clone());
+    selectFirstPoint();
+    return true;
+}
+
 void EditLayerOverlay::clearHistory()
 {
     m_history.clear();
@@ -131,17 +142,6 @@ void EditLayerOverlay::cancel()
 {
     m_geometry.reset();
     setVisible(false);
-}
-
-bool EditLayerOverlay::restoreFromHistory(int historyState)
-{
-    if(historyState < 0 || historyState >= m_history.size())
-        return false;
-
-    auto it = std::next(m_history.begin(), historyState);
-    m_geometry = GeometryUPtr((*it)->clone());
-    selectFirstPoint();
-    return true;
 }
 
 bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
