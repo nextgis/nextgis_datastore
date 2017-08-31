@@ -32,6 +32,7 @@
 #include "ogr_core.h"
 #include "ogr_geometry.h"
 
+#include "ds/featureclass.h"
 #include "ds/geometry.h"
 #include "ngstore/codes.h"
 #include "ngstore/util/constants.h"
@@ -110,33 +111,34 @@ public:
     explicit EditLayerOverlay(const MapView& map);
     virtual ~EditLayerOverlay() = default;
 
-    virtual void setGeometry(GeometryUPtr geometry);
-    virtual OGRGeometry* releaseGeometry() { return m_geometry.release(); }
-    virtual void resetGeometry() { m_geometry.reset(); }
-    virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
-    virtual bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
-    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter);
-    virtual bool deleteGeometryPart();
     virtual bool undo();
     virtual bool redo();
-
-    void setLayerName(const CPLString& layerName) { m_layerName = layerName; }
-    const CPLString& layerName() const { return m_layerName; }
-    GeometryUPtr createGeometry(const OGRwkbGeometryType geometryType,
-            const OGRRawPoint& geometryCenter);
-    void saveToHistory();
-    void clearHistory();
     bool canUndo();
     bool canRedo();
+    void saveToHistory();
+    void clearHistory();
+    bool save();
+    void cancel();
 
-private:
-    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
-    bool selectFirstPoint();
-    bool restoreFromHistory(int historyId);
+    bool createGeometry(FeatureClassPtr datasource);
+    virtual bool addGeometryPart();
+    virtual bool deleteGeometryPart();
+
+    virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
+    bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
 protected:
-    CPLString m_layerName;
+    virtual void setGeometry(GeometryUPtr geometry);
+    virtual void freeResources();
+
+private:
+    bool restoreFromHistory(int historyId);
+    bool selectFirstPoint();
+    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
+
+protected:
+    FeatureClassPtr m_datasource;
     GeometryUPtr m_geometry;
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;

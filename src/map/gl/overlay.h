@@ -52,13 +52,13 @@ class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 
     enum class ElementType
     {
-        geometries = 0,
-        selectedGeometry,
-        lines,
-        selectedLine,
-        medianPoints,
-        points,
-        selectedPoint
+        GEOMETRIES = 0,
+        SELECTED_GEOMETRY,
+        LINES,
+        SELECTED_LINE,
+        MEDIAN_POINTS,
+        POINTS,
+        SELECTED_POINT
     };
 
 public:
@@ -71,15 +71,18 @@ public:
 
     // EditLayerOverlay interface
 public:
-    virtual void setGeometry(GeometryUPtr geometry) override;
-    virtual OGRGeometry* releaseGeometry() override;
-    virtual void resetGeometry() override;
-    virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
-    virtual bool addGeometryPart(const OGRRawPoint& geometryCenter) override;
-    virtual bool deleteGeometryPart() override;
     virtual bool undo() override;
     virtual bool redo() override;
+
+    virtual bool addGeometryPart() override;
+    virtual bool deleteGeometryPart() override;
+
+    virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
+
+protected:
+    virtual void setGeometry(GeometryUPtr geometry) override;
+    virtual void freeResources() override;
 
     // GlRenderOverlay interface
 public:
@@ -89,8 +92,8 @@ public:
 protected:
     void fillPoint();
     void fillLine();
-    void freeResource(OverlayElement& element);
-    void freeResources();
+    void freeGlBuffer(OverlayElement& element);
+    void freeGlBuffers();
 
 private:
     std::map<ElementType, OverlayElement> m_elements;

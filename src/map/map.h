@@ -70,7 +70,6 @@ public:
         if(layerIndex >= m_layers.size()) return nullptr;
         return m_layers[layerIndex];
     }
-    LayerPtr getLayer(const CPLString& layerName) const;
     virtual int createLayer(const char* name, const ObjectPtr &object);
     virtual bool deleteLayer(Layer* layer);
     virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);

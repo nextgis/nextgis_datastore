@@ -44,8 +44,44 @@ void GlEditLayerOverlay::setVisible(bool visible)
 {
     EditLayerOverlay::setVisible(visible);
     if(!visible) {
-        freeResources();
+        freeGlBuffers();
     }
+}
+
+bool GlEditLayerOverlay::undo()
+{
+    bool ret = EditLayerOverlay::undo();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::redo()
+{
+    bool ret = EditLayerOverlay::redo();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::addGeometryPart()
+{
+    bool ret = EditLayerOverlay::addGeometryPart();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::deleteGeometryPart()
+{
+    bool ret = EditLayerOverlay::deleteGeometryPart();
+    if(ret) {
+        fill(false);
+    }
+    return ret;
 }
 
 // TODO: set colors
@@ -60,7 +96,7 @@ constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
 {
     EditLayerOverlay::setGeometry(std::move(geometry));
-    freeResources();
+    freeGlBuffers();
 
     if(!m_geometry) {
         return;
@@ -74,14 +110,14 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
             SimpleVectorStyle* vectorStyle =
                     ngsDynamicCast(SimpleVectorStyle, points.m_style);
             vectorStyle->setColor(pointColor);
-            m_elements[ElementType::points] = points;
+            m_elements[ElementType::POINTS] = points;
 
             OverlayElement selectedPoint;
             selectedPoint.m_style = StylePtr(Style::createStyle("simplePoint"));
             vectorStyle =
                     ngsDynamicCast(SimpleVectorStyle, selectedPoint.m_style);
             vectorStyle->setColor(selectedPointColor);
-            m_elements[ElementType::selectedPoint] = selectedPoint;
+            m_elements[ElementType::SELECTED_POINT] = selectedPoint;
             break;
         }
 
@@ -101,19 +137,6 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
     fill(false);
 }
 
-OGRGeometry* GlEditLayerOverlay::releaseGeometry()
-{
-    OGRGeometry* geom = EditLayerOverlay::releaseGeometry();
-    freeResources();
-    return geom;
-}
-
-void GlEditLayerOverlay::resetGeometry()
-{
-    EditLayerOverlay::resetGeometry();
-    freeResources();
-}
-
 bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 {
     bool ret = EditLayerOverlay::selectPoint(mapCoordinates);
@@ -126,42 +149,6 @@ bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 {
     bool ret = EditLayerOverlay::shiftPoint(mapOffset);
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
-{
-    bool ret = EditLayerOverlay::addGeometryPart(geometryCenter);
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::deleteGeometryPart()
-{
-    bool ret = EditLayerOverlay::deleteGeometryPart();
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::undo()
-{
-    bool ret = EditLayerOverlay::undo();
-    if(ret) {
-        fill(false);
-    }
-    return ret;
-}
-
-bool GlEditLayerOverlay::redo()
-{
-    bool ret = EditLayerOverlay::redo();
     if(ret) {
         fill(false);
     }
@@ -212,8 +199,8 @@ void GlEditLayerOverlay::fillPoint()
 
     switch(type) {
         case wkbPoint: {
-            freeResource(m_elements.at(ElementType::points));
-            freeResource(m_elements.at(ElementType::selectedPoint));
+            freeGlBuffer(m_elements.at(ElementType::POINTS));
+            freeGlBuffer(m_elements.at(ElementType::SELECTED_POINT));
 
             const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
 
@@ -224,17 +211,17 @@ void GlEditLayerOverlay::fillPoint()
             bufferArray->addBuffer(buffer);
 
             if(PointId(0) == m_selectedPointId) {
-                m_elements.at(ElementType::selectedPoint).m_glBuffer =
+                m_elements.at(ElementType::SELECTED_POINT).m_glBuffer =
                         GlObjectPtr(bufferArray);
             } else {
-                m_elements.at(ElementType::points).m_glBuffer =
+                m_elements.at(ElementType::POINTS).m_glBuffer =
                         GlObjectPtr(bufferArray);
             }
             break;
         }
         case wkbMultiPoint: {
-            freeResource(m_elements.at(ElementType::selectedPoint));
-            freeResource(m_elements.at(ElementType::points));
+            freeGlBuffer(m_elements.at(ElementType::SELECTED_POINT));
+            freeGlBuffer(m_elements.at(ElementType::POINTS));
 
             const OGRMultiPoint* mpt =
                     static_cast<const OGRMultiPoint*>(m_geometry.get());
@@ -254,7 +241,7 @@ void GlEditLayerOverlay::fillPoint()
                     VectorGlObject* bufferArray = new VectorGlObject();
                     bufferArray->addBuffer(buffer);
 
-                    m_elements.at(ElementType::selectedPoint).m_glBuffer =
+                    m_elements.at(ElementType::SELECTED_POINT).m_glBuffer =
                             GlObjectPtr(bufferArray);
                     continue;
                 }
@@ -268,7 +255,7 @@ void GlEditLayerOverlay::fillPoint()
             }
 
             bufferArray->addBuffer(buffer);
-            m_elements.at(ElementType::points).m_glBuffer =
+            m_elements.at(ElementType::POINTS).m_glBuffer =
                     GlObjectPtr(bufferArray);
             break;
         }
@@ -289,7 +276,13 @@ void GlEditLayerOverlay::fillLine()
     //return bufferArray;
 }
 
-void GlEditLayerOverlay::freeResource(OverlayElement& element)
+void GlEditLayerOverlay::freeResources()
+{
+    EditLayerOverlay::freeResources();
+    freeGlBuffers();
+}
+
+void GlEditLayerOverlay::freeGlBuffer(OverlayElement& element)
 {
     if(element.m_glBuffer) {
         const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
@@ -301,10 +294,10 @@ void GlEditLayerOverlay::freeResource(OverlayElement& element)
     }
 }
 
-void GlEditLayerOverlay::freeResources()
+void GlEditLayerOverlay::freeGlBuffers()
 {
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
-        freeResource(it->second);
+        freeGlBuffer(it->second);
     }
     m_elements.clear();
 }
@@ -316,7 +309,7 @@ bool GlEditLayerOverlay::draw()
         return true;
     }
 
-    if(!m_elements.at(ElementType::selectedPoint).m_glBuffer) {
+    if(!m_elements.at(ElementType::SELECTED_POINT).m_glBuffer) {
         // One of the vertices must always be selected.
         return false; // Data is not yet loaded.
     }

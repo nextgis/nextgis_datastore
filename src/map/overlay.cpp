@@ -53,17 +53,114 @@ EditLayerOverlay::EditLayerOverlay(const MapView& map)
             settings.getDouble("map/overlay/edit/tolerance", TOLERANCE_PX);
 }
 
-GeometryUPtr EditLayerOverlay::createGeometry(
-        const OGRwkbGeometryType geometryType,
-        const OGRRawPoint& geometryCenter)
+bool EditLayerOverlay::undo()
 {
+    if(!canUndo())
+        return false;
+    return restoreFromHistory(--m_historyState);
+}
+
+bool EditLayerOverlay::redo()
+{
+    if(!canRedo())
+        return false;
+    return restoreFromHistory(++m_historyState);
+}
+
+bool EditLayerOverlay::canUndo()
+{
+    return m_historyState > 0 && m_historyState < m_history.size();
+}
+
+bool EditLayerOverlay::canRedo()
+{
+    return m_historyState >= 0 && m_historyState < m_history.size() - 1;
+}
+
+void EditLayerOverlay::saveToHistory()
+{
+    if(!m_geometry) {
+        return;
+    }
+
+    int stateToDelete = m_historyState + 1;
+    if(stateToDelete >= 1 && stateToDelete < m_history.size()) {
+        auto it = std::next(m_history.begin(), stateToDelete);
+        m_history.erase(it, m_history.end());
+    }
+
+    if(m_history.size() >= MAX_UNDO + 1)
+        m_history.pop_front();
+
+    m_history.push_back(GeometryUPtr(m_geometry->clone()));
+    m_historyState = m_history.size() - 1;
+}
+
+bool EditLayerOverlay::restoreFromHistory(int historyState)
+{
+    if(historyState < 0 || historyState >= m_history.size())
+        return false;
+
+    auto it = std::next(m_history.begin(), historyState);
+    m_geometry = GeometryUPtr((*it)->clone());
+    selectFirstPoint();
+    return true;
+}
+
+void EditLayerOverlay::clearHistory()
+{
+    m_history.clear();
+    m_historyState = -1;
+}
+
+bool EditLayerOverlay::save()
+{
+    FeaturePtr feature = m_datasource->createFeature();
+    if(!feature) {
+        return false;
+    }
+
+    OGRGeometry* geom = m_geometry.release();
+    if(!geom) {
+        return false;
+    }
+
+    if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
+        delete geom;
+        return false;
+    }
+
+    if(!m_datasource->insertFeature(feature)) {
+        return false;
+    }
+
+    freeResources();
+    setVisible(false);
+    return true;
+}
+
+void EditLayerOverlay::cancel()
+{
+    m_geometry.reset();
+    freeResources();
+    setVisible(false);
+}
+
+bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
+{
+    m_datasource = datasource;
+
+    OGRwkbGeometryType geometryType = m_datasource->geometryType();
+    OGRRawPoint geometryCenter = m_map.getCenter();
     OGRRawPoint mapDist =
             m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
 
+    GeometryUPtr geometry = GeometryUPtr();
     switch(OGR_GT_Flatten(geometryType)) {
         case wkbPoint: {
-            return GeometryUPtr(
+            geometry = GeometryUPtr(
                     new OGRPoint(geometryCenter.x, geometryCenter.y));
+            break;
         }
         case wkbLineString: {
             OGRLineString* line = new OGRLineString();
@@ -71,7 +168,8 @@ GeometryUPtr EditLayerOverlay::createGeometry(
                     geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
             line->addPoint(
                     geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
-            return GeometryUPtr(line);
+            geometry = GeometryUPtr(line);
+            break;
         }
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = new OGRMultiPoint();
@@ -83,20 +181,30 @@ GeometryUPtr EditLayerOverlay::createGeometry(
                     geometryCenter.y - mapDist.y));
             mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x + mapDist.x,
                     geometryCenter.y + mapDist.y));
-            return GeometryUPtr(mpt);
+            geometry = GeometryUPtr(mpt);
+            break;
         }
         default: {
-            return nullptr;
+            break;
         }
     }
+
+    setGeometry(std::move(geometry));
+    if(!m_geometry) {
+        return false;
+    }
+    setVisible(true);
+    return true;
 }
 
-bool EditLayerOverlay::addGeometryPart(const OGRRawPoint& geometryCenter)
+bool EditLayerOverlay::addGeometryPart()
 {
     if(!m_geometry)
         return false;
 
+    OGRRawPoint geometryCenter = m_map.getCenter();
     bool ret = false;
+
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
@@ -170,62 +278,6 @@ bool EditLayerOverlay::deleteGeometryPart()
         saveToHistory();
     }
     return ret;
-}
-
-bool EditLayerOverlay::undo()
-{
-    return restoreFromHistory(--m_historyState);
-}
-
-bool EditLayerOverlay::redo()
-{
-    return restoreFromHistory(++m_historyState);
-}
-
-bool EditLayerOverlay::canUndo()
-{
-    return m_historyState > 0 && m_historyState < m_history.size();
-}
-
-bool EditLayerOverlay::canRedo()
-{
-    return m_historyState >= 0 && m_historyState < m_history.size() - 1;
-}
-
-void EditLayerOverlay::clearHistory()
-{
-    m_history.clear();
-    m_historyState = -1;
-}
-
-void EditLayerOverlay::saveToHistory()
-{
-    if(!m_geometry) {
-        return;
-    }
-
-    int stateToDelete = m_historyState + 1;
-    if(stateToDelete >= 1 && stateToDelete < m_history.size()) {
-        auto it = std::next(m_history.begin(), stateToDelete);
-        m_history.erase(it, m_history.end());
-    }
-
-    if(m_history.size() >= MAX_UNDO + 1)
-        m_history.pop_front();
-
-    m_history.push_back(GeometryUPtr(m_geometry->clone()));
-    m_historyState = m_history.size() - 1;
-}
-
-bool EditLayerOverlay::restoreFromHistory(int historyState)
-{
-    if(historyState < 0 || historyState >= m_history.size())
-        return false;
-
-    auto it = std::next(m_history.begin(), historyState);
-    m_geometry = GeometryUPtr((*it)->clone());
-    selectFirstPoint();
-    return true;
 }
 
 void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
@@ -304,6 +356,12 @@ bool EditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 
     return shiftGeometryPoint(*m_geometry, m_selectedPointId, mapOffset,
             &m_selectedPointCoordinates);
+}
+
+void EditLayerOverlay::freeResources()
+{
+    clearHistory();
+    m_datasource.reset();
 }
 
 bool PointId::operator==(const PointId& other) const

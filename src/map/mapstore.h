@@ -88,15 +88,6 @@ public:
             unsigned char mapId, enum ngsMapOverlayType type) const;
     bool setOverlayVisible(
             unsigned char mapId, ngsMapOverlayType typeMask, bool visible);
-    bool undo(unsigned char mapId) const;
-    bool redo(unsigned char mapId) const;
-    bool canUndo(unsigned char mapId) const;
-    bool canRedo(unsigned char mapId) const;
-    bool saveEdit(unsigned char mapId) const;
-    bool cancelEdit(unsigned char mapId) const;
-    bool createGeometry(unsigned char mapId, const Layer* layer) const;
-    bool addGeometryPart(unsigned char mapId) const;
-    bool deleteGeometryPart(unsigned char mapId) const;
     ngsDrawState mapTouch(
             unsigned char mapId, double x, double y, enum ngsMapTouchType type);
     bool setMapSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType,
