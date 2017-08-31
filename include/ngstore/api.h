@@ -144,25 +144,43 @@ NGS_EXTERNC int ngsJsonObjectValid(JsonObjectH object);
 NGS_EXTERNC const char* ngsJsonObjectName(JsonObjectH object);
 NGS_EXTERNC JsonObjectH* ngsJsonObjectChildren(JsonObjectH object);
 NGS_EXTERNC void ngsJsonObjectChildrenListFree(JsonObjectH* list);
-NGS_EXTERNC const char* ngsJsonObjectGetString(JsonObjectH object, const char* defaultValue);
-NGS_EXTERNC double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue);
+NGS_EXTERNC const char* ngsJsonObjectGetString(JsonObjectH object,
+                                               const char* defaultValue);
+NGS_EXTERNC double ngsJsonObjectGetDouble(JsonObjectH object,
+                                          double defaultValue);
 NGS_EXTERNC int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue);
 NGS_EXTERNC long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue);
 NGS_EXTERNC int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue);
-NGS_EXTERNC JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char* name);
-NGS_EXTERNC JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char* name);
+NGS_EXTERNC JsonObjectH ngsJsonObjectGetArray(JsonObjectH object,
+                                              const char* name);
+NGS_EXTERNC JsonObjectH ngsJsonObjectGetObject(JsonObjectH object,
+                                               const char* name);
 NGS_EXTERNC int ngsJsonArraySize(JsonObjectH object);
 NGS_EXTERNC JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index);
-NGS_EXTERNC const char* ngsJsonObjectGetStringForKey(JsonObjectH object, const char* name, const char* defaultValue);
-NGS_EXTERNC double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char* name, double defaultValue);
-NGS_EXTERNC int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char* name, int defaultValue);
-NGS_EXTERNC long ngsJsonObjectGetLongForKey(JsonObjectH object, const char* name, long defaultValue);
-NGS_EXTERNC int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name, int defaultValue);
-NGS_EXTERNC int ngsJsonObjectSetStringForKey(JsonObjectH object, const char* name, const char* value);
-NGS_EXTERNC int ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char* name, double value);
-NGS_EXTERNC int ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name, int value);
-NGS_EXTERNC int ngsJsonObjectSetLongForKey(JsonObjectH object, const char* name, long value);
-NGS_EXTERNC int ngsJsonObjectSetBoolForKey(JsonObjectH object, const char* name, int value);
+NGS_EXTERNC const char* ngsJsonObjectGetStringForKey(JsonObjectH object,
+                                                     const char* name,
+                                                     const char* defaultValue);
+NGS_EXTERNC double ngsJsonObjectGetDoubleForKey(JsonObjectH object,
+                                                const char* name,
+                                                double defaultValue);
+NGS_EXTERNC int ngsJsonObjectGetIntegerForKey(JsonObjectH object,
+                                              const char* name,
+                                              int defaultValue);
+NGS_EXTERNC long ngsJsonObjectGetLongForKey(JsonObjectH object,
+                                            const char* name, long defaultValue);
+NGS_EXTERNC int ngsJsonObjectGetBoolForKey(JsonObjectH object,
+                                           const char* name, int defaultValue);
+NGS_EXTERNC int ngsJsonObjectSetStringForKey(JsonObjectH object,
+                                             const char* name,
+                                             const char* value);
+NGS_EXTERNC int ngsJsonObjectSetDoubleForKey(JsonObjectH object,
+                                             const char* name, double value);
+NGS_EXTERNC int ngsJsonObjectSetIntegerForKey(JsonObjectH object,
+                                              const char* name, int value);
+NGS_EXTERNC int ngsJsonObjectSetLongForKey(JsonObjectH object,
+                                           const char* name, long value);
+NGS_EXTERNC int ngsJsonObjectSetBoolForKey(JsonObjectH object,
+                                           const char* name, int value);
 
 /**
  * Catalog functions
@@ -172,9 +190,8 @@ NGS_EXTERNC const char* ngsCatalogPathFromSystem(const char* path);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char* path);
 NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQuery(CatalogObjectH object,
                                                         int filter);
-NGS_EXTERNC ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
-                                                                int* filters,
-                                                                int filterCount);
+NGS_EXTERNC ngsCatalogObjectInfo*  ngsCatalogObjectQueryMultiFilter(
+        CatalogObjectH object, int* filters, int filterCount);
 NGS_EXTERNC int ngsCatalogObjectDelete(CatalogObjectH object);
 NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char* name,
                                        char** options);
@@ -188,12 +205,15 @@ NGS_EXTERNC int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                                      char** options,
                                      ngsProgressFunc callback,
                                      void* callbackData);
-NGS_EXTERNC int ngsCatalogObjectRename(CatalogObjectH object, const char* newName);
+NGS_EXTERNC int ngsCatalogObjectRename(CatalogObjectH object,
+                                       const char* newName);
 NGS_EXTERNC const char* ngsCatalogObjectOptions(CatalogObjectH object,
                                                 int optionType);
-NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(CatalogObjectH object);
+NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(
+        CatalogObjectH object);
 NGS_EXTERNC const char* ngsCatalogObjectName(CatalogObjectH object);
-NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain);
+NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object,
+                                            const char* domain);
 
 /**
  * Feature class
@@ -215,15 +235,19 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                ngsProgressFunc callback,
                                                void* callbackData);
 NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
-NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char enable);
-NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature);
-NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature);
+NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object,
+                                          unsigned char enable);
+NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object,
+                                             FeatureH feature);
+NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object,
+                                             FeatureH feature);
 NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id);
 NGS_EXTERNC int ngsFeatureClassDeleteFeatures(CatalogObjectH object);
 NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);
-NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id);
+NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object,
+                                               long long id);
 NGS_EXTERNC int ngsFeatureClassSetFilter(CatalogObjectH object,
                                          GeometryH geometryFilter,
                                          const char* attributeFilter);
@@ -241,19 +265,22 @@ NGS_EXTERNC double ngsFeatureGetFieldAsDouble(FeatureH feature, int field);
 NGS_EXTERNC const char* ngsFeatureGetFieldAsString(FeatureH feature, int field);
 NGS_EXTERNC int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field,
                                              int* year, int* month, int* day,
-                                             int* hour, int* minute, float* second,
-                                             int* TZFlag);
+                                             int* hour, int* minute,
+                                             float* second, int* TZFlag);
 
 NGS_EXTERNC void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry);
-NGS_EXTERNC void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value);
-NGS_EXTERNC void ngsFeatureSetFieldDouble(FeatureH feature, int field, double value);
-NGS_EXTERNC void ngsFeatureSetFieldString(FeatureH feature, int field, const char* value);
+NGS_EXTERNC void ngsFeatureSetFieldInteger(FeatureH feature, int field,
+                                           int value);
+NGS_EXTERNC void ngsFeatureSetFieldDouble(FeatureH feature, int field,
+                                          double value);
+NGS_EXTERNC void ngsFeatureSetFieldString(FeatureH feature, int field,
+                                          const char* value);
 NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int year,
                                             int month, int day, int hour,
                                             int minute, float second, int TZFlag);
 
-NGS_EXTERNC FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(CatalogObjectH object,
-                                                              long long rid);
+NGS_EXTERNC FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(
+        CatalogObjectH object, long long rid);
 NGS_EXTERNC long long ngsStoreFeatureGetRemoteId(FeatureH feature);
 NGS_EXTERNC void ngsStoreFeatureSetRemoteId(FeatureH feature, long long rid);
 
@@ -271,8 +298,8 @@ NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
 NGS_EXTERNC CoordinateTransformationH ngsCoordinateTransformationCreate(
         int fromEPSG, int toEPSG);
 NGS_EXTERNC void ngsCoordinateTransformationFree(CoordinateTransformationH ct);
-NGS_EXTERNC ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
-                                                        ngsCoordinate coordinates);
+NGS_EXTERNC ngsCoordinate ngsCoordinateTransformationDo(
+        CoordinateTransformationH ct, ngsCoordinate coordinates);
 
 typedef struct _ngsFeatureAttachmentInfo {
     long long id;
@@ -340,17 +367,24 @@ NGS_EXTERNC int ngsMapSetScale(unsigned char mapId, double scale);
 NGS_EXTERNC double ngsMapGetScale(unsigned char mapId);
 
 NGS_EXTERNC int ngsMapSetOptions(unsigned char mapId, char** options);
-NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
+NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId,
+                                      double minX, double minY,
                                       double maxX, double maxY);
 NGS_EXTERNC ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg);
 
 NGS_EXTERNC enum ngsDrawState ngsMapTouch(
         unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 //NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y, double azimuth);
-NGS_EXTERNC JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId, enum ngsStyleType styleType);
-NGS_EXTERNC int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType, JsonObjectH style);
-NGS_EXTERNC const char* ngsMapGetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType);
-NGS_EXTERNC int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType, const char* name);
+NGS_EXTERNC JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId,
+                                                enum ngsStyleType styleType);
+NGS_EXTERNC int ngsMapSetSelectionsStyle(unsigned char mapId,
+                                         enum ngsStyleType styleType,
+                                         JsonObjectH style);
+NGS_EXTERNC const char* ngsMapGetSelectionStyleName(unsigned char mapId,
+                                                    enum ngsStyleType styleType);
+NGS_EXTERNC int ngsMapSetSelectionStyleName(unsigned char mapId,
+                                            enum ngsStyleType styleType,
+                                            const char* name);
 
 /**
  * Layer functions
