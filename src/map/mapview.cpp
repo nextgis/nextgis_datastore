@@ -33,22 +33,20 @@ constexpr const char* MAP_ROTATE_Y_KEY = "rotate_y";
 constexpr const char* MAP_ROTATE_Z_KEY = "rotate_z";
 constexpr const char* MAP_X_LOOP_KEY = "x_looped";
 
-MapView::MapView()
-        : Map()
-        , MapTransform(480, 640)
-        , m_touchMoved(false)
-        , m_touchSelectedPoint(false)
+MapView::MapView() : Map(),
+    MapTransform(480, 640),
+    m_touchMoved(false),
+    m_touchSelectedPoint(false)
 {
 }
 
 MapView::MapView(const CPLString& name,
         const CPLString& description,
         unsigned short epsg,
-        const Envelope& bounds)
-        : Map(name, description, epsg, bounds)
-        , MapTransform(480, 640)
-        , m_touchMoved(false)
-        , m_touchSelectedPoint(false)
+        const Envelope& bounds) : Map(name, description, epsg, bounds),
+    MapTransform(480, 640),
+    m_touchMoved(false),
+    m_touchSelectedPoint(false)
 {
 }
 
@@ -118,9 +116,26 @@ bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
     return true;
 }
 
+size_t MapView::overlayIndexForType(enum ngsMapOverlayType type) const
+{
+    // Overlays stored in reverse order
+    switch(type) {
+        case MOT_FIGURES:
+            return 0;
+        case MOT_EDIT:
+            return 1;
+        case MOT_TRACK:
+            return 2;
+        case MOT_LOCATION:
+            return 3;
+        default:
+            return m_overlays.size();
+    }
+}
+
 OverlayPtr MapView::getOverlay(ngsMapOverlayType type) const
 {
-    int index = Overlay::getOverlayIndexFromType(type);
+    int index = overlayIndexForType(type);
     if (-1 == index)
         return nullptr;
 
@@ -131,30 +146,33 @@ OverlayPtr MapView::getOverlay(ngsMapOverlayType type) const
     return m_overlays[overlayIndex];
 }
 
-EditLayerOverlay* MapView::getEditOverlay() const
-{
-    OverlayPtr overlay = getOverlay(MOT_EDIT);
-    if(!overlay)
-        return nullptr;
-    return ngsDynamicCast(EditLayerOverlay, overlay);
-}
-
 void MapView::setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible)
 {
     OverlayPtr overlay;
 
-    // TODO:
-    //if (MOT_LOCATION & typeMask) {
-    //    overlay = getOverlay(MOT_LOCATION);
-    //    overlay->setVisible(visible);
-    //}
-    //if (MOT_TRACK & typeMask) {
-    //    overlay = getOverlay(MOT_TRACK);
-    //    overlay->setVisible(visible);
-    //}
+    if (MOT_LOCATION & typeMask) {
+        overlay = getOverlay(MOT_LOCATION);
+        if(overlay) {
+            overlay->setVisible(visible);
+        }
+    }
+    if (MOT_TRACK & typeMask) {
+        overlay = getOverlay(MOT_TRACK);
+        if(overlay) {
+            overlay->setVisible(visible);
+        }
+    }
     if (MOT_EDIT & typeMask) {
         overlay = getOverlay(MOT_EDIT);
-        overlay->setVisible(visible);
+        if(overlay) {
+            overlay->setVisible(visible);
+        }
+    }
+    if (MOT_FIGURES & typeMask) {
+        overlay = getOverlay(MOT_FIGURES);
+        if(overlay) {
+            overlay->setVisible(visible);
+        }
     }
 }
 

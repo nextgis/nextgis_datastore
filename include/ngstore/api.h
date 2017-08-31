@@ -418,6 +418,8 @@ NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
+NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned int mapId, ngsCoordinate location,
+                                         double direction);
 
 //NGS_EXTERNC int ngsGraphicsOverlayDrawRectangle(unsigned char mapId, double minX, double minY, double maxX, double maxY);
 //NGS_EXTERNC int ngsGraphicsOverlayDrawCircle(unsigned char mapId, double X, double Y, double radius);

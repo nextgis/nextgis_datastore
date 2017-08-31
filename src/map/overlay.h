@@ -46,12 +46,9 @@ class PointId
 public:
     explicit PointId(int pointId = NOT_FOUND,
             int ringId = NOT_FOUND,
-            int geometryId = NOT_FOUND)
-            : m_pointId(pointId)
-            , m_ringId(ringId)
-            , m_geometryId(geometryId)
-    {
-    }
+            int geometryId = NOT_FOUND) : m_pointId(pointId),
+        m_ringId(ringId),
+        m_geometryId(geometryId) { }
 
     int pointId() const { return m_pointId; }
     int ringId() const { return m_ringId; }
@@ -67,10 +64,8 @@ private:
 
 PointId getGeometryPointId(
         const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates);
-bool shiftGeometryPoint(OGRGeometry& geometry,
-        const PointId& id,
-        const OGRRawPoint& offset,
-        OGRPoint* coordinates);
+bool shiftGeometryPoint(OGRGeometry& geometry, const PointId& id,
+        const OGRRawPoint& offset, OGRPoint* coordinates);
 
 class Overlay
 {
@@ -81,21 +76,6 @@ public:
     ngsMapOverlayType type() const { return m_type; }
     bool visible() const { return m_visible; }
     virtual void setVisible(bool visible) { m_visible = visible; }
-
-    static int getOverlayIndexFromType(ngsMapOverlayType type)
-    {
-        // Overlays stored in reverse order
-        switch(type) {
-            case MOT_EDIT:
-                return 0;
-            case MOT_TRACK:
-            //return 1; // TODO: Add support to track overlay
-            case MOT_LOCATION:
-            //return 2; // TODO: Add support to location overlay
-            default:
-                return NOT_FOUND;
-        }
-    }
 
 protected:
     const MapView& m_map;

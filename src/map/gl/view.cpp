@@ -460,8 +460,8 @@ double GlView::pixelSize(int zoom)
 
 void GlView::createOverlays()
 {
-    // Push in reverse order
-    m_overlays.push_back(OverlayPtr(new GlEditLayerOverlay(*this)));
+    m_overlays[overlayIndexForType(MOT_EDIT)] = OverlayPtr(
+                new GlEditLayerOverlay(*this));
     // TODO: add track and location overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay(*this)));
     //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay(*this)));

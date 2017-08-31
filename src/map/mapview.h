@@ -62,10 +62,10 @@ protected:
 protected:
     virtual void clearBackground() = 0;
     virtual void createOverlays() = 0;
-    EditLayerOverlay* getEditOverlay() const;
+    virtual size_t overlayIndexForType(enum ngsMapOverlayType type) const;
 
 protected:
-    std::vector<OverlayPtr> m_overlays;
+    std::array<OverlayPtr, 4> m_overlays;
     OGRRawPoint m_touchStartPoint;
     bool m_touchMoved;
     bool m_touchSelectedPoint;

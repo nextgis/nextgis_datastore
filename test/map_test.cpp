@@ -355,7 +355,7 @@ TEST(MapTests, TestOverlayStruct) {
 
     ngs::MapViewPtr mapView(new ngs::GlView());
 
-    EXPECT_EQ(mapView->overlayCount(), 1);
+    EXPECT_GE(mapView->overlayCount(), 1);
     overlay = mapView->getOverlay(MOT_EDIT);
     EXPECT_EQ(overlay->type(), MOT_EDIT);
 

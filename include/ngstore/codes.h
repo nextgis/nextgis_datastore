@@ -208,12 +208,17 @@ enum ngsURLRequestType {
     URT_DELETE
 };
 
+/**
+ * @brief The map view overlay type enum
+ */
 enum ngsMapOverlayType
 {
     MOT_UNKNOWN = 1 << 0,
-    MOT_LOCATION = 1 << 1,
-    MOT_TRACK = 1 << 2,
-    MOT_EDIT = 1 << 3
+    MOT_LOCATION = 1 << 1,  /**< Overlay with current location */
+    MOT_TRACK = 1 << 2,     /**< Overlay with current track */
+    MOT_EDIT = 1 << 3,      /**< Overlay for geometry edit */
+    MOT_FIGURES = 1 << 4,   /**< Overlay for some layer/datasource independent graphics */
+    MOT_ALL = MOT_LOCATION | MOT_TRACK | MOT_EDIT | MOT_FIGURES
 };
 
 enum ngsMapTouchType
@@ -223,6 +228,9 @@ enum ngsMapTouchType
     MTT_ON_UP
 };
 
+/**
+ * @brief The map layer draw style Type enum
+ */
 enum ngsStyleType {
     ST_POINT = 0,
     ST_LINE,
