@@ -46,7 +46,8 @@ public:
 
     size_t overlayCount() const { return m_overlays.size(); }
     OverlayPtr getOverlay(enum ngsMapOverlayType type) const;
-    void setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible);
+    void setOverlayVisible(int typeMask, bool visible);
+    int overlayVisibleMask() const;
     ngsDrawState mapTouch(double x, double y, enum ngsMapTouchType type);
     virtual bool setOptions(const Options& options);
     virtual bool setSelectionStyleName(enum ngsStyleType styleType, const char* name) = 0;

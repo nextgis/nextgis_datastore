@@ -33,6 +33,8 @@ constexpr const char* MAP_ROTATE_Y_KEY = "rotate_y";
 constexpr const char* MAP_ROTATE_Z_KEY = "rotate_z";
 constexpr const char* MAP_X_LOOP_KEY = "x_looped";
 
+constexpr const char* MAP_OVR_VISIBLE_KEY = "overlay_visible_mask";
+
 MapView::MapView() : Map(),
     MapTransform(480, 640),
     m_touchMoved(false),
@@ -99,6 +101,10 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
 
     m_XAxisLooped = root.GetBool(MAP_X_LOOP_KEY, true);
 
+    int overlayVisibleMask = root.GetInteger(MAP_OVR_VISIBLE_KEY, 0);
+
+    setOverlayVisible(overlayVisibleMask, true);
+
     return true;
 }
 
@@ -113,6 +119,8 @@ bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
     root.Add(MAP_ROTATE_Z_KEY, getRotate(DIR_Z));
 
     root.Add(MAP_X_LOOP_KEY, m_XAxisLooped);
+
+    root.Add(MAP_OVR_VISIBLE_KEY, overlayVisibleMask());
     return true;
 }
 
@@ -133,20 +141,16 @@ size_t MapView::overlayIndexForType(enum ngsMapOverlayType type) const
     }
 }
 
-OverlayPtr MapView::getOverlay(ngsMapOverlayType type) const
+OverlayPtr MapView::getOverlay(enum ngsMapOverlayType type) const
 {
-    int index = overlayIndexForType(type);
-    if (-1 == index)
-        return nullptr;
+    size_t index = overlayIndexForType(type);
+    if (m_overlays.size() == index)
+        return OverlayPtr();
 
-    size_t overlayIndex = static_cast<size_t>(index);
-    if (overlayIndex >= m_overlays.size())
-        return nullptr;
-
-    return m_overlays[overlayIndex];
+    return m_overlays[index];
 }
 
-void MapView::setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible)
+void MapView::setOverlayVisible(int typeMask, bool visible)
 {
     OverlayPtr overlay;
 
@@ -174,6 +178,34 @@ void MapView::setOverlayVisible(enum ngsMapOverlayType typeMask, bool visible)
             overlay->setVisible(visible);
         }
     }
+}
+
+int MapView::overlayVisibleMask() const
+{
+    int mask = 0;
+    OverlayPtr overlay;
+
+    overlay = getOverlay(MOT_LOCATION);
+    if(overlay && overlay->visible()) {
+        mask |= MOT_LOCATION;
+    }
+
+    overlay = getOverlay(MOT_EDIT);
+    if(overlay && overlay->visible()) {
+        mask |= MOT_EDIT;
+    }
+
+    overlay = getOverlay(MOT_FIGURES);
+    if(overlay && overlay->visible()) {
+        mask |= MOT_FIGURES;
+    }
+
+    overlay = getOverlay(MOT_TRACK);
+    if(overlay && overlay->visible()) {
+        mask |= MOT_TRACK;
+    }
+
+    return mask;
 }
 
 ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)

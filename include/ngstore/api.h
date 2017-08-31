@@ -420,6 +420,8 @@ NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned int mapId, ngsCoordinate location,
                                          double direction);
+NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned int mapId, JsonObjectH style);
+NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned int mapId, const char* name);
 
 //NGS_EXTERNC int ngsGraphicsOverlayDrawRectangle(unsigned char mapId, double minX, double minY, double maxX, double maxY);
 //NGS_EXTERNC int ngsGraphicsOverlayDrawCircle(unsigned char mapId, double X, double Y, double radius);
