@@ -52,13 +52,13 @@ class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 
     enum class ElementType
     {
-        geometries = 0,
-        selectedGeometry,
-        lines,
-        selectedLine,
-        medianPoints,
-        points,
-        selectedPoint
+        GEOMETRIES = 0,
+        SELECTED_GEOMETRY,
+        LINES,
+        SELECTED_LINE,
+        MEDIAN_POINTS,
+        POINTS,
+        SELECTED_POINT
     };
 
 public:
