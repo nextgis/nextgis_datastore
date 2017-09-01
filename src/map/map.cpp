@@ -243,6 +243,7 @@ LayerPtr Map::createLayer(const char* name, Layer::Type type)
     case Layer::Type::Invalid:
         return LayerPtr(new Layer);
     }
+    // FIXME: control reaches end of non-void function [-Wreturn-type]
 }
 
 }

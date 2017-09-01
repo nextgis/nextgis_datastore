@@ -182,6 +182,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         return result;
     }
 #endif // NGS_GL_DEBUG
+    // FIXME: control reaches end of non-void function [-Wreturn-type]
 }
 
 void GlView::invalidate(const Envelope& bounds)
