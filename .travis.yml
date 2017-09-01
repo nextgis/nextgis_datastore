@@ -39,7 +39,7 @@ matrix:
       env:
         - BUILD_NAME=linux_clang
         - DETAILS=""
-    - osx_image: xcode8.2
+    - osx_image: xcode8.3
       language: objective-c
       compiler: clang
       cache:
