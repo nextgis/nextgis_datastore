@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+﻿﻿/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
@@ -671,6 +671,7 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(tileItem.tile.z));
+            // FIXME: declaration of ‘env’ shadows a previous local [-Wshadow]
             Envelope env = tileItem.env;
             env.resize(TILE_RESIZE);
             auto vItem =
@@ -756,6 +757,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         }
         BufferPtr data = item.second.save();
 
+        // FIXME: declaration of ‘feature’ shadows a previous local [-Wshadow]
         FeaturePtr feature = OGRFeature::CreateFeature(
                     m_ovrTable->GetLayerDefn() );
 
@@ -852,6 +854,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     if(!features.empty()) {
         GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
         while(!features.empty()) {
+            // FIXME: declaration of ‘feature’ shadows a previous local [-Wshadow]
             auto feature = features.back();
             VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
             if(item.isValid()) {
@@ -1097,6 +1100,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
         while((feature = nextFeature())) {
             OGRGeometry * const geom = feature->GetGeometryRef();
             if (nullptr != geom) {
+                // FIXME: declaration of ‘geomType’ shadows a previous local [-Wshadow]
                 OGRwkbGeometryType geomType = geom->getGeometryType();
                 counts[OGR_GT_Flatten(geomType)] += 1;
             }
@@ -1204,6 +1208,7 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(
                                                 tileItem.tile.z));
+            // FIXME: declaration of ‘env’ shadows a previous local [-Wshadow]
             Envelope env = tileItem.env;
             env.resize(TILE_RESIZE);
             auto vItem = tileGeometry(feature,

@@ -29,6 +29,8 @@ namespace ngs {
 // Filter
 //-----------------------------------------------------------------------------
 
+// FIXME: declaration of ‘type’ shadows a member of ‘ngs::Filter’ [-Wshadow]
+// NOTE: shadowed declaration is here: lib/include/ngstore/catalog/filter.h:53:31
 Filter::Filter(const enum ngsCatalogObjectType type) : type(type)
 {
 }

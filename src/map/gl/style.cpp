@@ -638,6 +638,7 @@ unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
         newNormal.x = (prevNormal.x + normal.x);
         newNormal.y = (prevNormal.y + normal.y);
         float cosHalfAngle = newNormal.x * normal.x + newNormal.y * normal.y;
+        // FIXME: -Wfloat-equal: comparing floating point with == or != is unsafe
         float miterLength = cosHalfAngle == 0.0f ? 0.0f : 1.0f / cosHalfAngle;
         newNormal.x *= miterLength;
         newNormal.y *= miterLength;

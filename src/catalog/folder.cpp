@@ -215,6 +215,7 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath
             // Get file list and copy file one by one
             std::vector<CPLString> files = sdts->siblingFiles();
             CPLString parentPath = sdts->parent()->path();
+            // FIXME: declaration of ‘file’ shadows a previous local [-Wshadow]
             for(CPLString& file : files) {
                 file = parentPath + Catalog::separator() + file;
             }
@@ -228,6 +229,7 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath
             size_t constPathLen = srcConstPath.length();
             CPLString dstConstPath = CPLResetExtension(newPath, "");
             dstConstPath.pop_back();
+            // FIXME: declaration of ‘file’ shadows a previous local [-Wshadow]
             for(auto file : files) {
                 newProgress.setStep(step++);
                 CPLString newFilePath = dstConstPath + file.substr(constPathLen);
@@ -425,6 +427,7 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString& name,
     }
 
     if(result) {
+        // FIXME: declaration of ‘CPLString name’ shadows a parameter [-Wshadow]
         CPLString name = fullName() + Catalog::separator() + newName;
         Notify::instance().onNotify(name, ngsChangeCode::CC_CREATE_OBJECT);
     }

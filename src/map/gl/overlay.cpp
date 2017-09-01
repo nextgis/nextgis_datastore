@@ -235,14 +235,14 @@ void GlEditLayerOverlay::fillPoint()
                         static_cast<const OGRPoint*>(mpt->getGeometryRef(i));
 
                 if(PointId(0, NOT_FOUND, i) == m_selectedPointId) {
-                    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
-                    addPoint(buffer, pt, 0);
+                    GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
+                    addPoint(selBuffer, pt, 0);
 
-                    VectorGlObject* bufferArray = new VectorGlObject();
-                    bufferArray->addBuffer(buffer);
+                    VectorGlObject* selBufferArray = new VectorGlObject();
+                    selBufferArray->addBuffer(selBuffer);
 
                     m_elements.at(ElementType::SELECTED_POINT).m_glBuffer =
-                            GlObjectPtr(bufferArray);
+                            GlObjectPtr(selBufferArray);
                     continue;
                 }
 

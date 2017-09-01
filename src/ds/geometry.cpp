@@ -280,6 +280,7 @@ Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end)
 
     float norm_length = std::sqrt(normX * normX + normY * normY);
 
+    // FIXME: -Wfloat-equal: comparing floating point with == or != is unsafe
     if(norm_length == 0.0f)
         norm_length = 0.01f;
 
