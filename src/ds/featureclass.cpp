@@ -1,4 +1,4 @@
-﻿﻿/******************************************************************************
+﻿/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
