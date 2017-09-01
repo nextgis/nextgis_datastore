@@ -179,6 +179,7 @@ bool PointStyle::load(const CPLJSONObject &store)
         return false;
     m_size = static_cast<float>(store.GetDouble("size", 6.0));
     m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
+    m_rotation = static_cast<float>(store.GetDouble("rotate", 0.0));
     return true;
 }
 
@@ -187,6 +188,7 @@ CPLJSONObject PointStyle::save() const
     CPLJSONObject out = SimpleVectorStyle::save();
     out.Add("size", static_cast<double>(m_size));
     out.Add("type", m_type);
+    out.Add("rotate", static_cast<double>(m_rotation));
     return out;
 }
 
@@ -953,8 +955,8 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
         buffer->addVertex(0.0f);
-        buffer->addVertex(1.0f);
         buffer->addVertex(0.0f);
+        buffer->addVertex(1.0f);
 
         // 1
         buffer->addVertex(pt.x);
@@ -974,8 +976,8 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
         buffer->addVertex(0.0f);
-        buffer->addVertex(-1.0f);
         buffer->addVertex(0.0f);
+        buffer->addVertex(-1.0f);
 
         buffer->addIndex(index + 0);
         buffer->addIndex(index + 1);

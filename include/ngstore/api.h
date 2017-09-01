@@ -406,8 +406,7 @@ NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
  * Overlay functions
  */
 
-NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
-                                     enum ngsMapOverlayType typeMask,
+NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId, int typeMask,
                                      char visible);
 NGS_EXTERNC char ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayRedo(unsigned char mapId);
@@ -418,10 +417,10 @@ NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
-NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned int mapId, ngsCoordinate location,
-                                         double direction);
-NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned int mapId, JsonObjectH style);
-NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned int mapId, const char* name);
+NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
+                                         float direction);
+NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style);
+NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name);
 
 //NGS_EXTERNC int ngsGraphicsOverlayDrawRectangle(unsigned char mapId, double minX, double minY, double maxX, double maxY);
 //NGS_EXTERNC int ngsGraphicsOverlayDrawCircle(unsigned char mapId, double X, double Y, double radius);

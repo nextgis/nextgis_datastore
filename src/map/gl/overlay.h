@@ -38,7 +38,7 @@ public:
     GlRenderOverlay();
     virtual ~GlRenderOverlay() = default;
 
-    virtual bool fill(bool isLastTry) = 0;
+    virtual bool fill() = 0;
     virtual bool draw() = 0;
 };
 
@@ -86,7 +86,7 @@ protected:
 
     // GlRenderOverlay interface
 public:
-    virtual bool fill(bool isLastTry) override;
+    virtual bool fill() override;
     virtual bool draw() override;
 
 protected:
@@ -97,6 +97,24 @@ protected:
 
 private:
     std::map<ElementType, OverlayElement> m_elements;
+};
+
+class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay
+{
+public:
+    explicit GlLocationOverlay(const MapView& map);
+    virtual ~GlLocationOverlay() = default;
+
+    bool setStyleName(const char* name);
+    bool setStyle(const CPLJSONObject& style);
+
+    // GlRenderOverlay interface
+public:
+    virtual bool fill() override { return true; }
+    virtual bool draw() override;
+
+private:
+    PointStylePtr m_style;
 };
 
 } // namespace ngs

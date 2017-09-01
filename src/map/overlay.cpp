@@ -22,11 +22,11 @@
 
 #include "overlay.h"
 
+#include <iterator>
+
 #include "ds/geometry.h"
 #include "map/mapview.h"
 #include "util/settings.h"
-
-#include <iterator>
 
 namespace ngs {
 
@@ -34,19 +34,41 @@ constexpr double TOLERANCE_PX = 7.0;
 constexpr double GEOMETRY_SIZE_PX = 50.0;
 constexpr int MAX_UNDO = 10;
 
-Overlay::Overlay(const MapView& map, ngsMapOverlayType type)
-        : m_map(map)
-        , m_type(type)
-        , m_visible(false)
+//------------------------------------------------------------------------------
+// Overlay
+//------------------------------------------------------------------------------
+
+Overlay::Overlay(const MapView& map, ngsMapOverlayType type) : m_map(map),
+    m_type(type),
+    m_visible(false)
 {
 }
 
-EditLayerOverlay::EditLayerOverlay(const MapView& map)
-        : Overlay(map, MOT_EDIT)
-        , m_geometry(nullptr)
-        , m_selectedPointId()
-        , m_selectedPointCoordinates()
-        , m_historyState(-1)
+//------------------------------------------------------------------------------
+// LocationOverlay
+//------------------------------------------------------------------------------
+LocationOverlay::LocationOverlay(const MapView& map) : Overlay(map, MOT_LOCATION)
+{
+}
+
+void LocationOverlay::setLocation(const ngsCoordinate& location, float direction) {
+    m_location.x = static_cast<float>(location.X);
+    m_location.y = static_cast<float>(location.Y);
+    m_direction = direction;
+    if(!m_visible) {
+        m_visible = true;
+    }
+}
+
+//------------------------------------------------------------------------------
+// EditLayerOverlay
+//------------------------------------------------------------------------------
+
+EditLayerOverlay::EditLayerOverlay(const MapView& map) : Overlay(map, MOT_EDIT),
+    m_geometry(nullptr),
+    m_selectedPointId(),
+    m_selectedPointCoordinates(),
+    m_historyState(-1)
 {
     Settings& settings = Settings::instance();
     m_tolerancePx =
@@ -69,12 +91,12 @@ bool EditLayerOverlay::redo()
 
 bool EditLayerOverlay::canUndo()
 {
-    return m_historyState > 0 && m_historyState < m_history.size();
+    return m_historyState > 0 && m_historyState < static_cast<int>(m_history.size());
 }
 
 bool EditLayerOverlay::canRedo()
 {
-    return m_historyState >= 0 && m_historyState < m_history.size() - 1;
+    return m_historyState >= 0 && m_historyState < static_cast<int>(m_history.size()) - 1;
 }
 
 void EditLayerOverlay::saveToHistory()
@@ -84,7 +106,7 @@ void EditLayerOverlay::saveToHistory()
     }
 
     int stateToDelete = m_historyState + 1;
-    if(stateToDelete >= 1 && stateToDelete < m_history.size()) {
+    if(stateToDelete >= 1 && stateToDelete < static_cast<int>(m_history.size())) {
         auto it = std::next(m_history.begin(), stateToDelete);
         m_history.erase(it, m_history.end());
     }
@@ -93,12 +115,12 @@ void EditLayerOverlay::saveToHistory()
         m_history.pop_front();
 
     m_history.push_back(GeometryUPtr(m_geometry->clone()));
-    m_historyState = m_history.size() - 1;
+    m_historyState = static_cast<int>(m_history.size()) - 1;
 }
 
 bool EditLayerOverlay::restoreFromHistory(int historyState)
 {
-    if(historyState < 0 || historyState >= m_history.size())
+    if(historyState < 0 || historyState >= static_cast<int>(m_history.size()))
         return false;
 
     auto it = std::next(m_history.begin(), historyState);
@@ -364,6 +386,10 @@ void EditLayerOverlay::freeResources()
     m_datasource.reset();
 }
 
+//------------------------------------------------------------------------------
+// PointId
+//------------------------------------------------------------------------------
+
 bool PointId::operator==(const PointId& other) const
 {
     return m_pointId == other.m_pointId && m_ringId == other.m_ringId
@@ -424,7 +450,7 @@ PointId getPolygonPointId(
 
     const OGRLinearRing* ring = polygon.getExteriorRing();
     int numInteriorRings = polygon.getNumInteriorRings();
-    int pointId = 0;
+//    int pointId = 0;
     int ringId = 0;
 
     while(true) {
@@ -551,6 +577,10 @@ PointId getGeometryPointId(
     }
     return PointId();
 }
+
+//------------------------------------------------------------------------------
+// Static functions
+//------------------------------------------------------------------------------
 
 bool shiftPoint(OGRPoint& pt,
         const PointId& id,

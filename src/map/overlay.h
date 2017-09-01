@@ -70,10 +70,10 @@ bool shiftGeometryPoint(OGRGeometry& geometry, const PointId& id,
 class Overlay
 {
 public:
-    explicit Overlay(const MapView& map, ngsMapOverlayType type = MOT_UNKNOWN);
+    explicit Overlay(const MapView& map, enum ngsMapOverlayType type = MOT_UNKNOWN);
     virtual ~Overlay() = default;
 
-    ngsMapOverlayType type() const { return m_type; }
+    enum ngsMapOverlayType type() const { return m_type; }
     bool visible() const { return m_visible; }
     virtual void setVisible(bool visible) { m_visible = visible; }
 
@@ -125,6 +125,18 @@ protected:
     double m_tolerancePx;
     std::list<GeometryUPtr> m_history;
     int m_historyState;
+};
+
+class LocationOverlay : public Overlay
+{
+public:
+    explicit LocationOverlay(const MapView& map);
+    virtual ~LocationOverlay() = default;
+    virtual void setLocation(const ngsCoordinate& location, float direction);
+
+protected:
+    SimplePoint m_location;
+    float m_direction;
 };
 
 } // namespace ngs

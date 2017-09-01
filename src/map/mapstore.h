@@ -86,8 +86,7 @@ public:
     bool setExtentLimits(unsigned char mapId, const Envelope& extentLimits);
     OverlayPtr getOverlay(
             unsigned char mapId, enum ngsMapOverlayType type) const;
-    bool setOverlayVisible(
-            unsigned char mapId, ngsMapOverlayType typeMask, bool visible);
+    bool setOverlayVisible(unsigned char mapId, int typeMask, bool visible);
     ngsDrawState mapTouch(
             unsigned char mapId, double x, double y, enum ngsMapTouchType type);
     bool setMapSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType,

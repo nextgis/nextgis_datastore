@@ -123,11 +123,13 @@ class PointStyle : public SimpleVectorStyle
 {
 public:
     explicit PointStyle(enum PointType type = PT_CIRCLE);
+
     enum PointType pointType() const { return m_type; }
     void setType(enum PointType type) { m_type = type; }
-
     float size() const { return m_size; }
     void setSize(float size) { m_size = size; }
+    float rotation() const { return m_rotation; }
+    void setRotation(float rotation) { m_rotation = rotation; }
 
     virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
                                     GlBuffer* buffer) = 0;
@@ -141,7 +143,10 @@ public:
 protected:
     enum PointType m_type;
     float m_size;
+    float m_rotation;
 };
+
+typedef std::shared_ptr<PointStyle> PointStylePtr;
 
 class SimplePointStyle : public PointStyle
 {

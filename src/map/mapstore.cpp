@@ -380,8 +380,7 @@ OverlayPtr MapStore::getOverlay(
     return map->getOverlay(type);
 }
 
-bool MapStore::setOverlayVisible(
-        unsigned char mapId, ngsMapOverlayType typeMask, bool visible)
+bool MapStore::setOverlayVisible( unsigned char mapId, int typeMask, bool visible)
 {
     MapViewPtr map = getMap(mapId);
     if (!map)

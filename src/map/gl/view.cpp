@@ -83,6 +83,7 @@ bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const char* name
 {
     Style* newStyle = Style::createStyle(name);
     if(nullptr != newStyle) {
+        freeResource(m_selectionStyles[styleType]);
         m_selectionStyles[styleType] = StylePtr(newStyle);
         return true;
     }
@@ -462,9 +463,10 @@ void GlView::createOverlays()
 {
     m_overlays[overlayIndexForType(MOT_EDIT)] = OverlayPtr(
                 new GlEditLayerOverlay(*this));
-    // TODO: add track and location overlays
+    m_overlays[overlayIndexForType(MOT_LOCATION)] = OverlayPtr(
+                new GlLocationOverlay(*this));
+    // TODO: add track and figures overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay(*this)));
-    //m_overlays.push_back(OverlayPtr(new GlCurrentLocationOverlay(*this)));
 }
 
 #ifdef NGS_GL_DEBUG

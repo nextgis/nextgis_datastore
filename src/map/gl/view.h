@@ -125,6 +125,7 @@ private:
         GlTilePtr m_tile;
         LayerPtr m_layer;
     };
+
     class OverlayFillData : public ThreadData
     {
     public:

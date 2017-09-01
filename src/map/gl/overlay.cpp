@@ -22,21 +22,29 @@
 
 #include "overlay.h"
 
-#include "map/gl/view.h"
-#include "map/mapview.h"
-
 // gdal
 #include "ogr_core.h"
 
+#include "map/gl/view.h"
+#include "map/mapview.h"
+
+
 namespace ngs {
+
+//------------------------------------------------------------------------------
+// GlRenderOverlay
+//------------------------------------------------------------------------------
 
 GlRenderOverlay::GlRenderOverlay()
 {
 }
 
-GlEditLayerOverlay::GlEditLayerOverlay(const MapView& map)
-        : EditLayerOverlay(map)
-        , GlRenderOverlay()
+//------------------------------------------------------------------------------
+// GlEditLayerOverlay
+//------------------------------------------------------------------------------
+
+GlEditLayerOverlay::GlEditLayerOverlay(const MapView& map) : EditLayerOverlay(map),
+    GlRenderOverlay()
 {
 }
 
@@ -52,7 +60,7 @@ bool GlEditLayerOverlay::undo()
 {
     bool ret = EditLayerOverlay::undo();
     if(ret) {
-        fill(false);
+        fill();
     }
     return ret;
 }
@@ -61,7 +69,7 @@ bool GlEditLayerOverlay::redo()
 {
     bool ret = EditLayerOverlay::redo();
     if(ret) {
-        fill(false);
+        fill();
     }
     return ret;
 }
@@ -70,7 +78,7 @@ bool GlEditLayerOverlay::addGeometryPart()
 {
     bool ret = EditLayerOverlay::addGeometryPart();
     if(ret) {
-        fill(false);
+        fill();
     }
     return ret;
 }
@@ -79,7 +87,7 @@ bool GlEditLayerOverlay::deleteGeometryPart()
 {
     bool ret = EditLayerOverlay::deleteGeometryPart();
     if(ret) {
-        fill(false);
+        fill();
     }
     return ret;
 }
@@ -134,14 +142,14 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
             break; // Not supported yet
     }
 
-    fill(false);
+    fill();
 }
 
 bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
 {
     bool ret = EditLayerOverlay::selectPoint(mapCoordinates);
     if(ret) {
-        fill(false);
+        fill();
     }
     return ret;
 }
@@ -150,12 +158,12 @@ bool GlEditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 {
     bool ret = EditLayerOverlay::shiftPoint(mapOffset);
     if(ret) {
-        fill(false);
+        fill();
     }
     return ret;
 }
 
-bool GlEditLayerOverlay::fill(bool /*isLastTry*/)
+bool GlEditLayerOverlay::fill()
 {
     if(!m_geometry) {
         return false;
@@ -337,6 +345,58 @@ bool GlEditLayerOverlay::draw()
             style->draw(*buff);
         }
     }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// GlLocationOverlay
+//------------------------------------------------------------------------------
+
+GlLocationOverlay::GlLocationOverlay(const MapView& map) : LocationOverlay(map),
+    GlRenderOverlay(),
+    m_style(static_cast<PointStyle*>(Style::createStyle("primitivePoint")))
+{
+    m_style->setType(PT_DIAMOND);
+    m_style->setColor({255,0,0,255});
+}
+
+bool GlLocationOverlay::setStyleName(const char* name)
+{
+    PointStyle* style = static_cast<PointStyle*>(Style::createStyle(name));
+    if(nullptr == style) {
+        return false;
+    }
+    const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
+    if(constGlView) {
+        GlView* glView = const_cast<GlView*>(constGlView);
+        glView->freeResource(m_style);
+    }
+    m_style = PointStylePtr(style);
+
+    return true;
+}
+
+bool GlLocationOverlay::setStyle(const CPLJSONObject& style)
+{
+    return m_style->load(style);
+}
+
+bool GlLocationOverlay::draw()
+{
+    if(!visible()) {
+        return true;
+    }
+
+    GlBuffer buffer(GlBuffer::BF_FILL);
+    m_style->setRotation(m_direction);
+    /*int index = */m_style->addPoint(m_location, 0, &buffer);
+
+    buffer.bind();
+    m_style->prepare(m_map.getSceneMatrix(), m_map.getInvViewMatrix(),
+                     buffer.type());
+    m_style->draw(buffer);
+    buffer.destroy();
+
     return true;
 }
 

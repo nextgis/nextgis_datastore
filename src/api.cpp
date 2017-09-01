@@ -38,6 +38,7 @@
 #include "ds/storefeatureclass.h"
 #include "map/mapstore.h"
 #include "map/gl/layer.h"
+#include "map/gl/overlay.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
@@ -2646,7 +2647,28 @@ int ngsLayerSetHideIds(LayerH layer, long long* ids, int size)
 // Overlay
 //------------------------------------------------------------------------------
 
-EditLayerOverlay* getEditOverlay(unsigned char mapId)
+//EditLayerOverlay* getEditOverlay(unsigned char mapId)
+//{
+//    MapStore* const mapStore = MapStore::getInstance();
+//    if(nullptr == mapStore) {
+//        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+//        return nullptr;
+//    }
+//    MapViewPtr mapView = mapStore->getMap(mapId);
+//    if(!mapView) {
+//        errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
+//        return nullptr;
+//    }
+//    OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
+//    if(!overlay) {
+//        errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
+//        return nullptr;
+//    }
+//    return ngsDynamicCast(EditLayerOverlay, overlay);
+//}
+
+template<typename T>
+T* getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -2658,16 +2680,15 @@ EditLayerOverlay* getEditOverlay(unsigned char mapId)
         errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
         return nullptr;
     }
-    OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
+    OverlayPtr overlay = mapView->getOverlay(type);
     if(!overlay) {
         errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return nullptr;
     }
-    return ngsDynamicCast(EditLayerOverlay, overlay);
+    return ngsDynamicCast(T, overlay);
 }
 
-int ngsOverlaySetVisible(
-        unsigned char mapId, ngsMapOverlayType typeMask, char visible)
+int ngsOverlaySetVisible(unsigned char mapId, int typeMask, char visible)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -2681,7 +2702,7 @@ int ngsOverlaySetVisible(
 
 char ngsEditOverlayUndo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(_("Failed to get edit overlay"));
     }
@@ -2690,7 +2711,7 @@ char ngsEditOverlayUndo(unsigned char mapId)
 
 char ngsEditOverlayRedo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(_("Failed to get edit overlay"));
     }
@@ -2699,7 +2720,7 @@ char ngsEditOverlayRedo(unsigned char mapId)
 
 char ngsEditOverlayCanUndo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(_("Failed to get edit overlay"));
     }
@@ -2708,7 +2729,7 @@ char ngsEditOverlayCanUndo(unsigned char mapId)
 
 char ngsEditOverlayCanRedo(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(_("Failed to get edit overlay"));
     }
@@ -2717,7 +2738,7 @@ char ngsEditOverlayCanRedo(unsigned char mapId)
 
 int ngsEditOverlaySave(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_SAVE_FAILED, _("Failed to get edit overlay"));
     }
@@ -2729,7 +2750,7 @@ int ngsEditOverlaySave(unsigned char mapId)
 
 int ngsEditOverlayCancel(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
     }
@@ -2749,7 +2770,7 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
         return errorMessage(COD_CREATE_FAILED, _("Layer datasource is null"));
     }
 
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
@@ -2762,7 +2783,7 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
 
 int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
@@ -2775,7 +2796,7 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 
 int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 {
-    EditLayerOverlay* editOverlay = getEditOverlay(mapId);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
@@ -2784,6 +2805,39 @@ int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
                 COD_DELETE_FAILED, _("Geometry part deleting is failed"));
     }
     return COD_SUCCESS;
+}
+
+int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
+                             float direction)
+{
+    LocationOverlay* overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
+    if(nullptr == overlay) {
+        return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
+    }
+
+    overlay->setLocation(location, direction);
+    return COD_SUCCESS;
+}
+
+int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style)
+{
+    GlLocationOverlay* overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
+    if(nullptr == overlay) {
+        return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
+    }
+
+    return overlay->setStyle(*static_cast<CPLJSONObject*>(style)) ?
+                COD_SUCCESS : COD_SET_FAILED;
+}
+
+int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name)
+{
+    GlLocationOverlay* overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
+    if(nullptr == overlay) {
+        return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
+    }
+
+    return overlay->setStyleName(name) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 /**
