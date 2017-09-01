@@ -671,11 +671,11 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(tileItem.tile.z));
-            Envelope env = tileItem.env;
-            env.resize(TILE_RESIZE);
+            Envelope ext = tileItem.env;
+            ext.resize(TILE_RESIZE);
             auto vItem =
                     data->m_featureClass->tileGeometry(data->m_feature,
-                                                       env.toGeometry(nullptr).get(),
+                                                       ext.toGeometry(nullptr).get(),
                                                        step);
             data->m_featureClass->addOverviewItem(tileItem.tile, vItem);
         }
@@ -756,16 +756,16 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         }
         BufferPtr data = item.second.save();
 
-        FeaturePtr feature = OGRFeature::CreateFeature(
+        FeaturePtr newFeature = OGRFeature::CreateFeature(
                     m_ovrTable->GetLayerDefn() );
 
-        feature->SetField(OVR_ZOOM_KEY, item.first.z);
-        feature->SetField(OVR_X_KEY, item.first.x);
-        feature->SetField(OVR_Y_KEY, item.first.y);
-        feature->SetField(feature->GetFieldIndex(OVR_TILE_KEY), data->size(),
+        newFeature->SetField(OVR_ZOOM_KEY, item.first.z);
+        newFeature->SetField(OVR_X_KEY, item.first.x);
+        newFeature->SetField(OVR_Y_KEY, item.first.y);
+        newFeature->SetField(newFeature->GetFieldIndex(OVR_TILE_KEY), data->size(),
                           data->data());
 
-        if(m_ovrTable->CreateFeature(feature) != OGRERR_NONE) {
+        if(m_ovrTable->CreateFeature(newFeature) != OGRERR_NONE) {
             errorMessage(COD_INSERT_FAILED, _("Failed to create feature"));
         }
 
@@ -852,7 +852,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     if(!features.empty()) {
         GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
         while(!features.empty()) {
-            auto feature = features.back();
+            feature = features.back();
             VectorTileItem item = tileGeometry(feature, extGeom.get(), step);
             if(item.isValid()) {
                 vtile.add(item, false);
@@ -1097,7 +1097,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
         while((feature = nextFeature())) {
             OGRGeometry * const geom = feature->GetGeometryRef();
             if (nullptr != geom) {
-                OGRwkbGeometryType geomType = geom->getGeometryType();
+                geomType = geom->getGeometryType();
                 counts[OGR_GT_Flatten(geomType)] += 1;
             }
         }
@@ -1204,10 +1204,10 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(
                                                 tileItem.tile.z));
-            Envelope env = tileItem.env;
-            env.resize(TILE_RESIZE);
+            Envelope ext = tileItem.env;
+            ext.resize(TILE_RESIZE);
             auto vItem = tileGeometry(feature,
-                                      env.toGeometry(nullptr).get(),
+                                      ext.toGeometry(nullptr).get(),
                                       step);
 
             FeaturePtr tile = getTileFeature(tileItem.tile);

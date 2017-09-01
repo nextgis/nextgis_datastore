@@ -29,7 +29,7 @@ namespace ngs {
 // Filter
 //-----------------------------------------------------------------------------
 
-Filter::Filter(const enum ngsCatalogObjectType type) : type(type)
+Filter::Filter(const enum ngsCatalogObjectType type) : m_type(type)
 {
 }
 
@@ -38,29 +38,29 @@ bool Filter::canDisplay(ObjectPtr object) const
     if(!object)
         return  false;
 
-    if(type == CAT_UNKNOWN)
+    if(m_type == CAT_UNKNOWN)
         return true;
 
     // Always display containers except filtering of container type
-    if(isContainer(object->type()) && !isContainer(type))
+    if(isContainer(object->type()) && !isContainer(m_type))
         return true;
 
-    if(object->type() == type)
+    if(object->type() == m_type)
         return true;
 
-    if(isFeatureClass(object->type()) && (type == CAT_FC_ANY ||
-                                             type == CAT_RASTER_FC_ANY))
+    if(isFeatureClass(object->type()) && (m_type == CAT_FC_ANY ||
+                                             m_type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isRaster(object->type()) && (type == CAT_RASTER_ANY ||
-                                       type == CAT_RASTER_FC_ANY))
+    if(isRaster(object->type()) && (m_type == CAT_RASTER_ANY ||
+                                       m_type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isDatabase(object->type()) && (type == CAT_CONTAINER_GDB ||
-                                         type == CAT_CONTAINER_POSTGRES))
+    if(isDatabase(object->type()) && (m_type == CAT_CONTAINER_GDB ||
+                                         m_type == CAT_CONTAINER_POSTGRES))
         return true;
 
-    if(isTable(object->type()) && type == CAT_TABLE_ANY)
+    if(isTable(object->type()) && m_type == CAT_TABLE_ANY)
         return true;
 
     return false;
@@ -268,7 +268,7 @@ bool MultiFilter::canDisplay(ObjectPtr object) const
     if(!object)
         return false;
 
-    for(const auto thisType : types) {
+    for(const auto thisType : m_types) {
         if(object->type() == thisType)
             return true;
 
@@ -289,7 +289,7 @@ bool MultiFilter::canDisplay(ObjectPtr object) const
 
 void MultiFilter::addType(enum ngsCatalogObjectType newType)
 {
-    types.push_back(newType);
+    m_types.push_back(newType);
 }
 
 }

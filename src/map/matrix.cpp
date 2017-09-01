@@ -22,6 +22,7 @@
 
 #include <cmath>
 
+#include "api_priv.h"
 #include "ngstore/api.h"
 #include "ngstore/util/constants.h"
 
@@ -78,7 +79,8 @@ int Matrix4::invert()
         // Calculate the determinant
         det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
-    if (det == 0.0) {
+    // FIXME: -Wfloat-equal: comparing floating point with == or != is unsafe
+    if (isEqual(det, 0.0)) {
         return COD_UNSUPPORTED;
     }
     det = 1.0 / det;

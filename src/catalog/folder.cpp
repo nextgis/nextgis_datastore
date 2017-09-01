@@ -197,9 +197,9 @@ void Folder::refresh()
 int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath,
                             const Progress& progress)
 {
-    File* file = ngsDynamicCast(File, child);
+    File* fileObject = ngsDynamicCast(File, child);
     int result = move ? COD_MOVE_FAILED : COD_COPY_FAILED;
-    if(nullptr != file) {
+    if(nullptr != fileObject) {
         if(move) {
             result = File::moveFile(child->path(), newPath, progress);
         }
@@ -425,8 +425,8 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString& name,
     }
 
     if(result) {
-        CPLString name = fullName() + Catalog::separator() + newName;
-        Notify::instance().onNotify(name, ngsChangeCode::CC_CREATE_OBJECT);
+        CPLString nameNotify = fullName() + Catalog::separator() + newName;
+        Notify::instance().onNotify(nameNotify, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     return result;

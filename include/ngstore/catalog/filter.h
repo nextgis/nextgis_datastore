@@ -50,7 +50,7 @@ public:
     static GDALDriver *getGDALDriver(const enum ngsCatalogObjectType type);
     static const char* getExtension(const enum ngsCatalogObjectType type);
 protected:
-    enum ngsCatalogObjectType type;
+    enum ngsCatalogObjectType m_type;
 };
 
 class MultiFilter : public Filter
@@ -62,7 +62,7 @@ public:
     void addType(enum ngsCatalogObjectType newType);
 
 protected:
-    std::vector< enum ngsCatalogObjectType > types;
+    std::vector< enum ngsCatalogObjectType > m_types;
 };
 
 }

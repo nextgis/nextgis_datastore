@@ -450,7 +450,6 @@ PointId getPolygonPointId(
 
     const OGRLinearRing* ring = polygon.getExteriorRing();
     int numInteriorRings = polygon.getNumInteriorRings();
-//    int pointId = 0;
     int ringId = 0;
 
     while(true) {
