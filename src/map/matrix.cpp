@@ -21,6 +21,7 @@
 #include "matrix.h"
 
 #include <cmath>
+#include <limits>
 
 #include "api_priv.h"
 #include "ngstore/api.h"
@@ -79,10 +80,10 @@ int Matrix4::invert()
         // Calculate the determinant
         det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
-    if (det == 0.0) {
+    // https://stackoverflow.com/a/42927051
+    static_assert(std::numeric_limits<double>::is_iec559, "Please use IEEE754");
+    if(!std::isfinite(det = 1.0 / det))
         return COD_UNSUPPORTED;
-    }
-    det = 1.0 / det;
 
     m_values[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
     m_values[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
