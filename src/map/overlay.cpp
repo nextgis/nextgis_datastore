@@ -156,6 +156,11 @@ bool EditLayerOverlay::save()
         return false;
     }
 
+    OGREnvelope ogrEnv;
+    geom->getEnvelope(&ogrEnv);
+    Envelope env(ogrEnv);
+    const_cast<MapView*>(&m_map)->invalidate(env);
+
     freeResources();
     setVisible(false);
     return true;
