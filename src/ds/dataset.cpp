@@ -134,7 +134,7 @@ const char* DatasetBase::options(const enum ngsCatalogObjectType type,
     case OT_LOAD:
         return "";
     }
-    // FIXME: control reaches end of non-void function [-Wreturn-type]
+    return "";
 }
 
 bool DatasetBase::open(const char* path, unsigned int openFlags,
@@ -589,7 +589,8 @@ const char* Dataset::options(enum ngsOptionType optionType) const
                "  <Option name='ZOOM_LEVELS' type='string' description='Comma separated list of zoom level' default=''/>"
                "</LoadOptionList>";
     }
-    // FIXME: control reaches end of non-void function [-Wreturn-type]
+
+    return "";
 }
 
 bool Dataset::hasChildren()

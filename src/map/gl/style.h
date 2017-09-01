@@ -338,7 +338,7 @@ class SimpleImageStyle : public Style
 {
 public:
     SimpleImageStyle();
-    void setImage(GlImage * const image) { m_image = image; }
+    void setImage(GlImage* const image) { m_image = image; }
 
     // Style interface
 public:
@@ -347,15 +347,33 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
 
 protected:
-    GlImage *m_image;
+    GlImage* m_image;
 
     // Style interface
 public:
-    virtual bool load(const CPLJSONObject &/*store*/) override { return true; }
+    virtual bool load(const CPLJSONObject& /*store*/) override { return true; }
     virtual CPLJSONObject save() const override { return CPLJSONObject(); }
     virtual const char* name() override { return "simpleImage"; }
 };
 
+//------------------------------------------------------------------------------
+// MarkerStyle
+//------------------------------------------------------------------------------
+
+class MarkerStyle : public PointStyle
+{
+public:
+    MarkerStyle();
+
+    // Style interface
+public:
+    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                         enum GlBuffer::BufferType type) override;
+    virtual void draw(const GlBuffer& buffer) const override;
+    virtual bool load(const CPLJSONObject& /*store*/) override { return true; }
+    virtual CPLJSONObject save() const override { return CPLJSONObject(); }
+    virtual const char* name() override { return "marker"; }
+};
 
 }  // namespace ngs
 

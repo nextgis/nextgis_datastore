@@ -30,7 +30,7 @@ class GlImage : public GlObject
 public:
     GlImage();
     virtual ~GlImage();
-    void setImage(GLubyte * imageData, GLsizei width, GLsizei height) {
+    void setImage(GLubyte* imageData, GLsizei width, GLsizei height) {
         m_imageData = imageData;
         m_width = width;
         m_height = height;
@@ -48,13 +48,23 @@ public:
     void setSmooth(bool smooth) { m_smooth = smooth; }
 
 protected:
-    GLubyte * m_imageData;
+    GLubyte* m_imageData;
     GLsizei m_width, m_height;
     GLuint m_id;
     bool m_smooth;
 };
 
 typedef std::shared_ptr<GlImage> GlImagePtr;
+
+class GlImageAtlas : public GlImage
+{
+public:
+    GlImageAtlas();
+    virtual ~GlImageAtlas() = default;
+
+protected:
+
+};
 
 } // namespace ngs
 
