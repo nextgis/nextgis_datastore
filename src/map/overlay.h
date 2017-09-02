@@ -34,6 +34,7 @@
 
 #include "ds/featureclass.h"
 #include "ds/geometry.h"
+#include "map/layer.h"
 #include "ngstore/codes.h"
 #include "ngstore/util/constants.h"
 
@@ -101,6 +102,7 @@ public:
     void cancel();
 
     bool createGeometry(FeatureClassPtr datasource);
+    bool editGeometry();
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
@@ -118,7 +120,9 @@ private:
     bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
 
 protected:
+    LayerPtr m_editedLayer;
     FeatureClassPtr m_datasource;
+    GIntBig m_editedFeatureId;
     GeometryUPtr m_geometry;
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
