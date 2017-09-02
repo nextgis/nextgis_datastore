@@ -187,6 +187,18 @@ bool EditLayerOverlay::save()
 
 void EditLayerOverlay::cancel()
 {
+    if(m_editedLayer) {
+        GlSelectableFeatureLayer* featureLayer =
+                ngsDynamicCast(GlSelectableFeatureLayer, m_editedLayer);
+        if(!featureLayer) {
+            errorMessage(_("Feature layer is null"));
+            return;
+        }
+        m_editedFeatureId = NOT_FOUND;
+        featureLayer->setHideIds(std::set<GIntBig>()); // Empty hidden ids.
+        const_cast<MapView*>(&m_map)->invalidate(m_oldEnvelope);
+    }
+
     m_geometry.reset();
     freeResources();
     setVisible(false);
@@ -285,7 +297,8 @@ bool EditLayerOverlay::editGeometry()
 
     OGREnvelope ogrEnv;
     m_geometry->getEnvelope(&ogrEnv);
-    const_cast<MapView*>(&m_map)->invalidate(Envelope(ogrEnv));
+    m_oldEnvelope = Envelope(ogrEnv);
+    const_cast<MapView*>(&m_map)->invalidate(m_oldEnvelope);
 
     setVisible(true);
     return true;
