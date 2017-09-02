@@ -146,6 +146,8 @@ public:
     virtual ~GlSelectableFeatureLayer() = default;
     virtual StylePtr selectionStyle() const;
     virtual void setSelectedIds(const std::set<GIntBig>& selectedIds);
+    const std::set<GIntBig>& selectedIds() const { return m_selectedFIDs; }
+    bool hasSelectedIds() const { return !m_selectedFIDs.empty(); }
 
     // IGlRenderLayer interface
 public:

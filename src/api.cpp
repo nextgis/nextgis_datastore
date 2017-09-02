@@ -2781,6 +2781,19 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
     return COD_SUCCESS;
 }
 
+int ngsEditOverlayEditGeometry(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
+    }
+    if(!editOverlay->editGeometry()) {
+        return errorMessage(
+                COD_CREATE_FAILED, _("Geometry edit is failed"));
+    }
+    return COD_SUCCESS;
+}
+
 int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
