@@ -534,6 +534,40 @@ OGRLayer* Dataset::createOverviewsTable(const char* name)
     return createOverviewsTable(m_addsDS, ovrLayerName);
 }
 
+bool Dataset::createOverviewsTableIndex(const char* name)
+{
+    if(!m_addsDS)
+        return false;
+    CPLString ovrLayerName(OVR_PREFIX);
+    ovrLayerName += name;
+
+    return createOverviewsTableIndex(m_addsDS, ovrLayerName);
+}
+
+bool Dataset::dropOverviewsTableIndex(const char* name)
+{
+    if(!m_addsDS)
+        return false;
+    CPLString ovrLayerName(OVR_PREFIX);
+    ovrLayerName += name;
+
+    return dropOverviewsTableIndex(m_addsDS, ovrLayerName);
+}
+
+bool Dataset::createOverviewsTableIndex(GDALDataset* ds, const char* name)
+{
+    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s %s)", name,
+                              name, OVR_X_KEY, OVR_Y_KEY, OVR_ZOOM_KEY), nullptr,
+                   nullptr);
+    return true;
+}
+
+bool Dataset::dropOverviewsTableIndex(GDALDataset* ds, const char* name)
+{
+    ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name), nullptr, nullptr);
+    return true;
+}
+
 bool Dataset::destroyOverviewsTable(const char* name)
 {
     if(!m_addsDS)
@@ -1059,7 +1093,7 @@ bool Dataset::deleteFeatures(const char* name)
     if(!m_addsDS)
         return false;
     CPLErrorReset();
-    m_addsDS->ExecuteSQL(CPLSPrintf("DELETE * from %s", name),
+    m_addsDS->ExecuteSQL(CPLSPrintf("DELETE from %s", name),
                          nullptr, nullptr);
     return CPLGetLastErrorType() < CE_Failure;
 }

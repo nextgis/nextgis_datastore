@@ -40,9 +40,9 @@
 namespace ngs {
 
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
-constexpr unsigned short TILE_SIZE = 512;//256; //
+constexpr unsigned short TILE_SIZE = 240; //256; //512;// 160; // Only use for overviews now in pixelSize
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
-constexpr double TILE_RESIZE = 1.2;  // FIXME: Is it enouth extra size for tile?
+constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
 
 //------------------------------------------------------------------------------
 // VectorTileItem
@@ -470,7 +470,11 @@ bool FeatureClass::hasOverviews() const
 double FeatureClass::pixelSize(int zoom)
 {
     int tilesInMapOneDim = 1 << zoom;
-    long sizeOneDimPixels = tilesInMapOneDim * TILE_SIZE;
+
+    // tile size
+    int tileSize = TILE_SIZE - (20 - zoom) * 8;
+
+    long sizeOneDimPixels = tilesInMapOneDim * tileSize;
     return WORLD_WIDTH / sizeOneDimPixels;
 }
 
@@ -713,6 +717,9 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         parentDS->clearOverviewsTable(name());
     }
 
+    // drop index
+    parentDS->dropOverviewsTableIndex(name());
+
     // Fill overview layer with data
     const CPLString &zoomLevelListStr = options.stringOption(
                 ZOOM_LEVELS_OPTION, "");
@@ -778,6 +785,9 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
     parentDS->stopBatchOperation();
     m_genTiles.clear();
+
+    // create index
+    parentDS->createOverviewsTableIndex(name());
 
     progress.onProgress(COD_FINISHED, 1.0,
                         _("Finish tiling and simplifying geometry"));

@@ -168,6 +168,8 @@ protected:
     static OGRLayer* createMetadataTable(GDALDataset* ds);
     static bool destroyTable(GDALDataset* ds, OGRLayer* layer);
     static OGRLayer* createOverviewsTable(GDALDataset* ds, const char* name);
+    static bool createOverviewsTableIndex(GDALDataset* ds, const char* name);
+    static bool dropOverviewsTableIndex(GDALDataset* ds, const char* name);
     static OGRLayer* createAttachmentsTable(GDALDataset* ds, const char* path,
                                             const char* name);
 
@@ -184,6 +186,8 @@ protected:
     virtual bool destroyOverviewsTable(const char* name);
     virtual bool clearOverviewsTable(const char* name);
     virtual OGRLayer* getOverviewsTable(const char* name);
+    virtual bool createOverviewsTableIndex(const char* name);
+    virtual bool dropOverviewsTableIndex(const char* name);
     virtual OGRLayer* createAttachmentsTable(const char* name);
     virtual bool destroyAttachmentsTable(const char* name);
     virtual OGRLayer* getAttachmentsTable(const char* name);
