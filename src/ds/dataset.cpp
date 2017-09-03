@@ -27,6 +27,7 @@
 
 #include "featureclass.h"
 #include "raster.h"
+#include "simpledataset.h"
 #include "table.h"
 #include "catalog/file.h"
 #include "catalog/folder.h"
@@ -657,6 +658,12 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                             m_name.c_str ());
     }
 
+    if(child->type() == CAT_CONTAINER_SIMPLE) {
+        SimpleDataset* const dataset = ngsDynamicCast(SimpleDataset, child);
+        dataset->hasChildren();
+        child = dataset->internalObject();
+    }
+
     CPLString fullNameStr;
     if(Filter::isTable(child->type())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
@@ -692,6 +699,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->name().c_str());
         }
+        bool createOvr = options.boolOption("CREATE_OVERVIEWS", false) &&
+                !options.stringOption("ZOOM_LEVELS", "").empty();
         bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
         OGRFeatureDefn * const srcDefinition = srcFClass->definition();
         std::vector<OGRwkbGeometryType> geometryTypes =
@@ -729,13 +738,24 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                 fieldMap[i] = i;
             }
 
+            Progress progressMulti(progress);
+            if(createOvr) {
+                progressMulti.setTotalSteps(2);
+                progressMulti.setStep(0);
+            }
+
             int result = dstFClass->copyFeatures(srcFClass, fieldMap,
                                                  filterFeometryType,
-                                                 progress, options);
+                                                 progressMulti, options);
             if(result != COD_SUCCESS) {
                 return result;
             }
             fullNameStr = dstFClass->fullName();
+
+            if(createOvr) {
+                progressMulti.setStep(1);
+                dstFClass->createOverviews(progressMulti, options);
+            }
         }
     }
     else {
@@ -759,7 +779,8 @@ bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
 {
     if(!isOpened() || isReadOnly())
         return false;
-    return Filter::isFeatureClass(type) || Filter::isTable(type);
+    return Filter::isFeatureClass(type) || Filter::isTable(type) ||
+            type == CAT_CONTAINER_SIMPLE;
 }
 
 bool Dataset::canCreate(const enum ngsCatalogObjectType type) const

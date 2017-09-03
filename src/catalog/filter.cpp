@@ -48,6 +48,10 @@ bool Filter::canDisplay(ObjectPtr object) const
     if(object->type() == m_type)
         return true;
 
+    if(isContainer(m_type) && (object->type() == CAT_CONTAINER_LOCALCONNECTION ||
+                               object->type() == CAT_CONTAINER_DIR))
+        return true;
+
     if(isFeatureClass(object->type()) && (m_type == CAT_FC_ANY ||
                                              m_type == CAT_RASTER_FC_ANY))
         return true;

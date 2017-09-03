@@ -245,6 +245,8 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
                        _("Start copy records from '%s' to '%s'"),
                        srcTable->name().c_str(), m_name.c_str());
 
+    DatasetBatchOperationHolder holder(dynamic_cast<Dataset*>(m_parent));
+
     GIntBig featureCount = srcTable->featureCount();
     double counter = 0;
     srcTable->reset();

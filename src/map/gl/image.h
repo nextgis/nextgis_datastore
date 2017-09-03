@@ -56,16 +56,6 @@ protected:
 
 typedef std::shared_ptr<GlImage> GlImagePtr;
 
-class GlImageAtlas : public GlImage
-{
-public:
-    GlImageAtlas();
-    virtual ~GlImageAtlas() = default;
-
-protected:
-
-};
-
 } // namespace ngs
 
 #endif // NGSGLIMAGE_H

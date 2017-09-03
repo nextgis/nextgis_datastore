@@ -195,6 +195,26 @@ protected:
     CPLMutex* m_executeSQLMutex;
 };
 
+/**
+ * @brief The DatasetBatchOperationHolder class Holds batch operation start/stop
+ */
+class DatasetBatchOperationHolder
+{
+public:
+    DatasetBatchOperationHolder(Dataset* dataset) : m_dataset(dataset) {
+        if(nullptr != m_dataset)
+            m_dataset->startBatchOperation();
+    }
+
+    ~DatasetBatchOperationHolder() {
+        if(nullptr != m_dataset)
+            m_dataset->stopBatchOperation();
+    }
+
+protected:
+    Dataset* m_dataset;
+};
+
 }
 
 #endif // NGSDATASET_H

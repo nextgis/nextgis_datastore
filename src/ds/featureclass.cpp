@@ -383,6 +383,8 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
     bool skipInvalid = options.boolOption("SKIP_INVALID_GEOMETRY", false);
     bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
 
+    DatasetBatchOperationHolder holder(dynamic_cast<Dataset*>(m_parent));
+
     OGRSpatialReference* srcSRS = srcFClass->getSpatialReference();
     OGRSpatialReference* dstSRS = getSpatialReference();
     CoordinateTransformation CT(srcSRS, dstSRS);

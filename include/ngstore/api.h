@@ -195,11 +195,6 @@ NGS_EXTERNC ngsCatalogObjectInfo*  ngsCatalogObjectQueryMultiFilter(
 NGS_EXTERNC int ngsCatalogObjectDelete(CatalogObjectH object);
 NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char* name,
                                        char** options);
-NGS_EXTERNC int ngsCatalogObjectLoad(CatalogObjectH srcObject,
-                                     CatalogObjectH dstObject,
-                                     char** options,
-                                     ngsProgressFunc callback,
-                                     void* callbackData);
 NGS_EXTERNC int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                                      CatalogObjectH dstObjectContainer,
                                      char** options,

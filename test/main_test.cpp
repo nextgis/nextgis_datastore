@@ -285,6 +285,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
+    ngsListFree(options);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -347,7 +348,7 @@ TEST(DataStoreTests, TestLoadDataStore) {
     options = nullptr;
     options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
 
-    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, options,
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, store, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsListFree(options);
     EXPECT_GE(counter, 1);
@@ -374,7 +375,7 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
     ngsFeatureClassBatchMode(store, 1);
-    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, nullptr,
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFeatureClassBatchMode(store, 0);
     EXPECT_GE(counter, 1);
@@ -404,7 +405,7 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
     options = ngsAddNameValue(options, "NEW_NAME", "delete_me");
 
-    EXPECT_EQ(ngsCatalogObjectLoad(shape, store, options,
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, store, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsListFree(options);
     EXPECT_GE(counter, 1);

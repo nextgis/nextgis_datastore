@@ -987,72 +987,6 @@ const char* ngsCatalogPathFromSystem(const char* path)
 }
 
 /**
- * @brief ngsCatalogObjectLoad Copies or move source dataset to destination dataset
- * @param srcObject The handle of source catalog object
- * @param dstObject The handle of destination destination catalog object.
- * Should be container which is ready to accept source dataset types.
- * @param options The options key-value array specific to operation and
- * destination dataset. The load options can be fetched via
- * ngsCatalogObjectOptions() function. Also load options can combine with
- * layer create options.
- * @param callback The callback function to report or cancel process.
- * @param callbackData The callback function data.
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsCatalogObjectLoad(CatalogObjectH srcObject, CatalogObjectH dstObject,
-                         char** options, ngsProgressFunc callback,
-                         void* callbackData)
-{
-    Object* srcCatalogObject = static_cast<Object*>(srcObject);
-    Object* dstCatalogObject = static_cast<Object*>(dstObject);
-    if(!srcCatalogObject || !dstCatalogObject) {
-        return errorMessage(COD_INVALID, _("The object handle is null"));
-    }
-
-    ObjectPtr srcCatalogObjectPointer = srcCatalogObject->pointer();
-    ObjectPtr dstCatalogObjectPointer = dstCatalogObject->pointer();
-
-    Progress progress(callback, callbackData);
-    Options loadOptions(options);
-    bool move = loadOptions.boolOption("MOVE", false);
-    loadOptions.removeOption("MOVE");
-
-    if(move && !srcCatalogObjectPointer->canDestroy()) {
-        return  errorMessage(COD_MOVE_FAILED,
-                             _("Cannot move source dataset '%s'"),
-                             srcCatalogObjectPointer->fullName().c_str());
-    }
-
-    if(srcCatalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(srcCatalogObject);
-        dataset->hasChildren();
-        srcCatalogObjectPointer = dataset->internalObject();
-    }
-
-    if(!srcCatalogObjectPointer) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
-    }
-
-    Dataset * const dstDataset = dynamic_cast<Dataset*>(dstCatalogObject);
-    if(nullptr == dstDataset) {
-        return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
-    }
-    dstDataset->hasChildren();
-
-    // Check can paste
-    if(dstDataset->canPaste(srcCatalogObjectPointer->type())) {
-        return dstDataset->paste(srcCatalogObjectPointer, move, loadOptions, progress);
-    }
-
-    return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
-                        _("Destination dataset '%s' is not container or cannot accept source dataset '%s'"),
-                        dstCatalogObjectPointer->fullName().c_str(),
-                        srcCatalogObjectPointer->fullName().c_str());
-
-}
-
-/**
  * @brief ngsCatalogObjectCopy Copies or moves catalog object to another location
  * @param srcObject Source catalog object
  * @param dstObjectContainer Destination catalog container
@@ -1088,6 +1022,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                              _("Cannot move source dataset '%s'"),
                              srcCatalogObjectPointer->fullName().c_str());
     }
+    dstCatalogObjectContainer->hasChildren();
 
     if(dstCatalogObjectContainer->canPaste(srcCatalogObjectPointer->type())) {
         return dstCatalogObjectContainer->paste(srcCatalogObjectPointer, move,
