@@ -2765,15 +2765,34 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayEditGeometry(unsigned char mapId)
+int ngsEditOverlayEditGeometry(
+        unsigned char mapId, LayerH layer, long long feateureId)
 {
-    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    EditLayerOverlay* editOverlay =
+            getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->editGeometry()) {
-        return errorMessage(
-                COD_CREATE_FAILED, _("Geometry edit is failed"));
+
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+    }
+
+    LayerPtr editLayer;
+    if(layer) {
+        int layerCount = mapStore->getLayerCount(mapId);
+        for(int i = 0; i < layerCount; ++i) {
+            LayerPtr layerPtr = mapStore->getLayer(mapId, i);
+            if(layerPtr.get() == static_cast<Layer*>(layer)) {
+                editLayer = layerPtr;
+                break;
+            }
+        }
+    }
+
+    if(!editOverlay->editGeometry(editLayer, feateureId)) {
+        return errorMessage(COD_CREATE_FAILED, _("Geometry edit is failed"));
     }
     return COD_SUCCESS;
 }
