@@ -120,7 +120,11 @@ bool Map::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 bool Map::open(MapFile * const mapFile)
 {
     CPLJSONDocument doc;
-    if(!doc.Load(mapFile->path())) {
+    CPLString mapPath("/vsizip/");
+    mapPath += mapFile->path();
+    mapPath += "/data.json";
+    if(!doc.Load(mapPath)) {
+//    if(!doc.Load(mapFile->path())) {
         return false;
     }
 
@@ -136,7 +140,12 @@ bool Map::save(MapFile * const mapFile)
     if(!saveInternal(root, mapFile))
         return false;
 
-    return doc.Save(mapFile->path());
+    CPLString mapPath("/vsizip/");
+    mapPath += mapFile->path();
+    mapPath += "/data.json";
+
+    return doc.Save(mapPath);
+    //return doc.Save(mapFile->path());
 }
 
 bool Map::close()
@@ -146,7 +155,7 @@ bool Map::close()
     return true;
 }
 
-int Map::createLayer(const char * name, const ObjectPtr &object)
+int Map::createLayer(const char* name, const ObjectPtr &object)
 {
     LayerPtr layer;
     if(object->type() == CAT_CONTAINER_SIMPLE) {
@@ -157,7 +166,6 @@ int Map::createLayer(const char * name, const ObjectPtr &object)
             return createLayer(name, internalObject);
         }
     }
-
 
     if(Filter::isFeatureClass(object->type())) {
         layer = createLayer(name, Layer::Type::Vector);

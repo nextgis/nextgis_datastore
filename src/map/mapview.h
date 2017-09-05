@@ -54,11 +54,15 @@ public:
     virtual bool setSelectionStyle(enum ngsStyleType styleType, const CPLJSONObject& style) = 0;
     virtual const char* selectionStyleName(enum ngsStyleType styleType) const = 0;
     virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const = 0;
+    virtual bool addIconSet(const char* name, const char* path, bool ownByMap);
+    virtual bool removeIconSet(const char* name);
+    virtual ImageData iconSet(const char* name) const;
+    virtual bool hasIconSet(const char* name) const;
 
     // Map interface
 protected:
-    virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile) override;
-    virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile) override;
+    virtual bool openInternal(const CPLJSONObject& root, MapFile* const mapFile) override;
+    virtual bool saveInternal(CPLJSONObject &root, MapFile* const mapFile) override;
 
 protected:
     virtual void clearBackground() = 0;
@@ -67,6 +71,21 @@ protected:
 
 protected:
     std::array<OverlayPtr, 4> m_overlays;
+
+    typedef struct _iconSetItem {
+        CPLString name;
+        CPLString path;
+        bool ownByMap;
+
+        bool operator==(const struct _iconSetItem& other) const {
+            return EQUAL(name, other.name);
+        }
+        bool operator<(const struct _iconSetItem& other) const {
+            return STRCASECMP(name, other.name) < 0;
+        }
+    } IconSetItem;
+    std::vector<IconSetItem> m_iconSets;
+
     OGRRawPoint m_touchStartPoint;
     bool m_touchMoved;
     bool m_touchSelectedPoint;

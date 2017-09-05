@@ -36,6 +36,12 @@ constexpr const char *KEY_EXTENT = "extent";
 constexpr const char *KEY_LIMIT_EXTENT = "limit_extent";
 constexpr const char *KEY_BAND_COUNT = "band_count";
 
+typedef struct _imageData {
+    unsigned char* buffer;
+    int width;
+    int height;
+} ImageData;
+
 /**
  * @brief The Raster dataset class represent image or raster
  */
@@ -58,7 +64,7 @@ public:
 
     bool writeWorldFile(enum WorldFileType type);
     const Envelope& extent() const { return m_extent; }
-    bool geoTransform(double *transform) const;
+    bool geoTransform(double* transform) const;
     int width() const;
     int height() const;
     int dataSize() const;
@@ -66,9 +72,9 @@ public:
     GDALDataType dataType(int band = 1) const;
     int getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                         int bufXSize, int bufYSize) const;
-    bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
+    bool pixelData(void* data, int xOff, int yOff, int xSize, int ySize,
                    int bufXSize, int bufYSize, GDALDataType dataType,
-                   int bandCount, int *bandList, bool read = true,
+                   int bandCount, int* bandList, bool read = true,
                    bool skipLastBand = false, unsigned char zoom = 0);
 
     // Object interface
@@ -77,7 +83,7 @@ public:
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
-    virtual const char *options(ngsOptionType optionType) const override;
+    virtual const char* options(ngsOptionType optionType) const override;
 
 protected:
     void setExtent();

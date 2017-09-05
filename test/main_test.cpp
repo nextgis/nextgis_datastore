@@ -741,6 +741,9 @@ TEST(MapTests, MapSave) {
 
     EXPECT_EQ(ngsMapSetBackgroundColor(mapId, DEFAULT_MAP_BK), COD_SUCCESS);
 
+    CPLString texPath = catalogPath + "/data/tex.png";
+    EXPECT_EQ(ngsMapIconSetAdd(mapId, "simple", texPath, true), COD_SUCCESS);
+
     EXPECT_EQ(ngsMapSave(mapId, mapPath), COD_SUCCESS);
 
     ngsUnInit();
@@ -783,6 +786,8 @@ TEST(MapTests, MapOpen) {
     EXPECT_EQ(ngsMapLayerDelete(mapId, layerTest), COD_SUCCESS);
 
     EXPECT_EQ(ngsMapLayerCount(mapId), 1);
+
+    EXPECT_EQ(ngsMapIconSetExists(mapId, "simple"), 1);
 
     ngsUnInit();
 }

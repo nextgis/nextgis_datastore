@@ -101,6 +101,78 @@ bool Folder::rmDir(const char* path)
     return true;
 }
 
+bool Folder::copyDir(const char* from, const char* to, const Progress& progress)
+{
+    if(EQUAL(from, to)) {
+        return true;
+    }
+
+    if(EQUALN(to, from, CPLStrnlen(from, 1024))) {
+        return errorMessage(COD_COPY_FAILED, _("Cannot copy folder inside itself"));
+    }
+
+    if(!Folder::isExists(to)) {
+        if(!mkDir(to)) {
+            return false;
+        }
+    }
+
+    char** items = CPLReadDir(from);
+    if(nullptr == items) {
+        return true;
+    }
+
+    int count = CSLCount(items);
+    for(int i = count - 1; i >= 0; --i ) {
+        if(EQUAL(items[i], ".") || EQUAL(items[i], "..")) {
+            continue;
+        }
+
+        if(progress.onProgress(COD_IN_PROCESS, double(i) / count,
+                               _("Copy file %s"), items[i]) == 0) {
+            return false;
+
+        }
+
+        CPLString pathFrom = CPLFormFilename(from, items[i], nullptr);
+        CPLString pathTo = CPLFormFilename(to, items[i], nullptr);
+
+        if(isDir(pathFrom)) {
+            if(!copyDir(pathFrom, pathTo, progress)) {
+                return false;
+            }
+        }
+        else {
+            if(!File::copyFile(pathFrom, pathTo, progress)) {
+                return false;
+            }
+        }
+    }
+
+    CSLDestroy(items);
+
+    return true;
+}
+
+bool Folder::moveDir(const char* from, const char* to, const Progress& progress)
+{
+    if(EQUAL(from, to)) {
+        return true;
+    }
+
+#ifdef __WINDOWS__
+    if(STARTS_WITH_CI(to, "/vsi") && EQUALN(from, to, 3)) {
+        return File::renameFile(from, to, progress);
+    }
+#endif //__WINDOWS__
+    bool res = copyDir(from, to, progress);
+    if(res) {
+        return rmDir(from);
+    }
+
+    return false;
+}
+
 bool Folder::isDir(const char* path)
 {
     VSIStatBufL sbuf;

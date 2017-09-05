@@ -21,9 +21,13 @@
  ****************************************************************************/
 #include "mapview.h"
 
+#include <algorithm>
+
 #include "api_priv.h"
+#include "catalog/folder.h"
 #include "catalog/mapfile.h"
 #include "ngstore/util/constants.h"
+#include "util/versionutil.h"
 
 namespace ngs {
 
@@ -32,8 +36,11 @@ constexpr const char* MAP_ROTATE_X_KEY = "rotate_x";
 constexpr const char* MAP_ROTATE_Y_KEY = "rotate_y";
 constexpr const char* MAP_ROTATE_Z_KEY = "rotate_z";
 constexpr const char* MAP_X_LOOP_KEY = "x_looped";
-
 constexpr const char* MAP_OVR_VISIBLE_KEY = "overlay_visible_mask";
+constexpr const char* MAP_ICONS_KEY = "icon_sets";
+constexpr const char* NAME_KEY = "name";
+constexpr const char* PATH_KEY = "path";
+
 
 MapView::MapView() : Map(),
     MapTransform(480, 640),
@@ -105,10 +112,27 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
 
     setOverlayVisible(overlayVisibleMask, true);
 
+    CPLJSONArray iconSets = root.GetArray(MAP_ICONS_KEY);
+    for(int i = 0; i < iconSets.Size(); ++i) {
+        CPLJSONObject iconSetJsonItem = iconSets[i];
+        CPLString path = iconSetJsonItem.GetString(PATH_KEY, "");
+        if(STARTS_WITH_CI(path, "/resources/icons/")) {
+            CPLString mapPath("/vsizip/");
+            mapPath += mapFile->path();
+            mapPath += path;
+            m_iconSets.push_back({iconSetJsonItem.GetString(NAME_KEY, "untitled"),
+                                 mapPath, true});
+        }
+        else {
+            m_iconSets.push_back({iconSetJsonItem.GetString(NAME_KEY, "untitled"),
+                                 path, false});
+        }
+    }
+
     return true;
 }
 
-bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
+bool MapView::saveInternal(CPLJSONObject& root, MapFile * const mapFile)
 {
     if(!Map::saveInternal(root, mapFile))
         return false;
@@ -121,6 +145,62 @@ bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
     root.Add(MAP_X_LOOP_KEY, m_XAxisLooped);
 
     root.Add(MAP_OVR_VISIBLE_KEY, overlayVisibleMask());
+
+    CPLString tmpPath = mapFile->path();
+    bool copyFromOrigin = false;
+    if(Folder::isExists(mapFile->path())) {
+        tmpPath = mapFile->path() + CPLString("~.zip");
+        if(!File::moveFile(mapFile->path(), tmpPath)) {
+            return false;
+        }
+        copyFromOrigin = true;
+    }
+
+    CPLJSONArray iconSets(MAP_ICONS_KEY);
+    for(const IconSetItem& item : m_iconSets) {
+        CPLJSONObject iconSetJson;
+        iconSetJson.Add(NAME_KEY, item.name);
+        if(item.ownByMap) {
+            if(!STARTS_WITH_CI(item.path, "/vsizip/")) {
+                // Copy to map document
+                CPLString iconSetPath("/resources/icons/");
+                iconSetPath += item.name;
+                iconSetPath += CPLString(".") + CPLGetExtension(item.path);
+                CPLString mapPath("/vsizip/");
+                mapPath += mapFile->path();
+                mapPath += iconSetPath;
+                File::copyFile(item.path, mapPath);
+                iconSetJson.Add(PATH_KEY, iconSetPath);
+            }
+            else {
+                CPLString iconSetPath("/resources/icons/");
+                iconSetPath += CPLGetFilename(item.path);
+                iconSetJson.Add(PATH_KEY, iconSetPath);
+            }
+        }
+        else {
+            iconSetJson.Add(PATH_KEY, item.path);
+        }
+
+        iconSets.Add(iconSetJson);
+    }
+
+    if(copyFromOrigin) {
+//        CPLString memo("/vsizip/");
+//        memo += CPLFormFilename(mapFile->path(), "memo", nullptr);
+//        VSILFILE *fp = VSIFOpenL( memo, "wt" );
+//        const char* memoData = CPLSPrintf("Create by NextGIS map library %s", getVersionString("self"));
+//        VSIFWriteL(memoData, 1, strlen(memoData), fp);
+//        VSIFCloseL(fp);
+
+        CPLString icons = CPLString("/vsizip/") + tmpPath + "/resources/icons/";
+        CPLString newIcons = CPLString("/vsizip/") + mapFile->path() + "/resources/icons/";
+        Folder::copyDir(icons, newIcons);
+        File::deleteFile(tmpPath);
+    }
+
+    root.Add(MAP_ICONS_KEY, iconSets);
+
     return true;
 }
 
@@ -293,6 +373,59 @@ bool MapView::setOptions(const Options& options)
     char zoomIncrement = static_cast<char>(options.intOption("ZOOM_INCREMENT", 0));
     setZoomIncrement(zoomIncrement);
     return true;
+}
+
+bool MapView::addIconSet(const char* name, const char* path, bool ownByMap)
+{
+    if(hasIconSet(name)) {
+        return false;
+    }
+    m_iconSets.push_back({name, path, ownByMap});
+    return true;
+}
+
+bool MapView::removeIconSet(const char* name)
+{
+    IconSetItem item = {name, "", false};
+    auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
+    if(it == m_iconSets.end())
+        return false;
+
+    if((*it).ownByMap) {
+        if(!File::deleteFile((*it).path)) {
+            return false;
+        }
+    }
+    m_iconSets.erase(it);
+    return true;
+}
+
+ImageData MapView::iconSet(const char* name) const
+{
+    IconSetItem item = {name, "", false};
+    auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
+    if(it == m_iconSets.end())
+        return {nullptr, 0, 0};
+    GDALDataset* dataset = static_cast<GDALDataset*>(GDALOpen((*it).path, GA_ReadOnly));
+    if(nullptr == dataset)
+        return {nullptr, 0, 0};
+    ImageData out = {nullptr, 256, 256};
+    size_t bufferSize = static_cast<size_t>(256 * 256 * 4);
+    out.buffer = static_cast<unsigned char*>(CPLMalloc(bufferSize));
+
+    int badndList[4] = {1,2,3,4};
+    if(dataset->RasterIO(GF_Read, 0, 0, 256, 256, out.buffer, 256, 256, GDT_Byte,
+                         4, badndList, 4, 256 * 4, 1) != CE_None) {
+        CPLFree(out.buffer);
+        return {nullptr, 0, 0};
+    }
+    return out;
+}
+
+bool MapView::hasIconSet(const char* name) const
+{
+    IconSetItem item = {name, "", false};
+    return std::find(m_iconSets.begin(), m_iconSets.end(), item) != m_iconSets.end();
 }
 
 } // namespace ngs

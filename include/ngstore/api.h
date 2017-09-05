@@ -380,6 +380,10 @@ NGS_EXTERNC const char* ngsMapGetSelectionStyleName(unsigned char mapId,
 NGS_EXTERNC int ngsMapSetSelectionStyleName(unsigned char mapId,
                                             enum ngsStyleType styleType,
                                             const char* name);
+NGS_EXTERNC int ngsMapIconSetAdd(unsigned char mapId, const char* name,
+                                 const char* path, char ownByMap);
+NGS_EXTERNC char ngsMapIconSetRemove(unsigned char mapId, const char* name);
+NGS_EXTERNC char ngsMapIconSetExists(unsigned char mapId, const char* name);
 
 /**
  * Layer functions

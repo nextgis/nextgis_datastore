@@ -52,7 +52,7 @@ unsigned char MapStore::createMap(const CPLString &name,
         return INVALID_MAPID;
     }
     m_maps.push_back(MapViewPtr(new GlView(name, description, epsg, bounds)));
-    unsigned char result = static_cast<unsigned char>(m_maps.size());
+    unsigned char result = static_cast<unsigned char>(m_maps.size() - 1);
     if(result != INVALID_MAPID) {
         Notify::instance().onNotify(CPLSPrintf("%d", result), CC_CREATE_MAP);
     }
@@ -70,21 +70,21 @@ unsigned char MapStore::openMap(MapFile * const file)
         return INVALID_MAPID;
     }
 
-    for(size_t i = 0; i < m_maps.size(); ++i) {
+    for(size_t i = 1; i < m_maps.size(); ++i) {
         if(m_maps[i] == map) {
-            return static_cast<unsigned char>(i + 1);
+            return static_cast<unsigned char>(i);
         }
     }
 
-    for(size_t i = 0; i < m_maps.size(); ++i) {
+    for(size_t i = 1; i < m_maps.size(); ++i) {
         if(!m_maps[i]) {
             m_maps[i] = map;
-            return static_cast<unsigned char>(i + 1);
+            return static_cast<unsigned char>(i);
         }
     }
 
     m_maps.push_back(map);
-    return static_cast<unsigned char>(m_maps.size());
+    return static_cast<unsigned char>(m_maps.size() - 1);
 }
 
 bool MapStore::saveMap(unsigned char mapId, MapFile * const file)
@@ -105,7 +105,7 @@ bool MapStore::closeMap(unsigned char mapId)
         return false;
     }
     if(map->close()) {
-        m_maps[mapId - 1] = MapViewPtr();
+        m_maps[mapId] = MapViewPtr();
         return true;
     }
 
@@ -114,9 +114,9 @@ bool MapStore::closeMap(unsigned char mapId)
 
 MapViewPtr MapStore::getMap(unsigned char mapId) const
 {    
-    if(mapId > m_maps.size() || mapId == INVALID_MAPID)
+    if(mapId >= m_maps.size() || mapId == INVALID_MAPID)
         return MapViewPtr();
-    return m_maps[mapId - 1];
+    return m_maps[mapId];
 }
 
 bool MapStore::drawMap(unsigned char mapId, ngsDrawState state, const Progress &progress)
@@ -140,7 +140,7 @@ ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId) const
     MapViewPtr map = getMap(mapId);
     if(!map)
         return {0,0,0,0};
-    return map->getBackgroundColor ();
+    return map->backgroundColor ();
 }
 
 bool MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
@@ -396,44 +396,6 @@ ngsDrawState MapStore::mapTouch(
     if (!map)
         return DS_NOTHING;
     return map->mapTouch(x, y, type);
-}
-
-bool MapStore::setMapSelectionStyleName(unsigned char mapId,
-                                        enum ngsStyleType styleType,
-                                        const char* name)
-{
-    MapViewPtr map = getMap(mapId);
-    if (!map)
-        return false;
-    return map->setSelectionStyleName(styleType, name);
-}
-
-bool MapStore::setMapSelectionStyle(unsigned char mapId,
-                                    enum ngsStyleType styleType,
-                                    const CPLJSONObject& style)
-{
-    MapViewPtr map = getMap(mapId);
-    if (!map)
-        return false;
-    return map->setSelectionStyle(styleType, style);
-}
-
-const char*MapStore::getMapSelectionStyleName(unsigned char mapId,
-                                              ngsStyleType styleType) const
-{
-    MapViewPtr map = getMap(mapId);
-    if (!map)
-        return "";
-    return map->selectionStyleName(styleType);
-}
-
-CPLJSONObject MapStore::getMapSelectionStyle(unsigned char mapId,
-                                             enum ngsStyleType styleType) const
-{
-    MapViewPtr map = getMap(mapId);
-    if (!map)
-        return CPLJSONObject();
-    return map->selectionStyle(styleType);
 }
 
 }

@@ -40,19 +40,19 @@ public:
         const Envelope &bounds);
     virtual ~Map() = default;
 
-    const CPLString &getName() const { return m_name; }
+    const CPLString &name() const { return m_name; }
     void setName(const CPLString &name) { m_name = name; }
-    const CPLString &getDescription() const { return m_description; }
+    const CPLString &description() const { return m_description; }
     void setDescription(const CPLString &description) {
         m_description = description;
     }
-    unsigned short getEpsg() const { return m_epsg; }
+    unsigned short epsg() const { return m_epsg; }
     void setEpsg(unsigned short epsg) { m_epsg = epsg; }
     void setBounds(const Envelope& bounds) {
         m_bounds = bounds;
     }
-    Envelope getBounds() const { return m_bounds; }
-    bool getRelativePaths() const { return m_relativePaths; }
+    Envelope bounds() const { return m_bounds; }
+    bool isRelativePaths() const { return m_relativePaths; }
     void setRelativePaths(bool relativePaths) { m_relativePaths = relativePaths; }
 
     bool open(MapFile * const mapFile);
@@ -60,7 +60,7 @@ public:
 
     virtual bool close();
     bool isClosed() const { return m_isClosed; }
-    virtual ngsRGBA getBackgroundColor() const { return  m_bkColor; }
+    virtual ngsRGBA backgroundColor() const { return  m_bkColor; }
     virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
 
     size_t layerCount() const { return m_layers.size(); }

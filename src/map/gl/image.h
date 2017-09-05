@@ -23,6 +23,8 @@
 
 #include "functions.h"
 
+#include "ds/raster.h"
+
 namespace ngs {
 
 class GlImage : public GlObject
@@ -35,6 +37,12 @@ public:
         m_width = width;
         m_height = height;
     }
+    void setImage(const ImageData& data) {
+        m_imageData = data.buffer;
+        m_width = data.width;
+        m_height = data.height;
+    }
+
     size_t getWidth() const { return static_cast<size_t>(m_width); }
     size_t getHeight() const { return static_cast<size_t>(m_height); }
 

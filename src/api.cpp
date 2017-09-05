@@ -95,7 +95,10 @@ void initGDAL(const char* dataPath, const char* cachePath)
     CPLSetConfigOption("GDAL_DRIVER_PATH", "disabled");
 #ifdef NGS_MOBILE // for mobile devices
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
-                       settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", "apk"));
+                       settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", ".apk, .ngmd"));
+#else
+    CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
+                       settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", ".ngmd"));
 #endif
     if(cachePath) {
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
@@ -2281,7 +2284,7 @@ ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
 
     auto map = mapStore->getMap(mapId);
     if(map) {
-        unsigned short fromEPSG = map->getEpsg();
+        unsigned short fromEPSG = map->epsg();
         Envelope env = map->getExtent();
 
         OGRSpatialReference from;
@@ -2351,10 +2354,16 @@ JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId, enum ngsStyleType style
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
         return nullptr;
     }
-    return new CPLJSONObject(mapStore->getMapSelectionStyle(mapId, styleType));
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
+        return nullptr;
+    }
+
+    return new CPLJSONObject(mapView->selectionStyle(styleType));
 }
 
 int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
@@ -2362,11 +2371,16 @@ int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
     }
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        errorMessage(COD_SET_FAILED,  _("Failed to get mapview"));
+    }
+
     CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(style);
 
-    return mapStore->setMapSelectionStyle(mapId, styleType, *gdalJsonObject) ?
+    return mapView->setSelectionStyle(styleType, *gdalJsonObject) ?
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
@@ -2374,10 +2388,16 @@ const char*ngsMapGetSelectionStyleName(unsigned char mapId, ngsStyleType styleTy
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        errorMessage(COD_GET_FAILED,  _("MapStore is not initialized"));
         return "";
     }
-    return mapStore->getMapSelectionStyleName(mapId, styleType);
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        errorMessage(COD_GET_FAILED,  _("Failed to get mapview"));
+        return "";
+    }
+
+    return mapView->selectionStyleName(styleType);
 }
 
 int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType,
@@ -2385,11 +2405,59 @@ int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
     }
-    return mapStore->setMapSelectionStyleName(mapId, styleType, name) ?
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        errorMessage(COD_SET_FAILED,  _("Failed to get mapview"));
+    }
+    return mapView->setSelectionStyleName(styleType, name) ?
                 COD_SUCCESS : COD_SET_FAILED;
 }
+
+int ngsMapIconSetAdd(unsigned char mapId, const char* name, const char* path,
+                     char ownByMap)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_INSERT_FAILED,  _("MapStore is not initialized"));
+    }
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        errorMessage(COD_INSERT_FAILED,  _("Failed to get mapview"));
+    }
+    return mapView->addIconSet(name, path, ownByMap == 1) ? COD_SUCCESS :
+                                                            COD_INSERT_FAILED;
+}
+
+char ngsMapIconSetRemove(unsigned char mapId, const char* name)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(_("MapStore is not initialized"));
+    }
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        return errorMessage(_("Failed to get mapview"));
+    }
+
+    return mapView->removeIconSet(name);
+}
+
+char ngsMapIconSetExists(unsigned char mapId, const char* name)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(_("MapStore is not initialized"));
+    }
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        return errorMessage(_("Failed to get mapview"));
+    }
+
+    return mapView->hasIconSet(name);
+}
+
 //------------------------------------------------------------------------------
 // Layer
 //------------------------------------------------------------------------------
@@ -2582,25 +2650,6 @@ int ngsLayerSetHideIds(LayerH layer, long long* ids, int size)
 // Overlay
 //------------------------------------------------------------------------------
 
-//EditLayerOverlay* getEditOverlay(unsigned char mapId)
-//{
-//    MapStore* const mapStore = MapStore::getInstance();
-//    if(nullptr == mapStore) {
-//        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
-//        return nullptr;
-//    }
-//    MapViewPtr mapView = mapStore->getMap(mapId);
-//    if(!mapView) {
-//        errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
-//        return nullptr;
-//    }
-//    OverlayPtr overlay = mapView->getOverlay(MOT_EDIT);
-//    if(!overlay) {
-//        errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
-//        return nullptr;
-//    }
-//    return ngsDynamicCast(EditLayerOverlay, overlay);
-//}
 
 template<typename T>
 T* getOverlay(unsigned char mapId, enum ngsMapOverlayType type)

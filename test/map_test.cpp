@@ -22,7 +22,10 @@
 // stl
 #include <memory>
 
+#include "catalog/catalog.h"
+#include "catalog/folder.h"
 #include "ds/datastore.h"
+#include "ds/geometry.h"
 #include "map/gl/view.h"
 #include "map/mapstore.h"
 #include "map/mapview.h"
@@ -33,37 +36,104 @@
 // TODO: Update/Fix unit test. Add GL offscreen rendering GL test
 static int counter = 0;
 
+constexpr const char* DEFAULT_MAP_NAME = "test map";
+constexpr unsigned short DEFAULT_EPSG = 3857;
+constexpr ngsRGBA DEFAULT_MAP_BK = {210, 245, 255, 255};
+
 int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
                         void* /*progressArguments*/) {
     counter++;
     return TRUE;
 }
-/*
-TEST(MapTests, TestCreate) {
-    ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.createMap(DEFAULT_MAP_NAME, "unit test", DEFAULT_EPSG,
-                                 DEFAULT_MIN_X, DEFAULT_MIN_Y, DEFAULT_MAX_X,
-                                 DEFAULT_MAX_Y), 0);
-    EXPECT_EQ(mapStore.mapCount(), 1);
 
-    ngs::MapPtr defMap = mapStore.getMap (1);
+TEST(MapTests, TestCreate) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
+
+    ngs::MapStore mapStore;
+    unsigned char mapId = mapStore.createMap(DEFAULT_MAP_NAME, "unit test",
+                                             DEFAULT_EPSG, ngs::DEFAULT_BOUNDS);
+    EXPECT_GE(mapId, 1);
+
+    ngs::MapViewPtr defMap = mapStore.getMap(mapId);
     ASSERT_NE(defMap, nullptr);
-    ngs::MapView * mapView = static_cast< ngs::MapView * >(defMap.get ());
-    ngsRGBA color = mapView->getBackgroundColor ();
-    EXPECT_EQ(color.R, 210);
-    EXPECT_EQ(color.G, 245);
-    EXPECT_EQ(color.B, 255);
+    ngsRGBA color = defMap->backgroundColor();
+    EXPECT_EQ(color.R, DEFAULT_MAP_BK.R);
+    EXPECT_EQ(color.G, DEFAULT_MAP_BK.G);
+    EXPECT_EQ(color.B, DEFAULT_MAP_BK.B);
 
     // ngmd - NextGIS map document
-    EXPECT_EQ (mapView->save ("default.ngmd"), ngsErrorCodes::EC_SUCCESS);
+    ngs::CatalogPtr catalog = ngs::Catalog::instance();
+    CPLString tmpDir = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    ngs::Folder::mkDir(tmpDir);
+    ngs::ObjectPtr tmpDirObj = catalog->getObjectByLocalPath(tmpDir);
+    ASSERT_NE(tmpDirObj, nullptr);
+    ngs::ObjectContainer* tmpDirContainer =
+            ngsDynamicCast(ngs::ObjectContainer, tmpDirObj);
+    CPLString mapPath = CPLFormFilename(tmpDirObj->path(), "default", "ngmd");
+    CPLString iconsPath = CPLFormFilename(CPLGetCurrentDir(), "data", nullptr);
+    CPLString iconSet = CPLFormFilename(iconsPath, "tex", "png");
+    defMap->addIconSet("simple", iconSet, true);
+
+    ngs::MapFile mapFile(tmpDirContainer, "default.ngmd", mapPath);
+    EXPECT_EQ(defMap->save(&mapFile), true);
+
+    mapId = mapStore.openMap(&mapFile);
+    defMap = mapStore.getMap(mapId);
+    defMap->setBackgroundColor({1,2,3,4});
+    EXPECT_EQ(defMap->save(&mapFile), true);
+
+    ngs::Catalog::setInstance(nullptr);
+
+    ngsUnInit();
 }
 
 TEST(MapTests, TestOpenMap) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
     ngs::MapStore mapStore;
-    EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
-    EXPECT_EQ(mapStore.mapCount(), 1);
+    ngs::CatalogPtr catalog = ngs::Catalog::instance();
+    CPLString tmpDir = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
+    ngs::ObjectPtr tmpDirObj = catalog->getObjectByLocalPath(tmpDir);
+    ASSERT_NE(tmpDirObj, nullptr);
+    ngs::ObjectContainer* tmpDirContainer =
+            ngsDynamicCast(ngs::ObjectContainer, tmpDirObj);
+    ASSERT_NE(tmpDirContainer->hasChildren(), 0);
+    ngs::ObjectPtr mapFileObj = tmpDirContainer->getChild("default.ngmd");
+    ngs::MapFile* mapFile = ngsDynamicCast(ngs::MapFile, mapFileObj);
+
+    unsigned char mapId = mapStore.openMap(mapFile);
+    EXPECT_GE(mapId, 1);
+    ngs::MapViewPtr defMap = mapStore.getMap(mapId);
+    ASSERT_NE(defMap, nullptr);
+    EXPECT_EQ(defMap->hasIconSet("simple"), true);
+    ngs::Catalog::setInstance(nullptr);
+
+    auto iconData = defMap->iconSet("simple");
+    ASSERT_NE(iconData.buffer, nullptr);
+    EXPECT_EQ(iconData.buffer[0], 0);
+    EXPECT_EQ(iconData.buffer[1], 0);
+    EXPECT_EQ(iconData.buffer[2], 0);
+    EXPECT_EQ(iconData.buffer[3], 0);
+
+    ngsUnInit();
 }
 
+/*
 TEST(MapTests, TestInitMap) {
     ngs::MapStore mapStore;
     EXPECT_GE(mapStore.openMap ("default.ngmd"), 1);
@@ -73,11 +143,9 @@ TEST(MapTests, TestInitMap) {
 }
 */
 
-constexpr const char* DEFAULT_MAP_NAME = "test map";
 
 TEST(MapTests, TestProject)
 {
-
     ngs::MapStore mapStore;
     unsigned char mapId = mapStore.createMap(
             DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG, ngs::DEFAULT_BOUNDS);
@@ -358,13 +426,10 @@ TEST(MapTests, TestOverlayStruct) {
     EXPECT_GE(mapView->overlayCount(), 1);
     overlay = mapView->getOverlay(MOT_EDIT);
     EXPECT_EQ(overlay->type(), MOT_EDIT);
+    overlay = mapView->getOverlay(MOT_LOCATION);
+    EXPECT_EQ(overlay->type(), MOT_LOCATION);
 
     // TODO: make full TestOverlayStruct
-    //EXPECT_EQ(mapView->overlayCount(), 3);
-    //overlay = mapView->getOverlay(MOT_LOCATION);
-    //EXPECT_EQ(overlay->type(), MOT_LOCATION);
     //overlay = mapView->getOverlay(MOT_TRACK);
     //EXPECT_EQ(overlay->type(), MOT_TRACK);
-    //overlay = mapView->getOverlay(MOT_EDIT);
-    //EXPECT_EQ(overlay->type(), MOT_EDIT);
 }

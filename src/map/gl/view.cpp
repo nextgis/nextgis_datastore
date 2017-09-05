@@ -203,7 +203,10 @@ void GlView::invalidate(const Envelope& bounds)
 }
 
 bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
-{
+{ 
+    if(!MapView::openInternal(root, mapFile))
+        return false;
+
     CPLJSONObject selection = root.GetObject(SELECTION_KEY);
     Style* style = Style::createStyle(selection.GetString("point_style_name",
                                                           "primitivePoint"));
@@ -226,8 +229,6 @@ bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
         m_selectionStyles[ST_FILL] = StylePtr(style);
     }
 
-    if(!MapView::openInternal(root, mapFile))
-        return false;
 
     return true;
 }
