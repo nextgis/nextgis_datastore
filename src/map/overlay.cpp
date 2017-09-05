@@ -142,6 +142,9 @@ void EditLayerOverlay::clearHistory()
 
 bool EditLayerOverlay::save()
 {
+    if(!m_datasource)
+        return false;
+
     bool hasEditedFeature = (m_editedFeatureId >= 0);
 
     FeaturePtr feature = (hasEditedFeature)
@@ -196,7 +199,7 @@ void EditLayerOverlay::cancel()
         }
         m_editedFeatureId = NOT_FOUND;
         featureLayer->setHideIds(std::set<GIntBig>()); // Empty hidden ids.
-        const_cast<MapView*>(&m_map)->invalidate(m_oldEnvelope);
+        const_cast<MapView*>(&m_map)->invalidate(Envelope());
     }
 
     m_geometry.reset();
@@ -297,8 +300,7 @@ bool EditLayerOverlay::editGeometry()
 
     OGREnvelope ogrEnv;
     m_geometry->getEnvelope(&ogrEnv);
-    m_oldEnvelope = Envelope(ogrEnv);
-    const_cast<MapView*>(&m_map)->invalidate(m_oldEnvelope);
+    const_cast<MapView*>(&m_map)->invalidate(Envelope(ogrEnv));
 
     setVisible(true);
     return true;

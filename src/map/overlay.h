@@ -123,7 +123,6 @@ protected:
     LayerPtr m_editedLayer;
     FeatureClassPtr m_datasource;
     GIntBig m_editedFeatureId;
-    Envelope m_oldEnvelope;
     GeometryUPtr m_geometry;
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
