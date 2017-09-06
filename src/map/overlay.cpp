@@ -143,7 +143,7 @@ void EditLayerOverlay::clearHistory()
 bool EditLayerOverlay::save()
 {
     if(!m_datasource)
-        return false;
+        return errorMessage(_("Datasource is null"));
 
     bool hasEditedFeature = (m_editedFeatureId >= 0);
 
@@ -260,20 +260,27 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
     return true;
 }
 
-bool EditLayerOverlay::editGeometry()
+bool EditLayerOverlay::editGeometry(LayerPtr layer, GIntBig featureId)
 {
-    m_editedLayer = nullptr;
-    m_editedFeatureId = NOT_FOUND;
+    bool useLayerParam = (layer.get());
+    m_editedLayer = layer;
+
     GlSelectableFeatureLayer* featureLayer = nullptr;
-    size_t layerCount = m_map->layerCount();
-    for(size_t i = 0; i < layerCount; ++i) {
-        LayerPtr layer = m_map->getLayer(i);
-        featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, layer);
-        if(featureLayer && featureLayer->hasSelectedIds()) {
-            m_editedLayer = layer;
-            break; // NOTE: Get selection from first layer which hasSelectedIds.
+    if(m_editedLayer) {
+        featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, m_editedLayer);
+    } else {
+        int layerCount = static_cast<int>(m_map->layerCount());
+        for(int i = 0; i < layerCount; ++i) {
+            layer = m_map->getLayer(i);
+            featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, layer);
+            if(featureLayer && featureLayer->hasSelectedIds()) {
+                // Get selection from first layer which has selected ids.
+                m_editedLayer = layer;
+                break;
+            }
         }
     }
+
     if(!featureLayer)
         return errorMessage(_("Render layer is null"));
 
@@ -282,8 +289,13 @@ bool EditLayerOverlay::editGeometry()
     if(!m_datasource)
         return errorMessage(_("Layer datasource is null"));
 
-    // NOTE: Get first selected feature.
-    m_editedFeatureId = *featureLayer->selectedIds().cbegin();
+    if(useLayerParam && featureId > 0) {
+        m_editedFeatureId = featureId;
+    } else {
+        // Get first selected feature.
+        m_editedFeatureId = *featureLayer->selectedIds().cbegin();
+    }
+
     FeaturePtr feature = m_datasource->getFeature(m_editedFeatureId);
     if(!feature)
         return errorMessage(_("Feature is null"));

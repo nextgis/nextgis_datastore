@@ -414,7 +414,8 @@ NGS_EXTERNC char ngsEditOverlayCanRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySave(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
-NGS_EXTERNC int ngsEditOverlayEditGeometry(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayEditGeometry(
+        unsigned char mapId, LayerH layer, long long feateureId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
