@@ -2473,7 +2473,7 @@ const char* ngsLayerGetName(LayerH layer)
         errorMessage(COD_GET_FAILED, _("Layer pointer is null"));
         return "";
     }
-    return (static_cast<Layer*>(layer))->getName();
+    return (static_cast<Layer*>(layer))->name();
 }
 
 /**
@@ -2553,7 +2553,7 @@ JsonObjectH ngsLayerGetStyle(LayerH layer)
         return nullptr;
     }
 
-    return new CPLJSONObject(renderLayerPtr->style()->save()); // FIXME: Memory leak here. The handle never delete
+    return new CPLJSONObject(renderLayerPtr->style()->save());
 }
 
 int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
@@ -2600,10 +2600,20 @@ const char* ngsLayerGetStyleName(LayerH layer)
     return renderLayerPtr->style()->name();
 }
 
-int ngsLayerSetStyleName(LayerH /*layer*/, const char* /*name*/)
+int ngsLayerSetStyleName(LayerH layer, const char* name)
 {
-    // TODO: Create style for provided name and set it for layer
-    return COD_UNEXPECTED_ERROR;
+    if(nullptr == layer) {
+        return errorMessage(COD_SET_FAILED, _("Layer pointer is null"));
+    }
+
+    Layer* layerPtr = static_cast<Layer*>(layer);
+    GlRenderLayer* renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    if(nullptr == renderLayerPtr) {
+        return errorMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+    }
+
+    renderLayerPtr->setStyle(name);
+    return COD_SUCCESS;
 }
 
 

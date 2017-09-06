@@ -244,12 +244,12 @@ LayerPtr Map::createLayer(const char* name, Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Vector:
-        return LayerPtr(new FeatureLayer(name));
+        return LayerPtr(new FeatureLayer(this, name));
     case Layer::Type::Raster:
-        return LayerPtr(new RasterLayer(name));
+        return LayerPtr(new RasterLayer(this, name));
     case Layer::Type::Group:
     case Layer::Type::Invalid:
-        return LayerPtr(new Layer);
+        return LayerPtr(new Layer(this));
     }
     return LayerPtr();
 }

@@ -71,7 +71,7 @@ bool shiftGeometryPoint(OGRGeometry& geometry, const PointId& id,
 class Overlay
 {
 public:
-    explicit Overlay(const MapView& map, enum ngsMapOverlayType type = MOT_UNKNOWN);
+    explicit Overlay(MapView* map, enum ngsMapOverlayType type = MOT_UNKNOWN);
     virtual ~Overlay() = default;
 
     enum ngsMapOverlayType type() const { return m_type; }
@@ -79,7 +79,7 @@ public:
     virtual void setVisible(bool visible) { m_visible = visible; }
 
 protected:
-    const MapView& m_map;
+    MapView* m_map;
     enum ngsMapOverlayType m_type;
     bool m_visible;
 };
@@ -89,7 +89,7 @@ typedef std::shared_ptr<Overlay> OverlayPtr;
 class EditLayerOverlay : public Overlay
 {
 public:
-    explicit EditLayerOverlay(const MapView& map);
+    explicit EditLayerOverlay(MapView* map);
     virtual ~EditLayerOverlay() = default;
 
     virtual bool undo();
@@ -134,7 +134,7 @@ protected:
 class LocationOverlay : public Overlay
 {
 public:
-    explicit LocationOverlay(const MapView& map);
+    explicit LocationOverlay(MapView* map);
     virtual ~LocationOverlay() = default;
     virtual void setLocation(const ngsCoordinate& location, float direction);
 

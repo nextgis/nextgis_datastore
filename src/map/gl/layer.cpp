@@ -59,6 +59,11 @@ void GlRenderLayer::free(GlTilePtr tile)
         }
         m_tiles.erase(it);
     }
+
+    for(const StylePtr& style : m_oldStyles) {
+        style->destroy();
+    }
+    m_oldStyles.clear();
     // CPLDebug("ngstore", "GlRenderLayer::free: %ld GlObject in layer", m_tiles.size());
 }
 
@@ -66,7 +71,8 @@ void GlRenderLayer::free(GlTilePtr tile)
 // GlFeatureLayer
 //------------------------------------------------------------------------------
 
-GlFeatureLayer::GlFeatureLayer(const CPLString &name) : FeatureLayer(name),
+GlFeatureLayer::GlFeatureLayer(Map* map, const CPLString &name) :
+    FeatureLayer(map, name),
     GlRenderLayer()
 {
 }
@@ -153,6 +159,15 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
     return true;
 }
 
+void GlFeatureLayer::setStyle(const char* name)
+{
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    StylePtr newStyle = StylePtr(Style::createStyle(name, mapView->textureAtlas()));
+    if(newStyle) {
+        m_oldStyles.push_back(m_style);
+        m_style = newStyle;
+    }
+}
 
 bool GlFeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
@@ -161,7 +176,8 @@ bool GlFeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectCon
         return false;
     const char* styleName = store.GetString("style_name", "");
     if(styleName != nullptr && !EQUAL(styleName, "")) {
-        m_style = StylePtr(Style::createStyle(styleName));
+        GlView* mapView = dynamic_cast<GlView*>(m_map);
+        m_style = StylePtr(Style::createStyle(styleName, mapView->textureAtlas()));
         return m_style->load(store.GetObject("style"));
     }
     return true;
@@ -180,18 +196,19 @@ CPLJSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
 void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
 {
     FeatureLayer::setFeatureClass(featureClass);
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
     switch(OGR_GT_Flatten(featureClass->geometryType())) {
     case wkbPoint:
     case wkbMultiPoint:
-        m_style = StylePtr(Style::createStyle("primitivePoint"));
+        m_style = StylePtr(Style::createStyle("primitivePoint", mapView->textureAtlas()));
         break;
     case wkbLineString:
     case wkbMultiLineString:
-        m_style = StylePtr(Style::createStyle("simpleLine"));
+        m_style = StylePtr(Style::createStyle("simpleLine", mapView->textureAtlas()));
         break;
     case wkbPolygon:
     case wkbMultiPolygon:        
-        m_style = StylePtr(Style::createStyle("simpleFillBordered"));
+        m_style = StylePtr(Style::createStyle("simpleFillBordered", mapView->textureAtlas()));
         break;
     }
 }
@@ -436,11 +453,11 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
 // GlSelectableFeatureLayer
 //------------------------------------------------------------------------------
 
-GlSelectableFeatureLayer::GlSelectableFeatureLayer(
-        std::array<StylePtr, 3> selectionStyles, const CPLString &name) :
-    GlFeatureLayer(name),
-    m_selectionStyles(selectionStyles)
+GlSelectableFeatureLayer::GlSelectableFeatureLayer(Map* map, const CPLString &name) :
+    GlFeatureLayer(map, name)
 {
+    GlView* mapView = dynamic_cast<GlView*>(map);
+    m_selectionStyles = mapView->selectionStyles();
 }
 
 StylePtr GlSelectableFeatureLayer::selectionStyle() const
@@ -449,7 +466,7 @@ StylePtr GlSelectableFeatureLayer::selectionStyle() const
         return StylePtr();
     }
 
-    return m_selectionStyles[m_style->type()];
+    return m_selectionStyles->at(m_style->type());
 }
 
 void GlSelectableFeatureLayer::setSelectedIds(const std::set<GIntBig>& selectedIds)
@@ -932,7 +949,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
 // GlRasterLayer
 //------------------------------------------------------------------------------
 
-GlRasterLayer::GlRasterLayer(const CPLString &name) : RasterLayer(name),
+GlRasterLayer::GlRasterLayer(Map* map, const CPLString &name) :
+    RasterLayer(map, name),
     GlRenderLayer(),
     m_red(1),
     m_green(2),
@@ -1232,6 +1250,16 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 //    return true; */
 }
 
+void GlRasterLayer::setStyle(const char* name)
+{
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    StylePtr newStyle = StylePtr(Style::createStyle(name, mapView->textureAtlas()));
+    if(newStyle) {
+        m_oldStyles.push_back(m_style);
+        m_style = newStyle;
+    }
+}
+
 bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
     bool result = RasterLayer::load(store, objectContainer);
@@ -1247,7 +1275,8 @@ bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectCont
                                                                       m_transparency));
     }
 
-    m_style = StylePtr(Style::createStyle("simpleImage"));
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    m_style = StylePtr(Style::createStyle("simpleImage", mapView->textureAtlas()));
     return true;
 }
 
@@ -1268,7 +1297,8 @@ void GlRasterLayer::setRaster(const RasterPtr &raster)
 {
     RasterLayer::setRaster(raster);
     // Create default style
-    m_style = StylePtr(Style::createStyle("simpleImage"));
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    m_style = StylePtr(Style::createStyle("simpleImage", mapView->textureAtlas()));
 
     if(raster->bandCount() == 4) {
         m_alpha = 4;

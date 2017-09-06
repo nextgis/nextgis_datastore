@@ -156,7 +156,7 @@ bool File::moveFile(const char* src, const char* dst, const Progress& progress)
         // If in same disc - copy/rename
         return renameFile(src, dst, progress);
     }
-#endif //TODO: UNIX renameFile add support too
+#endif // TODO: UNIX renameFile add support too
     else {
         // If in different discs - copy/move
         bool res = copyFile(src, dst, progress);

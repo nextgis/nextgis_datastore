@@ -55,10 +55,12 @@ public:
     virtual bool draw(GlTilePtr tile) = 0;
 
     StylePtr style() const { return m_style; }
+    virtual void setStyle(const char* name) = 0;
 protected:
     std::map<Tile, GlObjectPtr> m_tiles;
     StylePtr m_style;
     CPLMutex *m_dataMutex;
+    std::vector<StylePtr> m_oldStyles;
 };
 
 /**
@@ -107,14 +109,15 @@ private:
 class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 {
 public:
-    explicit GlFeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit GlFeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlFeatureLayer() = default;
     virtual void setHideIds(const std::set<GIntBig>& hideIds);
 
-    // IGlRenderLayer interface
+    // GlRenderLayer interface
 public:
     virtual bool fill(GlTilePtr tile, bool isLastTry) override;
     virtual bool draw(GlTilePtr tile) override;
+    virtual void setStyle(const char* name) override;
 
     // Layer interface
 public:
@@ -134,6 +137,7 @@ protected:
     std::set<GIntBig> m_skipFIDs;
 };
 
+typedef std::array<StylePtr, 3> SelectionStyles;
 /**
  * @brief The GlFeatureClassSelectable class Renderable feature class with
  * feature selection
@@ -141,7 +145,7 @@ protected:
 class GlSelectableFeatureLayer : public GlFeatureLayer
 {
 public:
-    explicit GlSelectableFeatureLayer(std::array<StylePtr, 3> m_selectionStyles,
+    explicit GlSelectableFeatureLayer(Map* map,
                                       const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlSelectableFeatureLayer() = default;
     virtual StylePtr selectionStyle() const;
@@ -160,7 +164,7 @@ protected:
 
 protected:
     std::set<GIntBig> m_selectedFIDs;
-    std::array<StylePtr, 3> m_selectionStyles;
+    const SelectionStyles* m_selectionStyles;
 };
 
 /**
@@ -190,12 +194,13 @@ private:
 class GlRasterLayer : public RasterLayer, public GlRenderLayer
 {
 public:
-    explicit GlRasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit GlRasterLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
 
-    // IGlRenderLayer interface
+    // GlRenderLayer interface
 public:
     virtual bool fill(GlTilePtr tile, bool isLastTry) override;
     virtual bool draw(GlTilePtr tile) override;
+    virtual void setStyle(const char* name) override;
 
     // Layer interface
 public:

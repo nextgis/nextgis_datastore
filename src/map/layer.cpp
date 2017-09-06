@@ -35,10 +35,11 @@ constexpr const char* LAYER_VISIBLE_KEY = "visible";
 // Layer
 //------------------------------------------------------------------------------
 
-Layer::Layer(const CPLString &name, Type type) :
+Layer::Layer(Map* map, const CPLString &name, Type type) :
     m_name(name),
     m_type(type),
-    m_visible(true)
+    m_visible(true),
+    m_map(map)
 {
 }
 
@@ -62,7 +63,8 @@ CPLJSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
 // FeatureLayer
 //------------------------------------------------------------------------------
 
-FeatureLayer::FeatureLayer(const CPLString& name) : Layer(name, Type::Vector)
+FeatureLayer::FeatureLayer(Map* map, const CPLString& name) : Layer(map, name,
+                                                                    Type::Vector)
 {
 }
 
@@ -107,7 +109,8 @@ CPLJSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
 // RasterLayer
 //------------------------------------------------------------------------------
 
-RasterLayer::RasterLayer(const CPLString& name) : Layer(name, Type::Raster)
+RasterLayer::RasterLayer(Map* map, const CPLString& name) : Layer(map, name,
+                                                                  Type::Raster)
 {
 }
 

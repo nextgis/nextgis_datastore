@@ -40,7 +40,7 @@ constexpr int MAX_UNDO = 10;
 // Overlay
 //------------------------------------------------------------------------------
 
-Overlay::Overlay(const MapView& map, ngsMapOverlayType type) : m_map(map),
+Overlay::Overlay(MapView* map, ngsMapOverlayType type) : m_map(map),
     m_type(type),
     m_visible(false)
 {
@@ -49,7 +49,7 @@ Overlay::Overlay(const MapView& map, ngsMapOverlayType type) : m_map(map),
 //------------------------------------------------------------------------------
 // LocationOverlay
 //------------------------------------------------------------------------------
-LocationOverlay::LocationOverlay(const MapView& map) :
+LocationOverlay::LocationOverlay(MapView* map) :
     Overlay(map, MOT_LOCATION),
     m_location({0, 0}),
     m_direction(0.0)
@@ -69,7 +69,7 @@ void LocationOverlay::setLocation(const ngsCoordinate& location, float direction
 // EditLayerOverlay
 //------------------------------------------------------------------------------
 
-EditLayerOverlay::EditLayerOverlay(const MapView& map) : Overlay(map, MOT_EDIT),
+EditLayerOverlay::EditLayerOverlay(MapView* map) : Overlay(map, MOT_EDIT),
     m_editedFeatureId(NOT_FOUND),
     m_selectedPointId(),
     m_selectedPointCoordinates(),
@@ -181,7 +181,7 @@ bool EditLayerOverlay::save()
 
     OGREnvelope ogrEnv;
     geom->getEnvelope(&ogrEnv);
-    const_cast<MapView*>(&m_map)->invalidate(Envelope(ogrEnv));
+    m_map->invalidate(Envelope(ogrEnv));
 
     freeResources();
     setVisible(false);
@@ -199,7 +199,7 @@ void EditLayerOverlay::cancel()
         }
         m_editedFeatureId = NOT_FOUND;
         featureLayer->setHideIds(std::set<GIntBig>()); // Empty hidden ids.
-        const_cast<MapView*>(&m_map)->invalidate(Envelope());
+        m_map->invalidate(Envelope());
     }
 
     m_geometry.reset();
@@ -214,9 +214,9 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
     m_editedFeatureId = NOT_FOUND;
 
     OGRwkbGeometryType geometryType = m_datasource->geometryType();
-    OGRRawPoint geometryCenter = m_map.getCenter();
+    OGRRawPoint geometryCenter = m_map->getCenter();
     OGRRawPoint mapDist =
-            m_map.getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+            m_map->getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
 
     GeometryUPtr geometry = GeometryUPtr();
     switch(OGR_GT_Flatten(geometryType)) {
@@ -265,9 +265,9 @@ bool EditLayerOverlay::editGeometry()
     m_editedLayer = nullptr;
     m_editedFeatureId = NOT_FOUND;
     GlSelectableFeatureLayer* featureLayer = nullptr;
-    size_t layerCount = m_map.layerCount();
+    size_t layerCount = m_map->layerCount();
     for(size_t i = 0; i < layerCount; ++i) {
-        LayerPtr layer = m_map.getLayer(i);
+        LayerPtr layer = m_map->getLayer(i);
         featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, layer);
         if(featureLayer && featureLayer->hasSelectedIds()) {
             m_editedLayer = layer;
@@ -300,7 +300,7 @@ bool EditLayerOverlay::editGeometry()
 
     OGREnvelope ogrEnv;
     m_geometry->getEnvelope(&ogrEnv);
-    const_cast<MapView*>(&m_map)->invalidate(Envelope(ogrEnv));
+    m_map->invalidate(Envelope(ogrEnv));
 
     setVisible(true);
     return true;
@@ -311,7 +311,7 @@ bool EditLayerOverlay::addGeometryPart()
     if(!m_geometry)
         return false;
 
-    OGRRawPoint geometryCenter = m_map.getCenter();
+    OGRRawPoint geometryCenter = m_map->getCenter();
     bool ret = false;
 
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
@@ -416,10 +416,10 @@ bool EditLayerOverlay::selectPoint(
 
         if(selectFirstPoint) {
             id = getGeometryPointId(
-                    *m_geometry, m_map.getExtentLimit(), &coordinates);
+                    *m_geometry, m_map->getExtentLimit(), &coordinates);
         } else {
             OGRRawPoint mapTolerance =
-                    m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
+                    m_map->getMapDistance(m_tolerancePx, m_tolerancePx);
 
             double minX = mapCoordinates.x - mapTolerance.x;
             double maxX = mapCoordinates.x + mapTolerance.x;
@@ -444,7 +444,7 @@ bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint* mapCoordinates) const
     bool ret = m_selectedPointId.isInit();
     if(ret && mapCoordinates) {
         OGRRawPoint mapTolerance =
-                m_map.getMapDistance(m_tolerancePx, m_tolerancePx);
+                m_map->getMapDistance(m_tolerancePx, m_tolerancePx);
 
         double minX = mapCoordinates->x - mapTolerance.x;
         double maxX = mapCoordinates->x + mapTolerance.x;

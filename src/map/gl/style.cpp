@@ -107,7 +107,7 @@ void Style::draw(const GlBuffer& buffer) const
     buffer.rebind();
 }
 
-Style *Style::createStyle(const char *name)
+Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
 {
     // NOTE: Add new styles here
     if(EQUAL(name, "simpleImage"))
@@ -122,6 +122,8 @@ Style *Style::createStyle(const char *name)
         return new SimpleFillBorderedStyle;
     else if(EQUAL(name, "primitivePoint"))
         return new PrimitivePointStyle;
+    else if(EQUAL(name, "marker"))
+        return new MarkerStyle(atlas);
     return nullptr;
 }
 
@@ -991,7 +993,7 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         }
         break;
     case PT_STAR:
-        // TODO: Star drawing
+        // TODO: Star drawing with different count of parts 4, 5, etc.
         break;
     default:
         break;
@@ -1012,7 +1014,7 @@ size_t PrimitivePointStyle::pointVerticesCount() const
     case PT_DIAMOND:
         return 4;
     case PT_STAR:
-        // TODO: Star drawing
+        // TODO: Star drawing with different count of parts 4, 5, etc.
     default:
         return 0;
     }
@@ -1226,13 +1228,8 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
     if (!Style::prepare(msMatrix, vsMatrix, type))
         return false;
 
-    if(m_image) {
-        if(m_image->bound()) {
-            m_image->rebind();
-        }
-        else {
-            m_image->bind();
-        }
+    if(m_image && !m_image->bound()) {
+        m_image->bind();
     }
     m_program.setInt("s_texture", 0);
     m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
@@ -1255,6 +1252,118 @@ void SimpleImageStyle::draw(const GlBuffer& buffer) const
 
     ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
             GL_UNSIGNED_SHORT, nullptr));
+}
+
+//------------------------------------------------------------------------------
+// MarkerStyle
+//------------------------------------------------------------------------------
+constexpr const GLchar* const markerVertexShaderSource = R"(
+    attribute vec3 a_mPosition;
+    attribute vec2 a_texCoord;
+
+    uniform mat4 u_msMatrix;
+    varying vec2 v_texCoord;
+
+    void main()
+    {
+        gl_Position = u_msMatrix * vec4(a_mPosition, 1);
+        v_texCoord = a_texCoord;
+    }
+)";
+
+constexpr const GLchar* const markerFragmentShaderSource = R"(
+    varying vec2 v_texCoord;
+    uniform sampler2D s_texture;
+
+    void main()
+    {
+        gl_FragColor = texture2D( s_texture, v_texCoord );
+    }
+)";
+
+MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) : PointStyle(PT_MARKER),
+    m_iconSet(nullptr),
+    m_textureAtlas(textureAtlas)
+{
+    m_vertexShaderSource = markerVertexShaderSource;
+    m_fragmentShaderSource = markerFragmentShaderSource;
+    m_styleType = ST_POINT;
+}
+
+void MarkerStyle::setIcon(const char* name, unsigned short index, unsigned char width,
+                          unsigned char height)
+{
+    m_iconSet = m_textureAtlas->at(name).get();
+    m_iconSetName = name;
+    m_iconIndex = index;
+    m_iconWidth = width;
+    m_iconHeight = height;
+}
+
+unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index,
+                                     GlBuffer* buffer)
+{
+    // TODO: Calc icon extent in iconSet
+
+    return 0;
+}
+
+bool MarkerStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+                               enum GlBuffer::BufferType type)
+{
+    if (!Style::prepare(msMatrix, vsMatrix, type))
+        return false;
+
+    if(m_iconSet && !m_iconSet->bound()) {
+        m_iconSet->bind();
+    }
+    m_program.setInt("s_texture", 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_texCoord", 2, 5 * sizeof(float),
+                            reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
+
+    return true;
+}
+
+
+void MarkerStyle::draw(const GlBuffer& buffer) const
+{
+    if(!m_iconSet || !m_iconSet->bound())
+        return;
+
+    Style::draw(buffer);
+
+    ngsCheckGLError(glActiveTexture(GL_TEXTURE0));
+    m_iconSet->rebind();
+
+    ngsCheckGLError(glDrawElements(GL_TRIANGLES, buffer.indexSize(),
+                                   GL_UNSIGNED_SHORT, nullptr));
+}
+
+bool MarkerStyle::load(const CPLJSONObject& store)
+{
+    if(!PointStyle::load(store))
+        return false;
+    unsigned short iconIndex = static_cast<unsigned short>(
+                store.GetInteger("icon_index", 0));
+    unsigned char iconWidth = static_cast<unsigned char>(
+                store.GetInteger("icon_width", 16));
+    unsigned char iconHeight = static_cast<unsigned char>(
+                store.GetInteger("icon_height", 16));
+    CPLString name = store.GetString("icon_name", "");
+    setIcon(name, iconIndex, iconWidth, iconHeight);
+    return true;
+}
+
+CPLJSONObject MarkerStyle::save() const
+{
+    CPLJSONObject out = PointStyle::save();
+    out.Add("icon_index", m_iconIndex);
+    out.Add("icon_width", m_iconWidth);
+    out.Add("icon_height", m_iconHeight);
+    out.Add("icon_name", m_iconSetName);
+
+    return out;
 }
 
 } // namespace ngs

@@ -22,10 +22,9 @@
 #ifndef NGSGLVIEW_H
 #define NGSGLVIEW_H
 
-#include <array>
-
 #include "map/mapview.h"
 #include "map/overlay.h"
+#include "layer.h"
 #include "style.h"
 #include "tile.h"
 #include "util/threadpool.h"
@@ -46,6 +45,8 @@ public:
     void freeResource(const GlObjectPtr& resource) {
         m_freeResources.push_back(resource);
     }
+    const TextureAtlas* textureAtlas() const { return &m_textureAtlas; }
+    const SelectionStyles* selectionStyles() const { return &m_selectionStyles; }
 
     // Run in GL context
 protected:
@@ -86,6 +87,9 @@ public:
     virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const override {
         return m_selectionStyles[styleType]->save();
     }
+    virtual bool addIconSet(const char* name, const char* path, bool ownByMap) override;
+    virtual bool removeIconSet(const char* name) override;
+
 
     // MapView interface
 protected:
@@ -112,9 +116,10 @@ private:
     GlColor m_glBkColor;
     std::vector<GlObjectPtr> m_freeResources;
     std::vector<GlTilePtr> m_tiles, m_oldTiles;
+    TextureAtlas m_textureAtlas;
     Envelope m_invalidRegion;
     SimpleImageStyle m_fboDrawStyle;
-    std::array<StylePtr, 3> m_selectionStyles;
+    SelectionStyles m_selectionStyles;
     ThreadPool m_threadPool;
 
     class LayerFillData : public ThreadData {

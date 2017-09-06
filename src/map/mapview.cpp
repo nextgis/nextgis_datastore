@@ -112,6 +112,9 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
 
     setOverlayVisible(overlayVisibleMask, true);
 
+    // TODO: Need to load some default iconset from library share folder.
+    // One or more 256 x 256 rasters with 32 x 32 or 16  x 16 icons (markers).
+
     CPLJSONArray iconSets = root.GetArray(MAP_ICONS_KEY);
     for(int i = 0; i < iconSets.Size(); ++i) {
         CPLJSONObject iconSetJsonItem = iconSets[i];
@@ -156,7 +159,7 @@ bool MapView::saveInternal(CPLJSONObject& root, MapFile * const mapFile)
         copyFromOrigin = true;
     }
 
-    CPLJSONArray iconSets(MAP_ICONS_KEY);
+    CPLJSONArray iconSets;
     for(const IconSetItem& item : m_iconSets) {
         CPLJSONObject iconSetJson;
         iconSetJson.Add(NAME_KEY, item.name);
@@ -406,7 +409,12 @@ ImageData MapView::iconSet(const char* name) const
     auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
     if(it == m_iconSets.end())
         return {nullptr, 0, 0};
-    GDALDataset* dataset = static_cast<GDALDataset*>(GDALOpen((*it).path, GA_ReadOnly));
+    return iconSetData((*it).path);
+}
+
+ImageData MapView::iconSetData(const CPLString& path) const
+{
+    GDALDataset* dataset = static_cast<GDALDataset*>(GDALOpen(path, GA_ReadOnly));
     if(nullptr == dataset)
         return {nullptr, 0, 0};
     ImageData out = {nullptr, 256, 256};

@@ -62,7 +62,7 @@ class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
     };
 
 public:
-    explicit GlEditLayerOverlay(const MapView& map);
+    explicit GlEditLayerOverlay(MapView* map);
     virtual ~GlEditLayerOverlay() = default;
 
     // Overlay interface
@@ -102,7 +102,7 @@ private:
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay
 {
 public:
-    explicit GlLocationOverlay(const MapView& map);
+    explicit GlLocationOverlay(MapView* map);
     virtual ~GlLocationOverlay() = default;
 
     bool setStyleName(const char* name);

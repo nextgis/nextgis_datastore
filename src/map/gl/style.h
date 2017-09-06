@@ -35,6 +35,7 @@
 
 namespace ngs
 {
+typedef std::map<CPLString, GlImagePtr> TextureAtlas;
 
 //------------------------------------------------------------------------------
 // Style
@@ -56,12 +57,12 @@ public:
     virtual void draw(const GlBuffer& buffer) const;
     virtual bool load(const CPLJSONObject &store) = 0;
     virtual CPLJSONObject save() const = 0;
-    virtual const char* name() = 0;
+    virtual const char* name() const = 0;
     virtual enum ngsStyleType type() const { return m_styleType; }
 
     //static
 public:
-    static Style* createStyle(const char* name);
+    static Style* createStyle(const char* name, const TextureAtlas* atlas);
 
 
     // GlObject interface
@@ -125,7 +126,7 @@ public:
     explicit PointStyle(enum PointType type = PT_CIRCLE);
 
     enum PointType pointType() const { return m_type; }
-    void setType(enum PointType type) { m_type = type; }
+    virtual void setType(enum PointType type) { m_type = type; }
     float size() const { return m_size; }
     void setSize(float size) { m_size = size; }
     float rotation() const { return m_rotation; }
@@ -167,7 +168,7 @@ public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual const char* name() override { return "simplePoint"; }
+    virtual const char* name() const override { return "simplePoint"; }
 };
 
 
@@ -199,7 +200,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() override { return "primitivePoint"; }
+    virtual const char* name() const override { return "primitivePoint"; }
 
 protected:
     unsigned char m_segmentCount;
@@ -258,7 +259,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() override { return "simpleLine"; }
+    virtual const char* name() const override { return "simpleLine"; }
 
 protected:
     GLint m_normalId;
@@ -284,7 +285,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual const char* name() override { return "simpleFill"; }
+    virtual const char* name() const override { return "simpleFill"; }
 
     // SimpleVectorStyle
 public:
@@ -323,7 +324,7 @@ public:
     virtual void draw(const GlBuffer& buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() override { return "simpleFillBordered"; }
+    virtual const char* name() const override { return "simpleFillBordered"; }
 
 protected:
     SimpleFillStyle m_fill;
@@ -353,7 +354,7 @@ protected:
 public:
     virtual bool load(const CPLJSONObject& /*store*/) override { return true; }
     virtual CPLJSONObject save() const override { return CPLJSONObject(); }
-    virtual const char* name() override { return "simpleImage"; }
+    virtual const char* name() const override { return "simpleImage"; }
 };
 
 //------------------------------------------------------------------------------
@@ -363,16 +364,36 @@ public:
 class MarkerStyle : public PointStyle
 {
 public:
-    MarkerStyle();
+    MarkerStyle(const TextureAtlas* textureAtlas);
+    void setIcon(const char* name, unsigned short index,
+                 unsigned char width, unsigned char height);
+
+    // PointStyle
+public:
+    virtual void setType(enum PointType /*type*/) override {}
+    virtual size_t pointVerticesCount() const override { return 4; }
+    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+                                    GlBuffer* buffer) override;
+    virtual enum GlBuffer::BufferType bufferType() const override {
+        return GlBuffer::BF_FILL;
+    }
 
     // Style interface
 public:
     virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool load(const CPLJSONObject& /*store*/) override { return true; }
-    virtual CPLJSONObject save() const override { return CPLJSONObject(); }
-    virtual const char* name() override { return "marker"; }
+    virtual bool load(const CPLJSONObject& store) override;
+    virtual CPLJSONObject save() const override;
+    virtual const char* name() const override { return "marker"; }
+
+protected:
+    GlImage* m_iconSet;
+    CPLString m_iconSetName;
+    unsigned short m_iconIndex;
+    unsigned char m_iconWidth;
+    unsigned char m_iconHeight;
+    const TextureAtlas* m_textureAtlas;
 };
 
 }  // namespace ngs

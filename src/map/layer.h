@@ -37,6 +37,8 @@ namespace ngs {
 constexpr const char* LAYER_TYPE_KEY = "type";
 constexpr const char* DEFAULT_LAYER_NAME = "new layer";
 
+class Map;
+
 /**
  * @brief The Layer class - base class for any map layer.
  */
@@ -51,20 +53,23 @@ public:
     };
 
 public:
-    explicit Layer(const CPLString& name = DEFAULT_LAYER_NAME, enum Type type = Type::Invalid);
+    explicit Layer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME,
+                   enum Type type = Type::Invalid);
     virtual ~Layer() = default;
     virtual bool load(const CPLJSONObject& store,
                       ObjectContainer *objectContainer = nullptr);
     virtual CPLJSONObject save(const ObjectContainer * objectContainer = nullptr) const;
     virtual ObjectPtr datasource() const { return ObjectPtr();}
-    virtual const CPLString &getName() const { return m_name; }
+    virtual const CPLString &name() const { return m_name; }
     virtual void setName(const CPLString &name) { m_name = name; }
     virtual bool visible() const { return m_visible; }
     virtual void setVisible(bool visible) { m_visible = visible; }
+    Map* map() const { return m_map; }
 protected:
     CPLString m_name;
     enum Type m_type;
     bool m_visible;
+    Map* m_map;
 };
 
 typedef std::shared_ptr<Layer> LayerPtr;
@@ -75,7 +80,7 @@ typedef std::shared_ptr<Layer> LayerPtr;
 class FeatureLayer : public Layer
 {
 public:
-    explicit FeatureLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit FeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~FeatureLayer() = default;
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) {
         m_featureClass = featureClass;
@@ -99,7 +104,7 @@ protected:
 class RasterLayer : public Layer
 {
 public:
-    explicit RasterLayer(const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit RasterLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~RasterLayer() = default;
     virtual void setRaster(const RasterPtr &raster) {
         m_raster = raster;

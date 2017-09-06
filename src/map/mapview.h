@@ -68,6 +68,7 @@ protected:
     virtual void clearBackground() = 0;
     virtual void createOverlays() = 0;
     virtual size_t overlayIndexForType(enum ngsMapOverlayType type) const;
+    virtual ImageData iconSetData(const CPLString& path) const;
 
 protected:
     std::array<OverlayPtr, 4> m_overlays;

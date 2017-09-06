@@ -43,7 +43,7 @@ GlRenderOverlay::GlRenderOverlay()
 // GlEditLayerOverlay
 //------------------------------------------------------------------------------
 
-GlEditLayerOverlay::GlEditLayerOverlay(const MapView& map) : EditLayerOverlay(map),
+GlEditLayerOverlay::GlEditLayerOverlay(MapView* map) : EditLayerOverlay(map),
     GlRenderOverlay()
 {
 }
@@ -110,18 +110,22 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
         return;
     }
 
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
+
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
             OverlayElement points;
-            points.m_style = StylePtr(Style::createStyle("simplePoint"));
+            points.m_style = StylePtr(Style::createStyle("simplePoint",
+                                                         mapView->textureAtlas()));
             SimpleVectorStyle* vectorStyle =
                     ngsDynamicCast(SimpleVectorStyle, points.m_style);
             vectorStyle->setColor(pointColor);
             m_elements[ElementType::POINTS] = points;
 
             OverlayElement selectedPoint;
-            selectedPoint.m_style = StylePtr(Style::createStyle("simplePoint"));
+            selectedPoint.m_style = StylePtr(Style::createStyle("simplePoint",
+                                                                mapView->textureAtlas()));
             vectorStyle =
                     ngsDynamicCast(SimpleVectorStyle, selectedPoint.m_style);
             vectorStyle->setColor(selectedPointColor);
@@ -276,8 +280,6 @@ void GlEditLayerOverlay::fillLine()
     //OGRLineString* line = static_cast<OGRLineString*>(m_geometry.get());
 
     //GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
-    // TODO
-
     //VectorGlObject* bufferArray = new VectorGlObject();
     //bufferArray->addBuffer(buffer);
 
@@ -293,9 +295,8 @@ void GlEditLayerOverlay::freeResources()
 void GlEditLayerOverlay::freeGlBuffer(OverlayElement& element)
 {
     if(element.m_glBuffer) {
-        const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
-        if(constGlView) {
-            GlView* glView = const_cast<GlView*>(constGlView);
+        GlView* glView = dynamic_cast<GlView*>(m_map);
+        if(glView) {
             glView->freeResource(element.m_glBuffer);
             element.m_glBuffer = nullptr;
         }
@@ -340,7 +341,7 @@ bool GlEditLayerOverlay::draw()
                 buff->bind();
             }
 
-            style->prepare(m_map.getSceneMatrix(), m_map.getInvViewMatrix(),
+            style->prepare(m_map->getSceneMatrix(), m_map->getInvViewMatrix(),
                     buff->type());
             style->draw(*buff);
         }
@@ -352,9 +353,9 @@ bool GlEditLayerOverlay::draw()
 // GlLocationOverlay
 //------------------------------------------------------------------------------
 
-GlLocationOverlay::GlLocationOverlay(const MapView& map) : LocationOverlay(map),
+GlLocationOverlay::GlLocationOverlay(MapView* map) : LocationOverlay(map),
     GlRenderOverlay(),
-    m_style(static_cast<PointStyle*>(Style::createStyle("primitivePoint")))
+    m_style(static_cast<PointStyle*>(Style::createStyle("primitivePoint", nullptr)))
 {
     m_style->setType(PT_DIAMOND);
     m_style->setColor({255,0,0,255});
@@ -362,14 +363,14 @@ GlLocationOverlay::GlLocationOverlay(const MapView& map) : LocationOverlay(map),
 
 bool GlLocationOverlay::setStyleName(const char* name)
 {
-    PointStyle* style = static_cast<PointStyle*>(Style::createStyle(name));
+    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    PointStyle* style = static_cast<PointStyle*>(
+                Style::createStyle(name, mapView ? mapView->textureAtlas() : nullptr));
     if(nullptr == style) {
         return false;
     }
-    const GlView* constGlView = dynamic_cast<const GlView*>(&m_map);
-    if(constGlView) {
-        GlView* glView = const_cast<GlView*>(constGlView);
-        glView->freeResource(m_style);
+    if(mapView) {
+        mapView->freeResource(m_style);
     }
     m_style = PointStylePtr(style);
 
@@ -392,7 +393,7 @@ bool GlLocationOverlay::draw()
     /*int index = */m_style->addPoint(m_location, 0, &buffer);
 
     buffer.bind();
-    m_style->prepare(m_map.getSceneMatrix(), m_map.getInvViewMatrix(),
+    m_style->prepare(m_map->getSceneMatrix(), m_map->getInvViewMatrix(),
                      buffer.type());
     m_style->draw(buffer);
     buffer.destroy();

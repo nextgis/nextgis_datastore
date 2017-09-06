@@ -81,7 +81,7 @@ void GlView::clearBackground()
 
 bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const char* name)
 {
-    Style* newStyle = Style::createStyle(name);
+    Style* newStyle = Style::createStyle(name, &m_textureAtlas);
     if(nullptr != newStyle) {
         freeResource(m_selectionStyles[styleType]);
         m_selectionStyles[styleType] = StylePtr(newStyle);
@@ -94,9 +94,9 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Vector:
-        return LayerPtr(new GlSelectableFeatureLayer(m_selectionStyles, name));
+        return LayerPtr(new GlSelectableFeatureLayer(this, name));
      case Layer::Type::Raster:
-        return LayerPtr(new GlRasterLayer(name));
+        return LayerPtr(new GlRasterLayer(this, name));
     default:
         return MapView::createLayer(name, type);
     }
@@ -204,34 +204,73 @@ void GlView::invalidate(const Envelope& bounds)
 
 bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
 { 
-    if(!MapView::openInternal(root, mapFile))
+
+    if(!MapView::openInternal(root, mapFile)) {
         return false;
+    }
+
+    for(const IconSetItem& item : m_iconSets) {
+        auto imageData = iconSetData(item.path);
+        GlImagePtr texture(new GlImage());
+        texture->setImage(imageData.buffer, imageData.height, imageData.width);
+        texture->setSmooth(true);
+        m_textureAtlas[item.name] = texture;
+    }
 
     CPLJSONObject selection = root.GetObject(SELECTION_KEY);
     Style* style = Style::createStyle(selection.GetString("point_style_name",
-                                                          "primitivePoint"));
+                                                          "primitivePoint"),
+                                      &m_textureAtlas);
     if(nullptr != style) {
         style->load(selection.GetObject("point_style"));
         m_selectionStyles[ST_POINT] = StylePtr(style);
     }
 
     style = Style::createStyle(selection.GetString("line_style_name",
-                                                   "simpleLine"));
+                                                   "simpleLine"),
+                               &m_textureAtlas);
     if(nullptr != style) {
         style->load(selection.GetObject("line_style"));
         m_selectionStyles[ST_LINE] = StylePtr(style);
     }
 
     style = Style::createStyle(selection.GetString("fill_style_name",
-                                                   "simpleFillBordered"));
+                                                   "simpleFillBordered"),
+                               &m_textureAtlas);
     if(nullptr != style) {
         style->load(selection.GetObject("fill_style"));
         m_selectionStyles[ST_FILL] = StylePtr(style);
     }
 
-
     return true;
 }
+
+bool GlView::addIconSet(const char* name, const char* path, bool ownByMap)
+{
+    if(MapView::addIconSet(name, path, ownByMap)) {
+        IconSetItem item = {name, "", false};
+        auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
+        if(it == m_iconSets.end()) {
+            auto imageData = iconSetData((*it).path);
+            GlImagePtr texture(new GlImage());
+            texture->setImage(imageData.buffer, imageData.height, imageData.width);
+            texture->setSmooth(true);
+            m_textureAtlas[(*it).name] = texture;
+        }
+    }
+    return false;
+}
+
+bool GlView::removeIconSet(const char* name)
+{
+    if(MapView::removeIconSet(name)) {
+        m_textureAtlas[name].reset();
+        return true;
+    }
+
+    return false;
+}
+
 
 bool GlView::saveInternal(CPLJSONObject& root, MapFile* const mapFile)
 {
@@ -445,11 +484,11 @@ void GlView::freeOldTiles()
 void GlView::initView()
 {
     m_selectionStyles[ST_POINT] = StylePtr(
-                Style::createStyle("primitivePoint"));
+                Style::createStyle("primitivePoint", &m_textureAtlas));
     m_selectionStyles[ST_LINE] = StylePtr(
-                Style::createStyle("simpleLine"));
+                Style::createStyle("simpleLine", &m_textureAtlas));
     m_selectionStyles[ST_FILL] = StylePtr(
-                Style::createStyle("simpleFillBordered"));
+                Style::createStyle("simpleFillBordered", &m_textureAtlas));
     createOverlays();
     m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
 }
@@ -464,9 +503,9 @@ double GlView::pixelSize(int zoom)
 void GlView::createOverlays()
 {
     m_overlays[overlayIndexForType(MOT_EDIT)] = OverlayPtr(
-                new GlEditLayerOverlay(*this));
+                new GlEditLayerOverlay(this));
     m_overlays[overlayIndexForType(MOT_LOCATION)] = OverlayPtr(
-                new GlLocationOverlay(*this));
+                new GlLocationOverlay(this));
     // TODO: add track and figures overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay(*this)));
 }
