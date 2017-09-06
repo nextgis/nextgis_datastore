@@ -55,13 +55,13 @@ matrix:
       sudo: true
       dist: trusty
       cache:
-        apt: true
+    #    apt: true
         directories:
-          - $HOME/.ccache
+    #      - $HOME/.ccache
           - $HOME/downloads
       apt:
         packages:
-          - ccache
+    #      - ccache
           - swig
       env:
         - BUILD_NAME=android
@@ -72,13 +72,13 @@ matrix:
       sudo: true
       dist: trusty
       cache:
-        apt: true
+    #    apt: true
         directories:
-          - $HOME/.ccache
+    #      - $HOME/.ccache
           - $HOME/downloads
       apt:
         packages:
-          - ccache
+    #      - ccache
           - swig
       env:
         - BUILD_NAME=android_cmake
