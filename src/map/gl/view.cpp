@@ -250,12 +250,13 @@ bool GlView::addIconSet(const char* name, const char* path, bool ownByMap)
     if(MapView::addIconSet(name, path, ownByMap)) {
         IconSetItem item = {name, "", false};
         auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
-        if(it == m_iconSets.end()) {
+        if(it != m_iconSets.end()) {
             auto imageData = iconSetData((*it).path);
             GlImagePtr texture(new GlImage());
             texture->setImage(imageData.buffer, imageData.height, imageData.width);
             texture->setSmooth(true);
             m_textureAtlas[(*it).name] = texture;
+            return true;
         }
     }
     return false;
