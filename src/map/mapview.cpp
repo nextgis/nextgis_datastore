@@ -417,9 +417,12 @@ ImageData MapView::iconSetData(const CPLString& path) const
     GDALDataset* dataset = static_cast<GDALDataset*>(GDALOpen(path, GA_ReadOnly));
     if(nullptr == dataset)
         return {nullptr, 0, 0};
-    ImageData out = {nullptr, 256, 256};
     size_t bufferSize = static_cast<size_t>(256 * 256 * 4);
+    ImageData out;
+    out.height = 256;
+    out.width = 256;
     out.buffer = static_cast<unsigned char*>(CPLMalloc(bufferSize));
+//    memset(out.buffer, 128, bufferSize);
 
     int badndList[4] = {1,2,3,4};
     if(dataset->RasterIO(GF_Read, 0, 0, 256, 256, out.buffer, 256, 256, GDT_Byte,
@@ -427,6 +430,7 @@ ImageData MapView::iconSetData(const CPLString& path) const
         CPLFree(out.buffer);
         return {nullptr, 0, 0};
     }
+
     return out;
 }
 

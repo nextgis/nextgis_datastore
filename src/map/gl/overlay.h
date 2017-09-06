@@ -107,6 +107,7 @@ public:
 
     bool setStyleName(const char* name);
     bool setStyle(const CPLJSONObject& style);
+    CPLJSONObject style() const { return m_style->save(); }
 
     // GlRenderOverlay interface
 public:

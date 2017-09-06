@@ -77,6 +77,10 @@ inline bool isEqual(float val1, float val2) {
 bool isDebugMode();
 
 constexpr float M_PI_F = 3.14159265358979323846264338327950288f;
-constexpr float M_PI_2_F = 1.57079632679489661923132169163975144f;
+constexpr float M_PI_2_F = M_PI_F / 2.0f;
+constexpr float M_PI_4_F = M_PI_F / 4.0f;
+
+constexpr double DEG2RAD = M_PI / 180.0;
+constexpr float DEG2RAD_F = M_PI_F / 180.0f;
 
 #endif // NGSAPI_PRIV_H

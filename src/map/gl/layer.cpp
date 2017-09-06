@@ -555,7 +555,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
         }
 
         for(size_t i = 0; i < tileItem.pointCount(); ++i) {
-            if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
+            if(buffer->vertexSize() >= GlBuffer::maxVertices() - 7) {
                 if(isSelect) {
                     bufferArray->addSelectionBuffer(select);
                     select = new GlBuffer(style->bufferType());

@@ -2866,6 +2866,16 @@ int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name)
     return overlay->setStyleName(name) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
+JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId)
+{
+    GlLocationOverlay* overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
+    if(nullptr == overlay) {
+        errorMessage(COD_GET_FAILED, _("Failed to get overlay"));
+        return nullptr;
+    }
+    return new CPLJSONObject(overlay->style());
+}
+
 /**
  * @brief ngsDisplayGetPosition Display position for geographic coordinates
  * @param mapId Map id

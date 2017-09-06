@@ -422,6 +422,7 @@ NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate loca
                                          float direction);
 NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style);
 NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name);
+NGS_EXTERNC JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId);
 
 //NGS_EXTERNC int ngsGraphicsOverlayDrawRectangle(unsigned char mapId, double minX, double minY, double maxX, double maxY);
 //NGS_EXTERNC int ngsGraphicsOverlayDrawCircle(unsigned char mapId, double X, double Y, double radius);

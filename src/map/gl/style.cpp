@@ -1259,14 +1259,20 @@ void SimpleImageStyle::draw(const GlBuffer& buffer) const
 //------------------------------------------------------------------------------
 constexpr const GLchar* const markerVertexShaderSource = R"(
     attribute vec3 a_mPosition;
+    attribute vec2 a_normal;
     attribute vec2 a_texCoord;
 
+    uniform float u_vLineWidth;
     uniform mat4 u_msMatrix;
+    uniform mat4 u_vsMatrix;
     varying vec2 v_texCoord;
 
     void main()
     {
-        gl_Position = u_msMatrix * vec4(a_mPosition, 1);
+        vec4 vDelta = vec4(a_normal * u_vLineWidth, 0, 0);
+        vec4 sDelta = u_vsMatrix * vDelta;
+        vec4 sPosition = u_msMatrix * vec4(a_mPosition, 1);
+        gl_Position = sPosition + sDelta;
         v_texCoord = a_texCoord;
     }
 )";
@@ -1298,14 +1304,80 @@ void MarkerStyle::setIcon(const char* name, unsigned short index, unsigned char 
     m_iconIndex = index;
     m_iconWidth = width;
     m_iconHeight = height;
+
+    unsigned char iconsInLine = static_cast<unsigned char>(256 / m_iconWidth);
+    unsigned char line = static_cast<unsigned char>(m_iconIndex / iconsInLine);
+    unsigned char iconInLine = static_cast<unsigned char>(m_iconIndex - line *
+                                                          iconsInLine);
+    unsigned char w = iconInLine * m_iconWidth;
+    unsigned char h = line * m_iconHeight;
+
+    m_ulx = float(w + m_iconWidth) / 256;
+    m_uly = float(h + m_iconHeight) / 256;
+    m_lrx = float(w) / 256;
+    m_lry = float(h) / 256;
 }
 
 unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index,
                                      GlBuffer* buffer)
 {
-    // TODO: Calc icon extent in iconSet
+    float nx1, ny1, nx2, ny2;
 
-    return 0;
+    float alpha = std::atanf( m_iconWidth / m_iconHeight);
+    float rotationRad = DEG2RAD_F * m_rotation;
+
+    nx1 = std::cosf(alpha + rotationRad);
+    ny1 = std::sinf(alpha + rotationRad);
+    nx2 = std::cosf(M_PI_F - alpha + rotationRad);
+    ny2 = std::sinf(M_PI_F - alpha + rotationRad);
+
+    // 0
+    buffer->addVertex(pt.x);
+    buffer->addVertex(pt.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(nx1);
+    buffer->addVertex(ny1);
+    buffer->addVertex(m_lrx);
+    buffer->addVertex(m_uly);
+
+    // 1
+    buffer->addVertex(pt.x);
+    buffer->addVertex(pt.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(nx2);
+    buffer->addVertex(ny2);
+    buffer->addVertex(m_ulx);
+    buffer->addVertex(m_uly);
+
+    // 2
+    buffer->addVertex(pt.x);
+    buffer->addVertex(pt.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(-nx1);
+    buffer->addVertex(-ny1);
+    buffer->addVertex(m_ulx);
+    buffer->addVertex(m_lry);
+
+    // 3
+    buffer->addVertex(pt.x);
+    buffer->addVertex(pt.y);
+    buffer->addVertex(0.0f);
+    buffer->addVertex(-nx2);
+    buffer->addVertex(-ny2);
+    buffer->addVertex(m_lrx);
+    buffer->addVertex(m_lry);
+
+    buffer->addIndex(index + 0);
+    buffer->addIndex(index + 1);
+    buffer->addIndex(index + 2);
+
+    buffer->addIndex(index + 0);
+    buffer->addIndex(index + 2);
+    buffer->addIndex(index + 3);
+
+    index += 4;
+
+    return index;
 }
 
 bool MarkerStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
@@ -1318,9 +1390,12 @@ bool MarkerStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
         m_iconSet->bind();
     }
     m_program.setInt("s_texture", 0);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
-    m_program.setVertexAttribPointer("a_texCoord", 2, 5 * sizeof(float),
+    m_program.setFloat("u_vLineWidth", m_size);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 7 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_normal", 2, 7 * sizeof(float),
                             reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
+    m_program.setVertexAttribPointer("a_texCoord", 2, 7 * sizeof(float),
+                            reinterpret_cast<const GLvoid*>(5 * sizeof(float)));
 
     return true;
 }
@@ -1350,7 +1425,7 @@ bool MarkerStyle::load(const CPLJSONObject& store)
                 store.GetInteger("icon_width", 16));
     unsigned char iconHeight = static_cast<unsigned char>(
                 store.GetInteger("icon_height", 16));
-    CPLString name = store.GetString("icon_name", "");
+    CPLString name = store.GetString("iconset_name", "");
     setIcon(name, iconIndex, iconWidth, iconHeight);
     return true;
 }
@@ -1361,7 +1436,7 @@ CPLJSONObject MarkerStyle::save() const
     out.Add("icon_index", m_iconIndex);
     out.Add("icon_width", m_iconWidth);
     out.Add("icon_height", m_iconHeight);
-    out.Add("icon_name", m_iconSetName);
+    out.Add("iconset_name", m_iconSetName);
 
     return out;
 }

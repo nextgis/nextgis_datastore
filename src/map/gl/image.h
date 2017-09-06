@@ -33,12 +33,12 @@ public:
     GlImage();
     virtual ~GlImage();
     void setImage(GLubyte* imageData, GLsizei width, GLsizei height) {
-        m_imageData = imageData;
+        m_imageData = static_cast<GLubyte*>(imageData);
         m_width = width;
         m_height = height;
     }
     void setImage(const ImageData& data) {
-        m_imageData = data.buffer;
+        m_imageData = static_cast<GLubyte*>(data.buffer);
         m_width = data.width;
         m_height = data.height;
     }

@@ -48,8 +48,15 @@ GlBuffer::~GlBuffer()
 
 bool GlBuffer::canStoreVertices(size_t amount, bool withNormals) const
 {
-    return (m_vertices.size() + amount * (withNormals ? VERTEX_WITH_NORMAL_SIZE :
-                                             VERTEX_SIZE)) < MAX_VERTEX_BUFFER_SIZE;
+    if(m_type == BF_TEX) {
+        return (m_vertices.size() + amount * (
+                    withNormals ? 7 : 5)) <  MAX_VERTEX_BUFFER_SIZE;
+    }
+    else {
+        return (m_vertices.size() + amount * (
+                    withNormals ? VERTEX_WITH_NORMAL_SIZE : VERTEX_SIZE)) <
+                MAX_VERTEX_BUFFER_SIZE;
+    }
 }
 
 void GlBuffer::destroy()

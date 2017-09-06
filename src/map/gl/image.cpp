@@ -25,7 +25,9 @@
 namespace ngs {
 
 GlImage::GlImage() : GlObject(),
-    m_id(0), m_smooth(false)
+    m_imageData(nullptr),
+    m_id(0),
+    m_smooth(false)
 {
 }
 

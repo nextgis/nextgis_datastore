@@ -22,10 +22,6 @@
 #ifndef NGSCONSTANTS_H
 #define NGSCONSTANTS_H
 
-#include <cmath>
-
 constexpr int NOT_FOUND = -1;
-
-constexpr double DEG2RAD = M_PI / 180.0;
 
 #endif // NGSCONSTANTS_H

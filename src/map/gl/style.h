@@ -375,7 +375,7 @@ public:
     virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
                                     GlBuffer* buffer) override;
     virtual enum GlBuffer::BufferType bufferType() const override {
-        return GlBuffer::BF_FILL;
+        return GlBuffer::BF_TEX;
     }
 
     // Style interface
@@ -394,6 +394,9 @@ protected:
     unsigned char m_iconWidth;
     unsigned char m_iconHeight;
     const TextureAtlas* m_textureAtlas;
+
+protected:
+    float m_ulx, m_uly, m_lrx, m_lry;
 };
 
 }  // namespace ngs

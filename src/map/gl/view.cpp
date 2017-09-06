@@ -211,7 +211,7 @@ bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
 
     for(const IconSetItem& item : m_iconSets) {
         auto imageData = iconSetData(item.path);
-        GlImagePtr texture(new GlImage());
+        GlImagePtr texture(new GlImage);
         texture->setImage(imageData.buffer, imageData.height, imageData.width);
         texture->setSmooth(true);
         m_textureAtlas[item.name] = texture;
@@ -252,8 +252,8 @@ bool GlView::addIconSet(const char* name, const char* path, bool ownByMap)
         auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
         if(it != m_iconSets.end()) {
             auto imageData = iconSetData((*it).path);
-            GlImagePtr texture(new GlImage());
-            texture->setImage(imageData.buffer, imageData.height, imageData.width);
+            GlImagePtr texture(new GlImage);
+            texture->setImage(imageData);
             texture->setSmooth(true);
             m_textureAtlas[(*it).name] = texture;
             return true;
@@ -431,6 +431,10 @@ bool GlView::drawTiles(const Progress &progress)
             m_fboDrawStyle.draw(tile->getBuffer());
         }
     }
+
+    // Need to blend overlay alpha with map tiles
+    ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    ngsCheckGLError(glEnable(GL_BLEND));
 
     for (auto overlayIt = m_overlays.rbegin(); overlayIt != m_overlays.rend();
             ++overlayIt) {
