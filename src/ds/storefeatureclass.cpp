@@ -31,6 +31,9 @@ StoreFeatureClass::StoreFeatureClass(OGRLayer* layer,
                                      const CPLString& name) :
     FeatureClass(layer, parent, CAT_FC_GPKG, name)
 {
+    if(m_zoomLevels.empty()) {
+        fillZoomLevels();
+    }
 }
 
 FeaturePtr StoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
@@ -174,7 +177,7 @@ CPLString StoreFeatureClass::getProperty(const char* key, const char* defaultVal
                                          const char* domain)
 {
     const char* item = m_layer->GetMetadataItem(key, domain);
-    return item == nullptr ? item : defaultValue;
+    return item != nullptr ? item : defaultValue;
 }
 
 std::map<CPLString, CPLString> StoreFeatureClass::getProperties(const char* domain)

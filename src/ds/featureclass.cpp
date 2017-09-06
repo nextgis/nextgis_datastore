@@ -1174,16 +1174,18 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
         _zoomLevels = zoomLevels;
     }
     else {
-        _zoomLevels = getProperty("zoom_levels", "", KEY_USER);
+        _zoomLevels = getProperty("zoom_levels", "", KEY_NG_ADDITIONS);
     }
     char** zoomLevelArray = CSLTokenizeString2(_zoomLevels, ",", 0);
-    int i = 0;
-    const char* zoomLevel;
-    m_zoomLevels.clear();
-    while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
-        m_zoomLevels.insert(static_cast<unsigned char>(atoi(zoomLevel)));
+    if(nullptr != zoomLevelArray) {
+        int i = 0;
+        const char* zoomLevel;
+        m_zoomLevels.clear();
+        while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
+            m_zoomLevels.insert(static_cast<unsigned char>(atoi(zoomLevel)));
+        }
+        CSLDestroy(zoomLevelArray);
     }
-    CSLDestroy(zoomLevelArray);
 }
 
 
