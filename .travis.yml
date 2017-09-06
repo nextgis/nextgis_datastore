@@ -59,10 +59,10 @@ matrix:
         directories:
     #      - $HOME/.ccache
           - $HOME/downloads
-      apt:
-        packages:
+    #  apt:
+    #    packages:
     #      - ccache
-          - swig
+    #      - swig
       env:
         - BUILD_NAME=android
         - DETAILS=""
@@ -76,10 +76,10 @@ matrix:
         directories:
     #      - $HOME/.ccache
           - $HOME/downloads
-      apt:
-        packages:
+    #  apt:
+    #    packages:
     #      - ccache
-          - swig
+    #      - swig
       env:
         - BUILD_NAME=android_cmake
         - DETAILS=""
