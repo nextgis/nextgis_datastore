@@ -1324,7 +1324,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
 {
     float nx1, ny1, nx2, ny2;
 
-    float alpha = std::atanf( m_iconWidth / m_iconHeight);
+    float alpha = atanf( m_iconWidth / m_iconHeight);
     float rotationRad = DEG2RAD_F * m_rotation;
 
     nx1 = cosf(alpha + rotationRad);
