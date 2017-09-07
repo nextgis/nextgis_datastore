@@ -2807,6 +2807,19 @@ int ngsEditOverlayEditGeometry(
     return COD_SUCCESS;
 }
 
+int ngsEditOverlayDeleteGeometry(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+    }
+    if(!editOverlay->deleteGeometry()) {
+        return errorMessage(
+                COD_DELETE_FAILED, _("Geometry deleting is failed"));
+    }
+    return COD_SUCCESS;
+}
+
 int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);

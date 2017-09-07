@@ -145,32 +145,46 @@ bool EditLayerOverlay::save()
     if(!m_datasource)
         return errorMessage(_("Datasource is null"));
 
+    if(m_geometry) { // If multi geometry is empty then delete a feature.
+        OGRGeometryCollection* multyGeom =
+                ngsDynamicCast(OGRGeometryCollection, m_geometry);
+        if(multyGeom && multyGeom->getNumGeometries() == 0)
+            m_geometry.reset();
+    }
+    bool hasDeletedGeometry = (!m_geometry);
     bool hasEditedFeature = (m_editedFeatureId >= 0);
 
-    FeaturePtr feature = (hasEditedFeature)
-            ? m_datasource->getFeature(m_editedFeatureId)
-            : m_datasource->createFeature();
-    if(!feature)
-        return errorMessage(_("Feature is null"));
+    FeaturePtr feature;
+    OGRGeometry* geom = nullptr;
+    if(hasEditedFeature && hasDeletedGeometry) { // Delete a feature.
+        bool featureDeleted = m_datasource->deleteFeature(m_editedFeatureId);
+        if(!featureDeleted)
+            return errorMessage(_("Feature deleting is failed"));
 
-    OGRGeometry* geom = m_geometry.release();
-    if(!geom)
-        return errorMessage(_("Geometry is null"));
+    } else if(!hasDeletedGeometry) { // Insert or update a feature.
+        feature = (hasEditedFeature)
+                ? m_datasource->getFeature(m_editedFeatureId)
+                : m_datasource->createFeature();
 
-    if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
-        delete geom;
-        return errorMessage(_("Set geometry to feature is failed"));
+        geom = m_geometry.release();
+        if(!geom)
+            return errorMessage(_("Geometry is null"));
+
+        if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
+            delete geom;
+            return errorMessage(_("Set geometry to feature is failed"));
+        }
+
+        bool featureSaved = false;
+        if(hasEditedFeature)
+            featureSaved = m_datasource->updateFeature(feature);
+        else
+            featureSaved = m_datasource->insertFeature(feature);
+        if(!featureSaved)
+            return errorMessage(_("Feature saving is failed"));
     }
 
-    bool featureSaved = false;
-    if(hasEditedFeature)
-        featureSaved = m_datasource->updateFeature(feature);
-    else
-        featureSaved = m_datasource->insertFeature(feature);
-    if(!featureSaved)
-        return errorMessage(_("Save feature is failed"));
-
-    if(m_editedLayer) {
+    if(m_editedLayer) { // Unhide a hidden ids.
         GlSelectableFeatureLayer* featureLayer =
                 ngsDynamicCast(GlSelectableFeatureLayer, m_editedLayer);
         if(!featureLayer)
@@ -179,9 +193,11 @@ bool EditLayerOverlay::save()
         featureLayer->setHideIds(std::set<GIntBig>()); // Empty hidden ids.
     }
 
-    OGREnvelope ogrEnv;
-    geom->getEnvelope(&ogrEnv);
-    m_map->invalidate(Envelope(ogrEnv));
+    if(geom) { // Redraw a geometry tile.
+        OGREnvelope ogrEnv;
+        geom->getEnvelope(&ogrEnv);
+        m_map->invalidate(Envelope(ogrEnv));
+    }
 
     freeResources();
     setVisible(false);
@@ -202,7 +218,6 @@ void EditLayerOverlay::cancel()
         m_map->invalidate(Envelope());
     }
 
-    m_geometry.reset();
     freeResources();
     setVisible(false);
 }
@@ -210,7 +225,7 @@ void EditLayerOverlay::cancel()
 bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
 {
     m_datasource = datasource;
-    m_editedLayer = nullptr;
+    m_editedLayer.reset();
     m_editedFeatureId = NOT_FOUND;
 
     OGRwkbGeometryType geometryType = m_datasource->geometryType();
@@ -316,6 +331,17 @@ bool EditLayerOverlay::editGeometry(LayerPtr layer, GIntBig featureId)
 
     setVisible(true);
     return true;
+}
+
+bool EditLayerOverlay::deleteGeometry()
+{
+    if(!m_geometry)
+        return false;
+
+    m_geometry.reset();
+    m_selectedPointId = PointId();
+    m_selectedPointCoordinates = OGRPoint();
+    return save();
 }
 
 bool EditLayerOverlay::addGeometryPart()
@@ -482,9 +508,10 @@ bool EditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 void EditLayerOverlay::freeResources()
 {
     clearHistory();
-    m_editedLayer = nullptr;
+    m_editedLayer.reset();
     m_datasource.reset();
     m_editedFeatureId = NOT_FOUND;
+    m_geometry.reset();
 }
 
 //------------------------------------------------------------------------------

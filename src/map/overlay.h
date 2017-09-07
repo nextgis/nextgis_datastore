@@ -103,6 +103,7 @@ public:
 
     bool createGeometry(FeatureClassPtr datasource);
     bool editGeometry(LayerPtr layer, GIntBig featureId);
+    bool deleteGeometry();
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
