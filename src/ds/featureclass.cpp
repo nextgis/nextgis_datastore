@@ -472,7 +472,7 @@ double FeatureClass::pixelSize(int zoom)
     int tilesInMapOneDim = 1 << zoom;
 
     // tile size
-    int tileSize = TILE_SIZE - (20 - zoom) * 9;
+    int tileSize = TILE_SIZE - (20 - zoom) * 8;
 
     long sizeOneDimPixels = tilesInMapOneDim * tileSize;
     return WORLD_WIDTH / sizeOneDimPixels;

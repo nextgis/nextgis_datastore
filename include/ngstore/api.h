@@ -382,7 +382,7 @@ NGS_EXTERNC int ngsMapSetSelectionStyleName(unsigned char mapId,
                                             const char* name);
 NGS_EXTERNC int ngsMapIconSetAdd(unsigned char mapId, const char* name,
                                  const char* path, char ownByMap);
-NGS_EXTERNC char ngsMapIconSetRemove(unsigned char mapId, const char* name);
+NGS_EXTERNC int ngsMapIconSetRemove(unsigned char mapId, const char* name);
 NGS_EXTERNC char ngsMapIconSetExists(unsigned char mapId, const char* name);
 
 /**
@@ -414,15 +414,16 @@ NGS_EXTERNC char ngsEditOverlayCanRedo(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySave(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
-NGS_EXTERNC int ngsEditOverlayEditGeometry(
-        unsigned char mapId, LayerH layer, long long feateureId);
+NGS_EXTERNC int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
+                                           long long feateureId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
                                          float direction);
 NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style);
-NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name);
+NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned char mapId,
+                                               const char* name);
 NGS_EXTERNC JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId);
 
 //NGS_EXTERNC int ngsGraphicsOverlayDrawRectangle(unsigned char mapId, double minX, double minY, double maxX, double maxY);

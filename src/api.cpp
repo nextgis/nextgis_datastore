@@ -2430,18 +2430,18 @@ int ngsMapIconSetAdd(unsigned char mapId, const char* name, const char* path,
                                                             COD_INSERT_FAILED;
 }
 
-char ngsMapIconSetRemove(unsigned char mapId, const char* name)
+int ngsMapIconSetRemove(unsigned char mapId, const char* name)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        return errorMessage(_("MapStore is not initialized"));
+        return errorMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        return errorMessage(_("Failed to get mapview"));
+        return errorMessage(COD_DELETE_FAILED, _("Failed to get mapview"));
     }
 
-    return mapView->removeIconSet(name);
+    return mapView->removeIconSet(name) ? COD_SUCCESS : COD_DELETE_FAILED;
 }
 
 char ngsMapIconSetExists(unsigned char mapId, const char* name)

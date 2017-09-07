@@ -125,6 +125,10 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
         return new PrimitivePointStyle;
     else if(EQUAL(name, "marker"))
         return new MarkerStyle(atlas);
+    else if(EQUAL(name, "simpleLocation"))
+        return new SimpleLocationStyle;
+    else if(EQUAL(name, "markerLocation"))
+        return new MarkerLocationStyle(atlas);
     return nullptr;
 }
 
@@ -132,10 +136,12 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
 //------------------------------------------------------------------------------
 // SimpleFillBorderStyle
 //------------------------------------------------------------------------------
+constexpr GlColor defaultGlColor = { 0.0, 1.0, 0.0, 1.0 };
+constexpr ngsRGBA defaultRGBAColor = { 0, 255, 0, 255 };
 
 SimpleVectorStyle::SimpleVectorStyle() :
     Style(),
-    m_color({1.0, 1.0, 1.0, 1.0})
+    m_color(defaultGlColor)
 {
 
 }
@@ -153,7 +159,7 @@ bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix
 bool SimpleVectorStyle::load(const CPLJSONObject &store)
 {
     ngsRGBA color = ngsHEX2RGBA(store.GetString("color",
-                                             ngsRGBA2HEX({255, 255, 255, 255})));
+                                             ngsRGBA2HEX(defaultRGBAColor)));
     setColor(color);
     return true;
 }
@@ -1297,11 +1303,11 @@ MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) : PointStyle(PT_MARKE
     m_styleType = ST_POINT;
 }
 
-void MarkerStyle::setIcon(const char* name, unsigned short index, unsigned char width,
+void MarkerStyle::setIcon(const char* iconSetName, unsigned short index, unsigned char width,
                           unsigned char height)
 {
-    m_iconSet = m_textureAtlas->at(name).get();
-    m_iconSetName = name;
+    m_iconSet = m_textureAtlas->at(iconSetName).get();
+    m_iconSetName = iconSetName;
     m_iconIndex = index;
     m_iconWidth = width;
     m_iconHeight = height;
@@ -1438,6 +1444,56 @@ CPLJSONObject MarkerStyle::save() const
     out.Add("icon_width", m_iconWidth);
     out.Add("icon_height", m_iconHeight);
     out.Add("iconset_name", m_iconSetName);
+
+    return out;
+}
+
+//------------------------------------------------------------------------------
+// MarkerLocationStyle
+//------------------------------------------------------------------------------
+
+void MarkerLocationStyle::setStatus(LocationStyle::Status status)
+{
+    switch (status) {
+        case LS_MOVE:
+            return setIndex(m_moveIndex);
+        case LS_STAY:
+            return setIndex(m_stayIndex);
+    }
+}
+
+void MarkerLocationStyle::setIndex(unsigned short index)
+{
+    unsigned char iconsInLine = static_cast<unsigned char>(256 / m_iconWidth);
+    unsigned char line = static_cast<unsigned char>(index / iconsInLine);
+    unsigned char iconInLine = static_cast<unsigned char>(index - line *
+                                                          iconsInLine);
+    unsigned char w = iconInLine * m_iconWidth;
+    unsigned char h = line * m_iconHeight;
+
+    m_ulx = float(w + m_iconWidth) / 256;
+    m_uly = float(h + m_iconHeight) / 256;
+    m_lrx = float(w) / 256;
+    m_lry = float(h) / 256;
+}
+
+bool MarkerLocationStyle::load(const CPLJSONObject& store)
+{
+    if(!MarkerStyle::load(store))
+        return false;
+    m_stayIndex = static_cast<unsigned short>(
+                store.GetInteger("stay_index", 0));
+    m_moveIndex = static_cast<unsigned short>(
+                store.GetInteger("move_index", 0));
+    setIndex(m_stayIndex);
+    return true;
+}
+
+CPLJSONObject MarkerLocationStyle::save() const
+{
+    CPLJSONObject out = MarkerStyle::save();
+    out.Add("stay_index", m_stayIndex);
+    out.Add("move_index", m_moveIndex);
 
     return out;
 }

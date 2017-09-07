@@ -355,7 +355,7 @@ bool GlEditLayerOverlay::draw()
 
 GlLocationOverlay::GlLocationOverlay(MapView* map) : LocationOverlay(map),
     GlRenderOverlay(),
-    m_style(static_cast<PointStyle*>(Style::createStyle("primitivePoint", nullptr)))
+    m_style(static_cast<PointStyle*>(Style::createStyle("simpleLocation", nullptr)))
 {
     m_style->setType(PT_DIAMOND);
     m_style->setColor({255,0,0,255});
@@ -391,6 +391,11 @@ bool GlLocationOverlay::draw()
     GlBuffer buffer(GlBuffer::BF_FILL);
     m_style->setRotation(m_direction);
     /*int index = */m_style->addPoint(m_location, 0, &buffer);
+    LocationStyle* lStyle = ngsDynamicCast(LocationStyle, m_style);
+    if(nullptr != lStyle) {
+        lStyle->setStatus(isEqual(m_direction, -1.0f) ? LocationStyle::LS_STAY :
+                                                        LocationStyle::LS_MOVE);
+    }
 
     buffer.bind();
     m_style->prepare(m_map->getSceneMatrix(), m_map->getInvViewMatrix(),

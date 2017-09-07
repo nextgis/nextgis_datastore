@@ -116,6 +116,7 @@ public:
 
 private:
     PointStylePtr m_style;
+    unsigned short m_stayIndex, m_moveIndex;
 };
 
 } // namespace ngs

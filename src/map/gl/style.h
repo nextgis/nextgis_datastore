@@ -149,6 +149,10 @@ protected:
 
 typedef std::shared_ptr<PointStyle> PointStylePtr;
 
+//------------------------------------------------------------------------------
+// SimplePointStyle
+//------------------------------------------------------------------------------
+
 class SimplePointStyle : public PointStyle
 {
 public:
@@ -365,7 +369,7 @@ class MarkerStyle : public PointStyle
 {
 public:
     MarkerStyle(const TextureAtlas* textureAtlas);
-    void setIcon(const char* name, unsigned short index,
+    void setIcon(const char* iconSetName, unsigned short index,
                  unsigned char width, unsigned char height);
 
     // PointStyle
@@ -398,6 +402,69 @@ protected:
 protected:
     float m_ulx, m_uly, m_lrx, m_lry;
 };
+
+//------------------------------------------------------------------------------
+// LocationStyle
+//------------------------------------------------------------------------------
+class LocationStyle
+{
+public:
+    enum Status {
+        LS_STAY,
+        LS_MOVE
+    };
+
+public:
+    LocationStyle() {}
+    virtual ~LocationStyle() = default;
+    virtual void setStatus(enum Status status) = 0;
+};
+
+//------------------------------------------------------------------------------
+// SimpleLocationStyle
+//------------------------------------------------------------------------------
+
+class SimpleLocationStyle : public PrimitivePointStyle, public LocationStyle
+{
+public:
+    explicit SimpleLocationStyle(enum PointType type = PT_CIRCLE) :
+        PrimitivePointStyle(type) {}
+
+    // Style interface
+    virtual const char* name() const override { return "simpleLocation"; }
+
+    // LocationStyle interface
+public:
+    virtual void setStatus(enum Status /*status*/) override {}
+};
+
+//------------------------------------------------------------------------------
+// MarkerLocationStyle
+//------------------------------------------------------------------------------
+
+class MarkerLocationStyle : public MarkerStyle, public LocationStyle
+{
+public:
+    explicit MarkerLocationStyle(const TextureAtlas* textureAtlas) :
+        MarkerStyle(textureAtlas) {}
+
+    // Style interface
+    virtual const char* name() const override { return "markerLocation"; }
+    virtual bool load(const CPLJSONObject& store) override;
+    virtual CPLJSONObject save() const override;
+
+
+    // LocationStyle interface
+public:
+    virtual void setStatus(enum Status status) override;
+
+protected:
+    void setIndex(unsigned short index);
+
+protected:
+    unsigned short m_stayIndex, m_moveIndex;
+};
+
 
 }  // namespace ngs
 
