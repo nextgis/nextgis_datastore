@@ -738,8 +738,8 @@ void GlView::testDrawLines() const
     float current = start;
     int index = 4;
     for(int i = 0 ; i < parts; ++i) {
-        float x = std::cosf(current);
-        float y = std::sinf(current);
+        float x = cosf(current);
+        float y = sinf(current);
         current += step;
         buffer1.addVertex(0.0f);
         buffer1.addVertex(0.0f);
@@ -747,8 +747,8 @@ void GlView::testDrawLines() const
         buffer1.addVertex(x);
         buffer1.addVertex(y);
 
-        x = std::cosf(current);
-        y = std::sinf(current);
+        x = cosf(current);
+        y = sinf(current);
         buffer1.addVertex(0.0f);
         buffer1.addVertex(0.0f);
         buffer1.addVertex(0.0f);

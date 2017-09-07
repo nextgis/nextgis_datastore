@@ -23,6 +23,7 @@
 #include "style.h"
 
 #include <iostream>
+#include <math.h>
 
 #include "api_priv.h"
 
@@ -1326,10 +1327,10 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
     float alpha = std::atanf( m_iconWidth / m_iconHeight);
     float rotationRad = DEG2RAD_F * m_rotation;
 
-    nx1 = std::cosf(alpha + rotationRad);
-    ny1 = std::sinf(alpha + rotationRad);
-    nx2 = std::cosf(M_PI_F - alpha + rotationRad);
-    ny2 = std::sinf(M_PI_F - alpha + rotationRad);
+    nx1 = cosf(alpha + rotationRad);
+    ny1 = sinf(alpha + rotationRad);
+    nx2 = cosf(M_PI_F - alpha + rotationRad);
+    ny2 = sinf(M_PI_F - alpha + rotationRad);
 
     // 0
     buffer->addVertex(pt.x);
