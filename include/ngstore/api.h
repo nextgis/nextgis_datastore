@@ -419,6 +419,12 @@ NGS_EXTERNC int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlaySetStyle(
+        unsigned char mapId, enum ngsEditElementType type, JsonObjectH style);
+NGS_EXTERNC int ngsEditOverlaySetStyleName(
+        unsigned char mapId, enum ngsEditElementType type, const char* name);
+NGS_EXTERNC JsonObjectH ngsEditOverlayGetStyle(
+        unsigned char mapId, enum ngsEditElementType type);
 NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
                                          float direction);
 NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style);

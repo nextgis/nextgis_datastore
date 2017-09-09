@@ -406,6 +406,7 @@ protected:
 //------------------------------------------------------------------------------
 // LocationStyle
 //------------------------------------------------------------------------------
+
 class LocationStyle
 {
 public:
@@ -415,7 +416,7 @@ public:
     };
 
 public:
-    LocationStyle() {}
+    explicit LocationStyle() {}
     virtual ~LocationStyle() = default;
     virtual void setStatus(enum Status status) = 0;
 };
@@ -464,7 +465,6 @@ protected:
 protected:
     unsigned short m_stayIndex, m_moveIndex;
 };
-
 
 }  // namespace ngs
 

@@ -65,6 +65,7 @@ void GlView::setBackgroundColor(const ngsRGBA &color)
 
 bool GlView::close()
 {
+    // FIXME: free current GL resources (in layers and overlays).
     freeOldTiles();
     freeResources();
     clearTiles();

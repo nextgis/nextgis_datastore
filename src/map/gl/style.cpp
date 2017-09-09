@@ -187,7 +187,8 @@ bool PointStyle::load(const CPLJSONObject &store)
     if(!SimpleVectorStyle::load(store))
         return false;
     m_size = static_cast<float>(store.GetDouble("size", 6.0));
-    m_type = static_cast<enum PointType>(store.GetInteger("type", 3));
+    m_type = static_cast<enum PointType>(
+            store.GetInteger("type", static_cast<int>(PT_CIRCLE)));
     m_rotation = static_cast<float>(store.GetDouble("rotate", 0.0));
     return true;
 }
