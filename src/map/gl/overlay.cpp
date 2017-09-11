@@ -81,7 +81,7 @@ bool GlEditLayerOverlay::setStyleName(
         return false;
 
     auto it = m_elements.find(type);
-    if(m_elements.end() != it && it->second.m_style)
+    if(m_elements.end() != it)
         freeGlStyle(it->second);
 
     OverlayElement element;
@@ -233,8 +233,11 @@ void GlEditLayerOverlay::fillPoint()
             const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
 
             GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
+            SimplePoint spt;
+            spt.x = pt->getX();
+            spt.y = pt->getY();
             /*int index = */
-            style->addPoint(SimplePoint(*pt), 0, buffer);
+            style->addPoint(spt, 0, buffer);
 
             VectorGlObject* bufferArray = new VectorGlObject();
             bufferArray->addBuffer(buffer);
@@ -266,8 +269,11 @@ void GlEditLayerOverlay::fillPoint()
                     GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
                     PointStyle* selStyle = ngsDynamicCast(PointStyle,
                             m_elements.at(EET_SELECTED_POINT).m_style);
+                    SimplePoint spt;
+                    spt.x = pt->getX();
+                    spt.y = pt->getY();
                     /*int selIndex = */
-                    selStyle->addPoint(SimplePoint(*pt), 0, selBuffer);
+                    selStyle->addPoint(spt, 0, selBuffer);
 
                     VectorGlObject* selBufferArray = new VectorGlObject();
                     selBufferArray->addBuffer(selBuffer);
@@ -285,7 +291,11 @@ void GlEditLayerOverlay::fillPoint()
 
                 PointStyle* style = ngsDynamicCast(
                         PointStyle, m_elements.at(EET_POINT).m_style);
-                index = style->addPoint(SimplePoint(*pt), index, buffer);
+                SimplePoint spt;
+                spt.x = pt->getX();
+                spt.y = pt->getY();
+                index = style->addPoint(spt, index, buffer);
+
             }
 
             bufferArray->addBuffer(buffer);

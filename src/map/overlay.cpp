@@ -51,7 +51,7 @@ Overlay::Overlay(MapView* map, ngsMapOverlayType type) : m_map(map),
 //------------------------------------------------------------------------------
 LocationOverlay::LocationOverlay(MapView* map) :
     Overlay(map, MOT_LOCATION),
-    m_location(0, 0),
+    m_location({0, 0}),
     m_direction(0.0)
 {
 }

@@ -109,35 +109,11 @@ constexpr Envelope DEFAULT_BOUNDS_Y2X4 = Envelope(DEFAULT_BOUNDS.minX() * 4,
 
 //    OGRGeometry* simplifyGeometry(const OGRGeometry* geometry, double distance);
 
-struct SimplePoint
-{
+typedef struct _normal {
     float x, y;
-
-    SimplePoint()
-            : x(0.0)
-            , y(0.0)
-    {
-    }
-
-    SimplePoint(float _x, float _y)
-            : x(_x)
-            , y(_y)
-    {
-    }
-
-    SimplePoint(const OGRPoint& pt)
-            : x(pt.getX())
-            , y(pt.getY())
-    {
-    }
-
-    bool operator==(const SimplePoint& other) const
-    {
-        return isEqual(x, other.x) && isEqual(y, other.y);
-    }
-};
-
-using Normal = SimplePoint;
+    bool operator==(const _normal& other) const { return isEqual(x, other.x) &&
+                isEqual(y,other.y);}
+} Normal, SimplePoint;
 
 Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end);
 
