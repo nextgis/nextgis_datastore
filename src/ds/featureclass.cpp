@@ -668,10 +668,18 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
 
     OGREnvelope env;
     geom->getEnvelope(&env);
-    Envelope extent = env;
-    extent.fix();
 
     for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
+        Envelope extent = env;
+        int tilesInMapOneDim = 1 << zoomLevel;
+        double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
+        double tilesSizeOneDim = DEFAULT_BOUNDS.maxX() / halfTilesInMapOneDim;
+        double extraSize = tilesSizeOneDim * TILE_RESIZE - tilesSizeOneDim;
+        extent.setMinX(extent.minX() - extraSize);
+        extent.setMinY(extent.minY() - extraSize);
+        extent.setMaxX(extent.maxX() + extraSize);
+        extent.setMaxY(extent.maxY() + extraSize);
+
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
