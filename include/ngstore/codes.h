@@ -248,4 +248,10 @@ enum ngsEditElementType {
     EET_POINT,
     EET_SELECTED_POINT
 };
+
+enum ngsEditStyleType {
+    EST_POINT,
+    EST_LINE
+};
+
 #endif // NGSCODES_H

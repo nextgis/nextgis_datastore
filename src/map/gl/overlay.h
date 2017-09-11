@@ -45,19 +45,13 @@ public:
 
 class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 {
-    struct OverlayElement
-    {
-        GlObjectPtr m_glBuffer;
-        StylePtr m_style;
-    };
-
 public:
     explicit GlEditLayerOverlay(MapView* map);
     virtual ~GlEditLayerOverlay() = default;
 
-    bool setStyleName(enum ngsEditElementType type, const char* name);
-    bool setStyle(enum ngsEditElementType type, const CPLJSONObject& jsonStyle);
-    CPLJSONObject style(enum ngsEditElementType type) const;
+    bool setStyleName(enum ngsEditStyleType type, const char* name);
+    bool setStyle(enum ngsEditStyleType type, const CPLJSONObject& jsonStyle);
+    CPLJSONObject style(enum ngsEditStyleType type) const;
 
     // Overlay interface
 public:
@@ -86,13 +80,13 @@ public:
 protected:
     void fillPoint();
     void fillLine();
-    void freeGlStyle(OverlayElement& element);
-    void freeGlStyles();
-    void freeGlBuffer(OverlayElement& element);
+    void freeGlStyle(StylePtr style);
+    void freeGlBuffer(GlObjectPtr buffer);
     void freeGlBuffers();
 
 private:
-    std::map<ngsEditElementType, OverlayElement> m_elements;
+    std::map<ngsEditElementType, GlObjectPtr> m_elements;
+    PointStylePtr m_pointStyle;
 };
 
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay

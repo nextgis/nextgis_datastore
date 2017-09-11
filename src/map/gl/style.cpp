@@ -129,6 +129,10 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
         return new SimpleLocationStyle;
     else if(EQUAL(name, "markerLocation"))
         return new MarkerLocationStyle(atlas);
+    else if(EQUAL(name, "simpleEditPointStyle"))
+        return new SimpleEditPointStyle;
+    else if(EQUAL(name, "markerEditPointStyle"))
+        return new MarkerEditPointStyle(atlas);
     return nullptr;
 }
 
@@ -1495,6 +1499,95 @@ CPLJSONObject MarkerLocationStyle::save() const
     out.Add("stay_index", m_stayIndex);
     out.Add("move_index", m_moveIndex);
 
+    return out;
+}
+
+//------------------------------------------------------------------------------
+// SimpleEditPointStyle
+//------------------------------------------------------------------------------
+
+// TODO: set colors
+constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
+constexpr ngsRGBA lineColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedLineColor = {255, 0, 0, 255};
+constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedMedianPointColor = {255, 0, 0, 255};
+constexpr ngsRGBA pointColor = {0, 0, 255, 255};
+constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
+
+void SimpleEditPointStyle::setType(enum ngsEditElementType type)
+{
+    switch(type) {
+        case EET_POINT:
+            return setColor(pointColor);
+        case EET_SELECTED_POINT:
+            return setColor(selectedPointColor);
+        case EET_MEDIAN_POINT:
+            return setColor(medianPointColor);
+        case EET_SELECTED_MEDIAN_POINT:
+            return setColor(selectedMedianPointColor);
+    }
+}
+
+//------------------------------------------------------------------------------
+// MarkerEditPointStyle
+//------------------------------------------------------------------------------
+
+void MarkerEditPointStyle::setType(enum ngsEditElementType type)
+{
+    switch(type) {
+        case EET_POINT:
+            return setIndex(m_pointIndex);
+        case EET_SELECTED_POINT:
+            return setIndex(m_selectedPointIndex);
+        case EET_MEDIAN_POINT:
+            return setIndex(m_medianPointIndex);
+        case EET_SELECTED_MEDIAN_POINT:
+            return setIndex(m_selectedMedianPointIndex);
+    }
+}
+
+void MarkerEditPointStyle::setIndex(unsigned short index)
+{
+    unsigned char iconsInLine = static_cast<unsigned char>(256 / m_iconWidth);
+    unsigned char line = static_cast<unsigned char>(index / iconsInLine);
+    unsigned char iconInLine =
+            static_cast<unsigned char>(index - line * iconsInLine);
+    unsigned char w = iconInLine * m_iconWidth;
+    unsigned char h = line * m_iconHeight;
+
+    m_ulx = float(w + m_iconWidth) / 256;
+    m_uly = float(h + m_iconHeight) / 256;
+    m_lrx = float(w) / 256;
+    m_lry = float(h) / 256;
+}
+
+bool MarkerEditPointStyle::load(const CPLJSONObject& store)
+{
+    if(!MarkerStyle::load(store))
+        return false;
+
+    m_pointIndex =
+            static_cast<unsigned short>(store.GetInteger("point_index", 0));
+    m_selectedPointIndex = static_cast<unsigned short>(
+            store.GetInteger("selected_point_index", 0));
+    m_medianPointIndex = static_cast<unsigned short>(
+            store.GetInteger("median_point_index", 0));
+    m_selectedMedianPointIndex = static_cast<unsigned short>(
+            store.GetInteger("selected_median_point_index", 0));
+
+    setIndex(m_pointIndex);
+    return true;
+}
+
+CPLJSONObject MarkerEditPointStyle::save() const
+{
+    CPLJSONObject out = MarkerStyle::save();
+    out.Add("point_index", m_pointIndex);
+    out.Add("selected_point_index", m_selectedPointIndex);
+    out.Add("median_point_index", m_medianPointIndex);
+    out.Add("selected_median_point_index", m_selectedMedianPointIndex);
     return out;
 }
 
