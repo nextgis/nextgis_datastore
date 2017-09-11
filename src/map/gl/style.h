@@ -416,7 +416,7 @@ public:
     };
 
 public:
-    explicit LocationStyle() {}
+    LocationStyle() {}
     virtual ~LocationStyle() = default;
     virtual void setStatus(enum Status status) = 0;
 };
@@ -464,6 +464,71 @@ protected:
 
 protected:
     unsigned short m_stayIndex, m_moveIndex;
+};
+
+//------------------------------------------------------------------------------
+// EditPointStyle
+//------------------------------------------------------------------------------
+
+class EditPointStyle
+{
+public:
+    EditPointStyle() {}
+    virtual ~EditPointStyle() = default;
+    virtual void setType(enum ngsEditElementType type) = 0;
+};
+
+//------------------------------------------------------------------------------
+// SimpleEditPointStyle
+//------------------------------------------------------------------------------
+
+class SimpleEditPointStyle : public SimplePointStyle, public EditPointStyle
+{
+public:
+    explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE)
+            : SimplePointStyle(type)
+    {
+    }
+
+    // EditPointStyle interface
+public:
+    virtual void setType(enum ngsEditElementType type) override;
+};
+
+//------------------------------------------------------------------------------
+// MarkerEditPointStyle
+//------------------------------------------------------------------------------
+
+class MarkerEditPointStyle : public MarkerStyle, public EditPointStyle
+{
+public:
+    explicit MarkerEditPointStyle(const TextureAtlas* textureAtlas)
+            : MarkerStyle(textureAtlas)
+            , m_pointIndex(0)
+            , m_selectedPointIndex(0)
+            , m_medianPointIndex(0)
+            , m_selectedMedianPointIndex(0)
+    {
+    }
+
+    // EditPointStyle interface
+public:
+    virtual void setType(enum ngsEditElementType type) override;
+
+    // Style interface
+public:
+    virtual const char* name() const override { return "markerEditPointStyle"; }
+    virtual bool load(const CPLJSONObject& store) override;
+    virtual CPLJSONObject save() const override;
+
+protected:
+    void setIndex(unsigned short index);
+
+protected:
+    unsigned short m_pointIndex;
+    unsigned short m_selectedPointIndex;
+    unsigned short m_medianPointIndex;
+    unsigned short m_selectedMedianPointIndex;
 };
 
 }  // namespace ngs

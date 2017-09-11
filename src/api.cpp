@@ -2868,7 +2868,7 @@ int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 }
 
 int ngsEditOverlaySetStyle(
-        unsigned char mapId, enum ngsEditElementType type, JsonObjectH style)
+        unsigned char mapId, enum ngsEditStyleType type, JsonObjectH style)
 {
     GlEditLayerOverlay* overlay =
             getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
@@ -2881,7 +2881,7 @@ int ngsEditOverlaySetStyle(
 }
 
 int ngsEditOverlaySetStyleName(
-        unsigned char mapId, enum ngsEditElementType type, const char* name)
+        unsigned char mapId, enum ngsEditStyleType type, const char* name)
 {
     GlEditLayerOverlay* overlay =
             getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
@@ -2892,7 +2892,7 @@ int ngsEditOverlaySetStyleName(
 }
 
 JsonObjectH ngsEditOverlayGetStyle(
-        unsigned char mapId, enum ngsEditElementType type)
+        unsigned char mapId, enum ngsEditStyleType type)
 {
     GlEditLayerOverlay* overlay =
             getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
