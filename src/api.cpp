@@ -2867,6 +2867,42 @@ int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
     return COD_SUCCESS;
 }
 
+int ngsEditOverlaySetStyle(
+        unsigned char mapId, enum ngsEditElementType type, JsonObjectH style)
+{
+    GlEditLayerOverlay* overlay =
+            getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == overlay) {
+        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+    }
+    return overlay->setStyle(type, *static_cast<CPLJSONObject*>(style))
+            ? COD_SUCCESS
+            : COD_SET_FAILED;
+}
+
+int ngsEditOverlaySetStyleName(
+        unsigned char mapId, enum ngsEditElementType type, const char* name)
+{
+    GlEditLayerOverlay* overlay =
+            getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == overlay) {
+        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+    }
+    return overlay->setStyleName(type, name) ? COD_SUCCESS : COD_SET_FAILED;
+}
+
+JsonObjectH ngsEditOverlayGetStyle(
+        unsigned char mapId, enum ngsEditElementType type)
+{
+    GlEditLayerOverlay* overlay =
+            getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == overlay) {
+        errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return nullptr;
+    }
+    return new CPLJSONObject(overlay->style(type));
+}
+
 int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
                              float direction, float accuracy)
 {

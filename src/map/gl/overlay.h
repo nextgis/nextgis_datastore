@@ -29,6 +29,7 @@
 
 #include "layer.h"
 #include "map/overlay.h"
+#include "ngstore/codes.h"
 
 namespace ngs {
 
@@ -50,20 +51,13 @@ class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
         StylePtr m_style;
     };
 
-    enum class ElementType
-    {
-        GEOMETRIES = 0,
-        SELECTED_GEOMETRY,
-        LINES,
-        SELECTED_LINE,
-        MEDIAN_POINTS,
-        POINTS,
-        SELECTED_POINT
-    };
-
 public:
     explicit GlEditLayerOverlay(MapView* map);
     virtual ~GlEditLayerOverlay() = default;
+
+    bool setStyleName(enum ngsEditElementType type, const char* name);
+    bool setStyle(enum ngsEditElementType type, const CPLJSONObject& jsonStyle);
+    CPLJSONObject style(enum ngsEditElementType type) const;
 
     // Overlay interface
 public:
@@ -92,11 +86,13 @@ public:
 protected:
     void fillPoint();
     void fillLine();
+    void freeGlStyle(OverlayElement& element);
+    void freeGlStyles();
     void freeGlBuffer(OverlayElement& element);
     void freeGlBuffers();
 
 private:
-    std::map<ElementType, OverlayElement> m_elements;
+    std::map<ngsEditElementType, OverlayElement> m_elements;
 };
 
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay

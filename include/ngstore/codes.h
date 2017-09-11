@@ -238,4 +238,14 @@ enum ngsStyleType {
     ST_IMAGE
 };
 
+enum ngsEditElementType {
+    EET_GEOMETRY,
+    EET_SELECTED_GEOMETRY,
+    EET_LINE,
+    EET_SELECTED_LINE,
+    EET_MEDIAN_POINT,
+    EET_SELECTED_MEDIAN_POINT,
+    EET_POINT,
+    EET_SELECTED_POINT
+};
 #endif // NGSCODES_H
