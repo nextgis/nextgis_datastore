@@ -49,6 +49,10 @@ void DataStoreFactory::createObjects(ObjectContainer * const container,
         else if(EQUAL(ext, Dataset::attachmentsFolderExtension())) {
             it = names->erase(it);
         }
+        else if(EQUAL(ext, "xml") && strstr(*it, DataStore::extension()) !=
+                nullptr) {
+            it = names->erase(it);
+        }
         else {
             ++it;
         }

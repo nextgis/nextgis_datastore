@@ -741,7 +741,7 @@ TEST(MapTests, MapSave) {
 
     EXPECT_EQ(ngsMapSetBackgroundColor(mapId, DEFAULT_MAP_BK), COD_SUCCESS);
 
-    CPLString texPath = catalogPath + "/data/tex.png";
+    CPLString texPath = testPath + "/data/tex.png";
     EXPECT_EQ(ngsMapIconSetAdd(mapId, "simple", texPath, true), COD_SUCCESS);
 
     EXPECT_EQ(ngsMapSave(mapId, mapPath), COD_SUCCESS);

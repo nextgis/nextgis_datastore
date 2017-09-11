@@ -381,6 +381,12 @@ bool Dataset::destroy()
         Folder::rmDir(attachmentsPath);
     }
 
+    // aux.xml
+    CPLString auxPath = m_path + ".aux.xml";
+    if(Folder::isExists(auxPath)) {
+        File::deleteFile(auxPath);
+    }
+
     CPLString name = fullName();
     if(m_parent) {
         m_parent->notifyChanges();
