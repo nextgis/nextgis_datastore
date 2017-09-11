@@ -27,43 +27,51 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_id(0),
     m_filled(false)
 {
-    m_image.setImage(nullptr, tileSize, tileSize);
+    m_originalTileSize = tileSize;
+    unsigned short newTileSize = static_cast<unsigned short>(
+                std::ceil(double(tileSize) * TILE_RESIZE));
+    float extraVal = (float(newTileSize - tileSize) / 2) / newTileSize;
+
+    m_image.setImage(nullptr, newTileSize, newTileSize);
     m_image.setSmooth(true);
-
-    m_sceneMatrix.ortho(tileItem.env.minX(), tileItem.env.maxX(),
-                        tileItem.env.minY(), tileItem.env.maxY(),
-                        DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
-    m_invViewMatrix.ortho(0, tileSize, 0, tileSize, -1.0, 1.0);
-
 
     Envelope env = tileItem.env;
     env.move(tileItem.tile.crossExtent * DEFAULT_BOUNDS.width(), 0.0);
     m_tile.addVertex(static_cast<float>(env.minX()));
     m_tile.addVertex(static_cast<float>(env.minY()));
     m_tile.addVertex(0.0f);
-    m_tile.addVertex(0.0f);
-    m_tile.addVertex(0.0f);
+    m_tile.addVertex(0.0f + extraVal);
+    m_tile.addVertex(0.0f + extraVal);
     m_tile.addIndex(0);
     m_tile.addVertex(static_cast<float>(env.minX()));
     m_tile.addVertex(static_cast<float>(env.maxY()));
     m_tile.addVertex(0.0f);
-    m_tile.addVertex(0.0f);
-    m_tile.addVertex(1.0f);
+    m_tile.addVertex(0.0f + extraVal);
+    m_tile.addVertex(1.0f - extraVal);
     m_tile.addIndex(1);
     m_tile.addVertex(static_cast<float>(env.maxX()));
     m_tile.addVertex(static_cast<float>(env.maxY()));
     m_tile.addVertex(0.0f);
-    m_tile.addVertex(1.0f);
-    m_tile.addVertex(1.0f);
+    m_tile.addVertex(1.0f - extraVal);
+    m_tile.addVertex(1.0f - extraVal);
     m_tile.addIndex(2);
     m_tile.addVertex(static_cast<float>(env.maxX()));
     m_tile.addVertex(static_cast<float>(env.minY()));
     m_tile.addVertex(0.0f);
-    m_tile.addVertex(1.0f);
-    m_tile.addVertex(0.0f);
+    m_tile.addVertex(1.0f - extraVal);
+    m_tile.addVertex(0.0f + extraVal);
     m_tile.addIndex(0);
     m_tile.addIndex(2);
     m_tile.addIndex(3);
+
+    env.resize(TILE_RESIZE);
+    m_sceneMatrix.ortho(env.minX(), env.maxX(),
+                        env.minY(), env.maxY(),
+                        DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
+    m_invViewMatrix.ortho(0, newTileSize, 0, newTileSize, -1.0, 1.0);
+
+    m_tileSize = newTileSize;
+    m_tileItem.env = env;
 }
 
 

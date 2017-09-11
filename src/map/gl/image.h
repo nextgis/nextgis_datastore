@@ -43,8 +43,8 @@ public:
         m_height = data.height;
     }
 
-    size_t getWidth() const { return static_cast<size_t>(m_width); }
-    size_t getHeight() const { return static_cast<size_t>(m_height); }
+    size_t width() const { return static_cast<size_t>(m_width); }
+    size_t height() const { return static_cast<size_t>(m_height); }
 
     // GlObject interface
 public:

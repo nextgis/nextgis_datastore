@@ -176,7 +176,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     // Lock pixel area to read/write until exit
     CPLMutex *dataLock = nullptr;
 
-    Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
+    Envelope testEnv(xOff - 1, yOff - 1, xOff + xSize + 1, yOff + ySize + 1);
     CPLAcquireMutex(m_dataLock, 5.0);
 
     for(auto &lock : m_dataLocks) {
@@ -189,7 +189,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 
     bool exists = dataLock != nullptr;
     if(!exists) {
-        CPLMutexHolder holder(m_dataLock, 5.0);
+        CPLMutexHolder holder(m_dataLock, 7.0);
 
         dataLock = CPLCreateMutex();
         m_dataLocks.push_back({testEnv, dataLock, zoom});

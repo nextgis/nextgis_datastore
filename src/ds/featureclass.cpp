@@ -42,7 +42,6 @@ namespace ngs {
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 constexpr unsigned short TILE_SIZE = 240; //256; //512;// 160; // Only use for overviews now in pixelSize
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
-constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
 
 //------------------------------------------------------------------------------
 // VectorTileItem
@@ -836,15 +835,14 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     // Calc grid step for zoom
     float step = static_cast<float>(pixelSize(tile.z)); // 0.0f;//
 
-    Envelope ext = tileExtent;
-    ext.resize(TILE_RESIZE);
     std::vector<FeaturePtr> features;
-    OGREnvelope extEnv = ext.toOgrEnvelope();
+    OGREnvelope extEnv = tileExtent.toOgrEnvelope();
 
     // Lock threads here
     CPLAcquireMutex(m_featureMutex, 10.5);
     setIgnoredFields(m_ignoreFields);
-    setSpatialFilter(ext.toGeometry(nullptr));
+    GeometryPtr extGeom = tileExtent.toGeometry(getSpatialReference());
+    setSpatialFilter(extGeom);
     //reset();
     FeaturePtr feature;
     while((feature = nextFeature())) {
@@ -862,7 +860,6 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     CPLReleaseMutex(m_featureMutex);
 
     if(!features.empty()) {
-        GeometryPtr extGeom = ext.toGeometry(getSpatialReference());
         while(!features.empty()) {
             feature = features.back();
             VectorTileItem item = tileGeometry(feature, extGeom.get(), step);

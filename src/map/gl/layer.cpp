@@ -161,6 +161,10 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
 
 void GlFeatureLayer::setStyle(const char* name)
 {
+    if(EQUAL(name, m_style->name())) {
+        return;
+    }
+
     GlView* mapView = dynamic_cast<GlView*>(m_map);
     StylePtr newStyle = StylePtr(Style::createStyle(name, mapView->textureAtlas()));
     if(newStyle) {
@@ -1115,26 +1119,26 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
 
     // FIXME: Reproject intersect raster extent to tile extent
     GlBuffer* tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.minX() - 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.minY() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.minX() - 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.maxY() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(1);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.maxX() + 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.maxY() + 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(2);
-    tileExtentBuff->addVertex(static_cast<float>(outExt.maxX() + 0.2));
-    tileExtentBuff->addVertex(static_cast<float>(outExt.minY() - 0.2));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.maxX()));
+    tileExtentBuff->addVertex(static_cast<float>(outExt.minY()));
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(1.0f);
@@ -1252,6 +1256,10 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 
 void GlRasterLayer::setStyle(const char* name)
 {
+    if(EQUAL(name, m_style->name())) {
+        return;
+    }
+
     GlView* mapView = dynamic_cast<GlView*>(m_map);
     StylePtr newStyle = StylePtr(Style::createStyle(name, mapView->textureAtlas()));
     if(newStyle) {

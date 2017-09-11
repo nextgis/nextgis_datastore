@@ -209,7 +209,7 @@ NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(
 NGS_EXTERNC const char* ngsCatalogObjectName(CatalogObjectH object);
 NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object,
                                             const char* domain);
-
+NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
 /**
  * Feature class
  */
@@ -420,7 +420,7 @@ NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
-                                         float direction);
+                                         float direction, float accuracy);
 NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style);
 NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned char mapId,
                                                const char* name);

@@ -96,6 +96,9 @@ ObjectPtr ObjectContainer::getChild(const CPLString &name) const
 void ObjectContainer::removeDuplicates(std::vector<const char *> &deleteNames,
                                        std::vector<const char *> &addNames)
 {
+    if(addNames.empty())
+        return;
+
     auto it = deleteNames.begin();
     while(it != deleteNames.end()) {
         auto itan = addNames.begin();

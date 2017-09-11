@@ -29,7 +29,6 @@
 
 namespace ngs {
 
-constexpr double EXTENT_EXTRA_BUFFER = 1.2;
 constexpr unsigned char MAX_TRIES = 2;
 constexpr const char* SELECTION_KEY = "selection";
 
@@ -81,6 +80,9 @@ void GlView::clearBackground()
 
 bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const char* name)
 {
+    if(EQUAL(name, m_selectionStyles[styleType]->name())) {
+        return true;
+    }
     Style* newStyle = Style::createStyle(name, &m_textureAtlas);
     if(nullptr != newStyle) {
         freeResource(m_selectionStyles[styleType]);
@@ -189,7 +191,7 @@ void GlView::invalidate(const Envelope& bounds)
 {
     for(GlTilePtr& tile : m_tiles) {
         Envelope env = tile->getExtent();
-        env.resize(EXTENT_EXTRA_BUFFER);
+        env.resize(TILE_RESIZE);
         if(env.intersects(bounds)) {
             tile->setFilled(false);
         }
@@ -293,7 +295,7 @@ void GlView::updateTilesList()
 {
     // Get tiles for current extent
     Envelope ext = getExtent();
-    ext.resize(EXTENT_EXTRA_BUFFER);
+    ext.resize(TILE_RESIZE);
     //CPLDebug("ngstore", "Zoom is: %d", getZoom());
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
                                                     false, // false mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
@@ -370,7 +372,7 @@ bool GlView::drawTiles(const Progress &progress)
                 tile->bind();
             }
 
-            glViewport(0, 0, GLTILE_SIZE, GLTILE_SIZE);
+            glViewport(0, 0, tile->tileSize(), tile->tileSize());
             clearBackground();
 
             ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));

@@ -137,11 +137,12 @@ class LocationOverlay : public Overlay
 public:
     explicit LocationOverlay(MapView* map);
     virtual ~LocationOverlay() = default;
-    virtual void setLocation(const ngsCoordinate& location, float direction);
+    virtual void setLocation(const ngsCoordinate& location, float direction,
+                             float accuracy);
 
 protected:
     SimplePoint m_location;
-    float m_direction;
+    float m_direction, m_accuracy;
 };
 
 } // namespace ngs

@@ -51,15 +51,19 @@ Overlay::Overlay(MapView* map, ngsMapOverlayType type) : m_map(map),
 //------------------------------------------------------------------------------
 LocationOverlay::LocationOverlay(MapView* map) :
     Overlay(map, MOT_LOCATION),
-    m_location({0, 0}),
-    m_direction(0.0)
+    m_location({0.0f, 0.0f}),
+    m_direction(0.0f),
+    m_accuracy(0.0f)
 {
 }
 
-void LocationOverlay::setLocation(const ngsCoordinate& location, float direction) {
+void LocationOverlay::setLocation(const ngsCoordinate& location, float direction,
+                                  float accuracy)
+{
     m_location.x = static_cast<float>(location.X);
     m_location.y = static_cast<float>(location.Y);
     m_direction = direction;
+    m_accuracy = accuracy;
     if(!m_visible) {
         m_visible = true;
     }

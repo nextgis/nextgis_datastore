@@ -119,16 +119,21 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     for(int i = 0; i < iconSets.Size(); ++i) {
         CPLJSONObject iconSetJsonItem = iconSets[i];
         CPLString path = iconSetJsonItem.GetString(PATH_KEY, "");
+
         if(STARTS_WITH_CI(path, "/resources/icons/")) {
             CPLString mapPath("/vsizip/");
             mapPath += mapFile->path();
             mapPath += path;
-            m_iconSets.push_back({iconSetJsonItem.GetString(NAME_KEY, "untitled"),
-                                 mapPath, true});
+            if(Folder::isExists(mapPath)) {
+                m_iconSets.push_back({iconSetJsonItem.GetString(NAME_KEY,
+                                      "untitled"), mapPath, true});
+            }
         }
         else {
-            m_iconSets.push_back({iconSetJsonItem.GetString(NAME_KEY, "untitled"),
-                                 path, false});
+            if(Folder::isExists(path)) {
+                m_iconSets.push_back({iconSetJsonItem.GetString(NAME_KEY,
+                                      "untitled"), path, false});
+            }
         }
     }
 

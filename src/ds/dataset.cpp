@@ -1127,6 +1127,8 @@ void Dataset::refresh()
     // Remove same names from add and delete arrays
     removeDuplicates(deleteNames, addNames);
 
+    CPLDebug("ngstore", "Add count %ld, delete count %ld", addNames.size(), deleteNames.size());
+
     // Delete objects
     auto it = m_children.begin();
     while(it != m_children.end()) {

@@ -46,8 +46,9 @@ public:
     bool filled() const { return m_filled; }
     void setFilled(bool filled = true) { m_filled = filled; }
     size_t getSizeInPixels() const {
-        return size_t(m_image.getWidth() * 256.0 / GLTILE_SIZE);
+        return size_t(m_originalTileSize/*m_image.getWidth()*/ * 256.0 / GLTILE_SIZE);
     }
+    unsigned short tileSize() const { return  m_tileSize; }
 
     // GlObject interface
 public:
@@ -63,6 +64,7 @@ protected:
     Matrix4 m_sceneMatrix;
     Matrix4 m_invViewMatrix;
     bool m_filled;
+    unsigned short m_tileSize, m_originalTileSize;
 };
 
 typedef std::shared_ptr<GlTile> GlTilePtr;

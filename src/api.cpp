@@ -840,6 +840,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
 //        return output;
     }
 
+//    container->refresh();
     if(!container->hasChildren()) {
         if(container->type() == CAT_CONTAINER_SIMPLE) {
             SimpleDataset* const simpleDS = dynamic_cast<SimpleDataset*>(container);
@@ -1144,6 +1145,26 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
     }
 
     return catalogObject->getMetadata(domain);
+}
+
+/**
+ * @brief ngsCatalogObjectRefresh Refreshes object container contents
+ * @param object Object container to refresh
+ */
+void ngsCatalogObjectRefresh(CatalogObjectH object)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return;
+    }
+
+    ObjectContainer* container = dynamic_cast<ObjectContainer*>(catalogObject);
+    if(!container) {
+        warningMessage(COD_INVALID, _("The object is not container"));
+        return;
+    }
+    container->refresh();
 }
 
 //------------------------------------------------------------------------------
@@ -2847,14 +2868,14 @@ int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 }
 
 int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
-                             float direction)
+                             float direction, float accuracy)
 {
     LocationOverlay* overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
         return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
     }
 
-    overlay->setLocation(location, direction);
+    overlay->setLocation(location, direction, accuracy);
     return COD_SUCCESS;
 }
 

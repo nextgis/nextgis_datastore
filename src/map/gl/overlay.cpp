@@ -363,6 +363,10 @@ GlLocationOverlay::GlLocationOverlay(MapView* map) : LocationOverlay(map),
 
 bool GlLocationOverlay::setStyleName(const char* name)
 {
+    if(EQUAL(name, m_style->name())) {
+        return true;
+    }
+
     GlView* mapView = dynamic_cast<GlView*>(m_map);
     PointStyle* style = static_cast<PointStyle*>(
                 Style::createStyle(name, mapView ? mapView->textureAtlas() : nullptr));

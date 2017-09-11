@@ -34,6 +34,8 @@
 
 namespace ngs {
 
+constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
+
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
 

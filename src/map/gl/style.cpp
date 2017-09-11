@@ -177,7 +177,7 @@ CPLJSONObject SimpleVectorStyle::save() const
 PointStyle::PointStyle(enum PointType type)
         : SimpleVectorStyle(),
           m_type(type),
-          m_size(6.0)
+          m_size(6.0f)
 {
     m_styleType = ST_POINT;
 }
@@ -1331,7 +1331,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
     float nx1, ny1, nx2, ny2;
 
     float alpha = atanf( m_iconWidth / m_iconHeight);
-    float rotationRad = DEG2RAD_F * m_rotation;
+    float rotationRad = DEG2RAD_F * (m_rotation + 180.0f);
 
     nx1 = cosf(alpha + rotationRad);
     ny1 = sinf(alpha + rotationRad);
@@ -1434,6 +1434,7 @@ bool MarkerStyle::load(const CPLJSONObject& store)
                 store.GetInteger("icon_height", 16));
     CPLString name = store.GetString("iconset_name", "");
     setIcon(name, iconIndex, iconWidth, iconHeight);
+
     return true;
 }
 
