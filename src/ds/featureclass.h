@@ -150,6 +150,7 @@ public:
     static OGRwkbGeometryType geometryTypeFromName(const char* name);
     static OGRFieldType fieldTypeFromName(const char* name);
     static double pixelSize(int zoom);
+    static Envelope extraExtentForZoom(unsigned char zoom, const Envelope& env);
 
     // Object interface
 public:

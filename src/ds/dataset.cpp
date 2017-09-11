@@ -991,7 +991,7 @@ OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
 
 bool Dataset::destroyTable(GDALDataset* ds, OGRLayer* layer)
 {
-    for(int i = 0; i < ds->GetLayerCount (); ++i){
+    for(int i = 0; i < ds->GetLayerCount (); ++i) {
         if(ds->GetLayer(i) == layer) {
             layer->ResetReading();
             if(ds->DeleteLayer(i) == OGRERR_NONE) {

@@ -254,7 +254,7 @@ void VectorTile::remove(GIntBig id)
     auto it = m_items.begin();
     while(it != m_items.end()) {
         (*it).removeId(id);
-        if(!(*it).isValid()) {
+        if((*it).isValid() == false) {
             it = m_items.erase(it);
         }
         else {
@@ -301,6 +301,9 @@ FeatureClass::FeatureClass(OGRLayer* layer,
     m_genTileMutex(CPLCreateMutex()),
     m_layersMutex(CPLCreateMutex())
 {
+    CPLReleaseMutex(m_genTileMutex);
+    CPLReleaseMutex(m_layersMutex);
+
     if(nullptr != m_layer) {
         m_spatialReference = m_layer->GetSpatialRef();
 
@@ -323,9 +326,6 @@ FeatureClass::FeatureClass(OGRLayer* layer,
     }
 
     getTilesTable();
-
-    CPLReleaseMutex(m_genTileMutex);
-    CPLReleaseMutex(m_layersMutex);
 }
 
 FeatureClass::~FeatureClass()
@@ -470,7 +470,7 @@ double FeatureClass::pixelSize(int zoom)
 {
     int tilesInMapOneDim = 1 << zoom;
 
-    // tile size
+    // Tile size. On ower zoom less size
     int tileSize = TILE_SIZE - (20 - zoom) * 8;
 
     long sizeOneDimPixels = tilesInMapOneDim * tileSize;
@@ -670,15 +670,7 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
     geom->getEnvelope(&env);
 
     for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
-        Envelope extent = env;
-        int tilesInMapOneDim = 1 << zoomLevel;
-        double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
-        double tilesSizeOneDim = DEFAULT_BOUNDS.maxX() / halfTilesInMapOneDim;
-        double extraSize = tilesSizeOneDim * TILE_RESIZE - tilesSizeOneDim;
-        extent.setMinX(extent.minX() - extraSize);
-        extent.setMinY(extent.minY() - extraSize);
-        extent.setMaxX(extent.maxX() + extraSize);
-        extent.setMaxY(extent.maxY() + extraSize);
+        Envelope extent = extraExtentForZoom(zoomLevel, env);
 
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
@@ -1207,10 +1199,10 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
     }
     OGREnvelope env;
     geom->getEnvelope(&env);
-    Envelope extent = env;
-    extent.fix();
+    Envelope extentBase = env;
+    extentBase.fix();
 
-    m_extent.merge(extent);
+    m_extent.merge(extentBase);
 
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset || dataset->isBatchOperation()) {
@@ -1218,6 +1210,7 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
     }
 
     for(auto zoomLevel : zoomLevels()) {
+        Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
@@ -1234,7 +1227,7 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
             bool create = true;
             if(tile) {
                 int size = 0;
-                GByte* data = tile->GetFieldAsBinary(0, &size);
+                GByte* data = tile->GetFieldAsBinary(tile->GetFieldIndex(OVR_TILE_KEY), &size);
                 Buffer buff(data, size, false);
                 vtile.load(buff);
                 create = false;
@@ -1267,6 +1260,20 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
     return result;
 }
 
+Envelope FeatureClass::extraExtentForZoom(unsigned char zoom, const Envelope& env)
+{
+    Envelope extent = env;
+    int tilesInMapOneDim = 1 << zoom;
+    double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
+    double tilesSizeOneDim = DEFAULT_BOUNDS.maxX() / halfTilesInMapOneDim;
+    double extraSize = tilesSizeOneDim * TILE_RESIZE - tilesSizeOneDim;
+    extent.setMinX(extent.minX() - extraSize);
+    extent.setMinY(extent.minY() - extraSize);
+    extent.setMaxX(extent.maxX() + extraSize);
+    extent.setMaxY(extent.maxY() + extraSize);
+    return extent;
+}
+
 bool FeatureClass::updateFeature(const FeaturePtr& feature)
 {
     // Get previous geometry extent to get modified
@@ -1285,26 +1292,26 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
 
     OGRGeometry* originalGeom = updateFeature->GetGeometryRef();
     OGRGeometry* newGeom = feature->GetGeometryRef();
-    Envelope extent;
+    Envelope extentBase;
 
     if(nullptr != originalGeom) {
         OGREnvelope env;
         originalGeom->getEnvelope(&env);
-        extent = env;
+        extentBase = env;
     }
 
     if(nullptr != newGeom) {
         OGREnvelope env;
         newGeom->getEnvelope(&env);
-        extent.merge(env);
+        extentBase.merge(env);
     }
 
-    extent.fix();
+    extentBase.fix();
 
 
     bool result =  Table::updateFeature(feature);
 
-    m_extent.merge(extent);
+    m_extent.merge(extentBase);
 
     if(!result) {
         return result;
@@ -1316,6 +1323,8 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
     }
 
     for(auto zoomLevel : zoomLevels()) {
+        Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
+
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
@@ -1324,7 +1333,7 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
             bool create = true;
             if(tile) {
                 int size = 0;
-                GByte* data = tile->GetFieldAsBinary(0, &size);
+                GByte* data = tile->GetFieldAsBinary(tile->GetFieldIndex(OVR_TILE_KEY), &size);
                 Buffer buff(data, size, false);
                 vtile.load(buff);
                 create = false;
@@ -1378,8 +1387,6 @@ bool FeatureClass::deleteFeature(GIntBig id)
     OGRGeometry* geom = deleteFeature->GetGeometryRef();
     OGREnvelope env;
     geom->getEnvelope(&env);
-    Envelope extent = env;
-    extent.fix();
 
     bool result = Table::deleteFeature(id);
 
@@ -1393,6 +1400,7 @@ bool FeatureClass::deleteFeature(GIntBig id)
     }
 
     for(auto zoomLevel : zoomLevels()) {
+        Envelope extent = extraExtentForZoom(zoomLevel, env);
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
@@ -1401,12 +1409,12 @@ bool FeatureClass::deleteFeature(GIntBig id)
             VectorTile  vtile;
             if(tile) {
                 int size = 0;
-                GByte* data = tile->GetFieldAsBinary(0, &size);
+                GByte* data = tile->GetFieldAsBinary(tile->GetFieldIndex(OVR_TILE_KEY), &size);
                 Buffer buff(data, size, false);
-                vtile.load(buff);
+                if(vtile.load(buff)) {
+                    vtile.remove(id);
+                }
             }
-
-            vtile.remove(id);
 
             // Add tile back
             if(vtile.isValid()) {
@@ -1415,6 +1423,9 @@ bool FeatureClass::deleteFeature(GIntBig id)
                                                      data->data());
 
                 setTileFeature(tile);
+            }
+            else if(tile) {
+                result = m_ovrTable->DeleteFeature(tile->GetFID());
             }
         }
     }
