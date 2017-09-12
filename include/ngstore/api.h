@@ -405,8 +405,10 @@ NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
  * Overlay functions
  */
 
-NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId, int typeMask,
-                                     char visible);
+NGS_EXTERNC int ngsOverlaySetVisible(
+        unsigned char mapId, int typeMask, char visible);
+NGS_EXTERNC char ngsOverlayGetVisible(
+        unsigned char mapId, enum ngsMapOverlayType type);
 NGS_EXTERNC char ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayCanUndo(unsigned char mapId);

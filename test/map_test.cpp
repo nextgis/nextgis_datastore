@@ -433,3 +433,131 @@ TEST(MapTests, TestOverlayStruct) {
     //overlay = mapView->getOverlay(MOT_TRACK);
     //EXPECT_EQ(overlay->type(), MOT_TRACK);
 }
+
+TEST(MapTests, TestEditOverlay) {
+    CPLString workDirName = "tmp_edit";
+    CPLString storeName = "test_store";
+    CPLString storeExt = "ngst";
+    CPLString mapName = "test_map";
+    CPLString mapExt = "ngmd";
+    CPLString pointLayerName = "point_layer";
+    CPLString multiPtLayerName = "multi_point_layer";
+
+    CPLString workPath =
+            ngsFormFileName(ngsGetCurrentDirectory(), workDirName, nullptr);
+    ASSERT_STRNE(workPath, "");
+
+    // Init NGS.
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR", workPath);
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+
+    // Get catalog.
+    CPLString catalogPath = ngsCatalogPathFromSystem(workPath);
+    ASSERT_STRNE(catalogPath, "");
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+
+    // Create a store in the catalog.
+    options = nullptr;
+    options = ngsAddNameValue(
+            options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
+    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    EXPECT_EQ(ngsCatalogObjectCreate(catalog, storeName, options), COD_SUCCESS);
+    ngsListFree(options);
+
+    // Check the created store.
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
+    ASSERT_NE(pathInfo, nullptr);
+    size_t count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << catalogPath << "/" << pathInfo[count].name
+                  << '\n';
+        ++count;
+    }
+    EXPECT_GE(count, 2);
+    ngsFree(pathInfo);
+
+    // Get the store.
+    CPLString storePath = ngsCatalogPathFromSystem(
+            ngsFormFileName(workPath, storeName, storeExt));
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    pathInfo = ngsCatalogObjectQuery(store, 0);
+    ngsFree(pathInfo);
+
+    // Create a new point layer in the store.
+    options = nullptr;
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
+    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "POINT");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(store, pointLayerName, options), COD_SUCCESS);
+    ngsListFree(options);
+
+    // Check if the created layer exists.
+    CatalogObjectH pointFc =
+            ngsCatalogObjectGet(CPLString(storePath + "/" + pointLayerName));
+    EXPECT_NE(pointFc, nullptr);
+
+    // Create a new multi point layer in the store.
+    options = nullptr;
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
+    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "MULTIPOINT");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(store, multiPtLayerName, options),
+            COD_SUCCESS);
+    ngsListFree(options);
+
+    // Check if the created layer exists.
+    CatalogObjectH multiPtFc =
+            ngsCatalogObjectGet(CPLString(storePath + "/" + multiPtLayerName));
+    EXPECT_NE(multiPtFc, nullptr);
+
+    // Create a map.
+    unsigned char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
+            ngs::DEFAULT_BOUNDS.minX(), ngs::DEFAULT_BOUNDS.minY(),
+            ngs::DEFAULT_BOUNDS.maxX(), ngs::DEFAULT_BOUNDS.maxY());
+    ASSERT_NE(mapId, 0);
+    EXPECT_EQ(ngsMapSetBackgroundColor(mapId, DEFAULT_MAP_BK), COD_SUCCESS);
+    EXPECT_EQ(ngsMapLayerCount(mapId), 0);
+
+    // Add a created layers to the map.
+    int pointLayerId = ngsMapCreateLayer(
+            mapId, pointLayerName, CPLString(storePath + "/" + pointLayerName));
+    EXPECT_EQ(pointLayerId, 0);
+    EXPECT_EQ(ngsMapLayerCount(mapId), 1);
+
+    int multiPtLayerId = ngsMapCreateLayer(mapId, multiPtLayerName,
+            CPLString(storePath + "/" + multiPtLayerName));
+    EXPECT_EQ(multiPtLayerId, 1);
+    EXPECT_EQ(ngsMapLayerCount(mapId), 2);
+
+    // Save map
+    CPLString mapPath = catalogPath + "/" + mapName + "." + mapExt;
+    EXPECT_EQ(ngsMapSave(mapId, mapPath), COD_SUCCESS);
+
+    // Test editing.
+
+    EXPECT_EQ(ngsFeatureClassCount(pointFc), 0);
+    EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 0);
+
+    LayerH layer = ngsMapLayerGet(mapId, pointLayerId);
+    ASSERT_NE(layer, nullptr);
+
+    EXPECT_EQ(ngsEditOverlayCreateGeometry(mapId, layer), COD_SUCCESS);
+    EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 1);
+
+    EXPECT_EQ(ngsEditOverlayCancel(mapId), COD_SUCCESS);
+    EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 0);
+
+    EXPECT_EQ(ngsEditOverlayCreateGeometry(mapId, layer), COD_SUCCESS);
+    EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 1);
+
+    EXPECT_EQ(ngsEditOverlaySave(mapId), COD_SUCCESS);
+    EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 0);
+
+    EXPECT_EQ(ngsFeatureClassCount(pointFc), 1);
+
+    // Uninit NGS
+    ngsUnInit();
+}
