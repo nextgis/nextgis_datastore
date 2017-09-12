@@ -335,7 +335,6 @@ std::map<CPLString, CPLString> Dataset::getProperties(const char* table, const c
         out[key] = value;
     }
     m_metadata->SetAttributeFilter(nullptr);
-//    m_metadata->ResetReading();
     return out;
 }
 
@@ -1120,20 +1119,26 @@ void Dataset::refresh()
             if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
                 m_metadata = layer;
                 continue;
+            }            
+            if(EQUALN(layerName, OVR_PREFIX, OVR_PREFIX_LEN)) {
+                continue;
             }
+            CPLDebug("ngstore", "refresh layer %s", layerName);
             addNames.push_back(layerName);
         }
     }
 
     // Fill delete names array
     for(const ObjectPtr& child : m_children) {
+        CPLDebug("ngstore", "refresh del layer %s", child->name().c_str());
         deleteNames.push_back(child->name());
     }
 
     // Remove same names from add and delete arrays
     removeDuplicates(deleteNames, addNames);
 
-    CPLDebug("ngstore", "Add count %ld, delete count %ld", addNames.size(), deleteNames.size());
+    CPLDebug("ngstore", "Add count %ld, delete count %ld", addNames.size(),
+             deleteNames.size());
 
     // Delete objects
     auto it = m_children.begin();

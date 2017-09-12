@@ -623,7 +623,9 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
                                               OVR_ZOOM_KEY, tile.z));
-    return FeaturePtr(m_ovrTable->GetNextFeature());
+    FeaturePtr out(m_ovrTable->GetNextFeature());
+    m_ovrTable->SetAttributeFilter(nullptr);
+    return out;
 }
 
 VectorTile FeatureClass::getTileInternal(const Tile& tile)
@@ -632,7 +634,8 @@ VectorTile FeatureClass::getTileInternal(const Tile& tile)
     FeaturePtr ovrTile = getTileFeature(tile);
     if(ovrTile) {
         int size = 0;
-        GByte* data = ovrTile->GetFieldAsBinary(ovrTile->GetFieldIndex(OVR_TILE_KEY), &size);
+        GByte* data = ovrTile->GetFieldAsBinary(ovrTile->GetFieldIndex(OVR_TILE_KEY),
+                                                &size);
         Buffer buff(data, size, false);
         vtile.load(buff);
     }

@@ -108,7 +108,7 @@ Table::~Table()
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
             GDALDataset * const DS = dataset->getGDALDataset();
-            if(nullptr != DS) {
+            if(nullptr != DS && nullptr != m_layer) {
                 DS->ReleaseResultSet(m_layer);
             }
         }
