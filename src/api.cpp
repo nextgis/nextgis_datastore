@@ -2392,11 +2392,11 @@ int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        errorMessage(COD_SET_FAILED,  _("Failed to get mapview"));
+        return errorMessage(COD_SET_FAILED,  _("Failed to get mapview"));
     }
 
     CPLJSONObject* gdalJsonObject = static_cast<CPLJSONObject*>(style);
@@ -2426,11 +2426,11 @@ int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
+        return errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        errorMessage(COD_SET_FAILED,  _("Failed to get mapview"));
+        return errorMessage(COD_SET_FAILED,  _("Failed to get mapview"));
     }
     return mapView->setSelectionStyleName(styleType, name) ?
                 COD_SUCCESS : COD_SET_FAILED;
@@ -2441,11 +2441,11 @@ int ngsMapIconSetAdd(unsigned char mapId, const char* name, const char* path,
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
-        errorMessage(COD_INSERT_FAILED,  _("MapStore is not initialized"));
+        return errorMessage(COD_INSERT_FAILED,  _("MapStore is not initialized"));
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        errorMessage(COD_INSERT_FAILED,  _("Failed to get mapview"));
+        return errorMessage(COD_INSERT_FAILED,  _("Failed to get mapview"));
     }
     return mapView->addIconSet(name, path, ownByMap == 1) ? COD_SUCCESS :
                                                             COD_INSERT_FAILED;

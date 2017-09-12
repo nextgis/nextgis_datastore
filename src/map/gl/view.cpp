@@ -192,12 +192,17 @@ void GlView::invalidate(const Envelope& bounds)
     for(GlTilePtr& tile : m_tiles) {
         Envelope env = tile->getExtent();
         env.resize(TILE_RESIZE);
-        if(env.intersects(bounds)) {
+        if(env.intersects(bounds) || env.intersects(m_invalidRegion)) {
             tile->setFilled(false);
         }
 
-        if(env.intersects(m_invalidRegion)) {
-            tile->setFilled(false);
+        // TODO: check and remove the previous tile fill task if present for current tile
+        if(!tile->filled()) {
+            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+                 ++layerIt) {
+                const LayerPtr &layer = *layerIt;
+                m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
+            }
         }
     }
 
@@ -329,8 +334,6 @@ void GlView::updateTilesList()
     for(const TileItem& tileItem : tileItems) {
         m_tiles.push_back(GlTilePtr(new GlTile(GLTILE_SIZE, tileItem)));
     }
-
-//    m_invalidTiles.clear();
 
 //    CPLDebug("ngstore", "Tile count: %ld", m_tiles.size());
 //    CPLDebug("ngstore", "Old tile count: %ld", m_oldTiles.size());
