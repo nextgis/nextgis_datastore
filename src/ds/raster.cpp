@@ -158,6 +158,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                        int bandCount, int *bandList, bool read,
                        bool skipLastBand, unsigned char zoom)
 {
+    CPLMutexHolder holder(m_dataLock);
     if(nullptr == m_DS) {
         return false;
     }
@@ -174,30 +175,30 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     // Lock pixel area to read/write until exit
-    CPLMutex *dataLock = nullptr;
+//    CPLMutex *dataLock = nullptr;
 
-    Envelope testEnv(xOff - 1, yOff - 1, xOff + xSize + 1, yOff + ySize + 1);
-    CPLAcquireMutex(m_dataLock, 5.0);
+//    Envelope testEnv(xOff, yOff, xOff + xSize, yOff + ySize);
+//    CPLAcquireMutex(m_dataLock, 5.0);
 
-    for(auto &lock : m_dataLocks) {
-        if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
-            dataLock = lock.mutexRef;
-            break;
-        }
-    }
-    CPLReleaseMutex(m_dataLock);
+//    for(auto &lock : m_dataLocks) {
+//        if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
+//            dataLock = lock.mutexRef;
+//            break;
+//        }
+//    }
+//    CPLReleaseMutex(m_dataLock);
 
-    bool exists = dataLock != nullptr;
-    if(!exists) {
-        CPLMutexHolder holder(m_dataLock, 7.0);
+//    bool exists = dataLock != nullptr;
+//    if(!exists) {
+//        CPLMutexHolder holder(m_dataLock, 7.0);
 
-        dataLock = CPLCreateMutex();
-        m_dataLocks.push_back({testEnv, dataLock, zoom});
-    }
+//        dataLock = CPLCreateMutex();
+//        m_dataLocks.push_back({testEnv, dataLock, zoom});
+//    }
 
-    if(exists) {
-        CPLAcquireMutex(dataLock, 6.0);
-    }
+//    if(exists) {
+//        CPLAcquireMutex(dataLock, 6.0);
+//    }
 
     CPLErr result = m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff,
                                    xSize, ySize, data, bufXSize, bufYSize,
@@ -205,8 +206,8 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                                                             bandCount, bandList,
                                    pixelSpace, lineSpace, bandSpace);
 
-    CPLReleaseMutex(dataLock);
-    freeLocks();
+//    CPLReleaseMutex(dataLock);
+//    freeLocks();
 
     if(result != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
