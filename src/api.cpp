@@ -2715,6 +2715,26 @@ int ngsOverlaySetVisible(unsigned char mapId, int typeMask, char visible)
             : COD_SET_FAILED;
 }
 
+char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        return false;
+    }
+    MapViewPtr mapView = mapStore->getMap(mapId);
+    if(!mapView) {
+        errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
+        return false;
+    }
+    OverlayPtr overlay = mapView->getOverlay(type);
+    if(!overlay) {
+        errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
+        return false;
+    }
+    return overlay->visible();
+}
+
 char ngsEditOverlayUndo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
