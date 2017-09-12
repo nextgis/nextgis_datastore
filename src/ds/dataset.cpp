@@ -562,7 +562,7 @@ bool Dataset::dropOverviewsTableIndex(const char* name)
 
 bool Dataset::createOverviewsTableIndex(GDALDataset* ds, const char* name)
 {
-    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s %s)", name,
+    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s, %s)", name,
                               name, OVR_X_KEY, OVR_Y_KEY, OVR_ZOOM_KEY), nullptr,
                    nullptr);
     return true;

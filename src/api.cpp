@@ -933,7 +933,7 @@ ngsCatalogObjectInfo* ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
 int ngsCatalogObjectDelete(CatalogObjectH object)
 {
     Object* catalogObject = static_cast<Object*>(object);
-    if(!catalogObject)
+    if(nullptr == catalogObject)
         return errorMessage(COD_INVALID, _("The object handle is null"));
 
     // Check can delete
