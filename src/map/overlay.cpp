@@ -257,12 +257,6 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
             OGRMultiPoint* mpt = new OGRMultiPoint();
             mpt->addGeometryDirectly(
                     new OGRPoint(geometryCenter.x, geometryCenter.y));
-
-            // FIXME: remove it, only for test
-            mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x - mapDist.x,
-                    geometryCenter.y - mapDist.y));
-            mpt->addGeometryDirectly(new OGRPoint(geometryCenter.x + mapDist.x,
-                    geometryCenter.y + mapDist.y));
             geometry = GeometryUPtr(mpt);
             break;
         }
