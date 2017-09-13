@@ -1514,8 +1514,8 @@ CPLJSONObject MarkerLocationStyle::save() const
 // TODO: set colors
 constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
-constexpr ngsRGBA lineColor = {0, 255, 0, 255};
-constexpr ngsRGBA selectedLineColor = {255, 0, 0, 255};
+constexpr ngsRGBA lineColor = {0, 128, 0, 255};
+constexpr ngsRGBA selectedLineColor = {255, 128, 0, 255};
 constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedMedianPointColor = {255, 0, 0, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
@@ -1603,9 +1603,18 @@ CPLJSONObject MarkerEditPointStyle::save() const
 EditLineStyle::EditLineStyle()
         : SimpleLineStyle()
 {
-    setColor(lineColor);
     setWidth(10.0f);
+    setType(EET_LINE);
 }
 
+void EditLineStyle::setType(enum ngsEditElementType type)
+{
+    switch(type) {
+        case EET_LINE:
+            return setColor(lineColor);
+        case EET_SELECTED_LINE:
+            return setColor(selectedLineColor);
+    }
+}
 
 } // namespace ngs

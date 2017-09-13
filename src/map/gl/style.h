@@ -542,6 +542,8 @@ class EditLineStyle : public SimpleLineStyle
 {
 public:
     EditLineStyle();
+
+    void setType(enum ngsEditElementType type);
 };
 
 typedef std::shared_ptr<EditLineStyle> EditLineStylePtr;

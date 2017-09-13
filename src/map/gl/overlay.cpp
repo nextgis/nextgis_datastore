@@ -304,12 +304,13 @@ void GlEditLayerOverlay::fillLine()
             if(m_elements.end() != it)
                 freeGlBuffer(it->second);
 
-//            enum ngsEditElementType styleType = // TODO
-//                    (0 <= m_selectedPointId.pointId()) ? EET_SELECTED_LINE
-//                                                       : EET_LINE;
+            enum ngsEditElementType styleType =
+                    (0 <= m_selectedPointId.pointId()) ? EET_SELECTED_LINE
+                                                       : EET_LINE;
             const OGRLineString* line =
                     static_cast<const OGRLineString*>(m_geometry.get());
 
+            m_lineStyle->setType(styleType);
             GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
             VectorGlObject* bufferArray = new VectorGlObject();
             unsigned short index = 0;
@@ -388,7 +389,7 @@ void GlEditLayerOverlay::fillLine()
             }
 
             bufferArray->addBuffer(buffer);
-            m_elements[EET_LINE] = GlObjectPtr(bufferArray);
+            m_elements[styleType] = GlObjectPtr(bufferArray);
             break;
         }
 
@@ -465,7 +466,7 @@ bool GlEditLayerOverlay::draw()
         }
         if(EET_LINE == styleType || EET_SELECTED_LINE == styleType) {
             style = m_lineStyle.get();
-//            m_lineStyle->setType(it->first); // TODO
+            m_lineStyle->setType(it->first);
         }
         if(!style)
             continue;
