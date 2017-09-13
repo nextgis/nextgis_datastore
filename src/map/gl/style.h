@@ -107,8 +107,9 @@ protected:
 };
 
 //------------------------------------------------------------------------------
-// SimplePointStyle
+// PointStyle
 //------------------------------------------------------------------------------
+
 enum PointType {
     PT_UNKNOWN = 0,
     PT_SQUARE,
@@ -178,8 +179,9 @@ public:
 
 //------------------------------------------------------------------------------
 // PrimitivePointStyle
-// https://stackoverflow.com/a/11923070/2901140
+// https://stackoverflow.com/a/11923070
 //------------------------------------------------------------------------------
+
 class PrimitivePointStyle : public PointStyle
 {
 public:
@@ -213,6 +215,7 @@ protected:
 //------------------------------------------------------------------------------
 // SimpleLineStyle
 //------------------------------------------------------------------------------
+
 enum CapType {
     CT_BUTT,
     CT_ROUND,
@@ -530,6 +533,18 @@ protected:
     unsigned short m_medianPointIndex;
     unsigned short m_selectedMedianPointIndex;
 };
+
+//------------------------------------------------------------------------------
+// EditLineStyle
+//------------------------------------------------------------------------------
+
+class EditLineStyle : public SimpleLineStyle
+{
+public:
+    EditLineStyle();
+};
+
+typedef std::shared_ptr<EditLineStyle> EditLineStylePtr;
 
 }  // namespace ngs
 

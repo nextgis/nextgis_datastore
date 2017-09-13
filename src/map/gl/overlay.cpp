@@ -50,11 +50,15 @@ GlEditLayerOverlay::GlEditLayerOverlay(MapView* map)
     GlView* mapView = dynamic_cast<GlView*>(m_map);
     const TextureAtlas* atlas = mapView ? mapView->textureAtlas() : nullptr;
 
-    PointStyle* style = static_cast<PointStyle*>(
+    PointStyle* pointStyle = static_cast<PointStyle*>(
             Style::createStyle("simpleEditPointStyle", atlas));
-    if(style) {
-        m_pointStyle = PointStylePtr(style);
-    }
+    if(pointStyle)
+        m_pointStyle = PointStylePtr(pointStyle);
+
+    EditLineStyle* lineStyle = static_cast<EditLineStyle*>(
+            Style::createStyle("editLineStyle", atlas));
+    if(lineStyle)
+        m_lineStyle = EditLineStylePtr(lineStyle);
 }
 
 bool GlEditLayerOverlay::setStyleName(
@@ -288,14 +292,110 @@ void GlEditLayerOverlay::fillPoint()
 
 void GlEditLayerOverlay::fillLine()
 {
-    // TODO
-    //OGRLineString* line = static_cast<OGRLineString*>(m_geometry.get());
+    if(!m_geometry)
+        return;
 
-    //GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
-    //VectorGlObject* bufferArray = new VectorGlObject();
-    //bufferArray->addBuffer(buffer);
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
+        case wkbLineString: {
+            auto it = m_elements.find(EET_LINE);
+            if(m_elements.end() != it)
+                freeGlBuffer(it->second);
+            it = m_elements.find(EET_SELECTED_LINE);
+            if(m_elements.end() != it)
+                freeGlBuffer(it->second);
 
-    //return bufferArray;
+//            enum ngsEditElementType styleType = // TODO
+//                    (0 <= m_selectedPointId.pointId()) ? EET_SELECTED_LINE
+//                                                       : EET_LINE;
+            const OGRLineString* line =
+                    static_cast<const OGRLineString*>(m_geometry.get());
+
+            GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
+            VectorGlObject* bufferArray = new VectorGlObject();
+            unsigned short index = 0;
+
+            // Check if line is closed or not
+            bool closed = line->get_IsClosed();
+
+            Normal prevNormal;
+            for(int i = 0; i < line->getNumPoints() - 1; ++i) {
+                OGRPoint p1;
+                line->getPoint(i, &p1);
+                SimplePoint pt1;
+                pt1.x = static_cast<float>(p1.getX());
+                pt1.y = static_cast<float>(p1.getY());
+
+                OGRPoint p2;
+                line->getPoint(i + 1, &p2);
+                SimplePoint pt2;
+                pt2.x = static_cast<float>(p2.getX());
+                pt2.y = static_cast<float>(p2.getY());
+
+                Normal normal = ngsGetNormals(pt1, pt2);
+
+                if(i == 0 || i == line->getNumPoints() - 2) { // Add cap
+                    if(!closed) {
+                        if(i == 0) {
+                            if(!buffer->canStoreVertices(
+                                       m_lineStyle->lineCapVerticesCount(),
+                                       true)) {
+                                bufferArray->addBuffer(buffer);
+                                index = 0;
+                                buffer = new GlBuffer(GlBuffer::BF_LINE);
+                            }
+                            index = m_lineStyle->addLineCap(
+                                    pt1, normal, index, buffer);
+                        }
+
+                        if(i == line->getNumPoints() - 2) {
+                            if(!buffer->canStoreVertices(
+                                       m_lineStyle->lineCapVerticesCount(),
+                                       true)) {
+                                bufferArray->addBuffer(buffer);
+                                index = 0;
+                                buffer = new GlBuffer(GlBuffer::BF_LINE);
+                            }
+
+                            Normal reverseNormal;
+                            reverseNormal.x = -normal.x;
+                            reverseNormal.y = -normal.y;
+                            index = m_lineStyle->addLineCap(
+                                    pt2, reverseNormal, index, buffer);
+                        }
+                    }
+                }
+
+                if(i != 0) { // Add join
+                    if(!buffer->canStoreVertices(
+                               m_lineStyle->lineJoinVerticesCount(), true)) {
+                        bufferArray->addBuffer(buffer);
+                        index = 0;
+                        buffer = new GlBuffer(GlBuffer::BF_LINE);
+                    }
+                    index = m_lineStyle->addLineJoin(
+                            pt1, prevNormal, normal, index, buffer);
+                }
+
+                if(!buffer->canStoreVertices(12, true)) {
+                    bufferArray->addBuffer(buffer);
+                    index = 0;
+                    buffer = new GlBuffer(GlBuffer::BF_LINE);
+                }
+
+                index = m_lineStyle->addSegment(
+                        pt1, pt2, normal, index, buffer);
+                prevNormal = normal;
+            }
+
+            bufferArray->addBuffer(buffer);
+            m_elements[EET_LINE] = GlObjectPtr(bufferArray);
+            break;
+        }
+
+        case wkbMultiLineString: {
+            break;
+        }
+    }
 }
 
 void GlEditLayerOverlay::freeResources()
@@ -343,7 +443,7 @@ bool GlEditLayerOverlay::draw()
     auto findIt = m_elements.find(EET_SELECTED_POINT);
     if(m_elements.end() == findIt || !findIt->second) {
         // One of the vertices must always be selected.
-        return false; // Data is not yet loaded.
+//        return false; // Data is not yet loaded. // TODO
     }
 
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
@@ -362,6 +462,10 @@ bool GlEditLayerOverlay::draw()
                     ngsDynamicCast(EditPointStyle, m_pointStyle);
             if(editPointStyle)
                 editPointStyle->setType(it->first);
+        }
+        if(EET_LINE == styleType || EET_SELECTED_LINE == styleType) {
+            style = m_lineStyle.get();
+//            m_lineStyle->setType(it->first); // TODO
         }
         if(!style)
             continue;

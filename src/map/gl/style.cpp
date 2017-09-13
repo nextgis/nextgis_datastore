@@ -133,6 +133,8 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
         return new SimpleEditPointStyle;
     else if(EQUAL(name, "markerEditPointStyle"))
         return new MarkerEditPointStyle(atlas);
+    else if(EQUAL(name, "editLineStyle"))
+        return new EditLineStyle();
     return nullptr;
 }
 
@@ -401,6 +403,8 @@ constexpr const GLchar* const lineFragmentShaderSource = R"(
 
 
 SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
+          m_normalId(-1),
+          m_vLineWidthId(-1),
           m_width(1.0),
           m_capType(CT_ROUND),
           m_joinType(JT_ROUND),
@@ -1510,7 +1514,7 @@ CPLJSONObject MarkerLocationStyle::save() const
 // TODO: set colors
 constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
-constexpr ngsRGBA lineColor = {0, 0, 255, 255};
+constexpr ngsRGBA lineColor = {0, 255, 0, 255};
 constexpr ngsRGBA selectedLineColor = {255, 0, 0, 255};
 constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedMedianPointColor = {255, 0, 0, 255};
@@ -1591,5 +1595,17 @@ CPLJSONObject MarkerEditPointStyle::save() const
     out.Add("selected_median_point_index", m_selectedMedianPointIndex);
     return out;
 }
+
+//------------------------------------------------------------------------------
+// EditLineStyle
+//------------------------------------------------------------------------------
+
+EditLineStyle::EditLineStyle()
+        : SimpleLineStyle()
+{
+    setColor(lineColor);
+    setWidth(10.0f);
+}
+
 
 } // namespace ngs

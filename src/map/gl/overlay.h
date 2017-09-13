@@ -87,6 +87,7 @@ protected:
 private:
     std::map<ngsEditElementType, GlObjectPtr> m_elements;
     PointStylePtr m_pointStyle;
+    EditLineStylePtr m_lineStyle;
 };
 
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay
