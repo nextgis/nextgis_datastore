@@ -141,6 +141,24 @@ bool GlEditLayerOverlay::redo()
     return ret;
 }
 
+bool GlEditLayerOverlay::addPoint()
+{
+    bool ret = EditLayerOverlay::addPoint();
+    if(ret) {
+        fill();
+    }
+    return ret;
+}
+
+bool GlEditLayerOverlay::deletePoint()
+{
+    bool ret = EditLayerOverlay::deletePoint();
+    if(ret) {
+        fill();
+    }
+    return ret;
+}
+
 bool GlEditLayerOverlay::addGeometryPart()
 {
     bool ret = EditLayerOverlay::addGeometryPart();

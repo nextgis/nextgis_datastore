@@ -57,7 +57,7 @@ public:
     int ringId() const { return m_ringId; }
     void setGeometryId(int geometryId) { m_geometryId = geometryId; }
     int geometryId() const { return m_geometryId; }
-    bool isInit() const { return 0 <= pointId(); }
+    explicit operator bool() const { return 0 <= pointId(); }
     bool operator==(const PointId& other) const;
 
 private:
@@ -109,6 +109,8 @@ public:
     bool createGeometry(FeatureClassPtr datasource);
     bool editGeometry(LayerPtr layer, GIntBig featureId);
     bool deleteGeometry();
+    virtual bool addPoint();
+    virtual bool deletePoint();
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
@@ -121,6 +123,7 @@ protected:
     virtual void freeResources();
 
 private:
+    bool addPoint(const OGRLineString& line, const PointId id, const OGRPoint& pt);
     bool restoreFromHistory(int historyId);
     bool selectFirstPoint();
     bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);

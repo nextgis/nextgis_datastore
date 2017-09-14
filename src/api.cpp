@@ -2861,6 +2861,32 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
     return COD_SUCCESS;
 }
 
+int ngsEditOverlayAddPoint(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+    }
+    if(!editOverlay->addPoint()) {
+        return errorMessage(
+                COD_INSERT_FAILED, _("Point adding is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+int ngsEditOverlayDeletePoint(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+    }
+    if(!editOverlay->deletePoint()) {
+        return errorMessage(
+                COD_INSERT_FAILED, _("Point deleting is failed"));
+    }
+    return COD_SUCCESS;
+}
+
 int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
