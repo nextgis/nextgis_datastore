@@ -24,6 +24,7 @@
 #define NGSGLOVERLAY_H
 
 // stl
+#include <functional>
 #include <map>
 #include <memory>
 
@@ -83,6 +84,18 @@ protected:
     void freeGlStyle(StylePtr style);
     void freeGlBuffer(GlObjectPtr buffer);
     void freeGlBuffers();
+
+private:
+    using GetPointFunc = std::function<SimplePoint(int index)>;
+    using IsSelectedGeometryFunc = std::function<bool(int index)>;
+
+    void fillPointElements(int numPoints,
+            GetPointFunc getPoint,
+            IsSelectedGeometryFunc isSelectedPoint);
+    void fillLineElements(bool isClosedLine,
+            int numPoints,
+            GetPointFunc getPoint,
+            IsSelectedGeometryFunc isSelectedLine);
 
 private:
     std::map<ngsEditElementType, GlObjectPtr> m_elements;

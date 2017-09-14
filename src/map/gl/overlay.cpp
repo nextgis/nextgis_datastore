@@ -201,90 +201,43 @@ void GlEditLayerOverlay::fillPoint()
     if(!m_geometry)
         return;
 
-    EditPointStyle* editPointStyle =
-            ngsDynamicCast(EditPointStyle, m_pointStyle);
-
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbPoint: {
-            auto it = m_elements.find(EET_POINT);
-            if(m_elements.end() != it)
-                freeGlBuffer(it->second);
-            it = m_elements.find(EET_SELECTED_POINT);
-            if(m_elements.end() != it)
-                freeGlBuffer(it->second);
-
-            enum ngsEditElementType styleType =
-                    (PointId(0) == m_selectedPointId) ? EET_SELECTED_POINT
-                                                      : EET_POINT;
             const OGRPoint* pt = static_cast<const OGRPoint*>(m_geometry.get());
 
-            GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
-            SimplePoint spt;
-            spt.x = static_cast<float>(pt->getX());
-            spt.y = static_cast<float>(pt->getY());
-            if(editPointStyle)
-                editPointStyle->setType(styleType);
-            /*int index = */
-            m_pointStyle->addPoint(spt, 0, buffer);
-
-            VectorGlObject* bufferArray = new VectorGlObject();
-            bufferArray->addBuffer(buffer);
-            m_elements[styleType] = GlObjectPtr(bufferArray);
-            break;
-        }
-        case wkbMultiPoint: {
-            auto it = m_elements.find(EET_POINT);
-            if(m_elements.end() != it)
-                freeGlBuffer(it->second);
-            it = m_elements.find(EET_SELECTED_POINT);
-            if(m_elements.end() != it)
-                freeGlBuffer(it->second);
-
-            const OGRMultiPoint* mpt =
-                    static_cast<const OGRMultiPoint*>(m_geometry.get());
-
-            GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
-            VectorGlObject* bufferArray = new VectorGlObject();
-
-            int index = 0;
-            for(int i = 0, num = mpt->getNumGeometries(); i < num; ++i) {
-                const OGRPoint* pt =
-                        static_cast<const OGRPoint*>(mpt->getGeometryRef(i));
-
-                if(PointId(0, NOT_FOUND, i) == m_selectedPointId) {
-                    GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
-                    SimplePoint spt;
-                    spt.x = static_cast<float>(pt->getX());
-                    spt.y = static_cast<float>(pt->getY());
-                    if(editPointStyle)
-                        editPointStyle->setType(EET_SELECTED_POINT);
-                    /*int selIndex = */
-                    m_pointStyle->addPoint(spt, 0, selBuffer);
-
-                    VectorGlObject* selBufferArray = new VectorGlObject();
-                    selBufferArray->addBuffer(selBuffer);
-
-                    m_elements[EET_SELECTED_POINT] =
-                            GlObjectPtr(selBufferArray);
-                    continue;
-                }
-
-                if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
-                    bufferArray->addBuffer(buffer);
-                    index = 0;
-                    buffer = new GlBuffer(GlBuffer::BF_PT);
-                }
-
+            auto getPoint = [pt](int /*index*/) -> SimplePoint {
                 SimplePoint spt;
                 spt.x = static_cast<float>(pt->getX());
                 spt.y = static_cast<float>(pt->getY());
-                if(editPointStyle)
-                    editPointStyle->setType(EET_POINT);
-                index = m_pointStyle->addPoint(spt, index, buffer);
-            }
+                return spt;
+            };
 
-            bufferArray->addBuffer(buffer);
-            m_elements[EET_POINT] = GlObjectPtr(bufferArray);
+            auto isSelectedPoint = [this](int /*index*/) -> bool {
+                return (PointId(0) == m_selectedPointId);
+            };
+
+            fillPointElements(1, getPoint, isSelectedPoint);
+            break;
+        }
+        case wkbMultiPoint: {
+            const OGRMultiPoint* mpt =
+                    static_cast<const OGRMultiPoint*>(m_geometry.get());
+
+            auto getPoint = [mpt](int index) -> SimplePoint {
+                const OGRPoint* pt = static_cast<const OGRPoint*>(
+                        mpt->getGeometryRef(index));
+                SimplePoint spt;
+                spt.x = static_cast<float>(pt->getX());
+                spt.y = static_cast<float>(pt->getY());
+                return spt;
+            };
+
+            auto isSelectedPoint = [this](int index) -> bool {
+                return (PointId(0, NOT_FOUND, index) == m_selectedPointId);
+            };
+
+            fillPointElements(
+                    mpt->getNumGeometries(), getPoint, isSelectedPoint);
             break;
         }
     }
@@ -297,99 +250,30 @@ void GlEditLayerOverlay::fillLine()
 
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbLineString: {
-            auto it = m_elements.find(EET_LINE);
-            if(m_elements.end() != it)
-                freeGlBuffer(it->second);
-            it = m_elements.find(EET_SELECTED_LINE);
-            if(m_elements.end() != it)
-                freeGlBuffer(it->second);
-
-            enum ngsEditElementType styleType =
-                    (0 <= m_selectedPointId.pointId()) ? EET_SELECTED_LINE
-                                                       : EET_LINE;
             const OGRLineString* line =
                     static_cast<const OGRLineString*>(m_geometry.get());
 
-            m_lineStyle->setType(styleType);
-            GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
-            VectorGlObject* bufferArray = new VectorGlObject();
-            unsigned short index = 0;
+            auto getPoint = [line](int index) -> SimplePoint {
+                OGRPoint pt;
+                line->getPoint(index, &pt);
+                SimplePoint spt;
+                spt.x = static_cast<float>(pt.getX());
+                spt.y = static_cast<float>(pt.getY());
+                return spt;
+            };
 
-            // Check if line is closed or not
-            bool closed = line->get_IsClosed();
+            auto isSelectedLine = [this](int /*index*/) -> bool {
+                return (0 <= m_selectedPointId.pointId());
+            };
 
-            Normal prevNormal;
-            for(int i = 0; i < line->getNumPoints() - 1; ++i) {
-                OGRPoint p1;
-                line->getPoint(i, &p1);
-                SimplePoint pt1;
-                pt1.x = static_cast<float>(p1.getX());
-                pt1.y = static_cast<float>(p1.getY());
+            auto isSelectedPoint = [this](int index) -> bool {
+                return (PointId(index) == m_selectedPointId);
+            };
 
-                OGRPoint p2;
-                line->getPoint(i + 1, &p2);
-                SimplePoint pt2;
-                pt2.x = static_cast<float>(p2.getX());
-                pt2.y = static_cast<float>(p2.getY());
+            fillLineElements(line->get_IsClosed(), line->getNumPoints(),
+                    getPoint, isSelectedLine);
 
-                Normal normal = ngsGetNormals(pt1, pt2);
-
-                if(i == 0 || i == line->getNumPoints() - 2) { // Add cap
-                    if(!closed) {
-                        if(i == 0) {
-                            if(!buffer->canStoreVertices(
-                                       m_lineStyle->lineCapVerticesCount(),
-                                       true)) {
-                                bufferArray->addBuffer(buffer);
-                                index = 0;
-                                buffer = new GlBuffer(GlBuffer::BF_LINE);
-                            }
-                            index = m_lineStyle->addLineCap(
-                                    pt1, normal, index, buffer);
-                        }
-
-                        if(i == line->getNumPoints() - 2) {
-                            if(!buffer->canStoreVertices(
-                                       m_lineStyle->lineCapVerticesCount(),
-                                       true)) {
-                                bufferArray->addBuffer(buffer);
-                                index = 0;
-                                buffer = new GlBuffer(GlBuffer::BF_LINE);
-                            }
-
-                            Normal reverseNormal;
-                            reverseNormal.x = -normal.x;
-                            reverseNormal.y = -normal.y;
-                            index = m_lineStyle->addLineCap(
-                                    pt2, reverseNormal, index, buffer);
-                        }
-                    }
-                }
-
-                if(i != 0) { // Add join
-                    if(!buffer->canStoreVertices(
-                               m_lineStyle->lineJoinVerticesCount(), true)) {
-                        bufferArray->addBuffer(buffer);
-                        index = 0;
-                        buffer = new GlBuffer(GlBuffer::BF_LINE);
-                    }
-                    index = m_lineStyle->addLineJoin(
-                            pt1, prevNormal, normal, index, buffer);
-                }
-
-                if(!buffer->canStoreVertices(12, true)) {
-                    bufferArray->addBuffer(buffer);
-                    index = 0;
-                    buffer = new GlBuffer(GlBuffer::BF_LINE);
-                }
-
-                index = m_lineStyle->addSegment(
-                        pt1, pt2, normal, index, buffer);
-                prevNormal = normal;
-            }
-
-            bufferArray->addBuffer(buffer);
-            m_elements[styleType] = GlObjectPtr(bufferArray);
+            fillPointElements(line->getNumPoints(), getPoint, isSelectedPoint);
             break;
         }
 
@@ -397,6 +281,135 @@ void GlEditLayerOverlay::fillLine()
             break;
         }
     }
+}
+
+void GlEditLayerOverlay::fillPointElements(int numPoints,
+        GetPointFunc getPoint,
+        IsSelectedGeometryFunc isSelectedPoint)
+{
+    auto it = m_elements.find(EET_POINT);
+    if(m_elements.end() != it)
+        freeGlBuffer(it->second);
+    it = m_elements.find(EET_SELECTED_POINT);
+    if(m_elements.end() != it)
+        freeGlBuffer(it->second);
+
+    EditPointStyle* editPointStyle =
+            ngsDynamicCast(EditPointStyle, m_pointStyle);
+    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
+    VectorGlObject* bufferArray = new VectorGlObject();
+
+    int index = 0;
+    for(int i = 0; i < numPoints; ++i) {
+        SimplePoint pt = getPoint(i);
+
+        if(isSelectedPoint(i)) {
+            GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
+            if(editPointStyle)
+                editPointStyle->setType(EET_SELECTED_POINT);
+            /*int selIndex = */
+            m_pointStyle->addPoint(pt, 0, selBuffer);
+
+            VectorGlObject* selBufferArray = new VectorGlObject();
+            selBufferArray->addBuffer(selBuffer);
+
+            m_elements[EET_SELECTED_POINT] = GlObjectPtr(selBufferArray);
+            continue;
+        }
+
+        if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
+            bufferArray->addBuffer(buffer);
+            index = 0;
+            buffer = new GlBuffer(GlBuffer::BF_PT);
+        }
+
+        if(editPointStyle)
+            editPointStyle->setType(EET_POINT);
+        index = m_pointStyle->addPoint(pt, index, buffer);
+    }
+
+    bufferArray->addBuffer(buffer);
+    m_elements[EET_POINT] = GlObjectPtr(bufferArray);
+}
+
+void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
+        int numPoints,
+        GetPointFunc getPoint,
+        IsSelectedGeometryFunc isSelectedLine)
+{
+    auto it = m_elements.find(EET_LINE);
+    if(m_elements.end() != it)
+        freeGlBuffer(it->second);
+    it = m_elements.find(EET_SELECTED_LINE);
+    if(m_elements.end() != it)
+        freeGlBuffer(it->second);
+
+    enum ngsEditElementType styleType =
+            (isSelectedLine) ? EET_SELECTED_LINE : EET_LINE;
+
+    m_lineStyle->setType(styleType);
+    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
+    VectorGlObject* bufferArray = new VectorGlObject();
+    unsigned short index = 0;
+
+    Normal prevNormal;
+    for(int i = 0; i < numPoints - 1; ++i) {
+        SimplePoint pt1 = getPoint(i);
+        SimplePoint pt2 = getPoint(i + 1);
+        Normal normal = ngsGetNormals(pt1, pt2);
+
+        if(i == 0 || i == numPoints - 2) { // Add cap
+            if(!isClosedLine) {
+                if(i == 0) {
+                    if(!buffer->canStoreVertices(
+                               m_lineStyle->lineCapVerticesCount(), true)) {
+                        bufferArray->addBuffer(buffer);
+                        index = 0;
+                        buffer = new GlBuffer(GlBuffer::BF_LINE);
+                    }
+                    index = m_lineStyle->addLineCap(pt1, normal, index, buffer);
+                }
+
+                if(i == numPoints - 2) {
+                    if(!buffer->canStoreVertices(
+                               m_lineStyle->lineCapVerticesCount(), true)) {
+                        bufferArray->addBuffer(buffer);
+                        index = 0;
+                        buffer = new GlBuffer(GlBuffer::BF_LINE);
+                    }
+
+                    Normal reverseNormal;
+                    reverseNormal.x = -normal.x;
+                    reverseNormal.y = -normal.y;
+                    index = m_lineStyle->addLineCap(
+                            pt2, reverseNormal, index, buffer);
+                }
+            }
+        }
+
+        if(i != 0) { // Add join
+            if(!buffer->canStoreVertices(
+                       m_lineStyle->lineJoinVerticesCount(), true)) {
+                bufferArray->addBuffer(buffer);
+                index = 0;
+                buffer = new GlBuffer(GlBuffer::BF_LINE);
+            }
+            index = m_lineStyle->addLineJoin(
+                    pt1, prevNormal, normal, index, buffer);
+        }
+
+        if(!buffer->canStoreVertices(12, true)) {
+            bufferArray->addBuffer(buffer);
+            index = 0;
+            buffer = new GlBuffer(GlBuffer::BF_LINE);
+        }
+
+        index = m_lineStyle->addSegment(pt1, pt2, normal, index, buffer);
+        prevNormal = normal;
+    }
+
+    bufferArray->addBuffer(buffer);
+    m_elements[styleType] = GlObjectPtr(bufferArray);
 }
 
 void GlEditLayerOverlay::freeResources()
@@ -432,6 +445,7 @@ void GlEditLayerOverlay::freeGlBuffers()
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
         freeGlBuffer(it->second);
     }
+    m_elements.clear();
 }
 
 bool GlEditLayerOverlay::draw()
