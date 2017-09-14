@@ -1221,8 +1221,9 @@ ngsField* ngsFeatureClassFields(CatalogObjectH object)
 
     int count = 0;
     for(const Field& field : fields) {
+//        CPLDebug("ngstore", "Field name: %s, alias: %s", field.m_originalName, field.m_alias);
         fieldsList[count++] = {field.m_originalName,
-                               CPLSPrintf("%s", field.m_alias.c_str()),
+                               field.m_alias,
                                field.m_type};
     }
 

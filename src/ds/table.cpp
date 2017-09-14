@@ -368,10 +368,14 @@ void Table::fillFields()
             OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
             Field fieldDesc;
             fieldDesc.m_type = fieldDefn->GetType();
-            fieldDesc.m_name = fieldDefn->GetNameRef();
+            CPLStrlcpy(fieldDesc.m_name, fieldDefn->GetNameRef(), 255);
+            //fieldDesc.m_name = fieldDefn->GetNameRef();
 
-            fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
-            fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
+            CPLStrlcpy(fieldDesc.m_alias, properties[CPLSPrintf("FIELD_%d_ALIAS", i)], 1024);
+            //fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+
+            CPLStrlcpy(fieldDesc.m_originalName, properties[CPLSPrintf("FIELD_%d_NAME", i)], 255);
+            //fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
 
             m_fields.push_back(fieldDesc);
         }
@@ -578,7 +582,7 @@ std::map<CPLString, CPLString> Table::getProperties(const char* domain)
         return out;
     }
 
-    return  parentDataset->getProperties(m_name, domain);
+    return parentDataset->getProperties(m_name, domain);
 }
 
 void Table::deleteProperties()

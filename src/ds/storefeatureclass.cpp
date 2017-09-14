@@ -192,7 +192,7 @@ std::map<CPLString, CPLString> StoreFeatureClass::getProperties(const char* doma
             CPLString key, value;
             for(size_t j = 0; j < len; ++j) {
                 if(item[j] == '=' || item[j] == ':' ) {
-                    value = item + 1 + j;
+                    value = CPLString(item + 1 + j);
                     break;
                 }
                 key += item[j];

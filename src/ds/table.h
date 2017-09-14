@@ -38,9 +38,9 @@ public:
 };
 
 typedef struct _Field {
-    CPLString m_name;
-    CPLString m_originalName;
-    CPLString m_alias;
+    char m_name[255];
+    char m_originalName[255];
+    char m_alias[1024];
     OGRFieldType m_type;
 } Field;
 

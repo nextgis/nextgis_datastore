@@ -245,7 +245,7 @@ std::map<CPLString, CPLString> DataStore::getProperties(const char* table, const
 {
     ObjectPtr child = getChild(table);
     Table* tablePtr = ngsDynamicCast(Table, child);
-    if(nullptr != tablePtr)
+    if(nullptr != tablePtr) // TODO: Fix infinity loop for table
         return tablePtr->getProperties(domain);
     return std::map<CPLString, CPLString>();
 }
