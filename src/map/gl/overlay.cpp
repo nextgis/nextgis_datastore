@@ -79,6 +79,16 @@ bool GlEditLayerOverlay::setStyleName(
         }
     }
 
+    if(EST_LINE == type) {
+        EditLineStyle* lineStyle = dynamic_cast<EditLineStyle*>(style);
+        if(lineStyle) {
+            freeGlStyle(m_lineStyle);
+            m_lineStyle = EditLineStylePtr(lineStyle);
+            return true;
+        }
+    }
+
+    delete style; // Delete unused style.
     return false;
 }
 
@@ -88,6 +98,9 @@ bool GlEditLayerOverlay::setStyle(
     if(EST_POINT == type) {
         return m_pointStyle->load(jsonStyle);
     }
+    if(EST_LINE == type) {
+        return m_lineStyle->load(jsonStyle);
+    }
     return false;
 }
 
@@ -95,6 +108,9 @@ CPLJSONObject GlEditLayerOverlay::style(enum ngsEditStyleType type) const
 {
     if(EST_POINT == type) {
         return m_pointStyle->save();
+    }
+    if(EST_LINE == type) {
+        return m_lineStyle->save();
     }
     return CPLJSONObject();
 }
@@ -181,13 +197,13 @@ bool GlEditLayerOverlay::fill()
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
-            fillPoint();
+            fillPoints();
             break;
         }
 
         case wkbLineString:
         case wkbMultiLineString: {
-            fillLine();
+            fillLines();
             break;
         }
         default:
@@ -196,7 +212,7 @@ bool GlEditLayerOverlay::fill()
     return true;
 }
 
-void GlEditLayerOverlay::fillPoint()
+void GlEditLayerOverlay::fillPoints()
 {
     if(!m_geometry)
         return;
@@ -243,7 +259,7 @@ void GlEditLayerOverlay::fillPoint()
     }
 }
 
-void GlEditLayerOverlay::fillLine()
+void GlEditLayerOverlay::fillLines()
 {
     if(!m_geometry)
         return;
@@ -262,10 +278,6 @@ void GlEditLayerOverlay::fillLine()
                 return spt;
             };
 
-            auto isSelectedLine = [this](int /*index*/) -> bool {
-                return (0 <= m_selectedPointId.pointId());
-            };
-
             auto isSelectedPoint = [this](int index) -> bool {
                 return (PointId(index) == m_selectedPointId);
             };
@@ -274,11 +286,18 @@ void GlEditLayerOverlay::fillLine()
                 return false;
             };
 
+            auto isSelectedLine = [this](int /*index*/) -> bool {
+                return (0 <= m_selectedPointId.pointId());
+            };
+
             fillLineElements(line->get_IsClosed(), line->getNumPoints(),
                     getPoint, isSelectedLine);
 
-            fillMedianPointElements(line->getNumPoints(), getPoint,
-                    isSelectedLine, isSelectedMedianPoint);
+            if(!isSelectedLine(0))
+                break;
+
+            fillMedianPointElements(
+                    line->getNumPoints(), getPoint, isSelectedMedianPoint);
 
             fillPointElements(line->getNumPoints(), getPoint, isSelectedPoint);
             break;
@@ -341,12 +360,8 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
 
 void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
         GetPointFunc getPoint,
-        IsSelectedGeometryFunc isSelectedLine,
         IsSelectedGeometryFunc isSelectedMedianPoint)
 {
-    if(!isSelectedLine(0))
-        return;
-
     auto it = m_elements.find(EET_MEDIAN_POINT);
     if(m_elements.end() != it)
         freeGlBuffer(it->second);

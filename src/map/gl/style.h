@@ -544,6 +544,16 @@ public:
     EditLineStyle();
 
     void setType(enum ngsEditElementType type);
+
+    // Style interface
+public:
+    virtual const char* name() const override { return "editLineStyle"; }
+    virtual bool load(const CPLJSONObject& store) override;
+    virtual CPLJSONObject save() const override;
+
+protected:
+    ngsRGBA m_lineColor;
+    ngsRGBA m_selectedLineColor;
 };
 
 typedef std::shared_ptr<EditLineStyle> EditLineStylePtr;

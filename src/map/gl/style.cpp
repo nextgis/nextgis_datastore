@@ -1603,6 +1603,8 @@ CPLJSONObject MarkerEditPointStyle::save() const
 EditLineStyle::EditLineStyle()
         : SimpleLineStyle()
 {
+    m_lineColor = lineColor;
+    m_selectedLineColor = selectedLineColor;
     setWidth(10.0f);
     setType(EET_LINE);
 }
@@ -1611,10 +1613,32 @@ void EditLineStyle::setType(enum ngsEditElementType type)
 {
     switch(type) {
         case EET_LINE:
-            return setColor(lineColor);
+            return setColor(m_lineColor);
         case EET_SELECTED_LINE:
-            return setColor(selectedLineColor);
+            return setColor(m_selectedLineColor);
     }
+}
+
+bool EditLineStyle::load(const CPLJSONObject& store)
+{
+    if(!SimpleLineStyle::load(store))
+        return false;
+
+    m_lineColor = ngsHEX2RGBA(
+            store.GetString("line_color", ngsRGBA2HEX(m_lineColor)));
+    m_selectedLineColor = ngsHEX2RGBA(store.GetString(
+            "selected_line_color", ngsRGBA2HEX(m_selectedLineColor)));
+
+    setType(EET_LINE);
+    return true;
+}
+
+CPLJSONObject EditLineStyle::save() const
+{
+    CPLJSONObject out = SimpleLineStyle::save();
+    out.Add("line_color", ngsRGBA2HEX(m_lineColor));
+    out.Add("selected_line_color", ngsRGBA2HEX(m_selectedLineColor));
+    return out;
 }
 
 } // namespace ngs

@@ -79,8 +79,8 @@ public:
     virtual bool draw() override;
 
 protected:
-    void fillPoint();
-    void fillLine();
+    void fillPoints();
+    void fillLines();
     void freeGlStyle(StylePtr style);
     void freeGlBuffer(GlObjectPtr buffer);
     void freeGlBuffers();
@@ -94,7 +94,6 @@ private:
             IsSelectedGeometryFunc isSelectedPoint);
     void fillMedianPointElements(int numPoints,
             GetPointFunc getPoint,
-            IsSelectedGeometryFunc isSelectedPoint,
             IsSelectedGeometryFunc isSelectedMedianPoint);
     void fillLineElements(bool isClosedLine,
             int numPoints,
