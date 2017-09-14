@@ -345,7 +345,7 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
         freeGlBuffer(it->second);
 
     enum ngsEditElementType styleType =
-            (isSelectedLine) ? EET_SELECTED_LINE : EET_LINE;
+            (isSelectedLine(0)) ? EET_SELECTED_LINE : EET_LINE;
 
     m_lineStyle->setType(styleType);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
