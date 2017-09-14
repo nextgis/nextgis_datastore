@@ -362,7 +362,7 @@ ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
                 if(!getYAxisInverted()) {
                     mapPt.y = -mapPt.y;
                 }
-                if(editOverlay->selectPoint(mapPt)) {
+                if(editOverlay->clickPoint(mapPt)) {
                     return DS_PRESERVED;
                 }
             }

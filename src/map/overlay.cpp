@@ -437,9 +437,10 @@ void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
     selectFirstPoint();
 }
 
-bool EditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
+bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
 {
-    return selectPoint(false, mapCoordinates);
+    return selectPoint(false, mapCoordinates)
+            || clickMedianPoint(mapCoordinates);
 }
 
 bool EditLayerOverlay::selectFirstPoint()
@@ -477,6 +478,43 @@ bool EditLayerOverlay::selectPoint(
         }
     }
     return false;
+}
+
+bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
+{
+    if(!m_geometry)
+        return false;
+    OGRLineString* line = ngsDynamicCast(OGRLineString, m_geometry);
+    if(!line)
+        return false;
+
+    OGRRawPoint mapTolerance =
+            m_map->getMapDistance(m_tolerancePx, m_tolerancePx);
+    double minX = mapCoordinates.x - mapTolerance.x;
+    double maxX = mapCoordinates.x + mapTolerance.x;
+    double minY = mapCoordinates.y - mapTolerance.y;
+    double maxY = mapCoordinates.y + mapTolerance.y;
+    Envelope mapEnv(minX, minY, maxX, maxY);
+
+    OGRPoint coordinates;
+    PointId id = getLineStringMedianPointId(*line, mapEnv, &coordinates);
+
+    if(!id.isInit()) {
+        return false;
+    }
+
+    OGRLineString* newLine = new OGRLineString();
+    newLine->addSubLineString(line, 0, id.pointId());
+    newLine->addPoint(&coordinates);
+    newLine->addSubLineString(line, id.pointId() + 1);
+
+    m_geometry = GeometryUPtr(newLine);
+    saveToHistory();
+
+    id.setPointId(id.pointId() + 1);
+    m_selectedPointId = id;
+    m_selectedPointCoordinates = coordinates;
+    return true;
 }
 
 bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint* mapCoordinates) const
@@ -564,6 +602,43 @@ PointId getLineStringPointId(
         if(coordinates) {
             coordinates->setX(pt.getX());
             coordinates->setY(pt.getY());
+        }
+        return PointId(id);
+    } else {
+        return PointId();
+    }
+}
+
+PointId getLineStringMedianPointId(
+        const OGRLineString& line, const Envelope env, OGRPoint* coordinates)
+{
+    if(!geometryIntersects(line, env)) {
+        return PointId();
+    }
+
+    int id = 0;
+    bool found = false;
+
+    OGRPoint medianPt;
+
+    for(int i = 0, num = line.getNumPoints(); i < num - 1; ++i) {
+        OGRPoint pt1;
+        line.getPoint(i, &pt1);
+        OGRPoint pt2;
+        line.getPoint(i + 1, &pt2);
+        medianPt = OGRPoint((pt2.getX() - pt1.getX()) / 2 + pt1.getX(),
+                (pt2.getY() - pt1.getY()) / 2 + pt1.getY());
+        if(geometryIntersects(medianPt, env)) {
+            found = true;
+            break;
+        }
+        ++id;
+    }
+
+    if(found) {
+        if(coordinates) {
+            coordinates->setX(medianPt.getX());
+            coordinates->setY(medianPt.getY());
         }
         return PointId(id);
     } else {

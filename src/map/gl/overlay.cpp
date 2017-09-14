@@ -154,9 +154,9 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
     fill();
 }
 
-bool GlEditLayerOverlay::selectPoint(const OGRRawPoint& mapCoordinates)
+bool GlEditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
 {
-    bool ret = EditLayerOverlay::selectPoint(mapCoordinates);
+    bool ret = EditLayerOverlay::clickPoint(mapCoordinates);
     if(ret) {
         fill();
     }
@@ -270,8 +270,8 @@ void GlEditLayerOverlay::fillLine()
                 return (PointId(index) == m_selectedPointId);
             };
 
-            auto isSelectedMedianPoint = [this](int index) -> bool {
-                return (1 == index); // FIXME: for test
+            auto isSelectedMedianPoint = [this](int /*index*/) -> bool {
+                return false;
             };
 
             fillLineElements(line->get_IsClosed(), line->getNumPoints(),

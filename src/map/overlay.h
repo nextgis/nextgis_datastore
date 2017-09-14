@@ -51,8 +51,11 @@ public:
         m_ringId(ringId),
         m_geometryId(geometryId) { }
 
+    void setPointId(int pointId) { m_pointId = pointId; }
     int pointId() const { return m_pointId; }
+    void setRingId(int ringId) { m_ringId = ringId; }
     int ringId() const { return m_ringId; }
+    void setGeometryId(int geometryId) { m_geometryId = geometryId; }
     int geometryId() const { return m_geometryId; }
     bool isInit() const { return 0 <= pointId(); }
     bool operator==(const PointId& other) const;
@@ -65,6 +68,8 @@ private:
 
 PointId getGeometryPointId(
         const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates);
+PointId getLineStringMedianPointId(
+        const OGRLineString& line, const Envelope env, OGRPoint* coordinates);
 bool shiftGeometryPoint(OGRGeometry& geometry, const PointId& id,
         const OGRRawPoint& offset, OGRPoint* coordinates);
 
@@ -107,7 +112,7 @@ public:
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
-    virtual bool selectPoint(const OGRRawPoint& mapCoordinates);
+    virtual bool clickPoint(const OGRRawPoint& mapCoordinates);
     bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
 
@@ -119,6 +124,7 @@ private:
     bool restoreFromHistory(int historyId);
     bool selectFirstPoint();
     bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
+    bool clickMedianPoint(const OGRRawPoint& mapCoordinates);
 
 protected:
     LayerPtr m_editedLayer;

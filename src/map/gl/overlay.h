@@ -66,7 +66,7 @@ public:
     virtual bool addGeometryPart() override;
     virtual bool deleteGeometryPart() override;
 
-    virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
+    virtual bool clickPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
 
 protected:
