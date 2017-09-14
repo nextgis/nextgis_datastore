@@ -251,6 +251,10 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
             line->addPoint(
                     geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
             geometry = GeometryUPtr(line);
+
+            // FIXME: for test, remove it.
+            line->addPoint(geometryCenter.x + 2 * mapDist.x,
+                    geometryCenter.y - 2 * mapDist.y);
             break;
         }
         case wkbMultiPoint: {

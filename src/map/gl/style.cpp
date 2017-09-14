@@ -1514,10 +1514,10 @@ CPLJSONObject MarkerLocationStyle::save() const
 // TODO: set colors
 constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
-constexpr ngsRGBA lineColor = {0, 128, 0, 255};
-constexpr ngsRGBA selectedLineColor = {255, 128, 0, 255};
-constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
-constexpr ngsRGBA selectedMedianPointColor = {255, 0, 0, 255};
+constexpr ngsRGBA lineColor = {0, 128, 128, 255};
+constexpr ngsRGBA selectedLineColor = {64, 192, 0, 255};
+constexpr ngsRGBA medianPointColor = {224, 64, 255, 255};
+constexpr ngsRGBA selectedMedianPointColor = {255, 128, 64, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 

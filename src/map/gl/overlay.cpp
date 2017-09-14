@@ -270,8 +270,15 @@ void GlEditLayerOverlay::fillLine()
                 return (PointId(index) == m_selectedPointId);
             };
 
+            auto isSelectedMedianPoint = [this](int index) -> bool {
+                return (1 == index); // FIXME: for test
+            };
+
             fillLineElements(line->get_IsClosed(), line->getNumPoints(),
                     getPoint, isSelectedLine);
+
+            fillMedianPointElements(line->getNumPoints(), getPoint,
+                    isSelectedLine, isSelectedMedianPoint);
 
             fillPointElements(line->getNumPoints(), getPoint, isSelectedPoint);
             break;
@@ -330,6 +337,61 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
 
     bufferArray->addBuffer(buffer);
     m_elements[EET_POINT] = GlObjectPtr(bufferArray);
+}
+
+void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
+        GetPointFunc getPoint,
+        IsSelectedGeometryFunc isSelectedLine,
+        IsSelectedGeometryFunc isSelectedMedianPoint)
+{
+    if(!isSelectedLine(0))
+        return;
+
+    auto it = m_elements.find(EET_MEDIAN_POINT);
+    if(m_elements.end() != it)
+        freeGlBuffer(it->second);
+    it = m_elements.find(EET_SELECTED_MEDIAN_POINT);
+    if(m_elements.end() != it)
+        freeGlBuffer(it->second);
+
+    EditPointStyle* editPointStyle =
+            ngsDynamicCast(EditPointStyle, m_pointStyle);
+    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
+    VectorGlObject* bufferArray = new VectorGlObject();
+
+    int index = 0;
+    for(int i = 0; i < numPoints - 1; ++i) {
+        SimplePoint pt1 = getPoint(i);
+        SimplePoint pt2 = getPoint(i + 1);
+        SimplePoint pt = ngsGetMedianPoint(pt1, pt2);
+
+        if(isSelectedMedianPoint(i)) {
+            GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
+            if(editPointStyle)
+                editPointStyle->setType(EET_SELECTED_MEDIAN_POINT);
+            /*int selIndex = */
+            m_pointStyle->addPoint(pt, 0, selBuffer);
+
+            VectorGlObject* selBufferArray = new VectorGlObject();
+            selBufferArray->addBuffer(selBuffer);
+
+            m_elements[EET_SELECTED_MEDIAN_POINT] = GlObjectPtr(selBufferArray);
+            continue;
+        }
+
+        if(buffer->vertexSize() >= GlBuffer::maxVertices()) {
+            bufferArray->addBuffer(buffer);
+            index = 0;
+            buffer = new GlBuffer(GlBuffer::BF_PT);
+        }
+
+        if(editPointStyle)
+            editPointStyle->setType(EET_MEDIAN_POINT);
+        index = m_pointStyle->addPoint(pt, index, buffer);
+    }
+
+    bufferArray->addBuffer(buffer);
+    m_elements[EET_MEDIAN_POINT] = GlObjectPtr(bufferArray);
 }
 
 void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
@@ -458,7 +520,7 @@ bool GlEditLayerOverlay::draw()
     auto findIt = m_elements.find(EET_SELECTED_POINT);
     if(m_elements.end() == findIt || !findIt->second) {
         // One of the vertices must always be selected.
-//        return false; // Data is not yet loaded. // TODO
+        return false; // Data is not yet loaded.
     }
 
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {

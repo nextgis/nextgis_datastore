@@ -92,6 +92,10 @@ private:
     void fillPointElements(int numPoints,
             GetPointFunc getPoint,
             IsSelectedGeometryFunc isSelectedPoint);
+    void fillMedianPointElements(int numPoints,
+            GetPointFunc getPoint,
+            IsSelectedGeometryFunc isSelectedPoint,
+            IsSelectedGeometryFunc isSelectedMedianPoint);
     void fillLineElements(bool isClosedLine,
             int numPoints,
             GetPointFunc getPoint,

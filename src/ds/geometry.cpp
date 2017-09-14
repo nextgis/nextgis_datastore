@@ -290,6 +290,19 @@ Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end)
     return {normX, normY};
 }
 
+/**
+ * @brief ngsGetMedianPoint computes the median point
+ * between given points pt1 and pt2.
+ *
+ * @param pt1
+ * @param pt2
+ * @return Median point between given points pt1 and pt2.
+ */
+SimplePoint ngsGetMedianPoint(const SimplePoint& pt1, const SimplePoint& pt2)
+{
+    return {(pt2.x - pt1.x) / 2 + pt1.x, (pt2.y - pt1.y) / 2 + pt1.y};
+}
+
 OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json)
 {
     return OGRGeometryFactory::createFromGeoJson(json);
