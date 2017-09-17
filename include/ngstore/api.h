@@ -405,10 +405,11 @@ NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
  * Overlay functions
  */
 
-NGS_EXTERNC int ngsOverlaySetVisible(
-        unsigned char mapId, int typeMask, char visible);
-NGS_EXTERNC char ngsOverlayGetVisible(
-        unsigned char mapId, enum ngsMapOverlayType type);
+NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
+                                     int typeMask, char visible);
+NGS_EXTERNC char ngsOverlayGetVisible(unsigned char mapId,
+                                      enum ngsMapOverlayType type);
+/* Edit */
 NGS_EXTERNC char ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayCanUndo(unsigned char mapId);
@@ -423,13 +424,17 @@ NGS_EXTERNC int ngsEditOverlayAddPoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeletePoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlaySetStyle(
-        unsigned char mapId, enum ngsEditStyleType type, JsonObjectH style);
-NGS_EXTERNC int ngsEditOverlaySetStyleName(
-        unsigned char mapId, enum ngsEditStyleType type, const char* name);
-NGS_EXTERNC JsonObjectH ngsEditOverlayGetStyle(
-        unsigned char mapId, enum ngsEditStyleType type);
-NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
+NGS_EXTERNC int ngsEditOverlaySetStyle(unsigned char mapId,
+                                       enum ngsEditStyleType type,
+                                       JsonObjectH style);
+NGS_EXTERNC int ngsEditOverlaySetStyleName(unsigned char mapId,
+                                           enum ngsEditStyleType type,
+                                           const char* name);
+NGS_EXTERNC JsonObjectH ngsEditOverlayGetStyle(unsigned char mapId,
+                                               enum ngsEditStyleType type);
+/* Location */
+NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId,
+                                         ngsCoordinate location,
                                          float direction, float accuracy);
 NGS_EXTERNC int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style);
 NGS_EXTERNC int ngsLocationOverlaySetStyleName(unsigned char mapId,

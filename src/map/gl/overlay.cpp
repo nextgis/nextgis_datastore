@@ -43,20 +43,19 @@ GlRenderOverlay::GlRenderOverlay()
 // GlEditLayerOverlay
 //------------------------------------------------------------------------------
 
-GlEditLayerOverlay::GlEditLayerOverlay(MapView* map)
-        : EditLayerOverlay(map)
-        , GlRenderOverlay()
+GlEditLayerOverlay::GlEditLayerOverlay(MapView* map) : EditLayerOverlay(map),
+    GlRenderOverlay()
 {
     GlView* mapView = dynamic_cast<GlView*>(m_map);
     const TextureAtlas* atlas = mapView ? mapView->textureAtlas() : nullptr;
 
     PointStyle* pointStyle = static_cast<PointStyle*>(
-            Style::createStyle("simpleEditPointStyle", atlas));
+                Style::createStyle("simpleEditPointStyle", atlas));
     if(pointStyle)
         m_pointStyle = PointStylePtr(pointStyle);
 
     EditLineStyle* lineStyle = static_cast<EditLineStyle*>(
-            Style::createStyle("editLineStyle", atlas));
+                Style::createStyle("editLineStyle", atlas));
     if(lineStyle)
         m_lineStyle = EditLineStylePtr(lineStyle);
 }
@@ -254,8 +253,8 @@ void GlEditLayerOverlay::fillPoints()
             break;
         }
         case wkbMultiPoint: {
-            const OGRMultiPoint* mpt =
-                    static_cast<const OGRMultiPoint*>(m_geometry.get());
+            const OGRMultiPoint* mpt =static_cast<const OGRMultiPoint*>(
+                        m_geometry.get());
 
             auto getPoint = [mpt](int index) -> SimplePoint {
                 const OGRPoint* pt = static_cast<const OGRPoint*>(
@@ -270,8 +269,7 @@ void GlEditLayerOverlay::fillPoints()
                 return (PointId(0, NOT_FOUND, index) == m_selectedPointId);
             };
 
-            fillPointElements(
-                    mpt->getNumGeometries(), getPoint, isSelectedPoint);
+            fillPointElements(mpt->getNumGeometries(), getPoint, isSelectedPoint);
             break;
         }
     }
@@ -279,13 +277,14 @@ void GlEditLayerOverlay::fillPoints()
 
 void GlEditLayerOverlay::fillLines()
 {
-    if(!m_geometry)
+    if(!m_geometry) {
         return;
+    }
 
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbLineString: {
-            const OGRLineString* line =
-                    static_cast<const OGRLineString*>(m_geometry.get());
+            const OGRLineString* line = static_cast<const OGRLineString*>(
+                        m_geometry.get());
 
             auto getPoint = [line](int index) -> SimplePoint {
                 OGRPoint pt;
@@ -332,14 +331,15 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
         IsSelectedGeometryFunc isSelectedPoint)
 {
     auto it = m_elements.find(EET_POINT);
-    if(m_elements.end() != it)
+    if(m_elements.end() != it) {
         freeGlBuffer(it->second);
+    }
     it = m_elements.find(EET_SELECTED_POINT);
-    if(m_elements.end() != it)
+    if(m_elements.end() != it) {
         freeGlBuffer(it->second);
+    }
 
-    EditPointStyle* editPointStyle =
-            ngsDynamicCast(EditPointStyle, m_pointStyle);
+    EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle, m_pointStyle);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* bufferArray = new VectorGlObject();
 
@@ -350,7 +350,7 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
         if(isSelectedPoint(i)) {
             GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
             if(editPointStyle)
-                editPointStyle->setType(EET_SELECTED_POINT);
+                editPointStyle->setEditElementType(EET_SELECTED_POINT);
             /*int selIndex = */
             m_pointStyle->addPoint(pt, 0, selBuffer);
 
@@ -367,9 +367,11 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
             buffer = new GlBuffer(GlBuffer::BF_PT);
         }
 
-        if(editPointStyle)
-            editPointStyle->setType(EET_POINT);
-        index = m_pointStyle->addPoint(pt, index, buffer);
+        if(editPointStyle) {
+            editPointStyle->setEditElementType(EET_POINT);
+        }
+        index = m_pointStyle->addPoint(pt, static_cast<unsigned short>(index),
+                                       buffer);
     }
 
     bufferArray->addBuffer(buffer);
@@ -381,14 +383,15 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
         IsSelectedGeometryFunc isSelectedMedianPoint)
 {
     auto it = m_elements.find(EET_MEDIAN_POINT);
-    if(m_elements.end() != it)
+    if(m_elements.end() != it) {
         freeGlBuffer(it->second);
+    }
     it = m_elements.find(EET_SELECTED_MEDIAN_POINT);
-    if(m_elements.end() != it)
+    if(m_elements.end() != it) {
         freeGlBuffer(it->second);
+    }
 
-    EditPointStyle* editPointStyle =
-            ngsDynamicCast(EditPointStyle, m_pointStyle);
+    EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle, m_pointStyle);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* bufferArray = new VectorGlObject();
 
@@ -401,7 +404,7 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
         if(isSelectedMedianPoint(i)) {
             GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
             if(editPointStyle)
-                editPointStyle->setType(EET_SELECTED_MEDIAN_POINT);
+                editPointStyle->setEditElementType(EET_SELECTED_MEDIAN_POINT);
             /*int selIndex = */
             m_pointStyle->addPoint(pt, 0, selBuffer);
 
@@ -418,9 +421,11 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
             buffer = new GlBuffer(GlBuffer::BF_PT);
         }
 
-        if(editPointStyle)
-            editPointStyle->setType(EET_MEDIAN_POINT);
-        index = m_pointStyle->addPoint(pt, index, buffer);
+        if(editPointStyle) {
+            editPointStyle->setEditElementType(EET_MEDIAN_POINT);
+        }
+        index = m_pointStyle->addPoint(pt, static_cast<unsigned short>(index),
+                                       buffer);
     }
 
     bufferArray->addBuffer(buffer);
@@ -442,7 +447,7 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
     enum ngsEditElementType styleType =
             (isSelectedLine(0)) ? EET_SELECTED_LINE : EET_LINE;
 
-    m_lineStyle->setType(styleType);
+    m_lineStyle->setEditElementType(styleType);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
     VectorGlObject* bufferArray = new VectorGlObject();
     unsigned short index = 0;
@@ -512,7 +517,7 @@ void GlEditLayerOverlay::freeResources()
     EditLayerOverlay::freeResources();
     freeGlBuffers();
     //freeGlStyles(); // TODO: only on close map
-    //m_elements.clear(); // TODO: only on close map
+    //m_elements.clear();
 }
 
 void GlEditLayerOverlay::freeGlStyle(StylePtr style)
@@ -558,32 +563,33 @@ bool GlEditLayerOverlay::draw()
 
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
         GlObjectPtr glBuffer = it->second;
-        if(!glBuffer)
+        if(!glBuffer) {
             continue;
+        }
 
         enum ngsEditElementType styleType = it->first;
         Style* style = nullptr;
-        if(EET_POINT == styleType || EET_SELECTED_POINT == styleType
-                || EET_MEDIAN_POINT == styleType
-                || EET_SELECTED_MEDIAN_POINT == styleType) {
+        if(EET_POINT == styleType ||
+           EET_SELECTED_POINT == styleType ||
+           EET_MEDIAN_POINT == styleType ||
+           EET_SELECTED_MEDIAN_POINT == styleType) {
             style = m_pointStyle.get();
 
             EditPointStyle* editPointStyle =
                     ngsDynamicCast(EditPointStyle, m_pointStyle);
             if(editPointStyle)
-                editPointStyle->setType(it->first);
+                editPointStyle->setEditElementType(it->first);
         }
         if(EET_LINE == styleType || EET_SELECTED_LINE == styleType) {
             style = m_lineStyle.get();
-            m_lineStyle->setType(it->first);
+            m_lineStyle->setEditElementType(it->first);
         }
-        if(!style)
+        if(!style) {
             continue;
+        }
 
-        VectorGlObject* vectorGlBuffer =
-                ngsDynamicCast(VectorGlObject, glBuffer);
+        VectorGlObject* vectorGlBuffer = ngsDynamicCast(VectorGlObject, glBuffer);
         for(const GlBufferPtr& buff : vectorGlBuffer->buffers()) {
-
             if(buff->bound()) {
                 buff->rebind();
             } else {
@@ -591,7 +597,7 @@ bool GlEditLayerOverlay::draw()
             }
 
             style->prepare(m_map->getSceneMatrix(), m_map->getInvViewMatrix(),
-                    buff->type());
+                           buff->type());
             style->draw(*buff);
         }
     }

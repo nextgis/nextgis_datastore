@@ -1521,7 +1521,7 @@ constexpr ngsRGBA selectedMedianPointColor = {255, 128, 64, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 
-void SimpleEditPointStyle::setType(enum ngsEditElementType type)
+void SimpleEditPointStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
         case EET_POINT:
@@ -1538,8 +1538,17 @@ void SimpleEditPointStyle::setType(enum ngsEditElementType type)
 //------------------------------------------------------------------------------
 // MarkerEditPointStyle
 //------------------------------------------------------------------------------
+MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas)
+            : MarkerStyle(textureAtlas),
+              m_pointIndex(0),
+              m_selectedPointIndex(0),
+              m_medianPointIndex(0),
+              m_selectedMedianPointIndex(0)
+{
 
-void MarkerEditPointStyle::setType(enum ngsEditElementType type)
+}
+
+void MarkerEditPointStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
         case EET_POINT:
@@ -1606,10 +1615,10 @@ EditLineStyle::EditLineStyle()
     m_lineColor = lineColor;
     m_selectedLineColor = selectedLineColor;
     setWidth(10.0f);
-    setType(EET_LINE);
+    setEditElementType(EET_LINE);
 }
 
-void EditLineStyle::setType(enum ngsEditElementType type)
+void EditLineStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
         case EET_LINE:
@@ -1629,7 +1638,7 @@ bool EditLineStyle::load(const CPLJSONObject& store)
     m_selectedLineColor = ngsHEX2RGBA(store.GetString(
             "selected_line_color", ngsRGBA2HEX(m_selectedLineColor)));
 
-    setType(EET_LINE);
+    setEditElementType(EET_LINE);
     return true;
 }
 

@@ -478,7 +478,7 @@ class EditPointStyle
 public:
     EditPointStyle() {}
     virtual ~EditPointStyle() = default;
-    virtual void setType(enum ngsEditElementType type) = 0;
+    virtual void setEditElementType(enum ngsEditElementType type) = 0;
 };
 
 //------------------------------------------------------------------------------
@@ -489,13 +489,11 @@ class SimpleEditPointStyle : public SimplePointStyle, public EditPointStyle
 {
 public:
     explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE)
-            : SimplePointStyle(type)
-    {
-    }
+            : SimplePointStyle(type) {}
 
     // EditPointStyle interface
 public:
-    virtual void setType(enum ngsEditElementType type) override;
+    virtual void setEditElementType(enum ngsEditElementType type) override;
 };
 
 //------------------------------------------------------------------------------
@@ -505,18 +503,11 @@ public:
 class MarkerEditPointStyle : public MarkerStyle, public EditPointStyle
 {
 public:
-    explicit MarkerEditPointStyle(const TextureAtlas* textureAtlas)
-            : MarkerStyle(textureAtlas)
-            , m_pointIndex(0)
-            , m_selectedPointIndex(0)
-            , m_medianPointIndex(0)
-            , m_selectedMedianPointIndex(0)
-    {
-    }
+    explicit MarkerEditPointStyle(const TextureAtlas* textureAtlas);
 
     // EditPointStyle interface
 public:
-    virtual void setType(enum ngsEditElementType type) override;
+    virtual void setEditElementType(enum ngsEditElementType type) override;
 
     // Style interface
 public:
@@ -543,7 +534,7 @@ class EditLineStyle : public SimpleLineStyle
 public:
     EditLineStyle();
 
-    void setType(enum ngsEditElementType type);
+    void setEditElementType(enum ngsEditElementType type);
 
     // Style interface
 public:
