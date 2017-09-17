@@ -133,6 +133,8 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
         return new SimpleEditPointStyle;
     else if(EQUAL(name, "markerEditPointStyle"))
         return new MarkerEditPointStyle(atlas);
+    else if(EQUAL(name, "editLineStyle"))
+        return new EditLineStyle();
     return nullptr;
 }
 
@@ -401,6 +403,8 @@ constexpr const GLchar* const lineFragmentShaderSource = R"(
 
 
 SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
+          m_normalId(-1),
+          m_vLineWidthId(-1),
           m_width(1.0),
           m_capType(CT_ROUND),
           m_joinType(JT_ROUND),
@@ -1510,10 +1514,10 @@ CPLJSONObject MarkerLocationStyle::save() const
 // TODO: set colors
 constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
-constexpr ngsRGBA lineColor = {0, 0, 255, 255};
-constexpr ngsRGBA selectedLineColor = {255, 0, 0, 255};
-constexpr ngsRGBA medianPointColor = {0, 0, 255, 255};
-constexpr ngsRGBA selectedMedianPointColor = {255, 0, 0, 255};
+constexpr ngsRGBA lineColor = {0, 128, 128, 255};
+constexpr ngsRGBA selectedLineColor = {64, 192, 0, 255};
+constexpr ngsRGBA medianPointColor = {224, 64, 255, 255};
+constexpr ngsRGBA selectedMedianPointColor = {255, 128, 64, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 
@@ -1589,6 +1593,51 @@ CPLJSONObject MarkerEditPointStyle::save() const
     out.Add("selected_point_index", m_selectedPointIndex);
     out.Add("median_point_index", m_medianPointIndex);
     out.Add("selected_median_point_index", m_selectedMedianPointIndex);
+    return out;
+}
+
+//------------------------------------------------------------------------------
+// EditLineStyle
+//------------------------------------------------------------------------------
+
+EditLineStyle::EditLineStyle()
+        : SimpleLineStyle()
+{
+    m_lineColor = lineColor;
+    m_selectedLineColor = selectedLineColor;
+    setWidth(10.0f);
+    setType(EET_LINE);
+}
+
+void EditLineStyle::setType(enum ngsEditElementType type)
+{
+    switch(type) {
+        case EET_LINE:
+            return setColor(m_lineColor);
+        case EET_SELECTED_LINE:
+            return setColor(m_selectedLineColor);
+    }
+}
+
+bool EditLineStyle::load(const CPLJSONObject& store)
+{
+    if(!SimpleLineStyle::load(store))
+        return false;
+
+    m_lineColor = ngsHEX2RGBA(
+            store.GetString("line_color", ngsRGBA2HEX(m_lineColor)));
+    m_selectedLineColor = ngsHEX2RGBA(store.GetString(
+            "selected_line_color", ngsRGBA2HEX(m_selectedLineColor)));
+
+    setType(EET_LINE);
+    return true;
+}
+
+CPLJSONObject EditLineStyle::save() const
+{
+    CPLJSONObject out = SimpleLineStyle::save();
+    out.Add("line_color", ngsRGBA2HEX(m_lineColor));
+    out.Add("selected_line_color", ngsRGBA2HEX(m_selectedLineColor));
     return out;
 }
 

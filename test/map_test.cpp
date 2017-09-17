@@ -435,7 +435,8 @@ TEST(MapTests, TestOverlayStruct) {
 }
 
 TEST(MapTests, TestEditOverlay) {
-    CPLString workDirName = "tmp_edit";
+    CPLString testDirName = "tmp";
+    CPLString workDirName = "edit_overlay";
     CPLString storeName = "test_store";
     CPLString storeExt = "ngst";
     CPLString mapName = "test_map";
@@ -443,8 +444,13 @@ TEST(MapTests, TestEditOverlay) {
     CPLString pointLayerName = "point_layer";
     CPLString multiPtLayerName = "multi_point_layer";
 
+    CPLString tmpPath =
+            ngsFormFileName(ngsGetCurrentDirectory(), testDirName, nullptr);
+    if(!ngs::Folder::isExists(tmpPath))
+        ngs::Folder::mkDir(tmpPath);
+
     CPLString workPath =
-            ngsFormFileName(ngsGetCurrentDirectory(), workDirName, nullptr);
+            ngsFormFileName(tmpPath, workDirName, nullptr);
     ASSERT_STRNE(workPath, "");
 
     // Init NGS.

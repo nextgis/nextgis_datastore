@@ -24,6 +24,7 @@
 #define NGSGLOVERLAY_H
 
 // stl
+#include <functional>
 #include <map>
 #include <memory>
 
@@ -62,10 +63,12 @@ public:
     virtual bool undo() override;
     virtual bool redo() override;
 
+    virtual bool addPoint() override;
+    virtual bool deletePoint() override;
     virtual bool addGeometryPart() override;
     virtual bool deleteGeometryPart() override;
 
-    virtual bool selectPoint(const OGRRawPoint& mapCoordinates) override;
+    virtual bool clickPoint(const OGRRawPoint& mapCoordinates) override;
     virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
 
 protected:
@@ -78,15 +81,31 @@ public:
     virtual bool draw() override;
 
 protected:
-    void fillPoint();
-    void fillLine();
+    void fillPoints();
+    void fillLines();
     void freeGlStyle(StylePtr style);
     void freeGlBuffer(GlObjectPtr buffer);
     void freeGlBuffers();
 
 private:
+    using GetPointFunc = std::function<SimplePoint(int index)>;
+    using IsSelectedGeometryFunc = std::function<bool(int index)>;
+
+    void fillPointElements(int numPoints,
+            GetPointFunc getPoint,
+            IsSelectedGeometryFunc isSelectedPoint);
+    void fillMedianPointElements(int numPoints,
+            GetPointFunc getPoint,
+            IsSelectedGeometryFunc isSelectedMedianPoint);
+    void fillLineElements(bool isClosedLine,
+            int numPoints,
+            GetPointFunc getPoint,
+            IsSelectedGeometryFunc isSelectedLine);
+
+private:
     std::map<ngsEditElementType, GlObjectPtr> m_elements;
     PointStylePtr m_pointStyle;
+    EditLineStylePtr m_lineStyle;
 };
 
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay

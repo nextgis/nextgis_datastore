@@ -116,6 +116,7 @@ typedef struct _normal {
 } Normal, SimplePoint;
 
 Normal ngsGetNormals(const SimplePoint &beg, const SimplePoint &end);
+SimplePoint ngsGetMedianPoint(const SimplePoint& pt1, const SimplePoint& pt2);
 
 typedef struct _tile{
     int x, y;
