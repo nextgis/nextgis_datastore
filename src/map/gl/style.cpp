@@ -1538,12 +1538,12 @@ void SimpleEditPointStyle::setEditElementType(enum ngsEditElementType type)
 //------------------------------------------------------------------------------
 // MarkerEditPointStyle
 //------------------------------------------------------------------------------
-MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas)
-            : MarkerStyle(textureAtlas),
-              m_pointIndex(0),
-              m_selectedPointIndex(0),
-              m_medianPointIndex(0),
-              m_selectedMedianPointIndex(0)
+MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas) :
+    MarkerStyle(textureAtlas),
+    m_pointIndex(0),
+    m_selectedPointIndex(0),
+    m_medianPointIndex(0),
+    m_selectedMedianPointIndex(0)
 {
 
 }
@@ -1582,8 +1582,7 @@ bool MarkerEditPointStyle::load(const CPLJSONObject& store)
     if(!MarkerStyle::load(store))
         return false;
 
-    m_pointIndex =
-            static_cast<unsigned short>(store.GetInteger("point_index", 0));
+    m_pointIndex = static_cast<unsigned short>(store.GetInteger("point_index", 0));
     m_selectedPointIndex = static_cast<unsigned short>(
             store.GetInteger("selected_point_index", 0));
     m_medianPointIndex = static_cast<unsigned short>(
