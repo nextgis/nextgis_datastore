@@ -303,7 +303,7 @@ void GlView::updateTilesList()
     ext.resize(TILE_RESIZE);
     //CPLDebug("ngstore", "Zoom is: %d", getZoom());
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
-                                                    false, // false mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
+                                                    false, // False mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
                                                     getXAxisLooped());
 
     // Remove out of extent Gl tiles
