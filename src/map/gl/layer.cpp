@@ -33,6 +33,7 @@
 
 namespace ngs {
 
+constexpr unsigned char MAX_ZOOM = 18;
 
 //------------------------------------------------------------------------------
 // IGlRenderLayer
@@ -1058,10 +1059,12 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
     bands[2] = m_blue;
     bands[3] = m_alpha;
 
-    int overview = 18;
+    int overview = MAX_ZOOM;
+    bool smooth = false;
     if(outWidth > width && outHeight > height ) { // Read original raster
         outWidth = width;
         outHeight = height;
+        smooth = true;
     }
     else { // Get closest overview and get overview data
         int minXOv = minX;
@@ -1070,7 +1073,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
         int outHeightOv = height;
         overview = m_raster->getBestOverview(minXOv, minYOv, outWidthOv, outHeightOv,
                                                  outWidth, outHeight);
-        if(overview >= 0) {
+        if(overview >= -5) {
             outWidth = outWidthOv;
             outHeight = outHeightOv;
         }
@@ -1084,7 +1087,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
         std::memset(pixData, 255 - m_transparency, bufferSize);
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
                                 outHeight, m_dataType, bandCount, bands, true, true,
-                                static_cast<unsigned char>(18 - overview))) {
+                                static_cast<unsigned char>(MAX_ZOOM - overview))) {
             CPLFree(pixData);
 
             if(isLastTry) {
@@ -1115,7 +1118,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
 
     GlImage *image = new GlImage;
     image->setImage(pixData, outWidth, outHeight); // NOTE: May be not working NOD
-//    image->setSmooth(true);
+    image->setSmooth(smooth);
 
     // FIXME: Reproject intersect raster extent to tile extent
     GlBuffer* tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);

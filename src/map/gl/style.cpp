@@ -1008,7 +1008,7 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         }
         break;
     case PT_STAR:
-        // TODO: Star drawing with different count of parts 4, 5, etc.
+        // TODO: Star is drawing with different count of parts 4, 5, etc.
         break;
     default:
         break;
@@ -1029,7 +1029,7 @@ size_t PrimitivePointStyle::pointVerticesCount() const
     case PT_DIAMOND:
         return 4;
     case PT_STAR:
-        // TODO: Star drawing with different count of parts 4, 5, etc.
+        // TODO: Star is drawing with different count of parts 4, 5, etc.
     default:
         return 0;
     }
