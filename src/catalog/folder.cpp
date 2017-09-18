@@ -213,7 +213,7 @@ bool Folder::destroy()
 
 bool Folder::canDestroy() const
 {
-    return !isReadOnly(); // FIXME: Do we need to check parent too?
+    return !isReadOnly(); // FIXME: Do we need to check parent can write too?
 }
 
 void Folder::refresh()

@@ -34,7 +34,7 @@
 
 namespace ngs {
 
-constexpr double TILE_RESIZE = 1.1;  // FIXME: Is it enouth extra size for tile?
+constexpr double TILE_RESIZE = 1.1;
 
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
@@ -81,22 +81,25 @@ private:
     bool m_2d;
 };
 
+typedef std::vector<VectorTileItem> VectorTileItemArray;
+
 class VectorTile
 {
 public:
     VectorTile() : m_valid(false) {}
     void add(const VectorTileItem &item, bool checkDuplicates = false);
+    void add(const VectorTileItemArray& items, bool checkDuplicates = false);
     void remove(GIntBig id);
     BufferPtr save();
     bool load(Buffer& buffer);
-    std::vector<VectorTileItem> items() const {
+    VectorTileItemArray items() const {
         return m_items;
     }
     bool empty() { return m_items.empty(); }
 
     bool isValid() const { return m_valid; }
 private:
-    std::vector<VectorTileItem> m_items;
+    VectorTileItemArray m_items;
     bool m_valid;
 };
 
@@ -114,9 +117,9 @@ public:
 
 public:
     explicit FeatureClass(OGRLayer* layer,
-                 ObjectContainer* const parent = nullptr,
-                 const enum ngsCatalogObjectType type = CAT_FC_ANY,
-                 const CPLString & name = "");
+                          ObjectContainer* const parent = nullptr,
+                          const enum ngsCatalogObjectType type = CAT_FC_ANY,
+                          const CPLString & name = "");
     virtual ~FeatureClass();
 
     OGRwkbGeometryType geometryType() const;
@@ -139,9 +142,9 @@ public:
                         const Options& options = Options());
     VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope());
     std::set<unsigned char> zoomLevels() const { return m_zoomLevels; }
-    void addOverviewItem(const Tile& tile, const VectorTileItem& item) {
+    void addOverviewItem(const Tile& tile, const VectorTileItemArray& items) {
         CPLMutexHolder holder(m_genTileMutex, 150.0);
-        m_genTiles[tile].add(item, true);
+        m_genTiles[tile].add(items, true);
     }
 
     // static
@@ -164,22 +167,22 @@ public:
     virtual bool deleteFeatures() override;
 
 protected:
-    VectorTileItem tileGeometry(const FeaturePtr &feature, OGRGeometry* extent,
-                                float step) const;
+    VectorTileItemArray tileGeometry(const FeaturePtr &feature,
+                                     OGRGeometry* extent, float step) const;
     void fillZoomLevels(const char* zoomLevels = nullptr);
 
-    void tilePoint(OGRGeometry* geom, OGRGeometry* extent, float step,
-                   VectorTileItem* vitem) const;
-    void tileLine(OGRGeometry* geom, OGRGeometry* extent, float step,
-                   VectorTileItem* vitem)  const;
-    void tilePolygon(OGRGeometry* geom, OGRGeometry* extent, float step,
-                   VectorTileItem* vitem)  const;
-    void tileMultiPoint(OGRGeometry* geom, OGRGeometry* extent, float step,
-                   VectorTileItem* vitem)  const;
-    void tileMultiLine(OGRGeometry* geom, OGRGeometry* extent, float step,
-                   VectorTileItem* vitem)  const;
-    void tileMultiPolygon(OGRGeometry* geom, OGRGeometry* extent, float step,
-                   VectorTileItem* vitem)  const;
+    void tilePoint(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
+                   float step, VectorTileItemArray& vitemArray) const;
+    void tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
+                  float step, VectorTileItemArray& vitemArray)  const;
+    void tilePolygon(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
+                     float step, VectorTileItemArray& vitemArray)  const;
+    void tileMultiPoint(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
+                        float step, VectorTileItemArray& vitemArray)  const;
+    void tileMultiLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
+                       float step, VectorTileItemArray& vitemArray)  const;
+    void tileMultiPolygon(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
+                          float step, VectorTileItemArray& vitemArray)  const;
     bool getTilesTable();
     FeaturePtr getTileFeature(const Tile& tile);
     VectorTile getTileInternal(const Tile& tile);
