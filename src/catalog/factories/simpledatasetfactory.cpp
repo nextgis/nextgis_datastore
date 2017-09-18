@@ -49,10 +49,18 @@ static const char* mifExtraExts[] = {"cpg", "qix", "osf",
                                      nullptr};
 constexpr FORMAT_EXT mifExt = {"mif", mifMainExts, mifExtraExts};
 
+static const char* geojsonMainExts[] = {nullptr};
+static const char* geojsonExtraExts[] = {"qix", "osf",
+                                     Dataset::additionsDatasetExtension(),
+                                     Dataset::attachmentsFolderExtension(),
+                                     nullptr};
+constexpr FORMAT_EXT geojsonExt = {"geojson", geojsonMainExts, geojsonExtraExts};
+
 SimpleDatasetFactory::SimpleDatasetFactory() : ObjectFactory()
 {
     m_shpSupported = Filter::getGDALDriver(CAT_FC_ESRI_SHAPEFILE);
     m_miSupported = Filter::getGDALDriver(CAT_FC_MAPINFO_TAB);
+    m_geojsonSupported = Filter::getGDALDriver(CAT_FC_GEOJSON);
 }
 
 const char* SimpleDatasetFactory::getName() const
@@ -104,6 +112,18 @@ void SimpleDatasetFactory::createObjects(ObjectContainer * const container,
             const char* path = CPLFormFilename(container->path(), result.name,
                                                nullptr);
             addChild(container, result.name, path, CAT_FC_MAPINFO_MIF,
+                     result.siblingFiles, names);
+        }
+        }
+
+        // Check if GeoJSON
+        if(m_geojsonSupported) {
+        FORMAT_RESULT result = isFormatSupported(
+                    nameExtsItem.first, nameExtsItem.second, geojsonExt);
+        if(result.isSupported) {
+            const char* path = CPLFormFilename(container->path(), result.name,
+                                               nullptr);
+            addChild(container, result.name, path, CAT_FC_GEOJSON,
                      result.siblingFiles, names);
         }
         }

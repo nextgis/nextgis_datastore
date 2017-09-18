@@ -45,7 +45,7 @@ private:
                   std::vector<const char*> * const names);
 
 private:
-    bool m_shpSupported, m_miSupported;
+    bool m_shpSupported, m_miSupported, m_geojsonSupported;
 };
 
 } // namespace ngs
