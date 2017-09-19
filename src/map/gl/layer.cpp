@@ -723,8 +723,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                     buffer = draw;
                     drawIndex = 0;
                 }
-                index = 0;
-                buffer = new GlBuffer(GlBuffer::BF_LINE);
+                index = 0;                
             }
 
             index = style->addSegment(pt1, pt2, normal, index, buffer);

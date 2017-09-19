@@ -406,8 +406,8 @@ SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
           m_normalId(-1),
           m_vLineWidthId(-1),
           m_width(1.0),
-          m_capType(CT_ROUND),
-          m_joinType(JT_ROUND),
+          m_capType(CT_BUTT), //CT_ROUND),
+          m_joinType(JT_BEVELED), //JT_ROUND),
           m_segmentCount(6)
 {
     m_vertexShaderSource = lineVertexShaderSource;

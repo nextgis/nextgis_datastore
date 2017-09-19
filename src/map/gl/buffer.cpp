@@ -31,7 +31,7 @@ constexpr unsigned char VERTEX_SIZE = 3;
 constexpr unsigned char VERTEX_WITH_NORMAL_SIZE = 5;
 //GL_UNSIGNED_BYTE, with a maximum value of 255.
 //GL_UNSIGNED_SHORT, with a maximum value of 65,535
-constexpr unsigned short MAX_VERTEX_BUFFER_SIZE = 65535 / 3;
+constexpr unsigned short MAX_VERTEX_BUFFER_SIZE = 65535;
 
 GlBuffer::GlBuffer(BufferType type) : GlObject(),
     m_bufferIds{{GL_BUFFER_IVALID,GL_BUFFER_IVALID}},

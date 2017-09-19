@@ -126,9 +126,9 @@ public:
     std::vector<OGRwkbGeometryType> geometryTypes();
     const char* geometryColumn() const;
     std::vector<const char*> geometryColumns() const;
-    bool setIgnoredFields(const std::vector<const char*> fields =
+    bool setIgnoredFields(const std::vector<const char*>& fields =
             std::vector<const char*>());
-    void setSpatialFilter(GeometryPtr geom);
+    void setSpatialFilter(const GeometryPtr& geom = GeometryPtr());
     void setSpatialFilter(double minX, double minY, double maxX, double maxY);
 
     Envelope extent() const;

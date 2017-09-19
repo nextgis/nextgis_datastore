@@ -249,7 +249,7 @@ void VectorTile::add(const VectorTileItem &item, bool checkDuplicates)
     }
 }
 
-void VectorTile::add(const std::vector<VectorTileItem>& items,
+void VectorTile::add(const VectorTileItemArray& items,
                      bool checkDuplicates)
 {
     for(auto item : items) {
@@ -480,7 +480,7 @@ double FeatureClass::pixelSize(int zoom)
     int tilesInMapOneDim = 1 << zoom;
 
     // Tile size. On ower zoom less size
-    int tileSize = TILE_SIZE - (21 - zoom) * 4;
+    int tileSize = TILE_SIZE - (20 - zoom) * 8;
 
     long sizeOneDimPixels = tilesInMapOneDim * tileSize;
     return WORLD_WIDTH / sizeOneDimPixels;
@@ -526,7 +526,8 @@ void FeatureClass::tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
     if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbMultiLineString) {
         return tileMultiLine(fid, cutGeom.get(), extent, step, vitemArray);
     }
-    else if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbGeometryCollection) {
+
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbGeometryCollection) {
         OGRGeometryCollection* coll = ngsStaticCast(OGRGeometryCollection, cutGeom);
         for(int i = 0; i < coll->getNumGeometries(); ++i) {
             OGRGeometry* collGeom = coll->getGeometryRef(i);
@@ -565,8 +566,8 @@ void FeatureClass::tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
 
     if(vitem.pointCount() > 0) {
         if(vitem.pointCount() == 1) {
-            prevPt.x += 1.5f * step;
-            prevPt.y += 1.5f * step;
+            prevPt.x += 1.5f;
+            prevPt.y += 1.5f;
             vitem.addPoint(prevPt);
         }
         vitem.setValid(true);
@@ -876,19 +877,17 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
             }
         }
     }
-    setIgnoredFields(std::vector<const char*>());
-    setSpatialFilter(GeometryPtr());
+    setIgnoredFields();
+    setSpatialFilter();
     CPLReleaseMutex(m_featureMutex);
 
-    if(!features.empty()) {
-        while(!features.empty()) {
-            feature = features.back();
-            VectorTileItemArray items = tileGeometry(feature, extGeom.get(), step);
-            if(!items.empty()) {
-                vtile.add(items, false);
-            }
-            features.pop_back();
+    while(!features.empty()) {
+        feature = features.back();
+        VectorTileItemArray items = tileGeometry(feature, extGeom.get(), step);
+        if(!items.empty()) {
+            vtile.add(items, false);
         }
+        features.pop_back();
     }
 
 //    Debug test
@@ -957,7 +956,7 @@ VectorTileItemArray FeatureClass::tileGeometry(const FeaturePtr &feature,
     return out;
 }
 
-bool FeatureClass::setIgnoredFields(const std::vector<const char*> fields)
+bool FeatureClass::setIgnoredFields(const std::vector<const char*>& fields)
 {
     if(nullptr == m_layer) {
         return false;
@@ -976,7 +975,7 @@ bool FeatureClass::setIgnoredFields(const std::vector<const char*> fields)
     return result;
 }
 
-void FeatureClass::setSpatialFilter(GeometryPtr geom)
+void FeatureClass::setSpatialFilter(const GeometryPtr& geom)
 {
     if(nullptr != m_layer) {
         if(geom) {
