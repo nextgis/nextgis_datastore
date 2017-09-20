@@ -371,42 +371,56 @@ bool EditLayerOverlay::addPoint()
     if(!m_geometry)
         return false;
 
-    OGRRawPoint geometryCenter = m_map->getCenter();
-    bool ret = false;
-
-    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only lines
+    OGRLineString* line; // only to line
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbLineString: {
-            OGRLineString* line = ngsDynamicCast(OGRLineString, m_geometry);
-            if(!line)
+            line = ngsDynamicCast(OGRLineString, m_geometry);
+            break;
+        }
+        case wkbMultiLineString: {
+            OGRMultiLineString* ml =
+                    ngsDynamicCast(OGRMultiLineString, m_geometry);
+            if(!ml)
                 break;
-
-            PointId id(line->getNumPoints() - 1); // Add after the last point.
-            OGRPoint pt(geometryCenter.x, geometryCenter.y);
-            ret = addPoint(*line, id, pt);
+            line = dynamic_cast<OGRLineString*>(
+                    ml->getGeometryRef(m_selectedPointId.geometryId()));
             break;
         }
-        default: {
-            break;
-        }
+        default:
+            break; // Not supported yet
     }
-    return ret;
-}
+    if(!line)
+        return false;
 
-bool EditLayerOverlay::addPoint(
-        const OGRLineString& line, const PointId id, const OGRPoint& pt)
-{
-    OGRLineString* newLine = new OGRLineString();
-    newLine->addSubLineString(&line, 0, id.pointId());
-    newLine->addPoint(&pt);
-    newLine->addSubLineString(&line, id.pointId() + 1);
-
-    m_geometry = GeometryUPtr(newLine);
+    int id = line->getNumPoints() - 1; // Add after the last point.
+    OGRRawPoint geometryCenter = m_map->getCenter();
+    OGRPoint pt(geometryCenter.x, geometryCenter.y);
+    int addedPtId = addPoint(line, id, pt);
     saveToHistory();
 
-    m_selectedPointId = id;
-    m_selectedPointId.setPointId(id.pointId() + 1);
+    m_selectedPointId.setPointId(addedPtId); // Update only pointId.
     m_selectedPointCoordinates = pt;
     return true;
+}
+
+int EditLayerOverlay::addPoint(OGRLineString* line, int id, const OGRPoint& pt)
+{
+    bool toLineEnd = (line->getNumPoints() - 1 == id);
+    if(toLineEnd) {
+        line->addPoint(&pt);
+        return line->getNumPoints() - 1;
+    }
+
+    int addedPtId = id + 1;
+    OGRLineString* newLine = new OGRLineString();
+    newLine->addSubLineString(line, 0, id);
+    newLine->addPoint(&pt);
+    newLine->addSubLineString(line, addedPtId);
+
+    line->empty();
+    line->addSubLineString(newLine);
+    delete newLine;
+    return addedPtId;
 }
 
 bool EditLayerOverlay::deletePoint()
@@ -710,7 +724,25 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
 {
     if(!m_geometry)
         return false;
-    OGRLineString* line = ngsDynamicCast(OGRLineString, m_geometry);
+
+    OGRLineString* line;
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
+        case wkbLineString: {
+            line = ngsDynamicCast(OGRLineString, m_geometry);
+            break;
+        }
+        case wkbMultiLineString: {
+            OGRMultiLineString* ml =
+                    ngsDynamicCast(OGRMultiLineString, m_geometry);
+            if(!ml)
+                break;
+            line = dynamic_cast<OGRLineString*>(
+                    ml->getGeometryRef(m_selectedPointId.geometryId()));
+            break;
+        }
+        default:
+            break; // Not supported yet
+    }
     if(!line)
         return false;
 
@@ -729,7 +761,12 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
         return false;
     }
 
-    return addPoint(*line, id, coordinates);
+    int addedPtId = addPoint(line, id.pointId(), coordinates);
+    saveToHistory();
+
+    m_selectedPointId.setPointId(addedPtId); // Update only pointId.
+    m_selectedPointCoordinates = coordinates;
+    return true;
 }
 
 bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint* mapCoordinates) const

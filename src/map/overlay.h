@@ -124,7 +124,7 @@ protected:
     virtual void freeResources();
 
 private:
-    bool addPoint(const OGRLineString& line, const PointId id, const OGRPoint& pt);
+    int addPoint(OGRLineString* line, int id, const OGRPoint& pt);
     bool restoreFromHistory(int historyId);
     bool selectFirstPoint();
     bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
