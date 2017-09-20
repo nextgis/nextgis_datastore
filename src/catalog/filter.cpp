@@ -33,46 +33,52 @@ Filter::Filter(const enum ngsCatalogObjectType type) : m_type(type)
 {
 }
 
-bool Filter::canDisplay(ObjectPtr object) const
+bool Filter::canDisplay(enum ngsCatalogObjectType type, ObjectPtr object)
 {
     if(!object)
         return  false;
 
-    if(m_type == CAT_UNKNOWN)
+    if(type == CAT_UNKNOWN)
         return true;
 
     // Always display containers except filtering of container type
-    if(isContainer(object->type()) && !isContainer(m_type))
+    if(isContainer(object->type()) && !isContainer(type))
         return true;
 
-    if(object->type() == m_type)
+    if(object->type() == type)
         return true;
 
-    if(isContainer(m_type) && (object->type() == CAT_CONTAINER_LOCALCONNECTION ||
-                               object->type() == CAT_CONTAINER_DIR))
+    if(isContainer(type) && (object->type() == CAT_CONTAINER_LOCALCONNECTION ||
+                             object->type() == CAT_CONTAINER_DIR))
         return true;
 
-    if(isFeatureClass(object->type()) && (m_type == CAT_FC_ANY ||
-                                             m_type == CAT_RASTER_FC_ANY))
+    if(isFeatureClass(object->type()) && (type == CAT_FC_ANY ||
+                                          type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isRaster(object->type()) && (m_type == CAT_RASTER_ANY ||
-                                       m_type == CAT_RASTER_FC_ANY))
+    if(isRaster(object->type()) && (type == CAT_RASTER_ANY ||
+                                    type == CAT_RASTER_FC_ANY))
         return true;
 
-    if(isDatabase(object->type()) && (m_type == CAT_CONTAINER_GDB ||
-                                         m_type == CAT_CONTAINER_POSTGRES))
+    if(isDatabase(object->type()) && (type == CAT_CONTAINER_GDB ||
+                                      type == CAT_CONTAINER_POSTGRES))
         return true;
 
-    if(isTable(object->type()) && m_type == CAT_TABLE_ANY)
+    if(isTable(object->type()) && type == CAT_TABLE_ANY)
         return true;
 
     return false;
 }
 
+bool Filter::canDisplay(ObjectPtr object) const
+{
+    return canDisplay(m_type, object);
+}
+
 bool Filter::isFeatureClass(const enum ngsCatalogObjectType type)
 {
-    return type >= CAT_FC_ANY && type < CAT_FC_ALL;
+    return type >= CAT_FC_ANY && type < CAT_FC_ALL ||
+            type == CAT_CONTAINER_SIMPLE;
 }
 
 bool Filter::isSimpleDataset(const enum ngsCatalogObjectType type)
@@ -273,22 +279,11 @@ bool MultiFilter::canDisplay(ObjectPtr object) const
         return false;
 
     for(const auto thisType : m_types) {
-        if(object->type() == thisType)
+        if(Filter::canDisplay(thisType, object)) {
             return true;
-
-        if(isContainer(object->type()) && thisType == CAT_CONTAINER_ANY)
-            return true;
-
-        if(isFeatureClass(object->type()) && thisType == CAT_FC_ANY)
-            return true;
-
-        if(isRaster(object->type()) && thisType == CAT_RASTER_ANY)
-            return true;
-
-        if(isTable(object->type()) && thisType == CAT_TABLE_ANY)
-            return true;
+        }
     }
-            return false;
+    return false;
 }
 
 void MultiFilter::addType(enum ngsCatalogObjectType newType)

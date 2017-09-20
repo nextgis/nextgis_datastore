@@ -50,6 +50,8 @@ public:
     static GDALDriver *getGDALDriver(const enum ngsCatalogObjectType type);
     static const char* getExtension(const enum ngsCatalogObjectType type);
 protected:
+    static bool canDisplay(enum ngsCatalogObjectType type, ObjectPtr object);
+protected:
     enum ngsCatalogObjectType m_type;
 };
 
@@ -62,7 +64,7 @@ public:
     void addType(enum ngsCatalogObjectType newType);
 
 protected:
-    std::vector< enum ngsCatalogObjectType > m_types;
+    std::vector<enum ngsCatalogObjectType> m_types;
 };
 
 }

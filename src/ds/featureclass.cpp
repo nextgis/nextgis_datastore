@@ -662,7 +662,7 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
                 cutGeom->DelaunayTriangulation(0.0, 0));
     for(int i = 0; i < tins->getNumGeometries(); ++i) {
         OGRPolygon* tin = static_cast<OGRPolygon*>(tins->getGeometryRef(i));
-        if(tin->Within(poly)) { // Remove tins from holes
+        if(edges.size() == 1 || tin->Within(poly)) { // Remove tins from holes if holes present
             ring = tin->getExteriorRing();
             SimplePoint pts[3];
             for(unsigned char j = 0; j < 3; ++j) {
@@ -780,14 +780,15 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
-    CPLMutexHolder holderF(m_featureMutex);
     CPLMutexHolder holder(m_genTileMutex);
+    CPLAcquireMutex(m_featureMutex, 10.5);
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
                                               OVR_ZOOM_KEY, tile.z));
     FeaturePtr out(m_ovrTable->GetNextFeature());
     m_ovrTable->SetAttributeFilter(nullptr);
+    CPLReleaseMutex(m_featureMutex);
     return out;
 }
 

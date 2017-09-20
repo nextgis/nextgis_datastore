@@ -315,7 +315,6 @@ bool Table::destroy()
 void Table::setAttributeFilter(const char* filter)
 {
     if(nullptr != m_layer) {
-        CPLMutexHolder holder(m_featureMutex);
         m_layer->SetAttributeFilter(filter);
     }
 }
