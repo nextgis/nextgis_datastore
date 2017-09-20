@@ -87,7 +87,7 @@ bool Filter::isSimpleDataset(const enum ngsCatalogObjectType type)
 
 bool Filter::isContainer(const enum ngsCatalogObjectType type)
 {
-    return type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL;
+    return type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL && type != CAT_CONTAINER_SIMPLE;
 }
 
 bool Filter::isRaster(const enum ngsCatalogObjectType type)
