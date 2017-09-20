@@ -367,8 +367,6 @@ NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId,
                                       double maxX, double maxY);
 NGS_EXTERNC ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg);
 
-NGS_EXTERNC enum ngsDrawState ngsMapTouch(
-        unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 //NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y, double azimuth);
 NGS_EXTERNC JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId,
                                                 enum ngsStyleType styleType);
@@ -410,6 +408,14 @@ NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
 NGS_EXTERNC char ngsOverlayGetVisible(unsigned char mapId,
                                       enum ngsMapOverlayType type);
 /* Edit */
+typedef struct _ngsPointId
+{
+    int pointId;
+    unsigned char isHole;
+} ngsPointId;
+
+NGS_EXTERNC ngsPointId ngsEditOverlayTouch(
+        unsigned char mapId, double x, double y, enum ngsMapTouchType type);
 NGS_EXTERNC char ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayCanUndo(unsigned char mapId);

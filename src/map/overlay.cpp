@@ -77,7 +77,9 @@ EditLayerOverlay::EditLayerOverlay(MapView* map) : Overlay(map, MOT_EDIT),
     m_editedFeatureId(NOT_FOUND),
     m_selectedPointId(),
     m_selectedPointCoordinates(),
-    m_historyState(-1)
+    m_historyState(-1),
+    m_isTouchMoved(false),
+    m_wasTouchingSelectedPoint(false)
 {
     Settings& settings = Settings::instance();
     m_tolerancePx =
@@ -528,6 +530,78 @@ void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
     selectFirstPoint();
 }
 
+ngsPointId EditLayerOverlay::touch(
+        double x, double y, enum ngsMapTouchType type)
+{
+    bool returnSelectedPoint = false;
+    switch(type) {
+        case MTT_ON_DOWN: {
+            m_touchStartPoint = OGRRawPoint(x, y);
+            OGRRawPoint mapPt = m_map->displayToWorld(
+                    OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
+            if(!m_map->getYAxisInverted()) {
+                mapPt.y = -mapPt.y;
+            }
+            m_wasTouchingSelectedPoint = hasSelectedPoint(&mapPt);
+            if(m_wasTouchingSelectedPoint) {
+                returnSelectedPoint = true;
+            }
+            break;
+        }
+        case MTT_ON_MOVE: {
+            if(!m_isTouchMoved) {
+                m_isTouchMoved = true;
+            }
+
+            OGRRawPoint pt = OGRRawPoint(x, y);
+            OGRRawPoint offset(
+                    pt.x - m_touchStartPoint.x, pt.y - m_touchStartPoint.y);
+            OGRRawPoint mapOffset = m_map->getMapDistance(offset.x, offset.y);
+            if(!m_map->getYAxisInverted()) {
+                mapOffset.y = -mapOffset.y;
+            }
+
+            if(m_wasTouchingSelectedPoint) {
+                shiftPoint(mapOffset);
+                returnSelectedPoint = true;
+            }
+
+            m_touchStartPoint = pt;
+            break;
+        }
+        case MTT_ON_UP: {
+            if(m_isTouchMoved) {
+                m_isTouchMoved = false;
+                if(m_wasTouchingSelectedPoint) {
+                    saveToHistory();
+                    m_wasTouchingSelectedPoint = false;
+                }
+            } else{
+                OGRRawPoint mapPt = m_map->displayToWorld(
+                        OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
+                if(!m_map->getYAxisInverted()) {
+                    mapPt.y = -mapPt.y;
+                }
+                if(clickPoint(mapPt)) {
+                    returnSelectedPoint = true;
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    ngsPointId ptId;
+    if(returnSelectedPoint) {
+        ptId.pointId = m_selectedPointId.pointId();
+        ptId.isHole = m_selectedPointId.ringId() >= 1;
+    } else {
+        ptId = {NOT_FOUND, 0};
+    }
+    return ptId;
+}
+
 bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
 {
     return selectPoint(false, mapCoordinates)
@@ -599,7 +673,7 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
 
 bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint* mapCoordinates) const
 {
-    bool ret = (m_selectedPointId) ? true : false;
+    bool ret = static_cast<bool>(m_selectedPointId);
     if(ret && mapCoordinates) {
         OGRRawPoint mapTolerance =
                 m_map->getMapDistance(m_tolerancePx, m_tolerancePx);

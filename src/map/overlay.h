@@ -114,11 +114,12 @@ public:
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
-    virtual bool clickPoint(const OGRRawPoint& mapCoordinates);
-    bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
+    ngsPointId touch(double x, double y, enum ngsMapTouchType type);
 
 protected:
+    bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool clickPoint(const OGRRawPoint& mapCoordinates);
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
     virtual void setGeometry(GeometryUPtr geometry);
     virtual void freeResources();
 
@@ -139,6 +140,10 @@ protected:
     double m_tolerancePx;
     std::list<GeometryUPtr> m_history;
     int m_historyState;
+
+    OGRRawPoint m_touchStartPoint;
+    bool m_isTouchMoved;
+    bool m_wasTouchingSelectedPoint;
 };
 
 class LocationOverlay : public Overlay

@@ -48,7 +48,6 @@ public:
     OverlayPtr getOverlay(enum ngsMapOverlayType type) const;
     void setOverlayVisible(int typeMask, bool visible);
     int overlayVisibleMask() const;
-    ngsDrawState mapTouch(double x, double y, enum ngsMapTouchType type);
     virtual bool setOptions(const Options& options);
     virtual bool setSelectionStyleName(enum ngsStyleType styleType, const char* name) = 0;
     virtual bool setSelectionStyle(enum ngsStyleType styleType, const CPLJSONObject& style) = 0;
@@ -86,10 +85,6 @@ protected:
         }
     } IconSetItem;
     std::vector<IconSetItem> m_iconSets;
-
-    OGRRawPoint m_touchStartPoint;
-    bool m_touchMoved;
-    bool m_touchSelectedPoint;
 };
 
 typedef std::shared_ptr<MapView> MapViewPtr;

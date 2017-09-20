@@ -2355,17 +2355,6 @@ ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
     return {0.0, 0.0, 0.0, 0.0};
 }
 
-ngsDrawState ngsMapTouch(
-        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
-{
-    MapStore* const mapStore = MapStore::getInstance();
-    if(nullptr == mapStore) {
-        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
-        return DS_NOTHING;
-    }
-    return mapStore->mapTouch(mapId, x, y, type);
-}
-
 /**
  * @brief ngsMapGetSelectionStyle Map selection style as json
  * @param mapId Map identificator
@@ -2734,6 +2723,17 @@ char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
         return false;
     }
     return overlay->visible();
+}
+
+ngsPointId ngsEditOverlayTouch(
+        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return {NOT_FOUND, 0};
+    }
+    return editOverlay->touch(x, y, type);
 }
 
 char ngsEditOverlayUndo(unsigned char mapId)
