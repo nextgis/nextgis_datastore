@@ -266,6 +266,24 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
             geometry = GeometryUPtr(mpt);
             break;
         }
+        case wkbMultiLineString: {
+            OGRMultiLineString* mline = new OGRMultiLineString();
+
+            OGRLineString* line = new OGRLineString();
+            line->addPoint(
+                    geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
+            line->addPoint(
+                    geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
+
+            // FIXME: for test, remove it.
+            line->addPoint(geometryCenter.x + 2 * mapDist.x,
+                    geometryCenter.y - 2 * mapDist.y);
+
+            mline->addGeometryDirectly(line);
+            geometry = GeometryUPtr(mline);
+
+            break;
+        }
         default: {
             break;
         }
