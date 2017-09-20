@@ -831,14 +831,15 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
         }
 
         // FIXME: Expected indices should fit to buffer as points can
-        unsigned short maxFillIndex = 0;
+//        unsigned short maxFillIndex = 0;
         for(auto indexPoint : indices) {
-            fillBuffer->addIndex(fillIndex + indexPoint);
-            if(maxFillIndex < indexPoint) {
-                maxFillIndex = indexPoint;
-            }
+            fillBuffer->addIndex(fillIndex++);
+//            fillBuffer->addIndex(fillIndex + indexPoint);
+//            if(maxFillIndex < indexPoint) {
+//                maxFillIndex = indexPoint;
+//            }
         }
-        fillIndex += maxFillIndex;
+//        fillIndex += maxFillIndex;
 
 
         // Fill borders

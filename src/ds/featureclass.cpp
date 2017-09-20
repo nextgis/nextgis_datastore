@@ -658,28 +658,35 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
 
     // Test without holes
     unsigned short index = 0;
+    struct simpleAndOriginPt {
+        SimplePoint pt;
+        double x, y;
+    };
+
     OGRGeometryCollection* tins = static_cast<OGRGeometryCollection*>(
                 cutGeom->DelaunayTriangulation(0.0, 0));
     for(int i = 0; i < tins->getNumGeometries(); ++i) {
         OGRPolygon* tin = static_cast<OGRPolygon*>(tins->getGeometryRef(i));
-        if(edges.size() == 1 || tin->Within(poly)) { // Remove tins from holes if holes present
+        if(tin->Within(poly)) { // Remove tins not overlaped poly
             ring = tin->getExteriorRing();
-            SimplePoint pts[3];
+            struct simpleAndOriginPt pts[3];
             for(unsigned char j = 0; j < 3; ++j) {
                 ring->getPoint(j, &pt);
-                // Check each vertex belongs to exterior or interior ring
-                setEdgeIndex(index + j, pt.getX(), pt.getY(), edges);
                 // Simplify tin
-                pts[j] = generalizePoint(&pt, step);
+                pts[j] = {generalizePoint(&pt, step), pt.getX(), pt.getY()};
             }
 
             // Add tin and indexes
-            if(pts[0] == pts[1] || pts[1] == pts[2] || pts[2] == pts[0]) {
+            if(pts[0].pt == pts[1].pt || pts[1].pt == pts[2].pt ||
+                    pts[2].pt == pts[0].pt) {
                 continue;
             }
 
             for(unsigned char j = 0; j < 3; ++j) {
-                vitem.addPoint(pts[j]);
+                vitem.addPoint(pts[j].pt);
+                // Check each vertex belongs to exterior or interior ring
+                setEdgeIndex(index, pts[j].x, pts[j].y, edges);
+
                 vitem.addIndex(index++);
             }
         }
