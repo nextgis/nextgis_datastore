@@ -479,10 +479,11 @@ bool EditLayerOverlay::addGeometryPart()
 
 bool EditLayerOverlay::deleteGeometryPart()
 {
+    bool deletedLastPart = false;
     if(!m_geometry)
-        return false;
+        return deletedLastPart;
 
-    bool ret = false;
+    bool geometryChanged = false;
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
@@ -505,10 +506,11 @@ bool EditLayerOverlay::deleteGeometryPart()
                 m_selectedPointId = PointId(0, NOT_FOUND, lastGeomId);
                 m_selectedPointCoordinates = *lastPt;
             } else {
+                deletedLastPart = true;
                 m_selectedPointId = PointId();
                 m_selectedPointCoordinates = OGRPoint();
             }
-            ret = true;
+            geometryChanged = true;
             break;
         }
         default: {
@@ -516,10 +518,10 @@ bool EditLayerOverlay::deleteGeometryPart()
         }
     }
 
-    if(ret) {
+    if(geometryChanged) {
         saveToHistory();
     }
-    return ret;
+    return deletedLastPart;
 }
 
 void EditLayerOverlay::setGeometry(GeometryUPtr geometry)

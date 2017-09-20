@@ -2901,17 +2901,18 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
+/**
+ *
+ * @param mapId
+ * @return 1 if was deleted a last geometry part else 0.
+ */
+char ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->deleteGeometryPart()) {
-        return errorMessage(
-                COD_DELETE_FAILED, _("Geometry part deleting is failed"));
-    }
-    return COD_SUCCESS;
+    return editOverlay->deleteGeometryPart() ? 1 : 0;
 }
 
 int ngsEditOverlaySetStyle(

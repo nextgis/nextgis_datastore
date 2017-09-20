@@ -170,9 +170,7 @@ bool GlEditLayerOverlay::addGeometryPart()
 bool GlEditLayerOverlay::deleteGeometryPart()
 {
     bool ret = EditLayerOverlay::deleteGeometryPart();
-    if(ret) {
-        fill();
-    }
+    fill();
     return ret;
 }
 
@@ -342,22 +340,18 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
     EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle, m_pointStyle);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* bufferArray = new VectorGlObject();
+    GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
+    VectorGlObject* selBufferArray = new VectorGlObject();
 
     int index = 0;
     for(int i = 0; i < numPoints; ++i) {
         SimplePoint pt = getPoint(i);
 
         if(isSelectedPoint(i)) {
-            GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
             if(editPointStyle)
                 editPointStyle->setEditElementType(EET_SELECTED_POINT);
             /*int selIndex = */
             m_pointStyle->addPoint(pt, 0, selBuffer);
-
-            VectorGlObject* selBufferArray = new VectorGlObject();
-            selBufferArray->addBuffer(selBuffer);
-
-            m_elements[EET_SELECTED_POINT] = GlObjectPtr(selBufferArray);
             continue;
         }
 
@@ -376,6 +370,8 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
 
     bufferArray->addBuffer(buffer);
     m_elements[EET_POINT] = GlObjectPtr(bufferArray);
+    selBufferArray->addBuffer(selBuffer);
+    m_elements[EET_SELECTED_POINT] = GlObjectPtr(selBufferArray);
 }
 
 void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
@@ -394,6 +390,8 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
     EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle, m_pointStyle);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* bufferArray = new VectorGlObject();
+    GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
+    VectorGlObject* selBufferArray = new VectorGlObject();
 
     int index = 0;
     for(int i = 0; i < numPoints - 1; ++i) {
@@ -402,16 +400,10 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
         SimplePoint pt = ngsGetMedianPoint(pt1, pt2);
 
         if(isSelectedMedianPoint(i)) {
-            GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
             if(editPointStyle)
                 editPointStyle->setEditElementType(EET_SELECTED_MEDIAN_POINT);
             /*int selIndex = */
             m_pointStyle->addPoint(pt, 0, selBuffer);
-
-            VectorGlObject* selBufferArray = new VectorGlObject();
-            selBufferArray->addBuffer(selBuffer);
-
-            m_elements[EET_SELECTED_MEDIAN_POINT] = GlObjectPtr(selBufferArray);
             continue;
         }
 
@@ -430,6 +422,8 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
 
     bufferArray->addBuffer(buffer);
     m_elements[EET_MEDIAN_POINT] = GlObjectPtr(bufferArray);
+    selBufferArray->addBuffer(selBuffer);
+    m_elements[EET_SELECTED_MEDIAN_POINT] = GlObjectPtr(selBufferArray);
 }
 
 void GlEditLayerOverlay::fillLineElements(bool isClosedLine,

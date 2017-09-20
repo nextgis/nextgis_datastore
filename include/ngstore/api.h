@@ -411,7 +411,7 @@ NGS_EXTERNC char ngsOverlayGetVisible(unsigned char mapId,
 typedef struct _ngsPointId
 {
     int pointId;
-    unsigned char isHole;
+    char isHole;
 } ngsPointId;
 
 NGS_EXTERNC ngsPointId ngsEditOverlayTouch(
@@ -429,7 +429,7 @@ NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddPoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeletePoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
+NGS_EXTERNC char ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySetStyle(unsigned char mapId,
                                        enum ngsEditStyleType type,
                                        JsonObjectH style);
