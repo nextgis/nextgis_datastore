@@ -463,6 +463,8 @@ bool EditLayerOverlay::addGeometryPart()
         return false;
 
     OGRRawPoint geometryCenter = m_map->getCenter();
+    OGRRawPoint mapDist =
+            m_map->getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
     bool ret = false;
 
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
@@ -484,6 +486,30 @@ bool EditLayerOverlay::addGeometryPart()
             ret = true;
             break;
         }
+        case wkbMultiLineString: {
+            OGRMultiLineString* mline = ngsDynamicCast(OGRMultiLineString, m_geometry);
+            if(!mline)
+                break;
+
+            OGRPoint startPt(
+                    geometryCenter.x - mapDist.x, geometryCenter.y - mapDist.y);
+            OGRPoint endPt(
+                    geometryCenter.x + mapDist.x, geometryCenter.y + mapDist.y);
+            OGRLineString* line = new OGRLineString();
+            line->addPoint(&startPt);
+            line->addPoint(&endPt);
+
+            if(OGRERR_NONE != mline->addGeometryDirectly(line)) {
+                delete line;
+                break;
+            }
+
+            int num = mline->getNumGeometries();
+            m_selectedPointId = PointId(0, NOT_FOUND, num - 1);
+            m_selectedPointCoordinates = startPt;
+            ret = true;
+            break;
+        }
         default: {
             break;
         }
@@ -501,44 +527,59 @@ bool EditLayerOverlay::deleteGeometryPart()
     if(!m_geometry)
         return deletedLastPart;
 
-    bool geometryChanged = false;
-    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
-        case wkbMultiPoint: {
-            OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
-            if(!mpt)
-                break;
+    OGRGeometryCollection* collect =
+            ngsDynamicCast(OGRGeometryCollection, m_geometry);
+    if(!collect || collect->getNumGeometries() == 0) // only multi
+        return deletedLastPart;
 
-            if(mpt->getNumGeometries() == 0)
-                break;
+    if(OGRERR_NONE
+            != collect->removeGeometry(m_selectedPointId.geometryId())) {
+        return deletedLastPart;
+    }
+    saveToHistory();
 
-            if(OGRERR_NONE
-                    != mpt->removeGeometry(m_selectedPointId.geometryId())) {
-                break;
-            }
+    int lastGeomId = collect->getNumGeometries() - 1;
+    if(lastGeomId < 0) {
+        deletedLastPart = true;
+        m_selectedPointId = PointId();
+        m_selectedPointCoordinates = OGRPoint();
+    }
 
-            int lastGeomId = mpt->getNumGeometries() - 1;
-            if(lastGeomId >= 0) {
-                const OGRGeometry* lastGeom = mpt->getGeometryRef(lastGeomId);
+    if(!deletedLastPart) {
+        const OGRGeometry* lastGeom = collect->getGeometryRef(lastGeomId);
+        switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
+            case wkbMultiPoint: {
+                OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
+                if(!mpt)
+                    break;
+
                 const OGRPoint* lastPt =
                         dynamic_cast<const OGRPoint*>(lastGeom);
                 m_selectedPointId = PointId(0, NOT_FOUND, lastGeomId);
                 m_selectedPointCoordinates = *lastPt;
-            } else {
-                deletedLastPart = true;
-                m_selectedPointId = PointId();
-                m_selectedPointCoordinates = OGRPoint();
+                break;
             }
-            geometryChanged = true;
-            break;
-        }
-        default: {
-            break;
+            case wkbMultiLineString: {
+                OGRMultiLineString* mline =
+                        ngsDynamicCast(OGRMultiLineString, m_geometry);
+                if(!mline)
+                    break;
+
+                const OGRLineString* lastLine =
+                        dynamic_cast<const OGRLineString*>(lastGeom);
+                int lastPointId = lastLine->getNumPoints() - 1;
+                OGRPoint lastPt;
+                lastLine->getPoint(lastPointId, &lastPt);
+                m_selectedPointId = PointId(lastPointId, NOT_FOUND, lastGeomId);
+                m_selectedPointCoordinates = lastPt;
+                break;
+            }
+            default: {
+                break;
+            }
         }
     }
 
-    if(geometryChanged) {
-        saveToHistory();
-    }
     return deletedLastPart;
 }
 

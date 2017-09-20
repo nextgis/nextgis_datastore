@@ -209,6 +209,8 @@ bool GlEditLayerOverlay::fill()
         return false;
     }
 
+    freeGlBuffers();
+
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbPoint:
         case wkbMultiPoint: {
@@ -321,15 +323,6 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
         GetPointFunc getPointFunc,
         IsSelectedGeometryFunc isSelectedPointFunc)
 {
-    auto it = m_elements.find(EET_POINT);
-    if(m_elements.end() != it) {
-        freeGlBuffer(it->second);
-    }
-    it = m_elements.find(EET_SELECTED_POINT);
-    if(m_elements.end() != it) {
-        freeGlBuffer(it->second);
-    }
-
     EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle, m_pointStyle);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* bufferArray = new VectorGlObject();
@@ -371,15 +364,6 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
         GetPointFunc getPointFunc,
         IsSelectedGeometryFunc isSelectedMedianPointFunc)
 {
-    auto it = m_elements.find(EET_MEDIAN_POINT);
-    if(m_elements.end() != it) {
-        freeGlBuffer(it->second);
-    }
-    it = m_elements.find(EET_SELECTED_MEDIAN_POINT);
-    if(m_elements.end() != it) {
-        freeGlBuffer(it->second);
-    }
-
     EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle, m_pointStyle);
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* bufferArray = new VectorGlObject();
@@ -423,13 +407,6 @@ void GlEditLayerOverlay::fillLineElements(int numLines,
         GetLineFunc getLineFunc,
         IsSelectedGeometryFunc isSelectedLineFunc)
 {
-    auto it = m_elements.find(EET_LINE);
-    if(m_elements.end() != it)
-        freeGlBuffer(it->second);
-    it = m_elements.find(EET_SELECTED_LINE);
-    if(m_elements.end() != it)
-        freeGlBuffer(it->second);
-
     VectorGlObject* bufferArray = new VectorGlObject();
     VectorGlObject* selBufferArray = new VectorGlObject();
 
