@@ -64,9 +64,8 @@ float angle(const Normal &normal) {
 // Style
 //------------------------------------------------------------------------------
 
-Style::Style()
-        : m_vertexShaderSource(nullptr),
-          m_fragmentShaderSource(nullptr)
+Style::Style() : m_vertexShaderSource(nullptr),
+    m_fragmentShaderSource(nullptr)
 {
 }
 
@@ -145,8 +144,7 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
 constexpr GlColor defaultGlColor = { 0.0, 1.0, 0.0, 1.0 };
 constexpr ngsRGBA defaultRGBAColor = { 0, 255, 0, 255 };
 
-SimpleVectorStyle::SimpleVectorStyle() :
-    Style(),
+SimpleVectorStyle::SimpleVectorStyle() : Style(),
     m_color(defaultGlColor)
 {
 
@@ -180,10 +178,9 @@ CPLJSONObject SimpleVectorStyle::save() const
 //------------------------------------------------------------------------------
 // PointStyle
 //------------------------------------------------------------------------------
-PointStyle::PointStyle(enum PointType type)
-        : SimpleVectorStyle(),
-          m_type(type),
-          m_size(6.0f)
+PointStyle::PointStyle(enum PointType type) : SimpleVectorStyle(),
+    m_type(type),
+    m_size(6.0f)
 {
     m_styleType = ST_POINT;
 }
@@ -333,8 +330,7 @@ constexpr const GLchar* const pointFragmentShaderSource = R"(
     }
 )";
 
-SimplePointStyle::SimplePointStyle(enum PointType type)
-        : PointStyle(type)
+SimplePointStyle::SimplePointStyle(enum PointType type) : PointStyle(type)
 {
     m_vertexShaderSource = pointVertexShaderSource;
     m_fragmentShaderSource = pointFragmentShaderSource;
@@ -403,12 +399,12 @@ constexpr const GLchar* const lineFragmentShaderSource = R"(
 
 
 SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
-          m_normalId(-1),
-          m_vLineWidthId(-1),
-          m_width(1.0),
-          m_capType(CT_BUTT), //CT_ROUND),
-          m_joinType(JT_BEVELED), //JT_ROUND),
-          m_segmentCount(6)
+    m_normalId(-1),
+    m_vLineWidthId(-1),
+    m_width(1.0),
+    m_capType(CT_BUTT), //CT_ROUND),
+    m_joinType(JT_BEVELED), //JT_ROUND),
+    m_segmentCount(6)
 {
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
@@ -1095,8 +1091,7 @@ constexpr const GLchar* const fillFragmentShaderSource = R"(
     }
 )";
 
-SimpleFillStyle::SimpleFillStyle()
-        : SimpleVectorStyle()
+SimpleFillStyle::SimpleFillStyle() : SimpleVectorStyle()
 {
     m_vertexShaderSource = fillVertexShaderSource;
     m_fragmentShaderSource = fillFragmentShaderSource;
@@ -1124,10 +1119,10 @@ void SimpleFillStyle::draw(const GlBuffer& buffer) const
 // SimpleFillBorderStyle
 //------------------------------------------------------------------------------
 
-SimpleFillBorderedStyle::SimpleFillBorderedStyle()
-        : Style()
+SimpleFillBorderedStyle::SimpleFillBorderedStyle() : Style()
 {
     m_styleType = ST_FILL;
+    m_line.setColor({128,128,128,255});
 }
 
 bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
@@ -1302,7 +1297,8 @@ constexpr const GLchar* const markerFragmentShaderSource = R"(
     }
 )";
 
-MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) : PointStyle(PT_MARKER),
+MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) :
+    PointStyle(PT_MARKER),
     m_iconSet(nullptr),
     m_textureAtlas(textureAtlas)
 {
@@ -1608,8 +1604,7 @@ CPLJSONObject MarkerEditPointStyle::save() const
 // EditLineStyle
 //------------------------------------------------------------------------------
 
-EditLineStyle::EditLineStyle()
-        : SimpleLineStyle()
+EditLineStyle::EditLineStyle() : SimpleLineStyle()
 {
     m_lineColor = lineColor;
     m_selectedLineColor = selectedLineColor;

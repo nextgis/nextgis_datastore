@@ -216,6 +216,7 @@ GIntBig Table::featureCount(bool force) const
     if(nullptr == m_layer)
         return 0;
 
+    CPLMutexHolder holder(m_featureMutex);
     return m_layer->GetFeatureCount(force ? TRUE : FALSE);
 }
 
@@ -314,6 +315,7 @@ bool Table::destroy()
 void Table::setAttributeFilter(const char* filter)
 {
     if(nullptr != m_layer) {
+        CPLMutexHolder holder(m_featureMutex);
         m_layer->SetAttributeFilter(filter);
     }
 }

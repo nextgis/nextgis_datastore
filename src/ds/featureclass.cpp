@@ -42,6 +42,7 @@ namespace ngs {
 constexpr const char* ZOOM_LEVELS_OPTION = "ZOOM_LEVELS";
 constexpr unsigned short TILE_SIZE = 256; //240; //512;// 160; // Only use for overviews now in pixelSize
 constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
+constexpr unsigned short MAX_EDGE_INDEX = 65534;
 
 //------------------------------------------------------------------------------
 // VectorTileItem
@@ -67,8 +68,11 @@ void VectorTileItem::removeId(GIntBig id)
 
 void VectorTileItem::addBorderIndex(unsigned short ring, unsigned short index)
 {
-    for(unsigned short i = 0; i < ring + 1; ++i) {
-        m_borderIndices.push_back(std::vector<unsigned short>());
+    if(m_borderIndices.size() <= ring) {
+       for(unsigned short i = static_cast<unsigned short>(m_borderIndices.size());
+           i < ring + 1; ++i) {
+            m_borderIndices.push_back(std::vector<unsigned short>());
+        }
     }
     m_borderIndices[ring].push_back(index);
 }
@@ -292,9 +296,6 @@ bool VectorTile::load(Buffer& buffer)
     m_valid = true;
     return true;
 }
-
-// TODO: OGRGeometry::DelaunayTriangulation
-// TODO: Check if triangle belong the interior ring - remove it
 
 //------------------------------------------------------------------------------
 // FeatureClass
@@ -575,11 +576,152 @@ void FeatureClass::tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
     }
 }
 
+typedef struct _edgePt {
+    OGRRawPoint pr;
+    unsigned short index;
+} EDGE_PT;
+
+typedef std::map<int, std::vector<EDGE_PT>> EDGES;
+
+void setEdgeIndex(unsigned short index, double x, double y, EDGES& edges)
+{
+    for(auto& edge : edges) {
+        for(EDGE_PT& edgeitem : edge.second) {
+            if(isEqual(edgeitem.pr.x, x) && isEqual(edgeitem.pr.y, y)) {
+                edgeitem.index = index;
+                return;
+            }
+        }
+    }
+}
+
 void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
                                OGRGeometry* extent, float step,
                                VectorTileItemArray& vitemArray) const
 {
+    GeometryPtr cutGeom(geom->Intersection(extent));
+    if(!cutGeom) {
+        return;
+    }
 
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbMultiPolygon) {
+        return tileMultiPolygon(fid, cutGeom.get(), extent, step, vitemArray);
+    }
+
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbGeometryCollection) {
+        OGRGeometryCollection* coll = ngsStaticCast(OGRGeometryCollection, cutGeom);
+        for(int i = 0; i < coll->getNumGeometries(); ++i) {
+            OGRGeometry* collGeom = coll->getGeometryRef(i);
+            if(OGR_GT_Flatten(collGeom->getGeometryType()) == wkbMultiPolygon) {
+                tileMultiPolygon(fid, collGeom, extent, step, vitemArray);
+            }
+            else if(OGR_GT_Flatten(collGeom->getGeometryType()) == wkbPolygon) {
+                tilePolygon(fid, collGeom, extent, step, vitemArray);
+            }
+            else {
+                CPLDebug("ngstore", "Tile not line");
+            }
+        }
+        return;
+    }
+
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) != wkbPolygon) {
+        CPLDebug("ngstore", "Tile not line");
+        return;
+    }
+
+    VectorTileItem vitem;
+    vitem.addId(fid);
+    OGRPolygon* poly = ngsStaticCast(OGRPolygon, cutGeom);
+
+    OGRPoint center;
+    poly->Centroid(&center);
+    SimplePoint simpleCenter = generalizePoint(&center, step);
+
+    EDGES edges;
+    OGRPoint pt;
+
+    OGRLinearRing* ring = poly->getExteriorRing();
+    for(int i = 0; i < ring->getNumPoints(); ++i) {
+        ring->getPoint(i, &pt);
+        edges[0].push_back({OGRRawPoint(pt.getX(), pt.getY()), MAX_EDGE_INDEX});
+    }
+
+    for(int i = 0; i < poly->getNumInteriorRings(); ++i) {
+        ring = poly->getInteriorRing(i);
+        for(int j = 0; j < ring->getNumPoints(); ++j) {
+            ring->getPoint(j, &pt);
+            edges[i + 1].push_back({OGRRawPoint(pt.getX(), pt.getY()), MAX_EDGE_INDEX});
+        }
+    }
+
+
+    // Test without holes
+    unsigned short index = 0;
+    OGRGeometryCollection* tins = static_cast<OGRGeometryCollection*>(
+                cutGeom->DelaunayTriangulation(0.0, 0));
+    for(int i = 0; i < tins->getNumGeometries(); ++i) {
+        OGRPolygon* tin = static_cast<OGRPolygon*>(tins->getGeometryRef(i));
+        if(tin->Within(poly)) { // Remove tins from holes
+            ring = tin->getExteriorRing();
+            SimplePoint pts[3];
+            for(unsigned char j = 0; j < 3; ++j) {
+                ring->getPoint(j, &pt);
+                // Check each vertex belongs to exterior or interior ring
+                setEdgeIndex(index + j, pt.getX(), pt.getY(), edges);
+                // Simplify tin
+                pts[j] = generalizePoint(&pt, step);
+            }
+
+            // Add tin and indexes
+            if(pts[0] == pts[1] || pts[1] == pts[2] || pts[2] == pts[0]) {
+                continue;
+            }
+
+            for(unsigned char j = 0; j < 3; ++j) {
+                vitem.addPoint(pts[j]);
+                vitem.addIndex(index++);
+            }
+        }
+    }
+
+    // If all tins are filtered out, create triangle at the center of poly
+    if(vitem.pointCount() == 0) {
+        SimplePoint pt1 = {simpleCenter.x - 0.5f, simpleCenter.y - 0.5f};
+        vitem.addPoint(pt1);
+        unsigned short firstIndex = index;
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        SimplePoint pt2 = {simpleCenter.x - 0.5f, simpleCenter.y + 0.5f};
+        vitem.addPoint(pt2);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        SimplePoint pt3 = {simpleCenter.x + 0.5f, simpleCenter.y + 0.5f};
+        vitem.addPoint(pt3);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        vitem.addBorderIndex(0, firstIndex); // Close ring
+    }
+    else {
+        for(unsigned short i = 0; i < poly->getNumInteriorRings() + 1; ++i) {
+            unsigned short firstIndex = MAX_EDGE_INDEX;
+            for(auto& edge : edges[i]) {
+                if(edge.index != MAX_EDGE_INDEX) {
+                    if(firstIndex == MAX_EDGE_INDEX) {
+                        firstIndex = edge.index;
+                    }
+                    vitem.addBorderIndex(i, edge.index);
+                }
+            }
+            vitem.addBorderIndex(i, firstIndex);
+        }
+    }
+
+    vitem.setValid(true);
+    vitemArray.push_back(vitem);
 }
 
 void FeatureClass::tileMultiPoint(GIntBig fid, OGRGeometry* geom,
@@ -638,6 +780,7 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
+    CPLMutexHolder holderF(m_featureMutex);
     CPLMutexHolder holder(m_genTileMutex);
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
