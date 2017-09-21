@@ -246,7 +246,7 @@ void GlEditLayerOverlay::fillPoints()
             };
 
             auto isSelectedPoint = [this](int /*index*/) -> bool {
-                return (PointId(0) == m_selectedPointId);
+                return (m_selectedPointId.pointId() == 0);
             };
 
             fillPointElements(1, getPoint, isSelectedPoint);
@@ -266,7 +266,8 @@ void GlEditLayerOverlay::fillPoints()
             };
 
             auto isSelectedPoint = [this](int index) -> bool {
-                return (PointId(0, NOT_FOUND, index) == m_selectedPointId);
+                return (m_selectedPointId.geometryId() == index &&
+                        m_selectedPointId.pointId() == 0);
             };
 
             fillPointElements(mpt->getNumGeometries(), getPoint, isSelectedPoint);

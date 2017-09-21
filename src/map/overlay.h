@@ -65,34 +65,42 @@ public:
 
     static PointId getGeometryPointId(const OGRGeometry& geometry,
             const Envelope env,
-            OGRPoint* coordinates);
+            const PointId* selectedPointId = nullptr,
+            OGRPoint* coordinates = nullptr);
     static PointId getLineStringMedianPointId(const OGRLineString& line,
             const Envelope env,
-            OGRPoint* coordinates);
+            OGRPoint* coordinates = nullptr);
     static OGRPoint getGeometryPointCoordinates(
             const OGRGeometry& geometry, const PointId& id);
     static bool shiftGeometryPoint(OGRGeometry& geometry,
             const PointId& id,
             const OGRRawPoint& offset,
-            OGRPoint* coordinates);
+            OGRPoint* coordinates = nullptr);
 
 private:
-    static PointId getPointId(
-            const OGRPoint& pt, const Envelope env, OGRPoint* coordinates);
+    static PointId getPointId(const OGRPoint& pt,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
     static PointId getLineStringPointId(const OGRLineString& line,
             const Envelope env,
+            const PointId* selectedPointId,
             OGRPoint* coordinates);
     static PointId getPolygonPointId(const OGRPolygon& polygon,
             const Envelope env,
+            const PointId* selectedPointId,
             OGRPoint* coordinates);
     static PointId getMultiPointPointId(const OGRMultiPoint& mpt,
             const Envelope env,
+            const PointId* selectedPointId,
             OGRPoint* coordinates);
     static PointId getMultiLineStringPointId(const OGRMultiLineString& mline,
             const Envelope env,
+            const PointId* selectedPointId,
             OGRPoint* coordinates);
     static PointId getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
             const Envelope env,
+            const PointId* selectedPointId,
             OGRPoint* coordinates);
 
     static OGRPoint getPointCoordinates(const OGRPoint& pt, const PointId& id);
@@ -195,7 +203,6 @@ private:
     bool clickMedianPoint(const OGRRawPoint& mapCoordinates);
     bool clickLine(const OGRRawPoint& mapCoordinates);
     bool selectFirstPoint();
-    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
 
 protected:
     LayerPtr m_editedLayer;
