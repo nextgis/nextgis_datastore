@@ -185,9 +185,9 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
     fill();
 }
 
-bool GlEditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
+bool GlEditLayerOverlay::singleTap(const OGRRawPoint& mapCoordinates)
 {
-    bool ret = EditLayerOverlay::clickPoint(mapCoordinates);
+    bool ret = EditLayerOverlay::singleTap(mapCoordinates);
     if(ret) {
         fill();
     }
