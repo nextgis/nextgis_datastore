@@ -43,9 +43,7 @@ constexpr const char* PATH_KEY = "path";
 
 
 MapView::MapView() : Map(),
-    MapTransform(480, 640),
-    m_touchMoved(false),
-    m_touchSelectedPoint(false)
+    MapTransform(480, 640)
 {
 }
 
@@ -53,9 +51,7 @@ MapView::MapView(const CPLString& name,
         const CPLString& description,
         unsigned short epsg,
         const Envelope& bounds) : Map(name, description, epsg, bounds),
-    MapTransform(480, 640),
-    m_touchMoved(false),
-    m_touchSelectedPoint(false)
+    MapTransform(480, 640)
 {
 }
 
@@ -294,83 +290,6 @@ int MapView::overlayVisibleMask() const
     }
 
     return mask;
-}
-
-ngsDrawState MapView::mapTouch(double x, double y, enum ngsMapTouchType type)
-{
-    EditLayerOverlay* editOverlay = nullptr;
-    OverlayPtr overlay = getOverlay(MOT_EDIT);
-    if (overlay) {
-        editOverlay = ngsDynamicCast(EditLayerOverlay, overlay);
-    }
-    bool editMode = editOverlay && editOverlay->visible();
-
-    switch(type) {
-        case MTT_ON_DOWN: {
-            m_touchStartPoint = OGRRawPoint(x, y);
-            if (editMode) {
-                OGRRawPoint mapPt = displayToWorld(
-                        OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
-                if (!getYAxisInverted()) {
-                    mapPt.y = -mapPt.y;
-                }
-                m_touchSelectedPoint = editOverlay->hasSelectedPoint(&mapPt);
-            }
-            return DS_NOTHING;
-        }
-        case MTT_ON_MOVE: {
-            if (!m_touchMoved) {
-                m_touchMoved = true;
-            }
-
-            OGRRawPoint pt = OGRRawPoint(x, y);
-            OGRRawPoint offset(
-                    pt.x - m_touchStartPoint.x, pt.y - m_touchStartPoint.y);
-            OGRRawPoint mapOffset = getMapDistance(offset.x, offset.y);
-            if (!getYAxisInverted()) {
-                mapOffset.y = -mapOffset.y;
-            }
-
-            bool moveMap = true;
-            if (editMode && m_touchSelectedPoint) {
-                moveMap = !editOverlay->shiftPoint(mapOffset);
-            }
-
-            if (moveMap) {
-                OGRRawPoint mapCenter = getCenter();
-                setCenter(mapCenter.x - mapOffset.x, mapCenter.y - mapOffset.y);
-            }
-
-            m_touchStartPoint = pt;
-            return DS_PRESERVED;
-        }
-        case MTT_ON_UP: {
-            if (m_touchMoved) {
-                m_touchMoved = false;
-                bool pointWasMoved = m_touchSelectedPoint;
-                if (m_touchSelectedPoint) {
-                    m_touchSelectedPoint = false;
-                }
-                if (editMode && pointWasMoved) {
-                    editOverlay->saveToHistory();
-                } else { // if normal mode
-                    return DS_NORMAL;
-                }
-            } else if(editMode) {
-                OGRRawPoint mapPt = displayToWorld(
-                        OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
-                if(!getYAxisInverted()) {
-                    mapPt.y = -mapPt.y;
-                }
-                if(editOverlay->clickPoint(mapPt)) {
-                    return DS_PRESERVED;
-                }
-            }
-            return DS_NOTHING;
-        }
-        default:
-            return DS_NOTHING;
-    }
 }
 
 bool MapView::setOptions(const Options& options)

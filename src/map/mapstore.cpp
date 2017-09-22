@@ -389,13 +389,4 @@ bool MapStore::setOverlayVisible( unsigned char mapId, int typeMask, bool visibl
     return true;
 }
 
-ngsDrawState MapStore::mapTouch(
-        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
-{
-    MapViewPtr map = getMap(mapId);
-    if (!map)
-        return DS_NOTHING;
-    return map->mapTouch(x, y, type);
-}
-
 }

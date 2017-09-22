@@ -2355,17 +2355,6 @@ ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
     return {0.0, 0.0, 0.0, 0.0};
 }
 
-ngsDrawState ngsMapTouch(
-        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
-{
-    MapStore* const mapStore = MapStore::getInstance();
-    if(nullptr == mapStore) {
-        errorMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
-        return DS_NOTHING;
-    }
-    return mapStore->mapTouch(mapId, x, y, type);
-}
-
 /**
  * @brief ngsMapGetSelectionStyle Map selection style as json
  * @param mapId Map identificator
@@ -2736,6 +2725,17 @@ char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
     return overlay->visible();
 }
 
+ngsPointId ngsEditOverlayTouch(
+        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return {NOT_FOUND, 0};
+    }
+    return editOverlay->touch(x, y, type);
+}
+
 char ngsEditOverlayUndo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
@@ -2901,17 +2901,18 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
+/**
+ *
+ * @param mapId
+ * @return 1 if was deleted a last geometry part else 0.
+ */
+char ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->deleteGeometryPart()) {
-        return errorMessage(
-                COD_DELETE_FAILED, _("Geometry part deleting is failed"));
-    }
-    return COD_SUCCESS;
+    return editOverlay->deleteGeometryPart() ? 1 : 0;
 }
 
 int ngsEditOverlaySetStyle(

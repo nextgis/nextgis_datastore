@@ -68,10 +68,9 @@ public:
     virtual bool addGeometryPart() override;
     virtual bool deleteGeometryPart() override;
 
-    virtual bool clickPoint(const OGRRawPoint& mapCoordinates) override;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
-
 protected:
+    virtual bool singleTap(const OGRRawPoint& mapCoordinates) override;
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
     virtual void setGeometry(GeometryUPtr geometry) override;
     virtual void freeResources() override;
 
@@ -89,18 +88,20 @@ protected:
 
 private:
     using GetPointFunc = std::function<SimplePoint(int index)>;
+    using GetLineFunc = std::function<const OGRLineString*(int index)>;
     using IsSelectedGeometryFunc = std::function<bool(int index)>;
 
     void fillPointElements(int numPoints,
-            GetPointFunc getPoint,
-            IsSelectedGeometryFunc isSelectedPoint);
+            GetPointFunc getPointFunc,
+            IsSelectedGeometryFunc isSelectedPointFunc);
     void fillMedianPointElements(int numPoints,
-            GetPointFunc getPoint,
-            IsSelectedGeometryFunc isSelectedMedianPoint);
-    void fillLineElements(bool isClosedLine,
-            int numPoints,
-            GetPointFunc getPoint,
-            IsSelectedGeometryFunc isSelectedLine);
+            GetPointFunc getPointFunc,
+            IsSelectedGeometryFunc isSelectedMedianPointFunc);
+    void fillLineElements(int numLines,
+            GetLineFunc getLineFunc,
+            IsSelectedGeometryFunc isSelectedLineFunc);
+    void fillLineBuffers(
+            const OGRLineString* line, VectorGlObject* bufferArray);
 
 private:
     std::map<ngsEditElementType, GlObjectPtr> m_elements;

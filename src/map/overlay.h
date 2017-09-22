@@ -47,9 +47,11 @@ class PointId
 public:
     explicit PointId(int pointId = NOT_FOUND,
             int ringId = NOT_FOUND,
-            int geometryId = NOT_FOUND) : m_pointId(pointId),
-        m_ringId(ringId),
-        m_geometryId(geometryId) { }
+            int geometryId = NOT_FOUND);
+    ~PointId() = default;
+
+    explicit operator bool() const { return 0 <= pointId(); }
+    bool operator==(const PointId& other) const;
 
     void setPointId(int pointId) { m_pointId = pointId; }
     int pointId() const { return m_pointId; }
@@ -57,21 +59,92 @@ public:
     int ringId() const { return m_ringId; }
     void setGeometryId(int geometryId) { m_geometryId = geometryId; }
     int geometryId() const { return m_geometryId; }
-    explicit operator bool() const { return 0 <= pointId(); }
-    bool operator==(const PointId& other) const;
+
+    const PointId& setIntersected();
+    bool intersected() const { return m_ringId >= 0 || m_geometryId >= 0; }
+
+    static PointId getGeometryPointId(const OGRGeometry& geometry,
+            const Envelope env,
+            const PointId* selectedPointId = nullptr,
+            OGRPoint* coordinates = nullptr);
+    static PointId getLineStringMedianPointId(const OGRLineString& line,
+            const Envelope env,
+            OGRPoint* coordinates = nullptr);
+    static OGRPoint getGeometryPointCoordinates(
+            const OGRGeometry& geometry, const PointId& id);
+    static bool shiftGeometryPoint(OGRGeometry& geometry,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates = nullptr);
+
+private:
+    static PointId getPointId(const OGRPoint& pt,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
+    static PointId getLineStringPointId(const OGRLineString& line,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
+    static PointId getPolygonPointId(const OGRPolygon& polygon,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
+    static PointId getMultiPointPointId(const OGRMultiPoint& mpt,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
+    static PointId getMultiLineStringPointId(const OGRMultiLineString& mline,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
+    static PointId getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
+            const Envelope env,
+            const PointId* selectedPointId,
+            OGRPoint* coordinates);
+
+    static OGRPoint getPointCoordinates(const OGRPoint& pt, const PointId& id);
+    static OGRPoint getLineStringPointCoordinates(
+            const OGRLineString& line, const PointId& id);
+    static OGRPoint getPolygonPointCoordinates(
+            const OGRPolygon& polygon, const PointId& id);
+    static OGRPoint getMultiPointPointCoordinates(
+            const OGRMultiPoint& mpt, const PointId& id);
+    static OGRPoint getMultiLineStringPointCoordinates(
+            const OGRMultiLineString& mline, const PointId& id);
+    static OGRPoint getMultiPolygonPointCoordinates(
+            const OGRMultiPolygon& mpolygon, const PointId& id);
+
+    static bool shiftPoint(OGRPoint& pt,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates);
+    static bool shiftLineStringPoint(OGRLineString& lineString,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates);
+    static bool shiftPolygonPoint(OGRPolygon& polygon,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates);
+    static bool shiftMultiPointPoint(OGRMultiPoint& mpt,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates);
+    static bool shiftMultiLineStringPoint(OGRMultiLineString& mline,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates);
+    static bool shiftMultiPolygonPoint(OGRMultiPolygon& mpolygon,
+            const PointId& id,
+            const OGRRawPoint& offset,
+            OGRPoint* coordinates);
 
 private:
     int m_pointId;
-    int m_ringId; // 0 - exterior ring, 1+ - interior rings.
+    int m_ringId; // For polygon: 0 - exterior ring, 1+ - interior rings.
     int m_geometryId;
 };
-
-PointId getGeometryPointId(
-        const OGRGeometry& geometry, const Envelope env, OGRPoint* coordinates);
-PointId getLineStringMedianPointId(
-        const OGRLineString& line, const Envelope env, OGRPoint* coordinates);
-bool shiftGeometryPoint(OGRGeometry& geometry, const PointId& id,
-        const OGRRawPoint& offset, OGRPoint* coordinates);
 
 class Overlay
 {
@@ -114,20 +187,22 @@ public:
     virtual bool addGeometryPart();
     virtual bool deleteGeometryPart();
 
-    virtual bool clickPoint(const OGRRawPoint& mapCoordinates);
-    bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
+    ngsPointId touch(double x, double y, enum ngsMapTouchType type);
 
 protected:
+    bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    virtual bool singleTap(const OGRRawPoint& mapCoordinates);
+    virtual bool shiftPoint(const OGRRawPoint& mapOffset);
     virtual void setGeometry(GeometryUPtr geometry);
     virtual void freeResources();
 
 private:
-    bool addPoint(const OGRLineString& line, const PointId id, const OGRPoint& pt);
     bool restoreFromHistory(int historyId);
-    bool selectFirstPoint();
-    bool selectPoint(bool selectFirstPoint, const OGRRawPoint& mapCoordinates);
+    int addPoint(OGRLineString* line, int id, const OGRPoint& pt);
+    bool clickPoint(const OGRRawPoint& mapCoordinates);
     bool clickMedianPoint(const OGRRawPoint& mapCoordinates);
+    bool clickLine(const OGRRawPoint& mapCoordinates);
+    bool selectFirstPoint();
 
 protected:
     LayerPtr m_editedLayer;
@@ -139,6 +214,10 @@ protected:
     double m_tolerancePx;
     std::list<GeometryUPtr> m_history;
     int m_historyState;
+
+    OGRRawPoint m_touchStartPoint;
+    bool m_isTouchMoved;
+    bool m_wasTouchingSelectedPoint;
 };
 
 class LocationOverlay : public Overlay
