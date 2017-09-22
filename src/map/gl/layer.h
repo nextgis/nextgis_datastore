@@ -41,7 +41,7 @@ public:
      * @brief fill Fill arrays for Gl drawing. Executed from separate thread.
      * @param tile Tile to load data
      */
-    virtual bool fill(GlTilePtr tile, bool isLastTry) = 0;
+    virtual bool fill(GlTilePtr tile, float z, bool isLastTry) = 0;
     /**
      * @brief free Free Gl objects. Run from Gl context.
      * @param tile Tile to free data
@@ -115,7 +115,7 @@ public:
 
     // GlRenderLayer interface
 public:
-    virtual bool fill(GlTilePtr tile, bool isLastTry) override;
+    virtual bool fill(GlTilePtr tile, float z, bool isLastTry) override;
     virtual bool draw(GlTilePtr tile) override;
     virtual void setStyle(const char* name) override;
 
@@ -129,9 +129,9 @@ public:
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
 
 protected:
-    virtual VectorGlObject* fillPoints(const VectorTile& tile);
-    virtual VectorGlObject* fillLines(const VectorTile& tile);
-    virtual VectorGlObject* fillPolygons(const VectorTile& tile);
+    virtual VectorGlObject* fillPoints(const VectorTile& tile, float z);
+    virtual VectorGlObject* fillLines(const VectorTile& tile, float z);
+    virtual VectorGlObject* fillPolygons(const VectorTile& tile, float z);
 
 protected:
     std::set<GIntBig> m_skipFIDs;
@@ -158,9 +158,9 @@ public:
     virtual bool drawSelection(GlTilePtr tile);
 
 protected:
-    virtual VectorGlObject* fillPoints(const VectorTile& tile) override;
-    virtual VectorGlObject* fillLines(const VectorTile& tile) override;
-    virtual VectorGlObject* fillPolygons(const VectorTile& tile) override;
+    virtual VectorGlObject* fillPoints(const VectorTile& tile, float z) override;
+    virtual VectorGlObject* fillLines(const VectorTile& tile, float z) override;
+    virtual VectorGlObject* fillPolygons(const VectorTile& tile, float z) override;
 
 protected:
     std::set<GIntBig> m_selectedFIDs;
@@ -198,7 +198,7 @@ public:
 
     // GlRenderLayer interface
 public:
-    virtual bool fill(GlTilePtr tile, bool isLastTry) override;
+    virtual bool fill(GlTilePtr tile, float z, bool isLastTry) override;
     virtual bool draw(GlTilePtr tile) override;
     virtual void setStyle(const char* name) override;
 

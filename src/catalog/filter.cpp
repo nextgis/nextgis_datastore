@@ -77,7 +77,7 @@ bool Filter::canDisplay(ObjectPtr object) const
 
 bool Filter::isFeatureClass(const enum ngsCatalogObjectType type)
 {
-    return type >= CAT_FC_ANY && type < CAT_FC_ALL ||
+    return (type >= CAT_FC_ANY && type < CAT_FC_ALL) ||
             type == CAT_CONTAINER_SIMPLE;
 }
 

@@ -75,6 +75,7 @@ void GlView::clearBackground()
 {
     ngsCheckGLError(glClearColor(m_glBkColor.r, m_glBkColor.g, m_glBkColor.b,
                                   m_glBkColor.a));
+    ngsCheckGLError(glClearDepth(1.0));
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
@@ -108,11 +109,12 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
 {
     LayerFillData* layerData = dynamic_cast<LayerFillData*>(threadData);
     if (nullptr != layerData) {
-        GlRenderLayer* renderLayer =
-                ngsDynamicCast(GlRenderLayer, layerData->m_layer);
+        GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer,
+                                                    layerData->m_layer);
         if (nullptr != renderLayer) {
-            return renderLayer->fill(
-                    layerData->m_tile, layerData->tries() >= MAX_TRIES);
+            return renderLayer->fill(layerData->m_tile,
+                                     layerData->m_zlevel,
+                                     layerData->tries() >= MAX_TRIES);
         }
     }
 
@@ -171,10 +173,13 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
         for(const GlTilePtr& tile : m_tiles) {
             if(tile->filled())
                 continue;
+            float z = 0.0f;
             for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
                 const LayerPtr &layer = *layerIt;
-                m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
+                m_threadPool.addThreadData(new LayerFillData(tile, layer, z, true));
+
+                z += 1000.0f;
             }
         }
     [[clang::fallthrough]]; case DS_PRESERVED:
@@ -198,10 +203,12 @@ void GlView::invalidate(const Envelope& bounds)
 
         // TODO: check and remove the previous tile fill task if present for current tile
         if(!tile->filled()) {
+            float z = 0.0f;
             for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
                 const LayerPtr &layer = *layerIt;
-                m_threadPool.addThreadData(new LayerFillData(tile, layer, true));
+                m_threadPool.addThreadData(new LayerFillData(tile, layer, z, true));
+                z += 1000.f;
             }
         }
     }
@@ -376,6 +383,9 @@ bool GlView::drawTiles(const Progress &progress)
             }
 
             glViewport(0, 0, tile->tileSize(), tile->tileSize());
+
+            GlTile::prepareContext();
+
             clearBackground();
 
             ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));

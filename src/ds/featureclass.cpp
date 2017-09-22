@@ -23,8 +23,9 @@
 #include <algorithm>
 
 #include "api_priv.h"
-#include "dataset.h"
 #include "coordinatetransformation.h"
+#include "dataset.h"
+#include "earcut.hpp"
 #include "map/maptransform.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
@@ -595,6 +596,61 @@ void setEdgeIndex(unsigned short index, double x, double y, EDGES& edges)
     }
 }
 
+// The number type to use for tessellation
+typedef double Coord;
+
+// The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
+// data won't have more than 65536 vertices.
+typedef unsigned short N;
+
+// Create array
+typedef std::array<Coord, 2> MBPoint;
+typedef std::vector<MBPoint> MBVertices;
+typedef std::vector<MBVertices> MBPolygon;
+
+OGRPoint* findPointByIndex(N index, const MBPolygon& poly)
+{
+    N currentIndex = index;
+    for(const auto& vertices : poly) {
+        if(currentIndex >= vertices.size()) {
+            currentIndex -= vertices.size();
+            continue;
+        }
+
+        MBPoint pt = vertices[currentIndex];
+        return new OGRPoint(pt[0], pt[1]);
+    }
+    return nullptr;
+}
+
+void addCenterPolygon(GIntBig fid, const SimplePoint& simpleCenter,
+                   VectorTileItemArray& vitemArray) {
+    VectorTileItem vitem;
+    vitem.addId(fid);
+
+    unsigned short index = 0;
+    SimplePoint pt1 = {simpleCenter.x - 0.5f, simpleCenter.y - 0.5f};
+    vitem.addPoint(pt1);
+    unsigned short firstIndex = index;
+    vitem.addBorderIndex(0, index);
+    vitem.addIndex(index++);
+
+    SimplePoint pt2 = {simpleCenter.x - 0.5f, simpleCenter.y + 0.5f};
+    vitem.addPoint(pt2);
+    vitem.addBorderIndex(0, index);
+    vitem.addIndex(index++);
+
+    SimplePoint pt3 = {simpleCenter.x + 0.5f, simpleCenter.y + 0.5f};
+    vitem.addPoint(pt3);
+    vitem.addBorderIndex(0, index);
+    vitem.addIndex(index++);
+
+    vitem.addBorderIndex(0, firstIndex); // Close ring
+
+    vitem.setValid(true);
+    vitemArray.push_back(vitem);
+}
+
 void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
                                OGRGeometry* extent, float step,
                                VectorTileItemArray& vitemArray) const
@@ -630,34 +686,145 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
         return;
     }
 
-    VectorTileItem vitem;
-    vitem.addId(fid);
-    OGRPolygon* poly = ngsStaticCast(OGRPolygon, cutGeom);
-
+    OGREnvelope cutGeomExt;
     OGRPoint center;
-    poly->Centroid(&center);
+    cutGeom->Centroid(&center);
     SimplePoint simpleCenter = generalizePoint(&center, step);
 
+    // Check if polygon very small and occupy only one screen pixel
+    cutGeom->getEnvelope(&cutGeomExt);
+    Envelope cutGeomExtEnv = cutGeomExt;
+    if(cutGeomExtEnv.width() < static_cast<double>(step) ||
+            cutGeomExtEnv.height() < static_cast<double>(step)) {
+        return addCenterPolygon(fid, simpleCenter, vitemArray);
+    }
+
+    // Prepare data
+    OGRPolygon* poly = ngsStaticCast(OGRPolygon, cutGeom);
     EDGES edges;
     OGRPoint pt;
 
+    // The number type to use for tessellation
+    using Coord = double;
+
+    // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
+    // data won't have more than 65536 vertices.
+    using N = unsigned short;
+
+    // Create array
+    using MBPoint = std::array<Coord, 2>;
+    std::vector<std::vector<MBPoint>> polygon;
+
     OGRLinearRing* ring = poly->getExteriorRing();
-    for(int i = 0; i < ring->getNumPoints(); ++i) {
+    std::vector<MBPoint> exteriorRing;
+    for(int i = 0; i < ring->getNumPoints(); ++i) { // Without last point
         ring->getPoint(i, &pt);
-        edges[0].push_back({OGRRawPoint(pt.getX(), pt.getY()), MAX_EDGE_INDEX});
+        double x = pt.getX();
+        double y = pt.getY();
+        edges[0].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
+
+        MBPoint pt{ { x, y } };
+        exteriorRing.emplace_back(pt);
     }
+
+    polygon.emplace_back(exteriorRing);
 
     for(int i = 0; i < poly->getNumInteriorRings(); ++i) {
         ring = poly->getInteriorRing(i);
+        std::vector<MBPoint> interiorRing;
         for(int j = 0; j < ring->getNumPoints(); ++j) {
             ring->getPoint(j, &pt);
-            edges[i + 1].push_back({OGRRawPoint(pt.getX(), pt.getY()), MAX_EDGE_INDEX});
+            double x = pt.getX();
+            double y = pt.getY();
+            edges[i + 1].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
+
+            MBPoint pt{ { x, y } };
+            interiorRing.emplace_back(pt);
+        }
+        polygon.emplace_back(interiorRing);
+    }
+
+    VectorTileItem vitem;
+    vitem.addId(fid);
+
+    // Run tessellation
+    // Returns array of indices that refer to the vertices of the input polygon.
+    // Three subsequent indices form a triangle.
+    std::vector<N> indices = mapbox::earcut<N>(polygon);
+    if(indices.empty()) {
+        return addCenterPolygon(fid, simpleCenter, vitemArray);
+    }
+
+    // Test without holes
+    struct simpleAndOriginPt {
+        SimplePoint pt;
+        double x, y;
+    };
+
+    unsigned char tinIndex = 0;
+    struct simpleAndOriginPt tin[3];
+    unsigned short vertexIndex = 0;
+
+    for(auto index : indices) {
+        OGRPoint* pt = findPointByIndex(index, polygon);
+        if(pt != nullptr) {
+            tin[tinIndex] = {generalizePoint(pt, step), pt->getX(), pt->getY()};
+            delete pt;
+        }
+        else {
+            tin[tinIndex] = {{BIG_VALUE_F, BIG_VALUE_F}, BIG_VALUE, BIG_VALUE};
+        }
+        tinIndex++;
+
+        if(tinIndex == 3) {
+            tinIndex = 0;
+
+            // Add tin and indexes
+            if(tin[0].pt == tin[1].pt || tin[1].pt == tin[2].pt ||
+                    tin[2].pt == tin[0].pt) {
+                continue;
+            }
+
+            for(unsigned char j = 0; j < 3; ++j) {
+                vitem.addPoint(tin[j].pt);
+                // Check each vertex belongs to exterior or interior ring
+                setEdgeIndex(vertexIndex, tin[j].x, tin[j].y, edges);
+
+                vitem.addIndex(vertexIndex++);
+            }
+        }
+    }
+/*
+    for(auto& tin: resultPolys) {
+        for(unsigned char j = 0; j < 3; ++j) {
+            SimplePoint pts = {tin[j].x, tin[j].y};
+            vitem.addPoint(pts);
+            // Check each vertex belongs to exterior or interior ring
+            setEdgeIndex(index, tin[j].x, tin[j].y, edges);
+
+            vitem.addIndex(index++);
         }
     }
 
+    for(unsigned short i = 0; i < poly->getNumInteriorRings() + 1; ++i) {
+        unsigned short firstIndex = MAX_EDGE_INDEX;
+        for(auto& edge : edges[i]) {
+            if(edge.index != MAX_EDGE_INDEX) {
+                if(firstIndex == MAX_EDGE_INDEX) {
+                    firstIndex = edge.index;
+                }
+                vitem.addBorderIndex(i, edge.index);
+            }
+        }
+        vitem.addBorderIndex(i, firstIndex);
+    }
+
+    vitem.setValid(true);
+    vitemArray.push_back(vitem);
+*/
+/*
 
     // Test without holes
-    unsigned short index = 0;
     struct simpleAndOriginPt {
         SimplePoint pt;
         double x, y;
@@ -665,50 +832,68 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
 
     OGRGeometryCollection* tins = static_cast<OGRGeometryCollection*>(
                 cutGeom->DelaunayTriangulation(0.0, 0));
+    CPLDebug("ngstore", "DelaunayTriangulation returns %d tins", tins->getNumGeometries());
     for(int i = 0; i < tins->getNumGeometries(); ++i) {
         OGRPolygon* tin = static_cast<OGRPolygon*>(tins->getGeometryRef(i));
-        if(tin->Within(poly)) { // Remove tins not overlaped poly
-            ring = tin->getExteriorRing();
-            struct simpleAndOriginPt pts[3];
-            for(unsigned char j = 0; j < 3; ++j) {
-                ring->getPoint(j, &pt);
-                // Simplify tin
-                pts[j] = {generalizePoint(&pt, step), pt.getX(), pt.getY()};
-            }
+        if(tin->Intersects(poly)) {
 
-            // Add tin and indexes
-            if(pts[0].pt == pts[1].pt || pts[1].pt == pts[2].pt ||
-                    pts[2].pt == pts[0].pt) {
-                continue;
-            }
+            OGRPolygon* cutTin = static_cast<OGRPolygon*>(tin->Intersection(poly));
 
-            for(unsigned char j = 0; j < 3; ++j) {
-                vitem.addPoint(pts[j].pt);
-                // Check each vertex belongs to exterior or interior ring
-                setEdgeIndex(index, pts[j].x, pts[j].y, edges);
+            if(cutTin->Within(poly)) { // Remove tins not overlaped poly
 
-                vitem.addIndex(index++);
+                char* wkt = nullptr;
+                cutTin->exportToWkt(&wkt);
+                CPLDebug("ngstore", "The tin %s is in polygon", wkt);
+                CPLFree(wkt);
+
+                ring = cutTin->getExteriorRing();
+                struct simpleAndOriginPt pts[3];
+                for(unsigned char j = 0; j < 3; ++j) {
+                    ring->getPoint(j, &pt);
+                    // Simplify tin
+                    pts[j] = {generalizePoint(&pt, step), pt.getX(), pt.getY()};
+                }
+
+                // Add tin and indexes
+                if(pts[0].pt == pts[1].pt || pts[1].pt == pts[2].pt ||
+                        pts[2].pt == pts[0].pt) {
+                    continue;
+                }
+
+                for(unsigned char j = 0; j < 3; ++j) {
+                    vitem.addPoint(pts[j].pt);
+                    // Check each vertex belongs to exterior or interior ring
+                    setEdgeIndex(index, pts[j].x, pts[j].y, edges);
+
+                    vitem.addIndex(index++);
+                }
             }
         }
+        else {
+            char* wkt = nullptr;
+            tin->exportToWkt(&wkt);
+            CPLDebug("ngstore", "The tin %s is not in polygon", wkt);
+            CPLFree(wkt);
+        }
     }
-
+*/
     // If all tins are filtered out, create triangle at the center of poly
     if(vitem.pointCount() == 0) {
         SimplePoint pt1 = {simpleCenter.x - 0.5f, simpleCenter.y - 0.5f};
         vitem.addPoint(pt1);
-        unsigned short firstIndex = index;
-        vitem.addBorderIndex(0, index);
-        vitem.addIndex(index++);
+        unsigned short firstIndex = vertexIndex;
+        vitem.addBorderIndex(0, vertexIndex);
+        vitem.addIndex(vertexIndex++);
 
         SimplePoint pt2 = {simpleCenter.x - 0.5f, simpleCenter.y + 0.5f};
         vitem.addPoint(pt2);
-        vitem.addBorderIndex(0, index);
-        vitem.addIndex(index++);
+        vitem.addBorderIndex(0, vertexIndex);
+        vitem.addIndex(vertexIndex++);
 
         SimplePoint pt3 = {simpleCenter.x + 0.5f, simpleCenter.y + 0.5f};
         vitem.addPoint(pt3);
-        vitem.addBorderIndex(0, index);
-        vitem.addIndex(index++);
+        vitem.addBorderIndex(0, vertexIndex);
+        vitem.addIndex(vertexIndex++);
 
         vitem.addBorderIndex(0, firstIndex); // Close ring
     }

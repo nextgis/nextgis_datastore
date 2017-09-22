@@ -157,17 +157,21 @@ bool checkEGLError(const char *cmd) {
 
 void prepareContext()
 {
-#ifdef GL_PROGRAM_POINT_SIZE_EXT
-    ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
-#endif
+//#ifdef GL_PROGRAM_POINT_SIZE_EXT
+//    ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
+//#endif
 
-#ifdef GL_MULTISAMPLE
-    if( CPLTestBool("GL_MULTISAMPLE") )
-        ngsCheckGLError(glEnable(GL_MULTISAMPLE));
-#endif
+//#ifdef GL_MULTISAMPLE
+//    if( CPLTestBool("GL_MULTISAMPLE") )
+//        ngsCheckGLError(glEnable(GL_MULTISAMPLE));
+//#endif
 
 // NOTE: In usual cases no need in depth test
+    ngsCheckGLError(glDisable(GL_DEPTH_TEST));
 //    ngsCheckGLError(glEnable(GL_DEPTH_TEST));
+//    ngsCheckGLError(glDepthMask(GL_TRUE));
+//    ngsCheckGLError(glDepthFunc(GL_LEQUAL));
+//    ngsCheckGLError(glDepthRange(0.0, 1.0));
 //    ngsCheckGLError(glDepthFunc(GL_LEQUAL));
 //    ngsCheckGLError(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
 //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));

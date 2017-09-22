@@ -48,6 +48,15 @@ set(CSOURCES
     geometry.cpp
 )
 
+# Triangulation by MapBox
+set(HHEADERS ${HHEADERS}
+    earcut.hpp
+)
+
+set(CSOURCES ${CSOURCES}
+
+)
+
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
 #if(WITH_OpenSSL_EXTERNAL)

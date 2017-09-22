@@ -33,6 +33,7 @@
 
 namespace ngs {
 constexpr double BIG_VALUE = 100000000.0; // 100 000 000
+constexpr float BIG_VALUE_F = 100000000.0f; // 100 000 000
 
 typedef std::shared_ptr< OGRGeometry > GeometryPtr;
 typedef std::unique_ptr< OGRGeometry > GeometryUPtr;

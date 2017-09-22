@@ -25,6 +25,7 @@ namespace ngs {
 GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_tileItem(tileItem),
     m_id(0),
+    m_did(0),
     m_filled(false)
 {
     m_originalTileSize = tileSize;
@@ -87,6 +88,17 @@ void GlTile::bind()
     ngsCheckGLError(glFramebufferTexture2D(GL_FRAMEBUFFER,
                                            GL_COLOR_ATTACHMENT0,
                                            GL_TEXTURE_2D, m_image.id(), 0));
+
+    ngsCheckGLError(glGenRenderbuffers(1, &m_did));
+    ngsCheckGLError(glBindRenderbuffer(GL_RENDERBUFFER, m_did));
+    ngsCheckGLError(glRenderbufferStorage(GL_RENDERBUFFER,
+                                          GL_DEPTH_COMPONENT24,
+                                          m_tileSize, m_tileSize));
+    //Attach depth buffer to FBO
+    ngsCheckGLError(glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                                              GL_DEPTH_ATTACHMENT,
+                                              GL_RENDERBUFFER, m_did));
+
     ngsCheckGLError(glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
     m_tile.bind();
@@ -101,16 +113,44 @@ void GlTile::rebind() const
     ngsCheckGLError(glFramebufferTexture2D(GL_FRAMEBUFFER,
                                            GL_COLOR_ATTACHMENT0,
                                            GL_TEXTURE_2D, m_image.id(), 0));
+    ngsCheckGLError(glBindRenderbuffer(GL_RENDERBUFFER, m_did));
+    ngsCheckGLError(glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                                              GL_DEPTH_ATTACHMENT,
+                                              GL_RENDERBUFFER, m_did));
     m_tile.rebind();
 }
 
 void GlTile::destroy()
 {
     if (m_bound) {
+        ngsCheckGLError(glDeleteRenderbuffers(1, &m_did));
         ngsCheckGLError(glDeleteFramebuffers(1, &m_id));
     }
     m_image.destroy();
     m_tile.destroy();
+}
+
+void GlTile::prepareContext()
+{
+    #ifdef GL_PROGRAM_POINT_SIZE_EXT
+        ngsCheckGLError(glEnable(GL_PROGRAM_POINT_SIZE_EXT));
+    #endif
+
+    #ifdef GL_MULTISAMPLE
+        if( CPLTestBool("GL_MULTISAMPLE") )
+            ngsCheckGLError(glEnable(GL_MULTISAMPLE));
+    #endif
+
+    // NOTE: In usual cases no need in depth test
+    //    ngsCheckGLError(glDisable(GL_DEPTH_TEST));
+        ngsCheckGLError(glEnable(GL_DEPTH_TEST));
+    //    ngsCheckGLError(glDepthMask(GL_TRUE));
+        ngsCheckGLError(glDepthFunc(GL_LEQUAL));
+        ngsCheckGLError(glDepthRange(0.0, 1.0));
+    #ifdef GL_POLYGON_SMOOTH_HINT
+        ngsCheckGLError(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
+    #endif
+    //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
 }
 
 } // namespace ngs

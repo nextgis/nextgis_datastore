@@ -133,7 +133,8 @@ public:
     float rotation() const { return m_rotation; }
     void setRotation(float rotation) { m_rotation = rotation; }
 
-    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+                                    unsigned short index,
                                     GlBuffer* buffer) = 0;
     virtual size_t pointVerticesCount() const = 0;
 
@@ -161,7 +162,8 @@ public:
 
     // PointStyle interface
 public:
-    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+                                    unsigned short index,
                                     GlBuffer* buffer) override;
     virtual size_t pointVerticesCount() const override { return 3; }
     virtual enum GlBuffer::BufferType bufferType() const override {
@@ -192,7 +194,8 @@ public:
 
     // PointStyle interface
 public:
-    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+                                    unsigned short index,
                                     GlBuffer* buffer) override;
     virtual size_t pointVerticesCount() const override;
     virtual enum GlBuffer::BufferType bufferType() const override {
@@ -243,14 +246,14 @@ public:
     void setSegmentCount(unsigned char segmentCount);
 
     unsigned short addLineCap(const SimplePoint& point, const Normal& normal,
-                              unsigned short index, GlBuffer* buffer);
+                              float z, unsigned short index, GlBuffer* buffer);
     size_t lineCapVerticesCount() const;
     unsigned short addLineJoin(const SimplePoint& point, const Normal& prevNormal,
-                               const Normal& normal, unsigned short index,
+                               const Normal& normal, float z, unsigned short index,
                                GlBuffer* buffer);
     size_t lineJoinVerticesCount() const;
     virtual unsigned short addSegment(const SimplePoint& pt1, const SimplePoint& pt2,
-                              const Normal& normal,
+                              const Normal& normal, float z,
                               unsigned short index, GlBuffer* buffer);
 
     // SimpleVectorStyle
@@ -379,7 +382,8 @@ public:
 public:
     virtual void setType(enum PointType /*type*/) override {}
     virtual size_t pointVerticesCount() const override { return 4; }
-    virtual unsigned short addPoint(const SimplePoint& pt, unsigned short index,
+    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+                                    unsigned short index,
                                     GlBuffer* buffer) override;
     virtual enum GlBuffer::BufferType bufferType() const override {
         return GlBuffer::BF_TEX;

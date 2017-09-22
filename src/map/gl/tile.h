@@ -50,6 +50,8 @@ public:
     }
     unsigned short tileSize() const { return  m_tileSize; }
 
+    static void prepareContext();
+
     // GlObject interface
 public:
     virtual void bind() override;
@@ -59,7 +61,7 @@ public:
 protected:
     TileItem m_tileItem;
     GlImage m_image;
-    GLuint m_id;
+    GLuint m_id, m_did;
     GlBuffer m_tile;
     Matrix4 m_sceneMatrix;
     Matrix4 m_invViewMatrix;

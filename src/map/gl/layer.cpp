@@ -84,7 +84,7 @@ void GlFeatureLayer::setHideIds(const std::set<GIntBig>& hideIds)
     m_skipFIDs.insert(hideIds.begin(), hideIds.end());
 }
 
-bool GlFeatureLayer::fill(GlTilePtr tile, bool /*isLastTry*/)
+bool GlFeatureLayer::fill(GlTilePtr tile, float z, bool /*isLastTry*/)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
@@ -103,13 +103,13 @@ bool GlFeatureLayer::fill(GlTilePtr tile, bool /*isLastTry*/)
 
     switch(m_style->type()) {
     case ST_POINT:
-        bufferArray = fillPoints(vtile);
+        bufferArray = fillPoints(vtile, z);
         break;
     case ST_LINE:
-        bufferArray = fillLines(vtile);
+        bufferArray = fillLines(vtile, z);
         break;
     case ST_FILL:
-        bufferArray = fillPolygons(vtile);
+        bufferArray = fillPolygons(vtile, z);
         break;
     case ST_IMAGE:
         return true;
@@ -174,7 +174,8 @@ void GlFeatureLayer::setStyle(const char* name)
     }
 }
 
-bool GlFeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
+bool GlFeatureLayer::load(const CPLJSONObject &store,
+                          ObjectContainer *objectContainer)
 {
     bool result = FeatureLayer::load(store, objectContainer);
     if(!result)
@@ -218,7 +219,7 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
     }
 }
 
-VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
+VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile, float z)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
     auto items = tile.items();
@@ -246,7 +247,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
             }
 
             const SimplePoint& pt = tileItem.point(i);
-            index = style->addPoint(pt, index, buffer);
+            index = style->addPoint(pt, z, index, buffer);
         }
         ++it;
     }
@@ -256,7 +257,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile)
     return bufferArray;
 }
 
-VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
+VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile, float z)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
     auto items = tile.items();
@@ -264,6 +265,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
     unsigned short index = 0;
     GlBuffer *buffer = new GlBuffer(GlBuffer::BF_LINE);
     SimpleLineStyle* style = ngsStaticCast(SimpleLineStyle, m_style);
+
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
         if(tileItem.isIdsPresent(m_skipFIDs)) {
@@ -288,16 +290,18 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
             if(i == 0 || i == tileItem.pointCount() - 2) { // Add cap
                 if(!closed) {
                     if(i == 0) {
-                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(), true)) {
+                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(),
+                                                     true)) {
                             bufferArray->addBuffer(buffer);
                             index = 0;
                             buffer = new GlBuffer(GlBuffer::BF_LINE);
                         }
-                        index = style->addLineCap(pt1, normal, index, buffer);
+                        index = style->addLineCap(pt1, normal, z, index, buffer);
                     }
 
                     if(i == tileItem.pointCount() - 2) {
-                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(), true)) {
+                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(),
+                                                     true)) {
                             bufferArray->addBuffer(buffer);
                             index = 0;
                             buffer = new GlBuffer(GlBuffer::BF_LINE);
@@ -306,18 +310,20 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                         Normal reverseNormal;
                         reverseNormal.x = -normal.x;
                         reverseNormal.y = -normal.y;
-                        index = style->addLineCap(pt2, reverseNormal, index, buffer);
+                        index = style->addLineCap(pt2, reverseNormal, z, index, buffer);
                     }
                 }
             }
 
             if(i != 0) { // Add join
-                if(!buffer->canStoreVertices(style->lineJoinVerticesCount(), true)) {
+                if(!buffer->canStoreVertices(style->lineJoinVerticesCount(),
+                                             true)) {
                     bufferArray->addBuffer(buffer);
                     index = 0;
                     buffer = new GlBuffer(GlBuffer::BF_LINE);
                 }
-                index = style->addLineJoin(pt1, prevNormal, normal, index, buffer);
+                index = style->addLineJoin(pt1, prevNormal, normal, z, index,
+                                           buffer);
             }
 
             if(!buffer->canStoreVertices(12, true)) {
@@ -326,7 +332,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
                 buffer = new GlBuffer(GlBuffer::BF_LINE);
             }
 
-            index = style->addSegment(pt1, pt2, normal, index, buffer);
+            index = style->addSegment(pt1, pt2, normal, z, index, buffer);
             prevNormal = normal;
         }
         ++it;
@@ -336,7 +342,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile)
     return bufferArray;
 }
 
-VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
+VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile, float z)
 {
     VectorGlObject *bufferArray = new VectorGlObject;
     auto items = tile.items();
@@ -373,7 +379,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
         for(auto point : points) {
             fillBuffer->addVertex(point.x);
             fillBuffer->addVertex(point.y);
-            fillBuffer->addVertex(0.0f);
+            fillBuffer->addVertex(z);
         }
 
         // FIXME: Expected indices should fit to buffer as points can
@@ -399,10 +405,12 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
             for(size_t i = 0; i < border.size() - 1; ++i) {
                 auto borderIndex = border[i];
                 auto borderIndex1 = border[i + 1];
-                Normal normal = ngsGetNormals(points[borderIndex], points[borderIndex1]);
+                Normal normal = ngsGetNormals(points[borderIndex],
+                                              points[borderIndex1]);
 
                 if(i == border.size() - 2) {
-                    if(!lineBuffer->canStoreVertices(style->lineCapVerticesCount(), true)) {
+                    if(!lineBuffer->canStoreVertices(style->lineCapVerticesCount(),
+                                                     true)) {
                         bufferArray->addBuffer(lineBuffer);
                         lineIndex = 0;
                         lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
@@ -411,18 +419,19 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
                     Normal reverseNormal;
                     reverseNormal.x = -normal.x;
                     reverseNormal.y = -normal.y;
-                    lineIndex = style->addLineJoin(points[borderIndex1], firstNormal,
-                                        reverseNormal, lineIndex, lineBuffer);
+                    lineIndex = style->addLineJoin(points[borderIndex1],
+                           firstNormal, reverseNormal, z, lineIndex, lineBuffer);
                 }
 
                 if(i != 0) {
-                    if(!lineBuffer->canStoreVertices(style->lineJoinVerticesCount(), true)) {
+                    if(!lineBuffer->canStoreVertices(style->lineJoinVerticesCount(),
+                                                     true)) {
                         bufferArray->addBuffer(lineBuffer);
                         lineIndex = 0;
                         lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
                     }
-                    lineIndex = style->addLineJoin(points[borderIndex], prevNormal,
-                                            normal, lineIndex, lineBuffer);
+                    lineIndex = style->addLineJoin(points[borderIndex],
+                                   prevNormal, normal, z, lineIndex, lineBuffer);
                 }
 
                 if(!lineBuffer->canStoreVertices(12, true)) {
@@ -432,7 +441,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
                 }
 
                 lineIndex = style->addSegment(points[borderIndex],
-                                              points[borderIndex1], normal,
+                                              points[borderIndex1], normal, z,
                                               lineIndex, lineBuffer);
 
                 prevNormal = normal;
@@ -458,7 +467,8 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile)
 // GlSelectableFeatureLayer
 //------------------------------------------------------------------------------
 
-GlSelectableFeatureLayer::GlSelectableFeatureLayer(Map* map, const CPLString &name) :
+GlSelectableFeatureLayer::GlSelectableFeatureLayer(Map* map,
+                                                   const CPLString &name) :
     GlFeatureLayer(map, name)
 {
     GlView* mapView = dynamic_cast<GlView*>(map);
@@ -516,8 +526,8 @@ bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
     return true;
 }
 
-VectorGlObject* GlSelectableFeatureLayer::fillPoints(
-        const VectorTile& tile)
+VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile& tile,
+                                                     float z)
 {
     VectorSelectableGlObject *bufferArray = new VectorSelectableGlObject;
     auto items = tile.items();
@@ -577,7 +587,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
             }
 
             const SimplePoint& pt = tileItem.point(i);
-            index = style->addPoint(pt, index, buffer);
+            index = style->addPoint(pt, z, index, buffer);
         }
         ++it;
 
@@ -595,8 +605,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(
     return bufferArray;
 }
 
-VectorGlObject* GlSelectableFeatureLayer::fillLines(
-        const VectorTile& tile)
+VectorGlObject* GlSelectableFeatureLayer::fillLines(const VectorTile& tile,
+                                                    float z)
 {
     VectorSelectableGlObject* bufferArray = new VectorSelectableGlObject;
     auto items = tile.items();
@@ -648,7 +658,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
             if(i == 0 || i == tileItem.pointCount() - 2) { // Add cap
                 if(!closed) {
                     if(i == 0) {
-                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(), true)) {
+                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(),
+                                                     true)) {
                             if(isSelect) {
                                 bufferArray->addSelectionBuffer(buffer);
                                 select = new GlBuffer(GlBuffer::BF_LINE);
@@ -663,11 +674,12 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                             }
                             index = 0;
                         }
-                        index = style->addLineCap(pt1, normal, index, buffer);
+                        index = style->addLineCap(pt1, normal, z, index, buffer);
                     }
 
                     if(i == tileItem.pointCount() - 2) {
-                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(), true)) {
+                        if(!buffer->canStoreVertices(style->lineCapVerticesCount(),
+                                                     true)) {
                             if(isSelect) {
                                 bufferArray->addSelectionBuffer(buffer);
                                 select = new GlBuffer(GlBuffer::BF_LINE);
@@ -686,13 +698,15 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                         Normal reverseNormal;
                         reverseNormal.x = -normal.x;
                         reverseNormal.y = -normal.y;
-                        index = style->addLineCap(pt2, reverseNormal, index, buffer);
+                        index = style->addLineCap(pt2, reverseNormal, z, index,
+                                                  buffer);
                     }
                 }
             }
 
             if(i != 0) { // Add join
-                if(!buffer->canStoreVertices(style->lineJoinVerticesCount(), true)) {
+                if(!buffer->canStoreVertices(style->lineJoinVerticesCount(),
+                                             true)) {
                     if(isSelect) {
                         bufferArray->addSelectionBuffer(buffer);
                         select = new GlBuffer(GlBuffer::BF_LINE);
@@ -707,7 +721,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                     }
                     index = 0;
                 }
-                index = style->addLineJoin(pt1, prevNormal, normal, index, buffer);
+                index = style->addLineJoin(pt1, prevNormal, normal, z, index,
+                                           buffer);
             }
 
             if(!buffer->canStoreVertices(12, true)) {
@@ -726,7 +741,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
                 index = 0;                
             }
 
-            index = style->addSegment(pt1, pt2, normal, index, buffer);
+            index = style->addSegment(pt1, pt2, normal, z, index, buffer);
             prevNormal = normal;
         }
         ++it;
@@ -744,24 +759,27 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(
     return bufferArray;
 }
 
-VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
+VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
+                                                       float z)
 {
     VectorSelectableGlObject* bufferArray = new VectorSelectableGlObject;
     auto items = tile.items();
     auto it = items.begin();
     unsigned short fillIndex = 0;
     unsigned short lineIndex = 0;
-    GlBuffer *drawFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
-    GlBuffer *drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
-    GlBuffer *selectFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
-    GlBuffer *selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
-    GlBuffer *fillBuffer = nullptr;
-    GlBuffer *lineBuffer = nullptr;
+    GlBuffer* drawFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+    GlBuffer* drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+    GlBuffer* selectFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+    GlBuffer* selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+    GlBuffer* fillBuffer = nullptr;
+    GlBuffer* lineBuffer = nullptr;
 
-    SimpleFillBorderedStyle* drawStyle = ngsDynamicCast(SimpleFillBorderedStyle, m_style);
+    SimpleFillBorderedStyle* drawStyle = ngsDynamicCast(SimpleFillBorderedStyle,
+                                                        m_style);
     SimpleLineStyle* drawLineStyle = drawStyle->lineStyle();
 
-    SimpleFillBorderedStyle* selectStyle = ngsDynamicCast(SimpleFillBorderedStyle, selectionStyle());
+    SimpleFillBorderedStyle* selectStyle = ngsDynamicCast(SimpleFillBorderedStyle,
+                                                          selectionStyle());
     SimpleLineStyle* selectLineStyle = drawStyle->lineStyle();
 
     SimpleFillBorderedStyle* style;
@@ -827,7 +845,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
         for(auto point : points) {
             fillBuffer->addVertex(point.x);
             fillBuffer->addVertex(point.y);
-            fillBuffer->addVertex(0.0f);
+            fillBuffer->addVertex(z);
         }
 
         // FIXME: Expected indices should fit to buffer as points can
@@ -854,10 +872,12 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
             for(size_t i = 0; i < border.size() - 1; ++i) {
                 auto borderIndex = border[i];
                 auto borderIndex1 = border[i + 1];
-                Normal normal = ngsGetNormals(points[borderIndex], points[borderIndex1]);
+                Normal normal = ngsGetNormals(points[borderIndex],
+                                              points[borderIndex1]);
 
                 if(i == border.size() - 2) {
-                    if(!lineBuffer->canStoreVertices(lineStyle->lineCapVerticesCount(), true)) {
+                    if(!lineBuffer->canStoreVertices(lineStyle->lineCapVerticesCount(),
+                                                     true)) {
                         lineIndex = 0;
                         if(isSelect) {
                             bufferArray->addSelectionBuffer(lineBuffer);
@@ -876,12 +896,13 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
                     Normal reverseNormal;
                     reverseNormal.x = -normal.x;
                     reverseNormal.y = -normal.y;
-                    lineIndex = lineStyle->addLineJoin(points[borderIndex1], firstNormal,
-                                        reverseNormal, lineIndex, lineBuffer);
+                    lineIndex = lineStyle->addLineJoin(points[borderIndex1],
+                           firstNormal, reverseNormal, z, lineIndex, lineBuffer);
                 }
 
                 if(i != 0) {
-                    if(!lineBuffer->canStoreVertices(lineStyle->lineJoinVerticesCount(), true)) {
+                    if(!lineBuffer->canStoreVertices(lineStyle->lineJoinVerticesCount(),
+                                                     true)) {
                         lineIndex = 0;
                         if(isSelect) {
                             bufferArray->addSelectionBuffer(lineBuffer);
@@ -896,8 +917,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
                             drawLineIndex = 0;
                         }
                     }
-                    lineIndex = lineStyle->addLineJoin(points[borderIndex], prevNormal,
-                                            normal, lineIndex, lineBuffer);
+                    lineIndex = lineStyle->addLineJoin(points[borderIndex],
+                                   prevNormal, normal, z, lineIndex, lineBuffer);
                 }
 
                 if(!lineBuffer->canStoreVertices(12, true)) {
@@ -918,7 +939,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
 
                 lineIndex = lineStyle->addSegment(points[borderIndex],
                                               points[borderIndex1], normal,
-                                              lineIndex, lineBuffer);
+                                              z, lineIndex, lineBuffer);
 
                 prevNormal = normal;
                 if(!firstNormalSet) {
@@ -940,6 +961,8 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile)
             drawLineIndex = lineIndex;
             drawFillIndex = fillIndex;
         }
+
+        z += 2.0f;
     }
 
     bufferArray->addBuffer(drawFillBuffer);
@@ -966,7 +989,7 @@ GlRasterLayer::GlRasterLayer(Map* map, const CPLString &name) :
 {
 }
 
-bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
+bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
@@ -1071,8 +1094,9 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
         int minYOv = minY;
         int outWidthOv = width;
         int outHeightOv = height;
-        overview = m_raster->getBestOverview(minXOv, minYOv, outWidthOv, outHeightOv,
-                                                 outWidth, outHeight);
+        overview = m_raster->getBestOverview(minXOv, minYOv,
+                                             outWidthOv, outHeightOv,
+                                             outWidth, outHeight);
         if(overview >= -5) {
             outWidth = outWidthOv;
             outHeight = outHeightOv;
@@ -1124,25 +1148,25 @@ bool GlRasterLayer::fill(GlTilePtr tile, bool isLastTry)
     GlBuffer* tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);
     tileExtentBuff->addVertex(static_cast<float>(outExt.minX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.minY()));
-    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(z);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);
     tileExtentBuff->addVertex(static_cast<float>(outExt.minX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.maxY()));
-    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(z);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(1);
     tileExtentBuff->addVertex(static_cast<float>(outExt.maxX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.maxY()));
-    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(z);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(0.0f);
     tileExtentBuff->addIndex(2);
     tileExtentBuff->addVertex(static_cast<float>(outExt.maxX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.minY()));
-    tileExtentBuff->addVertex(0.0f);
+    tileExtentBuff->addVertex(z);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addVertex(1.0f);
     tileExtentBuff->addIndex(0);

@@ -124,11 +124,12 @@ private:
 
     class LayerFillData : public ThreadData {
     public:
-        LayerFillData(GlTilePtr tile, LayerPtr layer, bool own) :
-            ThreadData(own), m_tile(tile), m_layer(layer) {}
+        LayerFillData(GlTilePtr tile, LayerPtr layer, float z, bool own) :
+            ThreadData(own), m_tile(tile), m_layer(layer), m_zlevel(z) {}
         virtual ~LayerFillData() = default;
         GlTilePtr m_tile;
         LayerPtr m_layer;
+        float m_zlevel;
     };
 
     class OverlayFillData : public ThreadData

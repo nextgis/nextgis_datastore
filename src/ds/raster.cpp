@@ -177,8 +177,10 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     // Lock pixel area to read/write until exit
     CPLMutex *dataLock = nullptr;
 
-    Envelope testEnv(xOff - (xSize * 0.5), yOff - (ySize * 0.5),
-                     xOff + xSize + xSize * 0.5, yOff + ySize + ySize * 0.5);
+    int deltaX = xSize - 1;
+    int deltaY = ySize - 1;
+    Envelope testEnv(xOff - deltaX, yOff - deltaY,
+                     xOff + xSize + deltaX, yOff + ySize + deltaY);
     CPLAcquireMutex(m_dataLock, 15.0);
 
     for(auto &lock : m_dataLocks) {

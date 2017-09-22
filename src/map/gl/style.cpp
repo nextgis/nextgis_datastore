@@ -50,7 +50,7 @@ float angle(const Normal &normal) {
         }
     }
 
-    float angle = std::fabs(asinf(normal.y));
+    float angle = fabs(asinf(normal.y));
     if(normal.x < 0.0f && normal.y >= 0.0f)
         angle = M_PI_F - angle;
     else if(normal.x < 0.0f && normal.y <= 0.0f)
@@ -336,12 +336,12 @@ SimplePointStyle::SimplePointStyle(enum PointType type) : PointStyle(type)
     m_fragmentShaderSource = pointFragmentShaderSource;
 }
 
-unsigned short SimplePointStyle::addPoint(const SimplePoint& pt,
+unsigned short SimplePointStyle::addPoint(const SimplePoint& pt, float z,
                                           unsigned short index, GlBuffer* buffer)
 {
     buffer->addVertex(pt.x);
     buffer->addVertex(pt.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addIndex(index++);
     return index;
 }
@@ -485,7 +485,7 @@ void SimpleLineStyle::setSegmentCount(unsigned char segmentCount)
 }
 
 unsigned short SimpleLineStyle::addLineCap(const SimplePoint& point,
-                                           const Normal& normal,
+                                           const Normal& normal, float z,
                                            unsigned short index, GlBuffer* buffer)
 {
     switch(m_capType) {
@@ -508,7 +508,7 @@ unsigned short SimpleLineStyle::addLineCap(const SimplePoint& point,
                 current += step;
                 buffer->addVertex(point.x);
                 buffer->addVertex(point.y);
-                buffer->addVertex(0.0f);
+                buffer->addVertex(z);
                 buffer->addVertex(x);
                 buffer->addVertex(y);
 
@@ -516,13 +516,13 @@ unsigned short SimpleLineStyle::addLineCap(const SimplePoint& point,
                 y = sinf(current);
                 buffer->addVertex(point.x);
                 buffer->addVertex(point.y);
-                buffer->addVertex(0.0f);
+                buffer->addVertex(z);
                 buffer->addVertex(x);
                 buffer->addVertex(y);
 
                 buffer->addVertex(point.x);
                 buffer->addVertex(point.y);
-                buffer->addVertex(0.0f);
+                buffer->addVertex(z);
                 buffer->addVertex(0.0f);
                 buffer->addVertex(0.0f);
 
@@ -544,28 +544,28 @@ unsigned short SimpleLineStyle::addLineCap(const SimplePoint& point,
         // 0
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(scX1);
         buffer->addVertex(scY1);
 
         // 1
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(scX2);
         buffer->addVertex(scY2);
 
         // 2
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-normal.x);
         buffer->addVertex(-normal.y);
 
         // 3
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(normal.x);
         buffer->addVertex(normal.y);
 
@@ -601,6 +601,7 @@ size_t SimpleLineStyle::lineCapVerticesCount() const
 unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
                                             const Normal& prevNormal,
                                             const Normal& normal,
+                                            float z,
                                             unsigned short index,
                                             GlBuffer* buffer)
 {
@@ -622,7 +623,7 @@ unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
 
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
-            buffer->addVertex(0.0f);
+            buffer->addVertex(z);
             buffer->addVertex(x);
             buffer->addVertex(y);
 
@@ -631,13 +632,13 @@ unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
             y = sinf(current) * mult;
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
-            buffer->addVertex(0.0f);
+            buffer->addVertex(z);
             buffer->addVertex(x);
             buffer->addVertex(y);
 
             buffer->addVertex(point.x);
             buffer->addVertex(point.y);
-            buffer->addVertex(0.0f);
+            buffer->addVertex(z);
             buffer->addVertex(0.0f);
             buffer->addVertex(0.0f);
 
@@ -660,21 +661,21 @@ unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
         // 0
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(prevNormal.x * mult);
         buffer->addVertex(prevNormal.y * mult);
 
         // 1
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(newNormal.x * mult);
         buffer->addVertex(newNormal.y * mult);
 
         // 2
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.0f);
         buffer->addVertex(0.0f);
 
@@ -685,21 +686,21 @@ unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
         // 0
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(normal.x * mult);
         buffer->addVertex(normal.y * mult);
 
         // 1
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(newNormal.x * mult);
         buffer->addVertex(newNormal.y * mult);
 
         // 2
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.0f);
         buffer->addVertex(0.0f);
 
@@ -713,21 +714,21 @@ unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
         // 0
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(prevNormal.x * mult);
         buffer->addVertex(prevNormal.y * mult);
 
         // 1
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(normal.x * mult);
         buffer->addVertex(normal.y * mult);
 
         // 2
         buffer->addVertex(point.x);
         buffer->addVertex(point.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.0f);
         buffer->addVertex(0.0f);
 
@@ -756,13 +757,14 @@ size_t SimpleLineStyle::lineJoinVerticesCount() const
 unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
                                            const SimplePoint& pt2,
                                            const Normal& normal,
+                                           float z,
                                            unsigned short index,
                                            GlBuffer* buffer)
 {
     // 0
     buffer->addVertex(pt1.x);
     buffer->addVertex(pt1.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(-normal.x);
     buffer->addVertex(-normal.y);
     buffer->addIndex(index++); // 0
@@ -770,7 +772,7 @@ unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
     // 1
     buffer->addVertex(pt2.x);
     buffer->addVertex(pt2.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(-normal.x);
     buffer->addVertex(-normal.y);
     buffer->addIndex(index++); // 1
@@ -778,7 +780,7 @@ unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
     // 2
     buffer->addVertex(pt1.x);
     buffer->addVertex(pt1.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(normal.x);
     buffer->addVertex(normal.y);
     buffer->addIndex(index++); // 2
@@ -786,7 +788,7 @@ unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
     // 3
     buffer->addVertex(pt2.x);
     buffer->addVertex(pt2.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(normal.x);
     buffer->addVertex(normal.y);
 
@@ -809,7 +811,7 @@ PrimitivePointStyle::PrimitivePointStyle(enum PointType type) : PointStyle(type)
     m_styleType = ST_POINT;
 }
 
-unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
+unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
                                              unsigned short index,
                                              GlBuffer* buffer)
 {
@@ -819,28 +821,28 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         // 0
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-normal45);
         buffer->addVertex(normal45);
 
         // 1
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(normal45);
         buffer->addVertex(normal45);
 
         // 2
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(normal45);
         buffer->addVertex(-normal45);
 
         // 3
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-normal45);
         buffer->addVertex(-normal45);
 
@@ -860,28 +862,28 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         // 0
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-0.86602540f);
         buffer->addVertex(0.5f);
 
         // 1
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.86602540f);
         buffer->addVertex(0.5f);
 
         // 2
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.86602540f);
         buffer->addVertex(-0.5f);
 
         // 3
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-0.86602540f);
         buffer->addVertex(-0.5f);
 
@@ -908,7 +910,7 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
                 current += step;
                 buffer->addVertex(pt.x);
                 buffer->addVertex(pt.y);
-                buffer->addVertex(0.0f);
+                buffer->addVertex(z);
                 buffer->addVertex(x);
                 buffer->addVertex(y);
 
@@ -916,13 +918,13 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
                 y = sinf(current);
                 buffer->addVertex(pt.x);
                 buffer->addVertex(pt.y);
-                buffer->addVertex(0.0f);
+                buffer->addVertex(z);
                 buffer->addVertex(x);
                 buffer->addVertex(y);
 
                 buffer->addVertex(pt.x);
                 buffer->addVertex(pt.y);
-                buffer->addVertex(0.0f);
+                buffer->addVertex(z);
                 buffer->addVertex(0.0f);
                 buffer->addVertex(0.0f);
 
@@ -937,21 +939,21 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         // 0
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.0f);
         buffer->addVertex(1.0f);
 
         // 1
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.86602540f);
         buffer->addVertex(-0.5f);
 
         // 2
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-0.86602540f);
         buffer->addVertex(-0.5f);
 
@@ -967,28 +969,28 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt,
         // 0
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.0f);
         buffer->addVertex(1.0f);
 
         // 1
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(normal45);
         buffer->addVertex(0.0f);
 
         // 2
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(-normal45);
         buffer->addVertex(0.0f);
 
         // 3
         buffer->addVertex(pt.x);
         buffer->addVertex(pt.y);
-        buffer->addVertex(0.0f);
+        buffer->addVertex(z);
         buffer->addVertex(0.0f);
         buffer->addVertex(-1.0f);
 
@@ -1329,7 +1331,7 @@ void MarkerStyle::setIcon(const char* iconSetName, unsigned short index, unsigne
     m_lry = float(h) / 256;
 }
 
-unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index,
+unsigned short MarkerStyle::addPoint(const SimplePoint& pt, float z, unsigned short index,
                                      GlBuffer* buffer)
 {
     float nx1, ny1, nx2, ny2;
@@ -1345,7 +1347,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
     // 0
     buffer->addVertex(pt.x);
     buffer->addVertex(pt.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(nx1);
     buffer->addVertex(ny1);
     buffer->addVertex(m_lrx);
@@ -1354,7 +1356,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
     // 1
     buffer->addVertex(pt.x);
     buffer->addVertex(pt.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(nx2);
     buffer->addVertex(ny2);
     buffer->addVertex(m_ulx);
@@ -1363,7 +1365,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
     // 2
     buffer->addVertex(pt.x);
     buffer->addVertex(pt.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(-nx1);
     buffer->addVertex(-ny1);
     buffer->addVertex(m_ulx);
@@ -1372,7 +1374,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, unsigned short index
     // 3
     buffer->addVertex(pt.x);
     buffer->addVertex(pt.y);
-    buffer->addVertex(0.0f);
+    buffer->addVertex(z);
     buffer->addVertex(-nx2);
     buffer->addVertex(-ny2);
     buffer->addVertex(m_lrx);

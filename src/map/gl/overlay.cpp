@@ -352,7 +352,7 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
             if(editPointStyle)
                 editPointStyle->setEditElementType(EET_SELECTED_POINT);
             /*int selIndex = */
-            m_pointStyle->addPoint(pt, 0, selBuffer);
+            m_pointStyle->addPoint(pt, 0.0f, 0, selBuffer);
 
             VectorGlObject* selBufferArray = new VectorGlObject();
             selBufferArray->addBuffer(selBuffer);
@@ -370,7 +370,8 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
         if(editPointStyle) {
             editPointStyle->setEditElementType(EET_POINT);
         }
-        index = m_pointStyle->addPoint(pt, static_cast<unsigned short>(index),
+        index = m_pointStyle->addPoint(pt, 0.0f,
+                                       static_cast<unsigned short>(index),
                                        buffer);
     }
 
@@ -406,7 +407,7 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
             if(editPointStyle)
                 editPointStyle->setEditElementType(EET_SELECTED_MEDIAN_POINT);
             /*int selIndex = */
-            m_pointStyle->addPoint(pt, 0, selBuffer);
+            m_pointStyle->addPoint(pt, 0.0f, 0, selBuffer);
 
             VectorGlObject* selBufferArray = new VectorGlObject();
             selBufferArray->addBuffer(selBuffer);
@@ -424,7 +425,8 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
         if(editPointStyle) {
             editPointStyle->setEditElementType(EET_MEDIAN_POINT);
         }
-        index = m_pointStyle->addPoint(pt, static_cast<unsigned short>(index),
+        index = m_pointStyle->addPoint(pt, 0.0f,
+                                       static_cast<unsigned short>(index),
                                        buffer);
     }
 
@@ -452,6 +454,8 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
     VectorGlObject* bufferArray = new VectorGlObject();
     unsigned short index = 0;
 
+    float z = 0.0f;
+
     Normal prevNormal;
     for(int i = 0; i < numPoints - 1; ++i) {
         SimplePoint pt1 = getPoint(i);
@@ -467,7 +471,7 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
                         index = 0;
                         buffer = new GlBuffer(GlBuffer::BF_LINE);
                     }
-                    index = m_lineStyle->addLineCap(pt1, normal, index, buffer);
+                    index = m_lineStyle->addLineCap(pt1, normal, z, index, buffer);
                 }
 
                 if(i == numPoints - 2) {
@@ -482,7 +486,7 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
                     reverseNormal.x = -normal.x;
                     reverseNormal.y = -normal.y;
                     index = m_lineStyle->addLineCap(
-                            pt2, reverseNormal, index, buffer);
+                            pt2, reverseNormal, z, index, buffer);
                 }
             }
         }
@@ -495,7 +499,7 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
                 buffer = new GlBuffer(GlBuffer::BF_LINE);
             }
             index = m_lineStyle->addLineJoin(
-                    pt1, prevNormal, normal, index, buffer);
+                    pt1, prevNormal, normal, z, index, buffer);
         }
 
         if(!buffer->canStoreVertices(12, true)) {
@@ -504,7 +508,7 @@ void GlEditLayerOverlay::fillLineElements(bool isClosedLine,
             buffer = new GlBuffer(GlBuffer::BF_LINE);
         }
 
-        index = m_lineStyle->addSegment(pt1, pt2, normal, index, buffer);
+        index = m_lineStyle->addSegment(pt1, pt2, normal, z, index, buffer);
         prevNormal = normal;
     }
 
@@ -649,7 +653,7 @@ bool GlLocationOverlay::draw()
 
     GlBuffer buffer(GlBuffer::BF_FILL);
     m_style->setRotation(m_direction);
-    /*int index = */m_style->addPoint(m_location, 0, &buffer);
+    /*int index = */m_style->addPoint(m_location, 0.0f, 0, &buffer);
     LocationStyle* lStyle = ngsDynamicCast(LocationStyle, m_style);
     if(nullptr != lStyle) {
         lStyle->setStatus(isEqual(m_direction, -1.0f) ? LocationStyle::LS_STAY :
