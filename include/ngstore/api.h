@@ -414,8 +414,8 @@ typedef struct _ngsPointId
     char isHole;
 } ngsPointId;
 
-NGS_EXTERNC ngsPointId ngsEditOverlayTouch(
-        unsigned char mapId, double x, double y, enum ngsMapTouchType type);
+NGS_EXTERNC ngsPointId ngsEditOverlayTouch(unsigned char mapId, double x,
+                                           double y, enum ngsMapTouchType type);
 NGS_EXTERNC char ngsEditOverlayUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayRedo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayCanUndo(unsigned char mapId);
