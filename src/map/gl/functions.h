@@ -71,7 +71,7 @@ namespace ngs {
 bool checkEGLError(const char *cmd);
 #endif // USE_EGL
 
-#if defined GLES || defined USE_EGL
+#if defined GLES || defined __linux__
 #define glClearDepth glClearDepthf
 #define glDepthRange glDepthRangef
 #endif //GLES
