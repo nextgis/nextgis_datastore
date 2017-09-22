@@ -37,6 +37,7 @@
         #error Unsupported Apple platform
     #endif
 #elif __ANDROID__
+    #define GLES
     #define GL_GLEXT_PROTOTYPES
     #include <GLES2/gl2.h>
     #include <GLES2/gl2ext.h>
@@ -69,6 +70,11 @@ namespace ngs {
 #ifdef USE_EGL
 bool checkEGLError(const char *cmd);
 #endif // USE_EGL
+
+#ifdef GLES
+#define glClearDepth glClearDepthf
+#define glDepthRange glDepthRangef
+#endif //GLES
 
 typedef struct _glcolor {
     float r;

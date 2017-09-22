@@ -92,7 +92,7 @@ void GlTile::bind()
     ngsCheckGLError(glGenRenderbuffers(1, &m_did));
     ngsCheckGLError(glBindRenderbuffer(GL_RENDERBUFFER, m_did));
     ngsCheckGLError(glRenderbufferStorage(GL_RENDERBUFFER,
-                                          GL_DEPTH_COMPONENT24,
+                                          GL_DEPTH_COMPONENT16,
                                           m_tileSize, m_tileSize));
     //Attach depth buffer to FBO
     ngsCheckGLError(glFramebufferRenderbuffer(GL_FRAMEBUFFER,
