@@ -50,7 +50,7 @@ public:
             int geometryId = NOT_FOUND);
     ~PointId() = default;
 
-    explicit operator bool() const { return 0 <= pointId(); }
+    bool isValid() const { return 0 <= pointId(); }
     bool operator==(const PointId& other) const;
 
     void setPointId(int pointId) { m_pointId = pointId; }
@@ -190,7 +190,7 @@ public:
     ngsPointId touch(double x, double y, enum ngsMapTouchType type);
 
 protected:
-    bool hasSelectedPoint(const OGRRawPoint* mapCoordinates) const;
+    bool hasSelectedPoint(const OGRRawPoint& mapCoordinates) const;
     virtual bool singleTap(const OGRRawPoint& mapCoordinates);
     virtual bool shiftPoint(const OGRRawPoint& mapOffset);
     virtual void setGeometry(GeometryUPtr geometry);
