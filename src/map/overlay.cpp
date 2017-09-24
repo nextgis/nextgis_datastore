@@ -605,15 +605,16 @@ void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
     selectFirstPoint();
 }
 
-ngsPointId EditLayerOverlay::touch(
-        double x, double y, enum ngsMapTouchType type)
+ngsPointId EditLayerOverlay::touch(double x, double y, enum ngsMapTouchType type)
 {
+    CPLDebug("ngstore", "display x: %f, display y: %f, touch type: %d", x, y, type);
     bool returnSelectedPoint = false;
     switch(type) {
         case MTT_ON_DOWN: {
             m_touchStartPoint = OGRRawPoint(x, y);
-            OGRRawPoint mapPt = m_map->displayToWorld(
-                    OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
+            OGRRawPoint mapPt = m_map->displayToWorld(OGRRawPoint(
+                                                          m_touchStartPoint.x,
+                                                          m_touchStartPoint.y));
             if(!m_map->getYAxisInverted()) {
                 mapPt.y = -mapPt.y;
             }
@@ -651,12 +652,16 @@ ngsPointId EditLayerOverlay::touch(
                     saveToHistory();
                     m_wasTouchingSelectedPoint = false;
                 }
-            } else{
-                OGRRawPoint mapPt = m_map->displayToWorld(
-                        OGRRawPoint(m_touchStartPoint.x, m_touchStartPoint.y));
+            }
+            break;
+        case MTT_SINGLE:
+            {
+                OGRRawPoint mapPt(x, y);
                 if(!m_map->getYAxisInverted()) {
                     mapPt.y = -mapPt.y;
                 }
+
+                CPLDebug("ngstore", "sel pt: %d, x: %f, y: %f ", m_selectedPointId.pointId(), mapPt.x, mapPt.y);
                 if(singleTap(mapPt)) {
                     returnSelectedPoint = true;
                 }
@@ -674,6 +679,8 @@ ngsPointId EditLayerOverlay::touch(
     } else {
         ptId = {NOT_FOUND, 0};
     }
+
+    CPLDebug("ngstore", "point id: %d, isHole: %d", ptId.pointId, ptId.isHole);
     return ptId;
 }
 
@@ -686,8 +693,9 @@ bool EditLayerOverlay::singleTap(const OGRRawPoint& mapCoordinates)
 bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
 {
     if(m_geometry) {
-        OGRRawPoint mapTolerance =
-                m_map->getMapDistance(m_tolerancePx, m_tolerancePx);
+        CPLDebug("ngstore", "EditLayerOverlay::clickPoint");
+        OGRRawPoint mapTolerance = m_map->getMapDistance(m_tolerancePx,
+                                                         m_tolerancePx);
 
         double minX = mapCoordinates.x - mapTolerance.x;
         double maxX = mapCoordinates.x + mapTolerance.x;
@@ -696,8 +704,8 @@ bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
         Envelope mapEnv(minX, minY, maxX, maxY);
 
         OGRPoint coordinates;
-        PointId id = PointId::getGeometryPointId(
-                *m_geometry, mapEnv, &m_selectedPointId, &coordinates);
+        PointId id = PointId::getGeometryPointId(*m_geometry, mapEnv,
+                                                 &m_selectedPointId, &coordinates);
 
         if(id) {
             m_selectedPointId = id;
@@ -705,6 +713,7 @@ bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
             return true;
         }
     }
+    CPLDebug("ngstore", "EditLayerOverlay::clickPoint false");
     return false;
 }
 
@@ -713,7 +722,9 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
     if(!m_geometry)
         return false;
 
-    OGRLineString* line;
+    CPLDebug("ngstore", "EditLayerOverlay::clickMedianPoint");
+
+    OGRLineString* line = nullptr;
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbLineString: {
             line = ngsDynamicCast(OGRLineString, m_geometry);
@@ -743,8 +754,7 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
     Envelope mapEnv(minX, minY, maxX, maxY);
 
     OGRPoint coordinates;
-    PointId id =
-            PointId::getLineStringMedianPointId(*line, mapEnv, &coordinates);
+    PointId id = PointId::getLineStringMedianPointId(*line, mapEnv, &coordinates);
 
     if(!id) {
         return false;
@@ -761,8 +771,9 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
 bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
 {
     if(m_geometry) {
-        OGRRawPoint mapTolerance =
-                m_map->getMapDistance(m_tolerancePx, m_tolerancePx);
+        CPLDebug("ngstore", "EditLayerOverlay::clickLine");
+        OGRRawPoint mapTolerance = m_map->getMapDistance(m_tolerancePx,
+                                                         m_tolerancePx);
 
         double minX = mapCoordinates.x - mapTolerance.x;
         double maxX = mapCoordinates.x + mapTolerance.x;
@@ -773,10 +784,10 @@ bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
         PointId id;
         id = PointId::getGeometryPointId(*m_geometry, mapEnv);
 
-        if(id.intersected()) {
+        if(id.intersects()) {
             id.setPointId(0);
-            OGRPoint coordinates =
-                    PointId::getGeometryPointCoordinates(*m_geometry, id);
+            OGRPoint coordinates = PointId::getGeometryPointCoordinates(
+                        *m_geometry, id);
             m_selectedPointId = id;
             m_selectedPointCoordinates = coordinates;
             return true;
@@ -848,7 +859,7 @@ bool PointId::operator==(const PointId& other) const
             m_geometryId == other.m_geometryId;
 }
 
-const PointId& PointId::setIntersected()
+const PointId& PointId::setIntersects()
 {
     if(m_geometryId < 0) {
         m_geometryId = 0;
@@ -968,7 +979,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
         }
         return PointId(pointId);
     } else {
-        return PointId().setIntersected();
+        return PointId().setIntersects();
     }
 }
 
@@ -1046,7 +1057,7 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
         }
 
         // Check an intersecting, first for the interior rings.
-        if(!intersectedId.intersected() && id.intersected() && ringId > 0) {
+        if(!intersectedId.intersects() && id.intersects() && ringId > 0) {
             intersectedId.setRingId(ringId);
         }
 
@@ -1062,7 +1073,7 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
     }
 
     // Check an intersecting, then for the exterior ring.
-    if(!intersectedId.intersected()) {
+    if(!intersectedId.intersects()) {
         intersectedId.setRingId(0);
     }
 
@@ -1147,7 +1158,7 @@ PointId PointId::getMultiLineStringPointId(const OGRMultiLineString& mline,
             return PointId(id.pointId(), NOT_FOUND, geometryId);
         }
 
-        if(!intersectedId.intersected() && id.intersected()) {
+        if(!intersectedId.intersects() && id.intersects()) {
             intersectedId.setGeometryId(geometryId);
         }
 
@@ -1195,7 +1206,7 @@ PointId PointId::getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
         if(id) {
             return PointId(id.pointId(), id.ringId(), geometryId);
         }
-        if(!intersectedId.intersected() && id.intersected()) {
+        if(!intersectedId.intersects() && id.intersects()) {
             intersectedId.setRingId(id.ringId());
             intersectedId.setGeometryId(geometryId);
         }

@@ -64,12 +64,7 @@ public:
     virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
 
     size_t layerCount() const { return m_layers.size(); }
-    LayerPtr getLayer(int layerId) const {
-        if(layerId < 0) return nullptr;
-        size_t layerIndex = static_cast<size_t>(layerId);
-        if(layerIndex >= m_layers.size()) return nullptr;
-        return m_layers[layerIndex];
-    }
+    LayerPtr getLayer(int layerId) const;
     virtual int createLayer(const char* name, const ObjectPtr &object);
     virtual bool deleteLayer(Layer* layer);
     virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);

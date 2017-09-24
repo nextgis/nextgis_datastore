@@ -346,6 +346,16 @@ void Dataset::deleteProperties(const char* table)
                           METHADATA_TABLE_NAME, META_KEY, table));
 }
 
+void Dataset::lockExecuteSql(bool lock)
+{
+    if(lock) {
+        CPLAcquireMutex(m_executeSQLMutex, 5.0);
+    }
+    else {
+        CPLReleaseMutex(m_executeSQLMutex);
+    }
+}
+
 bool Dataset::destroyTable(Table* table)
 {
     if(destroyTable(m_DS, table->m_layer)) {

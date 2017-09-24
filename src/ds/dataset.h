@@ -133,6 +133,7 @@ public:
     virtual void startBatchOperation() {}
     virtual void stopBatchOperation() {}
     virtual bool isBatchOperation() const { return false; }
+    virtual void lockExecuteSql(bool lock);
 
     // Object interface
 public:

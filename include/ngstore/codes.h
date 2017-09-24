@@ -225,7 +225,8 @@ enum ngsMapTouchType
 {
     MTT_ON_DOWN,
     MTT_ON_MOVE,
-    MTT_ON_UP
+    MTT_ON_UP,
+    MTT_SINGLE
 };
 
 /**

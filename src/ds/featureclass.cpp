@@ -973,14 +973,23 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
     }
 
     CPLMutexHolder holder(m_genTileMutex);
-    CPLAcquireMutex(m_featureMutex, 10.5);
+
+    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr != parentDS) {
+        parentDS->lockExecuteSql(true);
+    }
+
+    //CPLAcquireMutex(m_featureMutex, 10.5);
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
                                               OVR_ZOOM_KEY, tile.z));
     FeaturePtr out(m_ovrTable->GetNextFeature());
     m_ovrTable->SetAttributeFilter(nullptr);
-    CPLReleaseMutex(m_featureMutex);
+    //CPLReleaseMutex(m_featureMutex);
+    if(nullptr != parentDS) {
+        parentDS->lockExecuteSql(false);
+    }
     return out;
 }
 

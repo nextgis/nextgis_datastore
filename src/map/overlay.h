@@ -60,8 +60,8 @@ public:
     void setGeometryId(int geometryId) { m_geometryId = geometryId; }
     int geometryId() const { return m_geometryId; }
 
-    const PointId& setIntersected();
-    bool intersected() const { return m_ringId >= 0 || m_geometryId >= 0; }
+    const PointId& setIntersects();
+    bool intersects() const { return m_ringId >= 0 || m_geometryId >= 0; }
 
     static PointId getGeometryPointId(const OGRGeometry& geometry,
             const Envelope env,

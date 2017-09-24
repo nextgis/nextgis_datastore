@@ -155,6 +155,17 @@ bool Map::close()
     return true;
 }
 
+LayerPtr Map::getLayer(int layerId) const
+{
+    if(layerId < 0)
+        return nullptr;
+
+    size_t layerIndex = static_cast<size_t>(layerId);
+    if(layerIndex >= m_layers.size())
+        return nullptr;
+    return m_layers[layerIndex];
+}
+
 int Map::createLayer(const char* name, const ObjectPtr &object)
 {
     LayerPtr layer;

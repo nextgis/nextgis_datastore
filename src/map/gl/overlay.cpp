@@ -188,6 +188,7 @@ void GlEditLayerOverlay::setGeometry(GeometryUPtr geometry)
 bool GlEditLayerOverlay::singleTap(const OGRRawPoint& mapCoordinates)
 {
     bool ret = EditLayerOverlay::singleTap(mapCoordinates);
+    CPLDebug("ngstore", "GlEditLayerOverlay::singleTap");
     if(ret) {
         fill();
     }
