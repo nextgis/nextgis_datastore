@@ -74,12 +74,12 @@ void LocationOverlay::setLocation(const ngsCoordinate& location, float direction
 //------------------------------------------------------------------------------
 
 EditLayerOverlay::EditLayerOverlay(MapView* map) : Overlay(map, MOT_EDIT),
-    m_editedFeatureId(NOT_FOUND),
+    m_editFeatureId(NOT_FOUND),
     m_selectedPointId(),
     m_selectedPointCoordinates(),
     m_historyState(-1),
     m_isTouchMoved(false),
-    m_wasTouchingSelectedPoint(false)
+    m_isTouchingSelectedPoint(false)
 {
     Settings& settings = Settings::instance();
     m_tolerancePx =
@@ -146,57 +146,65 @@ void EditLayerOverlay::clearHistory()
     m_historyState = -1;
 }
 
-bool EditLayerOverlay::save()
+FeaturePtr EditLayerOverlay::save()
 {
-    if(!m_datasource)
-        return errorMessage(_("Datasource is null"));
-
-    if(m_geometry) { // If multi geometry is empty then delete a feature.
-        OGRGeometryCollection* multyGeom =
-                ngsDynamicCast(OGRGeometryCollection, m_geometry);
-        if(multyGeom && multyGeom->getNumGeometries() == 0)
-            m_geometry.reset();
+    if(!m_featureClass) {
+        errorMessage(_("Feature class is null"));
+        return FeaturePtr();
     }
-    bool hasDeletedGeometry = (!m_geometry);
-    bool hasEditedFeature = (m_editedFeatureId >= 0);
+
+    if(m_geometry && OGR_GT_Flatten(m_geometry->getGeometryType()) > 3) { // If multi geometry is empty then delete a feature.
+        OGRGeometryCollection* multyGeom = ngsDynamicCast(OGRGeometryCollection,
+                                                          m_geometry);
+        if(multyGeom && multyGeom->getNumGeometries() == 0) {
+            m_geometry.reset();
+        }
+    }
+    bool deleteGeometry = (!m_geometry);
+    bool featureHasEdits = (m_editFeatureId >= 0);
 
     FeaturePtr feature;
     OGRGeometry* geom = nullptr;
-    if(hasEditedFeature && hasDeletedGeometry) { // Delete a feature.
-        bool featureDeleted = m_datasource->deleteFeature(m_editedFeatureId);
-        if(!featureDeleted)
-            return errorMessage(_("Feature deleting is failed"));
-
-    } else if(!hasDeletedGeometry) { // Insert or update a feature.
-        feature = (hasEditedFeature)
-                ? m_datasource->getFeature(m_editedFeatureId)
-                : m_datasource->createFeature();
+    if(featureHasEdits && deleteGeometry) { // Delete a feature.
+        bool featureDeleted = m_featureClass->deleteFeature(m_editFeatureId);
+        if(!featureDeleted) {
+            errorMessage(_("Delete feature failed"));
+            return FeaturePtr();
+        }
+    }
+    else if(!deleteGeometry) { // Insert or update a feature.
+        feature = (featureHasEdits)
+                ? m_featureClass->getFeature(m_editFeatureId)
+                : m_featureClass->createFeature();
 
         geom = m_geometry.release();
-        if(!geom)
-            return errorMessage(_("Geometry is null"));
 
         if(OGRERR_NONE != feature->SetGeometryDirectly(geom)) {
             delete geom;
-            return errorMessage(_("Set geometry to feature is failed"));
+            errorMessage(_("Set geometry to feature failed"));
+            return FeaturePtr();
         }
 
         bool featureSaved = false;
-        if(hasEditedFeature)
-            featureSaved = m_datasource->updateFeature(feature);
-        else
-            featureSaved = m_datasource->insertFeature(feature);
-        if(!featureSaved)
-            return errorMessage(_("Feature saving is failed"));
+        if(featureHasEdits) {
+            featureSaved = m_featureClass->updateFeature(feature);
+        }
+        else {
+            featureSaved = m_featureClass->insertFeature(feature);
+        }
+        if(!featureSaved) {
+            errorMessage(_("Save feature failed"));
+            return FeaturePtr();
+        }
     }
 
-    if(m_editedLayer) { // Unhide a hidden ids.
+    if(m_editLayer) { // Unhide a hidden ids.
         GlSelectableFeatureLayer* featureLayer =
-                ngsDynamicCast(GlSelectableFeatureLayer, m_editedLayer);
-        if(!featureLayer)
-            return errorMessage(_("Feature layer is null"));
-        m_editedFeatureId = NOT_FOUND;
-        featureLayer->setHideIds(std::set<GIntBig>()); // Empty hidden ids.
+                ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
+        if(featureLayer) {
+            m_editFeatureId = NOT_FOUND;
+            featureLayer->setHideIds(); // Empty hidden ids.
+        }
     }
 
     if(geom) { // Redraw a geometry tile.
@@ -204,22 +212,26 @@ bool EditLayerOverlay::save()
         geom->getEnvelope(&ogrEnv);
         m_map->invalidate(Envelope(ogrEnv));
     }
+    else {
+        // If geometry deleted invalidate it's oroginal envelope
+        m_map->invalidate(Envelope(-0.5, -0.5, 0.5, 0.5));
+    }
 
     freeResources();
     setVisible(false);
-    return true;
+    return feature;
 }
 
 void EditLayerOverlay::cancel()
 {
-    if(m_editedLayer) {
+    if(m_editLayer) {
         GlSelectableFeatureLayer* featureLayer =
-                ngsDynamicCast(GlSelectableFeatureLayer, m_editedLayer);
+                ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
         if(!featureLayer) {
             errorMessage(_("Feature layer is null"));
             return;
         }
-        m_editedFeatureId = NOT_FOUND;
+        m_editFeatureId = NOT_FOUND;
         featureLayer->setHideIds(std::set<GIntBig>()); // Empty hidden ids.
         m_map->invalidate(Envelope());
     }
@@ -230,11 +242,11 @@ void EditLayerOverlay::cancel()
 
 bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
 {
-    m_datasource = datasource;
-    m_editedLayer.reset();
-    m_editedFeatureId = NOT_FOUND;
+    m_featureClass = datasource;
+    m_editLayer.reset();
+    m_editFeatureId = NOT_FOUND;
 
-    OGRwkbGeometryType geometryType = m_datasource->geometryType();
+    OGRwkbGeometryType geometryType = m_featureClass->geometryType();
     OGRRawPoint geometryCenter = m_map->getCenter();
     OGRRawPoint mapDist =
             m_map->getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
@@ -300,42 +312,47 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
 bool EditLayerOverlay::editGeometry(LayerPtr layer, GIntBig featureId)
 {
     bool useLayerParam = (layer.get());
-    m_editedLayer = layer;
+    m_editLayer = layer;
 
     GlSelectableFeatureLayer* featureLayer = nullptr;
-    if(m_editedLayer) {
-        featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, m_editedLayer);
-    } else {
+    if(m_editLayer) {
+        featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
+    }
+    else {
         int layerCount = static_cast<int>(m_map->layerCount());
         for(int i = 0; i < layerCount; ++i) {
             layer = m_map->getLayer(i);
             featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, layer);
             if(featureLayer && featureLayer->hasSelectedIds()) {
                 // Get selection from first layer which has selected ids.
-                m_editedLayer = layer;
+                m_editLayer = layer;
                 break;
             }
         }
     }
 
-    if(!featureLayer)
+    if(!featureLayer) {
         return errorMessage(_("Render layer is null"));
-
-    m_datasource =
-            std::dynamic_pointer_cast<FeatureClass>(featureLayer->datasource());
-    if(!m_datasource)
-        return errorMessage(_("Layer datasource is null"));
-
-    if(useLayerParam && featureId > 0) {
-        m_editedFeatureId = featureId;
-    } else {
-        // Get first selected feature.
-        m_editedFeatureId = *featureLayer->selectedIds().cbegin();
     }
 
-    FeaturePtr feature = m_datasource->getFeature(m_editedFeatureId);
-    if(!feature)
+    m_featureClass = std::dynamic_pointer_cast<FeatureClass>(
+                featureLayer->datasource());
+    if(!m_featureClass) {
+        return errorMessage(_("Layer datasource is null"));
+    }
+
+    if(useLayerParam && featureId > 0) {
+        m_editFeatureId = featureId;
+    }
+    else {
+        // Get first selected feature.
+        m_editFeatureId = *featureLayer->selectedIds().cbegin();
+    }
+
+    FeaturePtr feature = m_featureClass->getFeature(m_editFeatureId);
+    if(!feature) {
         return errorMessage(_("Feature is null"));
+    }
 
     GeometryUPtr geometry = GeometryUPtr(feature->GetGeometryRef()->clone());
     setGeometry(std::move(geometry));
@@ -344,7 +361,7 @@ bool EditLayerOverlay::editGeometry(LayerPtr layer, GIntBig featureId)
     }
 
     std::set<GIntBig> hideIds;
-    hideIds.insert(m_editedFeatureId);
+    hideIds.insert(m_editFeatureId);
     featureLayer->setHideIds(hideIds);
 
     OGREnvelope ogrEnv;
@@ -619,10 +636,8 @@ ngsPointId EditLayerOverlay::touch(double x, double y, enum ngsMapTouchType type
                 mapPt.y = -mapPt.y;
             }
 
-            CPLDebug("ngstore", "Tuch down map x: %f, map y: %f", mapPt.x, mapPt.y);
-
-            m_wasTouchingSelectedPoint = hasSelectedPoint(mapPt);
-            if(m_wasTouchingSelectedPoint) {
+            m_isTouchingSelectedPoint = hasSelectedPoint(mapPt);
+            if(m_isTouchingSelectedPoint) {
                 returnSelectedPoint = true;
             }
             break;
@@ -640,7 +655,7 @@ ngsPointId EditLayerOverlay::touch(double x, double y, enum ngsMapTouchType type
                 mapOffset.y = -mapOffset.y;
             }
 
-            if(m_wasTouchingSelectedPoint) {
+            if(m_isTouchingSelectedPoint) {
                 shiftPoint(mapOffset);
                 returnSelectedPoint = true;
             }
@@ -651,9 +666,9 @@ ngsPointId EditLayerOverlay::touch(double x, double y, enum ngsMapTouchType type
         case MTT_ON_UP: {
             if(m_isTouchMoved) {
                 m_isTouchMoved = false;
-                if(m_wasTouchingSelectedPoint) {
+                if(m_isTouchingSelectedPoint) {
                     saveToHistory();
-                    m_wasTouchingSelectedPoint = false;
+                    m_isTouchingSelectedPoint = false;
                 }
             }
             break;
@@ -664,7 +679,6 @@ ngsPointId EditLayerOverlay::touch(double x, double y, enum ngsMapTouchType type
                     mapPt.y = -mapPt.y;
                 }
 
-                CPLDebug("ngstore", "sel pt: %d, x: %f, y: %f ", m_selectedPointId.pointId(), mapPt.x, mapPt.y);
                 if(singleTap(mapPt)) {
                     returnSelectedPoint = true;
                 }
@@ -696,7 +710,6 @@ bool EditLayerOverlay::singleTap(const OGRRawPoint& mapCoordinates)
 bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
 {
     if(m_geometry) {
-        CPLDebug("ngstore", "EditLayerOverlay::clickPoint");
         OGRRawPoint mapTolerance = m_map->getMapDistance(m_tolerancePx,
                                                          m_tolerancePx);
 
@@ -716,7 +729,6 @@ bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
             return true;
         }
     }
-    CPLDebug("ngstore", "EditLayerOverlay::clickPoint false");
     return false;
 }
 
@@ -724,8 +736,6 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
 {
     if(!m_geometry)
         return false;
-
-    CPLDebug("ngstore", "EditLayerOverlay::clickMedianPoint");
 
     OGRLineString* line = nullptr;
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
@@ -774,7 +784,6 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
 bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
 {
     if(m_geometry) {
-        CPLDebug("ngstore", "EditLayerOverlay::clickLine");
         OGRRawPoint mapTolerance = m_map->getMapDistance(m_tolerancePx,
                                                          m_tolerancePx);
 
@@ -841,9 +850,9 @@ bool EditLayerOverlay::shiftPoint(const OGRRawPoint& mapOffset)
 void EditLayerOverlay::freeResources()
 {
     clearHistory();
-    m_editedLayer.reset();
-    m_datasource.reset();
-    m_editedFeatureId = NOT_FOUND;
+    m_editLayer.reset();
+    m_featureClass.reset();
+    m_editFeatureId = NOT_FOUND;
     m_geometry.reset();
 }
 

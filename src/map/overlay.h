@@ -176,7 +176,7 @@ public:
     bool canRedo();
     void saveToHistory();
     void clearHistory();
-    bool save();
+    FeaturePtr save();
     void cancel();
 
     bool createGeometry(FeatureClassPtr datasource);
@@ -205,9 +205,9 @@ private:
     bool selectFirstPoint();
 
 protected:
-    LayerPtr m_editedLayer;
-    FeatureClassPtr m_datasource;
-    GIntBig m_editedFeatureId;
+    LayerPtr m_editLayer;
+    FeatureClassPtr m_featureClass;
+    GIntBig m_editFeatureId;
     GeometryUPtr m_geometry;
     PointId m_selectedPointId;
     OGRPoint m_selectedPointCoordinates;
@@ -217,7 +217,7 @@ protected:
 
     OGRRawPoint m_touchStartPoint;
     bool m_isTouchMoved;
-    bool m_wasTouchingSelectedPoint;
+    bool m_isTouchingSelectedPoint;
 };
 
 class LocationOverlay : public Overlay

@@ -559,7 +559,7 @@ TEST(MapTests, TestEditOverlay) {
     EXPECT_EQ(ngsEditOverlayCreateGeometry(mapId, layer), COD_SUCCESS);
     EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 1);
 
-    EXPECT_EQ(ngsEditOverlaySave(mapId), COD_SUCCESS);
+    EXPECT_NE(ngsEditOverlaySave(mapId), nullptr);
     EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 0);
 
     EXPECT_EQ(ngsFeatureClassCount(pointFc), 1);

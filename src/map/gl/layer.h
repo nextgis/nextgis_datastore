@@ -111,7 +111,7 @@ class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 public:
     explicit GlFeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlFeatureLayer() = default;
-    virtual void setHideIds(const std::set<GIntBig>& hideIds);
+    virtual void setHideIds(const std::set<GIntBig>& hideIds = std::set<GIntBig>());
 
     // GlRenderLayer interface
 public:

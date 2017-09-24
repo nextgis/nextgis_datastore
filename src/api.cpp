@@ -1400,8 +1400,9 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
         return nullptr;
     }
     FeaturePtr out = featureClass->nextFeature();
-    if(out)
+    if(out) {
         return new FeaturePtr(out);
+    }
     return nullptr;
 }
 
@@ -1413,8 +1414,9 @@ FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
         return nullptr;
     }
     FeaturePtr out = featureClass->getFeature(id);
-    if(out)
+    if(out) {
         return new FeaturePtr(out);
+    }
     return nullptr;
 }
 
@@ -2772,16 +2774,25 @@ char ngsEditOverlayCanRedo(unsigned char mapId)
     return editOverlay->canRedo();
 }
 
-int ngsEditOverlaySave(unsigned char mapId)
+/**
+ * @brief ngsEditOverlaySave Saves edits in feature class
+ * @param mapId Map identificator the edit overlay belongs to
+ * @return Feature handle or NULL if error occured
+ */
+FeatureH ngsEditOverlaySave(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_SAVE_FAILED, _("Failed to get edit overlay"));
+        errorMessage(_("Failed to get edit overlay"));
+        return nullptr;
     }
-    if(!editOverlay->save()) {
-        return errorMessage(COD_SAVE_FAILED, _("Edit saving is failed"));
+
+    FeaturePtr savedFeature = editOverlay->save();
+    if(!savedFeature) {
+        errorMessage(_("Edit saving is failed"));
+        return nullptr;
     }
-    return COD_SUCCESS;
+    return new FeaturePtr(savedFeature);
 }
 
 int ngsEditOverlayCancel(unsigned char mapId)
@@ -2817,11 +2828,10 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayEditGeometry(
-        unsigned char mapId, LayerH layer, long long feateureId)
+int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
+                               long long feateureId)
 {
-    EditLayerOverlay* editOverlay =
-            getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
@@ -2833,7 +2843,7 @@ int ngsEditOverlayEditGeometry(
 
     LayerPtr editLayer;
     if(layer) {
-        int layerCount = mapStore->getLayerCount(mapId);
+        int layerCount = static_cast<int>(mapStore->getLayerCount(mapId));
         for(int i = 0; i < layerCount; ++i) {
             LayerPtr layerPtr = mapStore->getLayer(mapId, i);
             if(layerPtr.get() == static_cast<Layer*>(layer)) {
