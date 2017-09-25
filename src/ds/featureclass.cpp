@@ -477,12 +477,18 @@ bool FeatureClass::hasOverviews() const
     return dataset->getOverviewsTable(name());
 }
 
-double FeatureClass::pixelSize(int zoom)
+double FeatureClass::pixelSize(int zoom, bool precize)
 {
     int tilesInMapOneDim = 1 << zoom;
 
     // Tile size. On ower zoom less size
-    int tileSize = TILE_SIZE - (20 - zoom) * 8;
+    int tileSize = TILE_SIZE;
+    if(precize) {
+        tileSize *= 2;
+    }
+    else {
+        tileSize -= (20 - zoom) * 8; // NOTE: Only useful fo points
+    }
 
     long sizeOneDimPixels = tilesInMapOneDim * tileSize;
     return WORLD_WIDTH / sizeOneDimPixels;
@@ -550,6 +556,8 @@ void FeatureClass::tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
         CPLDebug("ngstore", "Tile not line");
         return;
     }
+
+    //step /= 3.5f; // Increase step fo lines to prevent steps on tile border
 
     VectorTileItem vitem;
     vitem.addId(fid);
@@ -675,14 +683,14 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
                 tilePolygon(fid, collGeom, extent, step, vitemArray);
             }
             else {
-                CPLDebug("ngstore", "Tile not line");
+                CPLDebug("ngstore", "Tile not polygon");
             }
         }
         return;
     }
 
     if(OGR_GT_Flatten(cutGeom->getGeometryType()) != wkbPolygon) {
-        CPLDebug("ngstore", "Tile not line");
+        CPLDebug("ngstore", "Tile not polygon");
         return;
     }
 
@@ -1036,6 +1044,7 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
 
     OGREnvelope env;
     geom->getEnvelope(&env);
+    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint || OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
     for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
         Envelope extent = extraExtentForZoom(zoomLevel, env);
@@ -1044,7 +1053,8 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
                     extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(
-                                                tileItem.tile.z));
+                                                tileItem.tile.z,
+                                                precisePixelSize));
             Envelope ext = tileItem.env;
             ext.resize(TILE_RESIZE);
             auto vItems = data->m_featureClass->tileGeometry(
@@ -1200,7 +1210,10 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     CPLDebug("ngstore", "Tiling on the fly");
 
     // Calc grid step for zoom
-    float step = static_cast<float>(pixelSize(tile.z));
+    bool precisePixelSize = !(OGR_GT_Flatten(geometryType()) == wkbPoint ||
+                              OGR_GT_Flatten(geometryType()) == wkbMultiPoint);
+
+    float step = static_cast<float>(pixelSize(tile.z, precisePixelSize));
 
     std::vector<FeaturePtr> features;
     OGREnvelope extEnv = tileExtent.toOgrEnvelope();
@@ -1562,6 +1575,7 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
     geom->getEnvelope(&env);
     Envelope extentBase = env;
     extentBase.fix();
+    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint || OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
     m_extent.merge(extentBase);
 
@@ -1576,7 +1590,8 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             float step = static_cast<float>(FeatureClass::pixelSize(
-                                                tileItem.tile.z));
+                                                tileItem.tile.z,
+                                                precisePixelSize));
             Envelope ext = tileItem.env;
             ext.resize(TILE_RESIZE);
             auto vItem = tileGeometry(feature, ext.toGeometry(nullptr).get(),
@@ -1683,6 +1698,9 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
         return result;
     }
 
+    bool precisePixelSize = !(OGR_GT_Flatten(geometryType()) == wkbPoint || OGR_GT_Flatten(geometryType()) == wkbMultiPoint);
+
+
     for(auto zoomLevel : zoomLevels()) {
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
 
@@ -1710,7 +1728,8 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
             vtile.remove(id);
 
             float step = static_cast<float>(FeatureClass::pixelSize(
-                                                tileItem.tile.z));
+                                                tileItem.tile.z,
+                                                precisePixelSize));
             Envelope env = tileItem.env;
             env.resize(TILE_RESIZE);
             auto vItem = tileGeometry(feature, env.toGeometry(nullptr).get(),

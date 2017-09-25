@@ -1630,9 +1630,10 @@ bool EditLineStyle::load(const CPLJSONObject& store)
         return false;
 
     m_lineColor = ngsHEX2RGBA(
-            store.GetString("line_color", ngsRGBA2HEX(m_lineColor)));
-    m_selectedLineColor = ngsHEX2RGBA(store.GetString(
-            "selected_line_color", ngsRGBA2HEX(m_selectedLineColor)));
+                store.GetString("line_color", ngsRGBA2HEX(m_lineColor)));
+    m_selectedLineColor = ngsHEX2RGBA(
+                store.GetString("selected_line_color",
+                                ngsRGBA2HEX(m_selectedLineColor)));
 
     setEditElementType(EET_LINE);
     return true;

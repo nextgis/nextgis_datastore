@@ -155,7 +155,7 @@ FeaturePtr EditLayerOverlay::save()
         return FeaturePtr();
     }
 
-    if(m_geometry && OGR_GT_Flatten(m_geometry->getGeometryType()) > 3) { // If multi geometry is empty then delete a feature.
+    if(m_geometry && OGR_GT_Flatten(m_geometry->getGeometryType()) > 3) { // If multi geometry is empty delete a feature
         OGRGeometryCollection* multyGeom = ngsDynamicCast(OGRGeometryCollection,
                                                           m_geometry);
         if(multyGeom && multyGeom->getNumGeometries() == 0) {
@@ -391,7 +391,7 @@ bool EditLayerOverlay::addPoint()
         return false;
     }
 
-    OGRLineString* line = nullptr; // Only to line
+    OGRLineString* line = nullptr; // Only geometry of type line
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbLineString: {
             line = ngsDynamicCast(OGRLineString, m_geometry);
@@ -511,7 +511,7 @@ bool EditLayerOverlay::addGeometryPart()
                                                 GEOMETRY_SIZE_PX);
     bool ret = false;
 
-    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // only multi
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // Only geometry of type multi
         case wkbMultiPoint: {
             OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
             if(!mpt) {
@@ -577,7 +577,7 @@ bool EditLayerOverlay::deleteGeometryPart()
 
     OGRGeometryCollection* collect = ngsDynamicCast(OGRGeometryCollection,
                                                     m_geometry);
-    if(!collect || collect->getNumGeometries() == 0) { // Only geometries of type multi
+    if(!collect || collect->getNumGeometries() == 0) { // Only geometry of type multi
         return deletedLastPart;
     }
 
@@ -596,7 +596,7 @@ bool EditLayerOverlay::deleteGeometryPart()
 
     if(!deletedLastPart) {
         const OGRGeometry* lastGeom = collect->getGeometryRef(lastGeomId);
-        switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // Only geometries of type multi
+        switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // Only geometry of type multi
             case wkbMultiPoint: {
                 OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
                 if(!mpt) {

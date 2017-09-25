@@ -60,14 +60,15 @@ GlEditLayerOverlay::GlEditLayerOverlay(MapView* map) : EditLayerOverlay(map),
         m_lineStyle = EditLineStylePtr(lineStyle);
 }
 
-bool GlEditLayerOverlay::setStyleName(
-        enum ngsEditStyleType type, const char* name)
+bool GlEditLayerOverlay::setStyleName(enum ngsEditStyleType type,
+                                      const char* name)
 {
     GlView* mapView = dynamic_cast<GlView*>(m_map);
-    Style* style = Style::createStyle(
-            name, mapView ? mapView->textureAtlas() : nullptr);
-    if(!style)
+    Style* style = Style::createStyle(name, mapView ? mapView->textureAtlas() :
+                                                      nullptr);
+    if(!style) {
         return false;
+    }
 
     if(EST_POINT == type) {
         PointStyle* pointStyle = dynamic_cast<PointStyle*>(style);
@@ -313,8 +314,8 @@ void GlEditLayerOverlay::fillLines()
                         m_selectedPointId.pointId() >= 0);
             };
 
-            fillLineElements(
-                    mline->getNumGeometries(), getLineFunc, isSelectedLineFunc);
+            fillLineElements(mline->getNumGeometries(), getLineFunc,
+                             isSelectedLineFunc);
             break;
         }
     }
@@ -454,8 +455,8 @@ void GlEditLayerOverlay::fillLineElements(int numLines,
     m_elements[EET_SELECTED_LINE] = GlObjectPtr(selBufferArray);
 }
 
-void GlEditLayerOverlay::fillLineBuffers(
-        const OGRLineString* line, VectorGlObject* bufferArray)
+void GlEditLayerOverlay::fillLineBuffers(const OGRLineString* line,
+                                         VectorGlObject* bufferArray)
 {
     auto getPointFunc = [line](int index) -> SimplePoint {
         OGRPoint pt;
@@ -583,10 +584,11 @@ bool GlEditLayerOverlay::draw()
            EET_SELECTED_MEDIAN_POINT == styleType) {
             style = m_pointStyle.get();
 
-            EditPointStyle* editPointStyle =
-                    ngsDynamicCast(EditPointStyle, m_pointStyle);
-            if(editPointStyle)
+            EditPointStyle* editPointStyle = ngsDynamicCast(EditPointStyle,
+                                                            m_pointStyle);
+            if(editPointStyle) {
                 editPointStyle->setEditElementType(it->first);
+            }
         }
         if(EET_LINE == styleType || EET_SELECTED_LINE == styleType) {
             style = m_lineStyle.get();
