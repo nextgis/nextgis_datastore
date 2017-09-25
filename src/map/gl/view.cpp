@@ -432,6 +432,7 @@ bool GlView::drawTiles(const Progress &progress)
 
             // Make the window the target
             ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, 1)); // 0 - back, 1 - front.
+            ngsCheckGLError(glDisable(GL_DEPTH_TEST));
 
             if(filled != m_layers.size()) { // == 0
                 drawTile = false;
