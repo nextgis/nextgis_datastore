@@ -228,6 +228,7 @@ Earcut<N>::filterPoints(Node* start, Node* end) {
     do {
         again = false;
 
+        // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
         if (!p->steiner && (equals(p, p->next) || area(p->prev, p, p->next) == 0)) {
             removeNode(p);
             p = end = p->prev;
@@ -464,12 +465,16 @@ Earcut<N>::findHoleBridge(Node* hole, Node* outerNode) {
     // find a segment intersected by a ray from the hole's leftmost Vertex to the left;
     // segment's endpoint with lesser x will be potential connection Vertex
     do {
+        // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
         if (hy <= p->y && hy >= p->next->y && p->next->y != p->y) {
           double x = p->x + (hy - p->y) * (p->next->x - p->x) / (p->next->y - p->y);
           if (x <= hx && x > qx) {
             qx = x;
+            // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
             if (x == hx) {
+                // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
                 if (hy == p->y) return p;
+                // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
                 if (hy == p->next->y) return p->next;
             }
             m = p->x < p->next->x ? p : p->next;
@@ -480,6 +485,7 @@ Earcut<N>::findHoleBridge(Node* hole, Node* outerNode) {
 
     if (!m) return 0;
 
+    // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
     if (hx == qx) return m->prev;
 
     // look for points inside the triangle of hole Vertex, segment intersection and endpoint;
@@ -495,6 +501,7 @@ Earcut<N>::findHoleBridge(Node* hole, Node* outerNode) {
     double my = m->y;
 
     while (p != stop) {
+        // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
         if (hx >= p->x && p->x >= mx && hx != p->x &&
             pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p->x, p->y)) {
 
@@ -658,6 +665,7 @@ double Earcut<N>::area(const Node* p, const Node* q, const Node* r) const {
 // check if two points are equal
 template <typename N>
 bool Earcut<N>::equals(const Node* p1, const Node* p2) {
+    // FIXME: comparing floating point with == or != is unsafe [-Werror=float-equal]
     return p1->x == p2->x && p1->y == p2->y;
 }
 

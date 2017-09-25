@@ -705,13 +705,16 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
     OGRPoint pt;
 
     // The number type to use for tessellation
+    // FIXME: declaration of ‘using Coord = double’ shadows a global declaration [-Werror=shadow]
     using Coord = double;
 
     // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
     // data won't have more than 65536 vertices.
+    // FIXME: declaration of ‘using N = short unsigned int’ shadows a global declaration [-Werror=shadow]
     using N = unsigned short;
 
     // Create array
+    // FIXME: declaration of ‘using MBPoint = struct std::array<double, 2ul>’ shadows a global declaration [-Werror=shadow]
     using MBPoint = std::array<Coord, 2>;
     std::vector<std::vector<MBPoint>> polygon;
 
@@ -723,6 +726,7 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
         double y = pt.getY();
         edges[0].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
 
+        // FIXME: declaration of ‘pt’ shadows a previous local [-Werror=shadow]
         MBPoint pt{ { x, y } };
         exteriorRing.emplace_back(pt);
     }
@@ -738,6 +742,7 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
             double y = pt.getY();
             edges[i + 1].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
 
+            // FIXME: declaration of ‘pt’ shadows a previous local [-Werror=shadow]
             MBPoint pt{ { x, y } };
             interiorRing.emplace_back(pt);
         }
@@ -766,6 +771,7 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
     unsigned short vertexIndex = 0;
 
     for(auto index : indices) {
+        // FIXME: declaration of ‘pt’ shadows a previous local [-Werror=shadow]
         OGRPoint* pt = findPointByIndex(index, polygon);
         if(pt != nullptr) {
             tin[tinIndex] = {generalizePoint(pt, step), pt->getX(), pt->getY()};
