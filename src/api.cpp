@@ -2866,8 +2866,7 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
     if(!editOverlay->deleteGeometry()) {
-        return errorMessage(
-                COD_DELETE_FAILED, _("Geometry deleting is failed"));
+        return errorMessage(COD_DELETE_FAILED, _("Geometry deleting is failed"));
     }
     return COD_SUCCESS;
 }
@@ -2879,8 +2878,7 @@ int ngsEditOverlayAddPoint(unsigned char mapId)
         return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
     if(!editOverlay->addPoint()) {
-        return errorMessage(
-                COD_INSERT_FAILED, _("Point adding is failed"));
+        return errorMessage(COD_INSERT_FAILED, _("Point adding is failed"));
     }
     return COD_SUCCESS;
 }
@@ -2892,8 +2890,7 @@ int ngsEditOverlayDeletePoint(unsigned char mapId)
         return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
     if(!editOverlay->deletePoint()) {
-        return errorMessage(
-                COD_INSERT_FAILED, _("Point deleting is failed"));
+        return errorMessage(COD_INSERT_FAILED, _("Point deleting is failed"));
     }
     return COD_SUCCESS;
 }
@@ -2905,8 +2902,7 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
         return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
     if(!editOverlay->addGeometryPart()) {
-        return errorMessage(
-                COD_INSERT_FAILED, _("Geometry part adding is failed"));
+        return errorMessage(COD_INSERT_FAILED, _("Geometry part adding is failed"));
     }
     return COD_SUCCESS;
 }
@@ -2920,40 +2916,36 @@ char ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return errorMessage(_("Failed to get edit overlay"));
     }
     return editOverlay->deleteGeometryPart() ? 1 : 0;
 }
 
-int ngsEditOverlaySetStyle(
-        unsigned char mapId, enum ngsEditStyleType type, JsonObjectH style)
+int ngsEditOverlaySetStyle(unsigned char mapId, enum ngsEditStyleType type,
+                           JsonObjectH style)
 {
-    GlEditLayerOverlay* overlay =
-            getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    GlEditLayerOverlay* overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
-    return overlay->setStyle(type, *static_cast<CPLJSONObject*>(style))
-            ? COD_SUCCESS
-            : COD_SET_FAILED;
+    return overlay->setStyle(type, *static_cast<CPLJSONObject*>(style)) ?
+                COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsEditOverlaySetStyleName(
-        unsigned char mapId, enum ngsEditStyleType type, const char* name)
+int ngsEditOverlaySetStyleName(unsigned char mapId, enum ngsEditStyleType type,
+                               const char* name)
 {
-    GlEditLayerOverlay* overlay =
-            getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    GlEditLayerOverlay* overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
     return overlay->setStyleName(type, name) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
-JsonObjectH ngsEditOverlayGetStyle(
-        unsigned char mapId, enum ngsEditStyleType type)
+JsonObjectH ngsEditOverlayGetStyle(unsigned char mapId,
+                                   enum ngsEditStyleType type)
 {
-    GlEditLayerOverlay* overlay =
-            getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    GlEditLayerOverlay* overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
         errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
         return nullptr;
