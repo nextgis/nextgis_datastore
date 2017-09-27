@@ -597,8 +597,7 @@ void GlEditLayerOverlay::freeGlBuffers()
 
 bool GlEditLayerOverlay::draw()
 {
-    if(!visible() || !m_elements.size()) {
-        // !m_elements.size() should never happen.
+    if(!visible()) {
         return true;
     }
 
