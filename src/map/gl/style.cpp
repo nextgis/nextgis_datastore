@@ -128,12 +128,14 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
         return new SimpleLocationStyle;
     else if(EQUAL(name, "markerLocation"))
         return new MarkerLocationStyle(atlas);
-    else if(EQUAL(name, "simpleEditPointStyle"))
+    else if(EQUAL(name, "simpleEditPoint"))
         return new SimpleEditPointStyle;
-    else if(EQUAL(name, "markerEditPointStyle"))
+    else if(EQUAL(name, "markerEditPoint"))
         return new MarkerEditPointStyle(atlas);
-    else if(EQUAL(name, "editLineStyle"))
-        return new EditLineStyle();
+    else if(EQUAL(name, "editLine"))
+        return new EditLineStyle;
+    else if(EQUAL(name, "simpleEditCross"))
+        return new SimpleEditCrossStyle;
     return nullptr;
 }
 
@@ -1645,6 +1647,18 @@ CPLJSONObject EditLineStyle::save() const
     out.Add("line_color", ngsRGBA2HEX(m_lineColor));
     out.Add("selected_line_color", ngsRGBA2HEX(m_selectedLineColor));
     return out;
+}
+
+//------------------------------------------------------------------------------
+// SimpleEditCrossStyle
+//------------------------------------------------------------------------------
+
+constexpr ngsRGBA crossColor = {255, 0, 0, 255};
+
+SimpleEditCrossStyle::SimpleEditCrossStyle(enum PointType type) :
+        SimplePointStyle(type)
+{
+    setColor(crossColor);
 }
 
 } // namespace ngs

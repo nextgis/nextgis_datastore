@@ -102,11 +102,13 @@ private:
             IsSelectedGeometryFunc isSelectedLineFunc);
     void fillLineBuffers(
             const OGRLineString* line, VectorGlObject* bufferArray);
+    void fillCrossElement();
 
 private:
     std::map<ngsEditElementType, GlObjectPtr> m_elements;
     PointStylePtr m_pointStyle;
     EditLineStylePtr m_lineStyle;
+    PointStylePtr m_crossStyle;
 };
 
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay

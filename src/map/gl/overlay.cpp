@@ -50,14 +50,19 @@ GlEditLayerOverlay::GlEditLayerOverlay(MapView* map) : EditLayerOverlay(map),
     const TextureAtlas* atlas = mapView ? mapView->textureAtlas() : nullptr;
 
     PointStyle* pointStyle = static_cast<PointStyle*>(
-                Style::createStyle("simpleEditPointStyle", atlas));
+                Style::createStyle("simpleEditPoint", atlas));
     if(pointStyle)
         m_pointStyle = PointStylePtr(pointStyle);
 
     EditLineStyle* lineStyle = static_cast<EditLineStyle*>(
-                Style::createStyle("editLineStyle", atlas));
+                Style::createStyle("editLine", atlas));
     if(lineStyle)
         m_lineStyle = EditLineStylePtr(lineStyle);
+
+    PointStyle* crossStyle = static_cast<PointStyle*>(
+                Style::createStyle("simpleEditCross", atlas));
+    if(crossStyle)
+        m_crossStyle = PointStylePtr(crossStyle);
 }
 
 bool GlEditLayerOverlay::setStyleName(enum ngsEditStyleType type,
@@ -88,6 +93,15 @@ bool GlEditLayerOverlay::setStyleName(enum ngsEditStyleType type,
         }
     }
 
+    if(EST_CROSS == type) {
+        PointStyle* crossStyle = dynamic_cast<PointStyle*>(style);
+        if(crossStyle) {
+            freeGlStyle(m_crossStyle);
+            m_crossStyle = PointStylePtr(crossStyle);
+            return true;
+        }
+    }
+
     delete style; // Delete unused style.
     return false;
 }
@@ -101,6 +115,9 @@ bool GlEditLayerOverlay::setStyle(
     if(EST_LINE == type) {
         return m_lineStyle->load(jsonStyle);
     }
+    if(EST_CROSS == type) {
+        return m_crossStyle->load(jsonStyle);
+    }
     return false;
 }
 
@@ -111,6 +128,9 @@ CPLJSONObject GlEditLayerOverlay::style(enum ngsEditStyleType type) const
     }
     if(EST_LINE == type) {
         return m_lineStyle->save();
+    }
+    if(EST_CROSS == type) {
+        return m_crossStyle->save();
     }
     return CPLJSONObject();
 }
@@ -521,6 +541,24 @@ void GlEditLayerOverlay::fillLineBuffers(const OGRLineString* line,
     bufferArray->addBuffer(buffer);
 }
 
+void GlEditLayerOverlay::fillCrossElement()
+{
+    freeGlBuffer(m_elements[EET_CROSS]);
+
+    GlBuffer* buffer = new GlBuffer(GlBuffer::BF_PT);
+    VectorGlObject* bufferArray = new VectorGlObject();
+
+    OGRRawPoint pt = m_map->getCenter();
+    SimplePoint spt;
+    spt.x = static_cast<float>(pt.x);
+    spt.y = static_cast<float>(pt.y);
+
+    m_crossStyle->addPoint(spt, 0.0f, 0, buffer);
+
+    bufferArray->addBuffer(buffer);
+    m_elements[EET_CROSS] = GlObjectPtr(bufferArray);
+}
+
 void GlEditLayerOverlay::freeResources()
 {
     EditLayerOverlay::freeResources();
@@ -564,10 +602,14 @@ bool GlEditLayerOverlay::draw()
         return true;
     }
 
-    auto findIt = m_elements.find(EET_SELECTED_POINT);
-    if(m_elements.end() == findIt || !findIt->second) {
-        // One of the vertices must always be selected.
-        return false; // Data is not yet loaded.
+    if(crossVisible()) {
+        fillCrossElement();
+    } else {
+        auto findIt = m_elements.find(EET_SELECTED_POINT);
+        if(m_elements.end() == findIt || !findIt->second) {
+            // One of the vertices must always be selected.
+            return false; // Data is not yet loaded.
+        }
     }
 
     for(auto it = m_elements.begin(); it != m_elements.end(); ++it) {
@@ -593,6 +635,9 @@ bool GlEditLayerOverlay::draw()
         if(EET_LINE == styleType || EET_SELECTED_LINE == styleType) {
             style = m_lineStyle.get();
             m_lineStyle->setEditElementType(it->first);
+        }
+        if(EET_CROSS == styleType) {
+            style = m_crossStyle.get();
         }
         if(!style) {
             continue;
