@@ -1245,6 +1245,54 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     setSpatialFilter();
     CPLReleaseMutex(m_featureMutex);
 
+    /* TODO: Simplify and cut
+
+    GEOSCoordSequence* arguments will become ownership of the returned object.
+
+extern GEOSCoordSequence GEOS_DLL *GEOSCoordSeq_create_r(
+                                                GEOSContextHandle_t handle,
+                                                unsigned int size,
+                                                unsigned int dims);
+
+extern void GEOS_DLL GEOSCoordSeq_destroy_r(GEOSContextHandle_t handle,
+                                            GEOSCoordSequence* s);
+
+extern int GEOS_DLL GEOSCoordSeq_setX_r(GEOSContextHandle_t handle,
+                                        GEOSCoordSequence* s, unsigned int idx,
+                                        double val);
+extern int GEOS_DLL GEOSCoordSeq_setY_r(GEOSContextHandle_t handle,
+                                        GEOSCoordSequence* s, unsigned int idx,
+                                        double val);
+
+extern int GEOS_DLL GEOSCoordSeq_getX_r(GEOSContextHandle_t handle,
+                                        const GEOSCoordSequence* s,
+                                        unsigned int idx, double *val);
+extern int GEOS_DLL GEOSCoordSeq_getY_r(GEOSContextHandle_t handle,
+                                        const GEOSCoordSequence* s,
+                                        unsigned int idx, double *val);
+
+    extern GEOSGeometry GEOS_DLL *GEOSGeom_createLinearRing_r(
+                                           GEOSContextHandle_t handle,
+                                           GEOSCoordSequence* s);
+    extern GEOSGeometry GEOS_DLL *GEOSGeom_createLineString_r(
+                                           GEOSContextHandle_t handle,
+                                           GEOSCoordSequence* s);
+
+    extern GEOSGeometry GEOS_DLL *GEOSGeom_createPolygon_r(
+                                           GEOSContextHandle_t handle,
+                                           GEOSGeometry* shell,
+                                           GEOSGeometry** holes,
+                                           unsigned int nholes);
+
+    extern GEOSGeometry GEOS_DLL *GEOSClipByRect_r(GEOSContextHandle_t handle,
+                                                     const GEOSGeometry* g,
+                                                     double xmin, double ymin,
+                                                     double xmax, double ymax);
+
+extern void GEOS_DLL GEOSGeom_destroy_r(GEOSContextHandle_t handle,
+                                        GEOSGeometry* g);
+    */
+
     while(!features.empty()) {
         feature = features.back();
         VectorTileItemArray items = tileGeometry(feature, extGeom.get(), step);
