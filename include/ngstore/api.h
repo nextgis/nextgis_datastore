@@ -407,6 +407,10 @@ NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
                                      int typeMask, char visible);
 NGS_EXTERNC char ngsOverlayGetVisible(unsigned char mapId,
                                       enum ngsMapOverlayType type);
+NGS_EXTERNC int ngsOverlaySetOptions(
+        unsigned char mapId, enum ngsMapOverlayType type, char** options);
+NGS_EXTERNC char** ngsOverlayGetOptions(
+        unsigned char mapId, enum ngsMapOverlayType type);
 /* Edit */
 typedef struct _ngsPointId
 {

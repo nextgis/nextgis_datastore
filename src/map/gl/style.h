@@ -494,6 +494,7 @@ class SimpleEditPointStyle : public SimplePointStyle, public EditPointStyle
 public:
     explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE)
             : SimplePointStyle(type) {}
+    virtual ~SimpleEditPointStyle() = default;
 
     // EditPointStyle interface
 public:
@@ -508,6 +509,7 @@ class MarkerEditPointStyle : public MarkerStyle, public EditPointStyle
 {
 public:
     explicit MarkerEditPointStyle(const TextureAtlas* textureAtlas);
+    virtual ~MarkerEditPointStyle() = default;
 
     // EditPointStyle interface
 public:
@@ -515,7 +517,7 @@ public:
 
     // Style interface
 public:
-    virtual const char* name() const override { return "markerEditPointStyle"; }
+    virtual const char* name() const override { return "markerEditPoint"; }
     virtual bool load(const CPLJSONObject& store) override;
     virtual CPLJSONObject save() const override;
 
@@ -537,12 +539,13 @@ class EditLineStyle : public SimpleLineStyle
 {
 public:
     EditLineStyle();
+    virtual ~EditLineStyle() = default;
 
     void setEditElementType(enum ngsEditElementType type);
 
     // Style interface
 public:
-    virtual const char* name() const override { return "editLineStyle"; }
+    virtual const char* name() const override { return "editLine"; }
     virtual bool load(const CPLJSONObject& store) override;
     virtual CPLJSONObject save() const override;
 
@@ -552,6 +555,13 @@ protected:
 };
 
 typedef std::shared_ptr<EditLineStyle> EditLineStylePtr;
+
+class SimpleEditCrossStyle : public SimplePointStyle
+{
+public:
+    explicit SimpleEditCrossStyle(enum PointType type = PT_CIRCLE);
+    virtual ~SimpleEditCrossStyle() = default;
+};
 
 }  // namespace ngs
 

@@ -153,8 +153,10 @@ public:
     virtual ~Overlay() = default;
 
     enum ngsMapOverlayType type() const { return m_type; }
-    bool visible() const { return m_visible; }
     virtual void setVisible(bool visible) { m_visible = visible; }
+    bool visible() const { return m_visible; }
+    virtual bool setOptions(const Options& options) { return false; }
+    virtual Options getOptions() const { return Options(); }
 
 protected:
     MapView* m_map;
@@ -189,6 +191,14 @@ public:
 
     ngsPointId touch(double x, double y, enum ngsMapTouchType type);
 
+    virtual void setCrossVisible(bool visible) { m_crossVisible = visible; }
+    bool crossVisible() { return m_crossVisible; }
+
+    // Overlay interface
+public:
+    virtual bool setOptions(const Options& options) override;
+    virtual Options getOptions() const override;
+
 protected:
     bool hasSelectedPoint(const OGRRawPoint& mapCoordinates) const;
     virtual bool singleTap(const OGRRawPoint& mapCoordinates);
@@ -218,6 +228,8 @@ protected:
     OGRRawPoint m_touchStartPoint;
     bool m_isTouchMoved;
     bool m_isTouchingSelectedPoint;
+
+    bool m_crossVisible;
 };
 
 class LocationOverlay : public Overlay

@@ -247,12 +247,14 @@ enum ngsEditElementType {
     EET_MEDIAN_POINT,
     EET_SELECTED_MEDIAN_POINT,
     EET_POINT,
-    EET_SELECTED_POINT
+    EET_SELECTED_POINT,
+    EET_CROSS
 };
 
 enum ngsEditStyleType {
     EST_POINT,
-    EST_LINE
+    EST_LINE,
+    EST_CROSS
 };
 
 #endif // NGSCODES_H

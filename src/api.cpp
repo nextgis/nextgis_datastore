@@ -2674,8 +2674,7 @@ int ngsLayerSetHideIds(LayerH layer, long long* ids, int size)
 //------------------------------------------------------------------------------
 
 
-template<typename T>
-T* getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
+OverlayPtr getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -2687,7 +2686,13 @@ T* getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
         errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
         return nullptr;
     }
-    OverlayPtr overlay = mapView->getOverlay(type);
+    return mapView->getOverlay(type);
+}
+
+template<typename T>
+T* getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
+{
+    OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
         errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return nullptr;
@@ -2709,22 +2714,46 @@ int ngsOverlaySetVisible(unsigned char mapId, int typeMask, char visible)
 
 char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
 {
-    MapStore* const mapStore = MapStore::getInstance();
-    if(nullptr == mapStore) {
-        errorMessage(COD_GET_FAILED, _("MapStore is not initialized"));
-        return false;
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        errorMessage(COD_GET_FAILED, _("MapView pointer is null"));
-        return false;
-    }
-    OverlayPtr overlay = mapView->getOverlay(type);
+    OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
         errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return false;
     }
     return overlay->visible();
+}
+
+/**
+ * @brief ngsOverlaySetOptions Set overlay options for given overlay type
+ * @param mapId Map identifier
+ * @param type Overlay type
+ * @param options Key=Value list of options.
+ *  Available options for edit overlay are:
+ *   CROSS - ON/OFF, show or hide a cross in the map center
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsOverlaySetOptions(
+        unsigned char mapId, enum ngsMapOverlayType type, char** options)
+{
+    OverlayPtr overlay = getOverlay(mapId, type);
+    if(!overlay) {
+        return errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
+    }
+    Options editOptions(options);
+    return overlay->setOptions(editOptions) ? COD_SUCCESS : COD_SET_FAILED;
+}
+
+char** ngsOverlayGetOptions(unsigned char mapId, enum ngsMapOverlayType type)
+{
+    OverlayPtr overlay = getOverlay(mapId, type);
+    if(!overlay) {
+        errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
+        return nullptr;
+    }
+    Options option = overlay->getOptions();
+    if(option.empty()) {
+        return nullptr;
+    }
+    return option.getOptions().release();
 }
 
 ngsPointId ngsEditOverlayTouch(

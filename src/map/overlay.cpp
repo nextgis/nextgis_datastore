@@ -78,7 +78,8 @@ EditLayerOverlay::EditLayerOverlay(MapView* map) : Overlay(map, MOT_EDIT),
     m_selectedPointCoordinates(),
     m_historyState(-1),
     m_isTouchMoved(false),
-    m_isTouchingSelectedPoint(false)
+    m_isTouchingSelectedPoint(false),
+    m_crossVisible(false)
 {
     Settings& settings = Settings::instance();
     m_tolerancePx = settings.getDouble("map/overlay/edit/tolerance",
@@ -639,6 +640,20 @@ void EditLayerOverlay::setGeometry(GeometryUPtr geometry)
     clearHistory();
     saveToHistory();
     selectFirstPoint();
+}
+
+bool EditLayerOverlay::setOptions(const Options& options)
+{
+    bool cross = options.boolOption("CROSS", false);
+    setCrossVisible(cross);
+    return true;
+}
+
+Options EditLayerOverlay::getOptions() const
+{
+    Options options;
+    options.addOption("CROSS", (m_crossVisible) ? "ON" : "OFF");
+    return options;
 }
 
 ngsPointId EditLayerOverlay::touch(double x, double y, enum ngsMapTouchType type)
