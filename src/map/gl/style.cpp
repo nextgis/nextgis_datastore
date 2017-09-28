@@ -1311,30 +1311,33 @@ MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) :
     m_styleType = ST_POINT;
 }
 
-void MarkerStyle::setIcon(const char* iconSetName, unsigned short index, unsigned char width,
-                          unsigned char height)
+void MarkerStyle::setIcon(const char* iconSetName, unsigned short index,
+                          unsigned char width, unsigned char height)
 {
     m_iconSet = m_textureAtlas->at(iconSetName).get();
+    size_t atlasItemSize = m_iconSet->width();
     m_iconSetName = iconSetName;
     m_iconIndex = index;
     m_iconWidth = width;
     m_iconHeight = height;
 
-    unsigned char iconsInLine = static_cast<unsigned char>(256 / m_iconWidth);
+    unsigned char iconsInLine = static_cast<unsigned char>(atlasItemSize / m_iconWidth);
     unsigned char line = static_cast<unsigned char>(m_iconIndex / iconsInLine);
     unsigned char iconInLine = static_cast<unsigned char>(m_iconIndex - line *
                                                           iconsInLine);
-    unsigned char w = iconInLine * m_iconWidth;
-    unsigned char h = line * m_iconHeight;
+    unsigned short w = iconInLine * m_iconWidth;
+    unsigned short h = line * m_iconHeight;
 
-    m_ulx = float(w + m_iconWidth - 1) / 256;
-    m_uly = float(h + m_iconHeight - 1) / 256;
-    m_lrx = float(w) / 256;
-    m_lry = float(h) / 256;
+    CPLDebug("ngstore", "MarkerStyle::setIcon - index %d, width: %d, iconsInLine: %d, iconInLine: %d, w: %d, h: %d, atlasItemSize: %ld", index, width, iconsInLine, iconInLine, w, h, atlasItemSize);
+
+    m_ulx = float(w + m_iconWidth - 1) / atlasItemSize;
+    m_uly = float(h + m_iconHeight - 1) / atlasItemSize;
+    m_lrx = float(w) / atlasItemSize;
+    m_lry = float(h) / atlasItemSize;
 }
 
-unsigned short MarkerStyle::addPoint(const SimplePoint& pt, float z, unsigned short index,
-                                     GlBuffer* buffer)
+unsigned short MarkerStyle::addPoint(const SimplePoint& pt, float z,
+                                     unsigned short index, GlBuffer* buffer)
 {
     float nx1, ny1, nx2, ny2;
 
@@ -1473,17 +1476,18 @@ void MarkerLocationStyle::setStatus(LocationStyle::Status status)
 
 void MarkerLocationStyle::setIndex(unsigned short index)
 {
-    unsigned char iconsInLine = static_cast<unsigned char>(256 / m_iconWidth);
+    size_t atlasItemSize = m_iconSet->width();
+    unsigned char iconsInLine = static_cast<unsigned char>(atlasItemSize / m_iconWidth);
     unsigned char line = static_cast<unsigned char>(index / iconsInLine);
     unsigned char iconInLine = static_cast<unsigned char>(index - line *
                                                           iconsInLine);
     unsigned char w = iconInLine * m_iconWidth;
     unsigned char h = line * m_iconHeight;
 
-    m_ulx = float(w + m_iconWidth) / 256;
-    m_uly = float(h + m_iconHeight) / 256;
-    m_lrx = float(w) / 256;
-    m_lry = float(h) / 256;
+    m_ulx = float(w + m_iconWidth) / atlasItemSize;
+    m_uly = float(h + m_iconHeight) / atlasItemSize;
+    m_lrx = float(w) / atlasItemSize;
+    m_lry = float(h) / atlasItemSize;
 }
 
 bool MarkerLocationStyle::load(const CPLJSONObject& store)
@@ -1564,17 +1568,18 @@ void MarkerEditPointStyle::setEditElementType(enum ngsEditElementType type)
 
 void MarkerEditPointStyle::setIndex(unsigned short index)
 {
-    unsigned char iconsInLine = static_cast<unsigned char>(256 / m_iconWidth);
+    size_t atlasItemSize = m_iconSet->width();
+    unsigned char iconsInLine = static_cast<unsigned char>(atlasItemSize / m_iconWidth);
     unsigned char line = static_cast<unsigned char>(index / iconsInLine);
     unsigned char iconInLine =
             static_cast<unsigned char>(index - line * iconsInLine);
     unsigned char w = iconInLine * m_iconWidth;
     unsigned char h = line * m_iconHeight;
 
-    m_ulx = float(w + m_iconWidth) / 256;
-    m_uly = float(h + m_iconHeight) / 256;
-    m_lrx = float(w) / 256;
-    m_lry = float(h) / 256;
+    m_ulx = float(w + m_iconWidth) / atlasItemSize;
+    m_uly = float(h + m_iconHeight) / atlasItemSize;
+    m_lrx = float(w) / atlasItemSize;
+    m_lry = float(h) / atlasItemSize;
 }
 
 bool MarkerEditPointStyle::load(const CPLJSONObject& store)

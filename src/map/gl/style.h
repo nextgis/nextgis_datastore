@@ -402,8 +402,8 @@ protected:
     GlImage* m_iconSet;
     CPLString m_iconSetName;
     unsigned short m_iconIndex;
-    unsigned char m_iconWidth;
-    unsigned char m_iconHeight;
+    unsigned short m_iconWidth;
+    unsigned short m_iconHeight;
     const TextureAtlas* m_textureAtlas;
 
 protected:
