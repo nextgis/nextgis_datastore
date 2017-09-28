@@ -161,7 +161,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 
     CPLErrorReset();
 
-    int version = atoi(getProperty(NGS_VERSION_KEY, "0"));
+    int version = atoi(property(NGS_VERSION_KEY, "0"));
 
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
         return errorMessage(COD_OPEN_FAILED, _("Upgrade storage failed"));
@@ -235,7 +235,7 @@ bool DataStore::setProperty(const char* key, const char* value)
     return m_DS->SetMetadataItem(key, value, KEY_NG_ADDITIONS) == OGRERR_NONE;
 }
 
-CPLString DataStore::getProperty(const char* key, const char* defaultValue)
+CPLString DataStore::property(const char* key, const char* defaultValue)
 {
     const char* out = m_DS->GetMetadataItem(key, KEY_NG_ADDITIONS);
     return nullptr == out ? defaultValue : out;

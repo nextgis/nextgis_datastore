@@ -1328,8 +1328,6 @@ void MarkerStyle::setIcon(const char* iconSetName, unsigned short index,
     unsigned short w = iconInLine * m_iconWidth;
     unsigned short h = line * m_iconHeight;
 
-    CPLDebug("ngstore", "MarkerStyle::setIcon - index %d, width: %d, iconsInLine: %d, iconInLine: %d, w: %d, h: %d, atlasItemSize: %ld", index, width, iconsInLine, iconInLine, w, h, atlasItemSize);
-
     m_ulx = float(w + m_iconWidth - 1) / atlasItemSize;
     m_uly = float(h + m_iconHeight - 1) / atlasItemSize;
     m_lrx = float(w) / atlasItemSize;

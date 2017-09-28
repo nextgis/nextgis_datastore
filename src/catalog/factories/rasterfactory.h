@@ -32,7 +32,7 @@ public:
 
     // ObjectFactory interface
 public:
-    virtual const char *getName() const override;
+    virtual const char* getName() const override;
     virtual void createObjects(ObjectContainer * const container,
                                std::vector<const char *> * const names) override;
     // static

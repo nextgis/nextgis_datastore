@@ -41,9 +41,9 @@ constexpr const char* ATTACH_FEATURE_ID = "afid";
 constexpr const char* ATTACH_FILE_NAME = "name";
 constexpr const char* ATTACH_DESCRIPTION = "descript";
 
-constexpr const char *KEY_USER = "user";
-constexpr const char *KEY_NG_ADDITIONS = "nga";
-constexpr const char *KEY_USER_PREFIX = "USER.";
+constexpr const char* KEY_USER = "user";
+constexpr const char* KEY_NG_ADDITIONS = "nga";
+constexpr const char* KEY_USER_PREFIX = "USER.";
 constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
 constexpr const char* NGS_VERSION_KEY = "version";
 
@@ -126,7 +126,7 @@ public:
                                const Progress& progress = Progress());
 
     virtual bool setProperty(const char* key, const char* value);
-    virtual CPLString getProperty(const char* key, const char* defaultValue);
+    virtual CPLString property(const char* key, const char* defaultValue);
     virtual std::map<CPLString, CPLString> getProperties(
             const char* table, const char* domain);
     virtual void deleteProperties(const char* table);
@@ -139,11 +139,7 @@ public:
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override { return access(m_path, W_OK) == 0; }
-    virtual char** getMetadata(const char* domain) const override {
-        if(nullptr == m_DS)
-            return nullptr;
-        return m_DS->GetMetadata(domain);
-    }
+    virtual char** metadata(const char* domain) const override;
 
     // ObjectContainer interface
 public:

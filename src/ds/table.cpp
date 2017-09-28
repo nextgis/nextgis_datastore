@@ -285,7 +285,7 @@ const char* Table::fidColumn() const
     return m_layer->GetFIDColumn();
 }
 
-char** Table::getMetadata(const char* domain) const
+char** Table::metadata(const char* domain) const
 {
     if(nullptr == m_layer)
         return nullptr;
@@ -571,7 +571,7 @@ CPLString Table::getProperty(const char* key, const char* defaultValue,
 
     name += CPLString(".") + key;
 
-    return parentDataset->getProperty(name, defaultValue);
+    return parentDataset->property(name, defaultValue);
 
 }
 

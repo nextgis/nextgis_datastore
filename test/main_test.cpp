@@ -235,6 +235,16 @@ TEST(CatalogTests, TestCreate) {
     EXPECT_GE(count, 3);
     ngsFree(pathInfo);
 
+    // Test metadata
+    CPLString osmPath = CPLFormFilename(catalogPath, "osm.wconn", nullptr);
+    CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
+    EXPECT_EQ(ngsCatalogObjectSetMetadataItem(osmRaster, "TMS_CACHE_EXPIRES", "555", ""), COD_SUCCESS);
+
+    char** metadata = ngsCatalogObjectMetadata(osmRaster, "");
+    if(metadata != nullptr) {
+    EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "555"), true);
+    }
+
     ngsUnInit();
 }
 

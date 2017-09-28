@@ -209,6 +209,10 @@ NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(
 NGS_EXTERNC const char* ngsCatalogObjectName(CatalogObjectH object);
 NGS_EXTERNC char** ngsCatalogObjectMetadata(CatalogObjectH object,
                                             const char* domain);
+NGS_EXTERNC int ngsCatalogObjectSetMetadataItem(CatalogObjectH object,
+                                                const char* name,
+                                                const char* value,
+                                                const char* domain);
 NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
 /**
  * Feature class

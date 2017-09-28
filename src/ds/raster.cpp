@@ -70,8 +70,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         m_spatialReference = new OGRSpatialReference;
         m_spatialReference->importFromEPSG(epsg);
 
-        // TODO: Add support for "cache_expires" value and "user" JSONObject;
-//        int z_min = root.getInteger(KEY_Z_MIN, 0);
+        int z_min = root.GetInteger(KEY_Z_MIN, 0);
         int z_max = root.GetInteger(KEY_Z_MAX, 18);
         bool y_origin_top = root.GetBool(KEY_Y_ORIGIN_TOP, true);
         unsigned short bandCount = static_cast<unsigned short>(
@@ -98,13 +97,32 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 
         bool result = DatasetBase::open(connStr, openFlags, options);
         if(result) {
+            // Set NG_ADDITIONS metadata
+            m_DS->SetMetadataItem("TMS_URL", url.c_str(), "");
+
+            int cacheExpires = root.GetInteger(KEY_CACHE_EXPIRES, defaultCacheExpires);
+            m_DS->SetMetadataItem("TMS_CACHE_EXPIRES", CPLSPrintf("%d", cacheExpires), "");
+            m_DS->SetMetadataItem("TMS_Y_ORIGIN_TOP", y_origin_top ? "top" : "bottom", "");
+            m_DS->SetMetadataItem("TMS_Z_MIN", CPLSPrintf("%d", z_min), "");
+            m_DS->SetMetadataItem("TMS_Z_MAX", CPLSPrintf("%d", z_max), "");
+            m_DS->SetMetadataItem("TMS_X_MIN", CPLSPrintf("%f", extent.minX()), "");
+            m_DS->SetMetadataItem("TMS_X_MAX", CPLSPrintf("%f", extent.maxX()), "");
+            m_DS->SetMetadataItem("TMS_Y_MIN", CPLSPrintf("%f", extent.minY()), "");
+            m_DS->SetMetadataItem("TMS_Y_MAX", CPLSPrintf("%f", extent.maxY()), "");
+
+            m_DS->SetMetadataItem("TMS_LIMIT_X_MIN", CPLSPrintf("%f", m_extent.minX()), "");
+            m_DS->SetMetadataItem("TMS_LIMIT_X_MAX", CPLSPrintf("%f", m_extent.maxX()), "");
+            m_DS->SetMetadataItem("TMS_LIMIT_Y_MIN", CPLSPrintf("%f", m_extent.minY()), "");
+            m_DS->SetMetadataItem("TMS_LIMIT_Y_MAX", CPLSPrintf("%f", m_extent.maxY()), "");
+
+            // Set USER metadata
             CPLJSONObject user = root.GetObject(KEY_USER);
             if(user.IsValid()) {
-                CPLJSONObject **children = user.GetChildren();
+                CPLJSONObject** children = user.GetChildren();
                 int i = 0;
-                CPLJSONObject *child = nullptr;
+                CPLJSONObject* child = nullptr;
                 while((child = children[i++]) != nullptr) {
-                    const char *name = child->GetName();
+                    const char* name = child->GetName();
                     CPLString value;
                     switch(child->GetType()) {
                     case CPLJSONObject::Null:
@@ -240,6 +258,44 @@ bool Raster::destroy()
 bool Raster::canDestroy() const
 {
     return Filter::isFileBased(m_type); // NOTE: Now supported only fila based rasters
+}
+
+bool Raster::setMetadataItem(const char* name, const char* value, const char* domain)
+{
+    if(domain != nullptr && EQUAL(domain, KEY_USER) == false &&
+            EQUAL(domain, "") == false) {
+        return false;
+    }
+
+    bool result = true;
+    if(m_DS != nullptr) {
+        result = m_DS->SetMetadataItem(name, value, domain) == CE_None;
+    }
+    if(result) {
+        CPLJSONDocument connectionFile;
+        if(!connectionFile.Load(m_path)) {
+            return false;
+        }
+        CPLJSONObject root = connectionFile.GetRoot();
+
+        if(EQUAL("TMS_CACHE_EXPIRES", name)) { // Only allow to change cache_expires
+            root.Set(KEY_CACHE_EXPIRES, atoi(value));
+        }
+        else {
+            CPLJSONObject user = root.GetObject(KEY_USER);
+            if(!user.IsValid()) {
+                user.Set(name, value);
+            }
+            else {
+                CPLJSONObject newUser;
+                newUser.Add(name, value);
+                root.Add(KEY_USER, newUser);
+            }
+        }
+
+        return connectionFile.Save(m_path);
+    }
+    return result;
 }
 
 void Raster::setExtent()

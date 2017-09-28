@@ -118,7 +118,7 @@ public:
 public:
     virtual bool canDestroy() const override;
     virtual bool destroy() override;
-    virtual char** getMetadata(const char* domain) const override;
+    virtual char** metadata(const char* domain) const override;
 
 protected:
     OGRFeatureDefn* definition() const;

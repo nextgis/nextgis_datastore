@@ -28,29 +28,25 @@
 
 namespace ngs {
 
-static const char *tifMainExts[] = {nullptr};
-static const char *tifExtraExts[] = {"tfw", "tiffw", "wld", "tifw", "aux", "ovr",
+static const char* tifMainExts[] = {nullptr};
+static const char* tifExtraExts[] = {"tfw", "tiffw", "wld", "tifw", "aux", "ovr",
                                      "tif.xml", "tiff.xml", "aux.xml",
                                      "ovr.aux.xml", "rrd", "xml", "lgo", "prj",
                                      "imd", "pvl", "att", "eph", "rpb", "rpc",
                                      nullptr};
 constexpr FORMAT_EXT tifExt = {"tif", tifMainExts, tifExtraExts};
 constexpr FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
-static const char *tifAdds[] = {"_rpc.txt", "-browse.jpg", "_readme.txt", nullptr};
+static const char* tifAdds[] = {"_rpc.txt", "-browse.jpg", "_readme.txt", nullptr};
 
-constexpr const char *KEY_TYPE = "type";
-constexpr const char *KEY_X_MIN = "x_min";
-constexpr const char *KEY_X_MAX = "x_max";
-constexpr const char *KEY_Y_MIN = "y_min";
-constexpr const char *KEY_Y_MAX = "y_max";
-constexpr const char *KEY_CACHE_EXPIRES = "cache_expires";
-constexpr const char *KEY_LIMIT_X_MIN = "limit_x_min";
-constexpr const char *KEY_LIMIT_X_MAX = "limit_x_max";
-constexpr const char *KEY_LIMIT_Y_MIN = "limit_y_min";
-constexpr const char *KEY_LIMIT_Y_MAX = "limit_y_max";
-
-constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
-
+constexpr const char* KEY_TYPE = "type";
+constexpr const char* KEY_X_MIN = "x_min";
+constexpr const char* KEY_X_MAX = "x_max";
+constexpr const char* KEY_Y_MIN = "y_min";
+constexpr const char* KEY_Y_MAX = "y_max";
+constexpr const char* KEY_LIMIT_X_MIN = "limit_x_min";
+constexpr const char* KEY_LIMIT_X_MAX = "limit_x_max";
+constexpr const char* KEY_LIMIT_Y_MIN = "limit_y_min";
+constexpr const char* KEY_LIMIT_Y_MAX = "limit_y_max";
 
 RasterFactory::RasterFactory()
 {
@@ -70,7 +66,7 @@ RasterFactory::RasterFactory()
 
 }
 
-const char *RasterFactory::getName() const
+const char* RasterFactory::getName() const
 {
     return _("Rasters");
 }

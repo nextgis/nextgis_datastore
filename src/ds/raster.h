@@ -27,14 +27,17 @@
 
 namespace ngs {
 
-constexpr const char *KEY_URL = "url";
-constexpr const char *KEY_EPSG = "epsg";
-constexpr const char *KEY_Z_MIN = "z_min";
-constexpr const char *KEY_Z_MAX = "z_max";
-constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
-constexpr const char *KEY_EXTENT = "extent";
-constexpr const char *KEY_LIMIT_EXTENT = "limit_extent";
-constexpr const char *KEY_BAND_COUNT = "band_count";
+constexpr const char* KEY_URL = "url";
+constexpr const char* KEY_EPSG = "epsg";
+constexpr const char* KEY_Z_MIN = "z_min";
+constexpr const char* KEY_Z_MAX = "z_max";
+constexpr const char* KEY_Y_ORIGIN_TOP = "y_origin_top";
+constexpr const char* KEY_EXTENT = "extent";
+constexpr const char* KEY_LIMIT_EXTENT = "limit_extent";
+constexpr const char* KEY_BAND_COUNT = "band_count";
+constexpr const char* KEY_CACHE_EXPIRES = "cache_expires";
+
+constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
 
 typedef struct _imageData {
     unsigned char* buffer;
@@ -80,6 +83,8 @@ public:
     // Object interface
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
+    virtual bool setMetadataItem(const char* name, const char* value,
+                                 const char* domain) override;
 
     // DatasetBase interface
     virtual bool open(unsigned int openFlags, const Options &options = Options()) override;

@@ -858,7 +858,7 @@ ngsCatalogObjectInfo* catalogObjectQuery(CatalogObjectH object,
         return nullptr;
     }
 
-    for(const auto &child : children) {
+    for(const auto& child : children) {
         if(objectFilter.canDisplay(child)) {
             SimpleDataset* simpleDS = nullptr;
             if(child->type() == CAT_CONTAINER_SIMPLE) {
@@ -1077,7 +1077,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
     Object* catalogObject = static_cast<Object*>(object);
     if(!Filter::isDatabase(catalogObject->type())) {
         errorMessage(COD_INVALID,
-                            _("The input object not a dataset. The type is %d. Options query not supported"),
+                     _("The input object not a dataset. The type is %d. Options query not supported"),
                      catalogObject->type());
         return "";
     }
@@ -1085,7 +1085,7 @@ const char* ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
     Dataset * const dataset = dynamic_cast<Dataset*>(catalogObject);
     if(nullptr == dataset) {
         errorMessage(COD_INVALID,
-                            _("The input object not a dataset. Options query not supported"));
+                     _("The input object not a dataset. Options query not supported"));
         return "";
     }
     enum ngsOptionType enumOptionType = static_cast<enum ngsOptionType>(optionType);
@@ -1144,7 +1144,18 @@ char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
         return nullptr;
     }
 
-    return catalogObject->getMetadata(domain);
+    return catalogObject->metadata(domain);
+}
+
+int ngsCatalogObjectSetMetadataItem(CatalogObjectH object, const char* name,
+                                    const char* value, const char* domain)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        return errorMessage(COD_INVALID, _("The object handle is null"));
+    }
+    return catalogObject->setMetadataItem(name, value, domain) ? COD_SUCCESS :
+                                                                 COD_SET_FAILED;
 }
 
 /**

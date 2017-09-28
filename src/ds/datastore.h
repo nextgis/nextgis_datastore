@@ -62,7 +62,7 @@ public:
                                              const Options& options = Options(),
                                              const Progress& progress = Progress()) override;
     virtual bool setProperty(const char* key, const char* value) override;
-    virtual CPLString getProperty(const char* key, const char* defaultValue) override;
+    virtual CPLString property(const char* key, const char* defaultValue) override;
     virtual std::map<CPLString, CPLString> getProperties(
             const char* table, const char* domain) override;
     // Dataset interface

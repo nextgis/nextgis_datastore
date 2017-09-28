@@ -293,7 +293,7 @@ bool Dataset::setProperty(const char* key, const char* value)
     return m_metadata->CreateFeature(feature) != OGRERR_NONE;
 }
 
-CPLString Dataset::getProperty(const char* key, const char* defaultValue)
+CPLString Dataset::property(const char* key, const char* defaultValue)
 {
     if(!m_metadata)
         return defaultValue;
@@ -404,6 +404,12 @@ bool Dataset::destroy()
     Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
+}
+
+char** Dataset::metadata(const char* domain) const {
+    if(nullptr == m_DS)
+        return nullptr;
+    return m_DS->GetMetadata(domain);
 }
 
 bool Dataset::isNameValid(const char* name) const
