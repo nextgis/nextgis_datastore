@@ -1325,8 +1325,8 @@ void MarkerStyle::setIcon(const char* iconSetName, unsigned short index, unsigne
     unsigned char w = iconInLine * m_iconWidth;
     unsigned char h = line * m_iconHeight;
 
-    m_ulx = float(w + m_iconWidth) / 256;
-    m_uly = float(h + m_iconHeight) / 256;
+    m_ulx = float(w + m_iconWidth - 1) / 256;
+    m_uly = float(h + m_iconHeight - 1) / 256;
     m_lrx = float(w) / 256;
     m_lry = float(h) / 256;
 }
