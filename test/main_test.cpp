@@ -242,7 +242,7 @@ TEST(CatalogTests, TestCreate) {
 
     char** metadata = ngsCatalogObjectMetadata(osmRaster, "");
     if(metadata != nullptr) {
-    EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "555"), true);
+        EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "555"), true);
     }
 
     ngsUnInit();

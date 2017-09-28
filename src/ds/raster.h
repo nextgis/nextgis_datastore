@@ -83,6 +83,7 @@ public:
     // Object interface
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
+    virtual char** metadata(const char* domain) const override;
     virtual bool setMetadataItem(const char* name, const char* value,
                                  const char* domain) override;
 

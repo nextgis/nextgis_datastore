@@ -260,10 +260,16 @@ bool Raster::canDestroy() const
     return Filter::isFileBased(m_type); // NOTE: Now supported only fila based rasters
 }
 
+char** Raster::metadata(const char* domain) const {
+    if(nullptr == m_DS)
+        return nullptr;
+    return m_DS->GetMetadata(domain);
+}
+
 bool Raster::setMetadataItem(const char* name, const char* value, const char* domain)
 {
-    if(domain != nullptr && EQUAL(domain, KEY_USER) == false &&
-            EQUAL(domain, "") == false) {
+    if(domain == nullptr || !(EQUAL(domain, KEY_USER) == true ||
+            EQUAL(domain, "") == true)) {
         return false;
     }
 
@@ -271,6 +277,7 @@ bool Raster::setMetadataItem(const char* name, const char* value, const char* do
     if(m_DS != nullptr) {
         result = m_DS->SetMetadataItem(name, value, domain) == CE_None;
     }
+
     if(result) {
         CPLJSONDocument connectionFile;
         if(!connectionFile.Load(m_path)) {
