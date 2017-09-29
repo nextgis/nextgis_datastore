@@ -462,54 +462,94 @@ enum ngsEditLastDelete EditLayerOverlay::deletePoint()
         return ret;
     }
 
-    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // Only lines
+    OGRLineString* line = nullptr;
+    OGRMultiLineString* multiLine = nullptr;
+    OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
+    switch(type) { // Only geometry with line or ring
         case wkbLineString: {
-            OGRLineString* line = ngsDynamicCast(OGRLineString, m_geometry);
-            if(!line) {
-                break;
-            }
-
-            int minNumPoint = line->get_IsClosed() ? 4 : 2;
-            if(line->getNumPoints() <= minNumPoint) {
-                line->empty();
-                saveToHistory();
-                m_selectedPointId = PointId();
-                m_selectedPointCoordinates = OGRPoint();
-                ret = ELD_GEOMETRY;
-                break;
-            }
-
-            OGRLineString* newLine = new OGRLineString();
-
-            bool isStartPoint = (0 == m_selectedPointId.pointId());
-            if(!isStartPoint) {
-                newLine->addSubLineString(line, 0,
-                                          m_selectedPointId.pointId() - 1);
-            }
-            newLine->addSubLineString(line, m_selectedPointId.pointId() + 1);
-
-            m_geometry = GeometryUPtr(newLine);
-            saveToHistory();
-
-            if(!isStartPoint) {
-                m_selectedPointId.setPointId(m_selectedPointId.pointId() - 1);
-            }
-
-            if(m_selectedPointId.isValid()) {
-                OGRPoint pt;
-                line->getPoint(m_selectedPointId.pointId(), &pt);
-                m_selectedPointCoordinates = pt;
-            }
-            else { // Should never happen.
-                m_selectedPointId = PointId();
-                m_selectedPointCoordinates = OGRPoint();
-            }
+            line = ngsDynamicCast(OGRLineString, m_geometry);
             break;
         }
-        default: {
+        case wkbMultiLineString: {
+            multiLine = ngsDynamicCast(OGRMultiLineString, m_geometry);
+            if(!multiLine) {
+                break;
+            }
+
+            line = dynamic_cast<OGRLineString*>(
+                    multiLine->getGeometryRef(m_selectedPointId.geometryId()));
             break;
+        }
+        default:
+            break;
+    }
+    if(!line) {
+        return ret;
+    }
+
+    int minNumPoint = line->get_IsClosed() ? 4 : 2;
+    if(line->getNumPoints() > minNumPoint) { // Delete only point.
+        OGRLineString* newLine = new OGRLineString();
+
+        bool isStartPoint = (0 == m_selectedPointId.pointId());
+        if(!isStartPoint) {
+            newLine->addSubLineString(line, 0, m_selectedPointId.pointId() - 1);
+        }
+        newLine->addSubLineString(line, m_selectedPointId.pointId() + 1);
+        line->empty();
+        line->addSubLineString(newLine);
+
+        if(!isStartPoint) {
+            m_selectedPointId.setPointId(m_selectedPointId.pointId() - 1);
+        }
+        if(m_selectedPointId.isValid()) { // Should always be true.
+            line->getPoint(
+                    m_selectedPointId.pointId(), &m_selectedPointCoordinates);
+        }
+
+    } else { // Delete entire line.
+        bool deleteEntireGeometry = false;
+        switch(type) {
+            case wkbLineString: { // Delete entire geometry.
+                deleteEntireGeometry = true;
+                break;
+            }
+            case wkbMultiLineString: {
+                if(!multiLine) {
+                    break;
+                }
+
+                int numGeometries = multiLine->getNumGeometries();
+                if(numGeometries >= 2) { // Delete only part.
+                    multiLine->removeGeometry(m_selectedPointId.geometryId());
+                    m_selectedPointId.setGeometryId(numGeometries - 2);
+                    m_selectedPointId.setPointId(0);
+
+                    line = dynamic_cast<OGRLineString*>(
+                            multiLine->getGeometryRef(
+                                    m_selectedPointId.geometryId()));
+                    line->getPoint(m_selectedPointId.pointId(),
+                            &m_selectedPointCoordinates);
+
+                    ret = ELD_GEOMETRY_PART;
+                } else { // Delete entire geometry.
+                    deleteEntireGeometry = true;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
+        if(deleteEntireGeometry) {
+            m_geometry->empty();
+            m_selectedPointId = PointId();
+            m_selectedPointCoordinates = OGRPoint();
+            ret = ELD_GEOMETRY;
         }
     }
+
+    saveToHistory();
     return ret;
 }
 
