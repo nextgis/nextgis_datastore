@@ -185,9 +185,9 @@ public:
     bool editGeometry(LayerPtr layer, GIntBig featureId);
     bool deleteGeometry();
     virtual bool addPoint();
-    virtual bool deletePoint();
+    virtual enum ngsEditLastDelete deletePoint();
     virtual bool addGeometryPart();
-    virtual bool deleteGeometryPart();
+    virtual enum ngsEditLastDelete deleteGeometryPart();
 
     ngsPointId touch(double x, double y, enum ngsMapTouchType type);
 

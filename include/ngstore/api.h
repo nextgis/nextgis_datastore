@@ -437,7 +437,7 @@ NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddPoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayDeletePoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
-NGS_EXTERNC char ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySetStyle(unsigned char mapId,
                                        enum ngsEditStyleType type,
                                        JsonObjectH style);

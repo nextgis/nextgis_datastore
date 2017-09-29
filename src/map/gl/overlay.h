@@ -64,9 +64,9 @@ public:
     virtual bool redo() override;
 
     virtual bool addPoint() override;
-    virtual bool deletePoint() override;
+    virtual enum ngsEditLastDelete deletePoint() override;
     virtual bool addGeometryPart() override;
-    virtual bool deleteGeometryPart() override;
+    virtual enum ngsEditLastDelete deleteGeometryPart() override;
 
 protected:
     virtual bool singleTap(const OGRRawPoint& mapCoordinates) override;

@@ -170,12 +170,10 @@ bool GlEditLayerOverlay::addPoint()
     return ret;
 }
 
-bool GlEditLayerOverlay::deletePoint()
+enum ngsEditLastDelete GlEditLayerOverlay::deletePoint()
 {
-    bool ret = EditLayerOverlay::deletePoint();
-    if(ret) {
-        fill();
-    }
+    enum ngsEditLastDelete ret = EditLayerOverlay::deletePoint();
+	fill();
     return ret;
 }
 
@@ -188,9 +186,9 @@ bool GlEditLayerOverlay::addGeometryPart()
     return ret;
 }
 
-bool GlEditLayerOverlay::deleteGeometryPart()
+enum ngsEditLastDelete GlEditLayerOverlay::deleteGeometryPart()
 {
-    bool ret = EditLayerOverlay::deleteGeometryPart();
+    enum ngsEditLastDelete ret = EditLayerOverlay::deleteGeometryPart();
     fill();
     return ret;
 }
@@ -487,55 +485,59 @@ void GlEditLayerOverlay::fillLineBuffers(const OGRLineString* line,
         return spt;
     };
 
-    int numPoints = line->getNumPoints();
-    bool isClosedLine = line->get_IsClosed();
-
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
-    unsigned short index = 0;
-    Normal prevNormal;
+    int numPoints = line->getNumPoints();
 
-    auto createBufferIfNeed = [bufferArray, &buffer, &index](
-                                      size_t amount) -> void {
-        if(!buffer->canStoreVertices(amount, true)) {
-            bufferArray->addBuffer(buffer);
-            index = 0;
-            buffer = new GlBuffer(GlBuffer::BF_LINE);
-        }
-    };
+    if(numPoints > 0) {
+        bool isClosedLine = line->get_IsClosed();
+        unsigned short index = 0;
+        Normal prevNormal;
 
-    for(int i = 0; i < numPoints - 1; ++i) {
-        SimplePoint pt1 = getPointFunc(i);
-        SimplePoint pt2 = getPointFunc(i + 1);
-        Normal normal = ngsGetNormals(pt1, pt2);
+        auto createBufferIfNeed = [bufferArray, &buffer, &index](
+                                          size_t amount) -> void {
+            if(!buffer->canStoreVertices(amount, true)) {
+                bufferArray->addBuffer(buffer);
+                index = 0;
+                buffer = new GlBuffer(GlBuffer::BF_LINE);
+            }
+        };
 
-        if(i == 0 || i == numPoints - 2) { // Add cap
-            if(!isClosedLine) {
-                if(i == 0) {
-                    createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
-                    index = m_lineStyle->addLineCap(pt1, normal, 0.0f, index, buffer);
-                }
+        for(int i = 0; i < numPoints - 1; ++i) {
+            SimplePoint pt1 = getPointFunc(i);
+            SimplePoint pt2 = getPointFunc(i + 1);
+            Normal normal = ngsGetNormals(pt1, pt2);
 
-                if(i == numPoints - 2) {
-                    createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
+            if(i == 0 || i == numPoints - 2) { // Add cap
+                if(!isClosedLine) {
+                    if(i == 0) {
+                        createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
+                        index = m_lineStyle->addLineCap(
+                                pt1, normal, 0.0f, index, buffer);
+                    }
 
-                    Normal reverseNormal;
-                    reverseNormal.x = -normal.x;
-                    reverseNormal.y = -normal.y;
-                    index = m_lineStyle->addLineCap(
-                            pt2, reverseNormal, 0.0f, index, buffer);
+                    if(i == numPoints - 2) {
+                        createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
+
+                        Normal reverseNormal;
+                        reverseNormal.x = -normal.x;
+                        reverseNormal.y = -normal.y;
+                        index = m_lineStyle->addLineCap(
+                                pt2, reverseNormal, 0.0f, index, buffer);
+                    }
                 }
             }
-        }
 
-        if(i != 0) { // Add join
-            createBufferIfNeed(m_lineStyle->lineJoinVerticesCount());
-            index = m_lineStyle->addLineJoin(
-                    pt1, prevNormal, normal, 0.0f, index, buffer);
-        }
+            if(i != 0) { // Add join
+                createBufferIfNeed(m_lineStyle->lineJoinVerticesCount());
+                index = m_lineStyle->addLineJoin(
+                        pt1, prevNormal, normal, 0.0f, index, buffer);
+            }
 
-        createBufferIfNeed(12);
-        index = m_lineStyle->addSegment(pt1, pt2, normal, 0.0f, index, buffer);
-        prevNormal = normal;
+            createBufferIfNeed(12);
+            index = m_lineStyle->addSegment(
+                    pt1, pt2, normal, 0.0f, index, buffer);
+            prevNormal = normal;
+        }
     }
 
     bufferArray->addBuffer(buffer);

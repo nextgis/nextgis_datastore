@@ -156,9 +156,16 @@ FeaturePtr EditLayerOverlay::save()
         return FeaturePtr();
     }
 
-    if(m_geometry && OGR_GT_Flatten(m_geometry->getGeometryType()) > 3) { // If multi geometry is empty delete a feature
-        OGRGeometryCollection* multyGeom = ngsDynamicCast(OGRGeometryCollection,
-                                                          m_geometry);
+
+    // If geometry is empty delete a feature.
+    if(m_geometry && m_geometry->IsEmpty()) {
+        m_geometry.reset();
+    }
+    // Multi geometry must be verified also by getNumGeometries.
+    // If multi geometry does not have parts delete a feature.
+    if(m_geometry && OGR_GT_Flatten(m_geometry->getGeometryType()) > 3) {
+        OGRGeometryCollection* multyGeom =
+                ngsDynamicCast(OGRGeometryCollection, m_geometry);
         if(multyGeom && multyGeom->getNumGeometries() == 0) {
             m_geometry.reset();
         }
@@ -216,7 +223,7 @@ FeaturePtr EditLayerOverlay::save()
         m_map->invalidate(Envelope(ogrEnv));
     }
     else {
-        // If geometry deleted invalidate it's oroginal envelope
+        // If geometry deleted invalidate it's original envelope.
         m_map->invalidate(Envelope(-0.5, -0.5, 0.5, 0.5));
     }
 
@@ -447,13 +454,14 @@ int EditLayerOverlay::addPoint(OGRLineString* line, int id, const OGRPoint& pt)
     return addedPtId;
 }
 
-bool EditLayerOverlay::deletePoint()
+enum ngsEditLastDelete EditLayerOverlay::deletePoint()
 {
+    enum ngsEditLastDelete ret = ELD_NON_LAST;
+
     if(!m_geometry) {
-        return false;
+        return ret;
     }
 
-    bool ret = false;
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // Only lines
         case wkbLineString: {
             OGRLineString* line = ngsDynamicCast(OGRLineString, m_geometry);
@@ -461,8 +469,13 @@ bool EditLayerOverlay::deletePoint()
                 break;
             }
 
-            int minNumPoint = line->get_IsClosed() ? 3 : 2;
+            int minNumPoint = line->get_IsClosed() ? 4 : 2;
             if(line->getNumPoints() <= minNumPoint) {
+                line->empty();
+                saveToHistory();
+                m_selectedPointId = PointId();
+                m_selectedPointCoordinates = OGRPoint();
+                ret = ELD_GEOMETRY;
                 break;
             }
 
@@ -487,11 +500,10 @@ bool EditLayerOverlay::deletePoint()
                 line->getPoint(m_selectedPointId.pointId(), &pt);
                 m_selectedPointCoordinates = pt;
             }
-            else {
+            else { // Should never happen.
                 m_selectedPointId = PointId();
                 m_selectedPointCoordinates = OGRPoint();
             }
-            ret = true;
             break;
         }
         default: {
@@ -569,35 +581,37 @@ bool EditLayerOverlay::addGeometryPart()
     return ret;
 }
 
-bool EditLayerOverlay::deleteGeometryPart()
+enum ngsEditLastDelete EditLayerOverlay::deleteGeometryPart()
 {
-    bool deletedLastPart = false;
+    enum ngsEditLastDelete ret = ELD_NON_LAST;
     if(!m_geometry) {
-        return deletedLastPart;
+        return ret;
     }
 
     OGRGeometryCollection* collect = ngsDynamicCast(OGRGeometryCollection,
                                                     m_geometry);
-    if(!collect || collect->getNumGeometries() == 0) { // Only geometry of type multi
-        return deletedLastPart;
+    // Only geometry of type multi
+    if(!collect || collect->getNumGeometries() == 0) {
+        return ret;
     }
 
     if(OGRERR_NONE != collect->removeGeometry(m_selectedPointId.geometryId())) {
-        return deletedLastPart;
+        return ret;
     }
 
     saveToHistory();
 
     int lastGeomId = collect->getNumGeometries() - 1;
     if(lastGeomId < 0) {
-        deletedLastPart = true;
+        ret = ELD_GEOMETRY_PART;
         m_selectedPointId = PointId();
         m_selectedPointCoordinates = OGRPoint();
     }
 
-    if(!deletedLastPart) {
+    if(ELD_NON_LAST == ret) {
         const OGRGeometry* lastGeom = collect->getGeometryRef(lastGeomId);
-        switch(OGR_GT_Flatten(m_geometry->getGeometryType())) { // Only geometry of type multi
+        // Only geometry of type multi
+        switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
             case wkbMultiPoint: {
                 OGRMultiPoint* mpt = ngsDynamicCast(OGRMultiPoint, m_geometry);
                 if(!mpt) {
@@ -631,7 +645,7 @@ bool EditLayerOverlay::deleteGeometryPart()
         }
     }
 
-    return deletedLastPart;
+    return ret;
 }
 
 void EditLayerOverlay::setGeometry(GeometryUPtr geometry)

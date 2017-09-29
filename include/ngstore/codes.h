@@ -257,4 +257,12 @@ enum ngsEditStyleType {
     EST_CROSS
 };
 
+enum ngsEditLastDelete {
+    ELD_NON_LAST,
+    ELD_LINE,
+    ELD_HOLE,
+    ELD_GEOMETRY_PART,
+    ELD_GEOMETRY
+};
+
 #endif // NGSCODES_H
