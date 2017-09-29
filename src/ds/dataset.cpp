@@ -209,6 +209,7 @@ Dataset::~Dataset()
 }
 
 FeatureClass* Dataset::createFeatureClass(const CPLString& name,
+                                          enum ngsCatalogObjectType objectType,
                                           OGRFeatureDefn * const definition,
                                           OGRSpatialReference* spatialRef,
                                           OGRwkbGeometryType type,
@@ -246,7 +247,7 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
         }
     }
 
-    FeatureClass* out = new FeatureClass(layer, this, CAT_FC_ANY, name);
+    FeatureClass* out = new FeatureClass(layer, this, objectType, name);
 
     if(options.boolOption("CREATE_OVERVIEWS", false) &&
             !options.stringOption("ZOOM_LEVELS", "").empty()) {
@@ -263,12 +264,14 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
 }
 
 Table* Dataset::createTable(const CPLString &name,
+                            enum ngsCatalogObjectType objectType,
                             OGRFeatureDefn * const definition,
                             const Options &options,
                             const Progress &progress)
 {
-    return static_cast<Table*>(createFeatureClass(name, definition, nullptr,
-                                                  wkbNone, options, progress));
+    return static_cast<Table*>(createFeatureClass(name, objectType, definition,
+                                                  nullptr, wkbNone, options,
+                                                  progress));
 }
 
 bool Dataset::setProperty(const char* key, const char* value)
@@ -728,7 +731,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 child->name().c_str());
         }
         OGRFeatureDefn * const srcDefinition = srcTable->definition();
-        std::unique_ptr<Table> dstTable(createTable(newName, srcDefinition,
+        std::unique_ptr<Table> dstTable(createTable(newName, CAT_TABLE_ANY,
+                                                    srcDefinition,
                                                     options));
         if(nullptr == dstTable) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
@@ -781,8 +785,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             }
 
             std::unique_ptr<FeatureClass> dstFClass(createFeatureClass(createName,
-                srcDefinition, srcFClass->getSpatialReference(), newGeometryType,
-                options));
+                CAT_FC_ANY, srcDefinition, srcFClass->getSpatialReference(),
+                newGeometryType, options));
             if(nullptr == dstFClass) {
                 return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
             }

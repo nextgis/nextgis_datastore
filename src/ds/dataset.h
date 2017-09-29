@@ -115,12 +115,14 @@ public:
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
     virtual FeatureClass* createFeatureClass(const CPLString& name,
+                                             enum ngsCatalogObjectType objectType,
                                              OGRFeatureDefn * const definition,
                                              OGRSpatialReference* spatialRef,
                                              OGRwkbGeometryType type,
                                              const Options& options = Options(),
                                              const Progress& progress = Progress());
     virtual Table* createTable(const CPLString& name,
+                               enum ngsCatalogObjectType objectType,
                                OGRFeatureDefn * const definition,
                                const Options& options = Options(),
                                const Progress& progress = Progress());

@@ -109,7 +109,7 @@ void DataStore::fillFeatureClasses()
 
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
-                                                         CAT_TABLE_ANY,
+                                                         CAT_TABLE_GPKG,
                                                          layerName)));
             }
             else {
@@ -171,6 +171,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 }
 
 FeatureClass* DataStore::createFeatureClass(const CPLString& name,
+                                            enum ngsCatalogObjectType /*objectType*/,
                                            OGRFeatureDefn* const definition,
                                            OGRSpatialReference* spatialRef,
                                            OGRwkbGeometryType type,
@@ -220,6 +221,59 @@ FeatureClass* DataStore::createFeatureClass(const CPLString& name,
             !options.stringOption("ZOOM_LEVELS", "").empty()) {
         out->createOverviews(progress, options);
     }
+
+    if(m_parent) {
+        m_parent->notifyChanges();
+    }
+
+    Notify::instance().onNotify(out->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
+
+    return out;
+}
+
+Table* DataStore::createTable(const CPLString& name,
+                              enum ngsCatalogObjectType /*objectType*/,
+                              OGRFeatureDefn* const definition,
+                              const Options& options, const Progress& progress)
+{
+    if(nullptr == m_DS) {
+        errorMessage(_("Not opened"));
+        return nullptr;
+    }
+
+    OGRLayer* layer = m_DS->CreateLayer(name, nullptr, wkbNone,
+                                        options.getOptions().get());
+
+    if(layer == nullptr) {
+        errorMessage(CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
+        OGRFieldDefn* srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn dstField(srcField);
+
+        CPLString newFieldName;
+        if(definition->GetFieldCount() - 1 == i) {
+            newFieldName = srcField->GetNameRef();
+        }
+        else {
+            newFieldName = normalizeFieldName(srcField->GetNameRef());
+            if(!EQUAL(newFieldName, srcField->GetNameRef())) {
+                progress.onProgress(COD_WARNING, 0.0,
+                                    _("Field %s of source table was renamed to %s in destination tables"),
+                                    srcField->GetNameRef(), newFieldName.c_str());
+            }
+        }
+
+        dstField.SetName(newFieldName);
+        if (layer->CreateField(&dstField) != OGRERR_NONE) {
+            errorMessage(CPLGetLastErrorMsg());
+            return nullptr;
+        }
+    }
+
+    Table* out = new StoreTable(layer, this, name);
 
     if(m_parent) {
         m_parent->notifyChanges();
@@ -303,12 +357,14 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
             return errorMessage(COD_CREATE_FAILED, _("Unsupported geometry type"));
         }
 
-        object = ObjectPtr(createFeatureClass(newName, &fieldDefinition,
+        object = ObjectPtr(createFeatureClass(newName, CAT_FC_GPKG,
+                                              &fieldDefinition,
                                               m_spatialReference, geomType,
                                               options));
     }
     else if(type == CAT_TABLE_GPKG) {
-        object = ObjectPtr(createTable(newName, &fieldDefinition, options));
+        object = ObjectPtr(createTable(newName, CAT_TABLE_GPKG, &fieldDefinition,
+                                       options));
     }
 
     if(!object) {

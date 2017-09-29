@@ -95,11 +95,7 @@ public:
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
     const char* fidColumn() const;    
-    const std::vector<Field>& fields() {
-        if(m_fields.empty())
-            fillFields();
-        return m_fields;
-    }
+    const std::vector<Field>& fields();
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                           const char* description, const char* filePath,
                           char** options = nullptr);

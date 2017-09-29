@@ -25,6 +25,36 @@
 
 namespace ngs {
 
+class StoreTable : public Table
+{
+public:
+    StoreTable(OGRLayer* layer, ObjectContainer* const parent = nullptr,
+               const CPLString & name = "");
+    virtual ~StoreTable() = default;
+    FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
+    bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
+
+    // static
+    static void setRemoteId(FeaturePtr feature, GIntBig rid);
+    static GIntBig getRemoteId(FeaturePtr feature);
+
+    // Table interface
+public:
+    virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid) override;
+    virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
+                                  const char* description, const char* filePath,
+                                  char** options) override;
+    virtual bool setProperty(const char* key, const char* value,
+                             const char* domain) override;
+    virtual CPLString getProperty(const char* key, const char* defaultValue,
+                                  const char* domain) override;
+    virtual std::map<CPLString, CPLString> getProperties(const char* domain) override;
+    virtual void deleteProperties() override;
+
+protected:
+    virtual void fillFields() override;
+};
+
 class StoreFeatureClass : public FeatureClass
 {
 public:
@@ -33,10 +63,6 @@ public:
     virtual ~StoreFeatureClass() = default;
     FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
     bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
-
-    // static
-    static void setRemoteId(FeaturePtr feature, GIntBig rid);
-    static GIntBig getRemoteId(FeaturePtr feature);
 
     // Table interface
 public:

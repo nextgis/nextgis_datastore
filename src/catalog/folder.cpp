@@ -376,8 +376,8 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
         }
 
         std::unique_ptr<FeatureClass> dstFClass(ds->createFeatureClass(createName,
-            srcDefinition, srcFClass->getSpatialReference(), newGeometryType,
-            options));
+            dstType, srcDefinition, srcFClass->getSpatialReference(),
+            newGeometryType, options));
         if(nullptr == dstFClass) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }

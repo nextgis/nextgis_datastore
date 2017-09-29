@@ -1210,6 +1210,36 @@ FeatureClass* getFeatureClassFromHandle(CatalogObjectH object)
     return ngsDynamicCast(FeatureClass, catalogObjectPointer);
 }
 
+Table* getTableFromHandle(CatalogObjectH object)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
+        dataset->hasChildren();
+        catalogObjectPointer = dataset->internalObject();
+    }
+
+    if(!catalogObjectPointer) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    if(!(Filter::isTable(catalogObjectPointer->type()) ||
+         Filter::isFeatureClass(catalogObjectPointer->type()))) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return ngsDynamicCast(Table, catalogObjectPointer);
+}
+
+
 /**
  * @brief ngsFeatureClassFields Feature class fields
  * @param object Feature class handle
@@ -1220,13 +1250,13 @@ FeatureClass* getFeatureClassFromHandle(CatalogObjectH object)
 
 ngsField* ngsFeatureClassFields(CatalogObjectH object)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
-    auto fields = featureClass->fields();
+    auto fields = table->fields();
     ngsField* fieldsList = static_cast<ngsField*>(
                 CPLMalloc(size_t(fields.size() + 1) * sizeof(ngsField)));
 
@@ -1292,13 +1322,13 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char enable)
 
     Dataset* dataset = dynamic_cast<Dataset*>(catalogObject);
     if(!dataset) {
-        FeatureClass* featureClass = getFeatureClassFromHandle(object);
-        if(!featureClass) {
+        Table* table = getTableFromHandle(object);
+        if(!table) {
             errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
             return;
         }
 
-        dataset = dynamic_cast<Dataset*>(featureClass->parent());
+        dataset = dynamic_cast<Dataset*>(table->parent());
         if(!dataset) {
             errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
             return;
@@ -1324,13 +1354,13 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char enable)
  */
 FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
-    FeaturePtr feature = featureClass->createFeature();
+    FeaturePtr feature = table->createFeature();
     if(feature)
         return new FeaturePtr(feature);
     return nullptr;
@@ -1338,79 +1368,79 @@ FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
 
 int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    return featureClass->insertFeature(*featurePtrPointer) ? COD_SUCCESS :
+    return table->insertFeature(*featurePtrPointer) ? COD_SUCCESS :
                                                              COD_INSERT_FAILED;
 }
 
 int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    return featureClass->updateFeature(*featurePtrPointer) ? COD_SUCCESS :
+    return table->updateFeature(*featurePtrPointer) ? COD_SUCCESS :
                                                              COD_UPDATE_FAILED;
 }
 
 int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
-    return featureClass->deleteFeature(id) ? COD_SUCCESS : COD_DELETE_FAILED;
+    return table->deleteFeature(id) ? COD_SUCCESS : COD_DELETE_FAILED;
 }
 
 int ngsFeatureClassDeleteFeatures(CatalogObjectH object)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
-    return featureClass->deleteFeatures() ? COD_SUCCESS : COD_DELETE_FAILED;
+    return table->deleteFeatures() ? COD_SUCCESS : COD_DELETE_FAILED;
 }
 
 long long ngsFeatureClassCount(CatalogObjectH object)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* tables = getTableFromHandle(object);
+    if(!tables) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return 0;
     }
-    return featureClass->featureCount(false);
+    return tables->featureCount(false);
 }
 
 
 void ngsFeatureClassResetReading(CatalogObjectH object)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return;
     }
-    featureClass->reset();
+    table->reset();
 }
 
 FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
-    FeaturePtr out = featureClass->nextFeature();
+    FeaturePtr out = table->nextFeature();
     if(out) {
         return new FeaturePtr(out);
     }
@@ -1419,12 +1449,12 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 
 FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
 {
-    FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
-    FeaturePtr out = featureClass->getFeature(id);
+    FeaturePtr out = table->getFeature(id);
     if(out) {
         return new FeaturePtr(out);
     }
@@ -1619,7 +1649,7 @@ long long ngsStoreFeatureGetRemoteId(FeatureH feature)
         errorMessage(COD_INVALID, _("The object handle is null"));
         return NOT_FOUND;
     }
-    return StoreFeatureClass::getRemoteId(*featurePtrPointer);
+    return StoreTable::getRemoteId(*featurePtrPointer);
 }
 
 
@@ -1630,7 +1660,7 @@ void ngsStoreFeatureSetRemoteId(FeatureH feature, long long rid)
         errorMessage(COD_INVALID, _("The object handle is null"));
         return;
     }
-    StoreFeatureClass::setRemoteId(*featurePtrPointer, rid);
+    StoreTable::setRemoteId(*featurePtrPointer, rid);
 }
 
 FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(CatalogObjectH object,

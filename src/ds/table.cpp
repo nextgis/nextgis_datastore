@@ -596,4 +596,11 @@ void Table::deleteProperties()
     return parentDataset->deleteProperties(m_name);
 }
 
+const std::vector<Field>& Table::fields()
+{
+    if(m_fields.empty())
+        fillFields();
+    return m_fields;
+}
+
 } // namespace ngs
