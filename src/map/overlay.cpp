@@ -1517,13 +1517,24 @@ bool PointId::shiftLineStringPoint(OGRLineString& lineString, const PointId& id,
                                    OGRPoint* coordinates)
 {
     int pointId = id.pointId();
-    if(pointId < 0 || pointId >= lineString.getNumPoints()) {
+    int lastPtId = lineString.getNumPoints() - 1;
+    if(pointId < 0 || pointId > lastPtId) {
         return false;
     }
 
+    bool closedLine = lineString.get_IsClosed();
+
     OGRPoint pt;
     lineString.getPoint(pointId, &pt);
-    lineString.setPoint(pointId, pt.getX() + offset.x, pt.getY() + offset.y);
+    pt.setX(pt.getX() + offset.x);
+    pt.setY(pt.getY() + offset.y);
+
+    lineString.setPoint(pointId, &pt);
+    if(closedLine && (0 == pointId || lastPtId == pointId)) {
+        pointId = (0 == pointId) ? lastPtId : 0;
+        lineString.setPoint(pointId, &pt);
+    }
+
     if(coordinates) {
         coordinates->setX(pt.getX());
         coordinates->setY(pt.getY());
