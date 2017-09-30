@@ -240,8 +240,8 @@ enum ngsStyleType {
 };
 
 enum ngsEditElementType {
-    EET_GEOMETRY,
-    EET_SELECTED_GEOMETRY,
+    EET_POLYGON,
+    EET_SELECTED_POLYGON,
     EET_LINE,
     EET_SELECTED_LINE,
     EET_MEDIAN_POINT,
