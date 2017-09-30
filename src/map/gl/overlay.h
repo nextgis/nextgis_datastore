@@ -82,6 +82,7 @@ public:
 protected:
     void fillPoints();
     void fillLines();
+    void fillPolygons();
     void freeGlStyle(StylePtr style);
     void freeGlBuffer(GlObjectPtr buffer);
     void freeGlBuffers();
@@ -89,6 +90,7 @@ protected:
 private:
     using GetPointFunc = std::function<SimplePoint(int index)>;
     using GetLineFunc = std::function<const OGRLineString*(int index)>;
+    using GetPolygonFunc = std::function<const OGRPolygon*(int index)>;
     using IsSelectedGeometryFunc = std::function<bool(int index)>;
 
     void fillPointElements(int numPoints,
@@ -102,12 +104,18 @@ private:
             IsSelectedGeometryFunc isSelectedLineFunc);
     void fillLineBuffers(
             const OGRLineString* line, VectorGlObject* bufferArray);
+    void fillPolygonElements(int numPolygons,
+            GetPolygonFunc getPolygonFunc,
+            IsSelectedGeometryFunc isSelectedPolygonFunc);
+    void fillPolygonBuffers(
+            const OGRPolygon* polygon, VectorGlObject* bufferArray);
     void fillCrossElement();
 
 private:
     std::map<ngsEditElementType, GlObjectPtr> m_elements;
     PointStylePtr m_pointStyle;
     EditLineStylePtr m_lineStyle;
+    EditFillStylePtr m_fillStyle;
     PointStylePtr m_crossStyle;
 };
 

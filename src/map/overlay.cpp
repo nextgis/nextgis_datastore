@@ -275,10 +275,23 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
             line->addPoint(geometryCenter.x + mapDist.x,
                            geometryCenter.y + mapDist.y);
             geometry = GeometryUPtr(line);
+            break;
+        }
+        case wkbPolygon: {
+            double x1 = geometryCenter.x - mapDist.x;
+            double y1 = geometryCenter.y - mapDist.y;
+            double x2 = geometryCenter.x + mapDist.x;
+            double y2 = geometryCenter.y + mapDist.y;
 
-            // FIXME: for test, remove it.
-            line->addPoint(geometryCenter.x + 2 * mapDist.x,
-                           geometryCenter.y - 2 * mapDist.y);
+            OGRLinearRing* ring = new OGRLinearRing();
+            ring->addPoint(x1, y1);
+            ring->addPoint(x2, y2);
+            ring->addPoint(x1, y2);
+            ring->closeRings();
+
+            OGRPolygon* polygon = new OGRPolygon();
+            polygon->addRingDirectly(ring);
+            geometry = GeometryUPtr(polygon);
             break;
         }
         case wkbMultiPoint: {
@@ -289,18 +302,13 @@ bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
             break;
         }
         case wkbMultiLineString: {
-            OGRMultiLineString* mline = new OGRMultiLineString();
-
             OGRLineString* line = new OGRLineString();
             line->addPoint(geometryCenter.x - mapDist.x,
                            geometryCenter.y - mapDist.y);
             line->addPoint(geometryCenter.x + mapDist.x,
                            geometryCenter.y + mapDist.y);
 
-            // FIXME: for test, remove it.
-            line->addPoint(geometryCenter.x + 2 * mapDist.x,
-                           geometryCenter.y - 2 * mapDist.y);
-
+            OGRMultiLineString* mline = new OGRMultiLineString();
             mline->addGeometryDirectly(line);
             geometry = GeometryUPtr(mline);
 
