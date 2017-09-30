@@ -108,8 +108,7 @@ void DataStore::fillFeatureClasses()
             }
 
             if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new Table(layer, this,
-                                                         CAT_TABLE_GPKG,
+                m_children.push_back(ObjectPtr(new StoreTable(layer, this,
                                                          layerName)));
             }
             else {

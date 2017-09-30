@@ -177,12 +177,12 @@ const char* ngsGetVersionString(const char* request)
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsInit(char** options)
-{    
+{
     gDebugMode = CSLFetchBoolean(options, "DEBUG_MODE", 0) == 0 ? false : true;
     CPLDebug("ngstore", "debug mode %s", gDebugMode ? "ON" : "OFF");
     const char* dataPath = CSLFetchNameValue(options, "GDAL_DATA");
     const char* cachePath = CSLFetchNameValue(options, "CACHE_DIR");
-    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");    
+    const char* settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
     if(settingsPath) {
         CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
     }
@@ -406,7 +406,7 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
         break;
     }
 
-    ngsURLRequestResult* out = new ngsURLRequestResult;    
+    ngsURLRequestResult* out = new ngsURLRequestResult;
     auto optionsPtr = requestOptions.getOptions();
     CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
 
@@ -1414,12 +1414,12 @@ int ngsFeatureClassDeleteFeatures(CatalogObjectH object)
 
 long long ngsFeatureClassCount(CatalogObjectH object)
 {
-    Table* tables = getTableFromHandle(object);
-    if(!tables) {
+    Table* table = getTableFromHandle(object);
+    if(!table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return 0;
     }
-    return tables->featureCount(false);
+    return table->featureCount();
 }
 
 

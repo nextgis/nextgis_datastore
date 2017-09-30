@@ -1340,7 +1340,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, float z,
     float nx1, ny1, nx2, ny2;
 
     float alpha = atanf( m_iconWidth / m_iconHeight);
-    float rotationRad = DEG2RAD_F * (m_rotation + 180.0f);
+    float rotationRad = DEG2RAD_F * (180.0f - m_rotation);
 
     nx1 = cosf(alpha + rotationRad);
     ny1 = sinf(alpha + rotationRad);
@@ -1479,8 +1479,8 @@ void MarkerLocationStyle::setIndex(unsigned short index)
     unsigned char line = static_cast<unsigned char>(index / iconsInLine);
     unsigned char iconInLine = static_cast<unsigned char>(index - line *
                                                           iconsInLine);
-    unsigned char w = iconInLine * m_iconWidth;
-    unsigned char h = line * m_iconHeight;
+    unsigned short w = iconInLine * m_iconWidth;
+    unsigned short h = line * m_iconHeight;
 
     m_ulx = float(w + m_iconWidth) / atlasItemSize;
     m_uly = float(h + m_iconHeight) / atlasItemSize;
@@ -1513,7 +1513,6 @@ CPLJSONObject MarkerLocationStyle::save() const
 // SimpleEditPointStyle
 //------------------------------------------------------------------------------
 
-// TODO: set colors
 constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
 constexpr ngsRGBA lineColor = {0, 128, 128, 255};

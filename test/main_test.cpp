@@ -432,6 +432,8 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     EXPECT_GE(counter, 1);
     ngsListFree(options);
 
+    EXPECT_GE(ngsFeatureClassCount(newFC1), 1);
+
     EXPECT_EQ(ngsCatalogObjectDelete(newFC1), COD_SUCCESS);
 
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);

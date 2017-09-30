@@ -510,7 +510,7 @@ std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
                                               ATTACH_FEATURE_ID, fid));
     m_attTable->ResetReading();
     FeaturePtr attFeature;
-    while((attFeature = m_attTable->GetNextFeature()) != nullptr) {
+    while((attFeature = m_attTable->GetNextFeature())) {
         AttachmentInfo info;
         info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME);
         info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION);

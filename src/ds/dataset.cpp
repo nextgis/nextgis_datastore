@@ -315,7 +315,8 @@ CPLString Dataset::property(const char* key, const char* defaultValue)
     return out;
 }
 
-std::map<CPLString, CPLString> Dataset::getProperties(const char* table, const char* domain)
+std::map<CPLString, CPLString> Dataset::getProperties(const char* table,
+                                                      const char* domain)
 {
     std::map<CPLString, CPLString> out;
     if(!m_metadata || nullptr == table)
@@ -329,11 +330,10 @@ std::map<CPLString, CPLString> Dataset::getProperties(const char* table, const c
     CPLMutexHolder holder(m_executeSQLMutex);
 
     m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY, name.c_str()));
-    OGRFeature* feature = nullptr;
-    while((feature = m_metadata->GetNextFeature()) != nullptr) {
+    FeaturePtr feature;
+    while((feature = m_metadata->GetNextFeature())) {
         CPLString key = feature->GetFieldAsString(0) + CPLStrnlen(table, 255) + 1;
         CPLString value = feature->GetFieldAsString(1);
-        OGRFeature::DestroyFeature(feature);
 
         out[key] = value;
     }

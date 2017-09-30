@@ -1119,12 +1119,12 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     // Multithreaded thread pool
     ThreadPool threadPool;
     threadPool.init(getNumberThreads(), tilingDataJobThreadFunc);
-
-    FeaturePtr feature;
     setIgnoredFields(m_ignoreFields);
     reset();
 
-    while((feature = nextFeature()) != nullptr) {
+
+    FeaturePtr feature;
+    while((feature = nextFeature())) {
         threadPool.addThreadData(new TilingData(this, feature, true));
     }
 
@@ -1133,7 +1133,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     threadPool.waitComplete(newProgress);
     threadPool.clearThreadData();
 
-    setIgnoredFields(std::vector<const char*>());
+    setIgnoredFields();
     reset();
 
     // Save tiles
@@ -1629,14 +1629,14 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
     geom->getEnvelope(&env);
     Envelope extentBase = env;
     extentBase.fix();
-    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint || OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
-
     m_extent.merge(extentBase);
 
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset || dataset->isBatchOperation()) {
         return result;
     }
+
+    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint || OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
     for(auto zoomLevel : zoomLevels()) {
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
