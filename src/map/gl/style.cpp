@@ -134,6 +134,8 @@ Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
         return new MarkerEditPointStyle(atlas);
     else if(EQUAL(name, "editLine"))
         return new EditLineStyle;
+    else if(EQUAL(name, "editFill"))
+        return new EditFillStyle;
     else if(EQUAL(name, "simpleEditCross"))
         return new SimpleEditCrossStyle;
     return nullptr;
@@ -1513,8 +1515,9 @@ CPLJSONObject MarkerLocationStyle::save() const
 // SimpleEditPointStyle
 //------------------------------------------------------------------------------
 
-constexpr ngsRGBA geometryColor = {0, 0, 255, 255};
-constexpr ngsRGBA selectedGeometryColor = {255, 0, 0, 255};
+// TODO: set colors
+constexpr ngsRGBA fillColor = {37, 92, 148, 255};
+constexpr ngsRGBA selectedFillColor = {40, 215, 215, 255};
 constexpr ngsRGBA lineColor = {0, 128, 128, 255};
 constexpr ngsRGBA selectedLineColor = {64, 192, 0, 255};
 constexpr ngsRGBA medianPointColor = {224, 64, 255, 255};
@@ -1648,6 +1651,50 @@ CPLJSONObject EditLineStyle::save() const
     CPLJSONObject out = SimpleLineStyle::save();
     out.Add("line_color", ngsRGBA2HEX(m_lineColor));
     out.Add("selected_line_color", ngsRGBA2HEX(m_selectedLineColor));
+    return out;
+}
+
+//------------------------------------------------------------------------------
+// EditPolygonStyle
+//------------------------------------------------------------------------------
+
+EditFillStyle::EditFillStyle() : SimpleFillStyle()
+{
+    m_fillColor = fillColor;
+    m_selectedFillColor = selectedFillColor;
+    setEditElementType(EET_POLYGON);
+}
+
+void EditFillStyle::setEditElementType(enum ngsEditElementType type)
+{
+    switch(type) {
+        case EET_POLYGON:
+            return setColor(m_fillColor);
+        case EET_SELECTED_POLYGON:
+            return setColor(m_selectedFillColor);
+    }
+}
+
+bool EditFillStyle::load(const CPLJSONObject& store)
+{
+    if(!SimpleFillStyle::load(store))
+        return false;
+
+    m_fillColor = ngsHEX2RGBA(
+                store.GetString("fill_color", ngsRGBA2HEX(m_fillColor)));
+    m_selectedFillColor = ngsHEX2RGBA(
+                store.GetString("selected_fill_color",
+                                ngsRGBA2HEX(m_selectedFillColor)));
+
+    setEditElementType(EET_POLYGON);
+    return true;
+}
+
+CPLJSONObject EditFillStyle::save() const
+{
+    CPLJSONObject out = SimpleFillStyle::save();
+    out.Add("fill_color", ngsRGBA2HEX(m_fillColor));
+    out.Add("selected_fill_color", ngsRGBA2HEX(m_selectedFillColor));
     return out;
 }
 

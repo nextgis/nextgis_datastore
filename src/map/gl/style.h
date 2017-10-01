@@ -556,6 +556,35 @@ protected:
 
 typedef std::shared_ptr<EditLineStyle> EditLineStylePtr;
 
+//------------------------------------------------------------------------------
+// EditPolygonStyle
+//------------------------------------------------------------------------------
+
+class EditFillStyle : public SimpleFillStyle
+{
+public:
+    EditFillStyle();
+    virtual ~EditFillStyle() = default;
+
+    void setEditElementType(enum ngsEditElementType type);
+
+    // Style interface
+public:
+    virtual const char* name() const override { return "editFill"; }
+    virtual bool load(const CPLJSONObject& store) override;
+    virtual CPLJSONObject save() const override;
+
+protected:
+    ngsRGBA m_fillColor;
+    ngsRGBA m_selectedFillColor;
+};
+
+typedef std::shared_ptr<EditFillStyle> EditFillStylePtr;
+
+//------------------------------------------------------------------------------
+// SimpleEditCrossStyle
+//------------------------------------------------------------------------------
+
 class SimpleEditCrossStyle : public SimplePointStyle
 {
 public:

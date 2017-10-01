@@ -181,14 +181,16 @@ public:
     FeaturePtr save();
     void cancel();
     bool isGeometryValid() const { return m_geometry.operator bool(); }
+    OGRGeometry* geometryClone() const;
+
 
     bool createGeometry(FeatureClassPtr datasource);
     bool editGeometry(LayerPtr layer, GIntBig featureId);
     bool deleteGeometry();
     virtual bool addPoint();
-    virtual bool deletePoint();
+    virtual enum ngsEditDeleteType deletePoint();
     virtual bool addGeometryPart();
-    virtual bool deleteGeometryPart();
+    virtual enum ngsEditDeleteType deleteGeometryPart();
 
     ngsPointId touch(double x, double y, enum ngsMapTouchType type);
 

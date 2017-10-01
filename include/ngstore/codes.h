@@ -240,8 +240,8 @@ enum ngsStyleType {
 };
 
 enum ngsEditElementType {
-    EET_GEOMETRY,
-    EET_SELECTED_GEOMETRY,
+    EET_POLYGON,
+    EET_SELECTED_POLYGON,
     EET_LINE,
     EET_SELECTED_LINE,
     EET_MEDIAN_POINT,
@@ -255,6 +255,14 @@ enum ngsEditStyleType {
     EST_POINT,
     EST_LINE,
     EST_CROSS
+};
+
+enum ngsEditDeleteType {
+    EDT_NON_LAST,
+    EDT_LINE,
+    EDT_HOLE,
+    EDT_GEOMETRY_PART,
+    EDT_GEOMETRY
 };
 
 #endif // NGSCODES_H

@@ -1744,6 +1744,11 @@ int ngsGeometryTransform(GeometryH geometry, CoordinateTransformationH ct)
                 COD_SUCCESS : COD_UPDATE_FAILED;
 }
 
+char ngsGeometryIsEmpty(GeometryH geometry)
+{
+    return static_cast<OGRGeometry*>(geometry)->IsEmpty() ? 1 : 0;
+}
+
 CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG, int toEPSG)
 {
     if(fromEPSG == toEPSG) {
@@ -2957,16 +2962,14 @@ int ngsEditOverlayAddPoint(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayDeletePoint(unsigned char mapId)
+enum ngsEditDeleteType ngsEditOverlayDeletePoint(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+        errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return EDT_NON_LAST;
     }
-    if(!editOverlay->deletePoint()) {
-        return errorMessage(COD_INSERT_FAILED, _("Point deleting is failed"));
-    }
-    return COD_SUCCESS;
+    return editOverlay->deletePoint();
 }
 
 int ngsEditOverlayAddGeometryPart(unsigned char mapId)
@@ -2984,15 +2987,26 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 /**
  *
  * @param mapId
- * @return 1 if was deleted a last geometry part else 0.
+ * @return The value from enum ngsEditDeleteType
  */
-char ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
+enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(_("Failed to get edit overlay"));
+        errorMessage(_("Failed to get edit overlay"));
+        return EDT_NON_LAST;
     }
-    return editOverlay->deleteGeometryPart() ? 1 : 0;
+    return editOverlay->deleteGeometryPart();
+}
+
+GeometryH ngsEditOverlayGeometry(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        errorMessage(_("Failed to get edit overlay"));
+        return nullptr;
+    }
+    return editOverlay->geometryClone();
 }
 
 int ngsEditOverlaySetStyle(unsigned char mapId, enum ngsEditStyleType type,

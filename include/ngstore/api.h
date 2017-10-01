@@ -293,6 +293,7 @@ NGS_EXTERNC ngsExtent ngsGeometryGetEnvelope(GeometryH geometry);
 NGS_EXTERNC int ngsGeometryTransformTo(GeometryH geometry, int EPSG);
 NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
                                      CoordinateTransformationH ct);
+NGS_EXTERNC char ngsGeometryIsEmpty(GeometryH geometry);
 
 NGS_EXTERNC CoordinateTransformationH ngsCoordinateTransformationCreate(
         int fromEPSG, int toEPSG);
@@ -435,9 +436,12 @@ NGS_EXTERNC int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
                                            long long feateureId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddPoint(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayDeletePoint(unsigned char mapId);
+NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeletePoint(
+        unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
-NGS_EXTERNC char ngsEditOverlayDeleteGeometryPart(unsigned char mapId);
+NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(
+        unsigned char mapId);
+NGS_EXTERNC GeometryH ngsEditOverlayGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySetStyle(unsigned char mapId,
                                        enum ngsEditStyleType type,
                                        JsonObjectH style);

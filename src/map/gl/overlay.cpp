@@ -25,6 +25,7 @@
 // gdal
 #include "ogr_core.h"
 
+#include "ds/earcut.hpp"
 #include "map/gl/view.h"
 #include "map/mapview.h"
 
@@ -58,6 +59,11 @@ GlEditLayerOverlay::GlEditLayerOverlay(MapView* map) : EditLayerOverlay(map),
                 Style::createStyle("editLine", atlas));
     if(lineStyle)
         m_lineStyle = EditLineStylePtr(lineStyle);
+
+    EditFillStyle* fillStyle = static_cast<EditFillStyle*>(
+                Style::createStyle("editFill", atlas));
+    if(fillStyle)
+        m_fillStyle = EditFillStylePtr(fillStyle);
 
     PointStyle* crossStyle = static_cast<PointStyle*>(
                 Style::createStyle("simpleEditCross", atlas));
@@ -170,12 +176,10 @@ bool GlEditLayerOverlay::addPoint()
     return ret;
 }
 
-bool GlEditLayerOverlay::deletePoint()
+enum ngsEditDeleteType GlEditLayerOverlay::deletePoint()
 {
-    bool ret = EditLayerOverlay::deletePoint();
-    if(ret) {
-        fill();
-    }
+    enum ngsEditDeleteType ret = EditLayerOverlay::deletePoint();
+	fill();
     return ret;
 }
 
@@ -188,9 +192,9 @@ bool GlEditLayerOverlay::addGeometryPart()
     return ret;
 }
 
-bool GlEditLayerOverlay::deleteGeometryPart()
+enum ngsEditDeleteType GlEditLayerOverlay::deleteGeometryPart()
 {
-    bool ret = EditLayerOverlay::deleteGeometryPart();
+    enum ngsEditDeleteType ret = EditLayerOverlay::deleteGeometryPart();
     fill();
     return ret;
 }
@@ -238,10 +242,14 @@ bool GlEditLayerOverlay::fill()
             fillPoints();
             break;
         }
-
         case wkbLineString:
         case wkbMultiLineString: {
             fillLines();
+            break;
+        }
+        case wkbPolygon:
+        case wkbMultiPolygon: {
+            fillPolygons();
             break;
         }
         default:
@@ -336,6 +344,36 @@ void GlEditLayerOverlay::fillLines()
 
             fillLineElements(mline->getNumGeometries(), getLineFunc,
                              isSelectedLineFunc);
+            break;
+        }
+    }
+}
+
+void GlEditLayerOverlay::fillPolygons()
+{
+    if(!m_geometry) {
+        return;
+    }
+
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
+        case wkbPolygon: {
+            const OGRPolygon* polygon = static_cast<const OGRPolygon*>(
+                        m_geometry.get());
+
+            auto getPolygonFunc = [polygon](int /*index*/) -> const OGRPolygon* {
+                return polygon;
+            };
+
+            auto isSelectedPolygonFunc = [this](int /*index*/) -> bool {
+                return (m_selectedPointId.ringId() >= 0 &&
+                        m_selectedPointId.pointId() >= 0);
+            };
+
+            fillPolygonElements(1, getPolygonFunc, isSelectedPolygonFunc);
+            break;
+        }
+
+        case wkbMultiPolygon: {
             break;
         }
     }
@@ -487,58 +525,184 @@ void GlEditLayerOverlay::fillLineBuffers(const OGRLineString* line,
         return spt;
     };
 
-    int numPoints = line->getNumPoints();
-    bool isClosedLine = line->get_IsClosed();
-
     GlBuffer* buffer = new GlBuffer(GlBuffer::BF_LINE);
-    unsigned short index = 0;
-    Normal prevNormal;
+    int numPoints = line->getNumPoints();
 
-    auto createBufferIfNeed = [bufferArray, &buffer, &index](
-                                      size_t amount) -> void {
-        if(!buffer->canStoreVertices(amount, true)) {
-            bufferArray->addBuffer(buffer);
-            index = 0;
-            buffer = new GlBuffer(GlBuffer::BF_LINE);
-        }
-    };
+    if(numPoints > 0) {
+        bool isClosedLine = line->get_IsClosed();
+        unsigned short index = 0;
+        Normal prevNormal;
 
-    for(int i = 0; i < numPoints - 1; ++i) {
-        SimplePoint pt1 = getPointFunc(i);
-        SimplePoint pt2 = getPointFunc(i + 1);
-        Normal normal = ngsGetNormals(pt1, pt2);
+        auto createBufferIfNeed = [bufferArray, &buffer, &index](
+                                          size_t amount) -> void {
+            if(!buffer->canStoreVertices(amount, true)) {
+                bufferArray->addBuffer(buffer);
+                index = 0;
+                buffer = new GlBuffer(GlBuffer::BF_LINE);
+            }
+        };
 
-        if(i == 0 || i == numPoints - 2) { // Add cap
-            if(!isClosedLine) {
-                if(i == 0) {
-                    createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
-                    index = m_lineStyle->addLineCap(pt1, normal, 0.0f, index, buffer);
-                }
+        for(int i = 0; i < numPoints - 1; ++i) {
+            SimplePoint pt1 = getPointFunc(i);
+            SimplePoint pt2 = getPointFunc(i + 1);
+            Normal normal = ngsGetNormals(pt1, pt2);
 
-                if(i == numPoints - 2) {
-                    createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
+            if(i == 0 || i == numPoints - 2) { // Add cap
+                if(!isClosedLine) {
+                    if(i == 0) {
+                        createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
+                        index = m_lineStyle->addLineCap(
+                                pt1, normal, 0.0f, index, buffer);
+                    }
 
-                    Normal reverseNormal;
-                    reverseNormal.x = -normal.x;
-                    reverseNormal.y = -normal.y;
-                    index = m_lineStyle->addLineCap(
-                            pt2, reverseNormal, 0.0f, index, buffer);
+                    if(i == numPoints - 2) {
+                        createBufferIfNeed(m_lineStyle->lineCapVerticesCount());
+
+                        Normal reverseNormal;
+                        reverseNormal.x = -normal.x;
+                        reverseNormal.y = -normal.y;
+                        index = m_lineStyle->addLineCap(
+                                pt2, reverseNormal, 0.0f, index, buffer);
+                    }
                 }
             }
-        }
 
-        if(i != 0) { // Add join
-            createBufferIfNeed(m_lineStyle->lineJoinVerticesCount());
-            index = m_lineStyle->addLineJoin(
-                    pt1, prevNormal, normal, 0.0f, index, buffer);
-        }
+            if(i != 0) { // Add join
+                createBufferIfNeed(m_lineStyle->lineJoinVerticesCount());
+                index = m_lineStyle->addLineJoin(
+                        pt1, prevNormal, normal, 0.0f, index, buffer);
+            }
 
-        createBufferIfNeed(12);
-        index = m_lineStyle->addSegment(pt1, pt2, normal, 0.0f, index, buffer);
-        prevNormal = normal;
+            createBufferIfNeed(12);
+            index = m_lineStyle->addSegment(
+                    pt1, pt2, normal, 0.0f, index, buffer);
+            prevNormal = normal;
+        }
     }
 
     bufferArray->addBuffer(buffer);
+}
+
+void GlEditLayerOverlay::fillPolygonElements(int numPolygons,
+        GetPolygonFunc getPolygonFunc,
+        IsSelectedGeometryFunc isSelectedPolygonFunc)
+{
+    VectorGlObject* bufferArray = new VectorGlObject();
+    VectorGlObject* selBufferArray = new VectorGlObject();
+
+    for(int i = 0; i < numPolygons; ++i) {
+        const OGRPolygon* polygon = getPolygonFunc(i);
+        int numRings = polygon->getNumInteriorRings() + 1;
+        bool isSelectedPolygon = isSelectedPolygonFunc(i);
+
+        m_fillStyle->setEditElementType(
+                (isSelectedPolygon) ? EET_SELECTED_POLYGON : EET_POLYGON);
+
+        auto getLineFunc = [polygon](int index) -> const OGRLineString* {
+            const OGRLinearRing* ring;
+            if(0 == index) {
+                ring = polygon->getExteriorRing();
+            } else if(index <= polygon->getNumInteriorRings()) {
+                ring = polygon->getInteriorRing(index - 1);
+            } else {
+                ring = nullptr;
+            }
+            return ring;
+        };
+
+        auto isSelectedLineFunc = [this](int index) -> bool {
+            return (m_selectedPointId.ringId() == index &&
+                    m_selectedPointId.pointId() >= 0);
+        };
+
+        if(isSelectedPolygon) {
+            fillPolygonBuffers(polygon, selBufferArray);
+            fillLineElements(numRings, getLineFunc, isSelectedLineFunc);
+            continue;
+        }
+
+        fillPolygonBuffers(polygon, bufferArray);
+        fillLineElements(numRings, getLineFunc, isSelectedLineFunc);
+    }
+
+    m_elements[EET_POLYGON] = GlObjectPtr(bufferArray);
+    m_elements[EET_SELECTED_POLYGON] = GlObjectPtr(selBufferArray);
+}
+
+void GlEditLayerOverlay::fillPolygonBuffers(
+        const OGRPolygon* polygon, VectorGlObject* bufferArray)
+{
+    // The number type to use for tessellation.
+    using Coord = double;
+
+    // The index type. Defaults to uint32_t, but you can also pass uint16_t
+    // if you know that your data won't have more than 65536 vertices.
+    using N = unsigned short;
+
+    using MBPoint = std::array<Coord, 2>;
+
+    // Create array.
+    std::vector<std::vector<MBPoint>> mbPolygon;
+
+    OGRPoint pt;
+    for(int i = 0, num = polygon->getNumInteriorRings() + 1; i < num; ++i) {
+        const OGRLinearRing* ring = (0 == i)
+                ? polygon->getExteriorRing()
+                : polygon->getInteriorRing(i - 1);
+        if(!ring) {
+            continue;
+        }
+
+        std::vector<MBPoint> mbRing;
+        for(int j = 0; j < ring->getNumPoints(); ++j) {
+            ring->getPoint(j, &pt);
+            mbRing.emplace_back(MBPoint({pt.getX(), pt.getY()}));
+        }
+        mbPolygon.emplace_back(mbRing);
+    }
+
+    // Run tessellation.
+    // Returns array of indices that refer to the vertices of the input polygon.
+    // Three subsequent indices form a triangle.
+    std::vector<N> mbIndices = mapbox::earcut<N>(mbPolygon);
+
+    auto findPointByIndex = [mbPolygon](N index) -> OGRPoint {
+        N currentIndex = index;
+        for(const auto& vertices : mbPolygon) {
+            if(currentIndex >= vertices.size()) {
+                currentIndex -= vertices.size();
+                continue;
+            }
+
+            MBPoint mbPt = vertices[currentIndex];
+            return OGRPoint(mbPt[0], mbPt[1]);
+        }
+        return OGRPoint();
+    };
+
+	// Fill triangles.
+    GlBuffer* fillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+    unsigned short index = 0;
+    for(auto mbIndex : mbIndices) {
+        if(!fillBuffer->canStoreVertices(mbIndices.size() * 3)) {
+            bufferArray->addBuffer(fillBuffer);
+            index = 0;
+            fillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+        }
+
+        pt = findPointByIndex(mbIndex);
+        if(pt.IsEmpty()) { // Should never happen.
+            pt.setX(BIG_VALUE);
+            pt.setY(BIG_VALUE);
+        }
+
+        fillBuffer->addVertex(pt.getX());
+        fillBuffer->addVertex(pt.getY());
+        fillBuffer->addVertex(0.0f);
+
+        fillBuffer->addIndex(index++);
+    }
+    bufferArray->addBuffer(fillBuffer);
 }
 
 void GlEditLayerOverlay::fillCrossElement()
@@ -634,6 +798,10 @@ bool GlEditLayerOverlay::draw()
         if(EET_LINE == styleType || EET_SELECTED_LINE == styleType) {
             style = m_lineStyle.get();
             m_lineStyle->setEditElementType(it->first);
+        }
+        if(EET_POLYGON == styleType || EET_SELECTED_POLYGON == styleType) {
+            style = m_fillStyle.get();
+            m_fillStyle->setEditElementType(it->first);
         }
         if(EET_CROSS == styleType) {
             style = m_crossStyle.get();
