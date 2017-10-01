@@ -171,7 +171,7 @@ FeaturePtr EditLayerOverlay::save()
     if(featureHasEdits && deleteGeometry) { // Delete a feature.
         bool featureDeleted = m_featureClass->deleteFeature(m_editFeatureId);
         if(!featureDeleted) {
-            errorMessage(_("Delete feature failed"));
+            errorMessage(_("Delete feature %ld failed"), m_editFeatureId);
             return FeaturePtr();
         }
     }

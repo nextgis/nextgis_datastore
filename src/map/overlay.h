@@ -180,6 +180,7 @@ public:
     void clearHistory();
     FeaturePtr save();
     void cancel();
+    bool isGeometryValid() const { return m_geometry.operator bool(); }
 
     bool createGeometry(FeatureClassPtr datasource);
     bool editGeometry(LayerPtr layer, GIntBig featureId);

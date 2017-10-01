@@ -2935,8 +2935,12 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
     if(nullptr == editOverlay) {
         return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
     }
+
+    bool isGeometryValid = editOverlay->isGeometryValid();
     if(!editOverlay->deleteGeometry()) {
-        return errorMessage(COD_DELETE_FAILED, _("Geometry deleting is failed"));
+        if(isGeometryValid) {
+            return errorMessage(COD_DELETE_FAILED, _("Geometry delete failed"));
+        }
     }
     return COD_SUCCESS;
 }
