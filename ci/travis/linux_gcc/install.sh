@@ -3,9 +3,9 @@
 set -e
 
 # swig3.0 v3.02 for Ubuntu 12.04
-sudo add-apt-repository -y ppa:teward/swig3.0
+#sudo add-apt-repository -y ppa:teward/swig3.0
 # swig3.0 v3.08 for Ubuntu 14.04
-#sudo add-apt-repository -y ppa:nschloe/swig-backports
+sudo add-apt-repository -y ppa:nschloe/swig-backports
 
 echo "Add NextGIS PPA"
 sudo add-apt-repository -y ppa:nextgis/dev

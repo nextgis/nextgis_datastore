@@ -7,9 +7,9 @@ set -e
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 # swig3.0 v3.02 for Ubuntu 12.04
-sudo add-apt-repository -y ppa:teward/swig3.0
+#sudo add-apt-repository -y ppa:teward/swig3.0
 # swig3.0 v3.08 for Ubuntu 14.04
-#sudo add-apt-repository -y ppa:nschloe/swig-backports
+sudo add-apt-repository -y ppa:nschloe/swig-backports
 
 sudo apt-get update -qq
 sudo apt-get install -qq libstdc++6 swig3.0
