@@ -518,8 +518,8 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
             m_selectedPointId.setPointId(m_selectedPointId.pointId() - 1);
         }
         if(m_selectedPointId.isValid()) { // Should always be true.
-            line->getPoint(
-                    m_selectedPointId.pointId(), &m_selectedPointCoordinates);
+            line->getPoint(m_selectedPointId.pointId(),
+                           &m_selectedPointCoordinates);
         }
 
     } else { // Delete entire line.
@@ -547,7 +547,8 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
                             &m_selectedPointCoordinates);
 
                     ret = EDT_GEOMETRY_PART;
-                } else { // Delete entire geometry.
+                }
+                else { // Delete entire geometry.
                     deleteEntireGeometry = true;
                 }
                 break;
@@ -646,7 +647,7 @@ enum ngsEditDeleteType EditLayerOverlay::deleteGeometryPart()
     OGRGeometryCollection* collect = ngsDynamicCast(OGRGeometryCollection,
                                                     m_geometry);
     // Only geometry of type multi
-    if(!collect || collect->getNumGeometries() == 0) {
+    if(!collect || collect->IsEmpty()) {
         return ret;
     }
 
@@ -658,7 +659,7 @@ enum ngsEditDeleteType EditLayerOverlay::deleteGeometryPart()
 
     int lastGeomId = collect->getNumGeometries() - 1;
     if(lastGeomId < 0) {
-        ret = EDT_GEOMETRY_PART;
+        ret = EDT_GEOMETRY;
         m_selectedPointId = PointId();
         m_selectedPointCoordinates = OGRPoint();
     }
