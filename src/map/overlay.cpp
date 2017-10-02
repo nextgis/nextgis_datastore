@@ -822,6 +822,7 @@ bool EditLayerOverlay::clickPoint(const OGRRawPoint& mapCoordinates)
         double minY = mapCoordinates.y - mapTolerance.y;
         double maxY = mapCoordinates.y + mapTolerance.y;
         Envelope mapEnv(minX, minY, maxX, maxY);
+        mapEnv.fix();
 
         OGRPoint coordinates;
         PointId id = PointId::getGeometryPointId(*m_geometry, mapEnv,
@@ -870,6 +871,7 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
     double minY = mapCoordinates.y - mapTolerance.y;
     double maxY = mapCoordinates.y + mapTolerance.y;
     Envelope mapEnv(minX, minY, maxX, maxY);
+    mapEnv.fix();
 
     OGRPoint coordinates;
     PointId id = PointId::getLineStringMedianPointId(*line, mapEnv, &coordinates);
@@ -897,6 +899,7 @@ bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
         double minY = mapCoordinates.y - mapTolerance.y;
         double maxY = mapCoordinates.y + mapTolerance.y;
         Envelope mapEnv(minX, minY, maxX, maxY);
+        mapEnv.fix();
 
         PointId id;
         id = PointId::getGeometryPointId(*m_geometry, mapEnv);
@@ -925,6 +928,7 @@ bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint& mapCoordinates) const
         double minY = mapCoordinates.y - mapTolerance.y;
         double maxY = mapCoordinates.y + mapTolerance.y;
         Envelope mapEnv(minX, minY, maxX, maxY);
+        mapEnv.fix();
 
         ret = geometryIntersects(m_selectedPointCoordinates, mapEnv);
     }
