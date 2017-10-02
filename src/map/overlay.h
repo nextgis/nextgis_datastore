@@ -187,6 +187,8 @@ public:
     bool deleteGeometry();
     virtual bool addPoint();
     virtual enum ngsEditDeleteType deletePoint();
+    virtual bool addHole();
+    virtual enum ngsEditDeleteType deleteHole();
     virtual bool addGeometryPart();
     virtual enum ngsEditDeleteType deleteGeometryPart();
 

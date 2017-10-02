@@ -622,6 +622,141 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
     return ret;
 }
 
+bool EditLayerOverlay::addHole()
+{
+    if(!m_geometry) {
+        return false;
+    }
+
+    OGRPolygon* polygon = nullptr; // Only geometry of type polygon
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
+        case wkbPolygon: {
+            polygon = ngsDynamicCast(OGRPolygon, m_geometry);
+            break;
+        }
+        case wkbMultiPolygon: {
+            OGRMultiPolygon* mpoly =
+                    ngsDynamicCast(OGRMultiPolygon, m_geometry);
+            if(!mpoly) {
+                break;
+            }
+
+            polygon = dynamic_cast<OGRPolygon*>(
+                    mpoly->getGeometryRef(m_selectedPointId.geometryId()));
+            break;
+        }
+        default:
+            break;
+    }
+    if(!polygon) {
+        return false;
+    }
+
+    OGRRawPoint geometryCenter = m_map->getCenter();
+    OGRRawPoint mapDist =
+            m_map->getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+    double x1 = geometryCenter.x - mapDist.x;
+    double y1 = geometryCenter.y - mapDist.y;
+    double x2 = geometryCenter.x + mapDist.x;
+    double y2 = geometryCenter.y + mapDist.y;
+
+    OGRLinearRing* ring = new OGRLinearRing();
+    ring->addPoint(x1, y1);
+    ring->addPoint(x2, y2);
+    ring->addPoint(x1, y2);
+    ring->closeRings();
+
+    polygon->addRingDirectly(ring);
+    saveToHistory();
+
+    // Preserve m_selectedPointId.geometryId
+    m_selectedPointId.setPointId(0);
+    // +1 for exterior ring
+    m_selectedPointId.setRingId(polygon->getNumInteriorRings());
+
+    m_selectedPointCoordinates = OGRPoint(x1, y1);
+    return true;
+}
+
+enum ngsEditDeleteType EditLayerOverlay::deleteHole()
+{
+    enum ngsEditDeleteType ret = EDT_NON_LAST;
+
+    if(!m_geometry || m_selectedPointId.ringId() == 0) {
+        return ret;
+    }
+
+    OGRPolygon* polygon = nullptr;
+    OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
+    switch(type) { // Only geometry of type polygon
+        case wkbPolygon: {
+            polygon = ngsDynamicCast(OGRPolygon, m_geometry);
+            break;
+        }
+        case wkbMultiPolygon: {
+            OGRMultiPolygon* mpoly =
+                    ngsDynamicCast(OGRMultiPolygon, m_geometry);
+            if(!mpoly) {
+                break;
+            }
+
+            polygon = dynamic_cast<OGRPolygon*>(
+                    mpoly->getGeometryRef(m_selectedPointId.geometryId()));
+            break;
+        }
+        default:
+            break;
+    }
+    if(!polygon) {
+        return ret;
+    }
+
+    int numIntRings = polygon->getNumInteriorRings();
+    if(0 == numIntRings) {
+        return ret;
+    }
+
+    OGRPolygon* newPoly = new OGRPolygon();
+    OGRLinearRing* ring =
+            static_cast<OGRLinearRing*>(polygon->getExteriorRing()->clone());
+    newPoly->addRingDirectly(ring);
+    int delRingId = m_selectedPointId.ringId() - 1;
+    for(int i = 0; i < numIntRings; ++i) {
+        if(delRingId == i) {
+            continue;
+        }
+        ring = static_cast<OGRLinearRing*>(polygon->getInteriorRing(i)->clone());
+        newPoly->addRingDirectly(ring);
+    }
+
+    polygon->empty();
+    ring = static_cast<OGRLinearRing*>(newPoly->getExteriorRing()->clone());
+    polygon->addRingDirectly(ring);
+    numIntRings = newPoly->getNumInteriorRings();
+    for(int i = 0; i < numIntRings; ++i) {
+        ring = static_cast<OGRLinearRing*>(newPoly->getInteriorRing(i)->clone());
+        polygon->addRingDirectly(ring);
+    }
+
+    int pointId = 0;
+    int ringId = 0;
+    numIntRings = polygon->getNumInteriorRings();
+    if(numIntRings > 0) {
+        ringId = numIntRings - 1;
+        ring = polygon->getInteriorRing(ringId);
+        ++ringId; // +1 for exterior ring
+    } else {
+        ring = polygon->getExteriorRing();
+        ret = EDT_HOLE;
+    }
+
+    m_selectedPointId.setPointId(pointId);
+    m_selectedPointId.setRingId(ringId);
+    ring->getPoint(pointId, &m_selectedPointCoordinates);
+
+    return ret;
+}
+
 bool EditLayerOverlay::addGeometryPart()
 {
     if(!m_geometry) {

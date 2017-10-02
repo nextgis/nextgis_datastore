@@ -183,6 +183,22 @@ enum ngsEditDeleteType GlEditLayerOverlay::deletePoint()
     return ret;
 }
 
+bool GlEditLayerOverlay::addHole()
+{
+    bool ret = EditLayerOverlay::addHole();
+    if(ret) {
+        fill();
+    }
+    return ret;
+}
+
+enum ngsEditDeleteType GlEditLayerOverlay::deleteHole()
+{
+    enum ngsEditDeleteType ret = EditLayerOverlay::deleteHole();
+    fill();
+    return ret;
+}
+
 bool GlEditLayerOverlay::addGeometryPart()
 {
     bool ret = EditLayerOverlay::addGeometryPart();
