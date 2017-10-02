@@ -849,6 +849,17 @@ bool EditLayerOverlay::clickMedianPoint(const OGRRawPoint& mapCoordinates)
             line = ngsDynamicCast(OGRLineString, m_geometry);
             break;
         }
+        case wkbPolygon: {
+            OGRPolygon* polygon =
+                    ngsDynamicCast(OGRPolygon, m_geometry);
+            if(!polygon)
+                break;
+            OGRLinearRing* ring = (0 == m_selectedPointId.ringId())
+                    ? polygon->getExteriorRing()
+                    : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
+            line = dynamic_cast<OGRLineString*>(ring);
+            break;
+        }
         case wkbMultiLineString: {
             OGRMultiLineString* ml =
                     ngsDynamicCast(OGRMultiLineString, m_geometry);
@@ -1185,9 +1196,9 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
 
     int ringId = startId;
     for(int num = polygon.getNumInteriorRings() + 1; ringId < num; ++ringId) {
-        const OGRLinearRing* ring = (ringId > 0)
-                ? polygon.getInteriorRing(ringId - 1)
-                : polygon.getExteriorRing();
+        const OGRLinearRing* ring = (0 == ringId)
+                ? polygon.getExteriorRing()
+                : polygon.getInteriorRing(ringId - 1);
         if(!ring) {
             continue;
         }
@@ -1451,13 +1462,9 @@ OGRPoint PointId::getPolygonPointCoordinates(const OGRPolygon& polygon,
         return OGRPoint();
     }
 
-    const OGRLinearRing* ring;
-    if(id.ringId() == 0) {
-        ring = polygon.getExteriorRing();
-    }
-    else {
-        ring = polygon.getInteriorRing(id.ringId() - 1);
-    }
+    const OGRLinearRing* ring = (0 == id.ringId())
+            ? polygon.getExteriorRing()
+            : polygon.getInteriorRing(id.ringId() - 1);
 
     return getLineStringPointCoordinates(*ring, id);
 }
