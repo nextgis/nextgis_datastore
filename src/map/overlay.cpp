@@ -595,7 +595,7 @@ bool EditLayerOverlay::addGeometryPart()
             }
 
             int num = mpt->getNumGeometries();
-            m_selectedPointId = PointId(0, NOT_FOUND, num - 1);
+            m_selectedPointId = PointId(0, 0, num - 1);
             m_selectedPointCoordinates = *pt;
             ret = true;
             break;
@@ -621,7 +621,7 @@ bool EditLayerOverlay::addGeometryPart()
             }
 
             int num = mline->getNumGeometries();
-            m_selectedPointId = PointId(0, NOT_FOUND, num - 1);
+            m_selectedPointId = PointId(0, 0, num - 1);
             m_selectedPointCoordinates = startPt;
             ret = true;
             break;
@@ -675,7 +675,7 @@ enum ngsEditDeleteType EditLayerOverlay::deleteGeometryPart()
                 }
 
                 const OGRPoint* lastPt = dynamic_cast<const OGRPoint*>(lastGeom);
-                m_selectedPointId = PointId(0, NOT_FOUND, lastGeomId);
+                m_selectedPointId = PointId(0, 0, lastGeomId);
                 m_selectedPointCoordinates = *lastPt;
                 break;
             }
@@ -691,7 +691,7 @@ enum ngsEditDeleteType EditLayerOverlay::deleteGeometryPart()
                 int lastPointId = lastLine->getNumPoints() - 1;
                 OGRPoint lastPt;
                 lastLine->getPoint(lastPointId, &lastPt);
-                m_selectedPointId = PointId(lastPointId, NOT_FOUND, lastGeomId);
+                m_selectedPointId = PointId(lastPointId, 0, lastGeomId);
                 m_selectedPointCoordinates = lastPt;
                 break;
             }
@@ -905,11 +905,13 @@ bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
         id = PointId::getGeometryPointId(*m_geometry, mapEnv);
 
         if(id.intersects()) {
-            id.setPointId(0);
-            OGRPoint coordinates =
-                    PointId::getGeometryPointCoordinates(*m_geometry, id);
-            m_selectedPointId = id;
-            m_selectedPointCoordinates = coordinates;
+            if(id.geometryId() != m_selectedPointId.geometryId()) {
+                id.setPointId(0);
+                OGRPoint coordinates =
+                        PointId::getGeometryPointCoordinates(*m_geometry, id);
+                m_selectedPointId = id;
+                m_selectedPointCoordinates = coordinates;
+            }
             return true;
         }
     }
@@ -930,7 +932,7 @@ bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint& mapCoordinates) const
         Envelope mapEnv(minX, minY, maxX, maxY);
         mapEnv.fix();
 
-        ret = geometryIntersects(m_selectedPointCoordinates, mapEnv);
+        ret = geometryEnvelopeIntersects(m_selectedPointCoordinates, mapEnv);
     }
     return ret;
 }
@@ -969,11 +971,23 @@ void EditLayerOverlay::freeResources()
 // PointId
 //------------------------------------------------------------------------------
 
+PointId::PointId() :
+        m_pointId(NOT_FOUND),
+        m_ringId(NOT_FOUND),
+        m_geometryId(NOT_FOUND)
+{
+}
+
 PointId::PointId(int pointId, int ringId, int geometryId) :
         m_pointId(pointId),
         m_ringId(ringId),
         m_geometryId(geometryId)
 {
+}
+
+bool PointId::isValid() const
+{
+    return 0 <= pointId() && 0 <= ringId() && 0 <= geometryId();
 }
 
 bool PointId::operator==(const PointId& other) const
@@ -984,6 +998,9 @@ bool PointId::operator==(const PointId& other) const
 
 const PointId& PointId::setIntersects()
 {
+    if(m_ringId < 0) {
+        m_ringId = 0;
+    }
     if(m_geometryId < 0) {
         m_geometryId = 0;
     }
@@ -1042,7 +1059,7 @@ PointId PointId::getPointId(const OGRPoint& pt, const Envelope env,
                             const PointId* /*selectedPointId*/,
                             OGRPoint* coordinates)
 {
-    if(pt.IsEmpty() || !geometryIntersects(pt, env)) {
+    if(pt.IsEmpty() || !geometryEnvelopeIntersects(pt, env)) {
         return PointId();
     }
 
@@ -1059,16 +1076,15 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
         const PointId* selectedPointId,
         OGRPoint* coordinates)
 {
-    if(line.IsEmpty() || !geometryIntersects(line, env)) {
+    if(line.IsEmpty() && !geometryEnvelopeIntersects(line, env)) {
         return PointId();
     }
-
     int startId = 0;
     bool checkSelected = false;
     bool found = false;
 
     // First, check the selected point in the line.
-    if(selectedPointId) {
+    if(selectedPointId && selectedPointId->isValid()) {
         startId = selectedPointId->pointId();
         checkSelected = true;
     }
@@ -1077,7 +1093,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
     int pointId = startId;
     for(int num = line.getNumPoints(); pointId < num; ++pointId) {
         line.getPoint(pointId, &pt);
-        if(geometryIntersects(pt, env)) {
+        if(geometryEnvelopeIntersects(pt, env)) {
             found = true;
             break;
         }
@@ -1086,7 +1102,9 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
         if(checkSelected) {
             // Reset a counter to the start point.
             checkSelected = false;
-            pointId = -1;
+            if(0 != startId) {
+                pointId = -1;
+            }
         }
         else if(pointId + 1 == startId) {
             // Skip a checking of the selected point.
@@ -1110,7 +1128,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
 PointId PointId::getLineStringMedianPointId(
         const OGRLineString& line, const Envelope env, OGRPoint* coordinates)
 {
-    if(line.IsEmpty() || !geometryIntersects(line, env)) {
+    if(line.IsEmpty() || !geometryEnvelopeIntersects(line, env)) {
         return PointId();
     }
 
@@ -1126,7 +1144,7 @@ PointId PointId::getLineStringMedianPointId(
         line.getPoint(i + 1, &pt2);
         medianPt = OGRPoint((pt2.getX() - pt1.getX()) / 2 + pt1.getX(),
                 (pt2.getY() - pt1.getY()) / 2 + pt1.getY());
-        if(geometryIntersects(medianPt, env)) {
+        if(geometryEnvelopeIntersects(medianPt, env)) {
             found = true;
             break;
         }
@@ -1151,7 +1169,7 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
                                    const PointId* selectedPointId,
                                    OGRPoint* coordinates)
 {
-    if(polygon.IsEmpty() || !geometryIntersects(polygon, env)) {
+    if(polygon.IsEmpty() || !geometryEnvelopeIntersects(polygon, env)) {
         return PointId();
     }
 
@@ -1160,7 +1178,7 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
     PointId intersectedId;
 
     // First, check the selected ring in the polygon.
-    if(selectedPointId) {
+    if(selectedPointId && selectedPointId->isValid()) {
         startId = selectedPointId->ringId();
         checkSelected = true;
     }
@@ -1183,13 +1201,16 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
         // Check an intersecting, first for the interior rings.
         if(!intersectedId.intersects() && id.intersects() && ringId > 0) {
             intersectedId.setRingId(ringId);
+            intersectedId.setIntersects();
         }
 
         // Then check the remaining rings, skipping the checked ring.
         if(checkSelected) {
             // Reset a counter to the start line.
             checkSelected = false;
-            ringId = -1;
+            if(0 != startId) {
+                ringId = -1;
+            }
         }
         else if(ringId + 1 == startId) {
             // Skip a checking of the selected line.
@@ -1200,6 +1221,7 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
     // Check an intersecting, then for the exterior ring.
     if(!intersectedId.intersects()) {
         intersectedId.setRingId(0);
+        intersectedId.setIntersects();
     }
 
     return intersectedId; // First intersected interior ring or exterior ring.
@@ -1211,7 +1233,7 @@ PointId PointId::getMultiPointPointId(const OGRMultiPoint& mpt,
         const PointId* selectedPointId,
         OGRPoint* coordinates)
 {
-    if(mpt.IsEmpty() || !geometryIntersects(mpt, env)) {
+    if(mpt.IsEmpty() || !geometryEnvelopeIntersects(mpt, env)) {
         return PointId();
     }
 
@@ -1219,7 +1241,7 @@ PointId PointId::getMultiPointPointId(const OGRMultiPoint& mpt,
     bool checkSelected = false;
 
     // First, check the selected point in the multi.
-    if(selectedPointId) {
+    if(selectedPointId && selectedPointId->isValid()) {
         startId = selectedPointId->geometryId();
         checkSelected = true;
     }
@@ -1229,19 +1251,21 @@ PointId PointId::getMultiPointPointId(const OGRMultiPoint& mpt,
 
         const OGRPoint* pt = static_cast<const OGRPoint*>(
                     mpt.getGeometryRef(geometryId));
-        if(geometryIntersects(*pt, env)) {
+        if(geometryEnvelopeIntersects(*pt, env)) {
             if(coordinates) {
                 coordinates->setX(pt->getX());
                 coordinates->setY(pt->getY());
             }
-            return PointId(0, NOT_FOUND, geometryId);
+            return PointId(0, 0, geometryId);
         }
 
         // Then check the remaining points, skipping the checked point.
         if(checkSelected) {
             // Reset a counter to the start geometry.
             checkSelected = false;
-            geometryId = -1;
+            if(0 != startId) {
+                geometryId = -1;
+            }
         }
         else if(geometryId + 1 == startId) {
             // Skip a checking of the selected geometry.
@@ -1258,7 +1282,7 @@ PointId PointId::getMultiLineStringPointId(const OGRMultiLineString& mline,
         const PointId* selectedPointId,
         OGRPoint* coordinates)
 {
-    if(mline.IsEmpty() || !geometryIntersects(mline, env)) {
+    if(mline.IsEmpty() || !geometryEnvelopeIntersects(mline, env)) {
         return PointId();
     }
 
@@ -1267,7 +1291,7 @@ PointId PointId::getMultiLineStringPointId(const OGRMultiLineString& mline,
     PointId intersectedId;
 
     // First, check the selected line in the multi.
-    if(selectedPointId) {
+    if(selectedPointId && selectedPointId->isValid()) {
         startId = selectedPointId->geometryId();
         checkSelected = true;
     }
@@ -1281,18 +1305,21 @@ PointId PointId::getMultiLineStringPointId(const OGRMultiLineString& mline,
         PointId id =
                 getLineStringPointId(*line, env, selectedPointId, coordinates);
         if(id.isValid()) {
-            return PointId(id.pointId(), NOT_FOUND, geometryId);
+            return PointId(id.pointId(), 0, geometryId);
         }
 
         if(!intersectedId.intersects() && id.intersects()) {
             intersectedId.setGeometryId(geometryId);
+            intersectedId.setIntersects();
         }
 
         // Then check the remaining lines, skipping the checked line.
         if(checkSelected) {
             // Reset a counter to the start geometry.
             checkSelected = false;
-            geometryId = -1;
+            if(0 != startId) {
+                geometryId = -1;
+            }
         }
         else if(geometryId + 1 == startId) {
             // Skip a checking of the selected geometry.
@@ -1309,7 +1336,7 @@ PointId PointId::getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
                                         const PointId* selectedPointId,
                                         OGRPoint* coordinates)
 {
-    if(mpolygon.IsEmpty() || !geometryIntersects(mpolygon, env)) {
+    if(mpolygon.IsEmpty() || !geometryEnvelopeIntersects(mpolygon, env)) {
         return PointId();
     }
 
@@ -1318,7 +1345,7 @@ PointId PointId::getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
     PointId intersectedId;
 
     // First, check the selected polygon in the multi.
-    if(selectedPointId) {
+    if(selectedPointId && selectedPointId->isValid()) {
         startId = selectedPointId->geometryId();
         checkSelected = true;
     }
@@ -1336,13 +1363,16 @@ PointId PointId::getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
         if(!intersectedId.intersects() && id.intersects()) {
             intersectedId.setRingId(id.ringId());
             intersectedId.setGeometryId(geometryId);
+            intersectedId.setIntersects();
         }
 
         // Then check the remaining polygons, skipping the checked polygon.
         if(checkSelected) {
             // Reset a counter to the start geometry.
             checkSelected = false;
-            geometryId = -1;
+            if(0 != startId) {
+                geometryId = -1;
+            }
         }
         else if(geometryId + 1 == startId) {
             // Skip a checking of the selected geometry.
