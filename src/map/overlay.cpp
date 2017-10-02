@@ -567,17 +567,47 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
                 if(0 == m_selectedPointId.ringId()) { // Delete entire geometry.
                     deleteEntireGeometry = true;
                 } else { // Delete only interior ring.
-                    int numIntRings = polygon->getNumInteriorRings();
                     OGRPolygon* newPoly = new OGRPolygon();
-                    newPoly->addRingDirectly(polygon->stealExteriorRing());
+                    OGRLinearRing* ring = static_cast<OGRLinearRing*>(
+                            polygon->getExteriorRing()->clone());
+                    newPoly->addRingDirectly(ring);
                     int delRingId = m_selectedPointId.ringId() - 1;
+                    int numIntRings = polygon->getNumInteriorRings();
                     for(int i = 0; i < numIntRings; ++i) {
                         if(delRingId == i) {
                             continue;
                         }
-                        newPoly->addRingDirectly(polygon->stealInteriorRing(i));
+                        ring = static_cast<OGRLinearRing*>(
+                                polygon->getInteriorRing(i)->clone());
+                        newPoly->addRingDirectly(ring);
                     }
-                    m_geometry = GeometryUPtr(polygon);
+
+                    polygon->empty();
+                    ring = static_cast<OGRLinearRing*>(
+                            newPoly->getExteriorRing()->clone());
+                    polygon->addRingDirectly(ring);
+                    numIntRings = newPoly->getNumInteriorRings();
+                    for(int i = 0; i < numIntRings; ++i) {
+                        ring = static_cast<OGRLinearRing*>(
+                                newPoly->getInteriorRing(i)->clone());
+                        polygon->addRingDirectly(ring);
+                    }
+
+                    int pointId = 0;
+                    int ringId = 0;
+                    numIntRings = polygon->getNumInteriorRings();
+                    if(numIntRings > 0) {
+                        ringId = numIntRings - 1;
+                        ring = polygon->getInteriorRing(ringId);
+                        ++ringId; // +1 for exterior ring
+                    } else {
+                        ring = polygon->getExteriorRing();
+                    }
+
+                    m_selectedPointId.setPointId(pointId);
+                    m_selectedPointId.setRingId(ringId);
+                    ring->getPoint(pointId, &m_selectedPointCoordinates);
+
                     ret = EDT_HOLE;
                 }
                 break;
