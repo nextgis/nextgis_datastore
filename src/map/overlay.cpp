@@ -420,13 +420,23 @@ bool EditLayerOverlay::addPoint()
             line = ngsDynamicCast(OGRLineString, m_geometry);
             break;
         }
+        case wkbPolygon: {
+            OGRPolygon* polygon =
+                    ngsDynamicCast(OGRPolygon, m_geometry);
+            if(!polygon)
+                break;
+            OGRLinearRing* ring = (0 == m_selectedPointId.ringId())
+                    ? polygon->getExteriorRing()
+                    : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
+            line = dynamic_cast<OGRLineString*>(ring);
+            break;
+        }
         case wkbMultiLineString: {
             OGRMultiLineString* ml = ngsDynamicCast(OGRMultiLineString,
                                                     m_geometry);
             if(!ml) {
                 break;
             }
-
             line = dynamic_cast<OGRLineString*>(
                     ml->getGeometryRef(m_selectedPointId.geometryId()));
             break;
@@ -479,10 +489,21 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
 
     OGRLineString* line = nullptr;
     OGRMultiLineString* multiLine = nullptr;
+    OGRPolygon* polygon = nullptr;
     OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
     switch(type) { // Only geometry with line or ring
         case wkbLineString: {
             line = ngsDynamicCast(OGRLineString, m_geometry);
+            break;
+        }
+        case wkbPolygon: {
+            polygon = ngsDynamicCast(OGRPolygon, m_geometry);
+            if(!polygon)
+                break;
+            OGRLinearRing* ring = (0 == m_selectedPointId.ringId())
+                    ? polygon->getExteriorRing()
+                    : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
+            line = dynamic_cast<OGRLineString*>(ring);
             break;
         }
         case wkbMultiLineString: {
@@ -502,17 +523,26 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
         return ret;
     }
 
-    int minNumPoint = line->get_IsClosed() ? 4 : 2;
-    if(line->getNumPoints() > minNumPoint) { // Delete only point.
+    bool closedLine = line->get_IsClosed();
+    int numPoints = line->getNumPoints();
+    int minNumPoint = closedLine ? 4 : 2;
+    if(numPoints > minNumPoint) { // Delete only point.
         OGRLineString* newLine = new OGRLineString();
 
-        bool isStartPoint = (0 == m_selectedPointId.pointId());
+        int delPtId = m_selectedPointId.pointId();
+        bool isStartPoint = (0 == delPtId);
         if(!isStartPoint) {
-            newLine->addSubLineString(line, 0, m_selectedPointId.pointId() - 1);
+            newLine->addSubLineString(line, 0, delPtId - 1);
         }
-        newLine->addSubLineString(line, m_selectedPointId.pointId() + 1);
+        int endPtId = (closedLine && isStartPoint) ? (numPoints - 2)
+                                                   : (numPoints - 1);
+        newLine->addSubLineString(line, delPtId + 1, endPtId);
+
         line->empty();
         line->addSubLineString(newLine);
+        if(closedLine) {
+            line->closeRings();
+        }
 
         if(!isStartPoint) {
             m_selectedPointId.setPointId(m_selectedPointId.pointId() - 1);
@@ -527,6 +557,29 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
         switch(type) {
             case wkbLineString: { // Delete entire geometry.
                 deleteEntireGeometry = true;
+                break;
+            }
+            case wkbPolygon: {
+                if(!polygon) {
+                    break;
+                }
+
+                if(0 == m_selectedPointId.ringId()) { // Delete entire geometry.
+                    deleteEntireGeometry = true;
+                } else { // Delete only interior ring.
+                    int numIntRings = polygon->getNumInteriorRings();
+                    OGRPolygon* newPoly = new OGRPolygon();
+                    newPoly->addRingDirectly(polygon->stealExteriorRing());
+                    int delRingId = m_selectedPointId.ringId() - 1;
+                    for(int i = 0; i < numIntRings; ++i) {
+                        if(delRingId == i) {
+                            continue;
+                        }
+                        newPoly->addRingDirectly(polygon->stealInteriorRing(i));
+                    }
+                    m_geometry = GeometryUPtr(polygon);
+                    ret = EDT_HOLE;
+                }
                 break;
             }
             case wkbMultiLineString: {
