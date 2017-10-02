@@ -1104,7 +1104,8 @@ bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
         id = PointId::getGeometryPointId(*m_geometry, mapEnv);
 
         if(id.intersects()) {
-            if(id.geometryId() != m_selectedPointId.geometryId()) {
+            if(id.ringId() != m_selectedPointId.ringId() ||
+                    id.geometryId() != m_selectedPointId.geometryId()) {
                 id.setPointId(0);
                 OGRPoint coordinates =
                         PointId::getGeometryPointCoordinates(*m_geometry, id);
@@ -1275,7 +1276,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
         const PointId* selectedPointId,
         OGRPoint* coordinates)
 {
-    if(line.IsEmpty() && !geometryEnvelopeIntersects(line, env)) {
+    if(line.IsEmpty() || !geometryEnvelopeIntersects(line, env)) {
         return PointId();
     }
     int startId = 0;
