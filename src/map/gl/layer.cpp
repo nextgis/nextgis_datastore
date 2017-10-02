@@ -780,7 +780,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
 
     SimpleFillBorderedStyle* selectStyle = ngsDynamicCast(SimpleFillBorderedStyle,
                                                           selectionStyle());
-    SimpleLineStyle* selectLineStyle = drawStyle->lineStyle();
+    SimpleLineStyle* selectLineStyle = selectStyle->lineStyle();
 
     SimpleFillBorderedStyle* style;
     SimpleLineStyle* lineStyle;
