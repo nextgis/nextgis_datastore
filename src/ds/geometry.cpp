@@ -308,9 +308,11 @@ OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json)
     return OGRGeometryFactory::createFromGeoJson(json);
 }
 
-bool geometryIntersects(const OGRGeometry& geometry, const Envelope env)
+bool geometryEnvelopeIntersects(const OGRGeometry& geometry, const Envelope env)
 {
-    return geometry.Intersects(env.toGeometry(nullptr).get());
+    OGREnvelope ogrEnv;
+    geometry.getEnvelope(&ogrEnv);
+    return ogrEnv.Intersects(env.toOgrEnvelope());
 }
 
 } // namespace ngs
