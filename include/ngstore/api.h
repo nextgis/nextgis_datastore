@@ -371,6 +371,7 @@ NGS_EXTERNC int ngsMapSetExtentLimits(unsigned char mapId,
                                       double minX, double minY,
                                       double maxX, double maxY);
 NGS_EXTERNC ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg);
+NGS_EXTERNC int ngsMapSetExtent(unsigned char mapId, ngsExtent extent);
 
 //NGS_EXTERNC void ngsMapSetLocation(unsigned char mapId, double x, double y, double azimuth);
 NGS_EXTERNC JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId,

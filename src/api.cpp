@@ -2357,6 +2357,10 @@ ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
         unsigned short fromEPSG = map->epsg();
         Envelope env = map->getExtent();
 
+        if(fromEPSG == epsg) {
+            return {env.minX(), env.minY(), env.maxX(), env.maxY()};
+        }
+
         OGRSpatialReference from;
         if(from.importFromEPSG(fromEPSG) != OGRERR_NONE) {
             errorMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
@@ -2401,6 +2405,22 @@ ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
     }
 
     return {0.0, 0.0, 0.0, 0.0};
+}
+
+int ngsMapSetExtent(unsigned char mapId, ngsExtent extent)
+{
+    MapStore* const mapStore = MapStore::getInstance();
+    if(nullptr == mapStore) {
+        return errorMessage(COD_SET_FAILED, _("MapStore is not initialized"));
+    }
+    auto map = mapStore->getMap(mapId);
+    if(map) {
+        Envelope env(extent.minX, extent.minY, extent.maxX, extent.maxY);
+        if(map->setExtent(env)) {
+            return COD_SUCCESS;
+        }
+    }
+    return COD_SET_FAILED;
 }
 
 /**
