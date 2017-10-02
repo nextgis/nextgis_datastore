@@ -45,12 +45,11 @@ class MapView;
 class PointId
 {
 public:
-    explicit PointId(int pointId = NOT_FOUND,
-            int ringId = NOT_FOUND,
-            int geometryId = NOT_FOUND);
+    explicit PointId();
+    explicit PointId(int pointId, int ringId = 0, int geometryId = 0);
     ~PointId() = default;
 
-    bool isValid() const { return 0 <= pointId(); }
+    bool isValid() const;
     bool operator==(const PointId& other) const;
 
     void setPointId(int pointId) { m_pointId = pointId; }
@@ -182,7 +181,6 @@ public:
     void cancel();
     bool isGeometryValid() const { return m_geometry.operator bool(); }
     OGRGeometry* geometryClone() const;
-
 
     bool createGeometry(FeatureClassPtr datasource);
     bool editGeometry(LayerPtr layer, GIntBig featureId);

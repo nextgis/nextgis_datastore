@@ -142,7 +142,7 @@ typedef struct _tileItem{
 
 OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json);
 
-bool geometryIntersects(const OGRGeometry& geometry, const Envelope env);
+bool geometryEnvelopeIntersects(const OGRGeometry& geometry, const Envelope env);
 
 
 } // namespace ngs
