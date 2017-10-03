@@ -211,7 +211,8 @@ protected:
 
 private:
     bool restoreFromHistory(int historyId);
-    int addPoint(OGRLineString* line, int id, const OGRPoint& pt);
+    int addPointToLine(OGRLineString* line, int id, const OGRPoint& pt);
+    void deleteInteriorRingInPolygon(OGRPolygon* polygon, int ringId);
     bool clickPoint(const OGRRawPoint& mapCoordinates);
     bool clickMedianPoint(const OGRRawPoint& mapCoordinates);
     bool clickLine(const OGRRawPoint& mapCoordinates);
