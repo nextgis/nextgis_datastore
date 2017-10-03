@@ -514,10 +514,27 @@ void GlEditLayerOverlay::fillMedianPointElements(int numPoints,
 
 void GlEditLayerOverlay::fillLineElements(int numLines,
         GetLineFunc getLineFunc,
-        IsSelectedGeometryFunc isSelectedLineFunc)
+        IsSelectedGeometryFunc isSelectedLineFunc,
+        bool addToBuffer)
 {
-    VectorGlObject* bufferArray = new VectorGlObject();
-    VectorGlObject* selBufferArray = new VectorGlObject();
+    VectorGlObject* bufferArray = nullptr;
+    VectorGlObject* selBufferArray = nullptr;
+    if(addToBuffer) {
+        bufferArray = static_cast<VectorGlObject*>(m_elements[EET_LINE].get());
+        selBufferArray = static_cast<VectorGlObject*>(
+                m_elements[EET_SELECTED_LINE].get());
+    }
+
+    bool insertToLineElements = false;
+    if(!bufferArray) {
+        bufferArray = new VectorGlObject();
+        insertToLineElements = true;
+    }
+    bool insertToSelLineElements = false;
+    if(!selBufferArray) {
+        selBufferArray = new VectorGlObject();
+        insertToSelLineElements = true;
+    }
 
     for(int i = 0; i < numLines; ++i) {
         const OGRLineString* line = getLineFunc(i);
@@ -560,8 +577,12 @@ void GlEditLayerOverlay::fillLineElements(int numLines,
         fillLineBuffers(line, bufferArray);
     }
 
-    m_elements[EET_LINE] = GlObjectPtr(bufferArray);
-    m_elements[EET_SELECTED_LINE] = GlObjectPtr(selBufferArray);
+    if(insertToLineElements) {
+        m_elements[EET_LINE] = GlObjectPtr(bufferArray);
+    }
+    if(insertToSelLineElements) {
+        m_elements[EET_SELECTED_LINE] = GlObjectPtr(selBufferArray);
+    }
 }
 
 void GlEditLayerOverlay::fillLineBuffers(const OGRLineString* line,
@@ -661,19 +682,23 @@ void GlEditLayerOverlay::fillPolygonElements(int numPolygons,
             return ring;
         };
 
-        auto isSelectedLineFunc = [this](int index) -> bool {
-            return (m_selectedPointId.ringId() == index &&
-                    m_selectedPointId.pointId() >= 0);
-        };
-
         if(isSelectedPolygon) {
+            auto isSelectedLineFunc = [this](int index) -> bool {
+                return (m_selectedPointId.ringId() == index &&
+                        m_selectedPointId.pointId() >= 0);
+            };
+
             fillPolygonBuffers(polygon, selBufferArray);
-            fillLineElements(numRings, getLineFunc, isSelectedLineFunc);
+            fillLineElements(numRings, getLineFunc, isSelectedLineFunc, true);
             continue;
         }
 
+        auto isSelectedLineFunc = [this](int /*index*/) -> bool {
+            return false;
+        };
+
         fillPolygonBuffers(polygon, bufferArray);
-        fillLineElements(numRings, getLineFunc, isSelectedLineFunc);
+        fillLineElements(numRings, getLineFunc, isSelectedLineFunc, true);
     }
 
     m_elements[EET_POLYGON] = GlObjectPtr(bufferArray);

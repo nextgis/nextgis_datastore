@@ -103,7 +103,8 @@ private:
             IsSelectedGeometryFunc isSelectedMedianPointFunc);
     void fillLineElements(int numLines,
             GetLineFunc getLineFunc,
-            IsSelectedGeometryFunc isSelectedLineFunc);
+            IsSelectedGeometryFunc isSelectedLineFunc,
+            bool addToBuffer = false);
     void fillLineBuffers(
             const OGRLineString* line, VectorGlObject* bufferArray);
     void fillPolygonElements(int numPolygons,
