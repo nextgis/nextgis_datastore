@@ -199,8 +199,8 @@ int Map::createLayer(const char* name, const ObjectPtr &object)
         return static_cast<int>(m_layers.size() - 1);
     }
 
-    errorMessage(COD_INVALID,
-                 _("Source '%s' is not a valid dataset"), object->path().c_str());
+    errorMessage(COD_INVALID, _("Source '%s' is not a valid dataset"),
+                 object->path().c_str());
 
     return NOT_FOUND;
 }

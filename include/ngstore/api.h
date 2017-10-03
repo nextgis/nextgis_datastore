@@ -73,6 +73,8 @@ typedef struct _ngsURLRequestResult {
     int dataLen;
 } ngsURLRequestResult;
 
+typedef unsigned int ngsGeometryType;
+
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
@@ -228,14 +230,13 @@ typedef struct _ngsField {
 } ngsField;
 
 NGS_EXTERNC ngsField* ngsFeatureClassFields(CatalogObjectH object);
-NGS_EXTERNC unsigned int ngsFeatureClassGeometryType(CatalogObjectH object);
+NGS_EXTERNC ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char** options,
                                                ngsProgressFunc callback,
                                                void* callbackData);
 NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
-NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object,
-                                          unsigned char enable);
+NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object, char enable);
 NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object,
                                              FeatureH feature);
 NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object,
@@ -294,7 +295,7 @@ NGS_EXTERNC int ngsGeometryTransformTo(GeometryH geometry, int EPSG);
 NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
                                      CoordinateTransformationH ct);
 NGS_EXTERNC char ngsGeometryIsEmpty(GeometryH geometry);
-NGS_EXTERNC unsigned int ngsGeometryType(GeometryH geometry);
+NGS_EXTERNC ngsGeometryType ngsGeometryGetType(GeometryH geometry);
 
 NGS_EXTERNC CoordinateTransformationH ngsCoordinateTransformationCreate(
         int fromEPSG, int toEPSG);
@@ -410,8 +411,8 @@ NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
  * Overlay functions
  */
 
-NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId,
-                                     int typeMask, char visible);
+NGS_EXTERNC int ngsOverlaySetVisible(unsigned char mapId, int typeMask,
+                                     char visible);
 NGS_EXTERNC char ngsOverlayGetVisible(unsigned char mapId,
                                       enum ngsMapOverlayType type);
 NGS_EXTERNC int ngsOverlaySetOptions(unsigned char mapId,
@@ -433,7 +434,10 @@ NGS_EXTERNC char ngsEditOverlayCanUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayCanRedo(unsigned char mapId);
 NGS_EXTERNC FeatureH ngsEditOverlaySave(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer);
+NGS_EXTERNC int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId,
+                                                    LayerH layer);
+NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId,
+                                             ngsGeometryType type);
 NGS_EXTERNC int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
                                            long long feateureId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
@@ -446,7 +450,7 @@ NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteHole(
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(
         unsigned char mapId);
-NGS_EXTERNC GeometryH ngsEditOverlayGeometry(unsigned char mapId);
+NGS_EXTERNC GeometryH ngsEditOverlayGetGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlaySetStyle(unsigned char mapId,
                                        enum ngsEditStyleType type,
                                        JsonObjectH style);

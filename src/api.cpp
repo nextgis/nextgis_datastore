@@ -1279,7 +1279,7 @@ ngsField* ngsFeatureClassFields(CatalogObjectH object)
  *  wkbPoint = 1,  wkbLineString = 2,  wkbPolygon = 3,  wkbMultiPoint = 4,
  *  wkbMultiLineString = 5, wkbMultiPolygon = 6, wkbGeometryCollection = 7
  */
-unsigned int ngsFeatureClassGeometryType(CatalogObjectH object)
+ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object)
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(!featureClass) {
@@ -1312,7 +1312,7 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
 }
 
 
-void ngsFeatureClassBatchMode(CatalogObjectH object, unsigned char enable)
+void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
 {
     Object* catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
@@ -1748,7 +1748,7 @@ char ngsGeometryIsEmpty(GeometryH geometry)
     return static_cast<OGRGeometry*>(geometry)->IsEmpty() ? 1 : 0;
 }
 
-unsigned int ngsGeometryType(GeometryH geometry)
+ngsGeometryType ngsGeometryGetType(GeometryH geometry)
 {
     return static_cast<OGRGeometry*>(geometry)->getGeometryType();
 }
@@ -2467,7 +2467,7 @@ int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-const char*ngsMapGetSelectionStyleName(unsigned char mapId, ngsStyleType styleType)
+const char* ngsMapGetSelectionStyleName(unsigned char mapId, ngsStyleType styleType)
 {
     MapStore* const mapStore = MapStore::getInstance();
     if(nullptr == mapStore) {
@@ -2777,9 +2777,8 @@ int ngsOverlaySetVisible(unsigned char mapId, int typeMask, char visible)
         return errorMessage(
                 COD_DELETE_FAILED, _("MapStore is not initialized"));
     }
-    return mapStore->setOverlayVisible(mapId, typeMask, visible)
-            ? COD_SUCCESS
-            : COD_SET_FAILED;
+    return mapStore->setOverlayVisible(mapId, typeMask, visible) ? COD_SUCCESS :
+                                                                   COD_SET_FAILED;
 }
 
 char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
@@ -2801,8 +2800,8 @@ char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
  *   CROSS - ON/OFF, show or hide a cross in the map center
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsOverlaySetOptions(
-        unsigned char mapId, enum ngsMapOverlayType type, char** options)
+int ngsOverlaySetOptions(unsigned char mapId, enum ngsMapOverlayType type,
+                         char** options)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
@@ -2826,8 +2825,8 @@ char** ngsOverlayGetOptions(unsigned char mapId, enum ngsMapOverlayType type)
     return option.getOptions().release();
 }
 
-ngsPointId ngsEditOverlayTouch(
-        unsigned char mapId, double x, double y, enum ngsMapTouchType type)
+ngsPointId ngsEditOverlayTouch(unsigned char mapId, double x, double y,
+                               enum ngsMapTouchType type)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -2904,7 +2903,7 @@ int ngsEditOverlayCancel(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
+int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer)
 {
     if(!layer) {
         return errorMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
@@ -2921,8 +2920,20 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, LayerH layer)
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
     if(!editOverlay->createGeometry(datasource)) {
-        return errorMessage(
-                COD_CREATE_FAILED, _("Geometry creation is failed"));
+        return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+
+int ngsEditOverlayCreateGeometry(unsigned char mapId, ngsGeometryType type)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
+    }
+    if(!editOverlay->createGeometry(OGRwkbGeometryType(type))) {
+        return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
     }
     return COD_SUCCESS;
 }
@@ -3045,7 +3056,7 @@ enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
     return editOverlay->deleteGeometryPart();
 }
 
-GeometryH ngsEditOverlayGeometry(unsigned char mapId)
+GeometryH ngsEditOverlayGetGeometry(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {

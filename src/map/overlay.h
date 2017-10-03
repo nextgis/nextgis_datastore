@@ -182,6 +182,7 @@ public:
     bool isGeometryValid() const { return m_geometry.operator bool(); }
     OGRGeometry* geometryClone() const;
 
+    bool createGeometry(OGRwkbGeometryType type);
     bool createGeometry(FeatureClassPtr datasource);
     bool editGeometry(LayerPtr layer, GIntBig featureId);
     bool deleteGeometry();

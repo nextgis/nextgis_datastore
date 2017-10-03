@@ -260,16 +260,20 @@ OGRGeometry* EditLayerOverlay::geometryClone() const
 bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
 {
     m_featureClass = datasource;
+    return createGeometry(m_featureClass->geometryType());
+}
+
+bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type)
+{
     m_editLayer.reset();
     m_editFeatureId = NOT_FOUND;
 
-    OGRwkbGeometryType geometryType = m_featureClass->geometryType();
     OGRRawPoint geometryCenter = m_map->getCenter();
     OGRRawPoint mapDist = m_map->getMapDistance(GEOMETRY_SIZE_PX,
                                                 GEOMETRY_SIZE_PX);
 
     GeometryUPtr geometry = GeometryUPtr();
-    switch(OGR_GT_Flatten(geometryType)) {
+    switch(OGR_GT_Flatten(type)) {
         case wkbPoint: {
             geometry = GeometryUPtr(new OGRPoint(geometryCenter.x,
                                                  geometryCenter.y));
