@@ -65,6 +65,8 @@ public:
 
     virtual bool addPoint() override;
     virtual enum ngsEditDeleteType deletePoint() override;
+    virtual bool addHole() override;
+    virtual enum ngsEditDeleteType deleteHole() override;
     virtual bool addGeometryPart() override;
     virtual enum ngsEditDeleteType deleteGeometryPart() override;
 

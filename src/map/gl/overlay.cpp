@@ -183,6 +183,22 @@ enum ngsEditDeleteType GlEditLayerOverlay::deletePoint()
     return ret;
 }
 
+bool GlEditLayerOverlay::addHole()
+{
+    bool ret = EditLayerOverlay::addHole();
+    if(ret) {
+        fill();
+    }
+    return ret;
+}
+
+enum ngsEditDeleteType GlEditLayerOverlay::deleteHole()
+{
+    enum ngsEditDeleteType ret = EditLayerOverlay::deleteHole();
+    fill();
+    return ret;
+}
+
 bool GlEditLayerOverlay::addGeometryPart()
 {
     bool ret = EditLayerOverlay::addGeometryPart();
@@ -474,6 +490,10 @@ void GlEditLayerOverlay::fillLineElements(int numLines,
 
     for(int i = 0; i < numLines; ++i) {
         const OGRLineString* line = getLineFunc(i);
+        if(!line) {
+            continue;
+        }
+
         int numPoints = line->getNumPoints();
         bool isSelectedLine = isSelectedLineFunc(i);
 
@@ -728,7 +748,6 @@ void GlEditLayerOverlay::freeResources()
     EditLayerOverlay::freeResources();
     freeGlBuffers();
     //freeGlStyles(); // TODO: only on close map
-    //m_elements.clear();
 }
 
 void GlEditLayerOverlay::freeGlStyle(StylePtr style)

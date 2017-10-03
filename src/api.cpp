@@ -2996,6 +2996,28 @@ enum ngsEditDeleteType ngsEditOverlayDeletePoint(unsigned char mapId)
     return editOverlay->deletePoint();
 }
 
+int ngsEditOverlayAddHole(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+    }
+    if(!editOverlay->addHole()) {
+        return errorMessage(COD_INSERT_FAILED, _("Point adding is failed"));
+    }
+    return COD_SUCCESS;
+}
+
+enum ngsEditDeleteType ngsEditOverlayDeleteHole(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return EDT_NON_LAST;
+    }
+    return editOverlay->deleteHole();
+}
+
 int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);

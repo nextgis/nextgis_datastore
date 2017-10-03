@@ -440,6 +440,9 @@ NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddPoint(unsigned char mapId);
 NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeletePoint(
         unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayAddHole(unsigned char mapId);
+NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteHole(
+        unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(
         unsigned char mapId);

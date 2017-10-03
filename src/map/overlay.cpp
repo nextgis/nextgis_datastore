@@ -420,13 +420,23 @@ bool EditLayerOverlay::addPoint()
             line = ngsDynamicCast(OGRLineString, m_geometry);
             break;
         }
+        case wkbPolygon: {
+            OGRPolygon* polygon =
+                    ngsDynamicCast(OGRPolygon, m_geometry);
+            if(!polygon)
+                break;
+            OGRLinearRing* ring = (0 == m_selectedPointId.ringId())
+                    ? polygon->getExteriorRing()
+                    : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
+            line = dynamic_cast<OGRLineString*>(ring);
+            break;
+        }
         case wkbMultiLineString: {
             OGRMultiLineString* ml = ngsDynamicCast(OGRMultiLineString,
                                                     m_geometry);
             if(!ml) {
                 break;
             }
-
             line = dynamic_cast<OGRLineString*>(
                     ml->getGeometryRef(m_selectedPointId.geometryId()));
             break;
@@ -479,10 +489,21 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
 
     OGRLineString* line = nullptr;
     OGRMultiLineString* multiLine = nullptr;
+    OGRPolygon* polygon = nullptr;
     OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
     switch(type) { // Only geometry with line or ring
         case wkbLineString: {
             line = ngsDynamicCast(OGRLineString, m_geometry);
+            break;
+        }
+        case wkbPolygon: {
+            polygon = ngsDynamicCast(OGRPolygon, m_geometry);
+            if(!polygon)
+                break;
+            OGRLinearRing* ring = (0 == m_selectedPointId.ringId())
+                    ? polygon->getExteriorRing()
+                    : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
+            line = dynamic_cast<OGRLineString*>(ring);
             break;
         }
         case wkbMultiLineString: {
@@ -502,17 +523,26 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
         return ret;
     }
 
-    int minNumPoint = line->get_IsClosed() ? 4 : 2;
-    if(line->getNumPoints() > minNumPoint) { // Delete only point.
+    bool closedLine = line->get_IsClosed();
+    int numPoints = line->getNumPoints();
+    int minNumPoint = closedLine ? 4 : 2;
+    if(numPoints > minNumPoint) { // Delete only point.
         OGRLineString* newLine = new OGRLineString();
 
-        bool isStartPoint = (0 == m_selectedPointId.pointId());
+        int delPtId = m_selectedPointId.pointId();
+        bool isStartPoint = (0 == delPtId);
         if(!isStartPoint) {
-            newLine->addSubLineString(line, 0, m_selectedPointId.pointId() - 1);
+            newLine->addSubLineString(line, 0, delPtId - 1);
         }
-        newLine->addSubLineString(line, m_selectedPointId.pointId() + 1);
+        int endPtId = (closedLine && isStartPoint) ? (numPoints - 2)
+                                                   : (numPoints - 1);
+        newLine->addSubLineString(line, delPtId + 1, endPtId);
+
         line->empty();
         line->addSubLineString(newLine);
+        if(closedLine) {
+            line->closeRings();
+        }
 
         if(!isStartPoint) {
             m_selectedPointId.setPointId(m_selectedPointId.pointId() - 1);
@@ -527,6 +557,59 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
         switch(type) {
             case wkbLineString: { // Delete entire geometry.
                 deleteEntireGeometry = true;
+                break;
+            }
+            case wkbPolygon: {
+                if(!polygon) {
+                    break;
+                }
+
+                if(0 == m_selectedPointId.ringId()) { // Delete entire geometry.
+                    deleteEntireGeometry = true;
+                } else { // Delete only interior ring.
+                    OGRPolygon* newPoly = new OGRPolygon();
+                    OGRLinearRing* ring = static_cast<OGRLinearRing*>(
+                            polygon->getExteriorRing()->clone());
+                    newPoly->addRingDirectly(ring);
+                    int delRingId = m_selectedPointId.ringId() - 1;
+                    int numIntRings = polygon->getNumInteriorRings();
+                    for(int i = 0; i < numIntRings; ++i) {
+                        if(delRingId == i) {
+                            continue;
+                        }
+                        ring = static_cast<OGRLinearRing*>(
+                                polygon->getInteriorRing(i)->clone());
+                        newPoly->addRingDirectly(ring);
+                    }
+
+                    polygon->empty();
+                    ring = static_cast<OGRLinearRing*>(
+                            newPoly->getExteriorRing()->clone());
+                    polygon->addRingDirectly(ring);
+                    numIntRings = newPoly->getNumInteriorRings();
+                    for(int i = 0; i < numIntRings; ++i) {
+                        ring = static_cast<OGRLinearRing*>(
+                                newPoly->getInteriorRing(i)->clone());
+                        polygon->addRingDirectly(ring);
+                    }
+
+                    int pointId = 0;
+                    int ringId = 0;
+                    numIntRings = polygon->getNumInteriorRings();
+                    if(numIntRings > 0) {
+                        ringId = numIntRings - 1;
+                        ring = polygon->getInteriorRing(ringId);
+                        ++ringId; // +1 for exterior ring
+                    } else {
+                        ring = polygon->getExteriorRing();
+                    }
+
+                    m_selectedPointId.setPointId(pointId);
+                    m_selectedPointId.setRingId(ringId);
+                    ring->getPoint(pointId, &m_selectedPointCoordinates);
+
+                    ret = EDT_HOLE;
+                }
                 break;
             }
             case wkbMultiLineString: {
@@ -566,6 +649,141 @@ enum ngsEditDeleteType EditLayerOverlay::deletePoint()
     }
 
     saveToHistory();
+    return ret;
+}
+
+bool EditLayerOverlay::addHole()
+{
+    if(!m_geometry) {
+        return false;
+    }
+
+    OGRPolygon* polygon = nullptr; // Only geometry of type polygon
+    switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
+        case wkbPolygon: {
+            polygon = ngsDynamicCast(OGRPolygon, m_geometry);
+            break;
+        }
+        case wkbMultiPolygon: {
+            OGRMultiPolygon* mpoly =
+                    ngsDynamicCast(OGRMultiPolygon, m_geometry);
+            if(!mpoly) {
+                break;
+            }
+
+            polygon = dynamic_cast<OGRPolygon*>(
+                    mpoly->getGeometryRef(m_selectedPointId.geometryId()));
+            break;
+        }
+        default:
+            break;
+    }
+    if(!polygon) {
+        return false;
+    }
+
+    OGRRawPoint geometryCenter = m_map->getCenter();
+    OGRRawPoint mapDist =
+            m_map->getMapDistance(GEOMETRY_SIZE_PX, GEOMETRY_SIZE_PX);
+    double x1 = geometryCenter.x - mapDist.x;
+    double y1 = geometryCenter.y - mapDist.y;
+    double x2 = geometryCenter.x + mapDist.x;
+    double y2 = geometryCenter.y + mapDist.y;
+
+    OGRLinearRing* ring = new OGRLinearRing();
+    ring->addPoint(x1, y1);
+    ring->addPoint(x2, y2);
+    ring->addPoint(x1, y2);
+    ring->closeRings();
+
+    polygon->addRingDirectly(ring);
+    saveToHistory();
+
+    // Preserve m_selectedPointId.geometryId
+    m_selectedPointId.setPointId(0);
+    // +1 for exterior ring
+    m_selectedPointId.setRingId(polygon->getNumInteriorRings());
+
+    m_selectedPointCoordinates = OGRPoint(x1, y1);
+    return true;
+}
+
+enum ngsEditDeleteType EditLayerOverlay::deleteHole()
+{
+    enum ngsEditDeleteType ret = EDT_NON_LAST;
+
+    if(!m_geometry || m_selectedPointId.ringId() == 0) {
+        return ret;
+    }
+
+    OGRPolygon* polygon = nullptr;
+    OGRwkbGeometryType type = OGR_GT_Flatten(m_geometry->getGeometryType());
+    switch(type) { // Only geometry of type polygon
+        case wkbPolygon: {
+            polygon = ngsDynamicCast(OGRPolygon, m_geometry);
+            break;
+        }
+        case wkbMultiPolygon: {
+            OGRMultiPolygon* mpoly =
+                    ngsDynamicCast(OGRMultiPolygon, m_geometry);
+            if(!mpoly) {
+                break;
+            }
+
+            polygon = dynamic_cast<OGRPolygon*>(
+                    mpoly->getGeometryRef(m_selectedPointId.geometryId()));
+            break;
+        }
+        default:
+            break;
+    }
+    if(!polygon) {
+        return ret;
+    }
+
+    int numIntRings = polygon->getNumInteriorRings();
+    if(0 == numIntRings) {
+        return ret;
+    }
+
+    OGRPolygon* newPoly = new OGRPolygon();
+    OGRLinearRing* ring =
+            static_cast<OGRLinearRing*>(polygon->getExteriorRing()->clone());
+    newPoly->addRingDirectly(ring);
+    int delRingId = m_selectedPointId.ringId() - 1;
+    for(int i = 0; i < numIntRings; ++i) {
+        if(delRingId == i) {
+            continue;
+        }
+        ring = static_cast<OGRLinearRing*>(polygon->getInteriorRing(i)->clone());
+        newPoly->addRingDirectly(ring);
+    }
+
+    polygon->empty();
+    ring = static_cast<OGRLinearRing*>(newPoly->getExteriorRing()->clone());
+    polygon->addRingDirectly(ring);
+    numIntRings = newPoly->getNumInteriorRings();
+    for(int i = 0; i < numIntRings; ++i) {
+        ring = static_cast<OGRLinearRing*>(newPoly->getInteriorRing(i)->clone());
+        polygon->addRingDirectly(ring);
+    }
+
+    int pointId = 0;
+    int ringId = 0;
+    numIntRings = polygon->getNumInteriorRings();
+    if(numIntRings > 0) {
+        ringId = numIntRings - 1;
+        ring = polygon->getInteriorRing(ringId);
+        ++ringId; // +1 for exterior ring
+    } else {
+        ring = polygon->getExteriorRing();
+        ret = EDT_HOLE;
+    }
+
+    m_selectedPointId.setPointId(pointId);
+    m_selectedPointId.setRingId(ringId);
+    ring->getPoint(pointId, &m_selectedPointCoordinates);
+
     return ret;
 }
 
@@ -916,7 +1134,8 @@ bool EditLayerOverlay::clickLine(const OGRRawPoint& mapCoordinates)
         id = PointId::getGeometryPointId(*m_geometry, mapEnv);
 
         if(id.intersects()) {
-            if(id.geometryId() != m_selectedPointId.geometryId()) {
+            if(id.ringId() != m_selectedPointId.ringId() ||
+                    id.geometryId() != m_selectedPointId.geometryId()) {
                 id.setPointId(0);
                 OGRPoint coordinates =
                         PointId::getGeometryPointCoordinates(*m_geometry, id);
@@ -1087,7 +1306,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
         const PointId* selectedPointId,
         OGRPoint* coordinates)
 {
-    if(line.IsEmpty() && !geometryEnvelopeIntersects(line, env)) {
+    if(line.IsEmpty() || !geometryEnvelopeIntersects(line, env)) {
         return PointId();
     }
     int startId = 0;
