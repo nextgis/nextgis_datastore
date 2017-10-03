@@ -99,6 +99,15 @@ bool GlEditLayerOverlay::setStyleName(enum ngsEditStyleType type,
         }
     }
 
+    if(EST_FILL == type) {
+        EditFillStyle* fillStyle = dynamic_cast<EditFillStyle*>(style);
+        if(fillStyle) {
+            freeGlStyle(m_fillStyle);
+            m_fillStyle = EditFillStylePtr(fillStyle);
+            return true;
+        }
+    }
+
     if(EST_CROSS == type) {
         PointStyle* crossStyle = dynamic_cast<PointStyle*>(style);
         if(crossStyle) {
@@ -112,14 +121,17 @@ bool GlEditLayerOverlay::setStyleName(enum ngsEditStyleType type,
     return false;
 }
 
-bool GlEditLayerOverlay::setStyle(
-        enum ngsEditStyleType type, const CPLJSONObject& jsonStyle)
+bool GlEditLayerOverlay::setStyle(enum ngsEditStyleType type,
+                                  const CPLJSONObject& jsonStyle)
 {
     if(EST_POINT == type) {
         return m_pointStyle->load(jsonStyle);
     }
     if(EST_LINE == type) {
         return m_lineStyle->load(jsonStyle);
+    }
+    if(EST_FILL == type) {
+        return m_fillStyle->load(jsonStyle);
     }
     if(EST_CROSS == type) {
         return m_crossStyle->load(jsonStyle);
@@ -134,6 +146,9 @@ CPLJSONObject GlEditLayerOverlay::style(enum ngsEditStyleType type) const
     }
     if(EST_LINE == type) {
         return m_lineStyle->save();
+    }
+    if(EST_FILL == type) {
+        return m_fillStyle->save();
     }
     if(EST_CROSS == type) {
         return m_crossStyle->save();

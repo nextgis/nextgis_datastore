@@ -254,6 +254,7 @@ enum ngsEditElementType {
 enum ngsEditStyleType {
     EST_POINT,
     EST_LINE,
+    EST_FILL,
     EST_CROSS
 };
 
