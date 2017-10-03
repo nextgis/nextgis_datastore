@@ -405,6 +405,22 @@ void GlEditLayerOverlay::fillPolygons()
         }
 
         case wkbMultiPolygon: {
+            const OGRMultiPolygon* mpoly =
+                    static_cast<const OGRMultiPolygon*>(m_geometry.get());
+
+            auto getPolygonFunc = [mpoly](int index) -> const OGRPolygon* {
+                return static_cast<const OGRPolygon*>(
+                        mpoly->getGeometryRef(index));
+            };
+
+            auto isSelectedPolygonFunc = [this](int index) -> bool {
+                return (m_selectedPointId.geometryId() == index &&
+                        m_selectedPointId.ringId() >= 0 &&
+                        m_selectedPointId.pointId() >= 0);
+            };
+
+            fillPolygonElements(mpoly->getNumGeometries(), getPolygonFunc,
+                    isSelectedPolygonFunc);
             break;
         }
     }
