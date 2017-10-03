@@ -249,10 +249,8 @@ bool Raster::destroy()
         }
     }
 
-    errorMessage(COD_DELETE_FAILED, _("The data type %d cannot be deleted. Path: %s"),
+    return errorMessage(_("The data type %d cannot be deleted. Path: %s"),
                  m_type, m_path.c_str());
-
-    return false;
 }
 
 bool Raster::canDestroy() const

@@ -154,7 +154,7 @@ bool Table::insertFeature(const FeaturePtr &feature)
         return true;
     }
 
-    return errorMessage(COD_INSERT_FAILED, CPLGetLastErrorMsg());
+    return errorMessage(CPLGetLastErrorMsg());
 }
 
 bool Table::updateFeature(const FeaturePtr &feature)
@@ -169,7 +169,7 @@ bool Table::updateFeature(const FeaturePtr &feature)
         return true;
     }
 
-    return errorMessage(COD_UPDATE_FAILED, CPLGetLastErrorMsg());
+    return errorMessage(CPLGetLastErrorMsg());
 }
 
 bool Table::deleteFeature(GIntBig id)
@@ -185,7 +185,7 @@ bool Table::deleteFeature(GIntBig id)
         return true;
     }
 
-    return errorMessage(COD_DELETE_FAILED, CPLGetLastErrorMsg());
+    return errorMessage(CPLGetLastErrorMsg());
 }
 
 bool Table::deleteFeatures()

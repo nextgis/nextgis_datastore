@@ -108,7 +108,7 @@ bool Folder::copyDir(const char* from, const char* to, const Progress& progress)
     }
 
     if(EQUALN(to, from, CPLStrnlen(from, 1024))) {
-        return errorMessage(COD_COPY_FAILED, _("Cannot copy folder inside itself"));
+        return errorMessage(_("Cannot copy folder inside itself"));
     }
 
     if(!Folder::isExists(to)) {

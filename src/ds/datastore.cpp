@@ -123,13 +123,12 @@ bool DataStore::create(const char* path)
 {
     CPLErrorReset();
     if(nullptr == path || EQUAL(path, "")) {
-        return errorMessage(COD_CREATE_FAILED, _("The path is empty"));
+        return errorMessage(_("The path is empty"));
     }
 
     GDALDriver* poDriver = Filter::getGDALDriver(CAT_CONTAINER_NGS);
     if(poDriver == nullptr) {
-        return errorMessage(COD_CREATE_FAILED,
-                            _("GeoPackage driver is not present"));
+        return errorMessage(_("GeoPackage driver is not present"));
     }
 
     GDALDataset* DS = poDriver->Create(path, 0, 0, 0, GDT_Unknown, nullptr);
@@ -163,7 +162,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     int version = atoi(property(NGS_VERSION_KEY, "0"));
 
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
-        return errorMessage(COD_OPEN_FAILED, _("Upgrade storage failed"));
+        return errorMessage(_("Upgrade storage failed"));
     }
 
     return true;
@@ -327,8 +326,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     for(int i = 0; i < fieldCount; ++i) {
         CPLString fieldName = options.stringOption(CPLSPrintf("FIELD_%d_NAME", i), "");
         if(fieldName.empty()) {
-            return errorMessage(COD_CREATE_FAILED,
-                                _("Name for field %d is not defined"), i);
+            return errorMessage(_("Name for field %d is not defined"), i);
         }
 
         CPLString fieldAlias = options.stringOption(CPLSPrintf("FIELD_%d_ALIAS", i), "");
@@ -353,7 +351,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.stringOption("GEOMETRY_TYPE", ""));
         if(wkbUnknown == geomType) {
-            return errorMessage(COD_CREATE_FAILED, _("Unsupported geometry type"));
+            return errorMessage(_("Unsupported geometry type"));
         }
 
         object = ObjectPtr(createFeatureClass(newName, CAT_FC_GPKG,

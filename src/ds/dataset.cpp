@@ -142,7 +142,7 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
                        const Options &options)
 {
     if(nullptr == path || EQUAL(path, "")) {
-        return errorMessage(COD_OPEN_FAILED, _("The path is empty"));
+        return errorMessage(_("The path is empty"));
     }
 
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings

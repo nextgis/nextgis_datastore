@@ -139,14 +139,12 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
     {
         CPLString url = options.stringOption(KEY_URL);
         if(url.empty()) {
-            return errorMessage(COD_CREATE_FAILED,
-                                _("Missign required option 'url'"));
+            return errorMessage(_("Missign required option 'url'"));
         }
 
         int epsg = options.intOption(KEY_EPSG, -1);
         if(epsg < 0) {
-            return errorMessage(COD_CREATE_FAILED,
-                                _("Missign required option 'epsg'"));
+            return errorMessage(_("Missign required option 'epsg'"));
         }
         int z_min = options.intOption(KEY_Z_MIN, 0);
         int z_max = options.intOption(KEY_Z_MAX, 18);
@@ -189,8 +187,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         return connectionFile.Save(newPath);
     }
     default:
-        return errorMessage(COD_CREATE_FAILED,
-                            _("Unsupported connection type %d"), type);
+        return errorMessage(_("Unsupported connection type %d"), type);
     }
 }
 

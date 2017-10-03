@@ -61,8 +61,7 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
     progress.onProgress(COD_IN_PROCESS, 0.0, _("Start copying %s to %s"),
                         src, dst);
     if(EQUAL(src, dst)) {
-        progress.onProgress(COD_FINISHED, 1.0, _("Copied %s to %s"),
-                            src, dst);
+        progress.onProgress(COD_FINISHED, 1.0, _("Copied %s to %s"), src, dst);
         return true;
     }
 
@@ -87,8 +86,7 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
     if(fpOld == nullptr) {
         progress.onProgress(COD_COPY_FAILED, 0.0, _("Open input file %s failed"),
                             src);
-        return errorMessage(COD_COPY_FAILED, _("Open input file %s failed"),
-                            src);
+        return errorMessage(_("Open input file %s failed"), src);
     }
 
     fpNew = VSIFOpenL(dst, "wb");
@@ -96,8 +94,7 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
         VSIFCloseL(fpOld);
         progress.onProgress(COD_COPY_FAILED, 0.0, _("Open output file %s failed"),
                             dst);
-        return errorMessage(COD_COPY_FAILED, _("Open output file %s failed"),
-                            dst);
+        return errorMessage(_("Open output file %s failed"), dst);
     }
 
     // Prepare buffer
@@ -124,8 +121,7 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 
     } while(ret == 0 && bytesRead == BUFFER_SIZE);
 
-    progress.onProgress(COD_FINISHED, 1.0,  _("Copied %s to %s"),
-                        src, dst);
+    progress.onProgress(COD_FINISHED, 1.0,  _("Copied %s to %s"), src, dst);
 
     // Cleanup
 
@@ -175,8 +171,7 @@ bool File::renameFile(const char* src, const char* dst, const Progress& progress
     if(VSIRename(src, dst) != 0) {
         progress.onProgress(COD_RENAME_FAILED, 0.0, _("Rename %s to %s failed"),
                             src, dst);
-        return errorMessage(COD_RENAME_FAILED, _("Rename %s to %s failed"),
-                            src, dst);
+        return errorMessage(_("Rename %s to %s failed"), src, dst);
     }
     progress.onProgress(COD_FINISHED, 0.0, _("Rename %s to %s succeeded"),
                         src, dst);
