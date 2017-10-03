@@ -39,7 +39,7 @@ MapTransform::MapTransform(int width, int height) :
     m_YAxisInverted(false),
     m_XAxisLooped(true),
     m_extraZoom(0),
-    m_scaleMax(16.0), //std::numeric_limits<double>::max()),
+    m_scaleMax(14.0), //std::numeric_limits<double>::max()),
     m_scaleMin(std::numeric_limits<double>::min()),
     m_extentLimit(DEFAULT_BOUNDS_Y2X4),
     m_reduceFactor(1.0)
@@ -166,6 +166,15 @@ bool MapTransform::setScaleAndCenter(double scale, double x, double y)
 
 bool MapTransform::setExtent(const Envelope &env)
 {
+    double w = env.width();
+    double h = env.height();
+    double scaleX = std::fabs(double(m_displayWidht) / w);
+    double scaleY = std::fabs(double(m_displayHeight) / h);
+    m_scale = fixScale(std::min(scaleX, scaleY));
+    auto center = env.center();
+    m_center = fixCenter(center.x, center.y);
+    return updateExtent();
+/*
     m_extent = env;
     m_extent.setRatio(m_ratio);
 
@@ -175,7 +184,7 @@ bool MapTransform::setExtent(const Envelope &env)
     double h = m_extent.height();
     double scaleX = std::fabs(double(m_displayWidht) / w);
     double scaleY = std::fabs(double(m_displayHeight) / h);
-    m_scale = std::min(scaleX, scaleY);
+    m_scale = fixScale(std::min(scaleX, scaleY));
 
 //    scaleX = 1.0 / w;
 //    scaleY = 1.0 / h;
@@ -196,6 +205,7 @@ bool MapTransform::setExtent(const Envelope &env)
     }
 
     return true; // return false if extent modified to fit limits
+    */
 }
 
 bool MapTransform::updateExtent()

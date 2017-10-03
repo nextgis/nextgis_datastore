@@ -1535,7 +1535,7 @@ GeometryH ngsFeatureGetGeometry(FeatureH feature)
         errorMessage(COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
-    return (*featurePtrPointer)->GetGeometryRef();
+    return (*featurePtrPointer)->GetGeometryRef()->clone();
 }
 
 int ngsFeatureGetFieldAsInteger(FeatureH feature, int field)
@@ -1591,8 +1591,7 @@ void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry)
 
     // TODO: Reproject if differs srs
 
-    (*featurePtrPointer)->SetGeometryDirectly(static_cast<OGRGeometry*>(
-                                                   geometry));
+    (*featurePtrPointer)->SetGeometry(static_cast<OGRGeometry*>(geometry));
 }
 
 void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value)
@@ -1747,6 +1746,11 @@ int ngsGeometryTransform(GeometryH geometry, CoordinateTransformationH ct)
 char ngsGeometryIsEmpty(GeometryH geometry)
 {
     return static_cast<OGRGeometry*>(geometry)->IsEmpty() ? 1 : 0;
+}
+
+unsigned int ngsGeometryType(GeometryH geometry)
+{
+    return static_cast<OGRGeometry*>(geometry)->getGeometryType();
 }
 
 CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG, int toEPSG)

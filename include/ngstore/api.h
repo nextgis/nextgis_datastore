@@ -294,6 +294,7 @@ NGS_EXTERNC int ngsGeometryTransformTo(GeometryH geometry, int EPSG);
 NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
                                      CoordinateTransformationH ct);
 NGS_EXTERNC char ngsGeometryIsEmpty(GeometryH geometry);
+NGS_EXTERNC unsigned int ngsGeometryType(GeometryH geometry);
 
 NGS_EXTERNC CoordinateTransformationH ngsCoordinateTransformationCreate(
         int fromEPSG, int toEPSG);
