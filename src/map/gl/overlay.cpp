@@ -182,9 +182,9 @@ bool GlEditLayerOverlay::redo()
     return ret;
 }
 
-bool GlEditLayerOverlay::addPoint()
+bool GlEditLayerOverlay::addPoint(OGRPoint* coordinates)
 {
-    bool ret = EditLayerOverlay::addPoint();
+    bool ret = EditLayerOverlay::addPoint(coordinates);
     if(ret) {
         fill();
     }
@@ -730,7 +730,7 @@ void GlEditLayerOverlay::fillPolygonBuffers(
         }
 
         std::vector<MBPoint> mbRing;
-        for(int j = 0; j < ring->getNumPoints(); ++j) {
+        for(int j = 0, numPt = ring->getNumPoints(); j < numPt; ++j) {
             ring->getPoint(j, &pt);
             mbRing.emplace_back(MBPoint({pt.getX(), pt.getY()}));
         }
