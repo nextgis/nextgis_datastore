@@ -2904,7 +2904,7 @@ int ngsEditOverlayCancel(unsigned char mapId)
 }
 
 int ngsEditOverlayCreateGeometryInLayer(
-        unsigned char mapId, LayerH layer, char empty)
+        unsigned char mapId, LayerH layer, char walkMode)
 {
     if(!layer) {
         return errorMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
@@ -2920,7 +2920,7 @@ int ngsEditOverlayCreateGeometryInLayer(
     if(nullptr == editOverlay) {
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->createGeometry(datasource, empty)) {
+    if(!editOverlay->createGeometry(datasource, walkMode)) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
     }
     return COD_SUCCESS;

@@ -527,6 +527,7 @@ protected:
 protected:
     unsigned short m_pointIndex;
     unsigned short m_selectedPointIndex;
+    unsigned short m_walkPointIndex;
     unsigned short m_medianPointIndex;
     unsigned short m_selectedMedianPointIndex;
 };

@@ -179,11 +179,12 @@ public:
     void clearHistory();
     FeaturePtr save();
     void cancel();
+
     bool isGeometryValid() const { return m_geometry.operator bool(); }
     OGRGeometry* geometryClone() const;
 
-    bool createGeometry(OGRwkbGeometryType type, bool empty = false);
-    bool createGeometry(FeatureClassPtr datasource, bool empty = false);
+    bool createGeometry(FeatureClassPtr datasource, bool walkMode = false);
+    bool createGeometry(OGRwkbGeometryType type, bool walkMode = false);
     bool editGeometry(LayerPtr layer, GIntBig featureId);
     bool deleteGeometry();
     virtual bool addPoint(OGRPoint* coordinates = nullptr);
@@ -234,6 +235,7 @@ protected:
     bool m_isTouchMoved;
     bool m_isTouchingSelectedPoint;
 
+    bool m_walkMode;
     bool m_crossVisible;
 };
 

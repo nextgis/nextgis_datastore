@@ -1522,6 +1522,7 @@ constexpr ngsRGBA lineColor = {0, 128, 128, 255};
 constexpr ngsRGBA selectedLineColor = {64, 192, 0, 255};
 constexpr ngsRGBA medianPointColor = {224, 64, 255, 255};
 constexpr ngsRGBA selectedMedianPointColor = {255, 128, 64, 255};
+constexpr ngsRGBA walkPointColor = {128, 0, 255, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 
@@ -1532,6 +1533,8 @@ void SimpleEditPointStyle::setEditElementType(enum ngsEditElementType type)
             return setColor(pointColor);
         case EET_SELECTED_POINT:
             return setColor(selectedPointColor);
+        case EET_WALK_POINT:
+            return setColor(walkPointColor);
         case EET_MEDIAN_POINT:
             return setColor(medianPointColor);
         case EET_SELECTED_MEDIAN_POINT:
@@ -1546,6 +1549,7 @@ MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas) :
     MarkerStyle(textureAtlas),
     m_pointIndex(0),
     m_selectedPointIndex(0),
+    m_walkPointIndex(0),
     m_medianPointIndex(0),
     m_selectedMedianPointIndex(0)
 {
@@ -1559,6 +1563,8 @@ void MarkerEditPointStyle::setEditElementType(enum ngsEditElementType type)
             return setIndex(m_pointIndex);
         case EET_SELECTED_POINT:
             return setIndex(m_selectedPointIndex);
+        case EET_WALK_POINT:
+            return setIndex(m_walkPointIndex);
         case EET_MEDIAN_POINT:
             return setIndex(m_medianPointIndex);
         case EET_SELECTED_MEDIAN_POINT:
@@ -1590,6 +1596,8 @@ bool MarkerEditPointStyle::load(const CPLJSONObject& store)
     m_pointIndex = static_cast<unsigned short>(store.GetInteger("point_index", 0));
     m_selectedPointIndex = static_cast<unsigned short>(
             store.GetInteger("selected_point_index", 0));
+    m_walkPointIndex = static_cast<unsigned short>(
+            store.GetInteger("walk_point_index", 0));
     m_medianPointIndex = static_cast<unsigned short>(
             store.GetInteger("median_point_index", 0));
     m_selectedMedianPointIndex = static_cast<unsigned short>(
@@ -1604,6 +1612,7 @@ CPLJSONObject MarkerEditPointStyle::save() const
     CPLJSONObject out = MarkerStyle::save();
     out.Add("point_index", m_pointIndex);
     out.Add("selected_point_index", m_selectedPointIndex);
+    out.Add("walk_point_index", m_walkPointIndex);
     out.Add("median_point_index", m_medianPointIndex);
     out.Add("selected_median_point_index", m_selectedMedianPointIndex);
     return out;

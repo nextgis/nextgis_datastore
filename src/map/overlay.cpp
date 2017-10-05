@@ -79,6 +79,7 @@ EditLayerOverlay::EditLayerOverlay(MapView* map) : Overlay(map, MOT_EDIT),
     m_historyState(-1),
     m_isTouchMoved(false),
     m_isTouchingSelectedPoint(false),
+    m_walkMode(false),
     m_crossVisible(false)
 {
     Settings& settings = Settings::instance();
@@ -151,6 +152,8 @@ void EditLayerOverlay::clearHistory()
 
 FeaturePtr EditLayerOverlay::save()
 {
+    m_walkMode = false;
+
     if(!m_featureClass) {
         errorMessage(_("Feature class is null"));
         return FeaturePtr();
@@ -234,6 +237,8 @@ FeaturePtr EditLayerOverlay::save()
 
 void EditLayerOverlay::cancel()
 {
+    m_walkMode = false;
+
     if(m_editLayer) {
         GlSelectableFeatureLayer* featureLayer =
                 ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
@@ -257,14 +262,15 @@ OGRGeometry* EditLayerOverlay::geometryClone() const
      return nullptr;
 }
 
-bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource, bool empty)
+bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource, bool walkMode)
 {
     m_featureClass = datasource;
-    return createGeometry(m_featureClass->geometryType(), empty);
+    return createGeometry(m_featureClass->geometryType(), walkMode);
 }
 
-bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool empty)
+bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool walkMode)
 {
+    m_walkMode = walkMode;
     m_editLayer.reset();
     m_editFeatureId = NOT_FOUND;
 
@@ -281,7 +287,7 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool empty)
         }
         case wkbLineString: {
             OGRLineString* line = new OGRLineString();
-            if(!empty) {
+            if(!m_walkMode) {
                 line->addPoint(geometryCenter.x - mapDist.x,
                                geometryCenter.y - mapDist.y);
                 line->addPoint(geometryCenter.x + mapDist.x,
@@ -292,7 +298,7 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool empty)
         }
         case wkbPolygon: {
             OGRLinearRing* ring = new OGRLinearRing();
-            if(!empty) {
+            if(!m_walkMode) {
                 double x1 = geometryCenter.x - mapDist.x;
                 double y1 = geometryCenter.y - mapDist.y;
                 double x2 = geometryCenter.x + mapDist.x;
@@ -318,7 +324,7 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool empty)
         }
         case wkbMultiLineString: {
             OGRLineString* line = new OGRLineString();
-            if(!empty) {
+            if(!m_walkMode) {
                 line->addPoint(geometryCenter.x - mapDist.x,
                                geometryCenter.y - mapDist.y);
                 line->addPoint(geometryCenter.x + mapDist.x,
@@ -337,7 +343,7 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool empty)
             double y2 = geometryCenter.y + mapDist.y;
 
             OGRLinearRing* ring = new OGRLinearRing();
-            if(!empty) {
+            if(!m_walkMode) {
                 ring->addPoint(x1, y1);
                 ring->addPoint(x2, y2);
                 ring->addPoint(x1, y2);

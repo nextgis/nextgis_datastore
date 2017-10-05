@@ -436,14 +436,17 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
     GlBuffer* selBuffer = new GlBuffer(GlBuffer::BF_PT);
     VectorGlObject* selBufferArray = new VectorGlObject();
 
+    enum ngsEditElementType elementType =
+            (m_walkMode) ? EET_WALK_POINT : EET_POINT;
+
     int index = 0;
     for(int i = 0; i < numPoints; ++i) {
         SimplePoint pt = getPointFunc(i);
 
         if(isSelectedPointFunc(i)) {
-            if(editPointStyle)
+            if(editPointStyle) {
                 editPointStyle->setEditElementType(EET_SELECTED_POINT);
-            /*int selIndex = */
+            }
             m_pointStyle->addPoint(pt, 0.0f, 0, selBuffer);
             continue;
         }
@@ -455,7 +458,7 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
         }
 
         if(editPointStyle) {
-            editPointStyle->setEditElementType(EET_POINT);
+            editPointStyle->setEditElementType(elementType);
         }
         index = m_pointStyle->addPoint(pt, 0.0f,
                                        static_cast<unsigned short>(index),
@@ -463,7 +466,7 @@ void GlEditLayerOverlay::fillPointElements(int numPoints,
     }
 
     bufferArray->addBuffer(buffer);
-    m_elements[EET_POINT] = GlObjectPtr(bufferArray);
+    m_elements[elementType] = GlObjectPtr(bufferArray);
     selBufferArray->addBuffer(selBuffer);
     m_elements[EET_SELECTED_POINT] = GlObjectPtr(selBufferArray);
 }
@@ -558,18 +561,22 @@ void GlEditLayerOverlay::fillLineElements(int numLines,
                 return spt;
             };
 
-            auto isSelectedPointFunc = [this](int index) -> bool {
-                return (PointId(index).pointId() ==
-                        m_selectedPointId.pointId());
-            };
-
-            auto isSelectedMedianPointFunc = [this](int /*index*/) -> bool {
-                return false;
-            };
-
             fillLineBuffers(line, selBufferArray);
-            fillMedianPointElements(
-                    numPoints, getPointFunc, isSelectedMedianPointFunc);
+
+            if(!m_walkMode) {
+                auto isSelectedMedianPointFunc = [this](int /*index*/) -> bool {
+                    return false;
+                };
+
+                fillMedianPointElements(
+                        numPoints, getPointFunc, isSelectedMedianPointFunc);
+            }
+
+            auto isSelectedPointFunc = [this](int index) -> bool {
+                return (m_walkMode) ? false
+                                    : (m_selectedPointId.pointId() == index);
+            };
+
             fillPointElements(numPoints, getPointFunc, isSelectedPointFunc);
             continue;
         }
@@ -842,7 +849,7 @@ bool GlEditLayerOverlay::draw()
 
     if(crossVisible()) {
         fillCrossElement();
-    } else {
+    } else if(!m_walkMode) {
         auto findIt = m_elements.find(EET_SELECTED_POINT);
         if(m_elements.end() == findIt || !findIt->second) {
             // One of the vertices must always be selected.
@@ -860,6 +867,7 @@ bool GlEditLayerOverlay::draw()
         Style* style = nullptr;
         if(EET_POINT == styleType ||
            EET_SELECTED_POINT == styleType ||
+           EET_WALK_POINT == styleType ||
            EET_MEDIAN_POINT == styleType ||
            EET_SELECTED_MEDIAN_POINT == styleType) {
             style = m_pointStyle.get();
