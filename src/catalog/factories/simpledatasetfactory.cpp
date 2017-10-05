@@ -25,6 +25,7 @@
 
 #include "ds/simpledataset.h"
 #include "ngstore/catalog/filter.h"
+#include "util/error.h"
 
 namespace ngs {
 

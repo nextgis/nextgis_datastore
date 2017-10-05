@@ -25,6 +25,7 @@
 #include "catalog.h"
 #include "file.h"
 #include "ds/datastore.h"
+#include "ds/memstore.h"
 #include "ds/raster.h"
 #include "ds/simpledataset.h"
 #include "factories/rasterfactory.h"
@@ -448,6 +449,7 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     case CAT_CONTAINER_DIR:
     case CAT_CONTAINER_NGS:
     case CAT_RASTER_TMS:
+    case CAT_CONTAINER_MEM:
         return true;
     default:
         return false;
@@ -490,6 +492,12 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString& name,
         if(result && m_childrenLoaded) {
             m_children.push_back(ObjectPtr(new Raster(siblingFiles, this, type,
                                                       newName, newPath)));
+        }
+        break;
+    case CAT_CONTAINER_MEM:
+        result = MemoryStore::create(newPath, options);
+        if(result && m_childrenLoaded) {
+            m_children.push_back(ObjectPtr(new MemoryStore(this, newName, newPath)));
         }
         break;
     default:

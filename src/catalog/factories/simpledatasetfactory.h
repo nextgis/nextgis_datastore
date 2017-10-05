@@ -35,7 +35,6 @@ public:
     virtual const char* getName() const override;
     virtual void createObjects(ObjectContainer * const container,
                                std::vector<const char*> * const names) override;
-
 private:
     void addChild(ObjectContainer * const container,
                   const CPLString& name,

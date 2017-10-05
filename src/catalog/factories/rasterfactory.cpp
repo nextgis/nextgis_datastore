@@ -142,7 +142,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
             return errorMessage(_("Missign required option 'url'"));
         }
 
-        int epsg = options.intOption(KEY_EPSG, -1);
+        int epsg = options.intOption(KEY_EPSG, NOT_FOUND);
         if(epsg < 0) {
             return errorMessage(_("Missign required option 'epsg'"));
         }

@@ -26,6 +26,7 @@ set(LIB_NAME ds)
 
 set(HHEADERS
     datastore.h
+    memstore.h
     dataset.h
     simpledataset.h
     featureclass.h
@@ -38,6 +39,7 @@ set(HHEADERS
 
 set(CSOURCES
     datastore.cpp
+    memstore.cpp
     dataset.cpp
     simpledataset.cpp
     featureclass.cpp

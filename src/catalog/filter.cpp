@@ -116,12 +116,12 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
 {
     return type == CAT_CONTAINER_WFS ||
           (type >= CAT_CONTAINER_KML && type < CAT_CONTAINER_GPKG) ||
-           type == CAT_CONTAINER_SIMPLE ||
+           type == CAT_CONTAINER_SIMPLE || type == CAT_CONTAINER_MEM ||
           (type >= CAT_RASTER_BMP && type < CAT_RASTER_POSTGIS) ||
           (type >= CAT_FC_ESRI_SHAPEFILE && type < CAT_FC_POSTGIS) ||
           (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
           (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||
-           type == CAT_FC_CSV;
+           type == CAT_FC_CSV || type == CAT_FC_MEM;
 }
 
 GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
@@ -152,6 +152,12 @@ GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
     case CAT_CONTAINER_WFS:
     case CAT_FC_WFS:
         return GetGDALDriverManager()->GetDriverByName("WFS");
+    case CAT_CONTAINER_MEM:
+    case CAT_FC_MEM:
+    case CAT_TABLE_MEM:
+        return GetGDALDriverManager()->GetDriverByName("Memory");
+    case CAT_RASTER_MEM:
+        return GetGDALDriverManager()->GetDriverByName("MEM");
     case CAT_CONTAINER_WMS:
     case CAT_RASTER_WMS:
     case CAT_RASTER_TMS:
@@ -224,6 +230,8 @@ const char *Filter::getExtension(const enum ngsCatalogObjectType type)
         return DataStore::extension();
     case CAT_FILE_NGMAPDOCUMENT:
         return MapFile::getExtension();
+    case CAT_CONTAINER_MEM:
+        return "ngmem";
     case CAT_CONTAINER_KMZ:
         return "kmz";
     case CAT_FC_MAPINFO_TAB:

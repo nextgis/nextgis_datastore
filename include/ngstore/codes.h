@@ -120,7 +120,7 @@ enum ngsFileMode {
  */
 enum ngsCatalogObjectType {
     CAT_UNKNOWN,
-    CAT_CONTAINER_ANY = 50,          /** Any container border */
+    CAT_CONTAINER_ANY = 50,       /** Any container border */
     CAT_CONTAINER_ROOT,
     CAT_CONTAINER_LOCALCONNECTION,
     CAT_CONTAINER_DIR,
@@ -141,8 +141,9 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_GPKG,
     CAT_CONTAINER_SQLITE,
     CAT_CONTAINER_SIMPLE,       /** For one layer containers */
+    CAT_CONTAINER_MEM,          /** For memory layers */
     CAT_CONTAINER_ALL = 499,
-    CAT_FC_ANY = 500,                 /** Any Feature class */
+    CAT_FC_ANY = 500,           /** Any Feature class */
     CAT_FC_ESRI_SHAPEFILE,
     CAT_FC_MAPINFO_TAB,
     CAT_FC_MAPINFO_MIF,
@@ -160,7 +161,7 @@ enum ngsCatalogObjectType {
     CAT_FC_GPKG,
     CAT_FC_LITE,
     CAT_FC_ALL = 999,
-    CAT_RASTER_ANY = 1000,             /** Any raster */
+    CAT_RASTER_ANY = 1000,        /** Any raster */
     CAT_RASTER_BMP,
     CAT_RASTER_TIFF,
     CAT_RASTER_TIL,
@@ -176,8 +177,9 @@ enum ngsCatalogObjectType {
     CAT_RASTER_GDB,
     CAT_RASTER_GPKG,
     CAT_RASTER_LITE,
+    CAT_RASTER_MEM,
     CAT_RASTER_ALL = 1499,
-    CAT_TABLE_ANY = 1500,              /** Any table */
+    CAT_TABLE_ANY = 1500,         /** Any table */
     CAT_TABLE_POSTGRES,
     CAT_TABLE_MAPINFO_TAB,
     CAT_TABLE_MAPINFO_MIF,
@@ -189,6 +191,7 @@ enum ngsCatalogObjectType {
     CAT_TABLE_XLS,
     CAT_TABLE_XLSX,
     CAT_TABLE_LITE,
+    CAT_TABLE_MEM,
     CAT_TABLE_ALL = 1999,
     CAT_FILE_ANY = 2000,
     CAT_FILE_NGMAPDOCUMENT,

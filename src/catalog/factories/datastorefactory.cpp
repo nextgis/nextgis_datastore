@@ -21,35 +21,47 @@
 #include "datastorefactory.h"
 
 #include "ds/datastore.h"
+#include "ds/memstore.h"
+#include "ngstore/catalog/filter.h"
 
 namespace ngs {
 
 DataStoreFactory::DataStoreFactory() : ObjectFactory()
 {
-
+    m_memSupported = Filter::getGDALDriver(CAT_CONTAINER_MEM);
+    m_gpkgSupported = Filter::getGDALDriver(CAT_CONTAINER_NGS);
 }
 
 
-const char *DataStoreFactory::getName() const
+const char* DataStoreFactory::getName() const
 {
-    return _("NextGIS DataStore");
+    return _("NextGIS Data and memory store");
 }
 
 void DataStoreFactory::createObjects(ObjectContainer * const container,
-                                     std::vector<const char *> * const names)
+                                     std::vector<const char*> * const names)
 {
-    std::vector<const char *>::iterator it = names->begin();
+    std::vector<const char*>::iterator it = names->begin();
     while( it != names->end() ) {
         const char* ext = CPLGetExtension(*it);
-        if(EQUAL(ext, DataStore::extension())) {
+        if(m_gpkgSupported && EQUAL(ext, DataStore::extension())) {
             const char* path = CPLFormFilename(container->path(), *it, nullptr);
             addChild(container, ObjectPtr(new DataStore(container, *it, path)));
+            it = names->erase(it);
+        }
+        else if(m_memSupported && EQUAL(ext, MemoryStore::extension())) {
+            const char* path = CPLFormFilename(container->path(), *it, nullptr);
+            addChild(container, ObjectPtr(new MemoryStore(container, *it, path)));
             it = names->erase(it);
         }
         else if(EQUAL(ext, Dataset::attachmentsFolderExtension())) {
             it = names->erase(it);
         }
         else if(EQUAL(ext, "xml") && strstr(*it, DataStore::extension()) !=
+                nullptr) {
+            it = names->erase(it);
+        }
+        else if(EQUAL(ext, "xml") && strstr(*it, MemoryStore::extension()) !=
                 nullptr) {
             it = names->erase(it);
         }

@@ -702,6 +702,71 @@ TEST(DataStoreTest, TestCreateVectorOverviews) {
     EXPECT_EQ(VSIStatL(path, &sbuf), 0);
 }
 
+
+TEST(DataStoreTest, TestCreateMemoryDatasource) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+    options = nullptr;
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString storePath = catalogPath + "/tmp";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_MEM));
+    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    EXPECT_EQ(ngsCatalogObjectCreate(store, "test_mem", options), COD_SUCCESS);
+    CatalogObjectH newStore = ngsCatalogObjectGet(CPLString(storePath + "/test_mem.ngmem"));
+    EXPECT_NE(newStore, nullptr);
+
+    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(newStore, 0);
+    if(pathInfo != nullptr) {
+        size_t count = 0;
+        while(pathInfo[count].name) {
+            std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
+            count++;
+        }
+        EXPECT_GE(count, 0);
+        ngsFree(pathInfo);
+    }
+
+    // Create feature class in memory
+    ngsListFree(options);
+    options = nullptr;
+
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_MEM));
+    options = ngsAddNameValue(options, "EPSG", "3857");
+    options = ngsAddNameValue(options, "LCO.ADVERTIZE_UTF8", "ON");
+    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "POINT");
+    options = ngsAddNameValue(options, "FIELD_COUNT", "4");
+    options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsAddNameValue(options, "FIELD_0_NAME", "type");
+    options = ngsAddNameValue(options, "FIELD_0_ALIAS", "тип");
+    options = ngsAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsAddNameValue(options, "FIELD_2_TYPE", "REAL");
+    options = ngsAddNameValue(options, "FIELD_2_NAME", "val");
+    options = ngsAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
+    options = ngsAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
+    options = ngsAddNameValue(options, "FIELD_3_NAME", "date");
+    options = ngsAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(newStore, "new_layer", options), COD_SUCCESS);
+    ngsListFree(options);
+
+    CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/test_mem.ngmem/new_layer"));
+    EXPECT_NE(newFC, nullptr);
+
+    ngsUnInit();
+}
+
 TEST(DataStoreTests, TestDeleteDataStore) {
     char** options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
