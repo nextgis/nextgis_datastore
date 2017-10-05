@@ -396,7 +396,7 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
                              char** options)
 {
     if(!getAttachmentsTable()) {
-        return -1;
+        return NOT_FOUND;
     }
     bool move = CPLFetchBool(options, "MOVE", false);
 
@@ -434,7 +434,7 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
         return newAttachment->GetFID();
     }
 
-    return -1;
+    return NOT_FOUND;
 }
 
 bool Table::deleteAttachment(GIntBig aid)

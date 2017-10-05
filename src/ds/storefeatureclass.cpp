@@ -145,7 +145,7 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
                              char** options)
 {
     if(!getAttachmentsTable()) {
-        return -1;
+        return NOT_FOUND;
     }
     bool move = CPLFetchBool(options, "MOVE", false);
     GIntBig rid = atoll(CSLFetchNameValueDef(options, "RID", "-1"));
@@ -185,7 +185,7 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
         return newAttachment->GetFID();
     }
 
-    return -1;
+    return NOT_FOUND;
 }
 
 bool StoreTable::setProperty(const char* key, const char* value,
@@ -303,7 +303,7 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
                              char** options)
 {
     if(!getAttachmentsTable()) {
-        return -1;
+        return NOT_FOUND;
     }
     bool move = CPLFetchBool(options, "MOVE", false);
     GIntBig rid = atoll(CSLFetchNameValueDef(options, "RID", "-1"));
@@ -343,7 +343,7 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
         return newAttachment->GetFID();
     }
 
-    return -1;
+    return NOT_FOUND;
 }
 
 bool StoreFeatureClass::setProperty(const char* key, const char* value,

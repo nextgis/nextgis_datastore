@@ -339,6 +339,11 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         OGRFieldType fieldType = FeatureClass::fieldTypeFromName(
                     options.stringOption(CPLSPrintf("FIELD_%d_TYPE", i), ""));
         OGRFieldDefn field(fieldName, fieldType);
+        CPLString defaultValue = options.stringOption(
+                    CPLSPrintf("FIELD_%d_DEFAULT_VAL", i), "");
+        if(!defaultValue.empty()) {
+            field.SetDefault(defaultValue);
+        }
         fieldDefinition.AddFieldDefn(&field);
     }
 
@@ -378,7 +383,9 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {
         if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
-            table->setProperty(CPLSPrintf("%s", it->first.c_str() + 5), it->second, KEY_USER);
+            table->setProperty(CPLSPrintf("%s",
+                                       it->first.c_str() + KEY_USER_PREFIX_LEN),
+                                       it->second, KEY_USER);
         }
     }
 

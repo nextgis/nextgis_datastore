@@ -1138,13 +1138,12 @@ const char* ngsCatalogObjectName(CatalogObjectH object)
  */
 char** ngsCatalogObjectMetadata(CatalogObjectH object, const char* domain)
 {
-    Object* catalogObject = static_cast<Object*>(object);
-    if(!catalogObject) {
+    if(nullptr == object) {
         errorMessage(COD_INVALID, _("The object handle is null"));
         return nullptr;
     }
 
-    return catalogObject->metadata(domain);
+    return static_cast<Object*>(object)->metadata(domain);
 }
 
 int ngsCatalogObjectSetMetadataItem(CatalogObjectH object, const char* name,
@@ -2939,11 +2938,11 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, ngsGeometryType type)
 }
 
 int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
-                               long long feateureId)
+                               long long featureId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
+        return errorMessage(COD_UPDATE_FAILED, _("Failed to get edit overlay"));
     }
 
     MapStore* const mapStore = MapStore::getInstance();
@@ -2962,9 +2961,12 @@ int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
             }
         }
     }
+    if(!editLayer) {
+        return errorMessage(COD_UPDATE_FAILED, _("Geometry edit is failed"));
+    }
 
-    if(!editOverlay->editGeometry(editLayer, feateureId)) {
-        return errorMessage(COD_CREATE_FAILED, _("Geometry edit is failed"));
+    if(!editOverlay->editGeometry(editLayer, featureId)) {
+        return errorMessage(COD_UPDATE_FAILED, _("Geometry edit is failed"));
     }
     return COD_SUCCESS;
 }

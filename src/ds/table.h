@@ -115,6 +115,10 @@ public:
     virtual bool canDestroy() const override;
     virtual bool destroy() override;
     virtual char** metadata(const char* domain) const override;
+    virtual bool setMetadataItem(const char* name, const char* value,
+                                 const char* domain) override {
+        return setProperty(name, value, domain);
+    }
 
 protected:
     OGRFeatureDefn* definition() const;
