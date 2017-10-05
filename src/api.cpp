@@ -2902,7 +2902,8 @@ int ngsEditOverlayCancel(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer)
+int ngsEditOverlayCreateGeometryInLayer(
+        unsigned char mapId, LayerH layer, char empty)
 {
     if(!layer) {
         return errorMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
@@ -2918,7 +2919,7 @@ int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer)
     if(nullptr == editOverlay) {
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->createGeometry(datasource)) {
+    if(!editOverlay->createGeometry(datasource, empty)) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
     }
     return COD_SUCCESS;
@@ -2987,13 +2988,22 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayAddPoint(unsigned char mapId)
+int ngsEditOverlayAddPoint(unsigned char mapId, ngsCoordinate* coordinates)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->addPoint()) {
+
+    bool success;
+    if(coordinates) {
+        OGRPoint pt(coordinates->X, coordinates->Y);
+        success = editOverlay->addPoint(&pt);
+    } else {
+        success = editOverlay->addPoint();
+    }
+
+    if(!success) {
         return errorMessage(COD_INSERT_FAILED, _("Point adding is failed"));
     }
     return COD_SUCCESS;

@@ -257,13 +257,13 @@ OGRGeometry* EditLayerOverlay::geometryClone() const
      return nullptr;
 }
 
-bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource)
+bool EditLayerOverlay::createGeometry(FeatureClassPtr datasource, bool empty)
 {
     m_featureClass = datasource;
-    return createGeometry(m_featureClass->geometryType());
+    return createGeometry(m_featureClass->geometryType(), empty);
 }
 
-bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type)
+bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type, bool empty)
 {
     m_editLayer.reset();
     m_editFeatureId = NOT_FOUND;
@@ -281,24 +281,28 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type)
         }
         case wkbLineString: {
             OGRLineString* line = new OGRLineString();
-            line->addPoint(geometryCenter.x - mapDist.x,
-                           geometryCenter.y - mapDist.y);
-            line->addPoint(geometryCenter.x + mapDist.x,
-                           geometryCenter.y + mapDist.y);
+            if(!empty) {
+                line->addPoint(geometryCenter.x - mapDist.x,
+                               geometryCenter.y - mapDist.y);
+                line->addPoint(geometryCenter.x + mapDist.x,
+                               geometryCenter.y + mapDist.y);
+            }
             geometry = GeometryUPtr(line);
             break;
         }
         case wkbPolygon: {
-            double x1 = geometryCenter.x - mapDist.x;
-            double y1 = geometryCenter.y - mapDist.y;
-            double x2 = geometryCenter.x + mapDist.x;
-            double y2 = geometryCenter.y + mapDist.y;
-
             OGRLinearRing* ring = new OGRLinearRing();
-            ring->addPoint(x1, y1);
-            ring->addPoint(x2, y2);
-            ring->addPoint(x1, y2);
-            ring->closeRings();
+            if(!empty) {
+                double x1 = geometryCenter.x - mapDist.x;
+                double y1 = geometryCenter.y - mapDist.y;
+                double x2 = geometryCenter.x + mapDist.x;
+                double y2 = geometryCenter.y + mapDist.y;
+
+                ring->addPoint(x1, y1);
+                ring->addPoint(x2, y2);
+                ring->addPoint(x1, y2);
+                ring->closeRings();
+            }
 
             OGRPolygon* polygon = new OGRPolygon();
             polygon->addRingDirectly(ring);
@@ -314,10 +318,12 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type)
         }
         case wkbMultiLineString: {
             OGRLineString* line = new OGRLineString();
-            line->addPoint(geometryCenter.x - mapDist.x,
-                           geometryCenter.y - mapDist.y);
-            line->addPoint(geometryCenter.x + mapDist.x,
-                           geometryCenter.y + mapDist.y);
+            if(!empty) {
+                line->addPoint(geometryCenter.x - mapDist.x,
+                               geometryCenter.y - mapDist.y);
+                line->addPoint(geometryCenter.x + mapDist.x,
+                               geometryCenter.y + mapDist.y);
+            }
 
             OGRMultiLineString* mline = new OGRMultiLineString();
             mline->addGeometryDirectly(line);
@@ -331,10 +337,12 @@ bool EditLayerOverlay::createGeometry(OGRwkbGeometryType type)
             double y2 = geometryCenter.y + mapDist.y;
 
             OGRLinearRing* ring = new OGRLinearRing();
-            ring->addPoint(x1, y1);
-            ring->addPoint(x2, y2);
-            ring->addPoint(x1, y2);
-            ring->closeRings();
+            if(!empty) {
+                ring->addPoint(x1, y1);
+                ring->addPoint(x2, y2);
+                ring->addPoint(x1, y2);
+                ring->closeRings();
+            }
 
             OGRPolygon* polygon = new OGRPolygon();
             polygon->addRingDirectly(ring);
@@ -431,13 +439,14 @@ bool EditLayerOverlay::deleteGeometry()
     return save();
 }
 
-bool EditLayerOverlay::addPoint()
+bool EditLayerOverlay::addPoint(OGRPoint* coordinates)
 {
     if(!m_geometry) {
         return false;
     }
 
     OGRLineString* line = nullptr; // Only geometry of type line
+    bool closeRing = false;
     switch(OGR_GT_Flatten(m_geometry->getGeometryType())) {
         case wkbLineString: {
             line = ngsDynamicCast(OGRLineString, m_geometry);
@@ -452,6 +461,7 @@ bool EditLayerOverlay::addPoint()
                     ? polygon->getExteriorRing()
                     : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
             line = dynamic_cast<OGRLineString*>(ring);
+            closeRing = true;
             break;
         }
         case wkbMultiLineString: {
@@ -479,6 +489,7 @@ bool EditLayerOverlay::addPoint()
                     ? polygon->getExteriorRing()
                     : polygon->getInteriorRing(m_selectedPointId.ringId() - 1);
             line = dynamic_cast<OGRLineString*>(ring);
+            closeRing = true;
             break;
         }
         default: {
@@ -489,10 +500,20 @@ bool EditLayerOverlay::addPoint()
         return false;
     }
 
-    int id = line->getNumPoints() - 1; // Add after the last point.
-    OGRRawPoint geometryCenter = m_map->getCenter();
-    OGRPoint pt(geometryCenter.x, geometryCenter.y);
+    OGRPoint pt;
+    if(coordinates) {
+        pt = *coordinates;
+    } else {
+        OGRRawPoint geometryCenter = m_map->getCenter();
+        pt = OGRPoint(geometryCenter.x, geometryCenter.y);
+    }
+
+    int num = line->getNumPoints();
+    int id = num - 1; // Add after the last point.
     int addedPtId = addPointToLine(line, id, pt);
+    if(closeRing && 2 == num) {
+        line->closeRings();
+    }
     saveToHistory();
 
     m_selectedPointId.setPointId(addedPtId); // Update only pointId.
@@ -503,9 +524,17 @@ bool EditLayerOverlay::addPoint()
 int EditLayerOverlay::addPointToLine(
         OGRLineString* line, int id, const OGRPoint& pt)
 {
-    bool toLineEnd = (line->getNumPoints() - 1 == id);
+    int num = line->getNumPoints();
+    bool closedLine = num >= 3 && line->get_IsClosed();
+    int lastId = num - 1;
+    bool toLineEnd = (lastId == id);
     if(toLineEnd) {
-        line->addPoint(&pt);
+        if(closedLine) {
+            line->setPoint(lastId, const_cast<OGRPoint*>(&pt));
+            line->closeRings();
+        } else {
+            line->addPoint(&pt);
+        }
         return line->getNumPoints() - 1;
     }
 

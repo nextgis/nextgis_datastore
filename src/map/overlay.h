@@ -182,11 +182,11 @@ public:
     bool isGeometryValid() const { return m_geometry.operator bool(); }
     OGRGeometry* geometryClone() const;
 
-    bool createGeometry(OGRwkbGeometryType type);
-    bool createGeometry(FeatureClassPtr datasource);
+    bool createGeometry(OGRwkbGeometryType type, bool empty = false);
+    bool createGeometry(FeatureClassPtr datasource, bool empty = false);
     bool editGeometry(LayerPtr layer, GIntBig featureId);
     bool deleteGeometry();
-    virtual bool addPoint();
+    virtual bool addPoint(OGRPoint* coordinates = nullptr);
     virtual enum ngsEditDeleteType deletePoint();
     virtual bool addHole();
     virtual enum ngsEditDeleteType deleteHole();

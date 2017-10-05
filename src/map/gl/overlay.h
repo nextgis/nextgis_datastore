@@ -63,7 +63,7 @@ public:
     virtual bool undo() override;
     virtual bool redo() override;
 
-    virtual bool addPoint() override;
+    virtual bool addPoint(OGRPoint* coordinates = nullptr) override;
     virtual enum ngsEditDeleteType deletePoint() override;
     virtual bool addHole() override;
     virtual enum ngsEditDeleteType deleteHole() override;
