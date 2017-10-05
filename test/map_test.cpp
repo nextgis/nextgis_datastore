@@ -550,13 +550,13 @@ TEST(MapTests, TestEditOverlay) {
     LayerH layer = ngsMapLayerGet(mapId, pointLayerId);
     ASSERT_NE(layer, nullptr);
 
-    EXPECT_EQ(ngsEditOverlayCreateGeometryInLayer(mapId, layer), COD_SUCCESS);
+    EXPECT_EQ(ngsEditOverlayCreateGeometryInLayer(mapId, layer, 0), COD_SUCCESS);
     EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 1);
 
     EXPECT_EQ(ngsEditOverlayCancel(mapId), COD_SUCCESS);
     EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 0);
 
-    EXPECT_EQ(ngsEditOverlayCreateGeometryInLayer(mapId, layer), COD_SUCCESS);
+    EXPECT_EQ(ngsEditOverlayCreateGeometryInLayer(mapId, layer, 0), COD_SUCCESS);
     EXPECT_EQ(ngsOverlayGetVisible(mapId, MOT_EDIT), 1);
 
     EXPECT_NE(ngsEditOverlaySave(mapId), nullptr);

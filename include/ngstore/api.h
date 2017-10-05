@@ -434,20 +434,19 @@ NGS_EXTERNC char ngsEditOverlayCanUndo(unsigned char mapId);
 NGS_EXTERNC char ngsEditOverlayCanRedo(unsigned char mapId);
 NGS_EXTERNC FeatureH ngsEditOverlaySave(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayCreateGeometryInLayer(
-        unsigned char mapId, LayerH layer, char empty = 0);
+NGS_EXTERNC int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId,
+                                                    LayerH layer, char empty);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(unsigned char mapId,
                                              ngsGeometryType type);
 NGS_EXTERNC int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
                                            long long feateureId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(unsigned char mapId);
-NGS_EXTERNC int ngsEditOverlayAddPoint(
-        unsigned char mapId, ngsCoordinate* coordinates = 0);
-NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeletePoint(
-        unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayAddPoint(unsigned char mapId);
+NGS_EXTERNC int ngsEditOverlayAddVertex(unsigned char mapId,
+                                        ngsCoordinate coordinates);
+NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeletePoint(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddHole(unsigned char mapId);
-NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteHole(
-        unsigned char mapId);
+NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteHole(unsigned char mapId);
 NGS_EXTERNC int ngsEditOverlayAddGeometryPart(unsigned char mapId);
 NGS_EXTERNC enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(
         unsigned char mapId);

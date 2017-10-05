@@ -2988,25 +2988,26 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayAddPoint(unsigned char mapId, ngsCoordinate* coordinates)
+int ngsEditOverlayAddPoint(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
         return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
 
-    bool success;
-    if(coordinates) {
-        OGRPoint pt(coordinates->X, coordinates->Y);
-        success = editOverlay->addPoint(&pt);
-    } else {
-        success = editOverlay->addPoint();
+    return editOverlay->addPoint() ? COD_SUCCESS : COD_INSERT_FAILED;
+}
+
+NGS_EXTERNC int ngsEditOverlayAddVertex(unsigned char mapId,
+                                        ngsCoordinate coordinates)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
     }
 
-    if(!success) {
-        return errorMessage(COD_INSERT_FAILED, _("Point adding is failed"));
-    }
-    return COD_SUCCESS;
+    OGRPoint pt(coordinates.X, coordinates.Y);
+    return editOverlay->addPoint(&pt) ? COD_SUCCESS : COD_INSERT_FAILED;
 }
 
 enum ngsEditDeleteType ngsEditOverlayDeletePoint(unsigned char mapId)
