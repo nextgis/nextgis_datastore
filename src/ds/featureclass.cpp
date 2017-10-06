@@ -308,11 +308,9 @@ FeatureClass::FeatureClass(OGRLayer* layer,
                            const CPLString &name) :
     Table(layer, parent, type, name),
     m_ovrTable(nullptr),
-    m_genTileMutex(CPLCreateMutex()),
-    m_layersMutex(CPLCreateMutex())
+    m_genTileMutex(CPLCreateMutex())
 {
     CPLReleaseMutex(m_genTileMutex);
-    CPLReleaseMutex(m_layersMutex);
 
     if(nullptr != m_layer) {
         m_spatialReference = m_layer->GetSpatialRef();
@@ -343,8 +341,6 @@ FeatureClass::~FeatureClass()
 {
     CPLDebug("ngstore", "CPLDestroyMutex(m_genTileMutex)");
     CPLDestroyMutex(m_genTileMutex);
-    CPLDebug("ngstore", "CPLDestroyMutex(m_layersMutex)");
-    CPLDestroyMutex(m_layersMutex);
 }
 
 OGRwkbGeometryType FeatureClass::geometryType() const
@@ -966,7 +962,6 @@ bool FeatureClass::getTilesTable()
         return true;
     }
 
-    CPLMutexHolder holder(m_layersMutex);
     Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDS) {
         return false;
@@ -993,14 +988,13 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         parentDS->lockExecuteSql(true);
     }
 
-    //CPLAcquireMutex(m_featureMutex, 10.5);
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
                                               OVR_Y_KEY, tile.y,
                                               OVR_ZOOM_KEY, tile.z));
     FeaturePtr out(m_ovrTable->GetNextFeature());
     m_ovrTable->SetAttributeFilter(nullptr);
-    //CPLReleaseMutex(m_featureMutex);
+
     if(nullptr != parentDS) {
         parentDS->lockExecuteSql(false);
     }
@@ -1222,9 +1216,15 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     float step = static_cast<float>(pixelSize(tile.z, precisePixelSize));
 
     std::vector<FeaturePtr> features;
-    OGREnvelope extEnv = tileExtent.toOgrEnvelope();
+
+    bool spatialFilter = m_layer->TestCapability(OLCFastSpatialFilter) == 1;
+    OGREnvelope extEnv;
+    if(!spatialFilter) {
+        extEnv = tileExtent.toOgrEnvelope();
+    }
 
     // Lock threads here
+    dataset->lockExecuteSql(true);
     CPLAcquireMutex(m_featureMutex, 10.5);
     setIgnoredFields(m_ignoreFields);
     GeometryPtr extGeom = tileExtent.toGeometry(getSpatialReference());
@@ -1232,17 +1232,23 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     //reset();
     FeaturePtr feature;
     while((feature = nextFeature())) {
-        OGRGeometry* geom = feature->GetGeometryRef();
-        if(geom) {
-            OGREnvelope env;
-            geom->getEnvelope(&env);
-            if(env.IsInit() && env.Intersects(extEnv)) {
-                features.push_back(feature);
+        if(spatialFilter) {
+            features.push_back(feature);
+        }
+        else {
+            OGRGeometry* geom = feature->GetGeometryRef();
+            if(geom) {
+                OGREnvelope env;
+                geom->getEnvelope(&env);
+                if(env.IsInit() && env.Intersects(extEnv)) {
+                    features.push_back(feature);
+                }
             }
         }
     }
     setIgnoredFields();
     setSpatialFilter();
+    dataset->lockExecuteSql(false);
     CPLReleaseMutex(m_featureMutex);
 
     /* TODO: Simplify and cut

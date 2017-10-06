@@ -91,19 +91,16 @@ Table::Table(OGRLayer *layer,
     Object(parent, type, name, ""),
     m_layer(layer),
     m_attTable(nullptr),
-    m_featureMutex(CPLCreateMutex()),
-    m_attMutex(CPLCreateMutex())
+    m_featureMutex(CPLCreateMutex())
 {
     CPLReleaseMutex(m_featureMutex);
-    CPLReleaseMutex(m_attMutex);
 }
 
 Table::~Table()
 {
     CPLDebug("ngstore", "CPLDestroyMutex(m_featureMutex)");
     CPLDestroyMutex(m_featureMutex);
-    CPLDebug("ngstore", "CPLDestroyMutex(m_attMutex)");
-    CPLDestroyMutex(m_attMutex);
+
     if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
         Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
@@ -372,12 +369,23 @@ void Table::fillFields()
             CPLStrlcpy(fieldDesc.m_name, fieldDefn->GetNameRef(), 255);
             //fieldDesc.m_name = fieldDefn->GetNameRef();
 
-            CPLStrlcpy(fieldDesc.m_alias, properties[CPLSPrintf("FIELD_%d_ALIAS", i)], 1024);
-            //fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+            CPLString alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+            if(alias.empty()) {
+                CPLStrlcpy(fieldDesc.m_alias, fieldDefn->GetNameRef(), 255);
+            }
+            else {
+                CPLStrlcpy(fieldDesc.m_alias, alias.c_str(), 1024);
+                //fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+            }
 
-            CPLStrlcpy(fieldDesc.m_originalName, properties[CPLSPrintf("FIELD_%d_NAME", i)], 255);
-            //fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
-
+            CPLString originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
+            if(originalName.empty()) {
+                CPLStrlcpy(fieldDesc.m_alias, fieldDefn->GetNameRef(), 255);
+            }
+            else {
+                CPLStrlcpy(fieldDesc.m_originalName, originalName.c_str(), 255);
+                //fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
+            }
             m_fields.push_back(fieldDesc);
         }
 
@@ -505,10 +513,13 @@ std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
         return out;
     }
 
-    CPLMutexHolder holder(m_attMutex);
+    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr != dataset) {
+        dataset->lockExecuteSql(true);
+    }
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
                                               ATTACH_FEATURE_ID, fid));
-    m_attTable->ResetReading();
+    //m_attTable->ResetReading();
     FeaturePtr attFeature;
     while((attFeature = m_attTable->GetNextFeature())) {
         AttachmentInfo info;
@@ -526,6 +537,9 @@ std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
         info.size = File::fileSize(info.path);
 
         out.push_back(info);
+    }
+    if(nullptr != dataset) {
+        dataset->lockExecuteSql(false);
     }
     return out;
 }

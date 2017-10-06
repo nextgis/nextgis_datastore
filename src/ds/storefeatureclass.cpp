@@ -114,7 +114,11 @@ std::vector<Table::AttachmentInfo> StoreTable::getAttachments(GIntBig fid)
         return out;
     }
 
-    CPLMutexHolder holder(m_attMutex);
+    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        dataset->lockExecuteSql(true);
+    }
+
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
                                               ATTACH_FEATURE_ID, fid));
     m_attTable->ResetReading();
@@ -136,6 +140,10 @@ std::vector<Table::AttachmentInfo> StoreTable::getAttachments(GIntBig fid)
         info.size = File::fileSize(info.path);
 
         out.push_back(info);
+    }
+
+    if(nullptr == dataset) {
+        dataset->lockExecuteSql(false);
     }
     return out;
 }
@@ -272,7 +280,11 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::getAttachments(GIntBig fid
         return out;
     }
 
-    CPLMutexHolder holder(m_attMutex);
+    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        dataset->lockExecuteSql(true);
+    }
+
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
                                               ATTACH_FEATURE_ID, fid));
     m_attTable->ResetReading();
@@ -294,6 +306,10 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::getAttachments(GIntBig fid
         info.size = File::fileSize(info.path);
 
         out.push_back(info);
+    }
+
+    if(nullptr == dataset) {
+        dataset->lockExecuteSql(false);
     }
     return out;
 }

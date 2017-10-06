@@ -956,16 +956,24 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
 int ngsCatalogObjectCreate(CatalogObjectH object, const char* name, char** options)
 {
     Object* catalogObject = static_cast<Object*>(object);
-    if(!catalogObject)
+    if(!catalogObject) {
         return errorMessage(COD_INVALID, _("The object handle is null"));
+    }
 
     Options createOptions(options);
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
                 createOptions.intOption("TYPE", CAT_UNKNOWN));
     createOptions.removeOption("TYPE");
     ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
+    if(nullptr == container) {
+        return errorMessage(COD_INVALID, _("The object handle is null"));
+    }
+
+    // Call just to open Dataset if not already
+    container->hasChildren();
+
     // Check can create
-    if(nullptr != container && container->canCreate(type))
+    if(container->canCreate(type))
         return container->create(type, name, createOptions) ?
                     COD_SUCCESS : COD_CREATE_FAILED;
 

@@ -131,7 +131,6 @@ protected:
     OGRLayer* m_attTable;
     std::vector<Field> m_fields;
     CPLMutex* m_featureMutex;
-    CPLMutex* m_attMutex;
 };
 
 }

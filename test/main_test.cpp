@@ -725,17 +725,6 @@ TEST(DataStoreTest, TestCreateMemoryDatasource) {
     CatalogObjectH newStore = ngsCatalogObjectGet(CPLString(storePath + "/test_mem.ngmem"));
     EXPECT_NE(newStore, nullptr);
 
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(newStore, 0);
-    if(pathInfo != nullptr) {
-        size_t count = 0;
-        while(pathInfo[count].name) {
-            std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
-            count++;
-        }
-        EXPECT_GE(count, 0);
-        ngsFree(pathInfo);
-    }
-
     // Create feature class in memory
     ngsListFree(options);
     options = nullptr;

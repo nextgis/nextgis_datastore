@@ -197,7 +197,6 @@ protected:
     OGRLayer* m_ovrTable;
     std::set<unsigned char> m_zoomLevels;
     CPLMutex* m_genTileMutex;
-    CPLMutex* m_layersMutex;
     std::vector<const char*> m_ignoreFields;
     Envelope m_extent;
 
