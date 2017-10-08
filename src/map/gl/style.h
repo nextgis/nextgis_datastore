@@ -492,8 +492,8 @@ public:
 class SimpleEditPointStyle : public SimplePointStyle, public EditPointStyle
 {
 public:
-    explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE)
-            : SimplePointStyle(type) {}
+    explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE) :
+        SimplePointStyle(type) {}
     virtual ~SimpleEditPointStyle() = default;
 
     // EditPointStyle interface
@@ -527,6 +527,7 @@ protected:
 protected:
     unsigned short m_pointIndex;
     unsigned short m_selectedPointIndex;
+    unsigned short m_walkPointIndex;
     unsigned short m_medianPointIndex;
     unsigned short m_selectedMedianPointIndex;
 };

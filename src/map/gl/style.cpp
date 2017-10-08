@@ -1516,27 +1516,32 @@ CPLJSONObject MarkerLocationStyle::save() const
 // SimpleEditPointStyle
 //------------------------------------------------------------------------------
 
-// TODO: set colors
+// Set default colors
 constexpr ngsRGBA fillColor = {37, 92, 148, 255};
 constexpr ngsRGBA selectedFillColor = {40, 215, 215, 255};
 constexpr ngsRGBA lineColor = {0, 128, 128, 255};
 constexpr ngsRGBA selectedLineColor = {64, 192, 0, 255};
 constexpr ngsRGBA medianPointColor = {224, 64, 255, 255};
 constexpr ngsRGBA selectedMedianPointColor = {255, 128, 64, 255};
+constexpr ngsRGBA walkPointColor = {128, 0, 255, 255};
 constexpr ngsRGBA pointColor = {0, 0, 255, 255};
 constexpr ngsRGBA selectedPointColor = {255, 0, 0, 255};
 
 void SimpleEditPointStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
-        case EET_POINT:
-            return setColor(pointColor);
-        case EET_SELECTED_POINT:
-            return setColor(selectedPointColor);
-        case EET_MEDIAN_POINT:
-            return setColor(medianPointColor);
-        case EET_SELECTED_MEDIAN_POINT:
-            return setColor(selectedMedianPointColor);
+    case EET_POINT:
+        return setColor(pointColor);
+    case EET_SELECTED_POINT:
+        return setColor(selectedPointColor);
+    case EET_WALK_POINT:
+        return setColor(walkPointColor);
+    case EET_MEDIAN_POINT:
+        return setColor(medianPointColor);
+    case EET_SELECTED_MEDIAN_POINT:
+        return setColor(selectedMedianPointColor);
+    default:
+        break;
     }
 }
 
@@ -1547,6 +1552,7 @@ MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas) :
     MarkerStyle(textureAtlas),
     m_pointIndex(0),
     m_selectedPointIndex(0),
+    m_walkPointIndex(0),
     m_medianPointIndex(0),
     m_selectedMedianPointIndex(0)
 {
@@ -1556,14 +1562,18 @@ MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas) :
 void MarkerEditPointStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
-        case EET_POINT:
-            return setIndex(m_pointIndex);
-        case EET_SELECTED_POINT:
-            return setIndex(m_selectedPointIndex);
-        case EET_MEDIAN_POINT:
-            return setIndex(m_medianPointIndex);
-        case EET_SELECTED_MEDIAN_POINT:
-            return setIndex(m_selectedMedianPointIndex);
+    case EET_POINT:
+        return setIndex(m_pointIndex);
+    case EET_SELECTED_POINT:
+        return setIndex(m_selectedPointIndex);
+    case EET_WALK_POINT:
+        return setIndex(m_walkPointIndex);
+    case EET_MEDIAN_POINT:
+        return setIndex(m_medianPointIndex);
+    case EET_SELECTED_MEDIAN_POINT:
+        return setIndex(m_selectedMedianPointIndex);
+    default:
+        break;
     }
 }
 
@@ -1574,8 +1584,8 @@ void MarkerEditPointStyle::setIndex(unsigned short index)
     unsigned char line = static_cast<unsigned char>(index / iconsInLine);
     unsigned char iconInLine =
             static_cast<unsigned char>(index - line * iconsInLine);
-    unsigned char w = iconInLine * m_iconWidth;
-    unsigned char h = line * m_iconHeight;
+    unsigned short w = iconInLine * m_iconWidth;
+    unsigned short h = line * m_iconHeight;
 
     m_ulx = float(w + m_iconWidth) / atlasItemSize;
     m_uly = float(h + m_iconHeight) / atlasItemSize;
@@ -1591,6 +1601,8 @@ bool MarkerEditPointStyle::load(const CPLJSONObject& store)
     m_pointIndex = static_cast<unsigned short>(store.GetInteger("point_index", 0));
     m_selectedPointIndex = static_cast<unsigned short>(
             store.GetInteger("selected_point_index", 0));
+    m_walkPointIndex = static_cast<unsigned short>(
+            store.GetInteger("walk_point_index", 0));
     m_medianPointIndex = static_cast<unsigned short>(
             store.GetInteger("median_point_index", 0));
     m_selectedMedianPointIndex = static_cast<unsigned short>(
@@ -1605,6 +1617,7 @@ CPLJSONObject MarkerEditPointStyle::save() const
     CPLJSONObject out = MarkerStyle::save();
     out.Add("point_index", m_pointIndex);
     out.Add("selected_point_index", m_selectedPointIndex);
+    out.Add("walk_point_index", m_walkPointIndex);
     out.Add("median_point_index", m_medianPointIndex);
     out.Add("selected_median_point_index", m_selectedMedianPointIndex);
     return out;
@@ -1625,10 +1638,12 @@ EditLineStyle::EditLineStyle() : SimpleLineStyle()
 void EditLineStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
-        case EET_LINE:
-            return setColor(m_lineColor);
-        case EET_SELECTED_LINE:
-            return setColor(m_selectedLineColor);
+    case EET_LINE:
+        return setColor(m_lineColor);
+    case EET_SELECTED_LINE:
+        return setColor(m_selectedLineColor);
+    default:
+        break;
     }
 }
 
@@ -1637,11 +1652,10 @@ bool EditLineStyle::load(const CPLJSONObject& store)
     if(!SimpleLineStyle::load(store))
         return false;
 
-    m_lineColor = ngsHEX2RGBA(
-                store.GetString("line_color", ngsRGBA2HEX(m_lineColor)));
-    m_selectedLineColor = ngsHEX2RGBA(
-                store.GetString("selected_line_color",
-                                ngsRGBA2HEX(m_selectedLineColor)));
+    m_lineColor = ngsHEX2RGBA(store.GetString("line_color",
+                                              ngsRGBA2HEX(m_lineColor)));
+    m_selectedLineColor = ngsHEX2RGBA(store.GetString("selected_line_color",
+                                              ngsRGBA2HEX(m_selectedLineColor)));
 
     setEditElementType(EET_LINE);
     return true;
@@ -1656,7 +1670,7 @@ CPLJSONObject EditLineStyle::save() const
 }
 
 //------------------------------------------------------------------------------
-// EditPolygonStyle
+// EditFillStyle
 //------------------------------------------------------------------------------
 
 EditFillStyle::EditFillStyle() : SimpleFillStyle()
@@ -1669,10 +1683,12 @@ EditFillStyle::EditFillStyle() : SimpleFillStyle()
 void EditFillStyle::setEditElementType(enum ngsEditElementType type)
 {
     switch(type) {
-        case EET_POLYGON:
-            return setColor(m_fillColor);
-        case EET_SELECTED_POLYGON:
-            return setColor(m_selectedFillColor);
+    case EET_POLYGON:
+        return setColor(m_fillColor);
+    case EET_SELECTED_POLYGON:
+        return setColor(m_selectedFillColor);
+    default:
+        break;
     }
 }
 
@@ -1681,11 +1697,10 @@ bool EditFillStyle::load(const CPLJSONObject& store)
     if(!SimpleFillStyle::load(store))
         return false;
 
-    m_fillColor = ngsHEX2RGBA(
-                store.GetString("fill_color", ngsRGBA2HEX(m_fillColor)));
-    m_selectedFillColor = ngsHEX2RGBA(
-                store.GetString("selected_fill_color",
-                                ngsRGBA2HEX(m_selectedFillColor)));
+    m_fillColor = ngsHEX2RGBA(store.GetString("fill_color",
+                                              ngsRGBA2HEX(m_fillColor)));
+    m_selectedFillColor = ngsHEX2RGBA(store.GetString("selected_fill_color",
+                                              ngsRGBA2HEX(m_selectedFillColor)));
 
     setEditElementType(EET_POLYGON);
     return true;

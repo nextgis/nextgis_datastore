@@ -2826,7 +2826,7 @@ char** ngsOverlayGetOptions(unsigned char mapId, enum ngsMapOverlayType type)
         errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return nullptr;
     }
-    Options option = overlay->getOptions();
+    Options option = overlay->options();
     if(option.empty()) {
         return nullptr;
     }
@@ -2911,8 +2911,8 @@ int ngsEditOverlayCancel(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayCreateGeometryInLayer(
-        unsigned char mapId, LayerH layer, char empty)
+int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer,
+                                        char empty)
 {
     if(!layer) {
         return errorMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
@@ -2928,7 +2928,7 @@ int ngsEditOverlayCreateGeometryInLayer(
     if(nullptr == editOverlay) {
         return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
     }
-    if(!editOverlay->createGeometry(datasource, empty)) {
+    if(!editOverlay->createGeometry(datasource, empty == 1)) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
     }
     return COD_SUCCESS;
@@ -3061,6 +3061,26 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
         return errorMessage(COD_INSERT_FAILED, _("Geometry part adding is failed"));
     }
     return COD_SUCCESS;
+}
+
+void ngsEditOverlaySetWalkingMode(unsigned char mapId, char enable)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        errorMessage(_("Failed to get edit overlay"));
+        return;
+    }
+    editOverlay->setWalkingMode(enable == 1);
+}
+
+char ngsEditOverlayGetWalkingMode(unsigned char mapId)
+{
+    EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
+    if(nullptr == editOverlay) {
+        errorMessage(_("Failed to get edit overlay"));
+        return 0;
+    }
+    return editOverlay->isWalkingMode() ? 1 : 0;
 }
 
 /**

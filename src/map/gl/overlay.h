@@ -23,12 +23,13 @@
 #ifndef NGSGLOVERLAY_H
 #define NGSGLOVERLAY_H
 
+#include "layer.h"
+
 // stl
 #include <functional>
 #include <map>
 #include <memory>
 
-#include "layer.h"
 #include "map/overlay.h"
 #include "ngstore/codes.h"
 
@@ -95,23 +96,17 @@ private:
     using GetPolygonFunc = std::function<const OGRPolygon*(int index)>;
     using IsSelectedGeometryFunc = std::function<bool(int index)>;
 
-    void fillPointElements(int numPoints,
-            GetPointFunc getPointFunc,
-            IsSelectedGeometryFunc isSelectedPointFunc);
-    void fillMedianPointElements(int numPoints,
-            GetPointFunc getPointFunc,
-            IsSelectedGeometryFunc isSelectedMedianPointFunc);
-    void fillLineElements(int numLines,
-            GetLineFunc getLineFunc,
-            IsSelectedGeometryFunc isSelectedLineFunc,
-            bool addToBuffer = false);
-    void fillLineBuffers(
-            const OGRLineString* line, VectorGlObject* bufferArray);
-    void fillPolygonElements(int numPolygons,
-            GetPolygonFunc getPolygonFunc,
-            IsSelectedGeometryFunc isSelectedPolygonFunc);
-    void fillPolygonBuffers(
-            const OGRPolygon* polygon, VectorGlObject* bufferArray);
+    void fillPointElements(int numPoints, GetPointFunc getPointFunc,
+                           IsSelectedGeometryFunc isSelectedPointFunc);
+    void fillMedianPointElements(int numPoints, GetPointFunc getPointFunc,
+                                 IsSelectedGeometryFunc isSelectedMedianPointFunc);
+    void fillLineElements(int numLines, GetLineFunc getLineFunc,
+                          IsSelectedGeometryFunc isSelectedLineFunc,
+                          bool addToBuffer = false);
+    void fillLineBuffers(const OGRLineString* line, VectorGlObject* bufferArray);
+    void fillPolygonElements(int numPolygons, GetPolygonFunc getPolygonFunc,
+                             IsSelectedGeometryFunc isSelectedPolygonFunc);
+    void fillPolygonBuffers(const OGRPolygon* polygon, VectorGlObject* bufferArray);
     void fillCrossElement();
 
 private:

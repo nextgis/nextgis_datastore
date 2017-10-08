@@ -459,6 +459,9 @@ NGS_EXTERNC int ngsEditOverlaySetStyleName(unsigned char mapId,
                                            const char* name);
 NGS_EXTERNC JsonObjectH ngsEditOverlayGetStyle(unsigned char mapId,
                                                enum ngsEditStyleType type);
+NGS_EXTERNC void ngsEditOverlaySetWalkingMode(unsigned char mapId, char enable);
+NGS_EXTERNC char ngsEditOverlayGetWalkingMode(unsigned char mapId);
+
 /* Location */
 NGS_EXTERNC int ngsLocationOverlayUpdate(unsigned char mapId,
                                          ngsCoordinate location,
