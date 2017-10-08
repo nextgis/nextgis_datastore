@@ -1362,21 +1362,22 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
 FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
     FeaturePtr feature = table->createFeature();
-    if(feature)
+    if(feature) {
         return new FeaturePtr(feature);
+    }
     return nullptr;
 }
 
 int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
@@ -1389,7 +1390,7 @@ int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
 int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
@@ -1402,7 +1403,7 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)
 int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
@@ -1412,7 +1413,7 @@ int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id)
 int ngsFeatureClassDeleteFeatures(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
@@ -1422,7 +1423,7 @@ int ngsFeatureClassDeleteFeatures(CatalogObjectH object)
 long long ngsFeatureClassCount(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return 0;
     }
@@ -1433,7 +1434,7 @@ long long ngsFeatureClassCount(CatalogObjectH object)
 void ngsFeatureClassResetReading(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return;
     }
@@ -1443,7 +1444,7 @@ void ngsFeatureClassResetReading(CatalogObjectH object)
 FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
@@ -1457,7 +1458,7 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
 {
     Table* table = getTableFromHandle(object);
-    if(!table) {
+    if(nullptr == table) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
@@ -1472,7 +1473,7 @@ int ngsFeatureClassSetFilter(CatalogObjectH object, GeometryH geometryFilter,
                                          const char* attributeFilter)
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    if(nullptr == featureClass) {
         return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
     }
     featureClass->setAttributeFilter(attributeFilter);
@@ -1490,7 +1491,7 @@ int ngsFeatureClassSetSpatialFilter(CatalogObjectH object, double minX,
                                     double minY, double maxX, double maxY)
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
-    if(!featureClass) {
+    if(nullptr == featureClass) {
         return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
     }
     featureClass->setSpatialFilter(minX, minY, maxX, maxY);

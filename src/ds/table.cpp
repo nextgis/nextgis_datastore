@@ -117,7 +117,7 @@ FeaturePtr Table::createFeature() const
     if(nullptr == m_layer)
         return FeaturePtr();
 
-    OGRFeature* pFeature = OGRFeature::CreateFeature( m_layer->GetLayerDefn() );
+    OGRFeature* pFeature = OGRFeature::CreateFeature(m_layer->GetLayerDefn());
     if (nullptr == pFeature)
         return FeaturePtr();
 
@@ -145,7 +145,9 @@ bool Table::insertFeature(const FeaturePtr &feature)
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
         Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
         if(dataset && !dataset->isBatchOperation()) {
-            Notify::instance().onNotify(fullName(),
+            Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
+                                                   fullName().c_str(),
+                                                   feature->GetFID()),
                                     ngsChangeCode::CC_CREATE_FEATURE);
         }
         return true;
@@ -161,7 +163,9 @@ bool Table::updateFeature(const FeaturePtr &feature)
 
     CPLErrorReset();
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
-        Notify::instance().onNotify(fullName(),
+        Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
+                                               fullName().c_str(),
+                                               feature->GetFID()),
                                     ngsChangeCode::CC_CHANGE_FEATURE);
         return true;
     }
@@ -177,7 +181,9 @@ bool Table::deleteFeature(GIntBig id)
     CPLErrorReset();
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         deleteAttachments(id);
-        Notify::instance().onNotify(fullName(),
+        Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
+                                               fullName().c_str(),
+                                               id),
                                     ngsChangeCode::CC_DELETE_FEATURE);
         return true;
     }
@@ -371,7 +377,7 @@ void Table::fillFields()
 
             CPLString alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
             if(alias.empty()) {
-                CPLStrlcpy(fieldDesc.m_alias, fieldDefn->GetNameRef(), 255);
+                CPLStrlcpy(fieldDesc.m_alias, fieldDesc.m_name, 255);
             }
             else {
                 CPLStrlcpy(fieldDesc.m_alias, alias.c_str(), 1024);
@@ -380,7 +386,7 @@ void Table::fillFields()
 
             CPLString originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
             if(originalName.empty()) {
-                CPLStrlcpy(fieldDesc.m_alias, fieldDefn->GetNameRef(), 255);
+                CPLStrlcpy(fieldDesc.m_alias, fieldDesc.m_name, 255);
             }
             else {
                 CPLStrlcpy(fieldDesc.m_originalName, originalName.c_str(), 255);

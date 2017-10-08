@@ -332,6 +332,8 @@ FeatureClass::FeatureClass(OGRLayer* layer,
         else {
             CPLDebug("ngstore", "GetExent failed");
         }
+
+        m_fastSpatialFilter = m_layer->TestCapability(OLCFastSpatialFilter) == 1;
     }
 
     getTilesTable();
@@ -1207,7 +1209,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     }
 
     // Tiling on the fly
-    CPLDebug("ngstore", "Tiling on the fly");
+    CPLDebug("ngstore", "Tiling on the fly in %s", m_name.c_str());
 
     // Calc grid step for zoom
     bool precisePixelSize = !(OGR_GT_Flatten(geometryType()) == wkbPoint ||
@@ -1216,14 +1218,12 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     float step = static_cast<float>(pixelSize(tile.z, precisePixelSize));
 
     std::vector<FeaturePtr> features;
-
-    bool spatialFilter = m_layer->TestCapability(OLCFastSpatialFilter) == 1;
     OGREnvelope extEnv;
-    if(!spatialFilter) {
+    if(!m_fastSpatialFilter) {
         extEnv = tileExtent.toOgrEnvelope();
     }
 
-    // Lock threads here
+    // Lock threads here    
     dataset->lockExecuteSql(true);
     CPLAcquireMutex(m_featureMutex, 10.5);
     setIgnoredFields(m_ignoreFields);
@@ -1232,7 +1232,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     //reset();
     FeaturePtr feature;
     while((feature = nextFeature())) {
-        if(spatialFilter) {
+        if(m_fastSpatialFilter) {
             features.push_back(feature);
         }
         else {

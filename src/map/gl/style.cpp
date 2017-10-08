@@ -184,7 +184,8 @@ CPLJSONObject SimpleVectorStyle::save() const
 //------------------------------------------------------------------------------
 PointStyle::PointStyle(enum PointType type) : SimpleVectorStyle(),
     m_type(type),
-    m_size(6.0f)
+    m_size(6.0f),
+    m_rotation(0.0f)
 {
     m_styleType = ST_POINT;
 }

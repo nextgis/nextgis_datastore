@@ -149,6 +149,18 @@ void MemoryStore::addLayer(const CPLJSONObject& layer)
     }
 
     if(object) {
+        CPLJSONObject user = layer.GetObject(KEY_USER);
+        CPLJSONObject** children = user.GetChildren();
+        if(nullptr != children) {
+            int counter = 0;
+            CPLJSONObject* child = nullptr;
+            while((child = children[counter++]) != nullptr) {
+                object->setMetadataItem(child->GetName(), child->GetString(""),
+                                      KEY_USER);
+            }
+            CPLJSONObject::DestroyJSONObjectList(children);
+        }
+
         m_children.push_back(object);
     }
 }
@@ -216,6 +228,21 @@ bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
             CPLJSONObject layer = layers[i];
             addLayer(layer);
         }
+
+        CPLJSONObject user = root.GetObject(KEY_USER);
+        CPLJSONObject** children = user.GetChildren();
+        if(nullptr != children) {
+            int counter = 0;
+            CPLJSONObject* child = nullptr;
+            while((child = children[counter++]) != nullptr) {
+                m_DS->SetMetadataItem(child->GetName(), child->GetString(""),
+                                      KEY_USER);
+            }
+            CPLJSONObject::DestroyJSONObjectList(children);
+        }
+
+        m_addsDS = m_DS;
+        m_addsDS->Reference();
 
         m_childrenLoaded = true;
     }
@@ -319,6 +346,33 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
     addLayer(layer);
 
     return memDescriptionFile.Save(m_path);
+}
+
+bool MemoryStore::deleteFeatures(const char* name)
+{
+    if(nullptr == m_DS) {
+        return false;
+    }
+
+    OGRLayer* layer = m_DS->GetLayerByName(name);
+    if(nullptr == layer) {
+        return false;
+    }
+
+    std::set<GIntBig> ids;
+    FeaturePtr feature;
+    layer->ResetReading();
+    while((feature = layer->GetNextFeature())) {
+        ids.insert(feature->GetFID());
+    }
+
+    for(auto id : ids) {
+        if(layer->DeleteFeature(id) != OGRERR_NONE) {
+            return  false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace ngs

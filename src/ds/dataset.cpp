@@ -319,8 +319,9 @@ std::map<CPLString, CPLString> Dataset::getProperties(const char* table,
                                                       const char* domain)
 {
     std::map<CPLString, CPLString> out;
-    if(!m_metadata || nullptr == table)
+    if(nullptr == m_metadata || nullptr == table) {
         return out;
+    }
 
     CPLString name = table;
     if(nullptr != domain) {

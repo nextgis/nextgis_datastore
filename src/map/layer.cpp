@@ -71,8 +71,9 @@ FeatureLayer::FeatureLayer(Map* map, const CPLString& name) : Layer(map, name,
 
 bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
-    if(!Layer::load(store, objectContainer))
+    if(!Layer::load(store, objectContainer)) {
         return false;
+    }
 
     const char* path = store.GetString(LAYER_SOURCE_KEY, "");
     ObjectPtr fcObject;
@@ -82,12 +83,15 @@ bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectConta
         fcObject = catalog->getObject(path);
     }
     else { // relative path
+        CPLDebug("ngstore", "Layer load %s", path);
         fcObject = Catalog::fromRelativePath(path, objectContainer);
     }
 
     m_featureClass = std::dynamic_pointer_cast<FeatureClass>(fcObject);
-    if(m_featureClass)
+    if(m_featureClass) {
         return true;
+    }
+    CPLDebug("ngstore", "Layer load %s failed", path);
     return false;
 }
 

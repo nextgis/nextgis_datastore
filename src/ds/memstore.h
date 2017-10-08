@@ -46,6 +46,7 @@ public:
 public:
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
+    virtual bool deleteFeatures(const char* name) override;
 
     // ObjectContainer interface
 public:
@@ -53,6 +54,18 @@ public:
     virtual bool create(const enum ngsCatalogObjectType type, const CPLString& name,
                         const Options& options) override;
     virtual bool isReadOnly() const override;
+
+    // Dataset
+protected:
+    virtual OGRLayer* createAttachmentsTable(const char* /*name*/) override {
+        return nullptr;
+    }
+    virtual bool destroyAttachmentsTable(const char* /*name*/) override {
+        return true;
+    }
+    virtual OGRLayer* getAttachmentsTable(const char* /*name*/) override {
+        return nullptr;
+    }
 
 protected:
     virtual bool isNameValid(const char* name) const override;

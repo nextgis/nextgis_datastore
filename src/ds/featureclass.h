@@ -199,6 +199,7 @@ protected:
     CPLMutex* m_genTileMutex;
     std::vector<const char*> m_ignoreFields;
     Envelope m_extent;
+    bool m_fastSpatialFilter;
 
 private:
     class TilingData : public ThreadData {
