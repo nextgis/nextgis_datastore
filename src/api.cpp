@@ -3007,8 +3007,7 @@ int ngsEditOverlayAddPoint(unsigned char mapId)
     return editOverlay->addPoint() ? COD_SUCCESS : COD_INSERT_FAILED;
 }
 
-NGS_EXTERNC int ngsEditOverlayAddVertex(unsigned char mapId,
-                                        ngsCoordinate coordinates)
+int ngsEditOverlayAddVertex(unsigned char mapId, ngsCoordinate coordinates)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
