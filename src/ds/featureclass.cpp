@@ -1023,6 +1023,7 @@ bool FeatureClass::setTileFeature(FeaturePtr tile)
         return false;
     }
 
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_ovrTable->SetFeature(tile) == OGRERR_NONE;
 }
 
@@ -1032,6 +1033,7 @@ bool FeatureClass::createTileFeature(FeaturePtr tile)
         return false;
     }
 
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_ovrTable->CreateFeature(tile) == OGRERR_NONE;
 }
 
@@ -1745,7 +1747,7 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
     extentBase.fix();
 
 
-    bool result =  Table::updateFeature(feature);
+    bool result = Table::updateFeature(feature);
 
     m_extent.merge(extentBase);
 

@@ -1384,7 +1384,7 @@ int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     return table->insertFeature(*featurePtrPointer) ? COD_SUCCESS :
-                                                             COD_INSERT_FAILED;
+                                                      COD_INSERT_FAILED;
 }
 
 int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)

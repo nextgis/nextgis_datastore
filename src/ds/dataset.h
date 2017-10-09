@@ -218,6 +218,26 @@ protected:
     Dataset* m_dataset;
 };
 
+/**
+ * @brief The DatasetExecuteSQLLockHolder class lock sql excution in dataset
+ */
+class DatasetExecuteSQLLockHolder
+{
+public:
+    DatasetExecuteSQLLockHolder(Dataset* dataset) : m_dataset(dataset) {
+        if(nullptr != m_dataset)
+            m_dataset->lockExecuteSql(true);
+    }
+
+    ~DatasetExecuteSQLLockHolder() {
+        if(nullptr != m_dataset)
+            m_dataset->lockExecuteSql(false);
+    }
+
+protected:
+    Dataset* m_dataset;
+};
+
 }
 
 #endif // NGSDATASET_H

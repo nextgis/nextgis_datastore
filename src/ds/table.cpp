@@ -142,8 +142,9 @@ bool Table::insertFeature(const FeaturePtr &feature)
         return false;
 
     CPLErrorReset();
+    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
-        Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
         if(dataset && !dataset->isBatchOperation()) {
             Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                    fullName().c_str(),
@@ -162,6 +163,7 @@ bool Table::updateFeature(const FeaturePtr &feature)
         return false;
 
     CPLErrorReset();
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
         Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                fullName().c_str(),
@@ -179,6 +181,7 @@ bool Table::deleteFeature(GIntBig id)
         return false;
 
     CPLErrorReset();
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         deleteAttachments(id);
         Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
