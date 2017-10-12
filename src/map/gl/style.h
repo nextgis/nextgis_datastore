@@ -215,6 +215,7 @@ public:
     virtual const char* name() const override { return "primitivePoint"; }
 
 protected:
+    void setStarType();
     void setStarPoints(float startTheta, int numPoints, int skip);
     unsigned short addStarPoint(const SimplePoint& pt,
             float z,
@@ -515,11 +516,11 @@ public:
 // SimpleEditPointStyle
 //------------------------------------------------------------------------------
 
-class SimpleEditPointStyle : public SimplePointStyle, public EditPointStyle
+class SimpleEditPointStyle : public PrimitivePointStyle, public EditPointStyle
 {
 public:
-    explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE) :
-        SimplePointStyle(type) {}
+    explicit SimpleEditPointStyle(enum PointType type = PT_STAR) :
+        PrimitivePointStyle(type) {}
     virtual ~SimpleEditPointStyle() = default;
 
     // EditPointStyle interface

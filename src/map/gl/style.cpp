@@ -816,15 +816,14 @@ PrimitivePointStyle::PrimitivePointStyle(enum PointType type) : PointStyle(type)
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
     m_styleType = ST_POINT;
+
+    setStarType();
 }
 
 void PrimitivePointStyle::setType(enum PointType type)
 {
     PointStyle::setType(type);
-
-    if(pointType() == PT_STAR) {
-        setStarPoints(M_PI_F / 2, 5, 2);
-    }
+    setStarType();
 }
 
 unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
@@ -1022,7 +1021,7 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
         }
         break;
     case PT_STAR:
-        index += addStarPoint(pt, z, index, buffer);
+        index = addStarPoint(pt, z, index, buffer);
         break;
     default:
         break;
@@ -1030,11 +1029,20 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
     return index;
 }
 
+void PrimitivePointStyle::setStarType()
+{
+    if(pointType() == PT_STAR) {
+        setStarPoints(M_PI_F / 2, 5, 2);
+    } else if (m_starPoints.size() > 0) {
+        m_starPoints.clear();
+    }
+}
+
 void PrimitivePointStyle::setStarPoints(
         float startTheta, int numPoints, int skip)
 {
     m_starPoints = getStarTriangles(
-            SimplePoint({0, 0}), 2.0f, startTheta, numPoints, skip);
+            SimplePoint({0, 0}), 1.0f, startTheta, numPoints, skip);
 }
 
 unsigned short PrimitivePointStyle::addStarPoint(
