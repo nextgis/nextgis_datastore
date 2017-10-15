@@ -203,17 +203,24 @@ void VectorTileItem::loadIds(const VectorTileItem &item)
 
 bool VectorTileItem::isIdsPresent(const std::set<GIntBig> &other, bool full) const
 {
-    if(other.empty())
+    if(other.empty()) {
         return false;
-
+    }
     if(full) {
-        return std::includes(other.begin(), other.end(),
+        return  std::includes(other.begin(), other.end(),
                              m_ids.begin(), m_ids.end());
     }
     else {
-        return std::search(other.begin(), other.end(),
-                           m_ids.begin(), m_ids.end()) != other.end();
+        for(auto id : other) {
+            if(m_ids.find(id) != m_ids.end()) {
+                return true;
+            }
+        }
+//        result = std::search(other.begin(), other.end(),
+//                           m_ids.begin(), m_ids.end()) != other.end();
     }
+
+    return false;
 }
 std::set<GIntBig> VectorTileItem::idsIntesect(const std::set<GIntBig> &other) const
 {
@@ -1136,6 +1143,8 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
     // Save tiles
     parentDS->startBatchOperation();
+
+    CPLMutexHolder holder(m_genTileMutex);
 
     double counter = 0.0;
     newProgress.setStep(1);

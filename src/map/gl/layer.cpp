@@ -543,7 +543,6 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile& tile,
     unsigned short drawIndex = 0;
     unsigned short selectIndex = 0;
 
-
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
         if(tileItem.isIdsPresent(m_skipFIDs, true)) {
