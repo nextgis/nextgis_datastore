@@ -389,7 +389,7 @@ void Table::fillFields()
 
             CPLString originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
             if(originalName.empty()) {
-                CPLStrlcpy(fieldDesc.m_alias, fieldDesc.m_name, 255);
+                CPLStrlcpy(fieldDesc.m_originalName, fieldDefn->GetNameRef(), 255);
             }
             else {
                 CPLStrlcpy(fieldDesc.m_originalName, originalName.c_str(), 255);

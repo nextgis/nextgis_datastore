@@ -305,6 +305,18 @@ bool VectorTile::load(Buffer& buffer)
     return true;
 }
 
+bool VectorTile::empty() const
+{
+    if(!m_items.empty()) {
+        for(auto item : m_items) {
+            if(item.pointCount() > 0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 //------------------------------------------------------------------------------
 // FeatureClass
 //------------------------------------------------------------------------------
@@ -315,7 +327,8 @@ FeatureClass::FeatureClass(OGRLayer* layer,
                            const CPLString &name) :
     Table(layer, parent, type, name),
     m_ovrTable(nullptr),
-    m_genTileMutex(CPLCreateMutex())
+    m_genTileMutex(CPLCreateMutex()),
+    m_creatingOvr(false)
 {
     CPLReleaseMutex(m_genTileMutex);
 
@@ -990,8 +1003,6 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
-    CPLMutexHolder holder(m_genTileMutex);
-
     Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
     if(nullptr != parentDS) {
         parentDS->lockExecuteSql(true);
@@ -1079,6 +1090,7 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
 
 int FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
+    CPLDebug("ngstore", "start create overviews");
     m_genTiles.clear();
     bool force = options.boolOption("FORCE", false);
     if(!force && hasOverviews()) {
@@ -1122,6 +1134,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                         _("Start tiling and simplifying geometry"));
 
     // Multithreaded thread pool
+    CPLDebug("ngstore", "fill pool create overviews");
     ThreadPool threadPool;
     threadPool.init(getNumberThreads(), tilingDataJobThreadFunc);
     setIgnoredFields(m_ignoreFields);
@@ -1135,6 +1148,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
     Progress newProgress(progress);
     newProgress.setTotalSteps(2);
+    newProgress.setStep(0);
     threadPool.waitComplete(newProgress);
     threadPool.clearThreadData();
 
@@ -1142,14 +1156,14 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
     reset();
 
     // Save tiles
+    m_creatingOvr = true;
     parentDS->startBatchOperation();
 
-    CPLMutexHolder holder(m_genTileMutex);
-
+    CPLDebug("ngstore", "finish create overviews");
     double counter = 0.0;
     newProgress.setStep(1);
     for(auto item : m_genTiles) {
-        if(!item.second.isValid()) {
+        if(!item.second.isValid() || item.second.empty()) {
             continue;
         }
         BufferPtr data = item.second.save();
@@ -1162,6 +1176,8 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         newFeature->SetField(OVR_Y_KEY, item.first.y);
         newFeature->SetField(newFeature->GetFieldIndex(OVR_TILE_KEY), data->size(),
                           data->data());
+
+        CPLDebug("ngstore", "Tile size to store %d", data->size());
 
         if(m_ovrTable->CreateFeature(newFeature) != OGRERR_NONE) {
             errorMessage(COD_INSERT_FAILED, _("Failed to create feature"));
@@ -1177,9 +1193,12 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
 
     // Create index
     parentDS->createOverviewsTableIndex(name());
+    m_creatingOvr = false;
 
     progress.onProgress(COD_FINISHED, 1.0,
                         _("Finish tiling and simplifying geometry"));
+
+    CPLDebug("ngstore", "finish create overviews");
     return COD_SUCCESS;
 }
 
@@ -1187,7 +1206,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 {
     VectorTile vtile;
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset) {
+    if(nullptr == dataset || m_creatingOvr) {
         return vtile;
     }
 
@@ -1197,20 +1216,20 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
 
     if(hasOverviews()) {
         if(tile.z <= *m_zoomLevels.rbegin()) {
-
-            // Get closest zoom level
-            unsigned char diff = 127;
-            unsigned char z = 0;
-            for(auto zoomLevel : m_zoomLevels) {
-                unsigned char newDiff = static_cast<unsigned char>(
-                            ABS(zoomLevel - tile.z));
-                if(newDiff < diff) {
-                    z = zoomLevel;
-                    diff = newDiff;
-                    if(diff == 0)
-                        break;
-                }
-            }
+//
+//            // Get closest zoom level
+//            unsigned char diff = 127;
+//            unsigned char z = 0;
+//            for(auto zoomLevel : m_zoomLevels) {
+//                unsigned char newDiff = static_cast<unsigned char>(
+//                            ABS(zoomLevel - tile.z));
+//                if(newDiff < diff) {
+//                    z = zoomLevel;
+//                    diff = newDiff;
+//                    if(diff == 0)
+//                        break;
+//                }
+//            }
 
             vtile = getTileInternal(tile);
 //            if(vtile.isValid()) {

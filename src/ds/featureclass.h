@@ -95,7 +95,7 @@ public:
     VectorTileItemArray items() const {
         return m_items;
     }
-    bool empty() { return m_items.empty(); }
+    bool empty() const;
 
     bool isValid() const { return m_valid; }
 private:
@@ -200,6 +200,7 @@ protected:
     std::vector<const char*> m_ignoreFields;
     Envelope m_extent;
     bool m_fastSpatialFilter;
+    bool m_creatingOvr;
 
 private:
     class TilingData : public ThreadData {
