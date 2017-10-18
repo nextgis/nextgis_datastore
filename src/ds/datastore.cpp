@@ -283,12 +283,12 @@ Table* DataStore::createTable(const CPLString& name,
 
 bool DataStore::setProperty(const char* key, const char* value)
 {
-    return m_DS->SetMetadataItem(key, value, KEY_NG_ADDITIONS) == OGRERR_NONE;
+    return m_DS->SetMetadataItem(key, value, NG_ADDITIONS_KEY) == OGRERR_NONE;
 }
 
 CPLString DataStore::property(const char* key, const char* defaultValue)
 {
-    const char* out = m_DS->GetMetadataItem(key, KEY_NG_ADDITIONS);
+    const char* out = m_DS->GetMetadataItem(key, NG_ADDITIONS_KEY);
     return nullptr == out ? defaultValue : out;
 }
 
@@ -297,7 +297,7 @@ std::map<CPLString, CPLString> DataStore::getProperties(const char* table, const
     ObjectPtr child = getChild(table);
     Table* tablePtr = ngsDynamicCast(Table, child);
     if(nullptr != tablePtr) // TODO: Fix infinity loop for table
-        return tablePtr->getProperties(domain);
+        return tablePtr->properties(domain);
     return std::map<CPLString, CPLString>();
 }
 
@@ -376,15 +376,15 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
 
     // Store aliases and field original names in properties
     for(size_t i = 0; i < fields.size(); ++i) {
-        table->setProperty(CPLSPrintf("FIELD_%ld_NAME", i), fields[i].name, KEY_NG_ADDITIONS);
-        table->setProperty(CPLSPrintf("FIELD_%ld_ALIAS", i), fields[i].alias, KEY_NG_ADDITIONS);
+        table->setProperty(CPLSPrintf("FIELD_%ld_NAME", i), fields[i].name, NG_ADDITIONS_KEY);
+        table->setProperty(CPLSPrintf("FIELD_%ld_ALIAS", i), fields[i].alias, NG_ADDITIONS_KEY);
     }
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
+        if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
             table->setProperty(CPLSPrintf("%s",
-                                       it->first.c_str() + KEY_USER_PREFIX_LEN),
-                                       it->second, KEY_USER);
+                                       it->first.c_str() + USER_PREFIX_KEY_LEN),
+                                       it->second, USER_KEY);
         }
     }
 

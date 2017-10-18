@@ -176,11 +176,11 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.Add(KEY_BAND_COUNT, options.intOption(KEY_BAND_COUNT, 4));
         CPLJSONObject user;
         for(auto it = options.begin(); it != options.end(); ++it) {
-            if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
-                user.Add(it->first.c_str() + KEY_USER_PREFIX_LEN, it->second);
+            if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+                user.Add(it->first.c_str() + USER_PREFIX_KEY_LEN, it->second);
             }
         }
-        root.Add(KEY_USER, user);
+        root.Add(USER_KEY, user);
 
         const char* newPath = CPLResetExtension(path,
                                     remoteConnectionExtension());

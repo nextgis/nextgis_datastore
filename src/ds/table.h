@@ -103,11 +103,11 @@ public:
     virtual bool deleteAttachments(GIntBig fid);
     virtual bool updateAttachment(GIntBig aid, const char* fileName,
                           const char* description);
-    virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid);
+    virtual std::vector<AttachmentInfo> attachments(GIntBig fid);
     virtual bool setProperty(const char* key, const char* value, const char* domain);
-    virtual CPLString getProperty(const char* key, const char* defaultValue,
+    virtual CPLString property(const char* key, const char* defaultValue,
                                   const char* domain);
-    virtual std::map<CPLString, CPLString> getProperties(const char* domain);
+    virtual std::map<CPLString, CPLString> properties(const char* domain);
     virtual void deleteProperties();
 
     // Object interface
@@ -122,13 +122,16 @@ public:
 
 protected:
     OGRFeatureDefn* definition() const;
-    bool getAttachmentsTable();
+    bool initAttachmentsTable();
+    bool initEditHistoryTable();
     CPLString getAttachmentsPath() const;
     virtual void fillFields();
 
 protected:
     OGRLayer* m_layer;
     OGRLayer* m_attTable;
+    OGRLayer* m_editHistoryTable;
+    bool m_saveEditHistory;
     std::vector<Field> m_fields;
     CPLMutex* m_featureMutex;
 };

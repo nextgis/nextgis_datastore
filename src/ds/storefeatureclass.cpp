@@ -26,7 +26,7 @@
 
 namespace ngs {
 
-std::map<CPLString, CPLString> propMapFromList(char** list)
+static std::map<CPLString, CPLString> propMapFromList(char** list)
 {
     std::map<CPLString, CPLString> out;
     if(nullptr != list) {
@@ -49,6 +49,35 @@ std::map<CPLString, CPLString> propMapFromList(char** list)
     return out;
 }
 
+static FeaturePtr GetFeatureByRemoteId(GIntBig rid, const Table* table, OGRLayer* layer)
+{
+    Dataset* dataset = dynamic_cast<Dataset*>(table->parent());
+    DatasetExecuteSQLLockHolder holder(dataset);
+    layer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, REMOTE_ID_KEY, rid));
+    //    m_layer->ResetReading();
+    OGRFeature* pFeature = layer->GetNextFeature();
+    FeaturePtr out;
+    if (nullptr != pFeature) {
+        out = FeaturePtr(pFeature, table);
+    }
+    layer->SetAttributeFilter(nullptr);
+    return out;
+}
+
+static bool SetFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid, Table* table,
+                                         OGRLayer* layer)
+{
+    Dataset* dataset = dynamic_cast<Dataset*>(table->parent());
+    DatasetExecuteSQLLockHolder holder(dataset);
+    FeaturePtr attFeature = layer->GetFeature(aid);
+    if(!attFeature) {
+        return false;
+    }
+
+    attFeature->SetField(REMOTE_ID_KEY, rid);
+    return layer->SetFeature(attFeature) == OGRERR_NONE;
+}
+
 //------------------------------------------------------------------------------
 // StoreTable
 //------------------------------------------------------------------------------
@@ -60,31 +89,16 @@ StoreTable::StoreTable(OGRLayer* layer, ObjectContainer* const parent,
 
 FeaturePtr StoreTable::getFeatureByRemoteId(GIntBig rid) const
 {
-    CPLMutexHolder holder(m_featureMutex);
-    m_layer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, REMOTE_ID_KEY, rid));
-//    m_layer->ResetReading();
-    OGRFeature* pFeature = m_layer->GetNextFeature();
-    FeaturePtr out;
-    if (nullptr != pFeature) {
-        out = FeaturePtr(pFeature, this);
-    }
-    m_layer->SetAttributeFilter(nullptr);
-    return out;
+    return GetFeatureByRemoteId(rid, this, m_layer);
 }
 
 bool StoreTable::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return false;
     }
 
-    FeaturePtr attFeature = m_attTable->GetFeature(aid);
-    if(!attFeature) {
-        return false;
-    }
-
-    attFeature->SetField(REMOTE_ID_KEY, rid);
-    return m_attTable->SetFeature(attFeature) == OGRERR_NONE;
+    return SetFeatureAttachmentRemoteId(aid, rid, this, m_attTable);
 }
 
 void StoreTable::setRemoteId(FeaturePtr feature, GIntBig rid)
@@ -106,11 +120,11 @@ void StoreTable::fillFields()
     }
 }
 
-std::vector<Table::AttachmentInfo> StoreTable::getAttachments(GIntBig fid)
+std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid)
 {
     std::vector<AttachmentInfo> out;
 
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return out;
     }
 
@@ -152,7 +166,7 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
                              const char* description, const char* filePath,
                              char** options)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
     bool move = CPLFetchBool(options, "MOVE", false);
@@ -202,14 +216,14 @@ bool StoreTable::setProperty(const char* key, const char* value,
     return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
 }
 
-CPLString StoreTable::getProperty(const char* key, const char* defaultValue,
+CPLString StoreTable::property(const char* key, const char* defaultValue,
                                          const char* domain)
 {
     const char* item = m_layer->GetMetadataItem(key, domain);
     return item != nullptr ? item : defaultValue;
 }
 
-std::map<CPLString, CPLString> StoreTable::getProperties(const char* domain)
+std::map<CPLString, CPLString> StoreTable::properties(const char* domain)
 {
     return propMapFromList(m_layer->GetMetadata(domain));
 }
@@ -235,32 +249,16 @@ StoreFeatureClass::StoreFeatureClass(OGRLayer* layer,
 
 FeaturePtr StoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
 {
-    CPLDebug("ngstore", __FUNCTION__);
-    CPLMutexHolder holder(m_featureMutex);
-    m_layer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, REMOTE_ID_KEY, rid));
-//    m_layer->ResetReading();
-    OGRFeature* pFeature = m_layer->GetNextFeature();
-    FeaturePtr out;
-    if (nullptr != pFeature) {
-        out = FeaturePtr(pFeature, this);
-    }
-    m_layer->SetAttributeFilter(nullptr);
-    return out;
+    return GetFeatureByRemoteId(rid, this, m_layer);
 }
 
 bool StoreFeatureClass::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return false;
     }
 
-    FeaturePtr attFeature = m_attTable->GetFeature(aid);
-    if(!attFeature) {
-        return false;
-    }
-
-    attFeature->SetField(REMOTE_ID_KEY, rid);
-    return m_attTable->SetFeature(attFeature) == OGRERR_NONE;
+    return SetFeatureAttachmentRemoteId(aid, rid, this, m_attTable);
 }
 
 void StoreFeatureClass::fillFields()
@@ -272,11 +270,11 @@ void StoreFeatureClass::fillFields()
     }
 }
 
-std::vector<Table::AttachmentInfo> StoreFeatureClass::getAttachments(GIntBig fid)
+std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid)
 {
     std::vector<AttachmentInfo> out;
 
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return out;
     }
 
@@ -318,7 +316,7 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
                              const char* description, const char* filePath,
                              char** options)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
     bool move = CPLFetchBool(options, "MOVE", false);
@@ -368,14 +366,14 @@ bool StoreFeatureClass::setProperty(const char* key, const char* value,
     return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
 }
 
-CPLString StoreFeatureClass::getProperty(const char* key, const char* defaultValue,
+CPLString StoreFeatureClass::property(const char* key, const char* defaultValue,
                                          const char* domain)
 {
     const char* item = m_layer->GetMetadataItem(key, domain);
     return item != nullptr ? item : defaultValue;
 }
 
-std::map<CPLString, CPLString> StoreFeatureClass::getProperties(const char* domain)
+std::map<CPLString, CPLString> StoreFeatureClass::properties(const char* domain)
 {
     return propMapFromList(m_layer->GetMetadata(domain));
 }

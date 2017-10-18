@@ -73,11 +73,30 @@ protected:
 };
 
 typedef std::shared_ptr<Layer> LayerPtr;
+typedef std::set<GIntBig> FeatureIDs;
+
+class ISelectableFeatureLayer {
+public:
+    virtual ~ISelectableFeatureLayer() = default;
+    virtual void setSelectedIds(const FeatureIDs& selectedIds) {
+        m_selectedFIDs.clear();
+        m_selectedFIDs.insert(selectedIds.begin(), selectedIds.end());
+    }
+    virtual const FeatureIDs& selectedIds() const { return m_selectedFIDs; }
+    virtual bool hasSelectedIds() const { return !m_selectedFIDs.empty(); }
+    virtual void setHideIds(const FeatureIDs& hideIds = FeatureIDs()) {
+        m_hideFIDs.clear();
+        m_hideFIDs.insert(hideIds.begin(), hideIds.end());
+    }
+protected:
+    FeatureIDs m_selectedFIDs;
+    FeatureIDs m_hideFIDs;
+};
 
 /**
  * @brief The FeatureLayer class Layer with vector features
  */
-class FeatureLayer : public Layer
+class FeatureLayer : public Layer, public ISelectableFeatureLayer
 {
 public:
     explicit FeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);

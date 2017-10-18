@@ -371,16 +371,15 @@ bool EditLayerOverlay::editGeometry(LayerPtr layer, GIntBig featureId)
     bool useLayerParam = (layer.get());
     m_editLayer = layer;
 
-    // FIXME: Overlay know nothing about GL rendering
-    GlSelectableFeatureLayer* featureLayer = nullptr;
+    FeatureLayer* featureLayer = nullptr;
     if(m_editLayer) {
-        featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
+        featureLayer = ngsDynamicCast(FeatureLayer, m_editLayer);
     }
     else {
         int layerCount = static_cast<int>(m_map->layerCount());
         for(int i = 0; i < layerCount; ++i) {
             layer = m_map->getLayer(i);
-            featureLayer = ngsDynamicCast(GlSelectableFeatureLayer, layer);
+            featureLayer = ngsDynamicCast(FeatureLayer, layer);
             if(featureLayer && featureLayer->hasSelectedIds()) {
                 // Get selection from first layer which has selected ids.
                 m_editLayer = layer;

@@ -41,10 +41,10 @@ constexpr const char* ATTACH_FEATURE_ID = "afid";
 constexpr const char* ATTACH_FILE_NAME = "name";
 constexpr const char* ATTACH_DESCRIPTION = "descript";
 
-constexpr const char* KEY_USER = "user";
-constexpr const char* KEY_NG_ADDITIONS = "nga";
-constexpr const char* KEY_USER_PREFIX = "USER.";
-constexpr int KEY_USER_PREFIX_LEN = length(KEY_USER_PREFIX);
+constexpr const char* USER_KEY = "user";
+constexpr const char* NG_ADDITIONS_KEY = "nga";
+constexpr const char* USER_PREFIX_KEY = "USER.";
+constexpr int USER_PREFIX_KEY_LEN = length(USER_PREFIX_KEY);
 constexpr const char* NGS_VERSION_KEY = "version";
 
 constexpr const char* METHADATA_TABLE_NAME = "nga_meta";

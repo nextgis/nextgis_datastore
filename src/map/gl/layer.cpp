@@ -78,12 +78,6 @@ GlFeatureLayer::GlFeatureLayer(Map* map, const CPLString &name) :
 {
 }
 
-void GlFeatureLayer::setHideIds(const std::set<GIntBig>& hideIds)
-{
-    m_skipFIDs.clear();
-    m_skipFIDs.insert(hideIds.begin(), hideIds.end());
-}
-
 bool GlFeatureLayer::fill(GlTilePtr tile, float z, bool /*isLastTry*/)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
@@ -229,7 +223,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile, float z)
     PointStyle* style = ngsDynamicCast(PointStyle, m_style);
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(!m_skipFIDs.empty() && tileItem.isIdsPresent(m_skipFIDs)) {
+        if(!m_hideFIDs.empty() && tileItem.isIdsPresent(m_hideFIDs)) {
             ++it;
             continue;
         }
@@ -268,7 +262,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile, float z)
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(tileItem.isIdsPresent(m_skipFIDs)) {
+        if(tileItem.isIdsPresent(m_hideFIDs)) {
             ++it;
             continue;
         }
@@ -355,7 +349,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile, float z)
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(tileItem.isIdsPresent(m_skipFIDs)) {
+        if(tileItem.isIdsPresent(m_hideFIDs)) {
             ++it;
             continue;
         }
@@ -484,12 +478,6 @@ StylePtr GlSelectableFeatureLayer::selectionStyle() const
     return m_selectionStyles->at(m_style->type());
 }
 
-void GlSelectableFeatureLayer::setSelectedIds(const std::set<GIntBig>& selectedIds)
-{
-    m_selectedFIDs.clear();
-    m_selectedFIDs.insert(selectedIds.begin(), selectedIds.end());
-}
-
 bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
 {
     StylePtr style = selectionStyle();
@@ -545,7 +533,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile& tile,
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(tileItem.isIdsPresent(m_skipFIDs, true)) {
+        if(tileItem.isIdsPresent(m_hideFIDs, true)) {
             ++it;
             continue;
         }
@@ -622,7 +610,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(const VectorTile& tile,
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(tileItem.isIdsPresent(m_skipFIDs)) {
+        if(tileItem.isIdsPresent(m_hideFIDs)) {
             ++it;
             continue;
         }
@@ -791,7 +779,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
-        if(tileItem.isIdsPresent(m_skipFIDs)) {
+        if(tileItem.isIdsPresent(m_hideFIDs)) {
             ++it;
             continue;
         }

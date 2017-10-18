@@ -290,6 +290,18 @@ void ngsRemoveNotifyFunction(ngsNotifyFunc function)
     Notify::instance().deleteNotifyReceiver(function);
 }
 
+const char* ngsSettingsGetString(const char* key, const char* defaultVal)
+{
+    Settings& settings = Settings::instance();
+    return settings.getString(key, defaultVal);
+}
+
+void ngsSettingsSetString(const char* key, const char* value)
+{
+    Settings& settings = Settings::instance();
+    settings.set(key, value);
+}
+
 //------------------------------------------------------------------------------
 // GDAL proxy functions
 //------------------------------------------------------------------------------
@@ -1884,7 +1896,7 @@ ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature)
     }
 
     GIntBig fid = (*featurePtrPointer)->GetFID();
-    info = table->getAttachments(fid);
+    info = table->attachments(fid);
     ngsFeatureAttachmentInfo* out = static_cast<ngsFeatureAttachmentInfo*>(
                 CPLMalloc((info.size() + 1) * sizeof(ngsFeatureAttachmentInfo)));
     int counter = 0;

@@ -281,8 +281,6 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath
         }
     }
     else {
-        // TODO: Add support for FeatureClass/Table from SimpleDataset
-
         SimpleDataset* sdts = ngsDynamicCast(SimpleDataset, child);
         if(nullptr != sdts) {
             // Get file list and copy file one by one

@@ -40,15 +40,15 @@ public:
 
     // Table interface
 public:
-    virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid) override;
+    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
                                   char** options) override;
     virtual bool setProperty(const char* key, const char* value,
                              const char* domain) override;
-    virtual CPLString getProperty(const char* key, const char* defaultValue,
+    virtual CPLString property(const char* key, const char* defaultValue,
                                   const char* domain) override;
-    virtual std::map<CPLString, CPLString> getProperties(const char* domain) override;
+    virtual std::map<CPLString, CPLString> properties(const char* domain) override;
     virtual void deleteProperties() override;
 
 protected:
@@ -66,15 +66,15 @@ public:
 
     // Table interface
 public:
-    virtual std::vector<AttachmentInfo> getAttachments(GIntBig fid) override;
+    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
                                   char** options) override;
     virtual bool setProperty(const char* key, const char* value,
                              const char* domain) override;
-    virtual CPLString getProperty(const char* key, const char* defaultValue,
+    virtual CPLString property(const char* key, const char* defaultValue,
                                   const char* domain) override;
-    virtual std::map<CPLString, CPLString> getProperties(const char* domain) override;
+    virtual std::map<CPLString, CPLString> properties(const char* domain) override;
     virtual void deleteProperties() override;
 
 protected:

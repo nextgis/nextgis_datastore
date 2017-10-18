@@ -64,6 +64,30 @@ void Settings::set(const char *path, long val)
 void Settings::set(const char *path, const char *val)
 {
     m_root.Set(path, val);
+
+    if(EQUAL(path, "common/cachemax")) {
+        CPLSetConfigOption("GDAL_CACHEMAX", val);
+    }
+
+    if(EQUAL(path, "http/useragent")) {
+        CPLSetConfigOption("GDAL_HTTP_USERAGENT", val);
+    }
+
+    if(EQUAL(path, "http/use_gzip")) {
+        CPLSetConfigOption("CPL_CURL_GZIP", val);
+    }
+
+    if(EQUAL(path, "http/timeout")) {
+        CPLSetConfigOption("GDAL_HTTP_TIMEOUT", val);
+    }
+
+    if(EQUAL(path, "gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS")) {
+        CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", val);
+    }
+
+    if(EQUAL(path, "common/zip_encoding")) {
+        CPLSetConfigOption("CPL_ZIP_ENCODING", val);
+    }
 }
 
 bool Settings::getBool(const char *path, bool defaultVal) const

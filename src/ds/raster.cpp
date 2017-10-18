@@ -116,7 +116,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             m_DS->SetMetadataItem("TMS_LIMIT_Y_MAX", CPLSPrintf("%f", m_extent.maxY()), "");
 
             // Set USER metadata
-            CPLJSONObject user = root.GetObject(KEY_USER);
+            CPLJSONObject user = root.GetObject(USER_KEY);
             if(user.IsValid()) {
                 CPLJSONObject** children = user.GetChildren();
                 int i = 0;
@@ -150,7 +150,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                         value = CPLSPrintf("%f", child->GetDouble(0.0));
                         break;
                     }
-                    m_DS->SetMetadataItem(name, value, KEY_USER);
+                    m_DS->SetMetadataItem(name, value, USER_KEY);
                 }
                 CPLJSONObject::DestroyJSONObjectList(children);
             }
@@ -267,7 +267,7 @@ char** Raster::metadata(const char* domain) const {
 
 bool Raster::setMetadataItem(const char* name, const char* value, const char* domain)
 {
-    if(domain == nullptr || !(EQUAL(domain, KEY_USER) == true ||
+    if(domain == nullptr || !(EQUAL(domain, USER_KEY) == true ||
             EQUAL(domain, "") == true)) {
         return false;
     }
@@ -288,14 +288,14 @@ bool Raster::setMetadataItem(const char* name, const char* value, const char* do
             root.Set(KEY_CACHE_EXPIRES, atoi(value));
         }
         else {
-            CPLJSONObject user = root.GetObject(KEY_USER);
+            CPLJSONObject user = root.GetObject(USER_KEY);
             if(!user.IsValid()) {
                 user.Set(name, value);
             }
             else {
                 CPLJSONObject newUser;
                 newUser.Add(name, value);
-                root.Add(KEY_USER, newUser);
+                root.Add(USER_KEY, newUser);
             }
         }
 

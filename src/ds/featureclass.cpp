@@ -731,16 +731,13 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
     OGRPoint pt;
 
     // The number type to use for tessellation
-    // FIXME: declaration of ‘using Coord = double’ shadows a global declaration [-Werror=shadow]
     using Coord = double;
 
     // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
     // data won't have more than 65536 vertices.
-    // FIXME: declaration of ‘using N = short unsigned int’ shadows a global declaration [-Werror=shadow]
     using N = unsigned short;
 
     // Create array
-    // FIXME: declaration of ‘using MBPoint = struct std::array<double, 2ul>’ shadows a global declaration [-Werror=shadow]
     using MBPoint = std::array<Coord, 2>;
     std::vector<std::vector<MBPoint>> polygon;
 
@@ -752,9 +749,8 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
         double y = pt.getY();
         edges[0].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
 
-        // FIXME: declaration of ‘pt’ shadows a previous local [-Werror=shadow]
-        MBPoint pt{ { x, y } };
-        exteriorRing.emplace_back(pt);
+        MBPoint mbpt{ { x, y } };
+        exteriorRing.emplace_back(mbpt);
     }
 
     polygon.emplace_back(exteriorRing);
@@ -768,9 +764,8 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
             double y = pt.getY();
             edges[i + 1].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
 
-            // FIXME: declaration of ‘pt’ shadows a previous local [-Werror=shadow]
-            MBPoint pt{ { x, y } };
-            interiorRing.emplace_back(pt);
+            MBPoint mbpt{ { x, y } };
+            interiorRing.emplace_back(mbpt);
         }
         polygon.emplace_back(interiorRing);
     }
@@ -797,11 +792,10 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
     unsigned short vertexIndex = 0;
 
     for(auto index : indices) {
-        // FIXME: declaration of ‘pt’ shadows a previous local [-Werror=shadow]
-        OGRPoint* pt = findPointByIndex(index, polygon);
-        if(pt != nullptr) {
-            tin[tinIndex] = {generalizePoint(pt, step), pt->getX(), pt->getY()};
-            delete pt;
+        OGRPoint* ppt = findPointByIndex(index, polygon);
+        if(ppt != nullptr) {
+            tin[tinIndex] = {generalizePoint(ppt, step), ppt->getX(), ppt->getY()};
+            delete ppt;
         }
         else {
             tin[tinIndex] = {{BIG_VALUE_F, BIG_VALUE_F}, BIG_VALUE, BIG_VALUE};
@@ -1003,10 +997,7 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
         return FeaturePtr();
     }
 
-    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr != parentDS) {
-        parentDS->lockExecuteSql(true);
-    }
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
 
     m_ovrTable->SetAttributeFilter(CPLSPrintf("%s = %d AND %s = %d AND %s = %d",
                                               OVR_X_KEY, tile.x,
@@ -1015,9 +1006,6 @@ FeaturePtr FeatureClass::getTileFeature(const Tile& tile)
     FeaturePtr out(m_ovrTable->GetNextFeature());
     m_ovrTable->SetAttributeFilter(nullptr);
 
-    if(nullptr != parentDS) {
-        parentDS->lockExecuteSql(false);
-    }
     return out;
 }
 
@@ -1127,7 +1115,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         return COD_SUCCESS;
     }
 
-    setProperty("zoom_levels", zoomLevelListStr, KEY_NG_ADDITIONS);
+    setProperty("zoom_levels", zoomLevelListStr, NG_ADDITIONS_KEY);
 
     // Tile and simplify geometry
     progress.onProgress(COD_IN_PROCESS, 0.0,
@@ -1635,7 +1623,7 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
         _zoomLevels = zoomLevels;
     }
     else {
-        _zoomLevels = getProperty("zoom_levels", "", KEY_NG_ADDITIONS);
+        _zoomLevels = property("zoom_levels", "", NG_ADDITIONS_KEY);
     }
     char** zoomLevelArray = CSLTokenizeString2(_zoomLevels, ",", 0);
     if(nullptr != zoomLevelArray) {

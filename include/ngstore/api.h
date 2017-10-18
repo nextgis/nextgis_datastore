@@ -106,6 +106,8 @@ NGS_EXTERNC void ngsFreeResources(char full);
 NGS_EXTERNC const char* ngsGetLastErrorMessage();
 NGS_EXTERNC void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes);
 NGS_EXTERNC void ngsRemoveNotifyFunction(ngsNotifyFunc function);
+NGS_EXTERNC const char* ngsSettingsGetString(const char* key, const char* defaultVal);
+NGS_EXTERNC void ngsSettingsSetString(const char* key, const char* value);
 
 /**
  * Proxy to GDAL functions

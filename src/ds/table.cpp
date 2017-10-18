@@ -30,6 +30,8 @@
 
 namespace ngs {
 
+constexpr const char* SAVE_EDIT_HISTORY_KEY = "save_edit_history";
+
 //------------------------------------------------------------------------------
 // FieldMapPtr
 //-------------------------------------------------
@@ -91,9 +93,14 @@ Table::Table(OGRLayer *layer,
     Object(parent, type, name, ""),
     m_layer(layer),
     m_attTable(nullptr),
+    m_editHistoryTable(nullptr),
+    m_saveEditHistory(false),
     m_featureMutex(CPLCreateMutex())
 {
     CPLReleaseMutex(m_featureMutex);
+
+    m_saveEditHistory = EQUAL(property(SAVE_EDIT_HISTORY_KEY, "OFF",
+                                       NG_ADDITIONS_KEY), "ON");
 }
 
 Table::~Table()
@@ -333,7 +340,7 @@ OGRFeatureDefn*Table::definition() const
     return m_layer->GetLayerDefn();
 }
 
-bool Table::getAttachmentsTable()
+bool Table::initAttachmentsTable()
 {
     if(m_attTable) {
         return true;
@@ -350,6 +357,26 @@ bool Table::getAttachmentsTable()
     }
 
     return m_attTable != nullptr;
+}
+
+bool Table::initEditHistoryTable()
+{
+    if(m_editHistoryTable) {
+        return true;
+    }
+
+    Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDS) {
+        return false;
+    }
+
+    // TODO:
+//    m_editHistoryTable = parentDS->getEditHistoryTable(name());
+//    if(nullptr == m_attTable) {
+//        m_editHistoryTable = parentDS->createEditHistoryTable(name());
+//    }
+
+    return m_editHistoryTable != nullptr;
 }
 
 CPLString Table::getAttachmentsPath() const
@@ -369,7 +396,7 @@ void Table::fillFields()
             return;
         }
 
-        auto properties = getProperties(KEY_NG_ADDITIONS);
+        auto propertyList = properties(NG_ADDITIONS_KEY);
 
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
@@ -378,7 +405,7 @@ void Table::fillFields()
             CPLStrlcpy(fieldDesc.m_name, fieldDefn->GetNameRef(), 255);
             //fieldDesc.m_name = fieldDefn->GetNameRef();
 
-            CPLString alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+            CPLString alias = propertyList[CPLSPrintf("FIELD_%d_ALIAS", i)];
             if(alias.empty()) {
                 CPLStrlcpy(fieldDesc.m_alias, fieldDesc.m_name, 255);
             }
@@ -387,7 +414,7 @@ void Table::fillFields()
                 //fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
             }
 
-            CPLString originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
+            CPLString originalName = propertyList[CPLSPrintf("FIELD_%d_NAME", i)];
             if(originalName.empty()) {
                 CPLStrlcpy(fieldDesc.m_originalName, fieldDefn->GetNameRef(), 255);
             }
@@ -399,10 +426,10 @@ void Table::fillFields()
         }
 
         // Fill metadata
-        properties = getProperties(KEY_USER);
-        for(auto it = properties.begin(); it != properties.end(); ++it) {
-            if(m_layer->GetMetadataItem(it->first, KEY_USER) == nullptr) {
-                m_layer->SetMetadataItem(it->first, it->second, KEY_USER);
+        propertyList = properties(USER_KEY);
+        for(auto it = propertyList.begin(); it != propertyList.end(); ++it) {
+            if(m_layer->GetMetadataItem(it->first, USER_KEY) == nullptr) {
+                m_layer->SetMetadataItem(it->first, it->second, USER_KEY);
             }
         }
     }
@@ -412,7 +439,7 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
                              const char* description, const char* filePath,
                              char** options)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
     bool move = CPLFetchBool(options, "MOVE", false);
@@ -456,7 +483,7 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
 
 bool Table::deleteAttachment(GIntBig aid)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return false;
     }
 
@@ -498,7 +525,7 @@ bool Table::deleteAttachments(GIntBig fid)
 bool Table::updateAttachment(GIntBig aid, const char* fileName,
                              const char* description)
 {
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return false;
     }
 
@@ -514,18 +541,15 @@ bool Table::updateAttachment(GIntBig aid, const char* fileName,
     return m_attTable->SetFeature(attFeature) == OGRERR_NONE;
 }
 
-std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
+std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid)
 {
     std::vector<AttachmentInfo> out;
 
-    if(!getAttachmentsTable()) {
+    if(!initAttachmentsTable()) {
         return out;
     }
 
-    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr != dataset) {
-        dataset->lockExecuteSql(true);
-    }
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
                                               ATTACH_FEATURE_ID, fid));
     //m_attTable->ResetReading();
@@ -547,9 +571,7 @@ std::vector<Table::AttachmentInfo> Table::getAttachments(GIntBig fid)
 
         out.push_back(info);
     }
-    if(nullptr != dataset) {
-        dataset->lockExecuteSql(false);
-    }
+
     return out;
 }
 
@@ -576,10 +598,15 @@ bool Table::setProperty(const char* key, const char* value, const char* domain)
 
     name += CPLString(".") + key;
 
+    if(EQUAL(key, SAVE_EDIT_HISTORY_KEY) && EQUAL(domain, NG_ADDITIONS_KEY)) {
+        m_saveEditHistory = EQUAL(property(SAVE_EDIT_HISTORY_KEY, "OFF",
+                                           NG_ADDITIONS_KEY), "ON");
+    }
+
     return parentDataset->setProperty(name, value);
 }
 
-CPLString Table::getProperty(const char* key, const char* defaultValue,
+CPLString Table::property(const char* key, const char* defaultValue,
                               const char* domain)
 {
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
@@ -598,7 +625,7 @@ CPLString Table::getProperty(const char* key, const char* defaultValue,
 
 }
 
-std::map<CPLString, CPLString> Table::getProperties(const char* domain)
+std::map<CPLString, CPLString> Table::properties(const char* domain)
 {
     std::map<CPLString, CPLString> out;
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);

@@ -111,7 +111,6 @@ class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 public:
     explicit GlFeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlFeatureLayer() = default;
-    virtual void setHideIds(const std::set<GIntBig>& hideIds = std::set<GIntBig>());
 
     // GlRenderLayer interface
 public:
@@ -132,9 +131,6 @@ protected:
     virtual VectorGlObject* fillPoints(const VectorTile& tile, float z);
     virtual VectorGlObject* fillLines(const VectorTile& tile, float z);
     virtual VectorGlObject* fillPolygons(const VectorTile& tile, float z);
-
-protected:
-    std::set<GIntBig> m_skipFIDs;
 };
 
 typedef std::array<StylePtr, 3> SelectionStyles;
@@ -149,9 +145,6 @@ public:
                                       const CPLString& name = DEFAULT_LAYER_NAME);
     virtual ~GlSelectableFeatureLayer() = default;
     virtual StylePtr selectionStyle() const;
-    virtual void setSelectedIds(const std::set<GIntBig>& selectedIds);
-    const std::set<GIntBig>& selectedIds() const { return m_selectedFIDs; }
-    bool hasSelectedIds() const { return !m_selectedFIDs.empty(); }
 
     // IGlRenderLayer interface
 public:
@@ -163,7 +156,6 @@ protected:
     virtual VectorGlObject* fillPolygons(const VectorTile& tile, float z) override;
 
 protected:
-    std::set<GIntBig> m_selectedFIDs;
     const SelectionStyles* m_selectionStyles;
 };
 

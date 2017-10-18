@@ -149,14 +149,14 @@ void MemoryStore::addLayer(const CPLJSONObject& layer)
     }
 
     if(object) {
-        CPLJSONObject user = layer.GetObject(KEY_USER);
+        CPLJSONObject user = layer.GetObject(USER_KEY);
         CPLJSONObject** children = user.GetChildren();
         if(nullptr != children) {
             int counter = 0;
             CPLJSONObject* child = nullptr;
             while((child = children[counter++]) != nullptr) {
                 object->setMetadataItem(child->GetName(), child->GetString(""),
-                                      KEY_USER);
+                                      USER_KEY);
             }
             CPLJSONObject::DestroyJSONObjectList(children);
         }
@@ -177,11 +177,11 @@ bool MemoryStore::create(const char* path, const Options& options)
 
     CPLJSONObject user;
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
-            user.Add(it->first.c_str() + KEY_USER_PREFIX_LEN, it->second);
+        if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+            user.Add(it->first.c_str() + USER_PREFIX_KEY_LEN, it->second);
         }
     }
-    root.Add(KEY_USER, user);
+    root.Add(USER_KEY, user);
 
     const char* newPath = CPLResetExtension(path, extension());
     return memDescriptionFile.Save(newPath);
@@ -229,14 +229,14 @@ bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
             addLayer(layer);
         }
 
-        CPLJSONObject user = root.GetObject(KEY_USER);
+        CPLJSONObject user = root.GetObject(USER_KEY);
         CPLJSONObject** children = user.GetChildren();
         if(nullptr != children) {
             int counter = 0;
             CPLJSONObject* child = nullptr;
             while((child = children[counter++]) != nullptr) {
                 m_DS->SetMetadataItem(child->GetName(), child->GetString(""),
-                                      KEY_USER);
+                                      USER_KEY);
             }
             CPLJSONObject::DestroyJSONObjectList(children);
         }
@@ -316,9 +316,9 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
 
     CPLJSONObject user, other;
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, KEY_USER_PREFIX, KEY_USER_PREFIX_LEN)) {
+        if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
             user.Add(CPLSPrintf("%s",
-                                it->first.c_str() + KEY_USER_PREFIX_LEN),
+                                it->first.c_str() + USER_PREFIX_KEY_LEN),
                                 it->second);
         }
         else if(EQUALN(it->first, KEY_LCO_PREFIX, KEY_LCO_PREFIX_LEN)) {
@@ -329,7 +329,7 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
     }
 
     if(user.IsValid()) {
-        layer.Add(KEY_USER, user);
+        layer.Add(USER_KEY, user);
     }
     if(other.IsValid()) {
         layer.Add("options", other);
