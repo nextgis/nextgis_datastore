@@ -23,6 +23,8 @@
 #ifndef NGSGLSTYLE_H
 #define NGSGLSTYLE_H
 
+#include <vector>
+
 #include "cpl_json.h"
 
 #include "buffer.h"
@@ -194,6 +196,7 @@ public:
 
     // PointStyle interface
 public:
+    virtual void setType(enum PointType type) override;
     virtual unsigned short addPoint(const SimplePoint& pt, float z,
                                     unsigned short index,
                                     GlBuffer* buffer) override;
@@ -212,7 +215,31 @@ public:
     virtual const char* name() const override { return "primitivePoint"; }
 
 protected:
+    void setStarType();
+    void setStarPoints(float startTheta, int numPoints, int skip);
+    unsigned short addStarPoint(const SimplePoint& pt,
+            float z,
+            unsigned short index,
+            GlBuffer* buffer);
+    std::vector<SimplePoint> getStarTriangles(const SimplePoint& center,
+            float size,
+            float startTheta,
+            int numPoints,
+            int skip);
+    std::vector<SimplePoint> getStarPoints(const SimplePoint& center,
+            float size,
+            float startTheta,
+            int numPoints,
+            int skip);
+    float getInnerStarRadius(int numPoints, int skip);
+    SimplePoint findIntersection(const SimplePoint& p00,
+            const SimplePoint& p01,
+            const SimplePoint& p10,
+            const SimplePoint& p11);
+
+protected:
     unsigned char m_segmentCount;
+    std::vector<SimplePoint> m_starPoints;
 };
 
 //------------------------------------------------------------------------------
@@ -489,11 +516,11 @@ public:
 // SimpleEditPointStyle
 //------------------------------------------------------------------------------
 
-class SimpleEditPointStyle : public SimplePointStyle, public EditPointStyle
+class SimpleEditPointStyle : public PrimitivePointStyle, public EditPointStyle
 {
 public:
-    explicit SimpleEditPointStyle(enum PointType type = PT_CIRCLE) :
-        SimplePointStyle(type) {}
+    explicit SimpleEditPointStyle(enum PointType type = PT_STAR) :
+        PrimitivePointStyle(type) {}
     virtual ~SimpleEditPointStyle() = default;
 
     // EditPointStyle interface
