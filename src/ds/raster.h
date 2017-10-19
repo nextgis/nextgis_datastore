@@ -79,6 +79,7 @@ public:
                    int bufXSize, int bufYSize, GDALDataType dataType,
                    int bandCount, int* bandList, bool read = true,
                    bool skipLastBand = false, unsigned char zoom = 0);
+    bool cacheArea(const Progress &progress, const Options &options);
 
     // Object interface
     virtual bool destroy() override;

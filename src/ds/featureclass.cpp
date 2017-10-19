@@ -1076,21 +1076,20 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
     return true;
 }
 
-int FeatureClass::createOverviews(const Progress &progress, const Options &options)
+bool FeatureClass::createOverviews(const Progress &progress, const Options &options)
 {
     CPLDebug("ngstore", "start create overviews");
     m_genTiles.clear();
     bool force = options.boolOption("FORCE", false);
     if(!force && hasOverviews()) {
-        return COD_SUCCESS;
+        return true;
     }
 
     Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDS) {
         progress.onProgress(COD_CREATE_FAILED, 0.0,
                             _("Unsupported feature class"));
-        return errorMessage(COD_CREATE_FAILED,
-                            _("Unsupported feature class"));
+        return errorMessage(_("Unsupported feature class"));
     }
 
     if(nullptr == m_ovrTable) {
@@ -1112,7 +1111,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                 ZOOM_LEVELS_OPTION, "");
     fillZoomLevels(zoomLevelListStr);
     if(m_zoomLevels.empty()) {
-        return COD_SUCCESS;
+        return true;
     }
 
     setProperty("zoom_levels", zoomLevelListStr, NG_ADDITIONS_KEY);
@@ -1187,7 +1186,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
                         _("Finish tiling and simplifying geometry"));
 
     CPLDebug("ngstore", "finish create overviews");
-    return COD_SUCCESS;
+    return true;
 }
 
 VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)

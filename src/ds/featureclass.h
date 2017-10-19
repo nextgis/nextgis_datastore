@@ -138,8 +138,8 @@ public:
                              const Progress& progress = Progress(),
                              const Options& options = Options());
     bool hasOverviews() const;
-    int createOverviews(const Progress& progress = Progress(),
-                        const Options& options = Options());
+    bool createOverviews(const Progress& progress = Progress(),
+                         const Options& options = Options());
     VectorTile getTile(const Tile& tile, const Envelope& tileExtent = Envelope());
     std::set<unsigned char> zoomLevels() const { return m_zoomLevels; }
     void addOverviewItem(const Tile& tile, const VectorTileItemArray& items) {

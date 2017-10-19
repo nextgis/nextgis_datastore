@@ -1210,16 +1210,17 @@ FeatureClass* getFeatureClassFromHandle(CatalogObjectH object)
     }
 
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(!catalogObjectPointer) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
     if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
         dataset->hasChildren();
         catalogObjectPointer = dataset->internalObject();
     }
 
-    if(!catalogObjectPointer) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
 
     if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
         errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
@@ -1238,15 +1239,15 @@ Table* getTableFromHandle(CatalogObjectH object)
     }
 
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(!catalogObjectPointer) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
     if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
         dataset->hasChildren();
         catalogObjectPointer = dataset->internalObject();
-    }
-
-    if(!catalogObjectPointer) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
     }
 
     if(!(Filter::isTable(catalogObjectPointer->type()) ||
@@ -1258,6 +1259,27 @@ Table* getTableFromHandle(CatalogObjectH object)
     return ngsDynamicCast(Table, catalogObjectPointer);
 }
 
+Raster* getRasterFromHandle(CatalogObjectH object)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(!catalogObjectPointer) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    if(!(Filter::isRaster(catalogObjectPointer->type()))) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return ngsDynamicCast(Raster, catalogObjectPointer);
+}
 
 /**
  * @brief ngsFeatureClassFields Feature class fields
@@ -1343,7 +1365,8 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
 
     Options createOptions(options);
     Progress createProgress(callback, callbackData);
-    return featureClass->createOverviews(createProgress, createOptions);
+    return featureClass->createOverviews(createProgress, createOptions) ?
+                COD_SUCCESS : COD_CREATE_FAILED;
 }
 
 
@@ -1984,6 +2007,27 @@ void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,
 
     table->setFeatureAttachmentRemoteId(aid, rid);
 }
+
+//------------------------------------------------------------------------------
+// Raster
+//------------------------------------------------------------------------------
+
+int ngsRasterCacheArea(CatalogObjectH object, char** options,
+                       ngsProgressFunc callback, void* callbackData)
+{
+    Raster* raster = getRasterFromHandle(object);
+    if(!raster) {
+        return errorMessage(COD_INVALID,
+                            _("Source dataset type is incompatible"));
+    }
+
+    Options createOptions(options);
+    Progress createProgress(callback, callbackData);
+
+    return raster->cacheArea(createProgress, createOptions) ? COD_SUCCESS :
+                                                              COD_CREATE_FAILED;
+}
+
 
 //------------------------------------------------------------------------------
 // Map

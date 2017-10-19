@@ -218,6 +218,7 @@ NGS_EXTERNC int ngsCatalogObjectSetMetadataItem(CatalogObjectH object,
                                                 const char* value,
                                                 const char* domain);
 NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
+
 /**
  * Feature class
  */
@@ -338,6 +339,12 @@ NGS_EXTERNC void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature,
                                                       long long rid);
 
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
+
+/**
+  * Raster
+  */
+NGS_EXTERNC int ngsRasterCacheArea(CatalogObjectH object, char** options,
+                                   ngsProgressFunc callback, void* callbackData);
 
 /**
  * Map functions

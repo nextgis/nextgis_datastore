@@ -483,4 +483,10 @@ int Raster::getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                                          xSize, ySize, bufXSize, bufYSize, nullptr);
 }
 
+bool Raster::cacheArea(const Progress &progress, const Options &options)
+{
+    return true;
+}
+
+
 } // namespace ngs
