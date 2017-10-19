@@ -665,13 +665,18 @@ TEST(DataStoreTests, TestCreateFeature) {
     ngsEditOperation* ops = ngsFeatureClassGetEditOperations(featureClass);
     ASSERT_NE(ops, nullptr);
     counter = 0;
+    bool hasCreate = false;
     while(ops[counter].fid != -1) {
         std::cout << "Edit operation: fid - " << ops[counter].fid <<
                      " aid - " << ops[counter].aid <<
                      " code - " << ops[counter].code << "\n";
+        if(!hasCreate) {
+            hasCreate = ops[counter].code == CC_CREATE_FEATURE;
+        }
         counter++;
     }
     EXPECT_GE(counter, 2);
+    EXPECT_EQ(hasCreate, true); // Check that insert and update op log only insert
     ngsFree(ops);
 
     ngsUnInit();
