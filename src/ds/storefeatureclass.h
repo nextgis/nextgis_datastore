@@ -25,18 +25,31 @@
 
 namespace ngs {
 
-class StoreTable : public Table
+constexpr GIntBig INIT_RID_COUNTER = -1000000;
+
+class StoreObject
+{
+public:
+    StoreObject(OGRLayer* layer);
+    virtual ~StoreObject() = default;
+    virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
+    virtual bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
+
+    // static
+public:
+    static void setRemoteId(FeaturePtr feature, GIntBig rid);
+    static GIntBig getRemoteId(FeaturePtr feature);
+
+protected:
+    OGRLayer* m_storeIntLayer;
+};
+
+class StoreTable : public Table, public StoreObject
 {
 public:
     StoreTable(OGRLayer* layer, ObjectContainer* const parent = nullptr,
                const CPLString & name = "");
     virtual ~StoreTable() = default;
-    FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
-    bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
-
-    // static
-    static void setRemoteId(FeaturePtr feature, GIntBig rid);
-    static GIntBig getRemoteId(FeaturePtr feature);
 
     // Table interface
 public:
@@ -55,14 +68,12 @@ protected:
     virtual void fillFields() override;
 };
 
-class StoreFeatureClass : public FeatureClass
+class StoreFeatureClass : public FeatureClass, public StoreObject
 {
 public:
     StoreFeatureClass(OGRLayer* layer, ObjectContainer* const parent = nullptr,
                       const CPLString & name = "");
     virtual ~StoreFeatureClass() = default;
-    FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
-    bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
 
     // Table interface
 public:

@@ -514,6 +514,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     options = ngsAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
     options = ngsAddNameValue(options, "FIELD_3_NAME", "date");
     options = ngsAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
+    options = ngsAddNameValue(options, "SAVE_EDIT_HISTORY", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options), COD_SUCCESS);
     ngsListFree(options);
@@ -644,7 +645,9 @@ TEST(DataStoreTests, TestCreateFeature) {
         std::cout << "Attach -- name: " << list[counter].name <<
                      " | description: " << list[counter].description <<
                      "\n     path: " << list[counter].path << " | size: " <<
-                     list[counter].size << "\n";
+                     list[counter].size <<
+                     "\n id: " << list[counter].id <<
+                     " rid: " << list[counter].rid << "\n";
         counter++;
     }
     ASSERT_GE(counter, 1);
@@ -658,6 +661,18 @@ TEST(DataStoreTests, TestCreateFeature) {
     ASSERT_NE(list, nullptr);
     EXPECT_EQ(list[0].rid, 777);
     ngsFree(list);
+
+    ngsEditOperation* ops = ngsFeatureClassGetEditOperations(featureClass);
+    ASSERT_NE(ops, nullptr);
+    counter = 0;
+    while(ops[counter].fid != -1) {
+        std::cout << "Edit operation: fid - " << ops[counter].fid <<
+                     " aid - " << ops[counter].aid <<
+                     " code - " << ops[counter].code << "\n";
+        counter++;
+    }
+    EXPECT_GE(counter, 2);
+    ngsFree(ops);
 
     ngsUnInit();
 }

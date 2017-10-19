@@ -29,7 +29,7 @@
 
 namespace ngs {
 
-constexpr const char* SAVE_EDIT_HISTORY_KEY = "save_edit_history";
+constexpr const char* SAVE_EDIT_HISTORY_KEY = "SAVE_EDIT_HISTORY";
 
 class FieldMapPtr : public std::shared_ptr<int>
 {
@@ -68,6 +68,7 @@ class Table : public Object
 {
     friend class Dataset;
     friend class Folder;
+    friend class StoreObject;
 public:
     typedef struct _attachmentInfo {
         GIntBig id;
@@ -132,13 +133,17 @@ protected:
     bool initEditHistoryTable();
     CPLString getAttachmentsPath() const;
     virtual void fillFields();
-    virtual void addEditOperation(GIntBig fid, GIntBig aid, enum ngsChangeCode code);
+    virtual void logEditOperation(GIntBig fid, GIntBig aid, enum ngsChangeCode code);
+    virtual void checkSetProperty(const char* key, const char* value,
+                                  const char* domain);
+    virtual bool saveEditHistory();
+
 
 protected:
     OGRLayer* m_layer;
     OGRLayer* m_attTable;
     OGRLayer* m_editHistoryTable;
-    bool m_saveEditHistory;
+    char m_saveEditHistory;
     std::vector<Field> m_fields;
     CPLMutex* m_featureMutex;
 };

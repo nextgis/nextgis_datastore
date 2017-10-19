@@ -98,15 +98,11 @@ void DataStore::fillFeatureClasses()
         OGRLayer* layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
-            const char* layerName = layer->GetName();
-            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
-                m_metadata = layer;
-                continue;
-            }
-            if(EQUALN(layerName, OVR_PREFIX, OVR_PREFIX_LEN)) {
+            if(skipFillFeatureClass(layer)) {
                 continue;
             }
 
+            const char* layerName = layer->GetName();
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new StoreTable(layer, this,
                                                          layerName)));
@@ -348,6 +344,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
 
     // Add remote id field
     OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
+    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
     fieldDefinition.AddFieldDefn(&ridField);
 
     ObjectPtr object;
@@ -437,9 +434,7 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
     if(!m_addsDS)
         return nullptr;
 
-    CPLString attLayerName(name);
-    attLayerName += CPLString("_") + attachmentsFolderExtension();
-
+    CPLString attLayerName(attachmentsTableName(name));
     OGRLayer* attLayer = m_addsDS->CreateLayer(attLayerName, nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
         errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
@@ -460,6 +455,7 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
     OGRFieldDefn nameField(ATTACH_FILE_NAME_FIELD, OFTString);
     OGRFieldDefn descField(ATTACH_DESCRIPTION_FIELD, OFTString);
     OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
+    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
 
     if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
        attLayer->CreateField(&nameField) != OGRERR_NONE ||

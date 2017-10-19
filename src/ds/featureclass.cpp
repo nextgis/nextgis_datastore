@@ -1165,7 +1165,7 @@ int FeatureClass::createOverviews(const Progress &progress, const Options &optio
         newFeature->SetField(newFeature->GetFieldIndex(OVR_TILE_KEY), data->size(),
                           data->data());
 
-        CPLDebug("ngstore", "Tile size to store %d", data->size());
+//        CPLDebug("ngstore", "Tile size to store %d", data->size());
 
         if(m_ovrTable->CreateFeature(newFeature) != OGRERR_NONE) {
             errorMessage(COD_INSERT_FAILED, _("Failed to create feature"));
@@ -1607,11 +1607,12 @@ bool FeatureClass::destroy()
         m_ovrTable->ResetReading();
     }
     m_layer->SetSpatialFilter(nullptr);
+    CPLString name = m_name;
     if(!Table::destroy()) {
         return false;
     }
 
-    dataset->destroyOverviewsTable(name()); // Overviews table maybe not exists
+    dataset->destroyOverviewsTable(name); // Overviews table maybe not exists
 
     return true;
 }

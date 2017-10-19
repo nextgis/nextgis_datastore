@@ -40,7 +40,7 @@ constexpr const char* OVR_TILE_KEY = "tile";
 constexpr const char* ATTACH_FEATURE_ID_FIELD = "afid";
 constexpr const char* ATTACH_FILE_NAME_FIELD = "name";
 constexpr const char* ATTACH_DESCRIPTION_FIELD = "descript";
-constexpr const char* FEATURE_ID_FIELD = "fid";
+constexpr const char* FEATURE_ID_FIELD = "ffid";
 constexpr const char* OPERATION_FIELD = "op";
 
 constexpr const char* USER_KEY = "user";
@@ -49,10 +49,6 @@ constexpr const char* USER_PREFIX_KEY = "USER.";
 constexpr int USER_PREFIX_KEY_LEN = length(USER_PREFIX_KEY);
 constexpr const char* NGS_VERSION_KEY = "version";
 
-constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
-// Overviews
-constexpr const char* OVR_PREFIX = "overviews_";
-constexpr int OVR_PREFIX_LEN = length(OVR_PREFIX);
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -182,6 +178,7 @@ protected:
     virtual CPLString normalizeDatasetName(const CPLString& name) const;
     virtual CPLString normalizeFieldName(const CPLString& name) const;
     virtual void fillFeatureClasses();
+    virtual bool skipFillFeatureClass(OGRLayer* layer);
     virtual bool destroyTable(Table* table);
     virtual GDALDataset* createAdditionsDataset();
     virtual OGRLayer* createOverviewsTable(const char* name);
@@ -190,6 +187,7 @@ protected:
     virtual OGRLayer* getOverviewsTable(const char* name);
     virtual bool createOverviewsTableIndex(const char* name);
     virtual bool dropOverviewsTableIndex(const char* name);
+    virtual const char* overviewsTableName(const char* name) const;
     virtual OGRLayer* createAttachmentsTable(const char* name);
     virtual bool destroyAttachmentsTable(const char* name);
     virtual OGRLayer* getAttachmentsTable(const char* name);

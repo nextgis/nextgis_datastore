@@ -185,8 +185,18 @@ constexpr const char* META_VALUE = "value";
 constexpr unsigned short META_VALUE_LIMIT = 512;
 
 // Attachments
-constexpr const char* ATTACH_EXT = "attachments";
-constexpr const char* HISTORY_EXT = "editlog";
+constexpr const char* ATTACH_SUFFIX = "attachments";
+
+// History
+constexpr const char* HISTORY_SUFFIX = "editlog";
+
+// Overviews
+constexpr const char* OVR_SUFFIX = "overviews";
+
+constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
+
+constexpr const char* NG_PREFIX = "nga_";
+constexpr int NG_PREFIX_LEN = length(NG_PREFIX);
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -389,7 +399,7 @@ bool Dataset::destroy()
             File::deleteFile(ovrPath);
         }
     }
-    const char* attachmentsPath = CPLResetExtension(m_path, ATTACH_EXT);
+    const char* attachmentsPath = CPLResetExtension(m_path, ATTACH_SUFFIX);
     if(Folder::isExists(attachmentsPath)) {
         Folder::rmDir(attachmentsPath);
     }
@@ -477,22 +487,30 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
     return out;
 }
 
+bool Dataset::skipFillFeatureClass(OGRLayer* layer)
+{
+    if(EQUAL(layer->GetName(), METHADATA_TABLE_NAME)) {
+        m_metadata = layer;
+        return true;
+    }
+    if(EQUALN(layer->GetName(), NG_PREFIX, NG_PREFIX_LEN)) {
+        return true;
+    }
+    return false;
+}
+
 void Dataset::fillFeatureClasses()
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer* layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
-            const char* layerName = layer->GetName();
             // Hide metadata, overviews, history tables
-            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
-                m_metadata = layer;
-                continue;
-            }
-            if(EQUALN(layerName, OVR_PREFIX, OVR_PREFIX_LEN)) {
+            if(skipFillFeatureClass(layer)) {
                 continue;
             }
 
+            const char* layerName = layer->GetName();
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, this,
@@ -553,30 +571,28 @@ OGRLayer* Dataset::createOverviewsTable(const char* name)
     if(!m_addsDS)
         return nullptr;
 
-    CPLString ovrLayerName(OVR_PREFIX);
-    ovrLayerName += name;
-
-    return createOverviewsTable(m_addsDS, ovrLayerName);
+    return createOverviewsTable(m_addsDS, overviewsTableName(name));
 }
 
 bool Dataset::createOverviewsTableIndex(const char* name)
 {
     if(!m_addsDS)
         return false;
-    CPLString ovrLayerName(OVR_PREFIX);
-    ovrLayerName += name;
 
-    return createOverviewsTableIndex(m_addsDS, ovrLayerName);
+    return createOverviewsTableIndex(m_addsDS, overviewsTableName(name));
 }
 
 bool Dataset::dropOverviewsTableIndex(const char* name)
 {
     if(!m_addsDS)
         return false;
-    CPLString ovrLayerName(OVR_PREFIX);
-    ovrLayerName += name;
 
-    return dropOverviewsTableIndex(m_addsDS, ovrLayerName);
+    return dropOverviewsTableIndex(m_addsDS, overviewsTableName(name));
+}
+
+const char* Dataset::overviewsTableName(const char* name) const
+{
+    return CPLSPrintf("%s%s_%s", NG_PREFIX, name, OVR_SUFFIX);
 }
 
 bool Dataset::createOverviewsTableIndex(GDALDataset* ds, const char* name)
@@ -597,9 +613,8 @@ bool Dataset::destroyOverviewsTable(const char* name)
 {
     if(!m_addsDS)
         return false;
-    CPLString ovrLayerName(OVR_PREFIX);
-    ovrLayerName += name;
-    OGRLayer* layer = m_addsDS->GetLayerByName(ovrLayerName);
+
+    OGRLayer* layer = m_addsDS->GetLayerByName(overviewsTableName(name));
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
@@ -607,16 +622,15 @@ bool Dataset::destroyOverviewsTable(const char* name)
 
 bool Dataset::clearOverviewsTable(const char* name)
 {
-    return deleteFeatures(CPLSPrintf("%s%s", OVR_PREFIX, name));
+    return deleteFeatures(overviewsTableName(name));
 }
 
 OGRLayer* Dataset::getOverviewsTable(const char* name)
 {
     if(!m_addsDS)
         return nullptr;
-    CPLString ovrLayerName(OVR_PREFIX);
-    ovrLayerName += name;
-    return m_addsDS->GetLayerByName(ovrLayerName);
+
+    return m_addsDS->GetLayerByName(overviewsTableName(name));
 }
 
 const char* Dataset::options(enum ngsOptionType optionType) const
@@ -857,7 +871,7 @@ const char* Dataset::additionsDatasetExtension()
 
 const char*Dataset::attachmentsFolderExtension()
 {
-    return ATTACH_EXT;
+    return ATTACH_SUFFIX;
 }
 
 Dataset* Dataset::create(ObjectContainer* const parent,
@@ -1080,7 +1094,7 @@ OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
 
     // Create folder for files
     if(nullptr != path) {
-        CPLString attachmentsPath = CPLResetExtension(path, ATTACH_EXT);
+        CPLString attachmentsPath = CPLResetExtension(path, ATTACH_SUFFIX);
         if(!Folder::isExists(attachmentsPath)) {
             Folder::mkDir(attachmentsPath);
         }
@@ -1170,12 +1184,12 @@ void Dataset::clearEditHistoryTable(const char* name)
 
 const char* Dataset::historyTableName(const char* name) const
 {
-    return CPLSPrintf("%s_%s", name, HISTORY_EXT);
+    return CPLSPrintf("%s%s_%s", NG_PREFIX, name, HISTORY_SUFFIX);
 }
 
 const char* Dataset::attachmentsTableName(const char* name) const
 {
-    return CPLSPrintf("%s_%s", name, ATTACH_EXT);
+    return CPLSPrintf("%s%s_%s", NG_PREFIX, name, ATTACH_SUFFIX);
 }
 
 bool Dataset::deleteFeatures(const char* name)
@@ -1208,15 +1222,11 @@ void Dataset::refresh()
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer* layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
-            const char* layerName = layer->GetName();
             // Hide metadata, overviews, history tables
-            if(EQUAL(layerName, METHADATA_TABLE_NAME)) {
-                m_metadata = layer;
-                continue;
-            }            
-            if(EQUALN(layerName, OVR_PREFIX, OVR_PREFIX_LEN)) {
+            if(skipFillFeatureClass(layer)) {
                 continue;
             }
+            const char* layerName = layer->GetName();
             CPLDebug("ngstore", "refresh layer %s", layerName);
             addNames.push_back(layerName);
         }
