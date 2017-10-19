@@ -35,6 +35,7 @@ class GlTile : public GlObject
 {
 public:
     explicit GlTile(unsigned short tileSize, const TileItem& tileItem);
+    explicit GlTile(const GlTile other, bool initNew);
     virtual ~GlTile() = default;
 
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
@@ -59,6 +60,10 @@ public:
     virtual void destroy() override;
 
 protected:
+    void init(unsigned short tileSize, const Envelope& tileItemEnv,
+              char crossExtent);
+
+protected:
     TileItem m_tileItem;
     GlImage m_image;
     GLuint m_id, m_did;
@@ -67,6 +72,7 @@ protected:
     Matrix4 m_invViewMatrix;
     bool m_filled;
     unsigned short m_tileSize, m_originalTileSize;
+    Envelope m_originalEnv;
 };
 
 typedef std::shared_ptr<GlTile> GlTilePtr;

@@ -22,6 +22,18 @@
 
 namespace ngs {
 
+GlTile::GlTile(const GlTile other, bool /*initNew*/) : GlObject(),
+    m_tileItem(other.m_tileItem),
+    m_id(0),
+    m_did(0),
+    m_filled(false)
+{
+    m_originalTileSize = other.m_originalTileSize;
+    m_originalEnv = other.m_originalEnv;
+
+    init(m_originalTileSize, m_originalEnv, m_tileItem.tile.crossExtent);
+}
+
 GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_tileItem(tileItem),
     m_id(0),
@@ -29,6 +41,14 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_filled(false)
 {
     m_originalTileSize = tileSize;
+    m_originalEnv = tileItem.env;
+
+    init(tileSize, tileItem.env, tileItem.tile.crossExtent);
+}
+
+void GlTile::init(unsigned short tileSize, const Envelope& tileItemEnv,
+                  char crossExtent)
+{
     unsigned short newTileSize = static_cast<unsigned short>(
                 std::ceil(double(tileSize) * TILE_RESIZE));
     float extraVal = (float(newTileSize - tileSize) / 2) / newTileSize;
@@ -36,8 +56,8 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_image.setImage(nullptr, newTileSize, newTileSize);
     m_image.setSmooth(true);
 
-    Envelope env = tileItem.env;
-    env.move(tileItem.tile.crossExtent * DEFAULT_BOUNDS.width(), 0.0);
+    Envelope env = tileItemEnv;
+    env.move(crossExtent * DEFAULT_BOUNDS.width(), 0.0);
     m_tile.addVertex(static_cast<float>(env.minX()));
     m_tile.addVertex(static_cast<float>(env.minY()));
     m_tile.addVertex(0.0f);
@@ -74,7 +94,6 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     m_tileSize = newTileSize;
     m_tileItem.env = env;
 }
-
 
 void GlTile::bind()
 {

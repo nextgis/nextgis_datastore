@@ -194,22 +194,32 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 
 void GlView::invalidate(const Envelope& bounds)
 {
-    for(GlTilePtr& tile : m_tiles) {
-        Envelope env = tile->getExtent();
-        env.resize(TILE_RESIZE);
-        if(env.intersects(bounds) || env.intersects(m_invalidRegion)) {
-            tile->setFilled(false);
-        }
+    std::vector<GlTilePtr> newTiles;
 
-        // TODO: check and remove the previous tile fill task if present for current tile
-        if(!tile->filled()) {
-            float z = 0.0f;
-            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
-                 ++layerIt) {
-                const LayerPtr &layer = *layerIt;
-                m_threadPool.addThreadData(new LayerFillData(tile, layer, z, true));
-                z += 1000.f;
-            }
+    auto it = m_tiles.begin();
+    while(it != m_tiles.end()) {
+         GlTilePtr tile = *it;
+         Envelope env = tile->getExtent();
+         env.resize(TILE_RESIZE);
+         if(env.intersects(bounds) || env.intersects(m_invalidRegion)) {
+             m_oldTiles.push_back(tile);
+             it = m_tiles.erase(it);
+
+             newTiles.push_back(GlTilePtr(new GlTile(*tile.get(), true)));
+         }
+         else {
+             ++it;
+         }
+    }
+
+    for(GlTilePtr& tile : newTiles) {
+        m_tiles.push_back(tile);
+        float z = 0.0f;
+        for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+             ++layerIt) {
+            const LayerPtr &layer = *layerIt;
+            m_threadPool.addThreadData(new LayerFillData(tile, layer, z, true));
+            z += 1000.f;
         }
     }
 
