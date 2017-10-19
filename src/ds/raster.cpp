@@ -485,6 +485,9 @@ int Raster::getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
 
 bool Raster::cacheArea(const Progress &progress, const Options &options)
 {
+    if(m_type != CAT_RASTER_TMS) {
+        return false;
+    }
     return true;
 }
 
