@@ -134,13 +134,13 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid)
     }
 
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                              ATTACH_FEATURE_ID, fid));
+                                              ATTACH_FEATURE_ID_FIELD, fid));
     m_attTable->ResetReading();
     FeaturePtr attFeature;
     while((attFeature = m_attTable->GetNextFeature())) {
         AttachmentInfo info;
-        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME);
-        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION);
+        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
+        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
         info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
 
@@ -175,9 +175,9 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
 
-    newAttachment->SetField(ATTACH_FEATURE_ID, fid);
-    newAttachment->SetField(ATTACH_FILE_NAME, fileName);
-    newAttachment->SetField(ATTACH_DESCRIPTION, description);
+    newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
+    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName);
+    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description);
     newAttachment->SetField(REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
@@ -284,13 +284,13 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid)
     }
 
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                              ATTACH_FEATURE_ID, fid));
+                                              ATTACH_FEATURE_ID_FIELD, fid));
     m_attTable->ResetReading();
     FeaturePtr attFeature;
     while((attFeature = m_attTable->GetNextFeature())) {
         AttachmentInfo info;
-        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME);
-        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION);
+        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
+        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
         info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
 
@@ -325,9 +325,9 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
 
-    newAttachment->SetField(ATTACH_FEATURE_ID, fid);
-    newAttachment->SetField(ATTACH_FILE_NAME, fileName);
-    newAttachment->SetField(ATTACH_DESCRIPTION, description);
+    newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
+    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName);
+    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description);
     newAttachment->SetField(REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {

@@ -186,7 +186,7 @@ constexpr unsigned short META_VALUE_LIMIT = 512;
 
 // Attachments
 constexpr const char* ATTACH_EXT = "attachments";
-
+constexpr const char* HISTORY_EXT = "editlog";
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -1046,6 +1046,29 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
     return ovrLayer;
 }
 
+OGRLayer* Dataset::createEditHistoryTable(GDALDataset* ds, const char* name)
+{
+    OGRLayer* logLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
+    if (nullptr == logLayer) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    // Create table  fields
+    OGRFieldDefn fidField(FEATURE_ID_FIELD, OFTInteger64);
+    OGRFieldDefn afidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
+    OGRFieldDefn opField(OPERATION_FIELD, OFTInteger64);
+
+    if(logLayer->CreateField(&fidField) != OGRERR_NONE ||
+       logLayer->CreateField(&afidField) != OGRERR_NONE ||
+       logLayer->CreateField(&opField) != OGRERR_NONE) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    return logLayer;
+}
+
 OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
                                           const char* name)
 {
@@ -1064,9 +1087,9 @@ OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
     }
 
     // Create table  fields
-    OGRFieldDefn fidField(ATTACH_FEATURE_ID, OFTInteger64);
-    OGRFieldDefn nameField(ATTACH_FILE_NAME, OFTString);
-    OGRFieldDefn descField(ATTACH_DESCRIPTION, OFTString);
+    OGRFieldDefn fidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
+    OGRFieldDefn nameField(ATTACH_FILE_NAME_FIELD, OFTString);
+    OGRFieldDefn descField(ATTACH_DESCRIPTION_FIELD, OFTString);
 
     if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
@@ -1084,22 +1107,19 @@ OGRLayer* Dataset::createAttachmentsTable(const char* name)
         createAdditionsDataset();
     }
 
-    if(!m_addsDS)
+    if(!m_addsDS) {
         return nullptr;
+    }
 
-    CPLString attLayerName(name);
-    attLayerName += CPLString("_") + ATTACH_EXT;
-
-    return createAttachmentsTable(m_addsDS, m_path, attLayerName);
+    return createAttachmentsTable(m_addsDS, m_path, attachmentsTableName(name));
 }
 
 bool Dataset::destroyAttachmentsTable(const char* name)
 {
     if(!m_addsDS)
         return false;
-    CPLString attLayerName(name);
-    attLayerName += CPLString("_") + ATTACH_EXT;
-    OGRLayer* layer = m_addsDS->GetLayerByName(attLayerName);
+
+    OGRLayer* layer = m_addsDS->GetLayerByName(attachmentsTableName(name));
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
@@ -1109,18 +1129,71 @@ OGRLayer* Dataset::getAttachmentsTable(const char* name)
 {
     if(!m_addsDS)
         return nullptr;
-    CPLString attLayerName(name);
-    attLayerName += CPLString("_") + ATTACH_EXT;
-    return m_addsDS->GetLayerByName(attLayerName);
+
+    return m_addsDS->GetLayerByName(attachmentsTableName(name));
+}
+
+OGRLayer* Dataset::createEditHistoryTable(const char* name)
+{
+    if(!m_addsDS) {
+        createAdditionsDataset();
+    }
+
+    if(!m_addsDS) {
+        return nullptr;
+    }
+
+    return createEditHistoryTable(m_addsDS, historyTableName(name));
+}
+
+bool Dataset::destroyEditHistoryTable(const char* name)
+{
+    if(!m_addsDS)
+        return false;
+    OGRLayer* layer = m_addsDS->GetLayerByName(historyTableName(name));
+    if(!layer)
+        return false;
+    return destroyTable(m_DS, layer);
+}
+
+OGRLayer* Dataset::getEditHistoryTable(const char* name)
+{
+    if(!m_addsDS)
+        return nullptr;
+    return m_addsDS->GetLayerByName(historyTableName(name));
+}
+
+void Dataset::clearEditHistoryTable(const char* name)
+{
+    deleteFeatures(historyTableName(name));
+}
+
+const char* Dataset::historyTableName(const char* name) const
+{
+    return CPLSPrintf("%s_%s", name, HISTORY_EXT);
+}
+
+const char* Dataset::attachmentsTableName(const char* name) const
+{
+    return CPLSPrintf("%s_%s", name, ATTACH_EXT);
 }
 
 bool Dataset::deleteFeatures(const char* name)
 {
-    if(!m_addsDS)
+    GDALDataset* ds = nullptr;
+    if(m_DS->GetLayerByName(name) != nullptr) {
+        ds = m_DS;
+    }
+
+    if(!ds && m_addsDS->GetLayerByName(name) != nullptr) {
+        ds = m_addsDS;
+    }
+
+    if(!ds)
         return false;
     CPLErrorReset();
-    m_addsDS->ExecuteSQL(CPLSPrintf("DELETE from %s", name),
-                         nullptr, nullptr);
+    CPLMutexHolder holder(m_executeSQLMutex);
+    ds->ExecuteSQL(CPLSPrintf("DELETE from %s", name), nullptr, nullptr);
     return CPLGetLastErrorType() < CE_Failure;
 }
 

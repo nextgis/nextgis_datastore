@@ -37,9 +37,11 @@ constexpr const char* OVR_ZOOM_KEY = "z";
 constexpr const char* OVR_X_KEY = "x";
 constexpr const char* OVR_Y_KEY = "y";
 constexpr const char* OVR_TILE_KEY = "tile";
-constexpr const char* ATTACH_FEATURE_ID = "afid";
-constexpr const char* ATTACH_FILE_NAME = "name";
-constexpr const char* ATTACH_DESCRIPTION = "descript";
+constexpr const char* ATTACH_FEATURE_ID_FIELD = "afid";
+constexpr const char* ATTACH_FILE_NAME_FIELD = "name";
+constexpr const char* ATTACH_DESCRIPTION_FIELD = "descript";
+constexpr const char* FEATURE_ID_FIELD = "fid";
+constexpr const char* OPERATION_FIELD = "op";
 
 constexpr const char* USER_KEY = "user";
 constexpr const char* NG_ADDITIONS_KEY = "nga";
@@ -171,6 +173,7 @@ protected:
     static bool dropOverviewsTableIndex(GDALDataset* ds, const char* name);
     static OGRLayer* createAttachmentsTable(GDALDataset* ds, const char* path,
                                             const char* name);
+    static OGRLayer* createEditHistoryTable(GDALDataset* ds, const char* name);
 
     //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
 
@@ -190,6 +193,12 @@ protected:
     virtual OGRLayer* createAttachmentsTable(const char* name);
     virtual bool destroyAttachmentsTable(const char* name);
     virtual OGRLayer* getAttachmentsTable(const char* name);
+    virtual const char* attachmentsTableName(const char* name) const;
+    virtual OGRLayer* createEditHistoryTable(const char* name);
+    virtual bool destroyEditHistoryTable(const char* name);
+    virtual OGRLayer* getEditHistoryTable(const char* name);
+    virtual void clearEditHistoryTable(const char* name);
+    virtual const char* historyTableName(const char* name) const;
     virtual bool deleteFeatures(const char* name);
 
 protected:

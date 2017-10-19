@@ -1526,6 +1526,39 @@ int ngsFeatureClassSetSpatialFilter(CatalogObjectH object, double minX,
     return COD_SUCCESS;
 }
 
+int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
+                                                  ngsEditOperation operation)
+{
+    Table* table = getTableFromHandle(object);
+    if(nullptr == table) {
+        return errorMessage(COD_INVALID, _("Table handle is null"));
+    }
+
+    table->deleteEditOperation(operation);
+
+    return COD_SUCCESS;
+}
+
+ngsEditOperation* ngsFeatureClassGetEditOperations(CatalogObjectH object)
+{
+    Table* table = getTableFromHandle(object);
+    if(nullptr == table) {
+        errorMessage(COD_INVALID, _("Table handle is null"));
+        return nullptr;
+    }
+
+    auto operations = table->editOperations();
+    ngsEditOperation* out =
+            static_cast<ngsEditOperation*>(CPLMalloc((operations.size() + 1) *
+                                                     sizeof(ngsEditOperation)));
+    int counter = 0;
+    for(auto op : operations) {
+        out[counter++] = op;
+    }
+    out[counter] = {NOT_FOUND, NOT_FOUND, CC_NOP};
+    return out;
+}
+
 void ngsFeatureFree(FeatureH feature)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);

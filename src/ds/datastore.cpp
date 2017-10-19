@@ -379,6 +379,10 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         table->setProperty(CPLSPrintf("FIELD_%ld_NAME", i), fields[i].name, NG_ADDITIONS_KEY);
         table->setProperty(CPLSPrintf("FIELD_%ld_ALIAS", i), fields[i].alias, NG_ADDITIONS_KEY);
     }
+
+    bool saveEditHistory = options.boolOption(SAVE_EDIT_HISTORY_KEY, false);
+    table->setProperty(SAVE_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", NG_ADDITIONS_KEY);
+
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {
         if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
@@ -452,9 +456,9 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
     }
 
     // Create table  fields
-    OGRFieldDefn fidField(ATTACH_FEATURE_ID, OFTInteger64);
-    OGRFieldDefn nameField(ATTACH_FILE_NAME, OFTString);
-    OGRFieldDefn descField(ATTACH_DESCRIPTION, OFTString);
+    OGRFieldDefn fidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
+    OGRFieldDefn nameField(ATTACH_FILE_NAME_FIELD, OFTString);
+    OGRFieldDefn descField(ATTACH_DESCRIPTION_FIELD, OFTString);
     OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
 
     if(attLayer->CreateField(&fidField) != OGRERR_NONE ||

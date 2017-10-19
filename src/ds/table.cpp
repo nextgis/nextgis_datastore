@@ -30,7 +30,6 @@
 
 namespace ngs {
 
-constexpr const char* SAVE_EDIT_HISTORY_KEY = "save_edit_history";
 
 //------------------------------------------------------------------------------
 // FieldMapPtr
@@ -152,6 +151,7 @@ bool Table::insertFeature(const FeaturePtr &feature)
     Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
     DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
+        addEditOperation(feature->GetFID(), NOT_FOUND, CC_CREATE_FEATURE);
         if(dataset && !dataset->isBatchOperation()) {
             Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                    fullName().c_str(),
@@ -170,12 +170,16 @@ bool Table::updateFeature(const FeaturePtr &feature)
         return false;
 
     CPLErrorReset();
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
+    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
-        Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
+        addEditOperation(feature->GetFID(), NOT_FOUND, CC_CHANGE_FEATURE);
+        if(dataset && !dataset->isBatchOperation()) {
+            Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                fullName().c_str(),
                                                feature->GetFID()),
                                     ngsChangeCode::CC_CHANGE_FEATURE);
+        }
         return true;
     }
 
@@ -191,6 +195,8 @@ bool Table::deleteFeature(GIntBig id)
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         deleteAttachments(id);
+
+        addEditOperation(id, NOT_FOUND, CC_DELETE_FEATURE);
         Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                fullName().c_str(),
                                                id),
@@ -214,6 +220,7 @@ bool Table::deleteFeatures()
     }
 
     if(dataset->deleteFeatures(name())) {
+        addEditOperation(NOT_FOUND, NOT_FOUND, CC_DELETEALL_FEATURES);
         Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_DELETEALL_FEATURES);
         dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
@@ -320,6 +327,7 @@ bool Table::destroy()
 
         dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
         Folder::rmDir(getAttachmentsPath());
+        dataset->destroyEditHistoryTable(name()); // Log edit table may be not exists
         return true;
     }
     return false;
@@ -370,11 +378,10 @@ bool Table::initEditHistoryTable()
         return false;
     }
 
-    // TODO:
-//    m_editHistoryTable = parentDS->getEditHistoryTable(name());
-//    if(nullptr == m_attTable) {
-//        m_editHistoryTable = parentDS->createEditHistoryTable(name());
-//    }
+    m_editHistoryTable = parentDS->getEditHistoryTable(name());
+    if(nullptr == m_editHistoryTable) {
+        m_editHistoryTable = parentDS->createEditHistoryTable(name());
+    }
 
     return m_editHistoryTable != nullptr;
 }
@@ -447,9 +454,9 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
 
-    newAttachment->SetField(ATTACH_FEATURE_ID, fid);
-    newAttachment->SetField(ATTACH_FILE_NAME, fileName);
-    newAttachment->SetField(ATTACH_DESCRIPTION, description);
+    newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
+    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName);
+    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
         CPLString dstTablePath = getAttachmentsPath();
@@ -475,6 +482,7 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
                 File::copyFile(filePath, dstPath);
             }
         }
+        addEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
         return newAttachment->GetFID();
     }
 
@@ -490,7 +498,7 @@ bool Table::deleteAttachment(GIntBig aid)
     FeaturePtr attFeature = m_attTable->GetFeature(aid);
     bool result = m_attTable->DeleteFeature(aid) == OGRERR_NONE;
     if(result) {
-        GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID);
+        GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
         CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
                                                    CPLSPrintf(CPL_FRMT_GIB, fid),
                                                    nullptr);
@@ -499,6 +507,8 @@ bool Table::deleteAttachment(GIntBig aid)
                                                    nullptr);
 
         result = File::deleteFile(attPath);
+
+        addEditOperation(fid, aid, CC_DELETE_ATTACHMENT);
     }
 
     return result;
@@ -513,12 +523,14 @@ bool Table::deleteAttachments(GIntBig fid)
 
     dataset->executeSQL(CPLSPrintf("DELETE FROM %s_%s WHERE %s = " CPL_FRMT_GIB,
                                    m_name.c_str(), Dataset::attachmentsFolderExtension(),
-                                   ATTACH_FEATURE_ID, fid));
+                                   ATTACH_FEATURE_ID_FIELD, fid));
 
     CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
                                                CPLSPrintf(CPL_FRMT_GIB, fid),
                                                nullptr);
     Folder::rmDir(attFeaturePath);
+
+    addEditOperation(fid, NOT_FOUND, CC_DELETEALL_ATTACHMENTS);
     return true;
 }
 
@@ -530,15 +542,25 @@ bool Table::updateAttachment(GIntBig aid, const char* fileName,
     }
 
     FeaturePtr attFeature = m_attTable->GetFeature(aid);
-    if(!attFeature)
+    if(!attFeature) {
         return false;
+    }
 
-    if(fileName)
-        attFeature->SetField(ATTACH_FILE_NAME, fileName);
-    if(description)
-        attFeature->SetField(ATTACH_DESCRIPTION, description);
+    if(fileName) {
+        attFeature->SetField(ATTACH_FILE_NAME_FIELD, fileName);
+    }
+    if(description) {
+        attFeature->SetField(ATTACH_DESCRIPTION_FIELD, description);
+    }
 
-    return m_attTable->SetFeature(attFeature) == OGRERR_NONE;
+    GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
+
+    if(m_attTable->SetFeature(attFeature) == OGRERR_NONE) {
+        addEditOperation(fid, aid, CC_CHANGE_ATTACHMENT);
+        return true;
+    }
+
+    return false;
 }
 
 std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid)
@@ -551,13 +573,13 @@ std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid)
 
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                              ATTACH_FEATURE_ID, fid));
+                                              ATTACH_FEATURE_ID_FIELD, fid));
     //m_attTable->ResetReading();
     FeaturePtr attFeature;
     while((attFeature = m_attTable->GetNextFeature())) {
         AttachmentInfo info;
-        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME);
-        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION);
+        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
+        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
 
         CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
@@ -599,15 +621,20 @@ bool Table::setProperty(const char* key, const char* value, const char* domain)
     name += CPLString(".") + key;
 
     if(EQUAL(key, SAVE_EDIT_HISTORY_KEY) && EQUAL(domain, NG_ADDITIONS_KEY)) {
+        bool prevValue = m_saveEditHistory;
         m_saveEditHistory = EQUAL(property(SAVE_EDIT_HISTORY_KEY, "OFF",
                                            NG_ADDITIONS_KEY), "ON");
+        if(prevValue != m_saveEditHistory && prevValue == true) {
+            // Clear history table
+            parentDataset->clearEditHistoryTable(m_name);
+        }
     }
 
     return parentDataset->setProperty(name, value);
 }
 
 CPLString Table::property(const char* key, const char* defaultValue,
-                              const char* domain)
+                          const char* domain)
 {
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
@@ -651,6 +678,218 @@ const std::vector<Field>& Table::fields()
     if(m_fields.empty())
         fillFields();
     return m_fields;
+}
+
+void Table::addEditOperation(GIntBig fid, GIntBig aid, enum ngsChangeCode code)
+{
+    if(!m_saveEditHistory) {
+        return;
+    }
+
+    if(nullptr == m_editHistoryTable) {
+        initEditHistoryTable();
+    }
+
+    if(nullptr == m_editHistoryTable) {
+        return;
+    }
+
+    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return;
+    }
+
+    DatasetExecuteSQLLockHolder holder(parentDataset);
+
+    FeaturePtr newOp = OGRFeature::CreateFeature(m_editHistoryTable->GetLayerDefn());
+
+    newOp->SetField(FEATURE_ID_FIELD, fid);
+    newOp->SetField(ATTACH_FEATURE_ID_FIELD, aid);
+    newOp->SetField(OPERATION_FIELD, code);
+
+    if(code == CC_DELETEALL_FEATURES) {
+        parentDataset->clearEditHistoryTable(name());
+
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+    GDALDataset* addsDS = parentDataset->m_addsDS;
+    if(code == CC_DELETEALL_ATTACHMENTS) {
+        addsDS->ExecuteSQL(CPLSPrintf("DELETE * FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s <> -1",
+                                       parentDataset->historyTableName(m_name),
+                                       FEATURE_ID_FIELD, fid, ATTACH_FEATURE_ID_FIELD),
+                           nullptr, nullptr);
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+    // Check delete all
+    addsDS->ExecuteSQL(CPLSPrintf("DELETE * FROM %s WHERE %s = %d",
+                                   parentDataset->historyTableName(m_name),
+                                   OPERATION_FIELD, CC_DELETEALL_FEATURES),
+                       nullptr, nullptr);
+
+    if(code == CC_CREATE_ATTACHMENT || code == CC_CHANGE_ATTACHMENT) {
+        addsDS->ExecuteSQL(CPLSPrintf("DELETE * FROM %s WHERE %s = %d AND %s = " CPL_FRMT_GIB,
+                                       parentDataset->historyTableName(m_name),
+                                       OPERATION_FIELD, CC_DELETEALL_ATTACHMENTS,
+                                       FEATURE_ID_FIELD, fid),
+                           nullptr, nullptr);
+    }
+
+    if(code == CC_CREATE_FEATURE || code == CC_CREATE_ATTACHMENT) {
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+    m_editHistoryTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, FEATURE_ID_FIELD, fid));
+    std::vector<FeaturePtr> features;
+    FeaturePtr f;
+    while((f = m_editHistoryTable->GetNextFeature())) {
+        features.push_back(f);
+    }
+    m_editHistoryTable->SetAttributeFilter(nullptr);
+
+    if(code == CC_DELETE_FEATURE) {
+        if(!features.empty()) {
+            addsDS->ExecuteSQL(CPLSPrintf("DELETE * FROM %s WHERE %s = " CPL_FRMT_GIB,
+                                       parentDataset->historyTableName(m_name),
+                                       FEATURE_ID_FIELD, fid),
+                           nullptr, nullptr);
+        }
+
+        // If feature created and than deleted - nop
+        for(auto feature : features) {
+            enum ngsChangeCode testCode = static_cast<enum ngsChangeCode>(
+                        feature->GetFieldAsInteger64(OPERATION_FIELD));
+
+            if(testCode == CC_CREATE_FEATURE) {
+                return;
+            }
+        }
+
+        // Add new operation
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+    if(code == CC_DELETE_ATTACHMENT) {
+        FeaturePtr attFeature;
+        for(auto feature : features) {
+            GIntBig testAid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
+            if(testAid == aid) {
+                attFeature = feature;
+                enum ngsChangeCode testCode = static_cast<enum ngsChangeCode>(
+                            feature->GetFieldAsInteger64(OPERATION_FIELD));
+
+                if(testCode == CC_CREATE_ATTACHMENT) {
+                    m_editHistoryTable->DeleteFeature(feature->GetFID());
+                    return;
+                }
+                break;
+            }
+        }
+
+        if(attFeature) {
+            attFeature->SetField(OPERATION_FIELD, code);
+            m_editHistoryTable->SetFeature(attFeature);
+            return;
+        }
+
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+    if(code == CC_CHANGE_FEATURE) {
+        // Check if feature deleted - skip
+        // Check if feature added. If added - skip
+        // Check if feature changed. If changed - skip
+        if(!features.empty()) {
+            return;
+        }
+        // Add new operation
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+    if(code == CC_CHANGE_ATTACHMENT) {
+        // Check if attach deleted - skip
+        // Check if attach added. If added - skip
+        // Check if attach changed. If changed - skip
+        for(auto feature : features) {
+            GIntBig testAid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
+            if(testAid == aid) {
+                return;
+            }
+        }
+
+        // Add new operation
+        if(m_editHistoryTable->CreateFeature(newOp) == OGRERR_NONE) {
+            CPLDebug("ngstore", "Save operation " CPL_FRMT_GIB " for FID: " CPL_FRMT_GIB " and AID: " CPL_FRMT_GIB "failed",
+                     static_cast<long long>(code), fid, aid);
+        }
+
+        return;
+    }
+
+}
+
+void Table::deleteEditOperation(const ngsEditOperation& op)
+{
+    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return;
+    }
+
+    DatasetExecuteSQLLockHolder holder(parentDataset);
+
+    GDALDataset* addsDS = parentDataset->m_addsDS;
+    addsDS->ExecuteSQL(CPLSPrintf("DELETE * FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s = " CPL_FRMT_GIB " AND %s = %d",
+                                  parentDataset->historyTableName(m_name),
+                                  FEATURE_ID_FIELD, op.fid,
+                                  ATTACH_FEATURE_ID_FIELD, op.aid,
+                                  OPERATION_FIELD, op.code),
+                           nullptr, nullptr);
+}
+
+std::vector<ngsEditOperation> Table::editOperations() const
+{
+    std::vector<ngsEditOperation> out;
+    FeaturePtr feature;
+    while((feature = m_editHistoryTable->GetNextFeature())) {
+        ngsEditOperation op;
+        op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
+        op.aid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
+        op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(
+                                                      OPERATION_FIELD));
+        out.push_back(op);
+    }
+    return out;
 }
 
 } // namespace ngs

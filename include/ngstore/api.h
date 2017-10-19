@@ -231,6 +231,12 @@ typedef struct _ngsField {
     int type;
 } ngsField;
 
+typedef struct _ngsEditOperation {
+    long long fid;
+    long long aid;
+    enum ngsChangeCode code;
+} ngsEditOperation;
+
 NGS_EXTERNC ngsField* ngsFeatureClassFields(CatalogObjectH object);
 NGS_EXTERNC ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
@@ -256,6 +262,9 @@ NGS_EXTERNC int ngsFeatureClassSetFilter(CatalogObjectH object,
 NGS_EXTERNC int ngsFeatureClassSetSpatialFilter(CatalogObjectH object,
                                                 double minX, double minY,
                                                 double maxX, double maxY);
+NGS_EXTERNC int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
+                                                  ngsEditOperation operation);
+NGS_EXTERNC ngsEditOperation* ngsFeatureClassGetEditOperations(CatalogObjectH object);
 
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);

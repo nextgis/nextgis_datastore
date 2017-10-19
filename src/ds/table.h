@@ -29,6 +29,8 @@
 
 namespace ngs {
 
+constexpr const char* SAVE_EDIT_HISTORY_KEY = "save_edit_history";
+
 class FieldMapPtr : public std::shared_ptr<int>
 {
 public:
@@ -110,6 +112,10 @@ public:
     virtual std::map<CPLString, CPLString> properties(const char* domain);
     virtual void deleteProperties();
 
+    // Edit log
+    virtual void deleteEditOperation(const ngsEditOperation& op);
+    virtual std::vector<ngsEditOperation> editOperations() const;
+
     // Object interface
 public:
     virtual bool canDestroy() const override;
@@ -126,6 +132,7 @@ protected:
     bool initEditHistoryTable();
     CPLString getAttachmentsPath() const;
     virtual void fillFields();
+    virtual void addEditOperation(GIntBig fid, GIntBig aid, enum ngsChangeCode code);
 
 protected:
     OGRLayer* m_layer;
