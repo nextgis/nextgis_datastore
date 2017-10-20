@@ -290,12 +290,23 @@ void ngsRemoveNotifyFunction(ngsNotifyFunc function)
     Notify::instance().deleteNotifyReceiver(function);
 }
 
+/**
+ * @brief ngsSettingsGetString Returns library config settings
+ * @param key Key to get settings value
+ * @param defaultVal Default value if not currently set
+ * @return Setting value
+ */
 const char* ngsSettingsGetString(const char* key, const char* defaultVal)
 {
     Settings& settings = Settings::instance();
     return settings.getString(key, defaultVal);
 }
 
+/**
+ * @brief ngsSettingsSetString Sets library config settings
+ * @param key Key to set settings value
+ * @param value Value to set
+ */
 void ngsSettingsSetString(const char* key, const char* value)
 {
     Settings& settings = Settings::instance();
@@ -452,6 +463,10 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     return out;
 }
 
+/**
+ * @brief ngsURLRequestResultFree Frees (deletes from memory) request result
+ * @param result Request result to free
+ */
 void ngsURLRequestResultFree(ngsURLRequestResult* result)
 {
     if(nullptr == result)
@@ -679,7 +694,8 @@ int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue)
 }
 
 
-const char* ngsJsonObjectGetStringForKey(JsonObjectH object, const char* name, const char* defaultValue)
+const char* ngsJsonObjectGetStringForKey(JsonObjectH object, const char* name,
+                                         const char* defaultValue)
 {
     if(nullptr == object) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -688,7 +704,8 @@ const char* ngsJsonObjectGetStringForKey(JsonObjectH object, const char* name, c
     return static_cast<CPLJSONObject*>(object)->GetString(name, defaultValue);
 }
 
-double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char* name, double defaultValue)
+double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char* name,
+                                    double defaultValue)
 {
     if(nullptr == object) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -697,7 +714,8 @@ double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char* name, double
     return static_cast<CPLJSONObject*>(object)->GetDouble(name, defaultValue);
 }
 
-int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char* name, int defaultValue)
+int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char* name,
+                                  int defaultValue)
 {
     if(nullptr == object) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -706,7 +724,8 @@ int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char* name, int defa
     return static_cast<CPLJSONObject*>(object)->GetInteger(name, defaultValue);
 }
 
-long ngsJsonObjectGetLongForKey(JsonObjectH object, const char* name, long defaultValue)
+long ngsJsonObjectGetLongForKey(JsonObjectH object, const char* name,
+                                long defaultValue)
 {
     if(nullptr == object) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -715,7 +734,8 @@ long ngsJsonObjectGetLongForKey(JsonObjectH object, const char* name, long defau
     return static_cast<CPLJSONObject*>(object)->GetLong(name, defaultValue);
 }
 
-int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name, int defaultValue)
+int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name,
+                               int defaultValue)
 {
     if(nullptr == object) {
         errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -724,7 +744,8 @@ int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char* name, int default
     return static_cast<CPLJSONObject*>(object)->GetBool(name, defaultValue) ? 1 : 0;
 }
 
-int ngsJsonObjectSetStringForKey(JsonObjectH object, const char* name, const char* value)
+int ngsJsonObjectSetStringForKey(JsonObjectH object, const char* name,
+                                 const char* value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -735,7 +756,8 @@ int ngsJsonObjectSetStringForKey(JsonObjectH object, const char* name, const cha
     return COD_SUCCESS;
 }
 
-int ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char* name, double value)
+int ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char* name,
+                                 double value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -746,7 +768,8 @@ int ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char* name, double va
     return COD_SUCCESS;
 }
 
-int ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name, int value)
+int ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name,
+                                  int value)
 {
     if(nullptr == object) {
         return errorMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -1293,12 +1316,10 @@ static std::vector<char*> stringStore;
 
 ngsField* ngsFeatureClassFields(CatalogObjectH object)
 {
-//    if(stringStore.size() > 60) {
-        for(char* storedStr : stringStore) {
-            CPLFree(storedStr);
-        }
-        stringStore.clear();
-//    }
+    for(char* storedStr : stringStore) {
+        CPLFree(storedStr);
+    }
+    stringStore.clear();
 
     Table* table = getTableFromHandle(object);
     if(!table) {
@@ -1407,7 +1428,7 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
 
 /**
  * @brief ngsFeatureClassCreateFeature Creates new feature
- * @param object Handle to FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
  * @return Feature handle or NULL
  */
 FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
@@ -1425,7 +1446,16 @@ FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
     return nullptr;
 }
 
-int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
+/**
+ * @brief ngsFeatureClassInsertFeature Inserts feature/row into the table
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param feature Feature to insert
+ * @param logEdits If log edit operation enabled this key can manage to log or
+ * not this edit operation
+ * @return COD_SUCCESS if everything is OK
+ */
+int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature,
+                                 char logEdits)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -1434,11 +1464,20 @@ int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature)
     }
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    return table->insertFeature(*featurePtrPointer) ? COD_SUCCESS :
-                                                      COD_INSERT_FAILED;
+    return table->insertFeature(*featurePtrPointer, logEdits == 1) ? COD_SUCCESS :
+                                                                     COD_INSERT_FAILED;
 }
 
-int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)
+/**
+ * @brief ngsFeatureClassUpdateFeature Update feature/row
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param feature Feature to update
+ * @param logEdits If log edit operation enabled this key can manage to log or
+ * not this edit operation
+ * @return COD_SUCCESS if everything is OK
+ */
+int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature,
+                                 char logEdits)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -1447,30 +1486,52 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature)
     }
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    return table->updateFeature(*featurePtrPointer) ? COD_SUCCESS :
-                                                             COD_UPDATE_FAILED;
+    return table->updateFeature(*featurePtrPointer, logEdits == 1) ? COD_SUCCESS :
+                                                                     COD_UPDATE_FAILED;
 }
 
-int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id)
+/**
+ * @brief ngsFeatureClassDeleteFeature Delete feature/row from the table
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param id Feature identificator to delete
+ * @param logEdits If log edit operation enabled this key can manage to log or
+ * not this edit operation
+ * @return COD_SUCCESS if everything is OK
+ */
+int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id,
+                                 char logEdits)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
-    return table->deleteFeature(id) ? COD_SUCCESS : COD_DELETE_FAILED;
+    return table->deleteFeature(id, logEdits == 1) ? COD_SUCCESS :
+                                                     COD_DELETE_FAILED;
 }
 
-int ngsFeatureClassDeleteFeatures(CatalogObjectH object)
+/**
+ * @brief ngsFeatureClassDeleteFeatures Delete all features/rows from the table
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param logEdits If log edit operation enabled this key can manage to log or
+ * not this edit operation
+ * @return COD_SUCCESS if everything is OK
+ */
+int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
         return errorMessage(COD_INVALID,
                             _("Source dataset type is incompatible"));
     }
-    return table->deleteFeatures() ? COD_SUCCESS : COD_DELETE_FAILED;
+    return table->deleteFeatures(logEdits == 1) ? COD_SUCCESS : COD_DELETE_FAILED;
 }
 
+/**
+ * @brief ngsFeatureClassCount Returns feature/row count
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @return Feature/Row count
+ */
 long long ngsFeatureClassCount(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
@@ -1481,7 +1542,10 @@ long long ngsFeatureClassCount(CatalogObjectH object)
     return table->featureCount();
 }
 
-
+/**
+ * @brief ngsFeatureClassResetReading Move read cursor to the begin
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ */
 void ngsFeatureClassResetReading(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
@@ -1492,6 +1556,11 @@ void ngsFeatureClassResetReading(CatalogObjectH object)
     table->reset();
 }
 
+/**
+ * @brief ngsFeatureClassNextFeature Returns next feature/row
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @return Feature handle
+ */
 FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
@@ -1506,6 +1575,12 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
     return nullptr;
 }
 
+/**
+ * @brief ngsFeatureClassGetFeature Returns feature by identificator
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param id Feature identificator
+ * @return Feature handle
+ */
 FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
 {
     Table* table = getTableFromHandle(object);
@@ -1520,6 +1595,13 @@ FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
     return nullptr;
 }
 
+/**
+ * @brief ngsFeatureClassSetFilter Set filter to returns features/rows
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param geometryFilter Geometry handle to filter data
+ * @param attributeFilter Attribute filter (the where clause)
+ * @return COD_SUCCESS if everything is OK
+ */
 int ngsFeatureClassSetFilter(CatalogObjectH object, GeometryH geometryFilter,
                                          const char* attributeFilter)
 {
@@ -1890,7 +1972,7 @@ ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
 
 long long ngsFeatureAttachmentAdd(FeatureH feature, const char* name,
                                   const char* description, const char* path,
-                                  char** options)
+                                  char** options, char logEdits)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -1909,10 +1991,11 @@ long long ngsFeatureAttachmentAdd(FeatureH feature, const char* name,
     }
 
     GIntBig fid = (*featurePtrPointer)->GetFID();
-    return table->addAttachment(fid, name, description, path, options);
+    return table->addAttachment(fid, name, description, path, options,
+                                logEdits == 1);
 }
 
-int ngsFeatureAttachmentDelete(FeatureH feature, long long aid)
+int ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -1928,7 +2011,26 @@ int ngsFeatureAttachmentDelete(FeatureH feature, long long aid)
         return errorMessage(COD_INVALID, _("The feature from table that is result of query"));
     }
 
-    return table->deleteAttachment(aid);
+    return table->deleteAttachments(logEdits == 1);
+}
+
+int ngsFeatureAttachmentDelete(FeatureH feature, long long aid, char logEdits)
+{
+    FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    if(!featurePtrPointer) {
+        return errorMessage(COD_INVALID, _("The object handle is null"));
+    }
+
+    Table* table = featurePtrPointer->table();
+    if(!table) {
+        return errorMessage(COD_INVALID, _("The feature detached from table"));
+    }
+
+    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
+        return errorMessage(COD_INVALID, _("The feature from table that is result of query"));
+    }
+
+    return table->deleteAttachment(aid, logEdits == 1);
 }
 
 static std::vector<Table::AttachmentInfo> info;
@@ -1969,7 +2071,8 @@ ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature)
 }
 
 int ngsFeatureAttachmentUpdate(FeatureH feature, long long aid,
-                                const char* name, const char* description)
+                               const char* name, const char* description,
+                               char logEdits)
 {
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -1985,8 +2088,8 @@ int ngsFeatureAttachmentUpdate(FeatureH feature, long long aid,
         return errorMessage(COD_INVALID, _("The feature from table that is result of query"));
     }
 
-    return table->updateAttachment(aid, name, description) ? COD_SUCCESS :
-                                                             COD_UPDATE_FAILED;
+    return table->updateAttachment(aid, name, description, logEdits == 1) ?
+                COD_SUCCESS : COD_UPDATE_FAILED;
 }
 
 void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,

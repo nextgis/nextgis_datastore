@@ -29,7 +29,7 @@
 
 namespace ngs {
 
-constexpr const char* SAVE_EDIT_HISTORY_KEY = "SAVE_EDIT_HISTORY";
+constexpr const char* LOG_EDIT_HISTORY_KEY = "LOG_EDIT_HISTORY";
 
 class FieldMapPtr : public std::shared_ptr<int>
 {
@@ -86,10 +86,10 @@ public:
     virtual ~Table();
     FeaturePtr createFeature() const;
     FeaturePtr getFeature(GIntBig id) const;
-    virtual bool insertFeature(const FeaturePtr& feature);
-    virtual bool updateFeature(const FeaturePtr& feature);
-    virtual bool deleteFeature(GIntBig id);
-    virtual bool deleteFeatures();
+    virtual bool insertFeature(const FeaturePtr& feature, bool logEdits = true);
+    virtual bool updateFeature(const FeaturePtr& feature, bool logEdits = true);
+    virtual bool deleteFeature(GIntBig id, bool logEdits = true);
+    virtual bool deleteFeatures(bool logEdits = true);
     GIntBig featureCount(bool force = false) const;
     void reset() const;
     void setAttributeFilter(const char* filter);
@@ -101,11 +101,11 @@ public:
     const std::vector<Field>& fields();
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                           const char* description, const char* filePath,
-                          char** options = nullptr);
-    virtual bool deleteAttachment(GIntBig aid);
-    virtual bool deleteAttachments(GIntBig fid);
+                          char** options = nullptr, bool logEdits = true);
+    virtual bool deleteAttachment(GIntBig aid, bool logEdits = true);
+    virtual bool deleteAttachments(GIntBig fid, bool logEdits = true);
     virtual bool updateAttachment(GIntBig aid, const char* fileName,
-                          const char* description);
+                                  const char* description, bool logEdits = true);
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid);
     virtual bool setProperty(const char* key, const char* value, const char* domain);
     virtual CPLString property(const char* key, const char* defaultValue,

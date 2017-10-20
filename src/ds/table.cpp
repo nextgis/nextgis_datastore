@@ -139,7 +139,7 @@ FeaturePtr Table::getFeature(GIntBig id) const
     return FeaturePtr(pFeature, this);
 }
 
-bool Table::insertFeature(const FeaturePtr &feature)
+bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
 {
     if(nullptr == m_layer)
         return false;
@@ -148,7 +148,9 @@ bool Table::insertFeature(const FeaturePtr &feature)
     Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
     DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
-        logEditOperation(feature->GetFID(), NOT_FOUND, CC_CREATE_FEATURE);
+        if(logEdits) {
+            logEditOperation(feature->GetFID(), NOT_FOUND, CC_CREATE_FEATURE);
+        }
         if(dataset && !dataset->isBatchOperation()) {
             Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                    fullName().c_str(),
@@ -161,7 +163,7 @@ bool Table::insertFeature(const FeaturePtr &feature)
     return errorMessage(CPLGetLastErrorMsg());
 }
 
-bool Table::updateFeature(const FeaturePtr &feature)
+bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
 {
     if(nullptr == m_layer)
         return false;
@@ -170,7 +172,9 @@ bool Table::updateFeature(const FeaturePtr &feature)
     Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
     DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
-        logEditOperation(feature->GetFID(), NOT_FOUND, CC_CHANGE_FEATURE);
+        if(logEdits) {
+            logEditOperation(feature->GetFID(), NOT_FOUND, CC_CHANGE_FEATURE);
+        }
         if(dataset && !dataset->isBatchOperation()) {
             Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                fullName().c_str(),
@@ -183,7 +187,7 @@ bool Table::updateFeature(const FeaturePtr &feature)
     return errorMessage(CPLGetLastErrorMsg());
 }
 
-bool Table::deleteFeature(GIntBig id)
+bool Table::deleteFeature(GIntBig id, bool logEdits)
 {
     if(nullptr == m_layer)
         return false;
@@ -191,9 +195,11 @@ bool Table::deleteFeature(GIntBig id)
     CPLErrorReset();
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
-        deleteAttachments(id);
+        deleteAttachments(id, logEdits);
 
-        logEditOperation(id, NOT_FOUND, CC_DELETE_FEATURE);
+        if(logEdits) {
+            logEditOperation(id, NOT_FOUND, CC_DELETE_FEATURE);
+        }
         Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
                                                fullName().c_str(),
                                                id),
@@ -204,7 +210,7 @@ bool Table::deleteFeature(GIntBig id)
     return errorMessage(CPLGetLastErrorMsg());
 }
 
-bool Table::deleteFeatures()
+bool Table::deleteFeatures(bool logEdits)
 {
     if(nullptr == m_layer) {
         return false;
@@ -217,7 +223,9 @@ bool Table::deleteFeatures()
     }
 
     if(dataset->deleteFeatures(name())) {
-        logEditOperation(NOT_FOUND, NOT_FOUND, CC_DELETEALL_FEATURES);
+        if(logEdits) {
+            logEditOperation(NOT_FOUND, NOT_FOUND, CC_DELETEALL_FEATURES);
+        }
         Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_DELETEALL_FEATURES);
         dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
@@ -443,7 +451,7 @@ void Table::fillFields()
 
 GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
                              const char* description, const char* filePath,
-                             char** options)
+                             char** options, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
@@ -481,14 +489,17 @@ GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
                 File::copyFile(filePath, dstPath);
             }
         }
-        logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+
+        if(logEdits) {
+            logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+        }
         return newAttachment->GetFID();
     }
 
     return NOT_FOUND;
 }
 
-bool Table::deleteAttachment(GIntBig aid)
+bool Table::deleteAttachment(GIntBig aid, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return false;
@@ -507,13 +518,15 @@ bool Table::deleteAttachment(GIntBig aid)
 
         result = File::deleteFile(attPath);
 
-        logEditOperation(fid, aid, CC_DELETE_ATTACHMENT);
+        if(logEdits) {
+            logEditOperation(fid, aid, CC_DELETE_ATTACHMENT);
+        }
     }
 
     return result;
 }
 
-bool Table::deleteAttachments(GIntBig fid)
+bool Table::deleteAttachments(GIntBig fid, bool logEdits)
 {
     Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == dataset) {
@@ -529,12 +542,14 @@ bool Table::deleteAttachments(GIntBig fid)
                                                nullptr);
     Folder::rmDir(attFeaturePath);
 
-    logEditOperation(fid, NOT_FOUND, CC_DELETEALL_ATTACHMENTS);
+    if(logEdits) {
+        logEditOperation(fid, NOT_FOUND, CC_DELETEALL_ATTACHMENTS);
+    }
     return true;
 }
 
 bool Table::updateAttachment(GIntBig aid, const char* fileName,
-                             const char* description)
+                             const char* description, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return false;
@@ -555,7 +570,9 @@ bool Table::updateAttachment(GIntBig aid, const char* fileName,
     GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
 
     if(m_attTable->SetFeature(attFeature) == OGRERR_NONE) {
-        logEditOperation(fid, aid, CC_CHANGE_ATTACHMENT);
+        if(logEdits) {
+            logEditOperation(fid, aid, CC_CHANGE_ATTACHMENT);
+        }
         return true;
     }
 
@@ -607,7 +624,7 @@ bool Table::canDestroy() const
 
 void Table::checkSetProperty(const char* key, const char* value, const char* domain)
 {
-    if(EQUAL(key, SAVE_EDIT_HISTORY_KEY) && EQUAL(domain, NG_ADDITIONS_KEY)) {
+    if(EQUAL(key, LOG_EDIT_HISTORY_KEY) && EQUAL(domain, NG_ADDITIONS_KEY)) {
         char prevValue = m_saveEditHistory;
         m_saveEditHistory = EQUAL(value, "ON") ? 1 : 0;
         if(prevValue != m_saveEditHistory && prevValue == 1) {
@@ -623,7 +640,7 @@ void Table::checkSetProperty(const char* key, const char* value, const char* dom
 bool Table::saveEditHistory()
 {
     if(m_saveEditHistory == NOT_FOUND) {
-        m_saveEditHistory = EQUAL(property(SAVE_EDIT_HISTORY_KEY, "OFF",
+        m_saveEditHistory = EQUAL(property(LOG_EDIT_HISTORY_KEY, "OFF",
                                            NG_ADDITIONS_KEY), "ON") ? 1 : 0;
     }
     return m_saveEditHistory == 1;

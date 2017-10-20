@@ -178,7 +178,7 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid)
 
 GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
                              const char* description, const char* filePath,
-                             char** options)
+                             char** options, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
@@ -219,7 +219,9 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
                 File::copyFile(filePath, dstPath);
             }
         }
-        logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+        if(logEdits) {
+            logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+        }
         return newAttachment->GetFID();
     }
 
@@ -313,7 +315,7 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid)
 
 GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
                              const char* description, const char* filePath,
-                             char** options)
+                             char** options, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
@@ -354,7 +356,10 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
                 File::copyFile(filePath, dstPath);
             }
         }
-        logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+
+        if(logEdits) {
+            logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+        }
         return newAttachment->GetFID();
     }
 

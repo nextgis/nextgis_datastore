@@ -377,8 +377,8 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         table->setProperty(CPLSPrintf("FIELD_%ld_ALIAS", i), fields[i].alias, NG_ADDITIONS_KEY);
     }
 
-    bool saveEditHistory = options.boolOption(SAVE_EDIT_HISTORY_KEY, false);
-    table->setProperty(SAVE_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", NG_ADDITIONS_KEY);
+    bool saveEditHistory = options.boolOption(LOG_EDIT_HISTORY_KEY, false);
+    table->setProperty(LOG_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", NG_ADDITIONS_KEY);
 
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {

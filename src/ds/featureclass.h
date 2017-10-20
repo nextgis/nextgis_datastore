@@ -161,10 +161,10 @@ public:
 
     // Table interface
 public:
-    virtual bool insertFeature(const FeaturePtr& feature) override;
-    virtual bool updateFeature(const FeaturePtr& feature) override;
-    virtual bool deleteFeature(GIntBig id) override;
-    virtual bool deleteFeatures() override;
+    virtual bool insertFeature(const FeaturePtr& feature, bool logEdits = true) override;
+    virtual bool updateFeature(const FeaturePtr& feature, bool logEdits = true) override;
+    virtual bool deleteFeature(GIntBig id, bool logEdits = true) override;
+    virtual bool deleteFeatures(bool logEdits = true) override;
 
 protected:
     VectorTileItemArray tileGeometry(const FeaturePtr &feature,

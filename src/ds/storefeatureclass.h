@@ -56,7 +56,7 @@ public:
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid) override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
-                                  char** options) override;
+                                  char** options, bool logEdits = true) override;
     virtual bool setProperty(const char* key, const char* value,
                              const char* domain) override;
     virtual CPLString property(const char* key, const char* defaultValue,
@@ -80,7 +80,7 @@ public:
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid) override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
-                                  char** options) override;
+                                  char** options, bool logEdits = true) override;
     virtual bool setProperty(const char* key, const char* value,
                              const char* domain) override;
     virtual CPLString property(const char* key, const char* defaultValue,

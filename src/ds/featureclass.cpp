@@ -1638,9 +1638,9 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
 }
 
 
-bool FeatureClass::insertFeature(const FeaturePtr& feature)
+bool FeatureClass::insertFeature(const FeaturePtr& feature, bool logEdits)
 {
-    bool result =  Table::insertFeature(feature);
+    bool result =  Table::insertFeature(feature, logEdits);
     if(!result) {
         return result;
     }
@@ -1660,7 +1660,8 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature)
         return result;
     }
 
-    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint || OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
+    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint ||
+                              OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
     for(auto zoomLevel : zoomLevels()) {
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
@@ -1728,13 +1729,13 @@ Envelope FeatureClass::extraExtentForZoom(unsigned char zoom, const Envelope& en
     return extent;
 }
 
-bool FeatureClass::updateFeature(const FeaturePtr& feature)
+bool FeatureClass::updateFeature(const FeaturePtr& feature, bool logEdits)
 {
     // Get previous geometry extent to get modified
     GIntBig id = feature->GetFID();
     FeaturePtr updateFeature = getFeature(id);
     if(!updateFeature) {
-        return Table::updateFeature(feature);
+        return Table::updateFeature(feature, logEdits);
     }
 
     // 1. original feature has no geometry but feature has
@@ -1763,7 +1764,7 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
     extentBase.fix();
 
 
-    bool result = Table::updateFeature(feature);
+    bool result = Table::updateFeature(feature, logEdits);
 
     m_extent.merge(extentBase);
 
@@ -1833,19 +1834,19 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature)
     return result;
 }
 
-bool FeatureClass::deleteFeature(GIntBig id)
+bool FeatureClass::deleteFeature(GIntBig id, bool logEdits)
 {
     // Get previous geometry extent to get modified tiles
     FeaturePtr deleteFeature = getFeature(id);
     if(!deleteFeature) {
-        return Table::deleteFeature(id);
+        return Table::deleteFeature(id, logEdits);
     }
 
     OGRGeometry* geom = deleteFeature->GetGeometryRef();
     OGREnvelope env;
     geom->getEnvelope(&env);
 
-    bool result = Table::deleteFeature(id);
+    bool result = Table::deleteFeature(id, logEdits);
 
     if(!result) {
         return result;
@@ -1887,14 +1888,14 @@ bool FeatureClass::deleteFeature(GIntBig id)
         }
     }
     // Delete attachments
-    result = deleteAttachments(id);
+    result = deleteAttachments(id, logEdits);
     return result;
 }
 
 
-bool FeatureClass::deleteFeatures()
+bool FeatureClass::deleteFeatures(bool logEdits)
 {
-    if(Table::deleteFeatures()) {
+    if(Table::deleteFeatures(logEdits)) {
         Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
             return dataset->clearOverviewsTable(name());

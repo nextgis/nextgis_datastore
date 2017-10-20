@@ -247,11 +247,12 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
 NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object, char enable);
 NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object,
-                                             FeatureH feature);
+                                             FeatureH feature, char logEdits);
 NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object,
-                                             FeatureH feature);
-NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id);
-NGS_EXTERNC int ngsFeatureClassDeleteFeatures(CatalogObjectH object);
+                                             FeatureH feature, char logEdits);
+NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id,
+                                             char logEdits);
+NGS_EXTERNC int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits);
 NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);
@@ -325,15 +326,20 @@ typedef struct _ngsFeatureAttachmentInfo {
 } ngsFeatureAttachmentInfo;
 
 NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature,
-                                         const char* name,
-                                         const char* description,
-                                         const char* path, char** options);
-NGS_EXTERNC int ngsFeatureAttachmentDelete(FeatureH feature, long long aid);
+                                              const char* name,
+                                              const char* description,
+                                              const char* path,
+                                              char** options,
+                                              char logEdits);
+NGS_EXTERNC int ngsFeatureAttachmentDelete(FeatureH feature, long long aid,
+                                           char logEdits);
+NGS_EXTERNC int ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits);
 NGS_EXTERNC ngsFeatureAttachmentInfo* ngsFeatureAttachmentsGet(FeatureH feature);
 NGS_EXTERNC int ngsFeatureAttachmentUpdate(FeatureH feature,
-                                            long long aid,
-                                            const char* name,
-                                            const char* description);
+                                           long long aid,
+                                           const char* name,
+                                           const char* description,
+                                           char logEdits);
 NGS_EXTERNC void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature,
                                                       long long aid,
                                                       long long rid);

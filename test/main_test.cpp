@@ -514,7 +514,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     options = ngsAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
     options = ngsAddNameValue(options, "FIELD_3_NAME", "date");
     options = ngsAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
-    options = ngsAddNameValue(options, "SAVE_EDIT_HISTORY", "ON");
+    options = ngsAddNameValue(options, "LOG_EDIT_HISTORY", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options), COD_SUCCESS);
     ngsListFree(options);
@@ -593,7 +593,7 @@ TEST(DataStoreTests, TestCreateFeature) {
     ngsFeatureSetFieldDateTime(newFeature, 3, 1961, 4, 12, 6, 7, 0, 0);
 
     ngsFeatureClassBatchMode(featureClass, 1);
-    EXPECT_EQ(ngsFeatureClassInsertFeature(featureClass, newFeature), COD_SUCCESS);
+    EXPECT_EQ(ngsFeatureClassInsertFeature(featureClass, newFeature, 1), COD_SUCCESS);
     ngsFeatureClassBatchMode(featureClass, 0);
 
     ngsFeatureFree(newFeature);
@@ -607,7 +607,7 @@ TEST(DataStoreTests, TestCreateFeature) {
     ngsStoreFeatureSetRemoteId(newFeature, 25000);
     ngsFeatureSetFieldDouble(newFeature, 2, 555.777);
 
-    EXPECT_EQ(ngsFeatureClassUpdateFeature(featureClass, newFeature), COD_SUCCESS);
+    EXPECT_EQ(ngsFeatureClassUpdateFeature(featureClass, newFeature, 1), COD_SUCCESS);
     ngsFeatureFree(newFeature);
 
     newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 25000);
@@ -625,7 +625,7 @@ TEST(DataStoreTests, TestCreateFeature) {
     CPLString testAttachmentPath = CPLFormFilename(testPath, "download.cmake", nullptr);
     long long id = ngsFeatureAttachmentAdd(newFeature, "test.txt",
                                            "test add atachment",
-                                           testAttachmentPath, nullptr);
+                                           testAttachmentPath, nullptr, 1);
     EXPECT_NE(id, -1);
 
     VSIStatBufL sbuf;
@@ -676,7 +676,7 @@ TEST(DataStoreTests, TestCreateFeature) {
         counter++;
     }
     EXPECT_GE(counter, 2);
-    EXPECT_EQ(hasCreate, true); // Check that insert and update op log only insert
+    EXPECT_EQ(hasCreate, true); // Check that insert and update operations log only insert
     ngsFree(ops);
 
     ngsUnInit();
