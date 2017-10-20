@@ -236,6 +236,8 @@ typedef struct _ngsEditOperation {
     long long fid;
     long long aid;
     enum ngsChangeCode code;
+    long long rid;
+    long long arid;
 } ngsEditOperation;
 
 NGS_EXTERNC ngsField* ngsFeatureClassFields(CatalogObjectH object);

@@ -34,11 +34,16 @@ public:
     virtual ~StoreObject() = default;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
     virtual bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
+    std::vector<ngsEditOperation> fillEditOperations(
+            OGRLayer* editHistoryTable) const;
 
     // static
 public:
     static void setRemoteId(FeaturePtr feature, GIntBig rid);
     static GIntBig getRemoteId(FeaturePtr feature);
+
+protected:
+    GIntBig getAttachmentRemoteId(GIntBig aid) const;
 
 protected:
     OGRLayer* m_storeIntLayer;
@@ -63,6 +68,12 @@ public:
                                   const char* domain) override;
     virtual std::map<CPLString, CPLString> properties(const char* domain) override;
     virtual void deleteProperties() override;
+    virtual std::vector<ngsEditOperation> editOperations() const override;
+
+    // Table interface
+protected:
+    virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
+                                      enum ngsChangeCode code) override;
 
 protected:
     virtual void fillFields() override;
@@ -87,6 +98,12 @@ public:
                                   const char* domain) override;
     virtual std::map<CPLString, CPLString> properties(const char* domain) override;
     virtual void deleteProperties() override;
+    virtual std::vector<ngsEditOperation> editOperations() const override;
+
+    // Table interface
+protected:
+    virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
+                                      enum ngsChangeCode code) override;
 
 protected:
     virtual void fillFields() override;

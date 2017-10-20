@@ -1660,7 +1660,7 @@ ngsEditOperation* ngsFeatureClassGetEditOperations(CatalogObjectH object)
     for(auto op : operations) {
         out[counter++] = op;
     }
-    out[counter] = {NOT_FOUND, NOT_FOUND, CC_NOP};
+    out[counter] = {NOT_FOUND, NOT_FOUND, CC_NOP, NOT_FOUND, NOT_FOUND};
     return out;
 }
 

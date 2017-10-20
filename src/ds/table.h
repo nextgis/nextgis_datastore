@@ -133,7 +133,9 @@ protected:
     bool initEditHistoryTable();
     CPLString getAttachmentsPath() const;
     virtual void fillFields();
-    virtual void logEditOperation(GIntBig fid, GIntBig aid, enum ngsChangeCode code);
+    virtual void logEditOperation(FeaturePtr opFeature);
+    virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
+                                      enum ngsChangeCode code);
     virtual void checkSetProperty(const char* key, const char* value,
                                   const char* domain);
     virtual bool saveEditHistory();

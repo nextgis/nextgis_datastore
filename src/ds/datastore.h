@@ -27,6 +27,7 @@ namespace ngs {
 
 
 constexpr const char* REMOTE_ID_KEY = "rid";
+constexpr const char* ATTACHMENT_REMOTE_ID_KEY = "arid";
 
 /**
  * @brief The geodata storage and manipulation class for raster, vector geodata
@@ -76,6 +77,7 @@ public:
     // Dataset interface
 protected:
     virtual OGRLayer* createAttachmentsTable(const char* name) override;
+    virtual OGRLayer* createEditHistoryTable(const char* name) override;
 
     // ObjectContainer interface
 public:

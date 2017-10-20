@@ -107,12 +107,52 @@ bool StoreObject::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
 
 void StoreObject::setRemoteId(FeaturePtr feature, GIntBig rid)
 {
-    feature->SetField(feature->GetFieldIndex(REMOTE_ID_KEY), rid);
+    feature->SetField(REMOTE_ID_KEY, rid);
 }
 
 GIntBig StoreObject::getRemoteId(FeaturePtr feature)
 {
-    return feature->GetFieldAsInteger64(feature->GetFieldIndex(REMOTE_ID_KEY));
+    if(feature)
+        return feature->GetFieldAsInteger64(REMOTE_ID_KEY);
+    return NOT_FOUND;
+}
+
+std::vector<ngsEditOperation> StoreObject::fillEditOperations(
+        OGRLayer* editHistoryTable) const
+{
+    std::vector<ngsEditOperation> out;
+    FeaturePtr feature;
+    while((feature = editHistoryTable->GetNextFeature())) {
+        ngsEditOperation op;
+        op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
+        op.aid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
+        op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(
+                                                      OPERATION_FIELD));
+        op.rid = StoreObject::getRemoteId(feature);
+        op.arid = getAttachmentRemoteId(op.aid);
+        out.push_back(op);
+    }
+    return out;
+}
+
+GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
+{
+    const Table* table = dynamic_cast<const Table*>(this);
+    if(nullptr == table) {
+        return NOT_FOUND;
+    }
+
+    OGRLayer* attTable = table->m_attTable;
+    if(attTable == nullptr) {
+        return NOT_FOUND;
+    }
+
+    FeaturePtr attFeature = attTable->GetFeature(aid);
+    GIntBig rid = NOT_FOUND;
+    if(attFeature) {
+        rid = getRemoteId(attFeature);
+    }
+    return rid;
 }
 
 //------------------------------------------------------------------------------
@@ -142,10 +182,7 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid)
         return out;
     }
 
-    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset) {
-        dataset->lockExecuteSql(true);
-    }
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
 
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
                                               ATTACH_FEATURE_ID_FIELD, fid));
@@ -170,9 +207,6 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid)
         out.push_back(info);
     }
 
-    if(nullptr == dataset) {
-        dataset->lockExecuteSql(false);
-    }
     return out;
 }
 
@@ -220,7 +254,10 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
             }
         }
         if(logEdits) {
-            logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+            FeaturePtr feature = m_layer->GetFeature(fid);
+            FeaturePtr logFeature = logEditFeature(feature, newAttachment,
+                                                   CC_CREATE_ATTACHMENT);
+            logEditOperation(logFeature);
         }
         return newAttachment->GetFID();
     }
@@ -250,6 +287,22 @@ std::map<CPLString, CPLString> StoreTable::properties(const char* domain)
 void StoreTable::deleteProperties()
 {
     m_layer->SetMetadata(nullptr, nullptr);
+}
+
+std::vector<ngsEditOperation> StoreTable::editOperations() const
+{
+    return fillEditOperations(m_editHistoryTable);
+}
+
+FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
+                                      FeaturePtr attachFeature, ngsChangeCode code)
+{
+    FeaturePtr logFeature = Table::logEditFeature(feature, attachFeature, code);
+    if(logFeature) {
+        logFeature->SetField(REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
+        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY, StoreObject::getRemoteId(attachFeature));
+    }
+    return logFeature;
 }
 
 //------------------------------------------------------------------------------
@@ -358,7 +411,10 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
         }
 
         if(logEdits) {
-            logEditOperation(fid, newAttachment->GetFID(), CC_CREATE_ATTACHMENT);
+            FeaturePtr feature = m_layer->GetFeature(fid);
+            FeaturePtr logFeature = logEditFeature(feature, newAttachment,
+                                                   CC_CREATE_ATTACHMENT);
+            logEditOperation(logFeature);
         }
         return newAttachment->GetFID();
     }
@@ -389,6 +445,23 @@ void StoreFeatureClass::deleteProperties()
 {
     m_layer->SetMetadata(nullptr, nullptr);
 }
+
+std::vector<ngsEditOperation> StoreFeatureClass::editOperations() const
+{
+    return fillEditOperations(m_editHistoryTable);
+}
+
+FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
+                                             FeaturePtr attachFeature, ngsChangeCode code)
+{
+    FeaturePtr logFeature = Table::logEditFeature(feature, attachFeature, code);
+    if(logFeature) {
+        logFeature->SetField(REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
+        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY, StoreObject::getRemoteId(attachFeature));
+    }
+    return logFeature;
+}
+
 
 } // namespace ngs
 

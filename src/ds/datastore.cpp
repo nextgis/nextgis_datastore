@@ -431,8 +431,9 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
         createAdditionsDataset();
     }
 
-    if(!m_addsDS)
+    if(!m_addsDS) {
         return nullptr;
+    }
 
     CPLString attLayerName(attachmentsTableName(name));
     OGRLayer* attLayer = m_addsDS->CreateLayer(attLayerName, nullptr, wkbNone, nullptr);
@@ -466,6 +467,44 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
     }
 
     return attLayer;
+}
+
+OGRLayer*DataStore::createEditHistoryTable(const char* name)
+{
+    if(!m_addsDS) {
+        createAdditionsDataset();
+    }
+
+    if(!m_addsDS) {
+        return nullptr;
+    }
+
+    CPLString logLayerName(historyTableName(name));
+    OGRLayer* logLayer = m_addsDS->CreateLayer(logLayerName, nullptr, wkbNone, nullptr);
+    if (nullptr == logLayer) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    // Create table  fields
+    OGRFieldDefn fidField(FEATURE_ID_FIELD, OFTInteger64);
+    OGRFieldDefn afidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
+    OGRFieldDefn opField(OPERATION_FIELD, OFTInteger64);
+    OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
+    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
+    OGRFieldDefn aridField(ATTACHMENT_REMOTE_ID_KEY, OFTInteger64);
+    aridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
+
+    if(logLayer->CreateField(&fidField) != OGRERR_NONE ||
+       logLayer->CreateField(&afidField) != OGRERR_NONE ||
+       logLayer->CreateField(&opField) != OGRERR_NONE ||
+       logLayer->CreateField(&ridField) != OGRERR_NONE ||
+       logLayer->CreateField(&aridField) != OGRERR_NONE) {
+        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    return logLayer;
 }
 
 } // namespace ngs
