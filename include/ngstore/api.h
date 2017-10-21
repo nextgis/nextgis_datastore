@@ -129,6 +129,9 @@ typedef void* JsonObjectH;
 NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
+NGS_EXTERNC ngsURLRequestResult* ngsURLSendFile(const char* path, char** options,
+                                                ngsProgressFunc callback,
+                                                void* callbackData);
 NGS_EXTERNC void ngsURLRequestResultFree(ngsURLRequestResult* result);
 NGS_EXTERNC int ngsURLAuthAdd(const char* url, char** options);
 NGS_EXTERNC char** ngsURLAuthGet(const char* url);
@@ -311,6 +314,7 @@ NGS_EXTERNC int ngsGeometryTransform(GeometryH geometry,
                                      CoordinateTransformationH ct);
 NGS_EXTERNC char ngsGeometryIsEmpty(GeometryH geometry);
 NGS_EXTERNC ngsGeometryType ngsGeometryGetType(GeometryH geometry);
+NGS_EXTERNC const char* ngsGeometryToJson(GeometryH geometry);
 
 NGS_EXTERNC CoordinateTransformationH ngsCoordinateTransformationCreate(
         int fromEPSG, int toEPSG);

@@ -915,11 +915,11 @@ void Table::deleteEditOperation(const ngsEditOperation& op)
     DatasetExecuteSQLLockHolder holder(parentDataset);
 
     GDALDataset* addsDS = parentDataset->m_addsDS;
-    addsDS->ExecuteSQL(CPLSPrintf("DELETE * FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s = " CPL_FRMT_GIB " AND %s = %d",
+    addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s = " CPL_FRMT_GIB /*" AND %s = %d"*/,
                                   parentDataset->historyTableName(m_name),
                                   FEATURE_ID_FIELD, op.fid,
-                                  ATTACH_FEATURE_ID_FIELD, op.aid,
-                                  OPERATION_FIELD, op.code),
+                                  ATTACH_FEATURE_ID_FIELD, op.aid/*,
+                                  OPERATION_FIELD, op.code*/),
                            nullptr, nullptr);
 }
 

@@ -411,7 +411,7 @@ void ngsFree(void* pointer)
  * @return structure of type ngsURLRequestResult
  */
 ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
-                                  char** options)
+                                   char** options)
 {
     Options requestOptions(options);
     switch (type) {
@@ -461,6 +461,15 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     CPLHTTPDestroyResult( result );
 
     return out;
+}
+
+ngsURLRequestResult* ngsURLSendFile(const char* path, char** options,
+                                    ngsProgressFunc callback, void* callbackData)
+{
+    Options requestOptions(options);
+    Progress progress(callback, callbackData);
+
+    return nullptr;
 }
 
 /**
@@ -1333,7 +1342,7 @@ ngsField* ngsFeatureClassFields(CatalogObjectH object)
 
     int count = 0;
     for(const Field& field : fields) {
-        CPLDebug("ngstore", "Table %s field name: %s, alias: %s", table->name().c_str(), field.m_originalName, field.m_alias);
+//        CPLDebug("ngstore", "Table %s field name: %s, alias: %s", table->name().c_str(), field.m_originalName, field.m_alias);
 
         char* name = CPLStrdup(field.m_originalName); //field.m_originalName;//
         char* alias = CPLStrdup(field.m_alias); //field.m_alias;//
@@ -1925,6 +1934,14 @@ char ngsGeometryIsEmpty(GeometryH geometry)
 ngsGeometryType ngsGeometryGetType(GeometryH geometry)
 {
     return static_cast<OGRGeometry*>(geometry)->getGeometryType();
+}
+
+static CPLString toJson;
+
+const char* ngsGeometryToJson(GeometryH geometry)
+{
+    toJson = static_cast<OGRGeometry*>(geometry)->exportToJson();
+    return toJson;
 }
 
 CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG, int toEPSG)
