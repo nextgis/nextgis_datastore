@@ -129,9 +129,11 @@ typedef void* JsonObjectH;
 NGS_EXTERNC ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type,
                                               const char* url,
                                               char** options);
-NGS_EXTERNC ngsURLRequestResult* ngsURLSendFile(const char* path, char** options,
-                                                ngsProgressFunc callback,
-                                                void* callbackData);
+NGS_EXTERNC ngsURLRequestResult* ngsURLUploadFile(const char* path,
+                                                  const char* url,
+                                                  char** options,
+                                                  ngsProgressFunc callback,
+                                                  void* callbackData);
 NGS_EXTERNC void ngsURLRequestResultFree(ngsURLRequestResult* result);
 NGS_EXTERNC int ngsURLAuthAdd(const char* url, char** options);
 NGS_EXTERNC char** ngsURLAuthGet(const char* url);

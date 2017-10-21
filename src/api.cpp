@@ -463,8 +463,9 @@ ngsURLRequestResult* ngsURLRequest(enum ngsURLRequestType type, const char* url,
     return out;
 }
 
-ngsURLRequestResult* ngsURLSendFile(const char* path, char** options,
-                                    ngsProgressFunc callback, void* callbackData)
+ngsURLRequestResult* ngsURLUploadFile(const char* path, const char* url,
+                                      char** options, ngsProgressFunc callback,
+                                      void* callbackData)
 {
     Options requestOptions(options);
     Progress progress(callback, callbackData);
