@@ -923,9 +923,17 @@ void Table::deleteEditOperation(const ngsEditOperation& op)
                            nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> Table::editOperations() const
+std::vector<ngsEditOperation> Table::editOperations()
 {
+    if(nullptr == m_editHistoryTable) {
+        initEditHistoryTable();
+    }
+
     std::vector<ngsEditOperation> out;
+    if(nullptr == m_editHistoryTable) {
+        return out;
+    }
+
     FeaturePtr feature;
     while((feature = m_editHistoryTable->GetNextFeature())) {
         ngsEditOperation op;

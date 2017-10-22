@@ -115,7 +115,7 @@ public:
 
     // Edit log
     virtual void deleteEditOperation(const ngsEditOperation& op);
-    virtual std::vector<ngsEditOperation> editOperations() const;
+    virtual std::vector<ngsEditOperation> editOperations();
 
     // Object interface
 public:

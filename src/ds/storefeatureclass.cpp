@@ -121,6 +121,9 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
         OGRLayer* editHistoryTable) const
 {
     std::vector<ngsEditOperation> out;
+    if(nullptr == editHistoryTable) {
+        return out;
+    }
     FeaturePtr feature;
     while((feature = editHistoryTable->GetNextFeature())) {
         ngsEditOperation op;
@@ -289,8 +292,15 @@ void StoreTable::deleteProperties()
     m_layer->SetMetadata(nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> StoreTable::editOperations() const
+std::vector<ngsEditOperation> StoreTable::editOperations()
 {
+    if(nullptr == m_editHistoryTable) {
+        initEditHistoryTable();
+    }
+
+    if(nullptr == m_editHistoryTable) {
+        return std::vector<ngsEditOperation>();
+    }
     return fillEditOperations(m_editHistoryTable);
 }
 
@@ -446,8 +456,15 @@ void StoreFeatureClass::deleteProperties()
     m_layer->SetMetadata(nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> StoreFeatureClass::editOperations() const
+std::vector<ngsEditOperation> StoreFeatureClass::editOperations()
 {
+    if(nullptr == m_editHistoryTable) {
+        initEditHistoryTable();
+    }
+
+    if(nullptr == m_editHistoryTable) {
+        return std::vector<ngsEditOperation>();
+    }
     return fillEditOperations(m_editHistoryTable);
 }
 

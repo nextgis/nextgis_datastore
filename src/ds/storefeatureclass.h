@@ -68,7 +68,7 @@ public:
                                   const char* domain) override;
     virtual std::map<CPLString, CPLString> properties(const char* domain) override;
     virtual void deleteProperties() override;
-    virtual std::vector<ngsEditOperation> editOperations() const override;
+    virtual std::vector<ngsEditOperation> editOperations() override;
 
     // Table interface
 protected:
@@ -98,7 +98,7 @@ public:
                                   const char* domain) override;
     virtual std::map<CPLString, CPLString> properties(const char* domain) override;
     virtual void deleteProperties() override;
-    virtual std::vector<ngsEditOperation> editOperations() const override;
+    virtual std::vector<ngsEditOperation> editOperations() override;
 
     // Table interface
 protected:
