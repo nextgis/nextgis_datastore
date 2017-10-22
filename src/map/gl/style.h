@@ -215,31 +215,8 @@ public:
     virtual const char* name() const override { return "primitivePoint"; }
 
 protected:
-    void setStarType();
-    void setStarPoints(float startTheta, int numPoints, int skip);
-    unsigned short addStarPoint(const SimplePoint& pt,
-            float z,
-            unsigned short index,
-            GlBuffer* buffer);
-    std::vector<SimplePoint> getStarTriangles(const SimplePoint& center,
-            float size,
-            float startTheta,
-            int numPoints,
-            int skip);
-    std::vector<SimplePoint> getStarPoints(const SimplePoint& center,
-            float size,
-            float startTheta,
-            int numPoints,
-            int skip);
-    float getInnerStarRadius(int numPoints, int skip);
-    SimplePoint findIntersection(const SimplePoint& p00,
-            const SimplePoint& p01,
-            const SimplePoint& p10,
-            const SimplePoint& p11);
-
-protected:
     unsigned char m_segmentCount;
-    std::vector<SimplePoint> m_starPoints;
+    unsigned char m_starEndsCount;
 };
 
 //------------------------------------------------------------------------------

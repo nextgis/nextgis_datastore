@@ -811,19 +811,17 @@ unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
 // PrimitivePointStyle
 //------------------------------------------------------------------------------
 PrimitivePointStyle::PrimitivePointStyle(enum PointType type) : PointStyle(type),
-    m_segmentCount(10)
+    m_segmentCount(10),
+    m_starEndsCount(5)
 {
     m_vertexShaderSource = lineVertexShaderSource;
     m_fragmentShaderSource = lineFragmentShaderSource;
     m_styleType = ST_POINT;
-
-    setStarType();
 }
 
 void PrimitivePointStyle::setType(enum PointType type)
 {
     PointStyle::setType(type);
-    setStarType();
 }
 
 unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
@@ -1021,257 +1019,50 @@ unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
         }
         break;
     case PT_STAR:
-        index = addStarPoint(pt, z, index, buffer);
+        {
+            float start = M_PI_2_F;
+            float end = M_PI_2_F + M_PI_F + M_PI_F;
+            float step = (end - start) / m_starEndsCount;
+            float current = start;
+            for(int i = 0 ; i < m_starEndsCount; ++i) {
+                float x = cosf(current);
+                float y = sinf(current);
+
+                // end point
+                buffer->addVertex(pt.x);
+                buffer->addVertex(pt.y);
+                buffer->addVertex(z);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                x = 0.35f * cosf(current + M_PI_2_F);
+                y = 0.35f * sinf(current + M_PI_2_F);
+                // left
+                buffer->addVertex(pt.x);
+                buffer->addVertex(pt.y);
+                buffer->addVertex(z);
+                buffer->addVertex(x);
+                buffer->addVertex(y);
+
+                // right
+                buffer->addVertex(pt.x);
+                buffer->addVertex(pt.y);
+                buffer->addVertex(z);
+                buffer->addVertex(-x);
+                buffer->addVertex(-y);
+
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+                buffer->addIndex(index++);
+
+                current += step;
+            }
+        }
         break;
     default:
         break;
     }
     return index;
-}
-
-void PrimitivePointStyle::setStarType()
-{
-    if(pointType() == PT_STAR) {
-        setStarPoints(M_PI_F / 2, 5, 2);
-    } else if (m_starPoints.size() > 0) {
-        m_starPoints.clear();
-    }
-}
-
-void PrimitivePointStyle::setStarPoints(
-        float startTheta, int numPoints, int skip)
-{
-    m_starPoints = getStarTriangles(
-            SimplePoint({0, 0}), 1.0f, startTheta, numPoints, skip);
-}
-
-unsigned short PrimitivePointStyle::addStarPoint(
-        const SimplePoint& pt, float z, unsigned short index, GlBuffer* buffer)
-{
-    for(SimplePoint starPt : m_starPoints) {
-        buffer->addVertex(pt.x);
-        buffer->addVertex(pt.y);
-        buffer->addVertex(z);
-        buffer->addVertex(starPt.x);
-        buffer->addVertex(starPt.y);
-
-        buffer->addIndex(index++);
-    }
-    return index;
-}
-
-/**
- * @brief PrimitivePointStyle::getStarTriangles
- * Returns array of triangles points of the star.
- * Three subsequent points form a triangle.
- * For understanding the parameter skip see
- * https://en.wikipedia.org/wiki/Star_polygon
- *
- * @param center
- * @param size
- * @param startTheta
- * @param numPoints
- * @param skip
- * @return
- */
-std::vector<SimplePoint> PrimitivePointStyle::getStarTriangles(
-        const SimplePoint& center,
-        float size,
-        float startTheta,
-        int numPoints,
-        int skip)
-{
-    // Get the star's points.
-    std::vector<SimplePoint> starPoints =
-            getStarPoints(center, size, startTheta, numPoints, skip);
-
-    // The number type to use for tessellation.
-    using Coord = float;
-
-    // The index type. Defaults to uint32_t, but you can also pass uint16_t
-    // if you know that your data won't have more than 65536 vertices.
-    using N = unsigned short;
-
-    using MBPoint = std::array<Coord, 2>;
-
-    // Create array.
-    std::vector<std::vector<MBPoint>> mbPolygon;
-
-    std::vector<MBPoint> mbRing;
-    for(int j = 0, numPt = starPoints.size(); j < numPt; ++j) {
-        SimplePoint pt = starPoints[j];
-        mbRing.emplace_back(MBPoint({pt.x, pt.y}));
-    }
-    mbPolygon.emplace_back(mbRing);
-
-    // Run tessellation.
-    // Returns array of indices that refer to the vertices of the input polygon.
-    // Three subsequent indices form a triangle.
-    std::vector<N> mbIndices = mapbox::earcut<N>(mbPolygon);
-
-    auto findPointByIndex = [mbPolygon](N index) -> SimplePoint {
-        N currentIndex = index;
-        for(const auto& vertices : mbPolygon) {
-            if(currentIndex >= vertices.size()) {
-                currentIndex -= vertices.size();
-                continue;
-            }
-
-            MBPoint mbPt = vertices[currentIndex];
-            return SimplePoint({mbPt[0], mbPt[1]});
-        }
-
-        return SimplePoint({BIG_VALUE, BIG_VALUE}); // Should never happen.
-    };
-
-    // Fill triangles points.
-    std::vector<SimplePoint> points;
-    for(auto mbIndex : mbIndices) {
-        points.push_back(findPointByIndex(mbIndex));
-    }
-
-    return points;
-}
-
-/**
- * @brief PrimitivePointStyle::getStarPoints
- * Generate the points for a star.
- * For understanding the parameter skip see
- * https://en.wikipedia.org/wiki/Star_polygon
- *
- * @param center
- * @param size
- * @param startTheta
- * @param numPoints
- * @param skip
- * @return
- *
- * @author Rod Stephens,
- * see http://csharphelper.com/blog/2014/08/draw-a-star-with-a-given-number-of-points-in-c/
- */
-std::vector<SimplePoint> PrimitivePointStyle::getStarPoints(
-        const SimplePoint& center,
-        float size,
-        float startTheta,
-        int numPoints,
-        int skip)
-{
-    float theta, dtheta;
-    float rx = size;
-    float ry = size;
-    float cx = center.x;
-    float cy = center.y;
-    std::vector<SimplePoint> result;
-
-    // If this is a polygon, don't bother with concave points.
-    if(1 == skip) {
-        result.reserve(numPoints);
-        theta = startTheta;
-        dtheta = 2 * M_PI_F / numPoints;
-        for(int i = 0; i < numPoints; ++i) {
-            SimplePoint pt(
-                    {cx + rx * std::cos(theta), cy + ry * std::sin(theta)});
-            result.push_back(pt);
-            theta += dtheta;
-        }
-        return result;
-    }
-
-    // Find the radius for the concave vertices.
-    float innerStarRadius = getInnerStarRadius(numPoints, skip);
-
-    // Make the points.
-    result.reserve(2 * numPoints);
-    theta = startTheta;
-    dtheta = M_PI_F / numPoints;
-    for(int i = 0; i < numPoints; ++i) {
-        SimplePoint pt1({cx + rx * std::cos(theta), cy + ry * std::sin(theta)});
-        result.push_back(pt1);
-        theta += dtheta;
-
-        SimplePoint pt2({cx + rx * std::cos(theta) * innerStarRadius,
-                cy + ry * std::sin(theta) * innerStarRadius});
-        result.push_back(pt2);
-        theta += dtheta;
-    }
-    return result;
-}
-
-/**
- * @brief PrimitivePointStyle::getInnerStarRadius
- * Calculate the inner star radius.
- * For understanding the parameter skip see
- * https://en.wikipedia.org/wiki/Star_polygon
- *
- * @param numPoints
- * @param skip
- * @return
- *
- * @author Rod Stephens,
- * see http://csharphelper.com/blog/2014/08/draw-a-star-with-a-given-number-of-points-in-c/
- */
-float PrimitivePointStyle::getInnerStarRadius(int numPoints, int skip)
-{
-    // For really small numbers of points.
-    if(numPoints < 5)
-        return 0.33f;
-
-    // Calculate angles to key points.
-    float dtheta = 2 * M_PI_F / numPoints;
-    float theta00 = -M_PI_F / 2;
-    float theta01 = theta00 + dtheta * skip;
-    float theta10 = theta00 + dtheta;
-    float theta11 = theta10 - dtheta * skip;
-
-    // Find the key points.
-    SimplePoint pt00({std::cos(theta00), std::sin(theta00)});
-    SimplePoint pt01({std::cos(theta01), std::sin(theta01)});
-    SimplePoint pt10({std::cos(theta10), std::sin(theta10)});
-    SimplePoint pt11({std::cos(theta11), std::sin(theta11)});
-
-    // See where the segments connecting the points intersect.
-    SimplePoint intersection = findIntersection(pt00, pt01, pt10, pt11);
-
-    // Calculate the distance between the point of intersection and the center.
-    return std::sqrt(
-            intersection.x * intersection.x + intersection.y * intersection.y);
-}
-
-/**
- * @brief PrimitivePointStyle::findIntersection
- * Find the point of intersection between the lines p00 --> p01 and p10 --> p11.
- *
- * @param p00
- * @param p01
- * @param p10
- * @param p11
- * @return
- *
- * @author Rod Stephens,
- * see http://csharphelper.com/blog/2014/08/determine-where-two-lines-intersect-in-c/
- */
-SimplePoint PrimitivePointStyle::findIntersection(const SimplePoint& p00,
-        const SimplePoint& p01,
-        const SimplePoint& p10,
-        const SimplePoint& p11)
-{
-    // Get the segments' parameters.
-    float dx12 = p01.x - p00.x;
-    float dy12 = p01.y - p00.y;
-    float dx34 = p11.x - p10.x;
-    float dy34 = p11.y - p10.y;
-
-    float denominator = (dy12 * dx34 - dx12 * dy34);
-    float t1 = ((p00.x - p10.x) * dy34 + (p10.y - p00.y) * dx34) / denominator;
-
-    static_assert(std::numeric_limits<float>::is_iec559, "Please use IEEE754");
-    if(!std::isfinite(t1)) {
-        // The lines are parallel (or close enough to it).
-        return SimplePoint({NAN, NAN});
-    }
-
-    // Find the point of intersection.
-    return SimplePoint({p00.x + dx12 * t1, p00.y + dy12 * t1});
 }
 
 size_t PrimitivePointStyle::pointVerticesCount() const
@@ -1287,7 +1078,7 @@ size_t PrimitivePointStyle::pointVerticesCount() const
     case PT_DIAMOND:
         return 4;
     case PT_STAR: {
-        return m_starPoints.size();
+        return m_starEndsCount * 3;
     }
     default:
         return 0;
@@ -1321,6 +1112,7 @@ bool PrimitivePointStyle::load(const CPLJSONObject &store)
     if(!PointStyle::load(store))
         return false;
     m_segmentCount = static_cast<unsigned char>(store.GetInteger("segments", m_segmentCount));
+    m_starEndsCount = static_cast<unsigned char>(store.GetInteger("starEnds", m_starEndsCount));
     return true;
 }
 
@@ -1328,6 +1120,7 @@ CPLJSONObject PrimitivePointStyle::save() const
 {
     CPLJSONObject out = PointStyle::save();
     out.Add("segments", m_segmentCount);
+    out.Add("starEnds", m_starEndsCount);
     return out;
 }
 
