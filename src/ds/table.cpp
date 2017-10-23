@@ -767,6 +767,9 @@ void Table::logEditOperation(FeaturePtr opFeature)
 
     GDALDataset* addsDS = parentDataset->m_addsDS;
     if(code == CC_DELETEALL_ATTACHMENTS) {
+        if(fid == NOT_FOUND) {
+            return;
+        }
         addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s <> -1",
                                        parentDataset->historyTableName(m_name),
                                        FEATURE_ID_FIELD, fid, ATTACH_FEATURE_ID_FIELD),
@@ -785,6 +788,9 @@ void Table::logEditOperation(FeaturePtr opFeature)
                        nullptr, nullptr);
 
     if(code == CC_CREATE_ATTACHMENT || code == CC_CHANGE_ATTACHMENT) {
+        if(fid == NOT_FOUND) {
+            return;
+        }
         addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = %d AND %s = " CPL_FRMT_GIB,
                                        parentDataset->historyTableName(m_name),
                                        OPERATION_FIELD, CC_DELETEALL_ATTACHMENTS,
@@ -793,6 +799,10 @@ void Table::logEditOperation(FeaturePtr opFeature)
     }
 
     if(code == CC_CREATE_FEATURE || code == CC_CREATE_ATTACHMENT) {
+        if(fid == NOT_FOUND) {
+            return;
+        }
+
         if(m_editHistoryTable->CreateFeature(opFeature) != OGRERR_NONE) {
             CPLDebug("ngstore", "Log operation %d failed", code);
         }
@@ -809,6 +819,10 @@ void Table::logEditOperation(FeaturePtr opFeature)
     m_editHistoryTable->SetAttributeFilter(nullptr);
 
     if(code == CC_DELETE_FEATURE) {
+        if(fid == NOT_FOUND) {
+            return;
+        }
+
         if(!features.empty()) {
             addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB,
                                        parentDataset->historyTableName(m_name),
@@ -835,6 +849,9 @@ void Table::logEditOperation(FeaturePtr opFeature)
     }
 
     if(code == CC_DELETE_ATTACHMENT) {
+        if(fid == NOT_FOUND || aid == NOT_FOUND) {
+            return;
+        }
         FeaturePtr attFeature;
         for(auto feature : features) {
             GIntBig testAid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
@@ -870,6 +887,9 @@ void Table::logEditOperation(FeaturePtr opFeature)
     }
 
     if(code == CC_CHANGE_FEATURE) {
+        if(fid == NOT_FOUND) {
+            return;
+        }
         // Check if feature deleted - skip
         // Check if feature added. If added - skip
         // Check if feature changed. If changed - skip
@@ -885,6 +905,9 @@ void Table::logEditOperation(FeaturePtr opFeature)
     }
 
     if(code == CC_CHANGE_ATTACHMENT) {
+        if(fid == NOT_FOUND || aid == NOT_FOUND) {
+            return;
+        }
         // Check if attach deleted - skip
         // Check if attach added. If added - skip
         // Check if attach changed. If changed - skip
