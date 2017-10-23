@@ -934,7 +934,9 @@ std::vector<ngsEditOperation> Table::editOperations()
         return out;
     }
 
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     FeaturePtr feature;
+    m_editHistoryTable->ResetReading();
     while((feature = m_editHistoryTable->GetNextFeature())) {
         ngsEditOperation op;
         op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);

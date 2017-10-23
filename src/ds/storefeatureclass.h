@@ -25,7 +25,7 @@
 
 namespace ngs {
 
-constexpr GIntBig INIT_RID_COUNTER = -1000000;
+constexpr GIntBig INIT_RID_COUNTER = NOT_FOUND; //-1000000;
 
 class StoreObject
 {

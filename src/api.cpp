@@ -1667,7 +1667,7 @@ ngsEditOperation* ngsFeatureClassGetEditOperations(CatalogObjectH object)
             static_cast<ngsEditOperation*>(CPLMalloc((operations.size() + 1) *
                                                      sizeof(ngsEditOperation)));
     int counter = 0;
-    for(auto op : operations) {
+    for(const auto& op : operations) {
         out[counter++] = op;
     }
     out[counter] = {NOT_FOUND, NOT_FOUND, CC_NOP, NOT_FOUND, NOT_FOUND};

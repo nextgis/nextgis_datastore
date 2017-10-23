@@ -125,6 +125,7 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
         return out;
     }
     FeaturePtr feature;
+    editHistoryTable->ResetReading();
     while((feature = editHistoryTable->GetNextFeature())) {
         ngsEditOperation op;
         op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
@@ -135,6 +136,7 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
         op.arid = getAttachmentRemoteId(op.aid);
         out.push_back(op);
     }
+
     return out;
 }
 
@@ -301,6 +303,8 @@ std::vector<ngsEditOperation> StoreTable::editOperations()
     if(nullptr == m_editHistoryTable) {
         return std::vector<ngsEditOperation>();
     }
+
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return fillEditOperations(m_editHistoryTable);
 }
 
@@ -465,6 +469,8 @@ std::vector<ngsEditOperation> StoreFeatureClass::editOperations()
     if(nullptr == m_editHistoryTable) {
         return std::vector<ngsEditOperation>();
     }
+
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return fillEditOperations(m_editHistoryTable);
 }
 
