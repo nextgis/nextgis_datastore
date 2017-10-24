@@ -47,6 +47,7 @@
 #include "util/notify.h"
 #include "util/settings.h"
 #include "util/stringutil.h"
+#include "util/url.h"
 #include "util/versionutil.h"
 
 using namespace ngs;
@@ -470,7 +471,7 @@ ngsURLRequestResult* ngsURLUploadFile(const char* path, const char* url,
     Options requestOptions(options);
     Progress progress(callback, callbackData);
 
-    return nullptr;
+    return uploadFile(path, url, progress, options);
 }
 
 /**

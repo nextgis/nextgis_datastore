@@ -1,9 +1,9 @@
 /******************************************************************************
- * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
- * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,18 +18,19 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#ifndef NGSURL_H
+#define NGSURL_H
 
-#ifndef NGSVERSIONUTIL_H
-#define NGSVERSIONUTIL_H
+#include "ngstore/api.h"
 
-#include "cpl_string.h"
+#include "options.h"
+#include "progress.h"
 
 namespace ngs {
 
-int getVersion(const char *request);
-const char *getVersionString(const char *request);
-CPLString &reportFormats();
+ngsURLRequestResult* uploadFile(const char* path, const char* url,
+                                const Progress &progress, const Options &options);
 
-} // namespace ngs
+}
 
-#endif // NGSVERSIONUTIL_H
+#endif // NGSURL_H

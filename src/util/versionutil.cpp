@@ -110,7 +110,7 @@ CPLString &ngs::reportFormats()
 
         const char *pszRFlag = "", *pszWFlag, *pszVirtualIO, *pszSubdatasets,
                 *pszKind;
-        char** papszMD = GDALGetMetadata( hDriver, NULL );
+        char **papszMD = GDALGetMetadata( hDriver, NULL );
 
         if( CSLFetchBoolean( papszMD, GDAL_DCAP_OPEN, FALSE ) )
             pszRFlag = "r";
@@ -154,7 +154,7 @@ CPLString &ngs::reportFormats()
     return gFormats;
 }
 
-int ngs::getVersion(const char* request)
+int ngs::getVersion(const char *request)
 {
     if(nullptr == request)
         return NGS_VERSION_NUM;
@@ -225,7 +225,7 @@ int ngs::getVersion(const char* request)
     return 0;
 }
 
-const char* ngs::getVersionString(const char* request)
+const char *ngs::getVersionString(const char *request)
 {
     if(nullptr == request)
         return NGS_VERSION;

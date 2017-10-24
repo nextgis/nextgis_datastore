@@ -176,6 +176,8 @@ FeatureClass* DataStore::createFeatureClass(const CPLString& name,
         return nullptr;
     }
 
+    CPLMutexHolder holder(m_executeSQLMutex);
+
     OGRLayer* layer = m_DS->CreateLayer(name, spatialRef, type,
                                         options.getOptions().get());
 
@@ -233,6 +235,8 @@ Table* DataStore::createTable(const CPLString& name,
         errorMessage(_("Not opened"));
         return nullptr;
     }
+
+    CPLMutexHolder holder(m_executeSQLMutex);
 
     OGRLayer* layer = m_DS->CreateLayer(name, nullptr, wkbNone,
                                         options.getOptions().get());

@@ -35,6 +35,7 @@ set(HHEADERS
     notify.h
     threadpool.h
     authstore.h
+    url.h
 )
 
 set(CSOURCES
@@ -48,7 +49,10 @@ set(CSOURCES
     notify.cpp
     threadpool.cpp
     authstore.cpp
+    url.cpp
 )
+
+set_property(SOURCE url.cpp APPEND_STRING PROPERTY CMAKE_CXX_FLAGS " -Wdisabled-macro-expansion ")
 
 if(UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-multichar")
