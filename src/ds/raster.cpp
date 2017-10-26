@@ -20,32 +20,60 @@
  ****************************************************************************/
 #include "raster.h"
 
+// gdal
+#include "cpl_http.h"
+
 #include "catalog/file.h"
+#include "catalog/folder.h"
+#include "map/maptransform.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
 #include "util/notify.h"
 
 namespace ngs {
 
-constexpr unsigned char LOCKS_EXTRA_COUNT = 10;
+//constexpr unsigned char LOCKS_EXTRA_COUNT = 10;
+
+//------------------------------------------------------------------------------
+// DownloadData
+//------------------------------------------------------------------------------
+constexpr unsigned short DOWNLOAD_THREAD_COUNT = 5;
+
+class DownloadData : public ThreadData {
+public:
+    DownloadData(const CPLString& basePath, const CPLString& url, int expires,
+                 const Tile& tile, const Options& options, bool own) :
+        ThreadData(own), m_tile(tile), m_basePath(basePath), m_url(url),
+        m_expires(expires), m_options(options) {
+
+    }
+    Tile m_tile;
+    CPLString m_basePath, m_url;
+    int m_expires;
+    Options m_options;
+};
+
+//------------------------------------------------------------------------------
+// Raster
+//------------------------------------------------------------------------------
 
 Raster::Raster(std::vector<CPLString> siblingFiles,
                ObjectContainer * const parent,
                const enum ngsCatalogObjectType type,
                const CPLString &name,
-               const CPLString &path) :
-  Object(parent, type, name, path),
-  DatasetBase(),
-  SpatialDataset(),
-  m_siblingFiles(siblingFiles),
-  m_dataLock(CPLCreateMutex())
+               const CPLString &path) :  Object(parent, type, name, path),
+    DatasetBase(),
+    SpatialDataset(),
+    m_openFlags(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR),
+    m_siblingFiles(siblingFiles),
+    m_dataLock(CPLCreateMutex())
 {
     CPLReleaseMutex(m_dataLock);
 }
 
 Raster::~Raster()
 {
-    freeLocks(true);
+//    freeLocks(true);
     CPLDestroyMutex(m_dataLock);
     if(m_spatialReference)
         delete m_spatialReference;
@@ -55,6 +83,9 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 {
     if(isOpened())
         return true;
+
+    m_openFlags = openFlags;
+    m_openOptions = options;
 
     if(m_type == CAT_RASTER_TMS) {
         CPLJSONDocument connectionFile;
@@ -79,7 +110,8 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         Envelope extent;
         extent.load(root.GetObject(KEY_EXTENT), DEFAULT_BOUNDS);
         m_extent.load(root.GetObject(KEY_LIMIT_EXTENT), DEFAULT_BOUNDS);
-
+        int cacheExpires = root.GetInteger(KEY_CACHE_EXPIRES, defaultCacheExpires);
+        int cacheMaxSize = root.GetInteger(KEY_CACHE_MAX_SIZE, defaultCacheMaxSize);
         const char* connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
             "<UpperLeftX>%f</UpperLeftX><UpperLeftY>%f</UpperLeftY>"
@@ -88,20 +120,21 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             "<TileCountY>1</TileCountY><YOrigin>%s</YOrigin></DataWindow>"
             "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
             "<BlockSizeY>256</BlockSizeY><BandsCount>%d</BandsCount>"
-            "<Cache/></GDAL_WMS>",
+            "<Cache><Type>file</Type><Expires>%d</Expires><MaxSize>%d</MaxSize>"
+            "</Cache></GDAL_WMS>",
                                          url.c_str(), extent.minX(),
                                          extent.maxY(), extent.maxX(),
                                          extent.minY(), z_max,
                                          y_origin_top ? "top" : "bottom",
-                                         epsg, bandCount);
+                                         epsg, bandCount, cacheExpires,
+                                         cacheMaxSize);
 
         bool result = DatasetBase::open(connStr, openFlags, options);
         if(result) {
             // Set NG_ADDITIONS metadata
             m_DS->SetMetadataItem("TMS_URL", url.c_str(), "");
-
-            int cacheExpires = root.GetInteger(KEY_CACHE_EXPIRES, defaultCacheExpires);
             m_DS->SetMetadataItem("TMS_CACHE_EXPIRES", CPLSPrintf("%d", cacheExpires), "");
+            m_DS->SetMetadataItem("TMS_CACHE_MAX_SIZE", CPLSPrintf("%d", cacheMaxSize), "");
             m_DS->SetMetadataItem("TMS_Y_ORIGIN_TOP", y_origin_top ? "top" : "bottom", "");
             m_DS->SetMetadataItem("TMS_Z_MIN", CPLSPrintf("%d", z_min), "");
             m_DS->SetMetadataItem("TMS_Z_MAX", CPLSPrintf("%d", z_max), "");
@@ -174,9 +207,9 @@ bool Raster::open(unsigned int openFlags, const Options &options)
 bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                        int bufXSize, int bufYSize, GDALDataType dataType,
                        int bandCount, int *bandList, bool read,
-                       bool skipLastBand, unsigned char zoom)
+                       bool skipLastBand/*, unsigned char zoom*/)
 {
-    if(nullptr == m_DS) {
+    if(!isOpened()) {
         return false;
     }
 
@@ -284,8 +317,14 @@ bool Raster::setMetadataItem(const char* name, const char* value, const char* do
         }
         CPLJSONObject root = connectionFile.GetRoot();
 
+        bool needReopen = false;
         if(EQUAL("TMS_CACHE_EXPIRES", name)) { // Only allow to change cache_expires
             root.Set(KEY_CACHE_EXPIRES, atoi(value));
+            needReopen = true;
+        }
+        else if(EQUAL("TMS_CACHE_MAX_SIZE", name)) { // Only allow to change cache_expires
+            root.Set(KEY_CACHE_MAX_SIZE, atoi(value));
+            needReopen = true;
         }
         else {
             CPLJSONObject user = root.GetObject(USER_KEY);
@@ -299,7 +338,12 @@ bool Raster::setMetadataItem(const char* name, const char* value, const char* do
             }
         }
 
-        return connectionFile.Save(m_path);
+        result = connectionFile.Save(m_path);
+
+        if(needReopen && m_type == CAT_RASTER_TMS) {
+            close();
+            return open(m_openFlags, m_openOptions);
+        }
     }
     return result;
 }
@@ -352,6 +396,7 @@ void Raster::setExtent()
     }
 }
 
+/*
 void Raster::freeLocks(bool all)
 {
     unsigned char threadCount = static_cast<unsigned char>(
@@ -386,6 +431,7 @@ void Raster::freeLocks(bool all)
         }
     }
 }
+*/
 
 const char *Raster::options(ngsOptionType optionType) const
 {
@@ -483,11 +529,138 @@ int Raster::getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                                          xSize, ySize, bufXSize, bufYSize, nullptr);
 }
 
-bool Raster::cacheArea(const Progress &progress, const Options &options)
+static CPLLock* hLock = nullptr;
+
+bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
 {
-    if(m_type != CAT_RASTER_TMS) {
+    DownloadData* data = dynamic_cast<DownloadData*>(threadData);
+    if(data == NULL) {
+        return true;
+    }
+
+    CPLString url = data->m_url.replaceAll("${x}", CPLSPrintf("%d", data->m_tile.x));
+    url = url.replaceAll("${y}", CPLSPrintf("%d", data->m_tile.y));
+    url = url.replaceAll("${z}", CPLSPrintf("%d", data->m_tile.z));
+
+    CPLString fileName = CPLMD5String(url);
+    CPLString dirPath = CPLSPrintf("%c/%c", fileName[0], fileName[1]);
+    CPLString path = CPLFormFilename(data->m_basePath, dirPath, nullptr);
+
+    if(!Folder::isExists(path)) {
+        CPLLockHolderD(&hLock, LOCK_RECURSIVE_MUTEX);
+
+        if(!Folder::mkDir(path)) {
+            return false;
+        }
+    }
+
+    path = CPLFormFilename(path, fileName, nullptr);
+    VSIStatBufL sStatBuf;
+    if(VSIStatL(path, &sStatBuf) == 0) {
+        // Check if tile already exist and not expired
+        if(time(nullptr) - sStatBuf.st_mtime < data->m_expires) {
+            return true;
+        }
+    }
+
+    // Download tile and save it to cache
+    auto optionsPtr = data->m_options.getOptions();
+    CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
+    if(result->nStatus != 0) {
+        errorMessage(COD_REQUEST_FAILED, result->pszErrBuf);
+        CPLHTTPDestroyResult( result );
         return false;
     }
+
+    bool out = File::writeFile(path, result->pabyData,
+                               static_cast<size_t>(result->nDataLen));
+
+    CPLHTTPDestroyResult(result);
+
+    return out;
+}
+
+bool Raster::cacheArea(const Progress &progress, const Options &options)
+{
+    if(!isOpened()) {
+        return errorMessage(COD_UNSUPPORTED,
+                            "Raster must be oppened.");
+    }
+    if(m_type != CAT_RASTER_TMS) {
+        return errorMessage(COD_UNSUPPORTED,
+                            "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
+    }
+
+    double minX = options.doubleOption("MINX", DEFAULT_BOUNDS.minX());
+    double minY = options.doubleOption("MINY", DEFAULT_BOUNDS.minY());
+    double maxX = options.doubleOption("MAXX", DEFAULT_BOUNDS.maxX());
+    double maxY = options.doubleOption("MAXY", DEFAULT_BOUNDS.maxY());
+    Envelope extent(minX, minY, maxX, maxY);
+
+    std::set<unsigned char> zoomLevels;
+
+    const CPLString &zoomLevelListStr = options.stringOption("ZOOM_LEVELS", "");
+    char** zoomLevelArray = CSLTokenizeString2(zoomLevelListStr, ",", 0);
+    if(nullptr != zoomLevelArray) {
+        int i = 0;
+        const char* zoomLevel;
+        while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
+            zoomLevels.insert(static_cast<unsigned char>(atoi(zoomLevel)));
+        }
+        CSLDestroy(zoomLevelArray);
+    }
+
+    if(zoomLevels.empty()) {
+        return errorMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
+    }
+
+    Options loadOptions(options);
+    loadOptions.removeOption("MINX");
+    loadOptions.removeOption("MINY");
+    loadOptions.removeOption("MAXX");
+    loadOptions.removeOption("MAXY");
+    loadOptions.removeOption("ZOOM_LEVELS");
+
+    // Get cache path
+    CPLString basePath = m_DS->GetMetadataItem("CACHE_PATH", "");
+    CPLString url = m_DS->GetMetadataItem("TMS_URL", "");
+    int expires = atoi(m_DS->GetMetadataItem("TMS_CACHE_EXPIRES", ""));
+
+    bool reverseY = false;
+    if(EQUAL(m_DS->GetMetadataItem("TMS_Y_ORIGIN_TOP", ""), "top")) {
+        reverseY = true;
+    }
+
+    // Get tiles list
+    progress.onProgress(COD_IN_PROCESS, 0.0, _("Start download area..."));
+
+    // Multithreaded thread pool
+    CPLDebug("ngstore", "cache area");
+
+    ThreadPool threadPool;
+    threadPool.init(DOWNLOAD_THREAD_COUNT, cacheAreaJobThreadFunc, 3, true);
+
+    for(auto zoomLevel : zoomLevels) {
+        std::vector<TileItem> items =
+                MapTransform::getTilesForExtent(extent, zoomLevel, reverseY, true);
+
+        for(auto item : items) {
+            threadPool.addThreadData(new DownloadData(basePath, url, expires,
+                                                      item.tile, loadOptions,
+                                                      true));
+        }
+    }
+
+    threadPool.waitComplete(progress);
+    threadPool.clearThreadData();
+
+    if(threadPool.isFailed()) {
+        progress.onProgress(COD_GET_FAILED, 1.0, _("Download area failed"));
+        return false;
+    }
+    progress.onProgress(COD_FINISHED, 1.0, _("Finish download area"));
+
+    CPLDebug("ngstore", "finish cache area");
     return true;
 }
 

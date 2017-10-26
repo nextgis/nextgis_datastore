@@ -32,6 +32,26 @@ namespace ngs {
 constexpr unsigned char MAX_TRIES = 2;
 constexpr const char* SELECTION_KEY = "selection";
 
+//------------------------------------------------------------------------------
+// LayerFillData
+//------------------------------------------------------------------------------
+
+class LayerFillData : public ThreadData {
+public:
+    LayerFillData(GlTilePtr tile, LayerPtr layer, float z, bool own) :
+        ThreadData(own), m_tile(tile), m_layer(layer), m_zlevel(z) {
+
+    }
+    GlTilePtr m_tile;
+    LayerPtr m_layer;
+    float m_zlevel;
+};
+
+//------------------------------------------------------------------------------
+// GlView
+//------------------------------------------------------------------------------
+
+
 GlView::GlView() : MapView()
 {
     initView();

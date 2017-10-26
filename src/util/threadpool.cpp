@@ -40,8 +40,12 @@ ThreadData::ThreadData(bool own) : m_own(own),
 ThreadPool::ThreadPool() :
     m_dataMutex(CPLCreateMutex()),
     m_threadMutex(CPLCreateMutex()),
+    m_function(nullptr),
     m_maxThreadCount(1),
-    m_threadCount(0)
+    m_threadCount(0),
+    m_tries(3),
+    m_stopOnFirstFail(false),
+    m_failed(false)
 {
     CPLReleaseMutex(m_dataMutex);
     CPLReleaseMutex(m_threadMutex);
@@ -53,11 +57,12 @@ ThreadPool::~ThreadPool()
 }
 
 void ThreadPool::init(unsigned char numThreads, poolThreadFunction function,
-                      unsigned char tries)
+                      unsigned char tries, bool stopOnFirstFail)
 {
     m_maxThreadCount = numThreads;
     m_function = function;
     m_tries = tries;
+    m_stopOnFirstFail = stopOnFirstFail;
 }
 
 void ThreadPool::addThreadData(ThreadData *data)
@@ -119,6 +124,11 @@ bool ThreadPool::process()
     else if(data->tries() > m_tries) {
         if(data->isOwn()) {
             delete data;
+        }
+        if(m_stopOnFirstFail) {
+            m_threadData.clear();
+            m_failed = true;
+            return false;
         }
     }
     else {

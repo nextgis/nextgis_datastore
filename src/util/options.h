@@ -34,10 +34,9 @@ class Options
 {
 public:
     Options() = default;
-    Options(const Options& options) : m_options(options.m_options) {}
-    Options(char** options);
+    explicit Options(char** options);
     const CPLString &stringOption(const char * key,
-                                     const CPLString & defaultOption = "") const;
+                                  const CPLString & defaultOption = "") const;
     bool boolOption(const char *key, bool defaultOption = true) const;
     int intOption(const char *key, int defaultOption = 0) const;
     double doubleOption(const char *key, double defaultOption = 0.0) const;
@@ -46,9 +45,11 @@ public:
     void removeOption(const char *key);
     bool empty() const { return m_options.empty(); }
     std::map< CPLString, CPLString >::const_iterator begin() const {
-        return m_options.begin(); }
+        return m_options.begin();
+    }
     std::map< CPLString, CPLString >::const_iterator end() const {
-        return m_options.end(); }
+        return m_options.end();
+    }
 
 protected:
     std::map< CPLString, CPLString > m_options;

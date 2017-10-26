@@ -103,6 +103,11 @@ DatasetBase::DatasetBase() :
 
 DatasetBase::~DatasetBase()
 {
+    close();
+}
+
+void DatasetBase::close()
+{
     GDALClose(m_DS);
     m_DS = nullptr;
 }

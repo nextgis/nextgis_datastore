@@ -185,7 +185,7 @@ TEST(CatalogTests, TestCreate) {
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
-    // TODO: CACHE_DIR, GDAL_DATA, LOCALE
+    // TODO: GDAL_DATA, LOCALE
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
     ngsListFree(options);
     options = nullptr;
@@ -244,6 +244,64 @@ TEST(CatalogTests, TestCreate) {
     if(metadata != nullptr) {
         EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "555"), true);
     }
+
+    ngsUnInit();
+}
+
+TEST(CatalogTests, TestAreaDownload) {
+    char** options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    options = ngsAddNameValue(options, "CACHE_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp/cache",
+                                              nullptr));
+
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+    options = nullptr;
+
+    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
+    CPLString catalogPath = ngsCatalogPathFromSystem(path);
+    ASSERT_STRNE(catalogPath, "");
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+
+    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_RASTER_TMS));
+    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
+    options = ngsAddNameValue(options, "epsg", "3857");
+    options = ngsAddNameValue(options, "z_min", "0");
+    options = ngsAddNameValue(options, "z_max", "19");
+    options = ngsAddNameValue(options, "cache_expires", "300");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "cache_test.wconn", options),
+              COD_SUCCESS);
+
+    ngsListFree(options);
+    options = nullptr;
+
+    // Test metadata
+    CPLString osmPath = CPLFormFilename(catalogPath, "cache_test.wconn", nullptr);
+    CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
+    EXPECT_EQ(ngsDatasetOpen(osmRaster, GDAL_OF_SHARED|GDAL_OF_READONLY|
+                             GDAL_OF_VERBOSE_ERROR, nullptr), COD_SUCCESS);
+    char** metadata = ngsCatalogObjectMetadata(osmRaster, "");
+    if(metadata != nullptr) {
+        EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "300"), true);
+    }
+
+    // Download area
+    options = ngsAddNameValue(options, "MINX", "4183837.05");
+    options = ngsAddNameValue(options, "MINY", "7505200.05");
+    options = ngsAddNameValue(options, "MAXX", "4192825.05");
+    options = ngsAddNameValue(options, "MAXY", "7513067.05");
+    options = ngsAddNameValue(options, "ZOOM_LEVELS", "12,13");
+
+    EXPECT_EQ(ngsRasterCacheArea(osmRaster, options, nullptr, nullptr),
+              COD_SUCCESS);
+    ngsListFree(options);
+    options = nullptr;
 
     ngsUnInit();
 }

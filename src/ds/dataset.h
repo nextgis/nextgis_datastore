@@ -74,6 +74,7 @@ public:
     virtual const char* options(enum ngsOptionType optionType) const = 0;
     virtual GDALDataset *getGDALDataset() const { return m_DS; }
     virtual bool open(unsigned int openFlags, const Options &options = Options()) = 0;
+    virtual void close();
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
 protected:

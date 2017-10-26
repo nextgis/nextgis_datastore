@@ -46,6 +46,20 @@ constexpr double WORLD_WIDTH = DEFAULT_BOUNDS_X2.width();
 constexpr unsigned short MAX_EDGE_INDEX = 65534;
 
 //------------------------------------------------------------------------------
+// TilingData
+//------------------------------------------------------------------------------
+
+class TilingData : public ThreadData {
+public:
+    TilingData(FeatureClass* featureClass, FeaturePtr feature, bool own) :
+        ThreadData(own), m_feature(feature), m_featureClass(featureClass) {
+
+    }
+    FeaturePtr m_feature;
+    FeatureClass* m_featureClass;
+};
+
+//------------------------------------------------------------------------------
 // VectorTileItem
 //------------------------------------------------------------------------------
 
@@ -1054,7 +1068,8 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
 
     OGREnvelope env;
     geom->getEnvelope(&env);
-    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint || OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
+    bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint ||
+                              OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
     for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
         Envelope extent = extraExtentForZoom(zoomLevel, env);

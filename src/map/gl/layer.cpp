@@ -1097,8 +1097,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
     if(m_alpha == 0) {
         std::memset(pixData, 255 - m_transparency, bufferSize);
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
-                                outHeight, m_dataType, bandCount, bands, true, true,
-                                static_cast<unsigned char>(MAX_ZOOM - overview))) {
+                                outHeight, m_dataType, bandCount, bands, true, true)) {
             CPLFree(pixData);
 
             if(isLastTry) {

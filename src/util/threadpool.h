@@ -57,13 +57,15 @@ class ThreadPool
 public:
     ThreadPool();
     ~ThreadPool();
-    void init(unsigned char numThreads, poolThreadFunction function, unsigned char tries = 3);
+    void init(unsigned char numThreads, poolThreadFunction function,
+              unsigned char tries = 3, bool stopOnFirstFail = false);
     void addThreadData(ThreadData* data);
     void clearThreadData();
     unsigned char currentWorkerCount() const { return m_threadCount; }
     unsigned char maxWorkerCount() const { return m_maxThreadCount; }
     void waitComplete(const Progress &progress) const;
     size_t dataCount() const { return m_threadData.size(); }
+    bool isFailed() const { return m_failed; }
 
 protected:
     bool process();
@@ -79,6 +81,8 @@ protected:
     poolThreadFunction m_function;
     unsigned char m_maxThreadCount, m_threadCount;
     unsigned char m_tries;
+    bool m_stopOnFirstFail;
+    bool m_failed;
 };
 
 }

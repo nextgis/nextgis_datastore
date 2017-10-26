@@ -32,7 +32,6 @@ int constexpr length(const char* str)
 
 CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
 CPLString normalize(const CPLString &str, const CPLString &lang = "");
-CPLString md5(const char* value);
 
 }
 #endif // NGSSTRINGUTIL_H

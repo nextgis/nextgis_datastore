@@ -121,28 +121,6 @@ private:
     SimpleImageStyle m_fboDrawStyle;
     SelectionStyles m_selectionStyles;
     ThreadPool m_threadPool;
-
-    class LayerFillData : public ThreadData {
-    public:
-        LayerFillData(GlTilePtr tile, LayerPtr layer, float z, bool own) :
-            ThreadData(own), m_tile(tile), m_layer(layer), m_zlevel(z) {}
-        virtual ~LayerFillData() = default;
-        GlTilePtr m_tile;
-        LayerPtr m_layer;
-        float m_zlevel;
-    };
-
-    class OverlayFillData : public ThreadData
-    {
-    public:
-        OverlayFillData(OverlayPtr overlay, bool own)
-                : ThreadData(own)
-                , m_overlay(overlay)
-        {
-        }
-        virtual ~OverlayFillData() = default;
-        OverlayPtr m_overlay;
-    };
 };
 
 }  // namespace ngs

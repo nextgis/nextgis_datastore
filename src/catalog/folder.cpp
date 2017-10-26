@@ -73,9 +73,19 @@ bool Folder::isExists(const char* path)
 }
 
 bool Folder::mkDir(const char* path)
-{
-    if( VSIMkdir( path, 0755 ) != 0 )
+{   
+    if(isExists(path)) {
+        return true;
+    }
+
+    const char* parentDir = CPLGetDirname(path);
+    if(!mkDir(parentDir)) {
+        return false;
+    }
+
+    if(VSIMkdir(path, 0755) != 0) {
         return errorMessage(_("Create folder failed! Folder '%s'"), path);
+    }
 #ifdef _WIN32
     if (EQUALN(CPLGetFilename(path), ".", 1)) {
         SetFileAttributes(path, FILE_ATTRIBUTE_HIDDEN);

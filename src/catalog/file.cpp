@@ -178,6 +178,25 @@ bool File::renameFile(const char* src, const char* dst, const Progress& progress
     return true;
 }
 
+bool File::writeFile(const char* file, const void* buffer, size_t size)
+{
+    VSILFILE* fpNew;
+    CPLErrorReset();
+
+    // Open old and new file
+    fpNew = VSIFOpenL(file, "wb");
+    if(fpNew == nullptr) {
+        return errorMessage(_("Open output file %s failed"), file);
+    }
+
+    bool result = VSIFWriteL(buffer, 1, size, fpNew) == size;
+    // Cleanup
+
+    VSIFCloseL(fpNew);
+
+    return result;
+}
+
 bool File::destroy()
 {
     if(!File::deleteFile(m_path))

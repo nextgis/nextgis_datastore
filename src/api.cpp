@@ -471,7 +471,7 @@ ngsURLRequestResult* ngsURLUploadFile(const char* path, const char* url,
     Options requestOptions(options);
     Progress progress(callback, callbackData);
 
-    return uploadFile(path, url, progress, options);
+    return uploadFile(path, url, progress, requestOptions);
 }
 
 /**
@@ -544,7 +544,7 @@ int ngsURLAuthDelete(const char* url)
  */
 const char* ngsMD5(const char* value)
 {
-    return CPLSPrintf("%s", md5(value).c_str());
+    return CPLSPrintf("%s", CPLMD5String(value).c_str());
 }
 
 /**
@@ -1315,6 +1315,54 @@ Raster* getRasterFromHandle(CatalogObjectH object)
     return ngsDynamicCast(Raster, catalogObjectPointer);
 }
 
+DatasetBase* getDataseFromHandle(CatalogObjectH object)
+{
+    Object* catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(!catalogObjectPointer) {
+        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return ngsDynamicCast(DatasetBase, catalogObjectPointer);
+}
+
+int ngsDatasetOpen(CatalogObjectH object, unsigned int openFlags, char** openOptions)
+{
+    DatasetBase* dataset = getDataseFromHandle(object);
+    if(!dataset) {
+        return COD_OPEN_FAILED;
+    }
+
+    return dataset->open(openFlags, Options(openOptions)) ? COD_SUCCESS :
+                                                            COD_OPEN_FAILED;
+}
+
+char ngsDatasetIsOpened(CatalogObjectH object)
+{
+    DatasetBase* dataset = getDataseFromHandle(object);
+    if(!dataset) {
+        return 0;
+    }
+
+    return dataset->isOpened() ? 1 : 0;
+}
+
+int ngsDatasetClose(CatalogObjectH object)
+{
+    DatasetBase* dataset = getDataseFromHandle(object);
+    if(!dataset) {
+        return COD_CLOSE_FAILED;
+    }
+    dataset->close();
+    return COD_SUCCESS;
+}
+
 /**
  * @brief ngsFeatureClassFields Feature class fields
  * @param object Feature class handle
@@ -1334,7 +1382,6 @@ ngsField* ngsFeatureClassFields(CatalogObjectH object)
 
     Table* table = getTableFromHandle(object);
     if(!table) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1372,7 +1419,6 @@ ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object)
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(!featureClass) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return 0;
     }
     return featureClass->geometryType();
@@ -1391,8 +1437,7 @@ int ngsFeatureClassCreateOverviews(CatalogObjectH object, char** options,
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(!featureClass) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
 
     Options createOptions(options);
@@ -1446,7 +1491,6 @@ FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1470,8 +1514,7 @@ int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature,
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -1492,8 +1535,7 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature,
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
 
     FeaturePtr* featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -1514,8 +1556,7 @@ int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id,
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
     return table->deleteFeature(id, logEdits == 1) ? COD_SUCCESS :
                                                      COD_DELETE_FAILED;
@@ -1532,8 +1573,7 @@ int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        return errorMessage(COD_INVALID,
-                            _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
     return table->deleteFeatures(logEdits == 1) ? COD_SUCCESS : COD_DELETE_FAILED;
 }
@@ -1547,7 +1587,6 @@ long long ngsFeatureClassCount(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return 0;
     }
     return table->featureCount();
@@ -1561,7 +1600,6 @@ void ngsFeatureClassResetReading(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return;
     }
     table->reset();
@@ -1576,9 +1614,9 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
+
     FeaturePtr out = table->nextFeature();
     if(out) {
         return new FeaturePtr(out);
@@ -1595,8 +1633,7 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
 {
     Table* table = getTableFromHandle(object);
-    if(nullptr == table) {
-        errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+    if(nullptr == table) {        
         return nullptr;
     }
     FeaturePtr out = table->getFeature(id);
@@ -1618,7 +1655,7 @@ int ngsFeatureClassSetFilter(CatalogObjectH object, GeometryH geometryFilter,
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(nullptr == featureClass) {
-        return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
     featureClass->setAttributeFilter(attributeFilter);
     if(nullptr == geometryFilter) {
@@ -1636,7 +1673,7 @@ int ngsFeatureClassSetSpatialFilter(CatalogObjectH object, double minX,
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(nullptr == featureClass) {
-        return errorMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return COD_INVALID;
     }
     featureClass->setSpatialFilter(minX, minY, maxX, maxY);
     return COD_SUCCESS;
@@ -1647,7 +1684,7 @@ int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        return errorMessage(COD_INVALID, _("Table handle is null"));
+        return COD_INVALID;
     }
 
     table->deleteEditOperation(operation);
@@ -1659,7 +1696,6 @@ ngsEditOperation* ngsFeatureClassGetEditOperations(CatalogObjectH object)
 {
     Table* table = getTableFromHandle(object);
     if(nullptr == table) {
-        errorMessage(COD_INVALID, _("Table handle is null"));
         return nullptr;
     }
 
@@ -2134,6 +2170,19 @@ void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,
 // Raster
 //------------------------------------------------------------------------------
 
+/**
+ * @brief ngsRasterCacheArea Download tiles for zoom levels and area
+ * @param object Raster to download tiles
+ * @param options Key=value list of options.
+ * - MINX - minimum X coordinate of bounting box
+ * - MINY - minimum Y coordinate of bounting box
+ * - MAXX - maximum X coordinate of bounting box
+ * - MAXY - maximum Y coordinate of bounting box
+ * - ZOOM_LEVELS - comma separated values of zoom levels
+ * @param callback Progress function
+ * @param callbackData Progress function arguments
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
 int ngsRasterCacheArea(CatalogObjectH object, char** options,
                        ngsProgressFunc callback, void* callbackData)
 {
@@ -3020,7 +3069,6 @@ char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
-        errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return false;
     }
     return overlay->visible();
@@ -3040,7 +3088,7 @@ int ngsOverlaySetOptions(unsigned char mapId, enum ngsMapOverlayType type,
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
-        return errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
+        return COD_GET_FAILED;
     }
     Options editOptions(options);
     return overlay->setOptions(editOptions) ? COD_SUCCESS : COD_SET_FAILED;
@@ -3050,7 +3098,6 @@ char** ngsOverlayGetOptions(unsigned char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
-        errorMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return nullptr;
     }
     Options option = overlay->options();
@@ -3065,7 +3112,6 @@ ngsPointId ngsEditOverlayTouch(unsigned char mapId, double x, double y,
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(COD_INVALID, _("Failed to get edit overlay"));
         return {NOT_FOUND, 0};
     }
     return editOverlay->touch(x, y, type);
@@ -3075,7 +3121,7 @@ char ngsEditOverlayUndo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(_("Failed to get edit overlay"));
+        return 0;
     }
     return editOverlay->undo();
 }
@@ -3084,7 +3130,7 @@ char ngsEditOverlayRedo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(_("Failed to get edit overlay"));
+        return 0;
     }
     return editOverlay->redo();
 }
@@ -3093,7 +3139,7 @@ char ngsEditOverlayCanUndo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(_("Failed to get edit overlay"));
+        return 0;
     }
     return editOverlay->canUndo();
 }
@@ -3102,7 +3148,7 @@ char ngsEditOverlayCanRedo(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(_("Failed to get edit overlay"));
+        return 0;
     }
     return editOverlay->canRedo();
 }
@@ -3116,7 +3162,6 @@ FeatureH ngsEditOverlaySave(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(_("Failed to get edit overlay"));
         return nullptr;
     }
 
@@ -3132,7 +3177,7 @@ int ngsEditOverlayCancel(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INVALID, _("Failed to get edit overlay"));
+        return COD_INVALID;
     }
     editOverlay->cancel();
     return COD_SUCCESS;
@@ -3153,7 +3198,7 @@ int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer,
 
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
+        return COD_CREATE_FAILED;
     }
     if(!editOverlay->createGeometry(datasource, empty == 1)) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
@@ -3166,7 +3211,7 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, ngsGeometryType type)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_CREATE_FAILED, _("Failed to get edit overlay"));
+        return COD_CREATE_FAILED;
     }
     if(!editOverlay->createGeometry(OGRwkbGeometryType(type))) {
         return errorMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
@@ -3179,7 +3224,7 @@ int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_UPDATE_FAILED, _("Failed to get edit overlay"));
+        return COD_UPDATE_FAILED;
     }
 
     MapStore* const mapStore = MapStore::getInstance();
@@ -3212,7 +3257,7 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return COD_DELETE_FAILED;
     }
 
     bool isGeometryValid = editOverlay->isGeometryValid();
@@ -3228,7 +3273,7 @@ int ngsEditOverlayAddPoint(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+        return COD_INSERT_FAILED;
     }
 
     return editOverlay->addPoint() ? COD_SUCCESS : COD_INSERT_FAILED;
@@ -3238,7 +3283,7 @@ int ngsEditOverlayAddVertex(unsigned char mapId, ngsCoordinate coordinates)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+        return COD_INSERT_FAILED;
     }
 
     OGRPoint pt(coordinates.X, coordinates.Y);
@@ -3249,7 +3294,6 @@ enum ngsEditDeleteType ngsEditOverlayDeletePoint(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
         return EDT_NON_LAST;
     }
     return editOverlay->deletePoint();
@@ -3259,7 +3303,7 @@ int ngsEditOverlayAddHole(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+        return COD_INSERT_FAILED;
     }
     if(!editOverlay->addHole()) {
         return errorMessage(COD_INSERT_FAILED, _("Point adding is failed"));
@@ -3271,8 +3315,7 @@ enum ngsEditDeleteType ngsEditOverlayDeleteHole(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
-        return EDT_NON_LAST;
+       return EDT_NON_LAST;
     }
     return editOverlay->deleteHole();
 }
@@ -3281,7 +3324,7 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return errorMessage(COD_INSERT_FAILED, _("Failed to get edit overlay"));
+        return COD_INSERT_FAILED;
     }
     if(!editOverlay->addGeometryPart()) {
         return errorMessage(COD_INSERT_FAILED, _("Geometry part adding is failed"));
@@ -3293,7 +3336,6 @@ void ngsEditOverlaySetWalkingMode(unsigned char mapId, char enable)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(_("Failed to get edit overlay"));
         return;
     }
     editOverlay->setWalkingMode(enable == 1);
@@ -3303,7 +3345,6 @@ char ngsEditOverlayGetWalkingMode(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(_("Failed to get edit overlay"));
         return 0;
     }
     return editOverlay->isWalkingMode() ? 1 : 0;
@@ -3318,7 +3359,6 @@ enum ngsEditDeleteType ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(_("Failed to get edit overlay"));
         return EDT_NON_LAST;
     }
     return editOverlay->deleteGeometryPart();
@@ -3328,7 +3368,6 @@ GeometryH ngsEditOverlayGetGeometry(unsigned char mapId)
 {
     EditLayerOverlay* editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        errorMessage(_("Failed to get edit overlay"));
         return nullptr;
     }
     return editOverlay->geometryClone();
@@ -3339,7 +3378,7 @@ int ngsEditOverlaySetStyle(unsigned char mapId, enum ngsEditStyleType type,
 {
     GlEditLayerOverlay* overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
-        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return COD_DELETE_FAILED;
     }
     return overlay->setStyle(type, *static_cast<CPLJSONObject*>(style)) ?
                 COD_SUCCESS : COD_SET_FAILED;
@@ -3350,7 +3389,7 @@ int ngsEditOverlaySetStyleName(unsigned char mapId, enum ngsEditStyleType type,
 {
     GlEditLayerOverlay* overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
-        return errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
+        return COD_DELETE_FAILED;
     }
     return overlay->setStyleName(type, name) ? COD_SUCCESS : COD_SET_FAILED;
 }
@@ -3360,7 +3399,6 @@ JsonObjectH ngsEditOverlayGetStyle(unsigned char mapId,
 {
     GlEditLayerOverlay* overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
-        errorMessage(COD_DELETE_FAILED, _("Failed to get edit overlay"));
         return nullptr;
     }
     return new CPLJSONObject(overlay->style(type));
@@ -3371,7 +3409,7 @@ int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
 {
     LocationOverlay* overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
-        return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
+        return COD_UPDATE_FAILED;
     }
 
     overlay->setLocation(location, direction, accuracy);
@@ -3382,7 +3420,7 @@ int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style)
 {
     GlLocationOverlay* overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
-        return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
+        return COD_UPDATE_FAILED;
     }
 
     return overlay->setStyle(*static_cast<CPLJSONObject*>(style)) ?
@@ -3393,7 +3431,7 @@ int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name)
 {
     GlLocationOverlay* overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
-        return errorMessage(COD_UPDATE_FAILED, _("Failed to get overlay"));
+        return COD_UPDATE_FAILED;
     }
 
     return overlay->setStyleName(name) ? COD_SUCCESS : COD_SET_FAILED;
@@ -3403,7 +3441,6 @@ JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId)
 {
     GlLocationOverlay* overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
-        errorMessage(COD_GET_FAILED, _("Failed to get overlay"));
         return nullptr;
     }
     return new CPLJSONObject(overlay->style());

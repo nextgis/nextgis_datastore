@@ -36,8 +36,10 @@ constexpr const char* KEY_EXTENT = "extent";
 constexpr const char* KEY_LIMIT_EXTENT = "limit_extent";
 constexpr const char* KEY_BAND_COUNT = "band_count";
 constexpr const char* KEY_CACHE_EXPIRES = "cache_expires";
+constexpr const char* KEY_CACHE_MAX_SIZE = "cache_max_size";
 
 constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
+constexpr const int defaultCacheMaxSize = 128 * 1024 * 1024;
 
 typedef struct _imageData {
     unsigned char* buffer;
@@ -78,7 +80,7 @@ public:
     bool pixelData(void* data, int xOff, int yOff, int xSize, int ySize,
                    int bufXSize, int bufYSize, GDALDataType dataType,
                    int bandCount, int* bandList, bool read = true,
-                   bool skipLastBand = false, unsigned char zoom = 0);
+                   bool skipLastBand = false);
     bool cacheArea(const Progress &progress, const Options &options);
 
     // Object interface
@@ -95,21 +97,28 @@ public:
 protected:
     void setExtent();
 
-private:
-    void freeLocks(bool all = false);
+    // static
+protected:
+    static bool cacheAreaJobThreadFunc(ThreadData *threadData);
+
+
+//private:
+//    void freeLocks(bool all = false);
 
 protected:
     Envelope m_extent;
+    unsigned int m_openFlags;
+    Options m_openOptions;
 
 private:
     std::vector<CPLString> m_siblingFiles;
-    typedef struct _lockData {
-        Envelope env;
-        CPLMutex* mutexRef;
-        unsigned char zoom;
-    } LockData;
+//    typedef struct _lockData {
+//        Envelope env;
+//        CPLMutex* mutexRef;
+//        unsigned char zoom;
+//    } LockData;
 
-    std::vector<LockData> m_dataLocks;
+//    std::vector<LockData> m_dataLocks;
     CPLMutex* m_dataLock;
 };
 

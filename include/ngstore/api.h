@@ -245,6 +245,11 @@ typedef struct _ngsEditOperation {
     long long arid;
 } ngsEditOperation;
 
+NGS_EXTERNC int ngsDatasetOpen(CatalogObjectH object, unsigned int openFlags,
+                               char** openOptions);
+NGS_EXTERNC char ngsDatasetIsOpened(CatalogObjectH object);
+NGS_EXTERNC int ngsDatasetClose(CatalogObjectH object);
+
 NGS_EXTERNC ngsField* ngsFeatureClassFields(CatalogObjectH object);
 NGS_EXTERNC ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object);
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,

@@ -173,7 +173,9 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.Add(KEY_LIMIT_EXTENT, limitExtent.save());
         root.Add(KEY_CACHE_EXPIRES, options.intOption(KEY_CACHE_EXPIRES,
                                                       defaultCacheExpires));
-        root.Add(KEY_BAND_COUNT, options.intOption(KEY_BAND_COUNT, 4));
+        root.Add(KEY_CACHE_MAX_SIZE, options.intOption(KEY_CACHE_MAX_SIZE,
+                                                       defaultCacheMaxSize));
+        root.Add(KEY_BAND_COUNT, options.intOption(KEY_BAND_COUNT, 3));
         CPLJSONObject user;
         for(auto it = options.begin(); it != options.end(); ++it) {
             if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {

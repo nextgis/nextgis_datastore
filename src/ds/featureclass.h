@@ -203,14 +203,6 @@ protected:
     bool m_creatingOvr;
 
 private:
-    class TilingData : public ThreadData {
-    public:
-        TilingData(FeatureClass* featureClass, FeaturePtr feature, bool own) :
-            ThreadData(own), m_feature(feature), m_featureClass(featureClass) {}
-        virtual ~TilingData() = default;
-        FeaturePtr m_feature;
-        FeatureClass* m_featureClass;
-    };
     std::map<Tile, VectorTile> m_genTiles;
 };
 

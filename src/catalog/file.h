@@ -44,6 +44,7 @@ public:
                          const Progress &progress = Progress());
     static bool renameFile(const char* src, const char* dst,
                          const Progress &progress = Progress());
+    static bool writeFile(const char* file, const void* buffer, size_t size);
     // Object interface
 public:
     virtual bool destroy() override;
