@@ -38,8 +38,8 @@ constexpr const char* KEY_BAND_COUNT = "band_count";
 constexpr const char* KEY_CACHE_EXPIRES = "cache_expires";
 constexpr const char* KEY_CACHE_MAX_SIZE = "cache_max_size";
 
-constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60;
-constexpr const int defaultCacheMaxSize = 128 * 1024 * 1024;
+constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60; // 7 days
+constexpr const int defaultCacheMaxSize = 32 * 1024 * 1024; // 32 Mb
 
 typedef struct _imageData {
     unsigned char* buffer;

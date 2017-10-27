@@ -63,7 +63,7 @@ public:
     void clearThreadData();
     unsigned char currentWorkerCount() const { return m_threadCount; }
     unsigned char maxWorkerCount() const { return m_maxThreadCount; }
-    void waitComplete(const Progress &progress) const;
+    void waitComplete(const Progress &progress);
     size_t dataCount() const { return m_threadData.size(); }
     bool isFailed() const { return m_failed; }
 

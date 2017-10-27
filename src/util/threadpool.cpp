@@ -85,7 +85,7 @@ void ThreadPool::clearThreadData()
     m_threadData.clear();
 }
 
-void ThreadPool::waitComplete(const Progress &progress) const
+void ThreadPool::waitComplete(const Progress &progress)
 {
     bool complete = false;
     size_t currentDataCount = dataCount();
@@ -94,7 +94,10 @@ void ThreadPool::waitComplete(const Progress &progress) const
         CPLAcquireMutex(m_threadMutex, 7.0);
         complete = m_threadCount <= 0;
         double completePercent = double(dataCount()) / currentDataCount;
-        progress.onProgress(COD_IN_PROCESS, 1.0 - completePercent, _("Working..."));
+        if(!progress.onProgress(COD_IN_PROCESS, 1.0 - completePercent,
+                                _("Working..."))) {
+            clearThreadData();
+        }
         CPLReleaseMutex(m_threadMutex);
 
         if(complete) {
@@ -126,7 +129,7 @@ bool ThreadPool::process()
             delete data;
         }
         if(m_stopOnFirstFail) {
-            m_threadData.clear();
+            clearThreadData();
             m_failed = true;
             return false;
         }

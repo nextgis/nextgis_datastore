@@ -275,6 +275,7 @@ bool Raster::destroy()
 {
     if(Filter::isFileBased(m_type)) {
         if(File::deleteFile(m_path)) {
+            Folder::rmDir(m_DS->GetMetadataItem("CACHE_PATH", ""));
             CPLString name = fullName();
             if(m_parent)
                 m_parent->notifyChanges();
@@ -549,7 +550,7 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
     if(!Folder::isExists(path)) {
         CPLLockHolderD(&hLock, LOCK_RECURSIVE_MUTEX);
 
-        if(!Folder::mkDir(path)) {
+        if(!Folder::mkDir(path, true)) {
             return false;
         }
     }

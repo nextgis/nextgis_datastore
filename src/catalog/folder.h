@@ -36,7 +36,7 @@ public:
     // Static functions
 public:
     static bool isExists(const char* path);
-    static bool mkDir(const char* path);
+    static bool mkDir(const char* path, bool recursive = false);
     static bool rmDir(const char* path);
     static bool copyDir(const char* from, const char* to,
                         const Progress &progress = Progress());

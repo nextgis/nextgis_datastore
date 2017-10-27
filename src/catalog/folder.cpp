@@ -72,15 +72,17 @@ bool Folder::isExists(const char* path)
     return VSIStatL(path, &sbuf) == 0;
 }
 
-bool Folder::mkDir(const char* path)
+bool Folder::mkDir(const char* path, bool recursive)
 {   
-    if(isExists(path)) {
-        return true;
-    }
+    if(recursive) {
+        if(isExists(path)) {
+            return true;
+        }
 
-    const char* parentDir = CPLGetDirname(path);
-    if(!mkDir(parentDir)) {
-        return false;
+        const char* parentDir = CPLGetDirname(path);
+        if(!mkDir(parentDir, recursive)) {
+            return false;
+        }
     }
 
     if(VSIMkdir(path, 0755) != 0) {
