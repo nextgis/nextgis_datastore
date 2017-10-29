@@ -85,14 +85,15 @@ void GlTile::init(unsigned short tileSize, const Envelope& tileItemEnv,
     m_tile.addIndex(2);
     m_tile.addIndex(3);
 
-    env.resize(TILE_RESIZE);
-    m_sceneMatrix.ortho(env.minX(), env.maxX(),
-                        env.minY(), env.maxY(),
+    Envelope resizeOriginal(tileItemEnv);
+    resizeOriginal.resize(TILE_RESIZE);
+    m_sceneMatrix.ortho(resizeOriginal.minX(), resizeOriginal.maxX(),
+                        resizeOriginal.minY(), resizeOriginal.maxY(),
                         DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
     m_invViewMatrix.ortho(0, newTileSize, 0, newTileSize, -1.0, 1.0);
 
     m_tileSize = newTileSize;
-    m_tileItem.env = env;
+    m_tileItem.env = resizeOriginal;
 }
 
 void GlTile::bind()
