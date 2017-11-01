@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
  * Project: libngstore
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
@@ -27,11 +27,14 @@
 
 #include <array>
 #include <memory>
+#include <set>
 
 #include "api_priv.h"
 #include "ngstore/util/constants.h"
+#include "util/buffer.h"
 
 namespace ngs {
+
 constexpr double BIG_VALUE = 100000000.0; // 100 000 000
 constexpr float BIG_VALUE_F = 100000000.0f; // 100 000 000
 
@@ -142,8 +145,121 @@ typedef struct _tileItem{
 
 OGRGeometry* ngsCreateGeometryFromGeoJson(const CPLJSONObject& json);
 
-bool geometryEnvelopeIntersects(const OGRGeometry& geometry, const Envelope env);
+bool ngsIsGeometryIntersectsEnvelope(const OGRGeometry& geometry, const Envelope env);
 
+class VectorTileItem
+{
+    friend class VectorTile;
+public:
+    VectorTileItem();
+    void addId(GIntBig id) { m_ids.insert(id); }
+    void removeId(GIntBig id);
+    void addPoint(const SimplePoint& pt) { m_points.push_back(pt); }
+    void addIndex(unsigned short index) { m_indices.push_back(index); }
+    void addBorderIndex(unsigned short ring, unsigned short index);
+    void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
+
+    size_t pointCount() const { return m_points.size(); }
+    const SimplePoint& point(size_t index) const { return m_points[index]; }
+    bool isClosed() const;
+    const std::vector<SimplePoint>& points() const { return m_points; }
+    const std::vector<unsigned short>& indices() const { return m_indices; }
+    const std::vector<std::vector<unsigned short>>& borderIndices() const {
+        return m_borderIndices;
+    }
+    bool isValid() const { return m_valid; }
+    void setValid(bool valid) { m_valid = valid; }
+    bool operator==(const VectorTileItem& other) const {
+        return m_points == other.m_points;
+    }
+    bool isIdsPresent(const std::set<GIntBig> &other, bool full = true) const;
+    std::set<GIntBig> idsIntesect(const std::set<GIntBig> &other) const;
+
+protected:
+    void loadIds(const VectorTileItem& item);
+    void save(Buffer* buffer);
+    bool load(Buffer& buffer);
+private:
+    std::vector<SimplePoint> m_points;
+    std::vector<unsigned short> m_indices;
+    std::vector<std::vector<unsigned short>> m_borderIndices; // NOTE: first array is exterior ring indices
+    std::vector<SimplePoint> m_centroids;
+    std::set<GIntBig> m_ids;
+    bool m_valid;
+    bool m_2d;
+};
+
+typedef std::vector<VectorTileItem> VectorTileItemArray;
+
+class VectorTile
+{
+public:
+    VectorTile() : m_valid(false) {}
+    void add(const VectorTileItem &item, bool checkDuplicates = false);
+    void add(const VectorTileItemArray& items, bool checkDuplicates = false);
+    void remove(GIntBig id);
+    BufferPtr save();
+    bool load(Buffer& buffer);
+    VectorTileItemArray items() const {
+        return m_items;
+    }
+    bool empty() const;
+
+    bool isValid() const { return m_valid; }
+private:
+    VectorTileItemArray m_items;
+    bool m_valid;
+};
+
+class GEOSContextHandlePtr : public std::shared_ptr<struct GEOSContextHandle_HS>
+{
+public:
+    GEOSContextHandlePtr() : shared_ptr(OGRGeometry::createGEOSContext(),
+                                        OGRGeometry::freeGEOSContext) {}
+};
+
+class GEOSGeometryWrap;
+typedef std::shared_ptr<GEOSGeometryWrap> GEOSGeometryPtr;
+class GEOSGeometryWrap
+{
+public:
+    explicit GEOSGeometryWrap(GEOSGeom geom, GEOSContextHandlePtr handle);
+    explicit GEOSGeometryWrap(OGRGeometry* geom);
+    ~GEOSGeometryWrap();
+    GEOSGeom geom() const { return m_geom; }
+    int type() const;
+    GEOSGeometryPtr clip(const Envelope& env) const;
+    void simplify(double step);
+    bool isValid() const { return m_geom != nullptr; }
+    void fillTile(GIntBig fid, VectorTileItemArray& vitemArray);
+
+private:
+    GEOSGeom generalizePoint(const GEOSGeom_t* geom, double step);
+    GEOSGeom generalizeMultiPoint(const GEOSGeom_t* geom, double step);
+    GEOSGeom generalizeLine(const GEOSGeom_t* geom, double step);
+    GEOSGeom generalizeMultiLine(const GEOSGeom_t* geom, double step);
+    GEOSGeom generalizePolygon(const GEOSGeom_t* geom, double step);
+    GEOSGeom generalizeMultiPolygon(const GEOSGeom_t* geom, double step);
+    void setCentroid(int type);
+    void fillPointTile(GIntBig fid, const GEOSGeom_t* geom,
+                       VectorTileItemArray& vitemArray);
+    void fillMultiPointTile(GIntBig fid, const GEOSGeom_t* geom,
+                            VectorTileItemArray& vitemArray);
+    void fillLineTile(GIntBig fid, const GEOSGeom_t* geom,
+                       VectorTileItemArray& vitemArray);
+    void fillMultiLineTile(GIntBig fid, const GEOSGeom_t* geom,
+                       VectorTileItemArray& vitemArray);
+    void fillPolygonTile(GIntBig fid, const GEOSGeom_t* geom,
+                       VectorTileItemArray& vitemArray);
+    void fillMultiPolygonTile(GIntBig fid, const GEOSGeom_t* geom,
+                       VectorTileItemArray& vitemArray);
+    void fillCollectionTile(GIntBig fid, const GEOSGeom_t* geom,
+                       VectorTileItemArray& vitemArray);
+
+private:
+    GEOSGeom m_geom;
+    GEOSContextHandlePtr m_geosHandle;
+};
 
 } // namespace ngs
 

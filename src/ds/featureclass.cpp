@@ -60,283 +60,10 @@ public:
 };
 
 //------------------------------------------------------------------------------
-// VectorTileItem
-//------------------------------------------------------------------------------
-
-VectorTileItem::VectorTileItem() :
-     m_valid(false),
-     m_2d(true)
-{
-
-}
-
-void VectorTileItem::removeId(GIntBig id)
-{
-    auto it = m_ids.find(id);
-    if(it != m_ids.end()) {
-        m_ids.erase(it);
-        if(m_ids.empty()) {
-            m_valid = false;
-        }
-    }
-}
-
-void VectorTileItem::addBorderIndex(unsigned short ring, unsigned short index)
-{
-    if(m_borderIndices.size() <= ring) {
-       for(unsigned short i = static_cast<unsigned short>(m_borderIndices.size());
-           i < ring + 1; ++i) {
-            m_borderIndices.push_back(std::vector<unsigned short>());
-        }
-    }
-    m_borderIndices[ring].push_back(index);
-}
-
-void VectorTileItem::save(Buffer* buffer)
-{
-    buffer->put(static_cast<GByte>(m_2d));
-
-    // vector<SimplePoint> m_points
-    buffer->put(static_cast<GUInt32>(m_points.size()));
-    for(auto point : m_points) {
-        if(m_2d) {
-            buffer->put(point.x);
-            buffer->put(point.y);
-        }
-        else {
-            // TODO: Add point with z support
-        }
-    }
-
-    // vector<unsigned short> m_indices
-    buffer->put(static_cast<GUInt32>(m_indices.size()));
-    for(auto index : m_indices) {
-        buffer->put(index);
-    }
-
-    //vector<vector<unsigned short>> m_borderIndices
-    buffer->put(static_cast<GUInt32>(m_borderIndices.size()));
-    for(auto borderIndexArray : m_borderIndices) {
-        buffer->put(static_cast<GUInt32>(borderIndexArray.size()));
-        for(auto borderIndex : borderIndexArray) {
-            buffer->put(borderIndex);
-        }
-    }
-
-    // vector<SimplePoint> m_centroids
-    buffer->put(static_cast<GUInt32>(m_centroids.size()));
-    for(auto centroid : m_centroids) {
-        if(m_2d) {
-            buffer->put(centroid.x);
-            buffer->put(centroid.y);
-        }
-        else {
-            // TODO: Add point with z support
-        }
-    }
-
-    // set<GIntBig> m_ids
-    buffer->put(static_cast<GUInt32>(m_ids.size()));
-    for(auto id : m_ids) {
-        buffer->put(id);
-    }
-}
-
-bool VectorTileItem::load(Buffer& buffer)
-{
-    m_2d = buffer.getByte();
-    // vector<SimplePoint> m_points
-    GUInt32 size = buffer.getULong();
-    for(GUInt32 i = 0; i < size; ++i) {
-        if(m_2d) {
-            float x = buffer.getFloat();
-            float y = buffer.getFloat();
-            SimplePoint pt = {x, y};
-            m_points.push_back(pt);
-        }
-        else {
-            // TODO: Add point with z support
-        }
-    }
-
-    // vector<unsigned short> m_indices
-    size = buffer.getULong();
-    for(GUInt32 i = 0; i < size; ++i) {
-        m_indices.push_back(buffer.getUShort());
-    }
-
-    //vector<vector<unsigned short>> m_borderIndices
-    size = buffer.getULong();
-    for(GUInt32 i = 0; i < size; ++i) {
-        GUInt32 size1 = buffer.getULong();
-        std::vector<unsigned short> array;
-        for(GUInt32 j = 0; j < size1; ++j) {
-            array.push_back(buffer.getUShort());
-        }
-        if(!array.empty()) {
-            m_borderIndices.push_back(array);
-        }
-    }
-
-    // vector<SimplePoint> m_centroids
-    size = buffer.getULong();
-    for(GUInt32 i = 0; i < size; ++i) {
-        if(m_2d) {
-            float x = buffer.getFloat();
-            float y = buffer.getFloat();
-            SimplePoint pt = {x, y};
-            m_centroids.push_back(pt);
-        }
-        else {
-            // TODO: Add point with z support
-        }
-    }
-
-    // set<GIntBig> m_ids
-    size = buffer.getULong();
-    for(GUInt32 i = 0; i < size; ++i) {
-        m_ids.insert(buffer.getBig());
-    }
-
-    m_valid = true;
-    return true;
-}
-
-bool VectorTileItem::isClosed() const
-{
-    return isEqual(m_points.front().x, m_points.back().x) &&
-            isEqual(m_points.front().y, m_points.back().y);
-}
-
-void VectorTileItem::loadIds(const VectorTileItem &item)
-{
-    for(GIntBig id : item.m_ids) {
-        m_ids.insert(id);
-    }
-}
-
-bool VectorTileItem::isIdsPresent(const std::set<GIntBig> &other, bool full) const
-{
-    if(other.empty()) {
-        return false;
-    }
-    if(full) {
-        return  std::includes(other.begin(), other.end(),
-                             m_ids.begin(), m_ids.end());
-    }
-    else {
-        for(auto id : other) {
-            if(m_ids.find(id) != m_ids.end()) {
-                return true;
-            }
-        }
-//        result = std::search(other.begin(), other.end(),
-//                           m_ids.begin(), m_ids.end()) != other.end();
-    }
-
-    return false;
-}
-std::set<GIntBig> VectorTileItem::idsIntesect(const std::set<GIntBig> &other) const
-{
-    std::set<GIntBig> common_data;
-    if(other.empty())
-        return common_data;
-    std::set_intersection(other.begin(), other.end(),
-                          m_ids.begin(), m_ids.end(),
-                          std::inserter(common_data, common_data.begin()));
-    return common_data;
-}
-
-
-//------------------------------------------------------------------------------
-// VectorTile
-//------------------------------------------------------------------------------
-
-void VectorTile::add(const VectorTileItem &item, bool checkDuplicates)
-{
-    if(!item.isValid()) {
-        return;
-    }
-    if(checkDuplicates) {
-        auto it = std::find(m_items.begin(), m_items.end(), item);
-        if(it == m_items.end()) {
-            m_items.push_back(item);
-        }
-        else {
-            (*it).loadIds(item);
-        }
-    }
-    else {
-        m_items.push_back(item);
-    }
-
-    if(!m_valid) {
-        m_valid = !m_items.empty();
-    }
-}
-
-void VectorTile::add(const VectorTileItemArray& items,
-                     bool checkDuplicates)
-{
-    for(auto item : items) {
-        add(item, checkDuplicates);
-    }
-}
-
-void VectorTile::remove(GIntBig id)
-{
-    auto it = m_items.begin();
-    while(it != m_items.end()) {
-        (*it).removeId(id);
-        if((*it).isValid() == false) {
-            it = m_items.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
-}
-
-BufferPtr VectorTile::save()
-{
-    BufferPtr buff(new Buffer);
-    buff->put(static_cast<GUInt32>(m_items.size()));
-    for(auto item : m_items) {
-        item.save(buff.get());
-    }
-    return buff;
-}
-
-bool VectorTile::load(Buffer& buffer)
-{
-    GUInt32 size = buffer.getULong();
-    for(GUInt32 i = 0; i < size; ++i) {
-        VectorTileItem item;
-        item.load(buffer);
-        m_items.push_back(item);
-    }
-    m_valid = true;
-    return true;
-}
-
-bool VectorTile::empty() const
-{
-    if(!m_items.empty()) {
-        for(auto item : m_items) {
-            if(item.pointCount() > 0) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-//------------------------------------------------------------------------------
 // FeatureClass
 //------------------------------------------------------------------------------
 
-FeatureClass::FeatureClass(OGRLayer* layer,
-                           ObjectContainer * const parent,
+FeatureClass::FeatureClass(OGRLayer* layer, ObjectContainer * const parent,
                            const enum ngsCatalogObjectType type,
                            const CPLString &name) :
     Table(layer, parent, type, name),
@@ -482,7 +209,7 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
         if(!insertFeature(dstFeature)) {
             if(!progress.onProgress(COD_WARNING, complete,
-                               _("Create feature failed. Source feature FID:%lld"),
+                               _("Create feature failed. Source feature FID:" CPL_FRMT_GIB),
                                feature->GetFID ())) {
                 return COD_CANCELED;
             }
@@ -526,97 +253,9 @@ double FeatureClass::pixelSize(int zoom, bool precize)
     return WORLD_WIDTH / sizeOneDimPixels;
 }
 
-SimplePoint generalizePoint(OGRPoint* pt, float step)
-{
-    float x, y;
-    if(isEqual(step, 0.0f)) {
-        x = static_cast<float>(pt->getX());
-        y = static_cast<float>(pt->getY());
-    }
-    else {
-        x = static_cast<long>(pt->getX() / static_cast<double>(step)) * step;
-        y = static_cast<long>(pt->getY() / static_cast<double>(step)) * step;
-    }
+/*
 
-    return {x, y};
-}
-
-void FeatureClass::tilePoint(GIntBig fid, OGRGeometry* geom,
-                             OGRGeometry */*extent*/, float step,
-                             VectorTileItemArray& vitemArray) const
-{
-    VectorTileItem vitem;
-    vitem.addId(fid);
-    OGRPoint* pt = static_cast<OGRPoint*>(geom);
-    vitem.addPoint(generalizePoint(pt, step));
-    if(vitem.pointCount() > 0) {
-        vitem.setValid(true);
-        vitemArray.push_back(vitem);
-    }
-}
-
-void FeatureClass::tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                            float step, VectorTileItemArray& vitemArray) const
-{
-    GeometryPtr cutGeom(geom->Intersection(extent));
-    if(!cutGeom) {
-        return;
-    }
-
-    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbMultiLineString) {
-        return tileMultiLine(fid, cutGeom.get(), extent, step, vitemArray);
-    }
-
-    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbGeometryCollection) {
-        OGRGeometryCollection* coll = ngsStaticCast(OGRGeometryCollection, cutGeom);
-        for(int i = 0; i < coll->getNumGeometries(); ++i) {
-            OGRGeometry* collGeom = coll->getGeometryRef(i);
-            if(OGR_GT_Flatten(collGeom->getGeometryType()) == wkbMultiLineString) {
-                tileMultiLine(fid, collGeom, extent, step, vitemArray);
-            }
-            else if(OGR_GT_Flatten(collGeom->getGeometryType()) == wkbLineString) {
-                tileLine(fid, collGeom, extent, step, vitemArray);
-            }
-            else {
-                CPLDebug("ngstore", "Tile not line");
-            }
-        }
-        return;
-    }
-
-    if(OGR_GT_Flatten(cutGeom->getGeometryType()) != wkbLineString) {
-        CPLDebug("ngstore", "Tile not line");
-        return;
-    }
-
-    //step /= 3.5f; // Increase step fo lines to prevent steps on tile border
-
-    VectorTileItem vitem;
-    vitem.addId(fid);
-    OGRPoint pt;
-    SimplePoint prevPt;
-    OGRLineString* line = ngsStaticCast(OGRLineString, cutGeom);
-    for(int i = 0; i < line->getNumPoints(); ++i) {
-        line->getPoint(i, &pt);
-        SimplePoint spt = generalizePoint(&pt, step);
-        if(spt == prevPt) {
-            continue;
-        }
-        prevPt = spt;
-        vitem.addPoint(prevPt);
-    }
-
-    if(vitem.pointCount() > 0) {
-        if(vitem.pointCount() == 1) {
-            prevPt.x += 1.5f;
-            prevPt.y += 1.5f;
-            vitem.addPoint(prevPt);
-        }
-        vitem.setValid(true);
-        vitemArray.push_back(vitem);
-    }
-}
-
+// For MB ear cut alghorithm
 typedef struct _edgePt {
     OGRRawPoint pr;
     unsigned short index;
@@ -834,89 +473,7 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
             }
         }
     }
-/*
-    for(auto& tin: resultPolys) {
-        for(unsigned char j = 0; j < 3; ++j) {
-            SimplePoint pts = {tin[j].x, tin[j].y};
-            vitem.addPoint(pts);
-            // Check each vertex belongs to exterior or interior ring
-            setEdgeIndex(index, tin[j].x, tin[j].y, edges);
 
-            vitem.addIndex(index++);
-        }
-    }
-
-    for(unsigned short i = 0; i < poly->getNumInteriorRings() + 1; ++i) {
-        unsigned short firstIndex = MAX_EDGE_INDEX;
-        for(auto& edge : edges[i]) {
-            if(edge.index != MAX_EDGE_INDEX) {
-                if(firstIndex == MAX_EDGE_INDEX) {
-                    firstIndex = edge.index;
-                }
-                vitem.addBorderIndex(i, edge.index);
-            }
-        }
-        vitem.addBorderIndex(i, firstIndex);
-    }
-
-    vitem.setValid(true);
-    vitemArray.push_back(vitem);
-*/
-/*
-
-    // Test without holes
-    struct simpleAndOriginPt {
-        SimplePoint pt;
-        double x, y;
-    };
-
-    OGRGeometryCollection* tins = static_cast<OGRGeometryCollection*>(
-                cutGeom->DelaunayTriangulation(0.0, 0));
-    CPLDebug("ngstore", "DelaunayTriangulation returns %d tins", tins->getNumGeometries());
-    for(int i = 0; i < tins->getNumGeometries(); ++i) {
-        OGRPolygon* tin = static_cast<OGRPolygon*>(tins->getGeometryRef(i));
-        if(tin->Intersects(poly)) {
-
-            OGRPolygon* cutTin = static_cast<OGRPolygon*>(tin->Intersection(poly));
-
-            if(cutTin->Within(poly)) { // Remove tins not overlaped poly
-
-                char* wkt = nullptr;
-                cutTin->exportToWkt(&wkt);
-                CPLDebug("ngstore", "The tin %s is in polygon", wkt);
-                CPLFree(wkt);
-
-                ring = cutTin->getExteriorRing();
-                struct simpleAndOriginPt pts[3];
-                for(unsigned char j = 0; j < 3; ++j) {
-                    ring->getPoint(j, &pt);
-                    // Simplify tin
-                    pts[j] = {generalizePoint(&pt, step), pt.getX(), pt.getY()};
-                }
-
-                // Add tin and indexes
-                if(pts[0].pt == pts[1].pt || pts[1].pt == pts[2].pt ||
-                        pts[2].pt == pts[0].pt) {
-                    continue;
-                }
-
-                for(unsigned char j = 0; j < 3; ++j) {
-                    vitem.addPoint(pts[j].pt);
-                    // Check each vertex belongs to exterior or interior ring
-                    setEdgeIndex(index, pts[j].x, pts[j].y, edges);
-
-                    vitem.addIndex(index++);
-                }
-            }
-        }
-        else {
-            char* wkt = nullptr;
-            tin->exportToWkt(&wkt);
-            CPLDebug("ngstore", "The tin %s is not in polygon", wkt);
-            CPLFree(wkt);
-        }
-    }
-*/
     // If all tins are filtered out, create triangle at the center of poly
     if(vitem.pointCount() == 0) {
         SimplePoint pt1 = {simpleCenter.x - 0.5f, simpleCenter.y - 0.5f};
@@ -956,16 +513,6 @@ void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
     vitemArray.push_back(vitem);
 }
 
-void FeatureClass::tileMultiPoint(GIntBig fid, OGRGeometry* geom,
-                                  OGRGeometry* extent, float step,
-                                  VectorTileItemArray& vitemArray) const
-{
-    OGRMultiPoint* mpoint = static_cast<OGRMultiPoint*>(geom);
-    for(int i = 0; i < mpoint->getNumGeometries(); ++i) {
-        tilePoint(fid, mpoint->getGeometryRef(i), extent, step, vitemArray);
-    }
-}
-
 void FeatureClass::tileMultiLine(GIntBig fid, OGRGeometry* geom,
                                  OGRGeometry* extent, float step,
                                  VectorTileItemArray& vitemArray) const
@@ -985,6 +532,7 @@ void FeatureClass::tileMultiPolygon(GIntBig fid, OGRGeometry* geom,
         tilePolygon(fid, mpoly->getGeometryRef(i), extent, step, vitemArray);
     }
 }
+*/
 
 bool FeatureClass::getTilesTable()
 {
@@ -1066,24 +614,29 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
         return true;
     }
 
+    GEOSGeometryPtr geosGeom(new GEOSGeometryWrap(geom));
+    GIntBig fid = data->m_feature->GetFID();
+
     OGREnvelope env;
     geom->getEnvelope(&env);
     bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint ||
                               OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
-    for(auto zoomLevel : data->m_featureClass->zoomLevels()) {
+    auto zoomLevels = data->m_featureClass->zoomLevels();
+    for(auto it = zoomLevels.rbegin(); it != zoomLevels.rend(); ++it) {
+        unsigned char zoomLevel = *it;
         Envelope extent = extraExtentForZoom(zoomLevel, env);
 
         std::vector<TileItem> items = MapTransform::getTilesForExtent(
                     extent, zoomLevel, false, true);
         for(auto tileItem : items) {
-            float step = static_cast<float>(FeatureClass::pixelSize(
-                                                tileItem.tile.z,
-                                                precisePixelSize));
+            double step = FeatureClass::pixelSize(tileItem.tile.z,
+                                                  precisePixelSize);
             Envelope ext = tileItem.env;
             ext.resize(TILE_RESIZE);
-            auto vItems = data->m_featureClass->tileGeometry(
-                        data->m_feature, ext.toGeometry(nullptr).get(), step);
+
+            geosGeom->simplify(step);
+            auto vItems = data->m_featureClass->tileGeometry(fid, geosGeom, ext);
             data->m_featureClass->addOverviewItem(tileItem.tile, vItems);
         }
     }
@@ -1247,7 +800,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     bool precisePixelSize = !(OGR_GT_Flatten(geometryType()) == wkbPoint ||
                               OGR_GT_Flatten(geometryType()) == wkbMultiPoint);
 
-    float step = static_cast<float>(pixelSize(tile.z, precisePixelSize));
+    double step = pixelSize(tile.z, precisePixelSize);
 
     std::vector<FeaturePtr> features;
     OGREnvelope extEnv;
@@ -1283,59 +836,20 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     dataset->lockExecuteSql(false);
     CPLReleaseMutex(m_featureMutex);
 
-    /* TODO: Simplify and cut
-
-    GEOSCoordSequence* arguments will become ownership of the returned object.
-
-extern GEOSCoordSequence GEOS_DLL *GEOSCoordSeq_create_r(
-                                                GEOSContextHandle_t handle,
-                                                unsigned int size,
-                                                unsigned int dims);
-
-extern void GEOS_DLL GEOSCoordSeq_destroy_r(GEOSContextHandle_t handle,
-                                            GEOSCoordSequence* s);
-
-extern int GEOS_DLL GEOSCoordSeq_setX_r(GEOSContextHandle_t handle,
-                                        GEOSCoordSequence* s, unsigned int idx,
-                                        double val);
-extern int GEOS_DLL GEOSCoordSeq_setY_r(GEOSContextHandle_t handle,
-                                        GEOSCoordSequence* s, unsigned int idx,
-                                        double val);
-
-extern int GEOS_DLL GEOSCoordSeq_getX_r(GEOSContextHandle_t handle,
-                                        const GEOSCoordSequence* s,
-                                        unsigned int idx, double *val);
-extern int GEOS_DLL GEOSCoordSeq_getY_r(GEOSContextHandle_t handle,
-                                        const GEOSCoordSequence* s,
-                                        unsigned int idx, double *val);
-
-    extern GEOSGeometry GEOS_DLL *GEOSGeom_createLinearRing_r(
-                                           GEOSContextHandle_t handle,
-                                           GEOSCoordSequence* s);
-    extern GEOSGeometry GEOS_DLL *GEOSGeom_createLineString_r(
-                                           GEOSContextHandle_t handle,
-                                           GEOSCoordSequence* s);
-
-    extern GEOSGeometry GEOS_DLL *GEOSGeom_createPolygon_r(
-                                           GEOSContextHandle_t handle,
-                                           GEOSGeometry* shell,
-                                           GEOSGeometry** holes,
-                                           unsigned int nholes);
-
-    extern GEOSGeometry GEOS_DLL *GEOSClipByRect_r(GEOSContextHandle_t handle,
-                                                     const GEOSGeometry* g,
-                                                     double xmin, double ymin,
-                                                     double xmax, double ymax);
-
-extern void GEOS_DLL GEOSGeom_destroy_r(GEOSContextHandle_t handle,
-                                        GEOSGeometry* g);
-    */
-
     while(!features.empty()) {
         feature = features.back();
-        VectorTileItemArray items = tileGeometry(feature, extGeom.get(), step);
-        if(!items.empty()) {
-            vtile.add(items, false);
+
+        OGRGeometry* geom = feature->GetGeometryRef();
+        if(nullptr != geom) {
+
+            GEOSGeometryPtr geosGeom(new GEOSGeometryWrap(geom));
+            GIntBig fid = feature->GetFID();
+            geosGeom->simplify(step);
+
+            VectorTileItemArray items = tileGeometry(fid, geosGeom, tileExtent);
+            if(!items.empty()) {
+                vtile.add(items, false);
+            }
         }
         features.pop_back();
     }
@@ -1360,48 +874,16 @@ extern void GEOS_DLL GEOSGeom_destroy_r(GEOSContextHandle_t handle,
     return vtile;
 }
 
-VectorTileItemArray FeatureClass::tileGeometry(const FeaturePtr &feature,
-                                          OGRGeometry* extent, float step) const
+VectorTileItemArray FeatureClass::tileGeometry(GIntBig fid, GEOSGeometryPtr geom,
+                                               const Envelope& env) const
 {
     VectorTileItemArray out;
-    OGRGeometry* geometry = feature->GetGeometryRef();
-    if(nullptr == geometry) {
+    if(!geom->isValid()) {
         return out;
     }
 
-    switch(OGR_GT_Flatten(geometry->getGeometryType())) {
-    case wkbPoint:
-        tilePoint(feature->GetFID(), geometry, extent, step, out);
-        break;
-    case wkbLineString:
-        tileLine(feature->GetFID(), geometry, extent, step, out);
-        break;
-    case wkbPolygon:
-        tilePolygon(feature->GetFID(), geometry, extent, step, out);
-        break;
-    case wkbMultiPoint:
-        tileMultiPoint(feature->GetFID(), geometry, extent, step, out);
-        break;
-    case wkbMultiLineString:
-        tileMultiLine(feature->GetFID(), geometry, extent, step, out);
-        break;
-    case wkbMultiPolygon:
-        tileMultiPolygon(feature->GetFID(), geometry, extent, step, out);
-        break;
-    case wkbGeometryCollection:
-    case wkbCircularString:
-    case wkbCompoundCurve:
-    case wkbCurvePolygon:
-    case wkbMultiCurve:
-    case wkbMultiSurface:
-    case wkbCurve:
-    case wkbSurface:
-    case wkbPolyhedralSurface:
-    case wkbTIN:
-    case wkbTriangle:
-    default:
-        break; // Not supported yet
-    }
+    GEOSGeometryPtr clipGeom = geom->clip(env);
+    clipGeom->fillTile(fid, out);
 
     return out;
 }
@@ -1678,18 +1160,25 @@ bool FeatureClass::insertFeature(const FeaturePtr& feature, bool logEdits)
     bool precisePixelSize = !(OGR_GT_Flatten(geom->getGeometryType()) == wkbPoint ||
                               OGR_GT_Flatten(geom->getGeometryType()) == wkbMultiPoint);
 
-    for(auto zoomLevel : zoomLevels()) {
+    GEOSGeometryPtr geosGeom(new GEOSGeometryWrap(geom));
+    GIntBig fid = feature->GetFID();
+
+    auto zoomLevelsList = zoomLevels();
+    for(auto it = zoomLevelsList.rbegin(); it != zoomLevelsList.rend(); ++it) {
+        unsigned char zoomLevel = *it;
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+
+        double step = FeatureClass::pixelSize(zoomLevel, precisePixelSize);
+        geosGeom->simplify(step);
+
         for(auto tileItem : items) {
-            float step = static_cast<float>(FeatureClass::pixelSize(
-                                                tileItem.tile.z,
-                                                precisePixelSize));
+
             Envelope ext = tileItem.env;
             ext.resize(TILE_RESIZE);
-            auto vItem = tileGeometry(feature, ext.toGeometry(nullptr).get(),
-                                      step);
+
+            auto vItem = tileGeometry(fid, geosGeom, ext);
 
             FeaturePtr tile = getTileFeature(tileItem.tile);
             VectorTile  vtile;
@@ -1792,14 +1281,23 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature, bool logEdits)
         return result;
     }
 
-    bool precisePixelSize = !(OGR_GT_Flatten(geometryType()) == wkbPoint || OGR_GT_Flatten(geometryType()) == wkbMultiPoint);
+    bool precisePixelSize = !(OGR_GT_Flatten(geometryType()) == wkbPoint ||
+                              OGR_GT_Flatten(geometryType()) == wkbMultiPoint);
 
+    GEOSGeometryPtr geosGeom(new GEOSGeometryWrap(newGeom));
+    GIntBig fid = feature->GetFID();
 
-    for(auto zoomLevel : zoomLevels()) {
+    auto zoomLevelsList = zoomLevels();
+    for(auto it = zoomLevelsList.rbegin(); it != zoomLevelsList.rend(); ++it) {
+        unsigned char zoomLevel = *it;
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
 
         std::vector<TileItem> items =
                 MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+
+        double step = FeatureClass::pixelSize(zoomLevel, precisePixelSize);
+        geosGeom->simplify(step);
+
         for(auto tileItem : items) {
             FeaturePtr tile = getTileFeature(tileItem.tile);
             VectorTile  vtile;
@@ -1821,13 +1319,9 @@ bool FeatureClass::updateFeature(const FeaturePtr& feature, bool logEdits)
 
             vtile.remove(id);
 
-            float step = static_cast<float>(FeatureClass::pixelSize(
-                                                tileItem.tile.z,
-                                                precisePixelSize));
             Envelope env = tileItem.env;
             env.resize(TILE_RESIZE);
-            auto vItem = tileGeometry(feature, env.toGeometry(nullptr).get(),
-                                      step);
+            auto vItem = tileGeometry(fid, geosGeom, env);
             vtile.add(vItem, true);
 
             // Add tile back

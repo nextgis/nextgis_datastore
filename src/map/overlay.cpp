@@ -1370,7 +1370,7 @@ bool EditLayerOverlay::hasSelectedPoint(const OGRRawPoint& mapCoordinates) const
         Envelope mapEnv(minX, minY, maxX, maxY);
         mapEnv.fix();
 
-        ret = geometryEnvelopeIntersects(m_selectedPointCoordinates, mapEnv);
+        ret = ngsIsGeometryIntersectsEnvelope(m_selectedPointCoordinates, mapEnv);
     }
     return ret;
 }
@@ -1497,7 +1497,7 @@ PointId PointId::getPointId(const OGRPoint& pt, const Envelope env,
                             const PointId* /*selectedPointId*/,
                             OGRPoint* coordinates)
 {
-    if(pt.IsEmpty() || !geometryEnvelopeIntersects(pt, env)) {
+    if(pt.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(pt, env)) {
         return PointId();
     }
 
@@ -1514,7 +1514,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
                                       const PointId* selectedPointId,
                                       OGRPoint* coordinates)
 {
-    if(line.IsEmpty() || !geometryEnvelopeIntersects(line, env)) {
+    if(line.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(line, env)) {
         return PointId();
     }
     int startId = 0;
@@ -1531,7 +1531,7 @@ PointId PointId::getLineStringPointId(const OGRLineString& line,
     int pointId = startId;
     for(int num = line.getNumPoints(); pointId < num; ++pointId) {
         line.getPoint(pointId, &pt);
-        if(geometryEnvelopeIntersects(pt, env)) {
+        if(ngsIsGeometryIntersectsEnvelope(pt, env)) {
             found = true;
             break;
         }
@@ -1567,7 +1567,7 @@ PointId PointId::getLineStringMedianPointId(const OGRLineString& line,
                                             const Envelope env,
                                             OGRPoint* coordinates)
 {
-    if(line.IsEmpty() || !geometryEnvelopeIntersects(line, env)) {
+    if(line.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(line, env)) {
         return PointId();
     }
 
@@ -1583,7 +1583,7 @@ PointId PointId::getLineStringMedianPointId(const OGRLineString& line,
         line.getPoint(i + 1, &pt2);
         medianPt = OGRPoint((pt2.getX() - pt1.getX()) / 2 + pt1.getX(),
                 (pt2.getY() - pt1.getY()) / 2 + pt1.getY());
-        if(geometryEnvelopeIntersects(medianPt, env)) {
+        if(ngsIsGeometryIntersectsEnvelope(medianPt, env)) {
             found = true;
             break;
         }
@@ -1608,7 +1608,7 @@ PointId PointId::getPolygonPointId(const OGRPolygon& polygon,
                                    const PointId* selectedPointId,
                                    OGRPoint* coordinates)
 {
-    if(polygon.IsEmpty() || !geometryEnvelopeIntersects(polygon, env)) {
+    if(polygon.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(polygon, env)) {
         return PointId();
     }
 
@@ -1672,7 +1672,7 @@ PointId PointId::getMultiPointPointId(const OGRMultiPoint& mpt,
                                       const PointId* selectedPointId,
                                       OGRPoint* coordinates)
 {
-    if(mpt.IsEmpty() || !geometryEnvelopeIntersects(mpt, env)) {
+    if(mpt.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(mpt, env)) {
         return PointId();
     }
 
@@ -1690,7 +1690,7 @@ PointId PointId::getMultiPointPointId(const OGRMultiPoint& mpt,
 
         const OGRPoint* pt = static_cast<const OGRPoint*>(
                     mpt.getGeometryRef(geometryId));
-        if(geometryEnvelopeIntersects(*pt, env)) {
+        if(ngsIsGeometryIntersectsEnvelope(*pt, env)) {
             if(coordinates) {
                 coordinates->setX(pt->getX());
                 coordinates->setY(pt->getY());
@@ -1721,7 +1721,7 @@ PointId PointId::getMultiLineStringPointId(const OGRMultiLineString& mline,
                                            const PointId* selectedPointId,
                                            OGRPoint* coordinates)
 {
-    if(mline.IsEmpty() || !geometryEnvelopeIntersects(mline, env)) {
+    if(mline.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(mline, env)) {
         return PointId();
     }
 
@@ -1774,7 +1774,7 @@ PointId PointId::getMultiPolygonPointId(const OGRMultiPolygon& mpolygon,
                                         const PointId* selectedPointId,
                                         OGRPoint* coordinates)
 {
-    if(mpolygon.IsEmpty() || !geometryEnvelopeIntersects(mpolygon, env)) {
+    if(mpolygon.IsEmpty() || !ngsIsGeometryIntersectsEnvelope(mpolygon, env)) {
         return PointId();
     }
 

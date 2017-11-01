@@ -302,7 +302,7 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
 
         if(!insertFeature(dstFeature)) {
             if(!progress.onProgress(COD_WARNING, complete,
-                               _("Create feature failed. Source feature FID:%lld"),
+                               _("Create feature failed. Source feature FID:" CPL_FRMT_GIB),
                                feature->GetFID ())) {
                return  COD_CANCELED;
             }

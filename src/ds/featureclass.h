@@ -22,13 +22,11 @@
 #define NGSFEATUREDATASET_H
 
 #include <algorithm>
-#include <set>
 
 #include "coordinatetransformation.h"
 #include "geometry.h"
 #include "ngstore/codes.h"
 #include "table.h"
-#include "util/buffer.h"
 #include "util/options.h"
 #include "util/threadpool.h"
 
@@ -38,70 +36,6 @@ constexpr double TILE_RESIZE = 1.1;
 
 class FeatureClass;
 typedef std::shared_ptr<FeatureClass> FeatureClassPtr;
-
-class VectorTileItem
-{
-    friend class VectorTile;
-public:
-    VectorTileItem();
-    void addId(GIntBig id) { m_ids.insert(id); }
-    void removeId(GIntBig id);
-    void addPoint(const SimplePoint& pt) { m_points.push_back(pt); }
-    void addIndex(unsigned short index) { m_indices.push_back(index); }
-    void addBorderIndex(unsigned short ring, unsigned short index);
-    void addCentroid(const SimplePoint& pt) { m_centroids.push_back(pt); }
-
-    size_t pointCount() const { return m_points.size(); }
-    const SimplePoint& point(size_t index) const { return m_points[index]; }
-    bool isClosed() const;
-    const std::vector<SimplePoint>& points() const { return m_points; }
-    const std::vector<unsigned short>& indices() const { return m_indices; }
-    const std::vector<std::vector<unsigned short>>& borderIndices() const {
-        return m_borderIndices;
-    }
-    bool isValid() const { return m_valid; }
-    void setValid(bool valid) { m_valid = valid; }
-    bool operator==(const VectorTileItem& other) const {
-        return m_points == other.m_points;
-    }
-    bool isIdsPresent(const std::set<GIntBig> &other, bool full = true) const;
-    std::set<GIntBig> idsIntesect(const std::set<GIntBig> &other) const;
-
-protected:
-    void loadIds(const VectorTileItem& item);
-    void save(Buffer* buffer);
-    bool load(Buffer& buffer);
-private:
-    std::vector<SimplePoint> m_points;
-    std::vector<unsigned short> m_indices;
-    std::vector<std::vector<unsigned short>> m_borderIndices; // NOTE: first array is exterior ring indices
-    std::vector<SimplePoint> m_centroids;
-    std::set<GIntBig> m_ids;
-    bool m_valid;
-    bool m_2d;
-};
-
-typedef std::vector<VectorTileItem> VectorTileItemArray;
-
-class VectorTile
-{
-public:
-    VectorTile() : m_valid(false) {}
-    void add(const VectorTileItem &item, bool checkDuplicates = false);
-    void add(const VectorTileItemArray& items, bool checkDuplicates = false);
-    void remove(GIntBig id);
-    BufferPtr save();
-    bool load(Buffer& buffer);
-    VectorTileItemArray items() const {
-        return m_items;
-    }
-    bool empty() const;
-
-    bool isValid() const { return m_valid; }
-private:
-    VectorTileItemArray m_items;
-    bool m_valid;
-};
 
 /**
  * @brief The FeatureClass class
@@ -167,22 +101,20 @@ public:
     virtual bool deleteFeatures(bool logEdits = true) override;
 
 protected:
-    VectorTileItemArray tileGeometry(const FeaturePtr &feature,
-                                     OGRGeometry* extent, float step) const;
+    VectorTileItemArray tileGeometry(GIntBig fid, GEOSGeometryPtr geom,
+                                     const Envelope& env) const;
     void fillZoomLevels(const char* zoomLevels = nullptr);
-
-    void tilePoint(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                   float step, VectorTileItemArray& vitemArray) const;
+/*
     void tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
                   float step, VectorTileItemArray& vitemArray)  const;
     void tilePolygon(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
                      float step, VectorTileItemArray& vitemArray)  const;
-    void tileMultiPoint(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                        float step, VectorTileItemArray& vitemArray)  const;
     void tileMultiLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
                        float step, VectorTileItemArray& vitemArray)  const;
     void tileMultiPolygon(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
                           float step, VectorTileItemArray& vitemArray)  const;
+                          */
+
     bool getTilesTable();
     FeaturePtr getTileFeature(const Tile& tile);
     VectorTile getTileInternal(const Tile& tile);
