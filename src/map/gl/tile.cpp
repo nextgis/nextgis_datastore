@@ -157,7 +157,7 @@ void GlTile::prepareContext()
     #endif
 
     #ifdef GL_MULTISAMPLE
-        if( CPLTestBool("GL_MULTISAMPLE") )
+        if(CPLTestBool(CPLGetConfigOption("GL_MULTISAMPLE", "OFF")))
             ngsCheckGLError(glEnable(GL_MULTISAMPLE));
     #endif
 
@@ -170,7 +170,10 @@ void GlTile::prepareContext()
     #ifdef GL_POLYGON_SMOOTH_HINT
         ngsCheckGLError(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
     #endif
-    //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    #ifdef GL_LINE_SMOOTH_HINT
+        ngsCheckGLError(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
+    #endif
+        //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
 }
 
 } // namespace ngs

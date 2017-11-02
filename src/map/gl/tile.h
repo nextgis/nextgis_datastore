@@ -29,7 +29,15 @@
 
 namespace ngs {
 
-constexpr int GLTILE_SIZE = 256; //512; //
+#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+constexpr int GLTILE_SIZE = 256;
+#elif __ANDROID__
+constexpr int GLTILE_SIZE = 256;
+#else
+constexpr int GLTILE_SIZE = 512;
+#endif
+
+
 
 class GlTile : public GlObject
 {
@@ -40,7 +48,7 @@ public:
 
     Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
     Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
-    GlImage *getImageRef() const { return const_cast<GlImage*>(&m_image); }
+    GlImage* getImageRef() const { return const_cast<GlImage*>(&m_image); }
     const GlBuffer& getBuffer() const { return m_tile; }
     const Tile &getTile() const { return  m_tileItem.tile; }
     const Envelope& getExtent() const { return m_tileItem.env; }

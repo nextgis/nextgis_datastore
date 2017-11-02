@@ -236,7 +236,7 @@ public:
 private:
     GEOSGeom generalizePoint(const GEOSGeom_t* geom, double step);
     GEOSGeom generalizeMultiPoint(const GEOSGeom_t* geom, double step);
-    GEOSGeom generalizeLine(const GEOSGeom_t* geom, double step);
+    GEOSGeom generalizeLine(const GEOSGeom_t* geom, double step, bool isRing = false);
     GEOSGeom generalizeMultiLine(const GEOSGeom_t* geom, double step);
     GEOSGeom generalizePolygon(const GEOSGeom_t* geom, double step);
     GEOSGeom generalizeMultiPolygon(const GEOSGeom_t* geom, double step);

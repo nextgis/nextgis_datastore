@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "geometry.h"
 
+#include "earcut.hpp"
 #include "geos_c.h"
 
 #include "api_priv.h"
@@ -32,6 +33,8 @@ constexpr const char* MAP_MIN_X_KEY = "min_x";
 constexpr const char* MAP_MIN_Y_KEY = "min_y";
 constexpr const char* MAP_MAX_X_KEY = "max_x";
 constexpr const char* MAP_MAX_Y_KEY = "max_y";
+
+constexpr unsigned short MAX_EDGE_INDEX = 65534;
 
 //------------------------------------------------------------------------------
 // VectorTileItem
@@ -671,7 +674,8 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiPoint(const GEOSGeom_t* geom,
 
 }
 
-GEOSGeom GEOSGeometryWrap::generalizeLine(const GEOSGeom_t* geom, double step)
+GEOSGeom GEOSGeometryWrap::generalizeLine(const GEOSGeom_t* geom, double step,
+                                          bool isRing)
 {
     const GEOSCoordSequence* cs = GEOSGeom_getCoordSeq_r(m_geosHandle.get(),
                                                          geom);
@@ -681,10 +685,23 @@ GEOSGeom GEOSGeometryWrap::generalizeLine(const GEOSGeom_t* geom, double step)
     OGRRawPoint prevGpoint(BIG_VALUE, BIG_VALUE);
     double x, y;
     std::vector<OGRRawPoint> parts;
+    struct OGRRawPointIs {
+        OGRRawPointIs( OGRRawPoint s ) : toFind(s) { }
+        bool operator() (const OGRRawPoint &n) {
+            return isEqual(n.x, toFind.x) && isEqual(n.y, toFind.y);
+        }
+        OGRRawPoint toFind;
+    };
+
     for(unsigned int i = 0; i < count; ++i) {
         GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, i, &x);
         GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, i, &y);
         OGRRawPoint gpoint = generalize(x, y, step);
+
+        if(isRing && std::find_if(parts.begin(), parts.end(),
+                                  OGRRawPointIs(gpoint)) != parts.end()) {
+            continue;
+        }
 
         if(isEqual(prevGpoint.x, gpoint.x) && isEqual(prevGpoint.y, gpoint.y)) {
             continue;
@@ -694,18 +711,30 @@ GEOSGeom GEOSGeometryWrap::generalizeLine(const GEOSGeom_t* geom, double step)
         prevGpoint = gpoint;
     }
 
-    if(parts.empty()) {
+    if(parts.size() < 2) {
         return nullptr;
+    }
+
+    if(isRing) {
+        if(parts.size() < 3) {
+            return nullptr;
+        }
+        parts.push_back(parts.front());
     }
 
     GEOSCoordSeq ncs = GEOSCoordSeq_create_r(m_geosHandle.get(),
                                              static_cast<unsigned int>(parts.size()),
                                              2);
     unsigned int counter = 0;
+    CPLDebug("ngstore", "parts - %ld", parts.size());
     for(const OGRRawPoint& pt : parts) {
         GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, counter, pt.x);
         GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, counter, pt.y);
         counter++;
+    }
+
+    if(isRing) {
+        return GEOSGeom_createLinearRing_r(m_geosHandle.get(), ncs);
     }
 
     return GEOSGeom_createLineString_r(m_geosHandle.get(), ncs);
@@ -729,13 +758,45 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiLine(const GEOSGeom_t* geom,
         }
     }
 
+    if(counter == 0) {
+        return nullptr;
+    }
+
     return  GEOSGeom_createCollection_r(m_geosHandle.get(), GEOS_MULTILINESTRING,
                                         parts, counter);
 }
 
 GEOSGeom GEOSGeometryWrap::generalizePolygon(const GEOSGeom_t* geom, double step)
 {
-    // TODO:
+    const GEOSGeometry* exteriorRing = GEOSGetExteriorRing_r(m_geosHandle.get(),
+                                                             geom);
+
+    GEOSGeom newRing = generalizeLine(exteriorRing, step, true);
+    if(nullptr == newRing || GEOSisEmpty_r(m_geosHandle.get(), newRing) == 1) {
+        return nullptr;
+    }
+
+    int count = GEOSGetNumInteriorRings_r(m_geosHandle.get(), geom);
+    unsigned int counter = 0;
+    GEOSGeom interiorRings[count];
+    for(int i = 0; i < count; ++i) {
+        const GEOSGeometry* interiorRing = GEOSGetInteriorRingN_r(
+                    m_geosHandle.get(), geom, i);
+        GEOSGeom newInteriorRing = generalizeLine(interiorRing, step, true);
+        if(nullptr == newInteriorRing || GEOSisEmpty_r(m_geosHandle.get(), newRing) == 1) {
+            continue;
+        }
+        interiorRings[counter++] = newInteriorRing;
+    }
+
+    GEOSGeom p = GEOSGeom_createPolygon_r(m_geosHandle.get(), newRing, interiorRings,
+                                     counter);
+    if(GEOSisValid_r(m_geosHandle.get(), p) == 1) {
+        return p;
+    }
+
+    GEOSGeom_destroy_r(m_geosHandle.get(), p);
+    return nullptr;
 }
 
 GEOSGeom GEOSGeometryWrap::generalizeMultiPolygon(const GEOSGeom_t* geom,
@@ -756,6 +817,10 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiPolygon(const GEOSGeom_t* geom,
         }
     }
 
+    if(counter == 0) {
+        return nullptr;
+    }
+
     return  GEOSGeom_createCollection_r(m_geosHandle.get(), GEOS_MULTIPOLYGON,
                                         parts, counter);
 }
@@ -774,16 +839,31 @@ void GEOSGeometryWrap::setCentroid(int type)
         GEOSGeom_destroy_r(m_geosHandle.get(), g);
 
         GEOSCoordSeq ncs = GEOSCoordSeq_create_r(m_geosHandle.get(), 2, 2);
-        GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 0, x);
-        GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 0, y);
+        GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 0, x - 1.5);
+        GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 0, y - 1.5);
         GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 1, x + 1.5);
         GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 1, y + 1.5);
 
         m_geom = GEOSGeom_createLineString_r(m_geosHandle.get(), ncs);
     }
     else if(type == GEOS_POLYGON) {
-        // TODO:
-        m_geom = g;
+        double x,y;
+        GEOSGeomGetX_r(m_geosHandle.get(), g, &x);
+        GEOSGeomGetY_r(m_geosHandle.get(), g, &y);
+        GEOSGeom_destroy_r(m_geosHandle.get(), g);
+
+        GEOSCoordSeq ncs = GEOSCoordSeq_create_r(m_geosHandle.get(), 4, 2);
+        GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 0, x - 1.5);
+        GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 0, y - 1.5);
+        GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 1, x - 1.5);
+        GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 1, y + 1.5);
+        GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 2, x + 1.5);
+        GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 2, y + 1.5);
+        GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 3, x - 1.5);
+        GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 3, y - 1.5);
+
+        GEOSGeom ring = GEOSGeom_createLinearRing_r(m_geosHandle.get(), ncs);
+        m_geom = GEOSGeom_createPolygon_r(m_geosHandle.get(), ring, nullptr, 0);
     }
 }
 
@@ -851,7 +931,7 @@ void GEOSGeometryWrap::fillLineTile(GIntBig fid, const GEOSGeom_t* geom,
         vitem.addPoint(pt);
     }
 
-    if(vitem.pointCount() > 0) {
+    if(vitem.pointCount() > 1) {
         vitem.setValid(true);
         vitemArray.push_back(vitem);
     }
@@ -871,16 +951,407 @@ void GEOSGeometryWrap::fillMultiLineTile(GIntBig fid, const GEOSGeom_t* geom,
     }
 }
 
+// For MB ear cut alghorithm
+typedef struct _edgePt {
+    OGRRawPoint pr;
+    unsigned short index;
+} EDGE_PT;
+
+typedef std::map<int, std::vector<EDGE_PT>> EDGES;
+
+void setEdgeIndex(unsigned short index, double x, double y, EDGES& edges)
+{
+    for(auto& edge : edges) {
+        for(EDGE_PT& edgeitem : edge.second) {
+            if(isEqual(edgeitem.pr.x, x) && isEqual(edgeitem.pr.y, y)) {
+                edgeitem.index = index;
+                return;
+            }
+        }
+    }
+}
+
+// The number type to use for tessellation
+typedef double Coord;
+
+// The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
+// data won't have more than 65536 vertices.
+typedef unsigned short N;
+
+// Create array
+typedef std::array<Coord, 2> MBPoint;
+typedef std::vector<MBPoint> MBVertices;
+typedef std::vector<MBVertices> MBPolygon;
+
+OGRRawPoint findPointByIndex(N index, const MBPolygon& poly)
+{
+    N currentIndex = index;
+    for(const auto& vertices : poly) {
+        if(currentIndex >= vertices.size()) {
+            currentIndex -= vertices.size();
+            continue;
+        }
+
+        MBPoint pt = vertices[currentIndex];
+        return OGRRawPoint(pt[0], pt[1]);
+    }
+    return OGRRawPoint(BIG_VALUE, BIG_VALUE);
+}
+
 void GEOSGeometryWrap::fillPolygonTile(GIntBig fid, const GEOSGeom_t* geom,
                                        VectorTileItemArray& vitemArray)
 {
-    // TODO:
+    VectorTileItem vitem;
+    vitem.addId(fid);
+    unsigned short index = 0;
+    double x(0.0), y(0.0);
+
+    int holeCount = GEOSGetNumInteriorRings_r(m_geosHandle.get(), geom);
+
+    const GEOSGeometry* exteriorRing = GEOSGetExteriorRing_r(m_geosHandle.get(),
+                                                             geom);
+    const GEOSCoordSequence* cs = GEOSGeom_getCoordSeq_r(m_geosHandle.get(),
+                                                         exteriorRing);
+    unsigned int count = 0;
+    GEOSCoordSeq_getSize_r(m_geosHandle.get(), cs, &count);
+
+    if(count == 4 && holeCount == 0) {
+        GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, 0, &x);
+        GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, 0, &y);
+        SimplePoint pt1 = { static_cast<float>(x), static_cast<float>(y) };
+        vitem.addPoint(pt1);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, 1, &x);
+        GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, 1, &y);
+        SimplePoint pt2 = { static_cast<float>(x), static_cast<float>(y) };
+        vitem.addPoint(pt2);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, 2, &x);
+        GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, 2, &y);
+        SimplePoint pt3 = { static_cast<float>(x), static_cast<float>(y) };
+        vitem.addPoint(pt3);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        vitem.addBorderIndex(0, 0); // Close ring
+
+        vitem.setValid(true);
+        vitemArray.push_back(vitem);
+        return;
+    }
+
+    EDGES edges;
+    MBPolygon polygon;
+    std::vector<MBPoint> mbExteriorRing;
+    for(unsigned int i = 0; i < count; ++i) { // Without last point
+        GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, i, &x);
+        GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, i, &y);
+
+        edges[0].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
+
+        MBPoint mbpt{ { x, y } };
+        mbExteriorRing.emplace_back(mbpt);
+    }
+
+    polygon.emplace_back(mbExteriorRing);
+
+    for(int i = 0; i < holeCount; ++i) {
+        const GEOSGeometry* interiorRing = GEOSGetInteriorRingN_r(
+                    m_geosHandle.get(), geom, i);
+        const GEOSCoordSequence* hcs = GEOSGeom_getCoordSeq_r(m_geosHandle.get(),
+                                                             interiorRing);
+        unsigned int hcount = 0;
+        GEOSCoordSeq_getSize_r(m_geosHandle.get(), hcs, &hcount);
+
+        std::vector<MBPoint> mbInteriorRing;
+        for(unsigned int j = 0; j < hcount; ++j) {
+            GEOSCoordSeq_getX_r(m_geosHandle.get(), hcs, j, &x);
+            GEOSCoordSeq_getY_r(m_geosHandle.get(), hcs, j, &y);
+
+            edges[i + 1].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
+
+            MBPoint mbpt{ { x, y } };
+            mbInteriorRing.emplace_back(mbpt);
+        }
+        polygon.emplace_back(mbInteriorRing);
+    }
+
+    // Run tessellation
+    // Returns array of indices that refer to the vertices of the input polygon.
+    // Three subsequent indices form a triangle.
+    std::vector<N> indices = mapbox::earcut<N>(polygon);
+    if(indices.empty()) {
+        GEOSGeom g = GEOSGetCentroid_r(m_geosHandle.get(), geom);
+        GEOSGeomGetX_r(m_geosHandle.get(), g, &x);
+        GEOSGeomGetY_r(m_geosHandle.get(), g, &y);
+        GEOSGeom_destroy_r(m_geosHandle.get(), g);
+
+        index = 0;
+        SimplePoint pt1 = { static_cast<float>(x - 0.5), static_cast<float>(y - 0.5) };
+        vitem.addPoint(pt1);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        SimplePoint pt2 = { static_cast<float>(x + 0.5), static_cast<float>(y - 0.5) };
+        vitem.addPoint(pt2);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        SimplePoint pt3 = { static_cast<float>(x + 0.5), static_cast<float>(y + 0.5) };
+        vitem.addPoint(pt3);
+        vitem.addBorderIndex(0, index);
+        vitem.addIndex(index++);
+
+        vitem.addBorderIndex(0, 0); // Close ring
+
+        vitem.setValid(true);
+        vitemArray.push_back(vitem);
+        return;
+    }
+
+    unsigned char tinIndex = 0;
+    OGRRawPoint tin[3];
+    unsigned short vertexIndex = 0;
+
+    for(auto index : indices) {
+        tin[tinIndex] = findPointByIndex(index, polygon);
+        tinIndex++;
+
+        if(tinIndex == 3) {
+            tinIndex = 0;
+
+            for(unsigned char j = 0; j < 3; ++j) {
+                SimplePoint pt = { static_cast<float>(tin[j].x),
+                                   static_cast<float>(tin[j].y) };
+                vitem.addPoint(pt);
+                // Check each vertex belongs to exterior or interior ring
+                setEdgeIndex(vertexIndex, tin[j].x, tin[j].y, edges);
+
+                vitem.addIndex(vertexIndex++);
+            }
+        }
+    }
+
+    for(unsigned short i = 0; i < holeCount + 1; ++i) {
+        unsigned short firstIndex = MAX_EDGE_INDEX;
+        for(auto& edge : edges[i]) {
+            if(edge.index != MAX_EDGE_INDEX) {
+                if(firstIndex == MAX_EDGE_INDEX) {
+                    firstIndex = edge.index;
+                }
+                vitem.addBorderIndex(i, edge.index);
+            }
+        }
+        vitem.addBorderIndex(i, firstIndex);
+    }
+
+    vitem.setValid(true);
+    vitemArray.push_back(vitem);
 }
+
+
+/*
+void FeatureClass::tilePolygon(GIntBig fid, OGRGeometry* geom,
+                               OGRGeometry* extent, float step,
+                               VectorTileItemArray& vitemArray) const
+{
+    GeometryPtr cutGeom(geom->Intersection(extent));
+    if(!cutGeom) {
+        return;
+    }
+
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbMultiPolygon) {
+        return tileMultiPolygon(fid, cutGeom.get(), extent, step, vitemArray);
+    }
+
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) == wkbGeometryCollection) {
+        OGRGeometryCollection* coll = ngsStaticCast(OGRGeometryCollection, cutGeom);
+        for(int i = 0; i < coll->getNumGeometries(); ++i) {
+            OGRGeometry* collGeom = coll->getGeometryRef(i);
+            if(OGR_GT_Flatten(collGeom->getGeometryType()) == wkbMultiPolygon) {
+                tileMultiPolygon(fid, collGeom, extent, step, vitemArray);
+            }
+            else if(OGR_GT_Flatten(collGeom->getGeometryType()) == wkbPolygon) {
+                tilePolygon(fid, collGeom, extent, step, vitemArray);
+            }
+            else {
+                CPLDebug("ngstore", "Tile not polygon");
+            }
+        }
+        return;
+    }
+
+    if(OGR_GT_Flatten(cutGeom->getGeometryType()) != wkbPolygon) {
+        CPLDebug("ngstore", "Tile not polygon");
+        return;
+    }
+
+    OGREnvelope cutGeomExt;
+    OGRPoint center;
+    cutGeom->Centroid(&center);
+    SimplePoint simpleCenter = generalizePoint(&center, step);
+
+    // Check if polygon very small and occupy only one screen pixel
+    cutGeom->getEnvelope(&cutGeomExt);
+    Envelope cutGeomExtEnv = cutGeomExt;
+    if(cutGeomExtEnv.width() < static_cast<double>(step) ||
+            cutGeomExtEnv.height() < static_cast<double>(step)) {
+        return addCenterPolygon(fid, simpleCenter, vitemArray);
+    }
+
+    // Prepare data
+    OGRPolygon* poly = ngsStaticCast(OGRPolygon, cutGeom);
+    EDGES edges;
+    OGRPoint pt;
+
+    // The number type to use for tessellation
+    using Coord = double;
+
+    // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
+    // data won't have more than 65536 vertices.
+    using N = unsigned short;
+
+    // Create array
+    using MBPoint = std::array<Coord, 2>;
+    std::vector<std::vector<MBPoint>> polygon;
+
+    OGRLinearRing* ring = poly->getExteriorRing();
+    std::vector<MBPoint> exteriorRing;
+    for(int i = 0; i < ring->getNumPoints(); ++i) { // Without last point
+        ring->getPoint(i, &pt);
+        double x = pt.getX();
+        double y = pt.getY();
+        edges[0].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
+
+        MBPoint mbpt{ { x, y } };
+        exteriorRing.emplace_back(mbpt);
+    }
+
+    polygon.emplace_back(exteriorRing);
+
+    for(int i = 0; i < poly->getNumInteriorRings(); ++i) {
+        ring = poly->getInteriorRing(i);
+        std::vector<MBPoint> interiorRing;
+        for(int j = 0; j < ring->getNumPoints(); ++j) {
+            ring->getPoint(j, &pt);
+            double x = pt.getX();
+            double y = pt.getY();
+            edges[i + 1].push_back({OGRRawPoint(x, y), MAX_EDGE_INDEX});
+
+            MBPoint mbpt{ { x, y } };
+            interiorRing.emplace_back(mbpt);
+        }
+        polygon.emplace_back(interiorRing);
+    }
+
+    VectorTileItem vitem;
+    vitem.addId(fid);
+
+    // Run tessellation
+    // Returns array of indices that refer to the vertices of the input polygon.
+    // Three subsequent indices form a triangle.
+    std::vector<N> indices = mapbox::earcut<N>(polygon);
+    if(indices.empty()) {
+        return addCenterPolygon(fid, simpleCenter, vitemArray);
+    }
+
+    // Test without holes
+    struct simpleAndOriginPt {
+        SimplePoint pt;
+        double x, y;
+    };
+
+    unsigned char tinIndex = 0;
+    struct simpleAndOriginPt tin[3];
+    unsigned short vertexIndex = 0;
+
+    for(auto index : indices) {
+        OGRPoint* ppt = findPointByIndex(index, polygon);
+        if(ppt != nullptr) {
+            tin[tinIndex] = {generalizePoint(ppt, step), ppt->getX(), ppt->getY()};
+            delete ppt;
+        }
+        else {
+            tin[tinIndex] = {{BIG_VALUE_F, BIG_VALUE_F}, BIG_VALUE, BIG_VALUE};
+        }
+        tinIndex++;
+
+        if(tinIndex == 3) {
+            tinIndex = 0;
+
+            // Add tin and indexes
+            if(tin[0].pt == tin[1].pt || tin[1].pt == tin[2].pt ||
+                    tin[2].pt == tin[0].pt) {
+                continue;
+            }
+
+            for(unsigned char j = 0; j < 3; ++j) {
+                vitem.addPoint(tin[j].pt);
+                // Check each vertex belongs to exterior or interior ring
+                setEdgeIndex(vertexIndex, tin[j].x, tin[j].y, edges);
+
+                vitem.addIndex(vertexIndex++);
+            }
+        }
+    }
+
+    // If all tins are filtered out, create triangle at the center of poly
+    if(vitem.pointCount() == 0) {
+        SimplePoint pt1 = {simpleCenter.x - 0.5f, simpleCenter.y - 0.5f};
+        vitem.addPoint(pt1);
+        unsigned short firstIndex = vertexIndex;
+        vitem.addBorderIndex(0, vertexIndex);
+        vitem.addIndex(vertexIndex++);
+
+        SimplePoint pt2 = {simpleCenter.x - 0.5f, simpleCenter.y + 0.5f};
+        vitem.addPoint(pt2);
+        vitem.addBorderIndex(0, vertexIndex);
+        vitem.addIndex(vertexIndex++);
+
+        SimplePoint pt3 = {simpleCenter.x + 0.5f, simpleCenter.y + 0.5f};
+        vitem.addPoint(pt3);
+        vitem.addBorderIndex(0, vertexIndex);
+        vitem.addIndex(vertexIndex++);
+
+        vitem.addBorderIndex(0, firstIndex); // Close ring
+    }
+    else {
+        for(unsigned short i = 0; i < poly->getNumInteriorRings() + 1; ++i) {
+            unsigned short firstIndex = MAX_EDGE_INDEX;
+            for(auto& edge : edges[i]) {
+                if(edge.index != MAX_EDGE_INDEX) {
+                    if(firstIndex == MAX_EDGE_INDEX) {
+                        firstIndex = edge.index;
+                    }
+                    vitem.addBorderIndex(i, edge.index);
+                }
+            }
+            vitem.addBorderIndex(i, firstIndex);
+        }
+    }
+
+    vitem.setValid(true);
+    vitemArray.push_back(vitem);
+}
+
+*/
 
 void GEOSGeometryWrap::fillMultiPolygonTile(GIntBig fid, const GEOSGeom_t* geom,
                                             VectorTileItemArray& vitemArray)
 {
-    // TODO:
+    int count = GEOSGetNumGeometries_r(m_geosHandle.get(), geom);
+    if(0 == count) {
+        return;
+    }
+
+    for(int i = 0; i < count; ++i) {
+        const GEOSGeom_t* g = GEOSGetGeometryN_r(m_geosHandle.get(), geom, i);
+        fillPolygonTile(fid, g, vitemArray);
+    }
 }
 
 void GEOSGeometryWrap::fillCollectionTile(GIntBig fid, const GEOSGeom_t* geom,
@@ -995,7 +1466,7 @@ void GEOSGeometryWrap::simplify(double step)
 
 void GEOSGeometryWrap::fillTile(GIntBig fid, VectorTileItemArray& vitemArray)
 {
-    if(GEOSisEmpty_r(m_geosHandle.get(), m_geom) == 1) {
+    if(nullptr == m_geom || GEOSisEmpty_r(m_geosHandle.get(), m_geom) == 1) {
         return;
     }
 
