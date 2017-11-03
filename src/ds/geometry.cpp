@@ -768,7 +768,46 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiLine(const GEOSGeom_t* geom,
 
 GEOSGeom GEOSGeometryWrap::generalizePolygon(const GEOSGeom_t* geom, double step)
 {
+    GEOSGeom env = GEOSEnvelope_r(m_geosHandle.get(), geom);
+    if(nullptr == env || GEOSisEmpty_r(m_geosHandle.get(), env) == 1) {
+        return nullptr;
+    }
+
     const GEOSGeometry* exteriorRing = GEOSGetExteriorRing_r(m_geosHandle.get(),
+                                                                 env);
+
+    const GEOSCoordSequence* cs = GEOSGeom_getCoordSeq_r(m_geosHandle.get(),
+                                                         exteriorRing);
+    if(nullptr == cs) {
+        GEOSGeom_destroy_r(m_geosHandle.get(), env);
+        return nullptr;
+    }
+
+    double x(0.0), y(0.0);
+    GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, 0, &x);
+    GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, 0, &y);
+    Envelope extent;
+    extent.setMinX(x);
+    extent.setMinY(y);
+    GEOSCoordSeq_getX_r(m_geosHandle.get(), cs, 2, &x);
+    GEOSCoordSeq_getY_r(m_geosHandle.get(), cs, 2, &y);
+    extent.setMaxX(x);
+    extent.setMaxY(y);
+    extent.fix();
+    if(extent.width() < step || extent.height() < step) {
+        return env;
+    }
+
+    GEOSGeom simple = GEOSSimplify_r(m_geosHandle.get(), geom, step * .25);
+    if(nullptr == simple || GEOSisEmpty_r(m_geosHandle.get(), simple) == 1) {
+        return env;
+    }
+
+    GEOSGeom_destroy_r(m_geosHandle.get(), env);
+    return simple;
+
+
+    /*const GEOSGeometry* exteriorRing = GEOSGetExteriorRing_r(m_geosHandle.get(),
                                                              geom);
 
     GEOSGeom newRing = generalizeLine(exteriorRing, step, true);
@@ -797,6 +836,7 @@ GEOSGeom GEOSGeometryWrap::generalizePolygon(const GEOSGeom_t* geom, double step
 
     GEOSGeom_destroy_r(m_geosHandle.get(), p);
     return nullptr;
+    */
 }
 
 GEOSGeom GEOSGeometryWrap::generalizeMultiPolygon(const GEOSGeom_t* geom,
