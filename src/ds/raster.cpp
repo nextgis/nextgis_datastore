@@ -213,7 +213,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         return false;
     }
 
-    CPLMutexHolder holder(m_dataLock, 0.25);
+    CPLMutexHolder holder(m_dataLock, 0.07);
 
     CPLErrorReset();
     int pixelSpace(0);

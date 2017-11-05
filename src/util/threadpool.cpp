@@ -150,12 +150,10 @@ void ThreadPool::finished()
     m_threadCount--;
     CPLReleaseMutex(m_threadMutex);
 
-    CPLAcquireMutex(m_dataMutex, 9.5);
+    CPLMutexHolder holder(m_dataMutex, 9.5);
     if(m_threadData.empty()) {
-        CPLReleaseMutex(m_dataMutex);
         return;
     }
-    CPLReleaseMutex(m_dataMutex);
 
     newWorker();
 }

@@ -252,10 +252,9 @@ void VectorTile::add(const VectorTileItem &item, bool checkDuplicates)
     }
 }
 
-void VectorTile::add(const VectorTileItemArray& items,
-                     bool checkDuplicates)
+void VectorTile::add(const VectorTileItemArray& items, bool checkDuplicates)
 {
-    for(auto item : items) {
+    for(const auto &item : items) {
         add(item, checkDuplicates);
     }
 }
@@ -770,6 +769,7 @@ GEOSGeom GEOSGeometryWrap::generalizePolygon(const GEOSGeom_t* geom, double step
 {
     GEOSGeom env = GEOSEnvelope_r(m_geosHandle.get(), geom);
     if(nullptr == env || GEOSisEmpty_r(m_geosHandle.get(), env) == 1) {
+        CPLDebug("ngstore", "Empty or wrong polygon to generalize");
         return nullptr;
     }
 
@@ -795,11 +795,13 @@ GEOSGeom GEOSGeometryWrap::generalizePolygon(const GEOSGeom_t* geom, double step
     extent.setMaxY(y);
     extent.fix();
     if(extent.width() < step || extent.height() < step) {
+        CPLDebug("ngstore", "Too small generalize polygon for step %f", step);
         return env;
     }
 
     GEOSGeom simple = GEOSSimplify_r(m_geosHandle.get(), geom, step * .25);
     if(nullptr == simple || GEOSisEmpty_r(m_geosHandle.get(), simple) == 1) {
+        CPLDebug("ngstore", "Simplify generalize polygon failed");
         return env;
     }
 

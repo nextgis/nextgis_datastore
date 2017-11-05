@@ -342,17 +342,18 @@ bool FeatureClass::tilingDataJobThreadFunc(ThreadData* threadData)
     auto zoomLevels = data->m_featureClass->zoomLevels();
     for(auto it = zoomLevels.rbegin(); it != zoomLevels.rend(); ++it) {
         unsigned char zoomLevel = *it;
+        CPLDebug("ngstore", "tilingDataJobThreadFunc for zoom %d", zoomLevel);
         Envelope extent = extraExtentForZoom(zoomLevel, env);
 
         std::vector<TileItem> items = MapTransform::getTilesForExtent(
                     extent, zoomLevel, false, true);
+
+        double step = FeatureClass::pixelSize(zoomLevel, precisePixelSize);
+        geosGeom->simplify(step);
         for(auto tileItem : items) {
-            double step = FeatureClass::pixelSize(tileItem.tile.z,
-                                                  precisePixelSize);
             Envelope ext = tileItem.env;
             ext.resize(TILE_RESIZE);
 
-            geosGeom->simplify(step);
             auto vItems = data->m_featureClass->tileGeometry(fid, geosGeom, ext);
             data->m_featureClass->addOverviewItem(tileItem.tile, vItems);
         }

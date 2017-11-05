@@ -29,7 +29,7 @@
 namespace ngs {
 
 constexpr double DEFAULT_RATIO = 1.0;
-constexpr unsigned short MAX_TILES_COUNT = 4096; // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
+constexpr unsigned short MAX_TILES_COUNT = 32768; // 1.5 mb // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
 
 MapTransform::MapTransform(int width, int height) :
     m_displayWidht(width),
