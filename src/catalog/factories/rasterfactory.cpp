@@ -155,12 +155,18 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         fullExtent.setMaxX(options.doubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
         fullExtent.setMinY(options.doubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
         fullExtent.setMaxY(options.doubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
+        if(!fullExtent.isInit()) {
+            fullExtent = DEFAULT_BOUNDS;
+        }
 
         Envelope limitExtent;
         limitExtent.setMinX(options.doubleOption(KEY_LIMIT_X_MIN, DEFAULT_BOUNDS.minX()));
         limitExtent.setMaxX(options.doubleOption(KEY_LIMIT_X_MAX, DEFAULT_BOUNDS.maxX()));
         limitExtent.setMinY(options.doubleOption(KEY_LIMIT_Y_MIN, DEFAULT_BOUNDS.minY()));
         limitExtent.setMaxY(options.doubleOption(KEY_LIMIT_Y_MAX, DEFAULT_BOUNDS.maxY()));
+        if(!limitExtent.isInit()) {
+            limitExtent = DEFAULT_BOUNDS;
+        }
 
         CPLJSONDocument connectionFile;
         CPLJSONObject root = connectionFile.GetRoot();

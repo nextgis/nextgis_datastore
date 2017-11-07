@@ -40,7 +40,6 @@ class LayerFillData : public ThreadData {
 public:
     LayerFillData(GlTilePtr tile, LayerPtr layer, float z, bool own) :
         ThreadData(own), m_tile(tile), m_layer(layer), m_zlevel(z) {
-
     }
     GlTilePtr m_tile;
     LayerPtr m_layer;
@@ -424,6 +423,7 @@ bool GlView::drawTiles(const Progress &progress)
             unsigned char filled = 0;
             for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
+
                 const LayerPtr &layer = *layerIt;
                 GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
                                                              layer);

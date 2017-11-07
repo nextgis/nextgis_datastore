@@ -997,6 +997,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
     Envelope outExt = rasterExtent.intersect(tileExtent);
 
     if(!outExt.isInit()) {
+        CPLDebug("ngstore", "fill layer %s not intersect - x: %f, y: %f", m_raster->name().c_str(), rasterExtent.minX(), rasterExtent.minY());
         CPLMutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
