@@ -121,7 +121,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
             "<BlockSizeY>256</BlockSizeY><BandsCount>%d</BandsCount>"
             "<Cache><Type>file</Type><Expires>%d</Expires><MaxSize>%d</MaxSize>"
-            "</Cache></GDAL_WMS>",
+            "</Cache><ZeroBlockHttpCodes>204,404</ZeroBlockHttpCodes></GDAL_WMS>",
                                          url.c_str(), extent.minX(),
                                          extent.maxY(), extent.maxX(),
                                          extent.minY(), z_max,
@@ -213,7 +213,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         return false;
     }
 
-    CPLMutexHolder holder(m_dataLock, 0.15);
+    CPLMutexHolder holder(m_dataLock, 0.05);
 
     CPLErrorReset();
     int pixelSpace(0);
