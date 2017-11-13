@@ -94,4 +94,3 @@ notifications:
   email:
     recipients:
       - dmitry.baryshnikov@nextgis.com
-      - nikita.kirin@nextgis.com
