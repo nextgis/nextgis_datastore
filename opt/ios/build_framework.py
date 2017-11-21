@@ -172,7 +172,10 @@ class Builder:
         # set the current dir to the dst root
         framework_dir = os.path.join(outdir, "%s.framework" % name)
         if os.path.isdir(framework_dir):
-            shutil.rmtree(framework_dir)
+            if os.path.islink(framework_dir):
+                os.unlink(framework_dir)
+            else:
+                shutil.rmtree(framework_dir)
         os.makedirs(framework_dir)
 
         if ios:
