@@ -368,7 +368,7 @@ void Dataset::deleteProperties(const char* table)
 void Dataset::lockExecuteSql(bool lock)
 {
     if(lock) {
-        CPLAcquireMutex(m_executeSQLMutex, 5.0);
+        CPLAcquireMutex(m_executeSQLMutex, 15.0);
     }
     else {
         CPLReleaseMutex(m_executeSQLMutex);

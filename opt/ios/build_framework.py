@@ -29,6 +29,7 @@ import glob, re, os, os.path, shutil, string, sys, argparse, traceback
 import multiprocessing
 from subprocess import check_call, check_output, CalledProcessError
 
+name = "ngstore"
 ext = 'dylib'
 ios = True
 
@@ -163,7 +164,6 @@ class Builder:
         execute(["libtool", "-static", "-o", res] + libs)
 
     def makeFramework(self, outdir, builddirs):
-        name = "ngstore"
         if ext == 'dylib':
             libname = 'libngstore.' + ext
         else:
@@ -250,11 +250,15 @@ if __name__ == "__main__":
 
     print("Build in:" + args.out, file=sys.stderr)
 
+    if 'ArchiveIntermediates' in args.out:
+        print("Archive step do nothing")
+        exit()
+
     if ios:
         b1 = Builder(args.repo,
             [
                 ("armv7", "iPhoneOS"),
-                ("armv7s", "iPhoneOS"),
+                # ("armv7s", "iPhoneOS"),
                 ("arm64", "iPhoneOS"),
             ])
         b1.build(args.out + '-iphoneos')
@@ -266,11 +270,31 @@ if __name__ == "__main__":
             ])
         b2.build(args.out + '-iphonesimulator')
 
+        out = os.path.dirname(os.path.dirname(args.out))
+        src = os.path.join(out, 'Products/Release-iphoneos/%s.framework' % name)
+        dst = os.path.join(out, 'Intermediates.noindex/ArchiveIntermediates/ngstore.framework/BuildProductsPath/Release-iphoneos/%s.framework' % name)
+
+        if os.path.isdir(dst):
+            if os.path.islink(dst):
+                os.unlink(dst)
+            else:
+                shutil.rmtree(dst)
+
+        framework_dir = dst + ".dSYM"
+        if os.path.isdir(framework_dir):
+            if os.path.islink(framework_dir):
+                os.unlink(framework_dir)
+            else:
+                shutil.rmtree(framework_dir)
+
+        if os.path.exists(src):
+            shutil.copytree(src, dst, symlinks=True)
+
     else:
         b = Builder(args.repo,
             [
                 ("armv7", "iPhoneOS"),
-                ("armv7s", "iPhoneOS"),
+                # ("armv7s", "iPhoneOS"),
                 ("arm64", "iPhoneOS"),
                 ("i386", "iPhoneSimulator"),
                 ("x86_64", "iPhoneSimulator"),

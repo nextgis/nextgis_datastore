@@ -283,11 +283,13 @@ Table* DataStore::createTable(const CPLString& name,
 
 bool DataStore::setProperty(const char* key, const char* value)
 {
+    CPLMutexHolder holder(m_executeSQLMutex);
     return m_DS->SetMetadataItem(key, value, NG_ADDITIONS_KEY) == OGRERR_NONE;
 }
 
 CPLString DataStore::property(const char* key, const char* defaultValue)
 {
+    CPLMutexHolder holder(m_executeSQLMutex);
     const char* out = m_DS->GetMetadataItem(key, NG_ADDITIONS_KEY);
     return nullptr == out ? defaultValue : out;
 }

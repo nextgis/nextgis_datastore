@@ -260,9 +260,10 @@ GIntBig Table::featureCount(bool force) const
 
 void Table::reset() const
 {
-    CPLMutexHolder holder(m_featureMutex);
-    if(nullptr != m_layer)
+    if(nullptr != m_layer) {
+        CPLMutexHolder holder(m_featureMutex);
         m_layer->ResetReading();
+    }
 }
 
 FeaturePtr Table::nextFeature() const
@@ -360,7 +361,6 @@ void Table::setAttributeFilter(const char* filter)
     }
 }
 
-
 OGRFeatureDefn*Table::definition() const
 {
     if(nullptr == m_layer)
@@ -418,13 +418,16 @@ void Table::fillFields()
     m_fields.clear();
     if(nullptr != m_layer) {
         Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+        parentDataset->lockExecuteSql(true);
         OGRFeatureDefn* defn = m_layer->GetLayerDefn();
+        parentDataset->lockExecuteSql(false);
         if(nullptr == defn || nullptr == parentDataset) {
             return;
         }
 
         auto propertyList = properties(NG_ADDITIONS_KEY);
 
+        parentDataset->lockExecuteSql(true);
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
             Field fieldDesc;
@@ -450,7 +453,8 @@ void Table::fillFields()
                 //fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
             }
             m_fields.push_back(fieldDesc);
-        }
+        }        
+        parentDataset->lockExecuteSql(false);
 
         // Fill metadata
         propertyList = properties(USER_KEY);
@@ -553,9 +557,11 @@ bool Table::deleteAttachments(GIntBig fid, bool logEdits)
         return false;
     }
 
+    dataset->lockExecuteSql(true);
     dataset->executeSQL(CPLSPrintf("DELETE FROM %s_%s WHERE %s = " CPL_FRMT_GIB,
                                    m_name.c_str(), Dataset::attachmentsFolderExtension(),
                                    ATTACH_FEATURE_ID_FIELD, fid));
+    dataset->lockExecuteSql(false);
 
     CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
                                                CPLSPrintf(CPL_FRMT_GIB, fid),
@@ -590,6 +596,7 @@ bool Table::updateAttachment(GIntBig aid, const char* fileName,
         attFeature->SetField(ATTACH_DESCRIPTION_FIELD, description);
     }
 
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_attTable->SetFeature(attFeature) == OGRERR_NONE) {
         if(logEdits) {
             GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);

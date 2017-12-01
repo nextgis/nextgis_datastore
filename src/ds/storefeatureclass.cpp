@@ -274,23 +274,27 @@ bool StoreTable::setProperty(const char* key, const char* value,
                                     const char* domain)
 {
     checkSetProperty(key, value, domain);
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
 }
 
 CPLString StoreTable::property(const char* key, const char* defaultValue,
                                          const char* domain)
 {
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     const char* item = m_layer->GetMetadataItem(key, domain);
     return item != nullptr ? item : defaultValue;
 }
 
 std::map<CPLString, CPLString> StoreTable::properties(const char* domain)
 {
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return propMapFromList(m_layer->GetMetadata(domain));
 }
 
 void StoreTable::deleteProperties()
 {
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     m_layer->SetMetadata(nullptr, nullptr);
 }
 
@@ -440,12 +444,14 @@ bool StoreFeatureClass::setProperty(const char* key, const char* value,
                                     const char* domain)
 {
     checkSetProperty(key, value, domain);
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
 }
 
 CPLString StoreFeatureClass::property(const char* key, const char* defaultValue,
                                          const char* domain)
 {
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     const char* item = m_layer->GetMetadataItem(key, domain);
     return item != nullptr ? item : defaultValue;
 }
@@ -457,6 +463,7 @@ std::map<CPLString, CPLString> StoreFeatureClass::properties(const char* domain)
 
 void StoreFeatureClass::deleteProperties()
 {
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     m_layer->SetMetadata(nullptr, nullptr);
 }
 

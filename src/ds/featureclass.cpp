@@ -430,6 +430,7 @@ bool FeatureClass::createOverviews(const Progress &progress, const Options &opti
 
     // Save tiles
     m_creatingOvr = true;
+    parentDS->lockExecuteSql(true);
     parentDS->startBatchOperation();
 
     CPLDebug("ngstore", "finish create overviews");
@@ -466,6 +467,7 @@ bool FeatureClass::createOverviews(const Progress &progress, const Options &opti
 
     // Create index
     parentDS->createOverviewsTableIndex(name());
+    parentDS->lockExecuteSql(false);
     m_creatingOvr = false;
 
     progress.onProgress(COD_FINISHED, 1.0,
