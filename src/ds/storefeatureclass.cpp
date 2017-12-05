@@ -133,7 +133,10 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
         op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(
                                                       OPERATION_FIELD));
         op.rid = StoreObject::getRemoteId(feature);
-        op.arid = getAttachmentRemoteId(op.aid);
+        op.arid = feature->GetFieldAsInteger64(ATTACHMENT_REMOTE_ID_KEY);
+        if(op.arid == NOT_FOUND) {
+            op.arid = getAttachmentRemoteId(op.aid);
+        }
         out.push_back(op);
     }
 

@@ -123,6 +123,9 @@ bool GlFeatureLayer::fill(GlTilePtr tile, float z, bool /*isLastTry*/)
 
 bool GlFeatureLayer::draw(GlTilePtr tile)
 {
+    if(!tile) {
+        return true;
+    }
     if(!m_style) {
         return true; // Should never happened
     }
@@ -480,6 +483,9 @@ StylePtr GlSelectableFeatureLayer::selectionStyle() const
 
 bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
 {
+    if(!tile) {
+        return true;
+    }
     StylePtr style = selectionStyle();
     if(!style) {
         return true; // Not draw selected features if no style provided
@@ -1170,6 +1176,13 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
 
 bool GlRasterLayer::draw(GlTilePtr tile)
 {
+    if(!tile) {
+        return true;
+    }
+    if(!m_style) {
+        return true; // Should never happened
+    }
+
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     CPLAcquireMutex(m_dataMutex, lockTime);
     //CPLMutexHolder holder(m_dataMutex, lockTime);
