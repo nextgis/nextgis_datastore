@@ -51,7 +51,7 @@ void GlTile::init(unsigned short tileSize, const Envelope& tileItemEnv,
 {
     unsigned short newTileSize = static_cast<unsigned short>(
                 std::ceil(double(tileSize) * TILE_RESIZE));
-    float extraVal = (float(newTileSize - tileSize) / 2) / newTileSize;
+    float extraVal = (float(newTileSize - tileSize) * 0.5f) / newTileSize;
 
     m_image.setImage(nullptr, newTileSize, newTileSize);
     m_image.setSmooth(true);
