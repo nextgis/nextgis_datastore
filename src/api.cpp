@@ -1371,37 +1371,38 @@ int ngsDatasetClose(CatalogObjectH object)
  * function.
  */
 
-static std::vector<char*> stringStore;
+//static std::vector<char*> stringStore;
 
 ngsField* ngsFeatureClassFields(CatalogObjectH object)
 {
-    for(char* storedStr : stringStore) {
-        CPLFree(storedStr);
-    }
-    stringStore.clear();
+    // TODO: Add mutex here or lock to prevent write/read stringStore simultaniously
+//    for(char* storedStr : stringStore) {
+//        CPLFree(storedStr);
+//    }
+//    stringStore.clear();
 
     Table* table = getTableFromHandle(object);
     if(!table) {
         return nullptr;
     }
 
-    auto fields = table->fields();
+    const std::vector<Field>& fields = table->fields();
     ngsField* fieldsList = static_cast<ngsField*>(
                 CPLMalloc(size_t(fields.size() + 1) * sizeof(ngsField)));
 
     int count = 0;
     for(const Field& field : fields) {
 //        CPLDebug("ngstore", "Table %s field name: %s, alias: %s", table->name().c_str(), field.m_originalName, field.m_alias);
-
+/*
         char* name = CPLStrdup(field.m_originalName); //field.m_originalName;//
         char* alias = CPLStrdup(field.m_alias); //field.m_alias;//
-
-        fieldsList[count++] = {name,
-                               alias,
+*/
+        fieldsList[count++] = {field.m_originalName, //name,
+                               field.m_alias, //alias,
                                field.m_type};
 
-        stringStore.push_back(name);
-        stringStore.push_back(alias);
+//        stringStore.push_back(name);
+//        stringStore.push_back(alias);
     }
 
     fieldsList[count] = {nullptr, nullptr, 0};
