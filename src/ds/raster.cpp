@@ -296,6 +296,7 @@ bool Raster::canDestroy() const
 char** Raster::metadata(const char* domain) const {
     if(nullptr == m_DS)
         return nullptr;
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_DS->GetMetadata(domain);
 }
 

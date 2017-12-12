@@ -328,6 +328,7 @@ char** Table::metadata(const char* domain) const
 {
     if(nullptr == m_layer)
         return nullptr;
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_layer->GetMetadata(domain);
 }
 

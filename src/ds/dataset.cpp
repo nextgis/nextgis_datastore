@@ -428,6 +428,7 @@ bool Dataset::destroy()
 char** Dataset::metadata(const char* domain) const {
     if(nullptr == m_DS)
         return nullptr;
+    CPLMutexHolder holder(m_executeSQLMutex);
     return m_DS->GetMetadata(domain);
 }
 
