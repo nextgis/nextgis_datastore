@@ -127,9 +127,9 @@ public:
                                const Progress& progress = Progress());
 
     virtual bool setProperty(const char* key, const char* value);
-    virtual CPLString property(const char* key, const char* defaultValue);
-    virtual std::map<CPLString, CPLString> getProperties(
-            const char* table, const char* domain);
+    virtual CPLString property(const char* key, const char* defaultValue) const;
+    virtual std::map<CPLString, CPLString> properties(
+            const char* table, const char* domain) const;
     virtual void deleteProperties(const char* table);
     virtual void startBatchOperation() {}
     virtual void stopBatchOperation() {}

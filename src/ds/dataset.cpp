@@ -311,7 +311,7 @@ bool Dataset::setProperty(const char* key, const char* value)
     return m_metadata->CreateFeature(feature) != OGRERR_NONE;
 }
 
-CPLString Dataset::property(const char* key, const char* defaultValue)
+CPLString Dataset::property(const char* key, const char* defaultValue) const
 {
     if(!m_metadata)
         return defaultValue;
@@ -330,8 +330,8 @@ CPLString Dataset::property(const char* key, const char* defaultValue)
     return out;
 }
 
-std::map<CPLString, CPLString> Dataset::getProperties(const char* table,
-                                                      const char* domain)
+std::map<CPLString, CPLString> Dataset::properties(const char* table,
+                                                      const char* domain) const
 {
     std::map<CPLString, CPLString> out;
     if(nullptr == m_metadata || nullptr == table) {

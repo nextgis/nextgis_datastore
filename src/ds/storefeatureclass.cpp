@@ -173,7 +173,7 @@ StoreTable::StoreTable(OGRLayer* layer, ObjectContainer* const parent,
 {
 }
 
-void StoreTable::fillFields()
+void StoreTable::fillFields() const
 {
     Table::fillFields();
     // Hide remote id field from user
@@ -182,7 +182,7 @@ void StoreTable::fillFields()
     }
 }
 
-std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid)
+std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid) const
 {
     std::vector<AttachmentInfo> out;
 
@@ -282,14 +282,14 @@ bool StoreTable::setProperty(const char* key, const char* value,
 }
 
 CPLString StoreTable::property(const char* key, const char* defaultValue,
-                                         const char* domain)
+                                         const char* domain) const
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     const char* item = m_layer->GetMetadataItem(key, domain);
     return item != nullptr ? item : defaultValue;
 }
 
-std::map<CPLString, CPLString> StoreTable::properties(const char* domain)
+std::map<CPLString, CPLString> StoreTable::properties(const char* domain) const
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return propMapFromList(m_layer->GetMetadata(domain));
@@ -301,7 +301,7 @@ void StoreTable::deleteProperties()
     m_layer->SetMetadata(nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> StoreTable::editOperations()
+std::vector<ngsEditOperation> StoreTable::editOperations() const
 {
     if(nullptr == m_editHistoryTable) {
         initEditHistoryTable();
@@ -341,7 +341,7 @@ StoreFeatureClass::StoreFeatureClass(OGRLayer* layer,
     }
 }
 
-void StoreFeatureClass::fillFields()
+void StoreFeatureClass::fillFields() const
 {
     Table::fillFields();
     // Hide remote id field from user
@@ -350,7 +350,7 @@ void StoreFeatureClass::fillFields()
     }
 }
 
-std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid)
+std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) const
 {
     std::vector<AttachmentInfo> out;
 
@@ -452,14 +452,14 @@ bool StoreFeatureClass::setProperty(const char* key, const char* value,
 }
 
 CPLString StoreFeatureClass::property(const char* key, const char* defaultValue,
-                                         const char* domain)
+                                         const char* domain) const
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     const char* item = m_layer->GetMetadataItem(key, domain);
     return item != nullptr ? item : defaultValue;
 }
 
-std::map<CPLString, CPLString> StoreFeatureClass::properties(const char* domain)
+std::map<CPLString, CPLString> StoreFeatureClass::properties(const char* domain) const
 {
     return propMapFromList(m_layer->GetMetadata(domain));
 }
@@ -470,7 +470,7 @@ void StoreFeatureClass::deleteProperties()
     m_layer->SetMetadata(nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> StoreFeatureClass::editOperations()
+std::vector<ngsEditOperation> StoreFeatureClass::editOperations() const
 {
     if(nullptr == m_editHistoryTable) {
         initEditHistoryTable();

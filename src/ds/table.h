@@ -98,7 +98,7 @@ public:
                          const FieldMapPtr fieldMap,
                          const Progress& progress = Progress());
     const char* fidColumn() const;    
-    const std::vector<Field>& fields();
+    const std::vector<Field>& fields() const;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                           const char* description, const char* filePath,
                           char** options = nullptr, bool logEdits = true);
@@ -106,16 +106,16 @@ public:
     virtual bool deleteAttachments(GIntBig fid, bool logEdits = true);
     virtual bool updateAttachment(GIntBig aid, const char* fileName,
                                   const char* description, bool logEdits = true);
-    virtual std::vector<AttachmentInfo> attachments(GIntBig fid);
+    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const;
     virtual bool setProperty(const char* key, const char* value, const char* domain);
     virtual CPLString property(const char* key, const char* defaultValue,
-                                  const char* domain);
-    virtual std::map<CPLString, CPLString> properties(const char* domain);
+                                  const char* domain) const;
+    virtual std::map<CPLString, CPLString> properties(const char* domain) const;
     virtual void deleteProperties();
 
     // Edit log
     virtual void deleteEditOperation(const ngsEditOperation& op);
-    virtual std::vector<ngsEditOperation> editOperations();
+    virtual std::vector<ngsEditOperation> editOperations() const;
 
     // Object interface
 public:
@@ -129,10 +129,10 @@ public:
 
 protected:
     OGRFeatureDefn* definition() const;
-    bool initAttachmentsTable();
-    bool initEditHistoryTable();
+    bool initAttachmentsTable() const;
+    bool initEditHistoryTable() const;
     CPLString getAttachmentsPath() const;
-    virtual void fillFields();
+    virtual void fillFields() const;
     virtual void logEditOperation(FeaturePtr opFeature);
     virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
                                       enum ngsChangeCode code);
@@ -143,10 +143,10 @@ protected:
 
 protected:
     OGRLayer* m_layer;
-    OGRLayer* m_attTable;
-    OGRLayer* m_editHistoryTable;
+    mutable OGRLayer* m_attTable;
+    mutable OGRLayer* m_editHistoryTable;
     char m_saveEditHistory;
-    std::vector<Field> m_fields;
+    mutable std::vector<Field> m_fields;
     CPLMutex* m_featureMutex;
 };
 

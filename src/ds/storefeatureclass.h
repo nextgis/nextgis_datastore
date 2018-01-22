@@ -58,17 +58,17 @@ public:
 
     // Table interface
 public:
-    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) override;
+    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
                                   char** options, bool logEdits = true) override;
     virtual bool setProperty(const char* key, const char* value,
                              const char* domain) override;
     virtual CPLString property(const char* key, const char* defaultValue,
-                                  const char* domain) override;
-    virtual std::map<CPLString, CPLString> properties(const char* domain) override;
+                                  const char* domain) const override;
+    virtual std::map<CPLString, CPLString> properties(const char* domain) const override;
     virtual void deleteProperties() override;
-    virtual std::vector<ngsEditOperation> editOperations() override;
+    virtual std::vector<ngsEditOperation> editOperations() const override;
 
     // Table interface
 protected:
@@ -76,7 +76,7 @@ protected:
                                       enum ngsChangeCode code) override;
 
 protected:
-    virtual void fillFields() override;
+    virtual void fillFields() const override;
 };
 
 class StoreFeatureClass : public FeatureClass, public StoreObject
@@ -88,17 +88,17 @@ public:
 
     // Table interface
 public:
-    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) override;
+    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const override;
     virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
                                   const char* description, const char* filePath,
                                   char** options, bool logEdits = true) override;
     virtual bool setProperty(const char* key, const char* value,
                              const char* domain) override;
     virtual CPLString property(const char* key, const char* defaultValue,
-                                  const char* domain) override;
-    virtual std::map<CPLString, CPLString> properties(const char* domain) override;
+                                  const char* domain) const override;
+    virtual std::map<CPLString, CPLString> properties(const char* domain) const override;
     virtual void deleteProperties() override;
-    virtual std::vector<ngsEditOperation> editOperations() override;
+    virtual std::vector<ngsEditOperation> editOperations() const override;
 
     // Table interface
 protected:
@@ -106,7 +106,7 @@ protected:
                                       enum ngsChangeCode code) override;
 
 protected:
-    virtual void fillFields() override;
+    virtual void fillFields() const override;
 };
 
 } // namespace ngs

@@ -57,7 +57,7 @@ public:
     virtual ~FeatureClass();
 
     OGRwkbGeometryType geometryType() const;
-    std::vector<OGRwkbGeometryType> geometryTypes();
+    std::vector<OGRwkbGeometryType> geometryTypes() const;
     const char* geometryColumn() const;
     std::vector<const char*> geometryColumns() const;
     bool setIgnoredFields(const std::vector<const char*>& fields =
@@ -104,6 +104,7 @@ protected:
     VectorTileItemArray tileGeometry(GIntBig fid, GEOSGeometryPtr geom,
                                      const Envelope& env) const;
     void fillZoomLevels(const char* zoomLevels = nullptr);
+    void emptyFields(bool enable = true) const;
 /*
     void tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
                   float step, VectorTileItemArray& vitemArray)  const;

@@ -410,7 +410,7 @@ bool FeatureClass::createOverviews(const Progress &progress, const Options &opti
     CPLDebug("ngstore", "fill pool create overviews");
     ThreadPool threadPool;
     threadPool.init(getNumberThreads(), tilingDataJobThreadFunc);
-    setIgnoredFields(m_ignoreFields);
+    emptyFields(true);
     reset();
 
 
@@ -425,7 +425,7 @@ bool FeatureClass::createOverviews(const Progress &progress, const Options &opti
     threadPool.waitComplete(newProgress);
     threadPool.clearThreadData();
 
-    setIgnoredFields();
+    emptyFields(false);
     reset();
 
     // Save tiles
@@ -531,7 +531,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
     // Lock threads here    
     dataset->lockExecuteSql(true);
     CPLAcquireMutex(m_featureMutex, 10.5);
-    setIgnoredFields(m_ignoreFields);
+    emptyFields(true);
     GeometryPtr extGeom = tileExtent.toGeometry(getSpatialReference());
     setSpatialFilter(extGeom);
     //reset();
@@ -551,7 +551,7 @@ VectorTile FeatureClass::getTile(const Tile& tile, const Envelope& tileExtent)
             }
         }
     }
-    setIgnoredFields();
+    emptyFields(false);
     setSpatialFilter();
     dataset->lockExecuteSql(false);
     CPLReleaseMutex(m_featureMutex);
@@ -752,7 +752,7 @@ OGRFieldType FeatureClass::fieldTypeFromName(const char* name)
     return OFTMaxType;
 }
 
-std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
+std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes() const
 {
     std::vector<OGRwkbGeometryType> out;
 
@@ -760,14 +760,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
     if (OGR_GT_Flatten(geomType) == wkbUnknown ||
             OGR_GT_Flatten(geomType) == wkbGeometryCollection) {
 
-        std::vector<const char*> ignoreFields;
-        OGRFeatureDefn* defn = definition();
-        for(int i = 0; i < defn->GetFieldCount(); ++i) {
-            OGRFieldDefn* fld = defn->GetFieldDefn(i);
-            ignoreFields.push_back(fld->GetNameRef());
-        }
-        ignoreFields.push_back("OGR_STYLE");
-        setIgnoredFields(ignoreFields);
+        emptyFields(true);
         reset();
         std::map<OGRwkbGeometryType, int> counts;
         FeaturePtr feature;
@@ -778,8 +771,7 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes()
                 counts[OGR_GT_Flatten(geomType)] += 1;
             }
         }
-        ignoreFields.clear();
-        setIgnoredFields(ignoreFields);
+        emptyFields(false);
 
         if(counts[wkbPoint] > 0) {
             if(counts[wkbMultiPoint] > 0) {
@@ -852,6 +844,25 @@ void FeatureClass::fillZoomLevels(const char* zoomLevels)
         }
         CSLDestroy(zoomLevelArray);
     }
+}
+
+void FeatureClass::emptyFields(bool enable) const
+{
+    if(nullptr == m_layer) {
+        return;
+    }
+    if(!enable) {
+        m_layer->SetIgnoredFields(nullptr);
+        return;
+    }
+
+    char** ignoreFields = nullptr;
+    for(const char* fieldName : m_ignoreFields) {
+        ignoreFields = CSLAddString(ignoreFields, fieldName);
+    }
+    m_layer->SetIgnoredFields(const_cast<const char**>(ignoreFields));
+    CSLDestroy(ignoreFields);
+    return;
 }
 
 

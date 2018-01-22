@@ -287,14 +287,14 @@ bool DataStore::setProperty(const char* key, const char* value)
     return m_DS->SetMetadataItem(key, value, NG_ADDITIONS_KEY) == OGRERR_NONE;
 }
 
-CPLString DataStore::property(const char* key, const char* defaultValue)
+CPLString DataStore::property(const char* key, const char* defaultValue) const
 {
     CPLMutexHolder holder(m_executeSQLMutex);
     const char* out = m_DS->GetMetadataItem(key, NG_ADDITIONS_KEY);
     return nullptr == out ? defaultValue : out;
 }
 
-std::map<CPLString, CPLString> DataStore::getProperties(const char* table, const char* domain)
+std::map<CPLString, CPLString> DataStore::properties(const char* table, const char* domain) const
 {
     ObjectPtr child = getChild(table);
     Table* tablePtr = ngsDynamicCast(Table, child);

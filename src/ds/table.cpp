@@ -369,7 +369,7 @@ OGRFeatureDefn*Table::definition() const
     return m_layer->GetLayerDefn();
 }
 
-bool Table::initAttachmentsTable()
+bool Table::initAttachmentsTable() const
 {
     if(m_attTable) {
         return true;
@@ -388,7 +388,7 @@ bool Table::initAttachmentsTable()
     return m_attTable != nullptr;
 }
 
-bool Table::initEditHistoryTable()
+bool Table::initEditHistoryTable() const
 {
     if(m_editHistoryTable) {
         return true;
@@ -414,7 +414,7 @@ CPLString Table::getAttachmentsPath() const
     return CPLFormFilename(dstRootPath, name(), nullptr);
 }
 
-void Table::fillFields()
+void Table::fillFields() const
 {
     m_fields.clear();
     if(nullptr != m_layer) {
@@ -612,7 +612,7 @@ bool Table::updateAttachment(GIntBig aid, const char* fileName,
     return false;
 }
 
-std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid)
+std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid) const
 {
     std::vector<AttachmentInfo> out;
 
@@ -699,7 +699,7 @@ bool Table::setProperty(const char* key, const char* value, const char* domain)
 }
 
 CPLString Table::property(const char* key, const char* defaultValue,
-                          const char* domain)
+                          const char* domain) const
 {
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
@@ -717,7 +717,7 @@ CPLString Table::property(const char* key, const char* defaultValue,
 
 }
 
-std::map<CPLString, CPLString> Table::properties(const char* domain)
+std::map<CPLString, CPLString> Table::properties(const char* domain) const
 {
     std::map<CPLString, CPLString> out;
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
@@ -725,7 +725,7 @@ std::map<CPLString, CPLString> Table::properties(const char* domain)
         return out;
     }
 
-    return parentDataset->getProperties(m_name, domain);
+    return parentDataset->properties(m_name, domain);
 }
 
 void Table::deleteProperties()
@@ -738,7 +738,7 @@ void Table::deleteProperties()
     return parentDataset->deleteProperties(m_name);
 }
 
-const std::vector<Field>& Table::fields()
+const std::vector<Field>& Table::fields() const
 {
     if(m_fields.empty())
         fillFields();
@@ -954,7 +954,7 @@ void Table::deleteEditOperation(const ngsEditOperation& op)
                            nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> Table::editOperations()
+std::vector<ngsEditOperation> Table::editOperations() const
 {
     if(nullptr == m_editHistoryTable) {
         initEditHistoryTable();
