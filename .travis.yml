@@ -37,19 +37,19 @@ matrix:
       env:
         - BUILD_NAME=osx
         - DETAILS=""
-    - os: linux
-      compiler: gcc
-      language: cpp
-      sudo: true
-      dist: trusty
-      cache:
-    #    apt: true
-        directories:
-    #      - $HOME/.ccache
-          - $HOME/downloads
-      env:
-        - BUILD_NAME=android
-        - DETAILS=""
+    # - os: linux
+    #   compiler: gcc
+    #   language: cpp
+    #   sudo: true
+    #   dist: trusty
+    #   cache:
+    # #    apt: true
+    #     directories:
+    # #      - $HOME/.ccache
+    #       - $HOME/downloads
+    #   env:
+    #     - BUILD_NAME=android
+    #     - DETAILS=""
     # - os: linux
     #   compiler: clang
     #   language: cpp
