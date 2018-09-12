@@ -4,7 +4,7 @@
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -38,56 +38,59 @@ class MapView : public Map, public MapTransform
 {
 public:
     MapView();
-    explicit MapView(const CPLString& name, const CPLString& description,
-            unsigned short epsg, const Envelope& bounds);
-    virtual ~MapView() = default;
-    virtual bool draw(enum ngsDrawState state, const Progress& progress = Progress());
-    virtual void invalidate(const Envelope& bounds) = 0;
+    explicit MapView(const std::string &name, const std::string &description,
+            unsigned short epsg, const Envelope &bounds);
+    virtual ~MapView() override = default;
+    virtual bool draw(enum ngsDrawState state, const Progress &progress = Progress());
+    virtual void invalidate(const Envelope &bounds) = 0;
 
     size_t overlayCount() const { return m_overlays.size(); }
     OverlayPtr getOverlay(enum ngsMapOverlayType type) const;
     void setOverlayVisible(int typeMask, bool visible);
     int overlayVisibleMask() const;
-    virtual bool setOptions(const Options& options);
-    virtual bool setSelectionStyleName(enum ngsStyleType styleType, const char* name) = 0;
-    virtual bool setSelectionStyle(enum ngsStyleType styleType, const CPLJSONObject& style) = 0;
-    virtual const char* selectionStyleName(enum ngsStyleType styleType) const = 0;
+    virtual bool setOptions(const Options &options);
+    virtual bool setSelectionStyleName(enum ngsStyleType styleType,
+                                       const std::string &name) = 0;
+    virtual bool setSelectionStyle(enum ngsStyleType styleType,
+                                   const CPLJSONObject &style) = 0;
+    virtual std::string selectionStyleName(enum ngsStyleType styleType) const = 0;
     virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const = 0;
-    virtual bool addIconSet(const char* name, const char* path, bool ownByMap);
-    virtual bool removeIconSet(const char* name);
-    virtual ImageData iconSet(const char* name) const;
-    virtual bool hasIconSet(const char* name) const;
+    virtual bool addIconSet(const std::string &name, const std::string &path,
+                            bool ownByMap);
+    virtual bool removeIconSet(const std::string &name);
+    virtual ImageData iconSet(const std::string &name) const;
+    virtual bool hasIconSet(const std::string &name) const;
 
     // Map interface
 protected:
-    virtual bool openInternal(const CPLJSONObject& root, MapFile* const mapFile) override;
-    virtual bool saveInternal(CPLJSONObject &root, MapFile* const mapFile) override;
+    virtual bool openInternal(const CPLJSONObject &root, MapFile * const mapFile) override;
+    virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile) override;
 
 protected:
     virtual void clearBackground() = 0;
     virtual void createOverlays() = 0;
     virtual size_t overlayIndexForType(enum ngsMapOverlayType type) const;
-    virtual ImageData iconSetData(const CPLString& path) const;
+    virtual ImageData iconSetData(const std::string &path) const;
 
 protected:
     std::array<OverlayPtr, 4> m_overlays;
 
     typedef struct _iconSetItem {
-        CPLString name;
-        CPLString path;
+        std::string name;
+        std::string path;
         bool ownByMap;
 
         bool operator==(const struct _iconSetItem& other) const {
-            return EQUAL(name, other.name);
+            return compare(name, other.name);
         }
         bool operator<(const struct _iconSetItem& other) const {
-            return STRCASECMP(name, other.name) < 0;
+            return compareStrings(name, other.name) < 0;
         }
     } IconSetItem;
     std::vector<IconSetItem> m_iconSets;
 };
 
-typedef std::shared_ptr<MapView> MapViewPtr;
+using MapViewPtr = std::shared_ptr<MapView>;
 
 /**
  * @brief The IRenderLayer class Interface for renderable map layers
@@ -96,16 +99,16 @@ class IRenderLayer
 {
 public:
     virtual ~IRenderLayer() = default;
-    virtual double draw(enum ngsDrawState state, MapView* map, float level,
-                        const Progress& progress = Progress()) = 0;
+    virtual double draw(enum ngsDrawState state, MapView *map, float level,
+                        const Progress &progress = Progress()) = 0;
 };
 
 class IOverlay
 {
 public:
     virtual ~IOverlay() = default;
-    virtual double draw(enum ngsDrawState state, MapView* map, float level,
-                        const Progress& progress = Progress()) = 0;
+    virtual double draw(enum ngsDrawState state, MapView *map, float level,
+                        const Progress &progress = Progress()) = 0;
 };
 
 }

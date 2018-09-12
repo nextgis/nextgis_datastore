@@ -37,58 +37,61 @@ class DataStore : public Dataset, public SpatialDataset
 {
 public:
     explicit DataStore(ObjectContainer * const parent = nullptr,
-              const CPLString & name = "",
-              const CPLString & path = "");
-    virtual ~DataStore();
+              const std::string &name = "",
+              const std::string &path = "");
+    virtual ~DataStore() override;
 
     // static
 public:
-    static bool create(const char* path);
-    static const char* extension();
+    static bool create(const std::string &path);
+    static std::string extension();
 
     // Dataset interface
 public:
-    virtual bool open(unsigned int openFlags,
+    virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
                       const Options &options = Options()) override;
     virtual void startBatchOperation() override { enableJournal(false); }
     virtual void stopBatchOperation() override { enableJournal(true); }
-    virtual bool isBatchOperation() const override {
-        return m_disableJournalCounter > 0;
-    }
+    virtual bool isBatchOperation() const override;
 
-    virtual FeatureClass* createFeatureClass(const CPLString& name,
+    virtual FeatureClass *createFeatureClass(const std::string &name,
                                              enum ngsCatalogObjectType objectType,
                                              OGRFeatureDefn * const definition,
-                                             OGRSpatialReference* spatialRef,
+                                             OGRSpatialReference *spatialRef,
                                              OGRwkbGeometryType type,
-                                             const Options& options = Options(),
-                                             const Progress& progress = Progress()) override;
-    virtual Table* createTable(const CPLString& name,
+                                             const Options &options = Options(),
+                                             const Progress &progress = Progress()) override;
+    virtual Table *createTable(const std::string& name,
                                enum ngsCatalogObjectType objectType,
                                OGRFeatureDefn * const definition,
-                               const Options& options = Options(),
-                               const Progress& progress = Progress()) override;
+                               const Options &options = Options(),
+                               const Progress &progress = Progress()) override;
 
-
-    virtual bool setProperty(const char* key, const char* value) override;
-    virtual CPLString property(const char* key, const char* defaultValue) const override;
-    virtual std::map<CPLString, CPLString> properties(
-            const char* table, const char* domain) const override;
     // Dataset interface
 protected:
-    virtual OGRLayer* createAttachmentsTable(const char* name) override;
-    virtual OGRLayer* createEditHistoryTable(const char* name) override;
+    virtual OGRLayer *createAttachmentsTable(const std::string &name) override;
+    virtual OGRLayer *createEditHistoryTable(const std::string &name) override;
+
+    // Object interface
+public:
+    virtual Properties properties(const std::string &domain = NG_ADDITIONS_KEY) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain = NG_ADDITIONS_KEY) const override;
+    virtual bool setProperty(const std::string &key, const std::string &value,
+                             const std::string &domain = NG_ADDITIONS_KEY) override;
 
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type, const CPLString& name,
-                        const Options& options) override;
+    virtual bool create(const enum ngsCatalogObjectType type,
+                        const std::string& name,
+                        const Options &options) override;
 
 protected:
-    virtual bool isNameValid(const char* name) const override;
-    virtual CPLString normalizeFieldName(const CPLString& name) const override;
-    virtual void fillFeatureClasses() override;
+    virtual bool isNameValid(const std::string &name) const override;
+    virtual std::string normalizeFieldName(const std::string &name) const override;
+    virtual void fillFeatureClasses() const override;
 
 protected:
     void enableJournal(bool enable);

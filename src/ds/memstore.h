@@ -33,45 +33,40 @@ class MemoryStore : public Dataset
 {
 public:
     explicit MemoryStore(ObjectContainer * const parent = nullptr,
-              const CPLString & name = "",
-              const CPLString & path = "");
-    virtual ~MemoryStore();
+              const CPLString &name = "",
+              const CPLString &path = "");
+    virtual ~MemoryStore() override;
 
     // static
 public:
-    static bool create(const char* path, const Options& options);
-    static const char* extension();
+    static bool create(const std::string &path, const Options &options);
+    static std::string extension();
 
     // Dataset interface
 public:
     virtual bool open(unsigned int openFlags,
                       const Options &options = Options()) override;
-    virtual bool deleteFeatures(const char* name) override;
+    virtual bool deleteFeatures(const std::string &name) override;
 
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type, const CPLString& name,
-                        const Options& options) override;
+    virtual bool create(const enum ngsCatalogObjectType type,
+                        const std::string &name,
+                        const Options &options) override;
     virtual bool isReadOnly() const override;
 
     // Dataset
 protected:
-    virtual OGRLayer* createAttachmentsTable(const char* /*name*/) override {
-        return nullptr;
-    }
-    virtual bool destroyAttachmentsTable(const char* /*name*/) override {
-        return true;
-    }
-    virtual OGRLayer* getAttachmentsTable(const char* /*name*/) override {
-        return nullptr;
-    }
+    virtual OGRLayer *createAttachmentsTable(const std::string &name) override;
+    virtual bool destroyAttachmentsTable(const std::string &name) override;
+    virtual OGRLayer *getAttachmentsTable(const std::string &name) override;
 
 protected:
-    virtual bool isNameValid(const char* name) const override;
-    virtual CPLString normalizeFieldName(const CPLString& name) const override;
-    virtual void fillFeatureClasses() override;
-    void addLayer(const CPLJSONObject& layer);
+    virtual bool isNameValid(const std::string &name) const override;
+    virtual std::string normalizeFieldName(const std::string &name) const override;
+    virtual void fillFeatureClasses() const override;
+    void addLayer(const CPLJSONObject &layer);
 
 };
 

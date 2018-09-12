@@ -32,6 +32,7 @@
 #include "geometry.h"
 
 #include "catalog/catalog.h"
+#include "catalog/file.h"
 #include "catalog/folder.h"
 
 #include "ngstore/catalog/filter.h"
@@ -39,18 +40,19 @@
 #include "ngstore/util/constants.h"
 #include "ngstore/version.h"
 
+#include "util/global.h"
 #include "util/notify.h"
 #include "util/error.h"
 #include "util/stringutil.h"
 
 namespace ngs {
 
-constexpr const char* MEMSTORE_EXT = "ngmem"; // NextGIS Memory store
+constexpr const char *MEMSTORE_EXT = "ngmem"; // NextGIS Memory store
 constexpr int MEMSTORE_EXT_LEN = length(MEMSTORE_EXT);
-constexpr const char* KEY_TYPE = "type";
-constexpr const char* TYPE_VAL = "memory store";
-constexpr const char* KEY_LAYERS = "layers";
-constexpr const char* KEY_LCO_PREFIX = "LCO.";
+constexpr const char *KEY_TYPE = "type";
+constexpr const char *TYPE_VAL = "memory store";
+constexpr const char *KEY_LAYERS = "layers";
+constexpr const char *KEY_LCO_PREFIX = "LCO.";
 constexpr int KEY_LCO_PREFIX_LEN = length(KEY_LCO_PREFIX);
 
 
@@ -69,36 +71,35 @@ MemoryStore::~MemoryStore()
 {
 }
 
-bool MemoryStore::isNameValid(const char* name) const
+bool MemoryStore::isNameValid(const std::string &name) const
 {
-    if(nullptr == name || EQUAL(name, ""))
+    if(name.empty())
         return false;
-    if(EQUALN(name, MEMSTORE_EXT, MEMSTORE_EXT_LEN))
+    if(comparePart(name, MEMSTORE_EXT, MEMSTORE_EXT_LEN))
         return false;
 
     return Dataset::isNameValid(name);
 }
 
-CPLString MemoryStore::normalizeFieldName(const CPLString& name) const
+std::string MemoryStore::normalizeFieldName(const std::string &name) const
 {
-    if(EQUAL("fid", name) || EQUAL("geom", name)) {
-        CPLString out = name + "_";
-        return out;
+    if(compare("fid", name) || compare("geom", name)) {
+        return name + "_";
     }
     return Dataset::normalizeFieldName(name);
 }
 
-void MemoryStore::fillFeatureClasses()
+void MemoryStore::fillFeatureClasses() const
 {
 }
 
-void MemoryStore::addLayer(const CPLJSONObject& layer)
+void MemoryStore::addLayer(const CPLJSONObject &layer)
 {
-    CPLString name = layer.GetString("name", "New layer");
+    std::string name = layer.GetString("name", "New layer");
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
                 layer.GetInteger("type", CAT_UNKNOWN));
     // Get field definitions
-    OGRFeatureDefn fieldDefinition(name);
+    OGRFeatureDefn fieldDefinition(name.c_str());
 
     CPLJSONArray fields = layer.GetArray("fields");
 
@@ -107,25 +108,22 @@ void MemoryStore::addLayer(const CPLJSONObject& layer)
 
         OGRFieldType fieldType = static_cast<OGRFieldType>(
                     field.GetInteger("type", 0));
-        CPLString fieldName = field.GetString("name", "");
-        CPLString defaultValue = field.GetString("default", "");
+        std::string fieldName = field.GetString("name", "");
+        std::string defaultValue = field.GetString("default", "");
 
-        OGRFieldDefn layerField(fieldName, fieldType);
+        OGRFieldDefn layerField(fieldName.c_str(), fieldType);
         if(!defaultValue.empty()) {
-            layerField.SetDefault(defaultValue);
+            layerField.SetDefault(defaultValue.c_str());
         }
         fieldDefinition.AddFieldDefn(&layerField);
     }
 
-    CPLJSONObject options = layer.GetObject("options");
+    CPLJSONObject options = layer.GetObj("options");
     Options createOptions;
-    CPLJSONObject** children = options.GetChildren();
-    int counter = 0;
-    CPLJSONObject* option = nullptr;
-    while((option = children[counter++]) != nullptr) {
-        createOptions.addOption(option->GetName(), option->GetString(""));
+    std::vector<CPLJSONObject> children = options.GetChildren();
+    for(const CPLJSONObject &child : children) {
+        createOptions.add(child.GetName(), child.GetString(""));
     }
-    CPLJSONObject::DestroyJSONObjectList(children);
 
     ObjectPtr object;
     if(type == CAT_FC_MEM) {
@@ -149,23 +147,16 @@ void MemoryStore::addLayer(const CPLJSONObject& layer)
     }
 
     if(object) {
-        CPLJSONObject user = layer.GetObject(USER_KEY);
-        CPLJSONObject** children = user.GetChildren();
-        if(nullptr != children) {
-            int counter = 0;
-            CPLJSONObject* child = nullptr;
-            while((child = children[counter++]) != nullptr) {
-                object->setMetadataItem(child->GetName(), child->GetString(""),
-                                      USER_KEY);
-            }
-            CPLJSONObject::DestroyJSONObjectList(children);
+        CPLJSONObject user = layer.GetObj(USER_KEY);
+        children = user.GetChildren();
+        for(const CPLJSONObject &child : children) {
+            object->setProperty(child.GetName(), child.ToString(""), USER_KEY);
         }
-
         m_children.push_back(object);
     }
 }
 
-bool MemoryStore::create(const char* path, const Options& options)
+bool MemoryStore::create(const std::string &path, const Options &options)
 {
     CPLJSONDocument memDescriptionFile;
     CPLJSONObject root = memDescriptionFile.GetRoot();
@@ -177,23 +168,26 @@ bool MemoryStore::create(const char* path, const Options& options)
 
     CPLJSONObject user;
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+        if(comparePart(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
             user.Add(it->first.c_str() + USER_PREFIX_KEY_LEN, it->second);
         }
     }
     root.Add(USER_KEY, user);
 
-    const char* newPath = CPLResetExtension(path, extension());
+    std::string newPath = File::resetExtension(path, extension());
     return memDescriptionFile.Save(newPath);
 }
 
-const char* MemoryStore::extension()
+std::string MemoryStore::extension()
 {
     return MEMSTORE_EXT;
 }
 
-bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
+bool MemoryStore::open(unsigned int openFlags, const Options &options)
 {
+    ngsUnused(openFlags);
+    ngsUnused(options);
+
     if(isOpened()) {
         return true;
     }
@@ -203,7 +197,7 @@ bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
     CPLJSONDocument memDescriptionFile;
     if(memDescriptionFile.Load(m_path)) {
         CPLJSONObject root = memDescriptionFile.GetRoot();
-        if(!EQUAL(root.GetString(KEY_TYPE, ""), TYPE_VAL)) {
+        if(!compare(root.GetString(KEY_TYPE, ""), TYPE_VAL)) {
             return errorMessage(_("Unsupported memory store type"));
         }
         // Check version if needed
@@ -212,12 +206,12 @@ bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
 //        }
 
         // Create dataset
-        GDALDriver* poDriver = Filter::getGDALDriver(CAT_CONTAINER_MEM);
+        GDALDriver *poDriver = Filter::getGDALDriver(CAT_CONTAINER_MEM);
         if(poDriver == nullptr) {
             return errorMessage(_("Memory driver is not present"));
         }
 
-        m_DS = poDriver->Create(m_path, 0, 0, 0, GDT_Unknown, nullptr);
+        m_DS = poDriver->Create(m_path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
         if(m_DS == nullptr) {
             return errorMessage(CPLGetLastErrorMsg());
         }
@@ -229,16 +223,11 @@ bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
             addLayer(layer);
         }
 
-        CPLJSONObject user = root.GetObject(USER_KEY);
-        CPLJSONObject** children = user.GetChildren();
-        if(nullptr != children) {
-            int counter = 0;
-            CPLJSONObject* child = nullptr;
-            while((child = children[counter++]) != nullptr) {
-                m_DS->SetMetadataItem(child->GetName(), child->GetString(""),
-                                      USER_KEY);
-            }
-            CPLJSONObject::DestroyJSONObjectList(children);
+        CPLJSONObject user = root.GetObj(USER_KEY);
+        std::vector<CPLJSONObject> children = user.GetChildren();
+        for(const CPLJSONObject &child : children) {
+            m_DS->SetMetadataItem(child.GetName().c_str(),
+                                  child.ToString("").c_str(), USER_KEY);
         }
 
         m_addsDS = m_DS;
@@ -251,20 +240,21 @@ bool MemoryStore::open(unsigned int /*openFlags*/, const Options &/*options*/)
 
 bool MemoryStore::isReadOnly() const
 {
-    return access(m_path, W_OK) != 0;
+    return access(m_path.c_str(), W_OK) != 0;
 }
 
 bool MemoryStore::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly())
+    if(!isOpened() || isReadOnly()) {
         return false;
+    }
     return type == CAT_FC_MEM || type == CAT_TABLE_MEM || type == CAT_RASTER_MEM;
 }
 
 bool MemoryStore::create(const enum ngsCatalogObjectType type,
-                       const CPLString& name, const Options& options)
+                       const std::string &name, const Options& options)
 {
-    CPLString newName = normalizeDatasetName(name);
+    std::string newName = normalizeDatasetName(name);
 
     CPLJSONObject layer;
     layer.Add("name", newName);
@@ -273,15 +263,15 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
     CPLJSONArray fields;
 
     // Get field definitions
-    int fieldCount = options.intOption("FIELD_COUNT", 0);
+    int fieldCount = options.asInt("FIELD_COUNT", 0);
 
     for(int i = 0; i < fieldCount; ++i) {
-        CPLString fieldName = options.stringOption(CPLSPrintf("FIELD_%d_NAME", i), "");
+        std::string fieldName = options.asString(CPLSPrintf("FIELD_%d_NAME", i), "");
         if(fieldName.empty()) {
             return errorMessage(_("Name for field %d is not defined"), i);
         }
 
-        CPLString fieldAlias = options.stringOption(CPLSPrintf("FIELD_%d_ALIAS", i), "");
+        std::string fieldAlias = options.asString(CPLSPrintf("FIELD_%d_ALIAS", i), "");
         if(fieldAlias.empty()) {
             fieldAlias = fieldName;
         }
@@ -290,8 +280,8 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
         field.Add("name", fieldName);
         field.Add("alias", fieldAlias);
         field.Add("type", FeatureClass::fieldTypeFromName(
-                      options.stringOption(CPLSPrintf("FIELD_%d_TYPE", i), "")));
-        CPLString defaultValue = options.stringOption(
+                      options.asString(CPLSPrintf("FIELD_%d_TYPE", i), "")));
+        std::string defaultValue = options.asString(
                     CPLSPrintf("FIELD_%d_DEFAULT_VAL", i), "");
         if(!defaultValue.empty()) {
             field.Add("default", defaultValue);
@@ -305,26 +295,22 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
     ObjectPtr object;
     if(type == CAT_FC_MEM) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
-                    options.stringOption("GEOMETRY_TYPE", ""));
+                    options.asString("GEOMETRY_TYPE", ""));
         if(wkbUnknown == geomType) {
             return errorMessage(_("Unsupported geometry type"));
         }
 
         layer.Add("geometry_type", static_cast<int>(geomType));
-        layer.Add("epsg", options.intOption("EPSG", 4326));
+        layer.Add("epsg", options.asInt("EPSG", 4326));
     }
 
     CPLJSONObject user, other;
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
-            user.Add(CPLSPrintf("%s",
-                                it->first.c_str() + USER_PREFIX_KEY_LEN),
-                                it->second);
+        if(comparePart(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+            user.Add(it->first.substr(USER_PREFIX_KEY_LEN), it->second);
         }
-        else if(EQUALN(it->first, KEY_LCO_PREFIX, KEY_LCO_PREFIX_LEN)) {
-            other.Add(CPLSPrintf("%s",
-                                 it->first.c_str() + KEY_LCO_PREFIX_LEN),
-                                 it->second);
+        else if(comparePart(it->first, KEY_LCO_PREFIX, KEY_LCO_PREFIX_LEN)) {
+            other.Add(it->first.substr(KEY_LCO_PREFIX_LEN), it->second);
         }
     }
 
@@ -348,13 +334,13 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
     return memDescriptionFile.Save(m_path);
 }
 
-bool MemoryStore::deleteFeatures(const char* name)
+bool MemoryStore::deleteFeatures(const std::string &name)
 {
     if(nullptr == m_DS) {
         return false;
     }
 
-    OGRLayer* layer = m_DS->GetLayerByName(name);
+    OGRLayer *layer = m_DS->GetLayerByName(name.c_str());
     if(nullptr == layer) {
         return false;
     }
@@ -373,6 +359,24 @@ bool MemoryStore::deleteFeatures(const char* name)
     }
 
     return true;
+}
+
+OGRLayer *MemoryStore::createAttachmentsTable(const std::string &name)
+{
+    ngsUnused(name);
+    return nullptr;
+}
+
+bool MemoryStore::destroyAttachmentsTable(const std::string &name)
+{
+    ngsUnused(name);
+    return true;
+}
+
+OGRLayer *MemoryStore::getAttachmentsTable(const std::string &name)
+{
+    ngsUnused(name);
+    return nullptr;
 }
 
 } // namespace ngs

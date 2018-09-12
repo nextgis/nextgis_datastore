@@ -20,7 +20,13 @@
  ****************************************************************************/
 
 #include "settings.h"
+#include "stringutil.h"
+
+#include "catalog/file.h"
 #include "catalog/folder.h"
+
+// gdal
+#include "cpl_conv.h"
 
 namespace ngs {
 
@@ -30,7 +36,7 @@ constexpr const char * SETTINGS_FILE_EXT = "json";
 Settings::Settings() : m_hasChanges(false)
 {
     const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
-    m_path = CPLFormFilename(settingsPath, SETTINGS_FILE, SETTINGS_FILE_EXT);
+    m_path = File::formFileName(settingsPath, SETTINGS_FILE, SETTINGS_FILE_EXT);
     if(Folder::isExists(m_path))
         m_settings.Load(m_path);
     m_root = m_settings.GetRoot();
@@ -41,76 +47,89 @@ Settings::~Settings()
     save();
 }
 
-void Settings::set(const char *path, bool val)
+Settings &Settings::instance()
+{
+    static Settings s;
+    return s;
+}
+
+std::string Settings::getConfigOption(const std::string &key,
+                                      const std::string &defaultVal)
+{
+    return CPLGetConfigOption(key.c_str(), defaultVal.c_str());
+}
+
+void Settings::set(const std::string &path, bool val)
 {
     m_root.Set(path, val);
 }
 
-void Settings::set(const char *path, double val)
+void Settings::set(const std::string &path, double val)
 {
     m_root.Set(path, val);
 }
 
-void Settings::set(const char *path, int val)
+void Settings::set(const std::string &path, int val)
 {
     m_root.Set(path, val);
 }
 
-void Settings::set(const char *path, long val)
+void Settings::set(const std::string &path, long val)
 {
-    m_root.Set(path, val);
+    m_root.Set(path, static_cast<GInt64>(val));
 }
 
-void Settings::set(const char *path, const char *val)
+void Settings::set(const std::string &path, const std::string &val)
 {
     m_root.Set(path, val);
 
-    if(EQUAL(path, "common/cachemax")) {
-        CPLSetConfigOption("GDAL_CACHEMAX", val);
+    if(compare(path, "common/cachemax")) {
+        CPLSetConfigOption("GDAL_CACHEMAX", val.c_str());
     }
 
-    if(EQUAL(path, "http/useragent")) {
-        CPLSetConfigOption("GDAL_HTTP_USERAGENT", val);
+    if(compare(path, "http/useragent")) {
+        CPLSetConfigOption("GDAL_HTTP_USERAGENT", val.c_str());
     }
 
-    if(EQUAL(path, "http/use_gzip")) {
-        CPLSetConfigOption("CPL_CURL_GZIP", val);
+    if(compare(path, "http/use_gzip")) {
+        CPLSetConfigOption("CPL_CURL_GZIP", val.c_str());
     }
 
-    if(EQUAL(path, "http/timeout")) {
-        CPLSetConfigOption("GDAL_HTTP_TIMEOUT", val);
+    if(compare(path, "http/timeout")) {
+        CPLSetConfigOption("GDAL_HTTP_TIMEOUT", val.c_str());
     }
 
-    if(EQUAL(path, "gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS")) {
-        CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", val);
+    if(compare(path, "gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS")) {
+        CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", val.c_str());
     }
 
-    if(EQUAL(path, "common/zip_encoding")) {
-        CPLSetConfigOption("CPL_ZIP_ENCODING", val);
+    if(compare(path, "common/zip_encoding")) {
+        CPLSetConfigOption("CPL_ZIP_ENCODING", val.c_str());
     }
 }
 
-bool Settings::getBool(const char *path, bool defaultVal) const
+bool Settings::getBool(const std::string &path, bool defaultVal) const
 {
     return m_root.GetBool(path, defaultVal);
 }
 
-double Settings::getDouble(const char *path, double defaultVal) const
+double Settings::getDouble(const std::string &path, double defaultVal) const
 {
     return m_root.GetDouble(path, defaultVal);
 }
 
-int Settings::getInteger(const char *path, int defaultVal) const
+int Settings::getInteger(const std::string &path, int defaultVal) const
 {
     return m_root.GetInteger(path, defaultVal);
 }
 
-long Settings::getLong(const char *path, long defaultVal) const
+long Settings::getLong(const std::string &path, long defaultVal) const
 {
     return m_root.GetLong(path, defaultVal);
 }
 
-const char *Settings::getString(const char *path, const char *defaultVal) const
+const std::string Settings::getString(const std::string &path,
+                                      const std::string &defaultVal) const
 {
     return m_root.GetString(path, defaultVal);
 }

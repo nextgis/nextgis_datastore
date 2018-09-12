@@ -55,7 +55,7 @@ bool MapTransform::setRotate(enum ngsDirection dir, double rotate)
     return updateExtent();
 }
 
-Envelope MapTransform::worldToDisplay(const Envelope& env) const
+Envelope MapTransform::worldToDisplay(const Envelope &env) const
 {
     OGRRawPoint pt[4];
     pt[0] = worldToDisplay(OGRRawPoint(env.minX(), env.minY()));
@@ -85,7 +85,7 @@ Envelope MapTransform::worldToDisplay(const Envelope& env) const
     return Envelope(minPt.x, minPt.y, maxPt.x, maxPt.y);
 }
 
-Envelope MapTransform::displayToWorld(const Envelope& env) const
+Envelope MapTransform::displayToWorld(const Envelope &env) const
 {
     OGRRawPoint pt[4];
     pt[0] = displayToWorld(OGRRawPoint(env.minX(), env.minY()));
@@ -494,6 +494,40 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     }
 
     return result;
+}
+
+OGRRawPoint MapTransform::worldToDisplay(const OGRRawPoint &pt) const
+{
+    OGRRawPoint newPt(m_worldToDisplayMatrix.project(pt));
+    if(m_YAxisInverted) {
+        newPt.y = m_displayHeight - newPt.y;
+    }
+
+    newPt.x *= m_reduceFactor;
+    newPt.y *= m_reduceFactor;
+
+    return newPt;
+}
+
+OGRRawPoint MapTransform::displayToWorld(const OGRRawPoint &pt) const
+{
+    OGRRawPoint newPt(pt);
+
+    newPt.x /= m_reduceFactor;
+    newPt.y /= m_reduceFactor;
+
+    if(m_YAxisInverted) {
+        newPt.y = m_displayHeight - newPt.y;
+    }
+
+    // FIXME: Is it right?
+    OGRRawPoint out = m_invWorldToDisplayMatrix.project(newPt);
+
+    if(m_YAxisInverted) {
+        out.y = -out.y;
+    }
+
+    return out;
 }
 
 } // namespace ngs

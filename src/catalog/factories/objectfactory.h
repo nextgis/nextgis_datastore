@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -28,11 +28,11 @@
 
 namespace ngs {
 
-typedef std::map<CPLString, std::vector<CPLString>> nameExtMap;
+typedef std::map<std::string, std::vector<std::string>> nameExtMap;
 typedef struct _formatExt {
-    const char *mainExt;
-    const char **mainExts;
-    const char **extraExts;
+    std::string mainExt;
+    std::vector<std::string> mainExts;
+    std::vector<std::string> extraExts;
 } FORMAT_EXT;
 
 class ObjectFactory
@@ -40,39 +40,37 @@ class ObjectFactory
 public:
     ObjectFactory();
     virtual ~ObjectFactory() = default;
-    virtual const char* getName() const = 0;
+    virtual std::string name() const = 0;
     virtual void createObjects(ObjectContainer* const container,
-                               std::vector<const char *>* const names) = 0;
+                               std::vector<std::string> &names) = 0;
 
-    bool getEnabled() const;
+    bool enabled() const;
     void setEnabled(bool enabled);
 protected:
-    virtual void addChild(ObjectContainer * const container, ObjectPtr object) {
-        container->addChild(object);
-    }
+    virtual void addChild(ObjectContainer * const container, ObjectPtr object);
 
     typedef struct _formatResult {
         bool isSupported;
-        CPLString name;
-        std::vector<CPLString> siblingFiles;
+        std::string name;
+        std::vector<std::string> siblingFiles;
     } FORMAT_RESULT;
 
-    static FORMAT_RESULT isFormatSupported(const CPLString& name,
-                           std::vector<CPLString> extensions,
+    static FORMAT_RESULT isFormatSupported(const std::string &name,
+                           std::vector<std::string> extensions,
                            FORMAT_EXT testExts);
-    static void checkAdditionalSiblings(const CPLString& path,
-                                        const CPLString& name,
-                                        const char **nameAdds,
-                                        std::vector<CPLString> &siblingFiles);
-    static void eraseNames(const CPLString& name,
-                           const std::vector<CPLString> &siblingFiles,
-                           std::vector<const char *> * const names);
+    static void checkAdditionalSiblings(const std::string &path,
+                                        const std::string &name,
+                                        const std::vector<std::string> &nameAdds,
+                                        std::vector<std::string> &siblingFiles);
+    static void eraseNames(const std::string &name,
+                           const std::vector<std::string> &siblingFiles,
+                           std::vector<std::string> &names);
 
 private:
     bool m_enabled;
 };
 
-typedef std::unique_ptr< ObjectFactory > ObjectFactoryUPtr;
+using ObjectFactoryUPtr = std::unique_ptr<ObjectFactory>;
 
 }
 

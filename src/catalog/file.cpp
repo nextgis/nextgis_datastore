@@ -22,6 +22,10 @@
 
 #include "util/error.h"
 #include "util/notify.h"
+#include "util/stringutil.h"
+
+//gdal
+#include "cpl_conv.h"
 
 namespace ngs {
 
@@ -29,45 +33,47 @@ constexpr size_t BUFFER_SIZE = 1024 * 8;
 
 File::File(ObjectContainer * const parent,
            const enum ngsCatalogObjectType type,
-           const CPLString &name,
-           const CPLString &path) :
+           const std::string &name,
+           const std::string &path) :
     Object(parent, type, name, path)
 {
 
 }
 
-bool File::deleteFile(const char* path)
+bool File::deleteFile(const std::string &path)
 {
-    int result = VSIUnlink(path);
+    int result = VSIUnlink(path.c_str());
     if (result == -1)
-        return errorMessage(_("Delete file failed! File '%s'"), path);
+        return errorMessage(_("Delete file failed! File '%s'"), path.c_str());
     return true;
 }
 
-time_t File::modificationDate(const char* path)
+time_t File::modificationDate(const std::string &path)
 {
     VSIStatBufL sbuf;
-    return VSIStatL(path, &sbuf) == 0 ? sbuf.st_mtime : 0;
+    return VSIStatL(path.c_str(), &sbuf) == 0 ? sbuf.st_mtime : 0;
 }
 
-GIntBig File::fileSize(const char* path)
+GIntBig File::fileSize(const std::string &path)
 {
     VSIStatBufL sbuf;
-    return VSIStatL(path, &sbuf) == 0 ? sbuf.st_size : 0;
+    return VSIStatL(path.c_str(), &sbuf) == 0 ?
+                static_cast<size_t>(sbuf.st_size) : 0;
 }
 
-bool File::copyFile(const char* src, const char* dst, const Progress& progress)
+bool File::copyFile(const std::string &src, const std::string &dst, const Progress& progress)
 {
     progress.onProgress(COD_IN_PROCESS, 0.0, _("Start copying %s to %s"),
-                        src, dst);
-    if(EQUAL(src, dst)) {
-        progress.onProgress(COD_FINISHED, 1.0, _("Copied %s to %s"), src, dst);
+                        src.c_str(), dst.c_str());
+    if(compare(src, dst)) {
+        progress.onProgress(COD_FINISHED, 1.0, _("Copied %s to %s"),
+                            src.c_str(), dst.c_str());
         return true;
     }
 
     VSIStatBufL sbuf;
     double totalCount = 1.0;
-    if(VSIStatL(src, &sbuf) == 0) {
+    if(VSIStatL(src.c_str(), &sbuf) == 0) {
         totalCount = double(sbuf.st_size) / BUFFER_SIZE;
         if(totalCount < 1.0) {
             totalCount = 1.0;
@@ -82,19 +88,19 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
 
     // Open old and new file
 
-    fpOld = VSIFOpenL(src, "rb");
+    fpOld = VSIFOpenL(src.c_str(), "rb");
     if(fpOld == nullptr) {
         progress.onProgress(COD_COPY_FAILED, 0.0, _("Open input file %s failed"),
-                            src);
-        return errorMessage(_("Open input file %s failed"), src);
+                            src.c_str());
+        return errorMessage(_("Open input file %s failed"), src.c_str());
     }
 
-    fpNew = VSIFOpenL(dst, "wb");
+    fpNew = VSIFOpenL(dst.c_str(), "wb");
     if(fpNew == nullptr) {
         VSIFCloseL(fpOld);
         progress.onProgress(COD_COPY_FAILED, 0.0, _("Open output file %s failed"),
-                            dst);
-        return errorMessage(_("Open output file %s failed"), dst);
+                            dst.c_str());
+        return errorMessage(_("Open output file %s failed"), dst.c_str());
     }
 
     // Prepare buffer
@@ -115,13 +121,14 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
         counter++;
 
         if(!progress.onProgress(COD_IN_PROCESS, counter / totalCount,
-                               _("Copying %s to %s"), src, dst)) {
+                               _("Copying %s to %s"), src.c_str(), dst.c_str())) {
             break;
         }
 
     } while(ret == 0 && bytesRead == BUFFER_SIZE);
 
-    progress.onProgress(COD_FINISHED, 1.0,  _("Copied %s to %s"), src, dst);
+    progress.onProgress(COD_FINISHED, 1.0,
+                        _("Copied %s to %s"), src.c_str(), dst.c_str());
 
     // Cleanup
 
@@ -133,22 +140,22 @@ bool File::copyFile(const char* src, const char* dst, const Progress& progress)
     return ret == 0;
 }
 
-bool File::moveFile(const char* src, const char* dst, const Progress& progress)
+bool File::moveFile(const std::string &src, const std::string &dst, const Progress& progress)
 {
     progress.onProgress(COD_IN_PROCESS, 0.0, _("Start moving %s to %s"),
-                        src, dst);
-    if(EQUAL(src, dst)) {
+                        src.c_str(), dst.c_str());
+    if(compare(src, dst)) {
         progress.onProgress(COD_FINISHED, 1.0, _("Moved %s to %s"),
-                            src, dst);
+                            src.c_str(), dst.c_str());
         return true;
     }
 
-    if(EQUAL(CPLGetPath(dst), CPLGetPath(src))) {
+    if(EQUAL(CPLGetPath(dst.c_str()), CPLGetPath(src.c_str()))) {
         // If in same directory - make copy
         return renameFile(src, dst, progress);
     }
 #ifdef __WINDOWS__
-    else if (!EQUALN(dst, "/vsi", 4) && EQUALN(dst, src, 3)) {
+    else if (!comparePart(dst, "/vsi", 4) && comparePart(dst, src, 3)) {
         // If in same disc - copy/rename
         return renameFile(src, dst, progress);
     }
@@ -164,29 +171,29 @@ bool File::moveFile(const char* src, const char* dst, const Progress& progress)
     //return false;
 }
 
-bool File::renameFile(const char* src, const char* dst, const Progress& progress)
+bool File::renameFile(const std::string &src, const std::string &dst, const Progress& progress)
 {
     progress.onProgress(COD_IN_PROCESS, 0.0, _("Start rename %s to %s"),
-                        src, dst);
-    if(VSIRename(src, dst) != 0) {
+                        src.c_str(), dst.c_str());
+    if(VSIRename(src.c_str(), dst.c_str()) != 0) {
         progress.onProgress(COD_RENAME_FAILED, 0.0, _("Rename %s to %s failed"),
-                            src, dst);
-        return errorMessage(_("Rename %s to %s failed"), src, dst);
+                            src.c_str(), dst.c_str());
+        return errorMessage(_("Rename %s to %s failed"), src.c_str(), dst.c_str());
     }
     progress.onProgress(COD_FINISHED, 0.0, _("Rename %s to %s succeeded"),
-                        src, dst);
+                        src.c_str(), dst.c_str());
     return true;
 }
 
-bool File::writeFile(const char* file, const void* buffer, size_t size)
+bool File::writeFile(const std::string &file, const void* buffer, size_t size)
 {
     VSILFILE* fpNew;
     CPLErrorReset();
 
     // Open old and new file
-    fpNew = VSIFOpenL(file, "wb");
+    fpNew = VSIFOpenL(file.c_str(), "wb");
     if(fpNew == nullptr) {
-        return errorMessage(_("Open output file %s failed"), file);
+        return errorMessage(_("Open output file %s failed"), file.c_str());
     }
 
     bool result = VSIFWriteL(buffer, 1, size, fpNew) == size;
@@ -197,12 +204,50 @@ bool File::writeFile(const char* file, const void* buffer, size_t size)
     return result;
 }
 
+std::string File::formFileName(const std::string &path,
+                               const std::string &name,
+                               const std::string &ext)
+{
+    return CPLFormFilename(path.c_str(), name.c_str(), ext.c_str());
+}
+
+std::string File::resetExtension(const std::string &path,
+                                 const std::string &ext)
+{
+    return CPLResetExtension(path.c_str(), ext.c_str());
+}
+
+std::string File::getFileName(const std::string &path)
+{
+    return CPLGetFilename(path.c_str());
+}
+
+std::string File::getBaseName(const std::string &path)
+{
+    return CPLGetBasename(path.c_str());
+}
+
+std::string File::getExtension(const std::string &path)
+{
+    return CPLGetExtension(path.c_str());
+}
+
+std::string File::getDirName(const std::string &path)
+{
+    return CPLGetDirname(path.c_str());
+}
+
+std::string File::getPath(const std::string &path)
+{
+    return CPLGetPath(path.c_str());
+}
+
 bool File::destroy()
 {
     if(!File::deleteFile(m_path))
         return false;
 
-    CPLString name = fullName();
+    std::string name = fullName();
     if(m_parent)
         m_parent->notifyChanges();
 
@@ -215,9 +260,9 @@ bool File::canDestroy() const
 {
     //return access(m_path, W_OK) != 0;
     VSIStatBufL sbuf;
-    return VSIStatL(m_path, &sbuf) == 0 && (sbuf.st_mode & S_IWUSR ||
-                                            sbuf.st_mode & S_IWGRP ||
-                                            sbuf.st_mode & S_IWOTH);
+    return VSIStatL(m_path.c_str(), &sbuf) == 0 && (sbuf.st_mode & S_IWUSR ||
+                                                    sbuf.st_mode & S_IWGRP ||
+                                                    sbuf.st_mode & S_IWOTH);
 
 }
 

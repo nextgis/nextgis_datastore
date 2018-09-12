@@ -26,9 +26,9 @@
 
 namespace ngs {
 
-int getVersion(const char *request);
-const char *getVersionString(const char *request);
-CPLString &reportFormats();
+int getVersion(const std::string &request);
+std::string getVersionString(const std::string &request);
+std::string reportFormats();
 
 } // namespace ngs
 

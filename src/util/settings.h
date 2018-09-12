@@ -33,25 +33,24 @@ namespace ngs {
 class Settings
 {
 public:
-    static Settings& instance()
-    {
-        static Settings s;
-        return s;
-    }
+    static Settings &instance();
+    static std::string getConfigOption(const std::string &key,
+                                       const std::string &defaultVal = "");
 
     // settres
-    void set(const char* path, bool val);
-    void set(const char* path, double val);
-    void set(const char* path, int val);
-    void set(const char* path, long val);
-    void set(const char* path, const char* val);
+    void set(const std::string &path, bool val);
+    void set(const std::string &path, double val);
+    void set(const std::string &path, int val);
+    void set(const std::string &path, long val);
+    void set(const std::string &path, const std::string &val);
 
     // getters
-    bool getBool(const char* path, bool defaultVal) const;
-    double getDouble(const char* path, double defaultVal) const;
-    int getInteger(const char* path, int defaultVal) const;
-    long getLong(const char* path, long defaultVal) const;
-    const char* getString(const char* path, const char* defaultVal) const;
+    bool getBool(const std::string &path, bool defaultVal) const;
+    double getDouble(const std::string &path, double defaultVal) const;
+    int getInteger(const std::string &path, int defaultVal) const;
+    long getLong(const std::string &path, long defaultVal) const;
+    const std::string getString(const std::string &path,
+                                 const std::string &defaultVal) const;
 
     // settings
     bool save();
@@ -65,7 +64,7 @@ private:
 private:
     CPLJSONDocument m_settings;
     CPLJSONObject m_root;
-    CPLString m_path;
+    std::string m_path;
     bool m_hasChanges;
 };
 

@@ -26,7 +26,7 @@
  * @brief The NextGIS store and visualisation library codes enum
  */
 enum ngsCode {
-    COD_CONTINUE = 100,     /**< Contine */
+    COD_CONTINUE = 100,     /**< Continue */
     COD_PENDING,            /**< Pending */
     COD_IN_PROCESS,         /**< In process */
     COD_SUCCESS = 200,      /**< Success */
@@ -236,7 +236,7 @@ enum ngsMapTouchType
  * @brief The map layer draw style Type enum
  */
 enum ngsStyleType {
-    ST_POINT = 0,
+    ST_POINT = 1,
     ST_LINE,
     ST_FILL,
     ST_IMAGE
@@ -262,12 +262,12 @@ enum ngsEditStyleType {
     EST_CROSS
 };
 
-enum ngsEditDeleteType {
-    EDT_NON_LAST,
-    EDT_LINE,
-    EDT_HOLE,
-    EDT_GEOMETRY_PART,
-    EDT_GEOMETRY
+enum ngsEditDeleteResult {
+    EDT_FAILED = 1,         /**< Delete operation failed */
+    EDT_SELTYPE_NO_CHANGE,  /**< Same piece type is selected after delete operation */
+    EDT_HOLE,               /**< Hole is deleted. Outer ring selected */
+    EDT_PART,               /**< Part is deleted. Other part selected */
+    EDT_GEOMETRY            /**< Whole geometry is deleted */
 };
 
 #endif // NGSCODES_H

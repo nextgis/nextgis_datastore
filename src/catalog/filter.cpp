@@ -216,7 +216,7 @@ GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
     }
 }
 
-const char *Filter::getExtension(const enum ngsCatalogObjectType type)
+std::string Filter::extension(const enum ngsCatalogObjectType type)
 {
     GDALDriver *driver = getGDALDriver(type);
     switch (type) {
@@ -229,7 +229,7 @@ const char *Filter::getExtension(const enum ngsCatalogObjectType type)
     case CAT_CONTAINER_NGS:
         return DataStore::extension();
     case CAT_FILE_NGMAPDOCUMENT:
-        return MapFile::getExtension();
+        return MapFile::extension();
     case CAT_CONTAINER_MEM:
         return "ngmem";
     case CAT_CONTAINER_KMZ:
@@ -264,7 +264,7 @@ const char *Filter::getExtension(const enum ngsCatalogObjectType type)
     case CAT_TABLE_XLSX:
     case CAT_CONTAINER_GPKG:
         if(nullptr != driver)
-            return driver->GetMetadataItem(GDAL_DMD_EXTENSION);
+            return fromCString(driver->GetMetadataItem(GDAL_DMD_EXTENSION));
         else
             return "";
     default:

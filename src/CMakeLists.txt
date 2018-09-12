@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -68,13 +68,15 @@ set(CSOURCES
     api.cpp
 )
 
-if(UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-    if(NOT APPLE)
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
-    endif()
+if(ANDROID)
+    set(CSOURCES ${CSOURCES}
+        api_jni.cpp
+    )
+endif()
+
+if(ANDROID)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
 endif()
 
 if(IOS)
@@ -197,6 +199,7 @@ set_target_properties(${LIB_NAME} PROPERTIES
     C_STANDARD 11
     CXX_VISIBILITY_PRESET hidden
     C_VISIBILITY_PRESET hidden
+    POSITION_INDEPENDENT_CODE ON
 )
 
 target_link_extlibraries(${LIB_NAME})
@@ -207,7 +210,7 @@ set(LINK_SEARCH_PATHS ${LINK_SEARCH_PATHS} PARENT_SCOPE)
 set(WITHOPT ${WITHOPT} PARENT_SCOPE)
 set(EXPORTS_PATHS ${EXPORTS_PATHS} PARENT_SCOPE)
 
-if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
+if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
     install(TARGETS ${LIB_NAME}
         EXPORT ${LIB_NAME}
         RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT libraries

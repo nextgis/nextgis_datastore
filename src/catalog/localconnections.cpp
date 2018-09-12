@@ -24,9 +24,13 @@
 #include "cpl_json.h"
 
 #include "api_priv.h"
+#include "file.h"
 #include "folder.h"
 #include "catalog.h"
+
 #include "ngstore/common.h"
+#include "util/settings.h"
+#include "util/stringutil.h"
 
 #if defined (__APPLE__)
 #include <pwd.h>
@@ -39,32 +43,35 @@ constexpr const char * LOCAL_CONN_FILE = "connections";
 constexpr const char * LOCAL_CONN_FILE_EXT = "json";
 
 LocalConnections::LocalConnections(ObjectContainer * const parent,
-                                   const CPLString & path) :
+                                   const std::string &path) :
     ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, _("Local connections"),
                     path)
 {
-    m_path = CPLFormFilename(path, LOCAL_CONN_FILE, LOCAL_CONN_FILE_EXT);
+    m_path = File::formFileName(path, LOCAL_CONN_FILE, LOCAL_CONN_FILE_EXT);
 }
 
-bool LocalConnections::hasChildren()
+bool LocalConnections::loadChildren()
 {
-    if(m_childrenLoaded)
-        return ObjectContainer::hasChildren();
+    if(m_childrenLoaded) {
+        return true;
+    }
+
+    LocalConnections *parent = const_cast<LocalConnections *>(this);
 
 #if (TARGET_OS_IPHONE == 1) || (TARGET_IPHONE_SIMULATOR == 1)
     // NOTE: For iOS (Mobile?) we don't need to store connections in file as
     // there is the only connection to root directory
     // Add iOS application root path
-    const char* homeDir = CPLGetConfigOption("NGS_HOME", getenv("HOME"));
-    if(nullptr == homeDir) {
+    std::string homeDir = Settings::getConfigOption("NGS_HOME", getenv("HOME"));
+    if(homeDir.empty()) {
         struct passwd* pwd = getpwuid(getuid());
         if (pwd)
            homeDir = pwd->pw_dir;
     }
 
-    m_children.push_back(ObjectPtr(new Folder(this, "Home", homeDir)));
+    m_children.push_back(ObjectPtr(new Folder(parent, "Home", homeDir)));
     m_childrenLoaded = true;
-    return ObjectContainer::hasChildren();
+    return true;
 #endif // TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
 
     CPLJSONDocument doc;
@@ -74,50 +81,132 @@ bool LocalConnections::hasChildren()
             CPLJSONArray connections = root.GetArray("connections");
             for(int i = 0; i < connections.Size(); ++i) {
                 CPLJSONObject connection = connections[i];
-                if(connection.GetBool("hidden", true))
+                if(connection.GetBool("hidden", true)) {
                     continue;
-                CPLString connName = connection.GetString("name", "");
-                CPLString connPath = connection.GetString("path", "");
-                m_children.push_back(ObjectPtr(new Folder(this, connName, connPath)));
+                }
+                std::string connName = connection.GetString("name");
+                std::string connPath = connection.GetString("path");
+                m_children.push_back(ObjectPtr(
+                                         new Folder(parent, connName, connPath)));
             }
         }
     }
     else {
-       CPLJSONObject root = doc.GetRoot();
-       CPLJSONArray connections("connections");
-       std::vector<std::pair<CPLString, CPLString>> connectionPaths;
+        CPLJSONObject root = doc.GetRoot();
+        CPLJSONArray connections("connections");
+        std::vector<std::pair<std::string, std::string>> connectionPaths;
 #ifdef _WIN32
-       char testLetter[3];
-       testLetter[1] = ':';
-       testLetter[2] = 0;
-       for(char i = 'A'; i <= 'Z'; ++i) {
-           testLetter[0] = i;
-           if(Folder::isDir(testLetter)) {
-               const char* pathToAdd = CPLSPrintf("%s\\", testLetter);
-               connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
-           }
-       }
+        char testLetter[3];
+        testLetter[1] = ':';
+        testLetter[2] = 0;
+        for(char i = 'A'; i <= 'Z'; ++i) {
+            testLetter[0] = i;
+            if(Folder::isDir(testLetter)) {
+                const char* pathToAdd = CPLSPrintf("%s\\", testLetter);
+                connectionPaths.push_back(std::make_pair(testLetter, pathToAdd));
+            }
+        }
 #elif defined(__APPLE__)
-       const char *homeDir = getenv("HOME");
+        const char *homeDir = getenv("HOME");
 
-       if(nullptr == homeDir) {
+        if(nullptr == homeDir) {
            struct passwd* pwd = getpwuid(getuid());
            if (pwd)
               homeDir = pwd->pw_dir;
-       }
-       connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
-       connectionPaths.push_back(std::make_pair(_("Documents"),
-                                CPLFormFilename(homeDir, "Documents", nullptr)));
-       connectionPaths.push_back(std::make_pair(_("Downloads"),
-                                CPLFormFilename(homeDir, "Downloads", nullptr)));
-       connectionPaths.push_back(std::make_pair(_("Public"),
-                                CPLFormFilename(homeDir, "Public", nullptr)));
+        }
+        connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
+        connectionPaths.push_back(std::make_pair(_("Documents"),
+                                File::formFileName(homeDir, "Documents")));
+        connectionPaths.push_back(std::make_pair(_("Downloads"),
+                                File::formFileName(homeDir, "Downloads")));
+        connectionPaths.push_back(std::make_pair(_("Public"),
+                                File::formFileName(homeDir, "Public")));
+        connectionPaths.push_back(std::make_pair(_("Volumes"), "/Volumes"));
+#elif defined(__ANDROID__)
+        std::string ngsNomeDir = Settings::getConfigOption("NGS_HOME");
+        if(ngsNomeDir.empty()) {
+            const char *homeDir = getenv("HOME");
+            if(homeDir) {
+                connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
+            }
+        }
+        else {
+            connectionPaths.push_back(std::make_pair(_("Home"), ngsNomeDir));
+        }
+
+        // https://gist.github.com/PauloLuan/4bcecc086095bce28e22
+        // - /storage/sdcard1 //!< Motorola Xoom
+        // - /storage/extsdcard //!< Samsung SGS3
+        // /storage/sdcard0/external_sdcard // user request
+        // /mnt/extsdcard
+        // /mnt/sdcard/external_sd //!< Samsung galaxy family
+        // /mnt/external_sd
+        // /mnt/media_rw/sdcard1 //!< 4.4.2 on CyanogenMod S3
+        // /removable/microsd //!< Asus transformer prime
+        // /mnt/emmc
+        // /storage/external_SD //!< LG
+        // /storage/ext_sd //!< HTC One Max
+        // /storage/removable/sdcard1 //!< Sony Xperia Z1
+        // /data/sdext
+        // /data/sdext2
+        // /data/sdext3
+        // /data/sdext4
+
+        std::vector<std::string> sdCards = {
+            "sdcard", "ext_card", "external_sd", "ext_sd", "external",
+            "extSdCard", "externalSdCard", "sdcard0", "sdcard1", "sdcard2",
+            "usbcard0", "usbcard1", "emmc", "external_SD", "extsdcard", "microsd",
+            "removable/sdcard0", "removable/sdcard1", "sdext", "sdext0",
+            "sdext1", "sdext2", "sdext3", "sdext4"
+        };
+        int counter = 2;
+
+        for(auto &sdCard : sdCards) {
+            std::string sdCardName = sdCard;
+            if(sdCard == "removable/sdcard0") {
+                sdCardName = "ExtSD" + std::to_string(counter++);
+            }
+            if(sdCard == "removable/sdcard1") {
+                sdCardName = "ExtSD" + std::to_string(counter++);
+            }
+            connectionPaths.push_back(std::make_pair(sdCardName, "/mnt/" + sdCard));
+            connectionPaths.push_back(std::make_pair("st_" + sdCardName, "/storage/" + sdCard));
+            connectionPaths.push_back(std::make_pair("rm_" + sdCardName, "/removable/" + sdCard));
+            connectionPaths.push_back(std::make_pair("dt_" + sdCardName, "/data/" + sdCard));
+        }
+
+        auto files = Folder::listFiles("/storage");
+        
+        for(auto &file : files) {
+            if(file.size() == 9 && file[4] == '-') {
+                connectionPaths.push_back(
+                    std::make_pair("ExtSD" + std::to_string(counter++), "/storage/" + file));
+            }
+        }
+
+        // //https://stackoverflow.com/a/19831753/2901140
+        // const char *primarySD = getenv("EXTERNAL_STORAGE");
+        // if(primarySD) {
+        //     connectionPaths.push_back(std::make_pair(_("SD"), primarySD));
+        // }
+        // const char *secondarySDs = getenv("SECONDARY_STORAGE");
+        // if(secondarySDs) {
+        //     char **papszList = CSLTokenizeString2(secondarySDs, ":", 0);
+        //     for(int i = 0; i < CSLCount(papszList); ++i) {
+        //         connectionPaths.push_back(std::make_pair(_("ExtSD") +
+        //             std::to_string(i + 1), papszList[i]));
+        //     }
+        //     CSLDestroy(papszList);
+        // }
 #elif defined(__unix__)
-       const char *homeDir = getenv("HOME");
-       connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
+        const char *homeDir = getenv("HOME");
+        connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
 #endif
 
        for(const auto &connectionPath : connectionPaths ) {
+           if(!Folder::isExists(connectionPath.second)) {
+               continue;
+           }
            CPLJSONObject connection;
            connection.Add("name", connectionPath.first);
            connection.Add("path", connectionPath.second);
@@ -125,7 +214,8 @@ bool LocalConnections::hasChildren()
 
            connections.Add(connection);
 
-           m_children.push_back(ObjectPtr(new Folder(this, connectionPath.first,
+           m_children.push_back(ObjectPtr(
+                                    new Folder(parent, connectionPath.first,
                                                    connectionPath.second)));
        }
        root.Add("connections", connections);
@@ -135,40 +225,38 @@ bool LocalConnections::hasChildren()
     }
 
     m_childrenLoaded = true;
-
-    return ObjectContainer::hasChildren();
+    return true;
 }
 
-ObjectPtr LocalConnections::getObjectByLocalPath(const char *path)
+ObjectPtr LocalConnections::getObjectBySystemPath(const std::string &path) const
 {
-    size_t len = CPLStrnlen(path, Catalog::maxPathLength());
-    for(const ObjectPtr& child : m_children) {
-        const CPLString &testPath = child->path();
-        if(len <= testPath.length())
+    size_t len = path.size();
+    std::string sep = Catalog::separator();
+    for(const ObjectPtr &child : m_children) {
+        const std::string &testPath = child->path();
+        if(len <= testPath.size()) {
             continue;
+        }
 
-        if(EQUALN(path, testPath, testPath.length())) {
+        if(comparePart(path, testPath, static_cast<unsigned>(testPath.size()))) {
             ObjectContainer * const container = ngsDynamicCast(ObjectContainer,
                                                                child);
             if(nullptr != container) {
-                CPLString endPath(path + testPath.length());
+                std::string endPath = path.substr(testPath.size());
 #ifdef _WIN32
-                CPLString from("\\");
-                CPLString to = Catalog::getSeparator();
+                std::string from("\\");
 
                 size_t start_pos;
                 while((start_pos = endPath.find(from, start_pos)) != std::string::npos) {
-                    endPath.replace(start_pos, from.length(), to);
-                    start_pos += to.length();
+                    endPath.replace(start_pos, from.length(), sep);
+                    start_pos += sep.length();
                 }
 #endif
-                const char* subPath = endPath.c_str();
-                if(EQUALN(subPath, Catalog::separator(),
-                          Catalog::separator().length())) {
-                    subPath += Catalog::separator().length();
+                if(comparePart(endPath, sep, static_cast<unsigned>(sep.size()))) {
+                    endPath = endPath.substr(sep.size());
                 }
-                if(container->hasChildren()) {
-                    return container->getObject(subPath);
+                if(container->loadChildren()) {
+                    return container->getObject(endPath);
                 }
             }
         }

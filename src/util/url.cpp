@@ -21,9 +21,11 @@
 #include "url.h"
 
 #include "curl/curl.h"
+#include "cpl_conv.h"
 #include "cpl_http.h"
 
 #include "error.h"
+#include "stringutil.h"
 
 namespace ngs {
 
@@ -87,27 +89,27 @@ static size_t headerWriteFunc(void* buffer, size_t size, size_t nmemb, void* req
     return length;
 }
 
-CPLString getURLOptionValue(const char* key, const Options& options) {
-    CPLString val = options.stringOption(key);
+static std::string getURLOptionValue(const char* key, const Options &options) {
+    std::string val = options.asString(key);
     if(val.empty()) {
         val = CPLGetConfigOption(CPLSPrintf("GDAL_HTTP_%s", key), "");
     }
     return val;
 }
 
-void urlSetOptions(CURL* http_handle, const Options& options)
+void urlSetOptions(CURL* http_handle, const Options &options)
 {
     if(CPLTestBool(CPLGetConfigOption("CPL_CURL_VERBOSE", "NO"))) {
         curl_easy_setopt(http_handle, CURLOPT_VERBOSE, 1);
     }
 
-    CPLString httpVersion = options.stringOption("HTTP_VERSION");
-    if(EQUAL(httpVersion, "1.0")) {
+    CPLString httpVersion = options.asString("HTTP_VERSION");
+    if(compare(httpVersion, "1.0")) {
         curl_easy_setopt(http_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
     }
 
     /* Support control over HTTPAUTH */
-    CPLString httpAuth = options.stringOption("HTTPAUTH");
+    std::string httpAuth = options.asString("HTTPAUTH");
     if(httpAuth.empty()) {
         httpAuth = CPLGetConfigOption("GDAL_HTTP_AUTH", "");
     }
@@ -116,14 +118,14 @@ void urlSetOptions(CURL* http_handle, const Options& options)
 
     /* CURLOPT_HTTPAUTH is defined in curl 7.11.0 or newer */
 #if LIBCURL_VERSION_NUM >= 0x70B00
-    else if( EQUAL(httpAuth, "BASIC") )
+    else if( compare(httpAuth, "BASIC") )
         curl_easy_setopt(http_handle, CURLOPT_HTTPAUTH, CURLAUTH_BASIC );
-    else if( EQUAL(httpAuth, "NTLM") )
+    else if( compare(httpAuth, "NTLM") )
         curl_easy_setopt(http_handle, CURLOPT_HTTPAUTH, CURLAUTH_NTLM );
-    else if( EQUAL(httpAuth, "ANY") )
+    else if( compare(httpAuth, "ANY") )
         curl_easy_setopt(http_handle, CURLOPT_HTTPAUTH, CURLAUTH_ANY );
 #ifdef CURLAUTH_GSSNEGOTIATE
-    else if( EQUAL(httpAuth, "NEGOTIATE") )
+    else if( compare(httpAuth, "NEGOTIATE") )
         curl_easy_setopt(http_handle, CURLOPT_HTTPAUTH, CURLAUTH_GSSNEGOTIATE );
 #endif
     else {
@@ -136,34 +138,34 @@ void urlSetOptions(CURL* http_handle, const Options& options)
 #endif
 
     // Support use of .netrc - default enabled.
-    CPLString httpNetrc = options.stringOption("NETRC", "");
+    std::string httpNetrc = options.asString("NETRC", "");
     if(httpNetrc.empty()) {
         httpNetrc = CPLGetConfigOption("GDAL_HTTP_NETRC", "YES");
     }
 
-    if(CPLTestBool(httpNetrc)) {
+    if(CPLTestBool(httpNetrc.c_str())) {
         curl_easy_setopt(http_handle, CURLOPT_NETRC, 1L);
     }
 
     // Support setting userid:password.
-    CPLString userPwd = getURLOptionValue("USERPWD", options);
+    std::string userPwd = getURLOptionValue("USERPWD", options);
     if(!userPwd.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_USERPWD, userPwd.c_str());
     }
 
     // Set Proxy parameters.
-    CPLString  proxy = getURLOptionValue("PROXY", options);
+    std::string  proxy = getURLOptionValue("PROXY", options);
     if(!proxy.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_PROXY, proxy.c_str());
     }
 
-    CPLString proxyUserPwd = getURLOptionValue("PROXYUSERPWD", options);
+    std::string proxyUserPwd = getURLOptionValue("PROXYUSERPWD", options);
     if(!proxyUserPwd.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_PROXYUSERPWD, proxyUserPwd.c_str());
     }
 
     // Support control over PROXYAUTH.
-    CPLString proxyAuth = options.stringOption("PROXYAUTH", "");
+    std::string proxyAuth = options.asString("PROXYAUTH", "");
     if(proxyAuth.empty()) {
         proxyAuth = CPLGetConfigOption( "GDAL_PROXY_AUTH", "");
     }
@@ -172,13 +174,13 @@ void urlSetOptions(CURL* http_handle, const Options& options)
     }
     // CURLOPT_PROXYAUTH is defined in curl 7.11.0 or newer.
 #if LIBCURL_VERSION_NUM >= 0x70B00
-    else if( EQUAL(proxyAuth, "BASIC") )
+    else if( compare(proxyAuth, "BASIC") )
         curl_easy_setopt(http_handle, CURLOPT_PROXYAUTH, CURLAUTH_BASIC );
-    else if( EQUAL(proxyAuth, "NTLM") )
+    else if( compare(proxyAuth, "NTLM") )
         curl_easy_setopt(http_handle, CURLOPT_PROXYAUTH, CURLAUTH_NTLM );
-    else if( EQUAL(proxyAuth, "DIGEST") )
+    else if( compare(proxyAuth, "DIGEST") )
         curl_easy_setopt(http_handle, CURLOPT_PROXYAUTH, CURLAUTH_DIGEST );
-    else if( EQUAL(proxyAuth, "ANY") )
+    else if( compare(proxyAuth, "ANY") )
         curl_easy_setopt(http_handle, CURLOPT_PROXYAUTH, CURLAUTH_ANY );
     else {
         errorMessage("Unsupported PROXYAUTH value '%s', ignored.", proxyAuth.c_str());
@@ -195,28 +197,29 @@ void urlSetOptions(CURL* http_handle, const Options& options)
     curl_easy_setopt(http_handle, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
 
     // Set connect timeout.
-    CPLString connectTimeout = getURLOptionValue("CONNECTTIMEOUT", options);
+    std::string connectTimeout = getURLOptionValue("CONNECTTIMEOUT", options);
     if(!connectTimeout.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_CONNECTTIMEOUT_MS,
-                         static_cast<int>(1000 * CPLAtof(connectTimeout)));
+                         static_cast<int>(1000 * CPLAtof(connectTimeout.c_str())));
     }
 
     // Set timeout.
-    CPLString timeout = getURLOptionValue("TIMEOUT", options);
+    std::string timeout = getURLOptionValue("TIMEOUT", options);
     if(!timeout.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_TIMEOUT_MS,
-                         static_cast<int>(1000 * CPLAtof(timeout)));
+                         static_cast<int>(1000 * CPLAtof(timeout.c_str())));
     }
 
     // Set low speed time and limit.
-    CPLString lowSpeedTime = getURLOptionValue("LOW_SPEED_TIME", options);
+    std::string lowSpeedTime = getURLOptionValue("LOW_SPEED_TIME", options);
     if(!lowSpeedTime.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_LOW_SPEED_TIME,
-                         atoi(lowSpeedTime));
+                         std::stoi(lowSpeedTime));
 
-        CPLString lowSpeedLimit = getURLOptionValue("LOW_SPEED_LIMIT", options);
+        std::string lowSpeedLimit = getURLOptionValue("LOW_SPEED_LIMIT", options);
         if(!lowSpeedLimit.empty()) {
-            curl_easy_setopt(http_handle, CURLOPT_LOW_SPEED_LIMIT, atoi(lowSpeedLimit) );
+            curl_easy_setopt(http_handle, CURLOPT_LOW_SPEED_LIMIT,
+                             std::stoi(lowSpeedLimit) );
         }
         else {
             curl_easy_setopt(http_handle, CURLOPT_LOW_SPEED_LIMIT, 1);
@@ -224,14 +227,14 @@ void urlSetOptions(CURL* http_handle, const Options& options)
     }
 
     /* Disable some SSL verification */
-    CPLString unsafeSSL = getURLOptionValue("UNSAFESSL", options);
-    if(CPLTestBool(unsafeSSL)) {
+    std::string unsafeSSL = getURLOptionValue("UNSAFESSL", options);
+    if(CPLTestBool(unsafeSSL.c_str())) {
         curl_easy_setopt(http_handle, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(http_handle, CURLOPT_SSL_VERIFYHOST, 0L);
     }
 
     // Custom path to SSL certificates.
-    CPLString CAInfo = options.stringOption("CAINFO", "");
+    std::string CAInfo = options.asString("CAINFO", "");
     if(CAInfo.empty()) {
         // Name of environment variable used by the curl binary
         CAInfo = CPLGetConfigOption("CURL_CA_BUNDLE", "");
@@ -251,13 +254,13 @@ void urlSetOptions(CURL* http_handle, const Options& options)
     }
 
     /* Set Referer */
-    CPLString referer = options.stringOption("REFERER");
+    std::string referer = options.asString("REFERER");
     if(!referer.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_REFERER, referer.c_str());
     }
 
     /* Set User-Agent */
-    CPLString userAgent = getURLOptionValue("USERAGENT", options);
+    std::string userAgent = getURLOptionValue("USERAGENT", options);
     if(!userAgent.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_USERAGENT, userAgent.c_str());
     }
@@ -270,7 +273,7 @@ void urlSetOptions(CURL* http_handle, const Options& options)
     curl_easy_setopt(http_handle, CURLOPT_NOSIGNAL, 1 );
 #endif
 
-    CPLString cookie = getURLOptionValue("COOKIE", options);
+    std::string cookie = getURLOptionValue("COOKIE", options);
     if(!cookie.empty()) {
         curl_easy_setopt(http_handle, CURLOPT_COOKIE, cookie.c_str());
     }
@@ -317,7 +320,7 @@ void urlSetOptions(CURL* http_handle, const Options& options)
  * delete
  */
 
-ngsURLRequestResult* uploadFile(const char* path, const char* url,
+ngsURLRequestResult* uploadFile(const std::string &path, const std::string &url,
                                 const Progress &progress, const Options &options)
 {
     CURL* http_handle = curl_easy_init();
@@ -326,14 +329,14 @@ ngsURLRequestResult* uploadFile(const char* path, const char* url,
     out->data = nullptr;
     out->headers = nullptr;
 
-    const char* authHeader = CPLHTTPAuthHeader(url);
-    if(EQUAL(authHeader, "expired")) {
+    const char* authHeader = CPLHTTPAuthHeader(url.c_str());
+    if(compare(authHeader, "expired")) {
         out->status = 401;
         return out;
     }
 
     out->data = new unsigned char[BUFFER_SIZE];
-    curl_easy_setopt(http_handle, CURLOPT_URL, url);
+    curl_easy_setopt(http_handle, CURLOPT_URL, url.c_str());
 
     urlSetOptions(http_handle, options);
 
@@ -343,10 +346,11 @@ ngsURLRequestResult* uploadFile(const char* path, const char* url,
     }
 
     // Set Headers.
-    CPLString addHeaders = options.stringOption("HEADERS", "");
+    std::string addHeaders = options.asString("HEADERS", "");
     if(!addHeaders.empty()) {
         CPLDebug("ngstore", "These HTTP headers were set: %s", addHeaders.c_str());
-        char** papszTokensHeaders = CSLTokenizeString2(addHeaders, "\r\n", 0);
+        char** papszTokensHeaders = CSLTokenizeString2(addHeaders.c_str(),
+                                                       "\r\n", 0);
         for(int i = 0; papszTokensHeaders[i] != nullptr; ++i) {
             headers = curl_slist_append(headers, papszTokensHeaders[i]);
         }
@@ -362,21 +366,22 @@ ngsURLRequestResult* uploadFile(const char* path, const char* url,
     struct curl_httppost* lastptr = nullptr;
 
     curl_formadd(&formpost, &lastptr,
-                 CURLFORM_COPYNAME, options.stringOption("FORM.FILE").c_str(),
-                 CURLFORM_FILE, path,
+                 CURLFORM_COPYNAME, options.asString("FORM.FILE").c_str(),
+                 CURLFORM_FILE, path.c_str(),
                  CURLFORM_END);
-    CPLDebug("ngstore", "Send file: %s, COPYNAME: %s", path, options.stringOption("FORM.FILE").c_str());
+    CPLDebug("ngstore", "Send file: %s, COPYNAME: %s", path.c_str(),
+             options.asString("FORM.FILE").c_str());
 
-    int parametersCount = options.intOption("FORM.COUNT", 0);
+    int parametersCount = options.asInt("FORM.COUNT", 0);
     for(int i = 0; i < parametersCount; ++i) {
         CPLString name = CPLSPrintf("FORM.KEY_%d", i);
         CPLString value = CPLSPrintf("FORM.VALUE_%d", i);
         curl_formadd(&formpost, &lastptr,
-                     CURLFORM_COPYNAME, options.stringOption(name).c_str(),
-                     CURLFORM_COPYCONTENTS, options.stringOption(value).c_str(),
+                     CURLFORM_COPYNAME, options.asString(name).c_str(),
+                     CURLFORM_COPYCONTENTS, options.asString(value).c_str(),
                      CURLFORM_END);
-        CPLDebug("ngstore", "COPYNAME: %s, COPYCONTENTS: %s", options.stringOption(name).c_str(),
-                 options.stringOption(value).c_str());
+        CPLDebug("ngstore", "COPYNAME: %s, COPYCONTENTS: %s", options.asString(name).c_str(),
+                 options.asString(value).c_str());
     }
 
     curl_easy_setopt(http_handle, CURLOPT_HTTPPOST, formpost);
@@ -395,7 +400,7 @@ ngsURLRequestResult* uploadFile(const char* path, const char* url,
     static bool bHasCheckVersion = false;
     static bool bSupportGZip = false;
     if(!bHasCheckVersion) {
-        bSupportGZip = strstr(curl_version(), "zlib/") != NULL;
+        bSupportGZip = strstr(curl_version(), "zlib/") != nullptr;
         bHasCheckVersion = true;
     }
     bool bGZipRequested = false;

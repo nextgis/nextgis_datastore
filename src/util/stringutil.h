@@ -21,7 +21,8 @@
 #ifndef NGSSTRINGUTIL_H
 #define NGSSTRINGUTIL_H
 
-#include "cpl_string.h"
+#include <string>
+#include <vector>
 
 namespace ngs {
 
@@ -30,8 +31,19 @@ int constexpr length(const char* str)
     return *str ? 1 + length(str + 1) : 0;
 }
 
-CPLString stripUnicode(const CPLString &str, const char replaceChar = 'x');
-CPLString normalize(const CPLString &str, const CPLString &lang = "");
+std::string stripUnicode(const std::string &str, const char replaceChar = 'x');
+std::string normalize(const std::string &str, const std::string &lang = "");
+std::vector<std::string> fillStringList(char** strings);
+bool compare(const std::string &first, const std::string &second,
+             bool caseSensetive = false);
+bool comparePart(const std::string &first, const std::string &second,
+             unsigned int count, bool caseSensetive = false);
+int compareStrings(const std::string &first, const std::string &second,
+                   bool caseSensetive = false);
+bool startsWith(const std::string &str, const std::string &part,
+                bool caseSensetive = false);
+std::string md5(const std::string &val);
+std::string fromCString(const char *str);
 
 }
 #endif // NGSSTRINGUTIL_H

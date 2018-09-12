@@ -36,19 +36,19 @@ class Map
 {
 public:
     Map();
-    explicit Map(const CPLString& name, const CPLString& description, unsigned short epsg,
-        const Envelope &bounds);
+    explicit Map(const std::string& name, const std::string& description,
+                 unsigned short epsg, const Envelope &bounds);
     virtual ~Map() = default;
 
-    const CPLString &name() const { return m_name; }
-    void setName(const CPLString &name) { m_name = name; }
-    const CPLString &description() const { return m_description; }
-    void setDescription(const CPLString &description) {
+    const std::string &name() const { return m_name; }
+    void setName(const std::string &name) { m_name = name; }
+    const std::string &description() const { return m_description; }
+    void setDescription(const std::string &description) {
         m_description = description;
     }
     unsigned short epsg() const { return m_epsg; }
     void setEpsg(unsigned short epsg) { m_epsg = epsg; }
-    void setBounds(const Envelope& bounds) {
+    void setBounds(const Envelope &bounds) {
         m_bounds = bounds;
     }
     Envelope bounds() const { return m_bounds; }
@@ -61,23 +61,23 @@ public:
     virtual bool close();
     bool isClosed() const { return m_isClosed; }
     virtual ngsRGBA backgroundColor() const { return  m_bkColor; }
-    virtual void setBackgroundColor(const ngsRGBA& color) { m_bkColor = color; }
+    virtual void setBackgroundColor(const ngsRGBA &color) { m_bkColor = color; }
 
     size_t layerCount() const { return m_layers.size(); }
     LayerPtr getLayer(int layerId) const;
-    virtual int createLayer(const char* name, const ObjectPtr &object);
-    virtual bool deleteLayer(Layer* layer);
-    virtual bool reorderLayers(Layer* beforeLayer, Layer* movedLayer);
+    virtual int createLayer(const std::string &name, const ObjectPtr &object);
+    virtual bool deleteLayer(Layer *layer);
+    virtual bool reorderLayers(Layer *beforeLayer, Layer *movedLayer);
 
 protected:
-    virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
+    virtual LayerPtr createLayer(const std::string &name = DEFAULT_LAYER_NAME,
                                  enum Layer::Type type = Layer::Type::Invalid);
-    virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile);
+    virtual bool openInternal(const CPLJSONObject &root, MapFile * const mapFile);
     virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile);
 
 protected:
-    CPLString m_name;
-    CPLString m_description;
+    std::string m_name;
+    std::string m_description;
     unsigned short m_epsg;
     Envelope m_bounds;
     std::vector<LayerPtr> m_layers;

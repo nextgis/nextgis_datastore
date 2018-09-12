@@ -27,6 +27,10 @@
 #include "catalog/object.h"
 #include "ngstore/codes.h"
 
+#include <util/mutex.h>
+#include <util/options.h>
+#include <util/progress.h>
+
 namespace ngs {
 
 constexpr const char* LOG_EDIT_HISTORY_KEY = "LOG_EDIT_HISTORY";
@@ -40,9 +44,9 @@ public:
 };
 
 typedef struct _Field {
-    char m_name[255];
-    char m_originalName[255];
-    char m_alias[1024];
+    std::string m_name;
+    std::string m_originalName;
+    std::string m_alias;
     OGRFieldType m_type;
 } Field;
 
@@ -51,18 +55,18 @@ class Table;
 class FeaturePtr : public std::shared_ptr<OGRFeature>
 {
 public:
-    FeaturePtr(OGRFeature* feature, Table* table = nullptr);
-    FeaturePtr(OGRFeature* feature, const Table* table);
+    FeaturePtr(OGRFeature *feature, Table *table = nullptr);
+    FeaturePtr(OGRFeature *feature, const Table *table);
     FeaturePtr();
-    FeaturePtr& operator=(OGRFeature* feature);
+    FeaturePtr &operator=(OGRFeature *feature);
     operator OGRFeature*() const { return get(); }
-    Table* table() const { return m_table; }
-    void setTable(Table* table) { m_table = table; }
+    Table *table() const { return m_table; }
+    void setTable(Table *table) { m_table = table; }
 private:
-    Table* m_table;
+    Table *m_table;
 };
 
-typedef std::shared_ptr<Table> TablePtr;
+using TablePtr = std::shared_ptr<Table>;
 
 class Table : public Object
 {
@@ -72,82 +76,82 @@ class Table : public Object
 public:
     typedef struct _attachmentInfo {
         GIntBig id;
-        CPLString name;
-        CPLString description;
-        CPLString path;
+        std::string name;
+        std::string description;
+        std::string path;
         GIntBig size;
         GIntBig rid;
     } AttachmentInfo;
 public:
-    explicit Table(OGRLayer* layer,
-          ObjectContainer* const parent = nullptr,
+    explicit Table(OGRLayer *layer,
+          ObjectContainer * const parent = nullptr,
           const enum ngsCatalogObjectType type = CAT_TABLE_ANY,
-          const CPLString& name = "");
-    virtual ~Table();
+          const std::string &name = "");
+    virtual ~Table() override;
     FeaturePtr createFeature() const;
     FeaturePtr getFeature(GIntBig id) const;
-    virtual bool insertFeature(const FeaturePtr& feature, bool logEdits = true);
-    virtual bool updateFeature(const FeaturePtr& feature, bool logEdits = true);
+    virtual bool insertFeature(const FeaturePtr &feature, bool logEdits = true);
+    virtual bool updateFeature(const FeaturePtr &feature, bool logEdits = true);
     virtual bool deleteFeature(GIntBig id, bool logEdits = true);
     virtual bool deleteFeatures(bool logEdits = true);
     GIntBig featureCount(bool force = false) const;
     void reset() const;
-    void setAttributeFilter(const char* filter);
+    void setAttributeFilter(const std::string &filter = "");
     FeaturePtr nextFeature() const;
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
-                         const Progress& progress = Progress());
-    const char* fidColumn() const;    
-    const std::vector<Field>& fields() const;
-    virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
-                          const char* description, const char* filePath,
-                          char** options = nullptr, bool logEdits = true);
+                         const Progress &progress = Progress());
+    std::string fidColumn() const;
+    const std::vector<Field> &fields() const;
+    virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
+                          const std::string &description, const std::string &filePath,
+                          const Options &options = Options(), bool logEdits = true);
     virtual bool deleteAttachment(GIntBig aid, bool logEdits = true);
     virtual bool deleteAttachments(GIntBig fid, bool logEdits = true);
-    virtual bool updateAttachment(GIntBig aid, const char* fileName,
-                                  const char* description, bool logEdits = true);
+    virtual bool updateAttachment(GIntBig aid, const std::string &fileName,
+                                  const std::string &description,
+                                  bool logEdits = true);
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const;
-    virtual bool setProperty(const char* key, const char* value, const char* domain);
-    virtual CPLString property(const char* key, const char* defaultValue,
-                                  const char* domain) const;
-    virtual std::map<CPLString, CPLString> properties(const char* domain) const;
-    virtual void deleteProperties();
+
 
     // Edit log
-    virtual void deleteEditOperation(const ngsEditOperation& op);
+    virtual void deleteEditOperation(const ngsEditOperation &op);
     virtual std::vector<ngsEditOperation> editOperations() const;
 
     // Object interface
 public:
     virtual bool canDestroy() const override;
     virtual bool destroy() override;
-    virtual char** metadata(const char* domain) const override;
-    virtual bool setMetadataItem(const char* name, const char* value,
-                                 const char* domain) override {
-        return setProperty(name, value, domain);
-    }
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool setProperty(const std::string &name, const std::string &value,
+                             const std::string &domain) override;
+    virtual void deleteProperties(const std::string &domain) override;
 
 protected:
-    OGRFeatureDefn* definition() const;
+    OGRFeatureDefn *definition() const;
     bool initAttachmentsTable() const;
     bool initEditHistoryTable() const;
-    CPLString getAttachmentsPath() const;
+    std::string getAttachmentsPath() const;
     virtual void fillFields() const;
-    virtual void logEditOperation(FeaturePtr opFeature);
+    virtual void logEditOperation(const FeaturePtr &opFeature);
     virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
                                       enum ngsChangeCode code);
-    virtual void checkSetProperty(const char* key, const char* value,
-                                  const char* domain);
+    virtual void checkSetProperty(const std::string &key, const std::string &value,
+                                  const std::string &domain);
     virtual bool saveEditHistory();
+    virtual std::string fullPropertyDomain(const std::string &domain) const;
 
 
 protected:
-    OGRLayer* m_layer;
-    mutable OGRLayer* m_attTable;
-    mutable OGRLayer* m_editHistoryTable;
-    char m_saveEditHistory;
+    OGRLayer *m_layer;
+    mutable OGRLayer *m_attTable;
+    mutable OGRLayer *m_editHistoryTable;
+    int m_saveEditHistory;
     mutable std::vector<Field> m_fields;
-    CPLMutex* m_featureMutex;
+    Mutex m_featureMutex;
 };
 
 }

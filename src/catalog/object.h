@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -22,17 +22,20 @@
 #define NGSOBJECT_H
 
 #include <memory>
-
-#include "cpl_string.h"
+#include <string>
+#include <vector>
 
 #include "ngstore/codes.h"
-#include "util/progress.h"
+
+#include "util/options.h"
 
 namespace ngs {
 
 class ObjectContainer;
 class Object;
-typedef std::shared_ptr<Object> ObjectPtr;
+using ObjectPtr = std::shared_ptr<Object>;
+using Properties = Options;
+
 /**
  * @brief The base class for catalog items
  */
@@ -41,33 +44,40 @@ class Object
 public:
     explicit Object(ObjectContainer * const parent = nullptr,
            const enum ngsCatalogObjectType type = CAT_UNKNOWN,
-           const CPLString & name = "",
-           const CPLString & path = "");
+           const std::string &name = "",
+           const std::string &path = "");
     virtual ~Object() = default;
-    const CPLString &name() const { return m_name; }
-    const CPLString &path() const { return m_path; }
-    enum ngsCatalogObjectType type() const { return m_type; }
-    virtual CPLString fullName() const;
-    virtual bool destroy() { return false; }
-    virtual bool canDestroy() const { return false; }
-    virtual bool rename(const CPLString &/*newName*/)  { return false; }
-    virtual bool canRename() const  { return false; }
-    ObjectContainer* parent() const { return m_parent; }
+
+    std::string name() const;
+    std::string path() const;
+    enum ngsCatalogObjectType type() const;
+    ObjectContainer *parent() const;
+
+    virtual std::string fullName() const;
+    virtual bool destroy();
+    virtual bool canDestroy() const;
+    virtual bool rename(const std::string &newName);
+    virtual bool canRename() const;
     virtual ObjectPtr pointer() const;
-    virtual char** metadata(const char* /*domain*/) const { return nullptr; }
-    virtual bool setMetadataItem(const char* /*name*/, const char* /*value*/,
-                                 const char* /*domain*/) { return false; }
+    virtual Properties properties(const std::string &domain) const;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const;
+    virtual bool setProperty(const std::string &key,
+                             const std::string &value,
+                             const std::string &domain);
+    virtual void deleteProperties(const std::string &domain);
 
 protected:
-    void setName(const CPLString &value) { m_name = value; }
-    void setPath(const CPLString &value) { m_path = value; }
+    void setName(const std::string &value);
+    void setPath(const std::string &value);
 
 private:
     Object(Object const&) = delete;
     Object& operator= (Object const&) = delete;
 
 protected:
-    CPLString m_name, m_path;
+    std::string m_name, m_path;
     ObjectContainer * const m_parent;
     enum ngsCatalogObjectType m_type;
 };

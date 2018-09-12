@@ -41,25 +41,25 @@ public:
      * @brief fill Fill arrays for Gl drawing. Executed from separate thread.
      * @param tile Tile to load data
      */
-    virtual bool fill(GlTilePtr tile, float z, bool isLastTry) = 0;
+    virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) = 0;
     /**
      * @brief free Free Gl objects. Run from Gl context.
      * @param tile Tile to free data
      */
-    virtual void free(GlTilePtr tile);
+    virtual void free(const GlTilePtr &tile);
     /**
      * @brief draw Draw data for specific tile. Run from Gl context.
      * @param tile Tile to draw
      * @return True of data for tile loaded, otherwise false.
      */
-    virtual bool draw(GlTilePtr tile) = 0;
+    virtual bool draw(const GlTilePtr &tile) = 0;
 
     StylePtr style() const { return m_style; }
-    virtual void setStyle(const char* name) = 0;
+    virtual void setStyle(const std::string &name) = 0;
 protected:
     std::map<Tile, GlObjectPtr> m_tiles;
     StylePtr m_style;
-    CPLMutex *m_dataMutex;
+    Mutex m_dataMutex;
     std::vector<StylePtr> m_oldStyles;
 };
 
@@ -70,8 +70,8 @@ class VectorGlObject : public GlObject
 {
 public:
     VectorGlObject();
-    const std::vector<GlBufferPtr>& buffers() const { return m_buffers; }
-    void addBuffer(GlBuffer* buffer) { m_buffers.push_back(GlBufferPtr(buffer)); }
+    const std::vector<GlBufferPtr> &buffers() const { return m_buffers; }
+    void addBuffer(GlBuffer *buffer) { m_buffers.push_back(GlBufferPtr(buffer)); }
 
     // GlObject interface
 public:
@@ -86,10 +86,10 @@ class VectorSelectableGlObject : public VectorGlObject
 {
 public:
     VectorSelectableGlObject();
-    const std::vector<GlBufferPtr>& selectionBuffers() const {
+    const std::vector<GlBufferPtr> &selectionBuffers() const {
         return m_selectionBuffers;
     }
-    void addSelectionBuffer(GlBuffer* buffer) {
+    void addSelectionBuffer(GlBuffer *buffer) {
         m_selectionBuffers.push_back(GlBufferPtr(buffer));
     }
 
@@ -109,14 +109,14 @@ private:
 class GlFeatureLayer : public FeatureLayer, public GlRenderLayer
 {
 public:
-    explicit GlFeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
-    virtual ~GlFeatureLayer() = default;
+    explicit GlFeatureLayer(Map *map, const std::string &name = DEFAULT_LAYER_NAME);
+    virtual ~GlFeatureLayer() override = default;
 
     // GlRenderLayer interface
 public:
-    virtual bool fill(GlTilePtr tile, float z, bool isLastTry) override;
-    virtual bool draw(GlTilePtr tile) override;
-    virtual void setStyle(const char* name) override;
+    virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) override;
+    virtual bool draw(const GlTilePtr &tile) override;
+    virtual void setStyle(const std::string &name) override;
 
     // Layer interface
 public:
@@ -128,12 +128,13 @@ public:
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
 
 protected:
-    virtual VectorGlObject* fillPoints(const VectorTile& tile, float z);
-    virtual VectorGlObject* fillLines(const VectorTile& tile, float z);
-    virtual VectorGlObject* fillPolygons(const VectorTile& tile, float z);
+    virtual VectorGlObject *fillPoints(const VectorTile &tile, float z);
+    virtual VectorGlObject *fillLines(const VectorTile &tile, float z);
+    virtual VectorGlObject *fillPolygons(const VectorTile &tile, float z);
 };
 
-typedef std::array<StylePtr, 3> SelectionStyles;
+using SelectionStyles = std::map<enum ngsStyleType, StylePtr>;
+
 /**
  * @brief The GlFeatureClassSelectable class Renderable feature class with
  * feature selection
@@ -141,22 +142,22 @@ typedef std::array<StylePtr, 3> SelectionStyles;
 class GlSelectableFeatureLayer : public GlFeatureLayer
 {
 public:
-    explicit GlSelectableFeatureLayer(Map* map,
-                                      const CPLString& name = DEFAULT_LAYER_NAME);
-    virtual ~GlSelectableFeatureLayer() = default;
+    explicit GlSelectableFeatureLayer(Map *map,
+                                      const std::string &name = DEFAULT_LAYER_NAME);
+    virtual ~GlSelectableFeatureLayer() override = default;
     virtual StylePtr selectionStyle() const;
 
     // IGlRenderLayer interface
 public:
-    virtual bool drawSelection(GlTilePtr tile);
+    virtual bool drawSelection(const GlTilePtr &tile);
 
 protected:
-    virtual VectorGlObject* fillPoints(const VectorTile& tile, float z) override;
-    virtual VectorGlObject* fillLines(const VectorTile& tile, float z) override;
-    virtual VectorGlObject* fillPolygons(const VectorTile& tile, float z) override;
+    virtual VectorGlObject *fillPoints(const VectorTile &tile, float z) override;
+    virtual VectorGlObject *fillLines(const VectorTile &tile, float z) override;
+    virtual VectorGlObject *fillPolygons(const VectorTile &tile, float z) override;
 
 protected:
-    const SelectionStyles* m_selectionStyles;
+    SelectionStyles m_selectionStyles;
 };
 
 /**
@@ -165,9 +166,9 @@ protected:
 class RasterGlObject : public GlObject
 {
 public:
-    explicit RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image);
-    GlImage* getImageRef() const { return m_image.get(); }
-    GlBuffer* getBufferRef() const { return m_extentBuffer.get(); }
+    explicit RasterGlObject(GlBuffer *tileExtentBuff, GlImage *image);
+    GlImage *getImageRef() const { return m_image.get(); }
+    GlBuffer *getBufferRef() const { return m_extentBuffer.get(); }
 
     // GlObject interface
 public:
@@ -186,13 +187,13 @@ private:
 class GlRasterLayer : public RasterLayer, public GlRenderLayer
 {
 public:
-    explicit GlRasterLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
+    explicit GlRasterLayer(Map *map, const std::string &name = DEFAULT_LAYER_NAME);
 
     // GlRenderLayer interface
 public:
-    virtual bool fill(GlTilePtr tile, float z, bool isLastTry) override;
-    virtual bool draw(GlTilePtr tile) override;
-    virtual void setStyle(const char* name) override;
+    virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) override;
+    virtual bool draw(const GlTilePtr &tile) override;
+    virtual void setStyle(const std::string &name) override;
 
     // Layer interface
 public:

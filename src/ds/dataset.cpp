@@ -67,13 +67,11 @@ constexpr unsigned short MAX_EQUAL_NAMES = 10000;
 // GDALDatasetPtr
 //------------------------------------------------------------------------------
 
-GDALDatasetPtr::GDALDatasetPtr(GDALDataset *ds) :
-    shared_ptr(ds, GDALClose)
+GDALDatasetPtr::GDALDatasetPtr(GDALDataset *ds) : shared_ptr(ds, GDALClose)
 {
 }
 
-GDALDatasetPtr::GDALDatasetPtr() :
-    shared_ptr(nullptr, GDALClose)
+GDALDatasetPtr::GDALDatasetPtr() : shared_ptr(nullptr, GDALClose)
 {
 
 }
@@ -82,7 +80,7 @@ GDALDatasetPtr::GDALDatasetPtr(const GDALDatasetPtr &ds) : shared_ptr(ds)
 {
 }
 
-GDALDatasetPtr& GDALDatasetPtr::operator=(GDALDataset* ds) {
+GDALDatasetPtr &GDALDatasetPtr::operator=(GDALDataset *ds) {
     reset(ds);
     return *this;
 }
@@ -95,8 +93,7 @@ GDALDatasetPtr::operator GDALDataset *() const
 //------------------------------------------------------------------------------
 // DatasetBase
 //------------------------------------------------------------------------------
-DatasetBase::DatasetBase() :
-    m_DS(nullptr)
+DatasetBase::DatasetBase() : m_DS(nullptr)
 {
 
 }
@@ -112,49 +109,49 @@ void DatasetBase::close()
     m_DS = nullptr;
 }
 
-const char* DatasetBase::options(const enum ngsCatalogObjectType type,
+std::string DatasetBase::options(const enum ngsCatalogObjectType type,
                                     ngsOptionType optionType) const
 {
-    GDALDriver* poDriver = Filter::getGDALDriver(type);
+    GDALDriver *poDriver = Filter::getGDALDriver(type);
     switch (optionType) {
     case OT_CREATE_DATASOURCE:
         if(nullptr == poDriver)
             return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST);
+        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST));
     case OT_CREATE_LAYER:
         if(nullptr == poDriver)
             return "";
-        return poDriver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST);
+        return fromCString(poDriver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST));
     case OT_CREATE_LAYER_FIELD:
         if(nullptr == poDriver)
             return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES);
+        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES));
     case OT_CREATE_RASTER:
         if(nullptr == poDriver)
             return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES);
+        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES));
     case OT_OPEN:
         if(nullptr == poDriver)
             return "";
-        return poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST);
+        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST));
     case OT_LOAD:
         return "";
     }
     return "";
 }
 
-bool DatasetBase::open(const char* path, unsigned int openFlags,
+bool DatasetBase::open(const std::string &path, unsigned int openFlags,
                        const Options &options)
 {
-    if(nullptr == path || EQUAL(path, "")) {
+    if(path.empty()) {
         return errorMessage(_("The path is empty"));
     }
 
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
 
     CPLErrorReset();
-    auto openOptions = options.getOptions();
-    m_DS = static_cast<GDALDataset*>(GDALOpenEx( path, openFlags, nullptr,
+    auto openOptions = options.asCharArray();
+    m_DS = static_cast<GDALDataset*>(GDALOpenEx( path.c_str(), openFlags, nullptr,
                                                  openOptions.get(), nullptr));
 
     if(m_DS == nullptr) {
@@ -163,7 +160,7 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
             // Try to open read-only
             openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
             openFlags |= GDAL_OF_READONLY;
-            m_DS = static_cast<GDALDataset*>(GDALOpenEx( path, openFlags,
+            m_DS = static_cast<GDALDataset*>(GDALOpenEx( path.c_str(), openFlags,
                                           nullptr, openOptions.get(), nullptr));
             if(nullptr == m_DS) {
                 errorMessage(CPLGetLastErrorMsg());
@@ -181,49 +178,46 @@ bool DatasetBase::open(const char* path, unsigned int openFlags,
 //------------------------------------------------------------------------------
 // Dataset
 //------------------------------------------------------------------------------
-constexpr const char* ADDS_EXT = "ngadds";
+constexpr const char *ADDS_EXT = "ngadds";
 
 // Metadata
-constexpr const char* META_KEY = "key";
+constexpr const char *META_KEY = "key";
 constexpr unsigned short META_KEY_LIMIT = 128;
-constexpr const char* META_VALUE = "value";
+constexpr const char *META_VALUE = "value";
 constexpr unsigned short META_VALUE_LIMIT = 512;
 
 // Attachments
-constexpr const char* ATTACH_SUFFIX = "attachments";
+constexpr const char *ATTACH_SUFFIX = "attachments";
 
 // History
-constexpr const char* HISTORY_SUFFIX = "editlog";
+constexpr const char *HISTORY_SUFFIX = "editlog";
 
 // Overviews
-constexpr const char* OVR_SUFFIX = "overviews";
+constexpr const char *OVR_SUFFIX = "overviews";
 
-constexpr const char* METHADATA_TABLE_NAME = "nga_meta";
+constexpr const char *METHADATA_TABLE_NAME = "nga_meta";
 
-constexpr const char* NG_PREFIX = "nga_";
+constexpr const char *NG_PREFIX = "nga_";
 constexpr int NG_PREFIX_LEN = length(NG_PREFIX);
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
-                 const CPLString &name,
-                 const CPLString &path) :
+                 const std::string &name,
+                 const std::string &path) :
     ObjectContainer(parent, type, name, path),
     DatasetBase(),
     m_addsDS(nullptr),
-    m_metadata(nullptr),
-    m_executeSQLMutex(CPLCreateMutex())
+    m_metadata(nullptr)
 {
-    CPLReleaseMutex(m_executeSQLMutex);
 }
 
 Dataset::~Dataset()
 {
-    CPLDestroyMutex(m_executeSQLMutex);
     GDALClose(m_addsDS);
     m_addsDS = nullptr;
 }
 
-FeatureClass* Dataset::createFeatureClass(const CPLString& name,
+FeatureClass *Dataset::createFeatureClass(const std::string &name,
                                           enum ngsCatalogObjectType objectType,
                                           OGRFeatureDefn * const definition,
                                           OGRSpatialReference* spatialRef,
@@ -236,8 +230,8 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
         return nullptr;
     }
 
-    OGRLayer* layer = m_DS->CreateLayer(name, spatialRef, type,
-                                        options.getOptions().get());
+    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
+                                        options.asCharArray().get());
 
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
@@ -245,27 +239,27 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
     }
 
     for (int i = 0; i < definition->GetFieldCount(); ++i) {
-        OGRFieldDefn* srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
         OGRFieldDefn dstField(srcField);
 
-        CPLString newFieldName = normalizeFieldName(srcField->GetNameRef());
-        if(!EQUAL(newFieldName, srcField->GetNameRef())) {
+        std::string newFieldName = normalizeFieldName(srcField->GetNameRef());
+        if(!compare(newFieldName, srcField->GetNameRef())) {
             progress.onProgress(COD_WARNING, 0.0,
                                 _("Field %s of source table was renamed to %s in destination table"),
                                 srcField->GetNameRef(), newFieldName.c_str());
         }
 
-        dstField.SetName(newFieldName);
+        dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
             errorMessage(CPLGetLastErrorMsg());
             return nullptr;
         }
     }
 
-    FeatureClass* out = new FeatureClass(layer, this, objectType, name);
+    FeatureClass *out = new FeatureClass(layer, this, objectType, name);
 
-    if(options.boolOption("CREATE_OVERVIEWS", false) &&
-            !options.stringOption("ZOOM_LEVELS", "").empty()) {
+    if(options.asBool("CREATE_OVERVIEWS", false) &&
+            !options.asString("ZOOM_LEVELS", "").empty()) {
         out->createOverviews(progress, options);
     }
 
@@ -278,7 +272,7 @@ FeatureClass* Dataset::createFeatureClass(const CPLString& name,
     return out;
 }
 
-Table* Dataset::createTable(const CPLString &name,
+Table *Dataset::createTable(const std::string &name,
                             enum ngsCatalogObjectType objectType,
                             OGRFeatureDefn * const definition,
                             const Options &options,
@@ -289,9 +283,10 @@ Table* Dataset::createTable(const CPLString &name,
                                                   progress));
 }
 
-bool Dataset::setProperty(const char* key, const char* value)
+bool Dataset::setProperty(const std::string &key, const std::string &value,
+                          const std::string &domain)
 {
-    CPLMutexHolder holder(m_executeSQLMutex);
+    MutexHolder holder(m_executeSQLMutex);
 
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -300,82 +295,60 @@ bool Dataset::setProperty(const char* key, const char* value)
     if(!m_metadata) {
         m_metadata = createMetadataTable(m_addsDS);
     }
+
     if(!m_metadata) {
         return false;
     }
 
     FeaturePtr feature(OGRFeature::CreateFeature(m_metadata->GetLayerDefn()));
 
-    feature->SetField(META_KEY, key);
-    feature->SetField(META_VALUE, value);
+    feature->SetField(META_KEY, (domain + "." + key).c_str());
+    feature->SetField(META_VALUE, value.c_str());
     return m_metadata->CreateFeature(feature) != OGRERR_NONE;
 }
 
-CPLString Dataset::property(const char* key, const char* defaultValue) const
+std::string Dataset::property(const std::string &key,
+                              const std::string &defaultValue,
+                              const std::string &domain) const
 {
-    if(!m_metadata)
-        return defaultValue;
-
-    CPLMutexHolder holder(m_executeSQLMutex);
-
-    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s\"", META_KEY, key));
-    OGRFeature* feature = m_metadata->GetNextFeature();
-    CPLString out;
-    if(feature) {
-        out = feature->GetFieldAsString(1);
-        OGRFeature::DestroyFeature(feature);
+    if(nullptr == m_DS) {
+        return "";
     }
 
-    m_metadata->SetAttributeFilter(nullptr);
-    return out;
-}
-
-std::map<CPLString, CPLString> Dataset::properties(const char* table,
-                                                      const char* domain) const
-{
-    std::map<CPLString, CPLString> out;
-    if(nullptr == m_metadata || nullptr == table) {
+    std::string out = fromCString(m_DS->GetMetadataItem(key.c_str(),
+                                                        domain.c_str()));
+    if(!out.empty()) {
         return out;
     }
 
-    CPLString name = table;
-    if(nullptr != domain) {
-        name += CPLString(".") + domain;
+    if(!m_metadata) {
+        return defaultValue;
     }
 
-    CPLMutexHolder holder(m_executeSQLMutex);
+    MutexHolder holder(m_executeSQLMutex);
 
-    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY, name.c_str()));
-    FeaturePtr feature;
-    while((feature = m_metadata->GetNextFeature())) {
-        CPLString key = feature->GetFieldAsString(0) + CPLStrnlen(table, 255) + 1;
-        CPLString value = feature->GetFieldAsString(1);
-
-        out[key] = value;
+    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s\"", META_KEY,
+                                              key.c_str()));
+    FeaturePtr feature = m_metadata->GetNextFeature();
+    if(feature) {
+        out = feature->GetFieldAsString(1);
     }
+
     m_metadata->SetAttributeFilter(nullptr);
     return out;
-}
-
-void Dataset::deleteProperties(const char* table)
-{
-    if(!m_metadata)
-        return;
-    executeSQL(CPLSPrintf("DELETE FROM %s WHERE %s LIKE \"%s.%%\"",
-                          METHADATA_TABLE_NAME, META_KEY, table));
 }
 
 void Dataset::lockExecuteSql(bool lock)
 {
     if(lock) {
-        CPLAcquireMutex(m_executeSQLMutex, 15.0);
+        m_executeSQLMutex.acquire(15.0);
     }
     else {
-        CPLReleaseMutex(m_executeSQLMutex);
+        m_executeSQLMutex.release();
     }
 }
 
-bool Dataset::destroyTable(Table* table)
+bool Dataset::destroyTable(Table *table)
 {
     if(destroyTable(m_DS, table->m_layer)) {
         deleteProperties(table->name());
@@ -399,23 +372,23 @@ bool Dataset::destroy()
 
     // Delete additions
     if(!Filter::isDatabase(type())) {
-        const char* ovrPath = CPLResetExtension(m_path, ADDS_EXT);
+        std::string ovrPath = File::resetExtension(m_path, ADDS_EXT);
         if(Folder::isExists(ovrPath)) {
             File::deleteFile(ovrPath);
         }
     }
-    const char* attachmentsPath = CPLResetExtension(m_path, ATTACH_SUFFIX);
+    std::string attachmentsPath = File::resetExtension(m_path, ATTACH_SUFFIX);
     if(Folder::isExists(attachmentsPath)) {
         Folder::rmDir(attachmentsPath);
     }
 
     // aux.xml
-    CPLString auxPath = m_path + ".aux.xml";
+    std::string auxPath = m_path + ".aux.xml";
     if(Folder::isExists(auxPath)) {
         File::deleteFile(auxPath);
     }
 
-    CPLString name = fullName();
+    std::string name = fullName();
     if(m_parent) {
         m_parent->notifyChanges();
     }
@@ -425,20 +398,56 @@ bool Dataset::destroy()
     return true;
 }
 
-char** Dataset::metadata(const char* domain) const {
-    if(nullptr == m_DS)
-        return nullptr;
-    CPLMutexHolder holder(m_executeSQLMutex);
-    return m_DS->GetMetadata(domain);
+Properties Dataset::properties(const std::string &domain) const {
+    if(nullptr == m_DS) {
+        return Properties();
+    }
+
+    MutexHolder holder(m_executeSQLMutex);
+
+    // 1. Get gdal metadata
+    Properties out(m_DS->GetMetadata(domain.c_str()));
+
+    if(!m_metadata) {
+        return out;
+    }
+
+    // 2. Get ngs properties
+    m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s.%%\"", META_KEY,
+                                              domain.c_str()));
+    FeaturePtr feature;
+    while((feature = m_metadata->GetNextFeature())) {
+        std::string key = feature->GetFieldAsString(0) + domain.size() + 1;
+        std::string value = feature->GetFieldAsString(1);
+
+        out.add(key, value);
+    }
+    m_metadata->SetAttributeFilter(nullptr);
+
+    return out;
 }
 
-bool Dataset::isNameValid(const char* name) const
+void Dataset::deleteProperties(const std::string &domain)
 {
-    for(const ObjectPtr& object : m_children)
-        if(EQUAL(object->name(), name))
+    m_DS->SetMetadata(nullptr, domain.c_str());
+
+    if(!m_metadata) {
+        return;
+    }
+    executeSQL(CPLSPrintf("DELETE FROM %s WHERE %s LIKE \"%s.%%\"",
+                          METHADATA_TABLE_NAME, META_KEY, domain.c_str()));
+}
+
+bool Dataset::isNameValid(const std::string &name) const
+{
+    for(const ObjectPtr &object : m_children) {
+        if(compare(object->name(), name)) {
             return false;
-    if(EQUAL(METHADATA_TABLE_NAME, name) && Filter::isDatabase(m_type))
+        }
+    }
+    if(compare(METHADATA_TABLE_NAME, name) && Filter::isDatabase(m_type)) {
         return false;
+    }
     return true;
 }
 
@@ -448,10 +457,10 @@ bool forbiddenChar(char c)
             forbiddenChars.end();
 }
 
-CPLString Dataset::normalizeDatasetName(const CPLString &name) const
+std::string Dataset::normalizeDatasetName(const std::string &name) const
 {
     // create unique name
-    CPLString outName;
+    std::string outName;
     if(name.empty()) {
         outName = "new_dataset";
     }
@@ -460,10 +469,10 @@ CPLString Dataset::normalizeDatasetName(const CPLString &name) const
         replace_if(outName.begin(), outName.end(), forbiddenChar, '_');
     }
 
-    CPLString originName = outName;
+    std::string originName = outName;
     int nameCounter = 0;
     while(!isNameValid (outName)) {
-        outName = originName + "_" + CPLSPrintf("%d", ++nameCounter);
+        outName = originName + "_" + std::to_string(++nameCounter);
         if(nameCounter == MAX_EQUAL_NAMES) {
             return "";
         }
@@ -472,9 +481,9 @@ CPLString Dataset::normalizeDatasetName(const CPLString &name) const
     return outName;
 }
 
-CPLString Dataset::normalizeFieldName(const CPLString &name) const
+std::string Dataset::normalizeFieldName(const std::string &name) const
 {
-    CPLString out = normalize(name); // TODO: add lang support, i.e. ru_RU)
+    std::string out = normalize(name); // TODO: add lang support, i.e. ru_RU)
 
     replace_if(out.begin(), out.end(), forbiddenChar, '_');
 
@@ -483,8 +492,8 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
 
     if(Filter::isDatabase(m_type)) {
         // Check for sql forbidden names
-        CPLString testFb = out.toupper();
-        if(find(forbiddenSQLFieldNames.begin (), forbiddenSQLFieldNames.end(),
+        std::string testFb = CPLString(out).toupper();
+        if(find(forbiddenSQLFieldNames.begin(), forbiddenSQLFieldNames.end(),
                 testFb) != forbiddenSQLFieldNames.end()) {
             out += "_";
         }
@@ -493,22 +502,21 @@ CPLString Dataset::normalizeFieldName(const CPLString &name) const
     return out;
 }
 
-bool Dataset::skipFillFeatureClass(OGRLayer* layer)
+bool Dataset::skipFillFeatureClass(OGRLayer *layer) const
 {
-    if(EQUAL(layer->GetName(), METHADATA_TABLE_NAME)) {
-        m_metadata = layer;
+    if(compare(layer->GetName(), METHADATA_TABLE_NAME)) {
         return true;
     }
-    if(EQUALN(layer->GetName(), NG_PREFIX, NG_PREFIX_LEN)) {
+    if(comparePart(layer->GetName(), NG_PREFIX, NG_PREFIX_LEN)) {
         return true;
     }
     return false;
 }
 
-void Dataset::fillFeatureClasses()
+void Dataset::fillFeatureClasses() const
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
-        OGRLayer* layer = m_DS->GetLayer(i);
+        OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             // Hide metadata, overviews, history tables
@@ -516,21 +524,21 @@ void Dataset::fillFeatureClasses()
                 continue;
             }
 
-            const char* layerName = layer->GetName();
-            // layer->GetLayerDefn()->GetGeomFieldCount() == 0
+            const char *layerName = layer->GetName();
+            Dataset *parent = const_cast<Dataset*>(this);
             if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new Table(layer, this,
+                m_children.push_back(ObjectPtr(new Table(layer, parent,
                         CAT_TABLE_ANY, layerName)));
             }
             else {
-                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
+                m_children.push_back(ObjectPtr(new FeatureClass(layer, parent,
                             CAT_FC_ANY, layerName)));
             }
         }
     }
 }
 
-GDALDataset* Dataset::createAdditionsDataset()
+GDALDataset *Dataset::createAdditionsDataset()
 {
     if(m_addsDS) {
         return m_addsDS;
@@ -542,22 +550,21 @@ GDALDataset* Dataset::createAdditionsDataset()
         return m_addsDS;
     }
     else {
-        CPLString ovrPath = CPLResetExtension(m_path, ADDS_EXT);
+        std::string ovrPath = File::resetExtension(m_path, ADDS_EXT);
         CPLErrorReset();
-        GDALDriver* poDriver = Filter::getGDALDriver(CAT_CONTAINER_SQLITE);
+        GDALDriver *poDriver = Filter::getGDALDriver(CAT_CONTAINER_SQLITE);
         if(poDriver == nullptr) {
-            errorMessage(COD_CREATE_FAILED,
-                                _("SQLite driver is not present"));
+            outMessage(COD_CREATE_FAILED, _("SQLite driver is not present"));
             return nullptr;
         }
 
         Options options;
-        options.addOption("METADATA", "NO");
-        options.addOption("SPATIALITE", "NO");
-        options.addOption("INIT_WITH_EPSG", "NO");
-        auto createOptionsPointer = options.getOptions();
+        options.add("METADATA", "NO");
+        options.add("SPATIALITE", "NO");
+        options.add("INIT_WITH_EPSG", "NO");
+        auto createOptionsPointer = options.asCharArray();
 
-        GDALDataset* DS = poDriver->Create(ovrPath, 0, 0, 0, GDT_Unknown,
+        GDALDataset *DS = poDriver->Create(ovrPath.c_str(), 0, 0, 0, GDT_Unknown,
                                            createOptionsPointer.get());
         if(DS == nullptr) {
             errorMessage(CPLGetLastErrorMsg());
@@ -568,7 +575,7 @@ GDALDataset* Dataset::createAdditionsDataset()
     }
 }
 
-OGRLayer* Dataset::createOverviewsTable(const char* name)
+OGRLayer *Dataset::createOverviewsTable(const std::string &name)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -580,7 +587,7 @@ OGRLayer* Dataset::createOverviewsTable(const char* name)
     return createOverviewsTable(m_addsDS, overviewsTableName(name));
 }
 
-bool Dataset::createOverviewsTableIndex(const char* name)
+bool Dataset::createOverviewsTableIndex(const std::string &name)
 {
     if(!m_addsDS)
         return false;
@@ -588,7 +595,7 @@ bool Dataset::createOverviewsTableIndex(const char* name)
     return createOverviewsTableIndex(m_addsDS, overviewsTableName(name));
 }
 
-bool Dataset::dropOverviewsTableIndex(const char* name)
+bool Dataset::dropOverviewsTableIndex(const std::string &name)
 {
     if(!m_addsDS)
         return false;
@@ -596,50 +603,51 @@ bool Dataset::dropOverviewsTableIndex(const char* name)
     return dropOverviewsTableIndex(m_addsDS, overviewsTableName(name));
 }
 
-const char* Dataset::overviewsTableName(const char* name) const
+std::string Dataset::overviewsTableName(const std::string &name) const
 {
-    return CPLSPrintf("%s%s_%s", NG_PREFIX, name, OVR_SUFFIX);
+    return NG_PREFIX + name + "_" + OVR_SUFFIX;
 }
 
-bool Dataset::createOverviewsTableIndex(GDALDataset* ds, const char* name)
+bool Dataset::createOverviewsTableIndex(GDALDataset *ds, const std::string &name)
 {
-    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s, %s)", name,
-                              name, OVR_X_KEY, OVR_Y_KEY, OVR_ZOOM_KEY), nullptr,
-                   nullptr);
+    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s, %s)",
+                              name.c_str(), name.c_str(), OVR_X_KEY, OVR_Y_KEY,
+                              OVR_ZOOM_KEY), nullptr, nullptr);
     return true;
 }
 
-bool Dataset::dropOverviewsTableIndex(GDALDataset* ds, const char* name)
+bool Dataset::dropOverviewsTableIndex(GDALDataset *ds, const std::string &name)
 {
-    ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name), nullptr, nullptr);
+    ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name.c_str()),
+                   nullptr, nullptr);
     return true;
 }
 
-bool Dataset::destroyOverviewsTable(const char* name)
+bool Dataset::destroyOverviewsTable(const std::string &name)
 {
     if(!m_addsDS)
         return false;
 
-    OGRLayer* layer = m_addsDS->GetLayerByName(overviewsTableName(name));
+    OGRLayer *layer = m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
 }
 
-bool Dataset::clearOverviewsTable(const char* name)
+bool Dataset::clearOverviewsTable(const std::string &name)
 {
     return deleteFeatures(overviewsTableName(name));
 }
 
-OGRLayer* Dataset::getOverviewsTable(const char* name)
+OGRLayer *Dataset::getOverviewsTable(const std::string &name)
 {
     if(!m_addsDS)
         return nullptr;
 
-    return m_addsDS->GetLayerByName(overviewsTableName(name));
+    return m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
 }
 
-const char* Dataset::options(enum ngsOptionType optionType) const
+std::string Dataset::options(enum ngsOptionType optionType) const
 {
     switch (optionType) {
     case OT_CREATE_DATASOURCE:
@@ -673,81 +681,45 @@ const char* Dataset::options(enum ngsOptionType optionType) const
     return "";
 }
 
-bool Dataset::hasChildren()
-{
-    if(m_childrenLoaded)
-        return ObjectContainer::hasChildren();
-
-    if(!isOpened()) {
-        if(!open(GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR)) {
-            return false;
-        }
-    }
-
-    // fill vector layers and tables
-    fillFeatureClasses();
-
-    // fill rasters
-    char** subdatasetList = m_DS->GetMetadata("SUBDATASETS");
-    std::vector<CPLString> siblingFiles;
-    if(nullptr != subdatasetList) {
-        int i = 0;
-        size_t strLen = 0;
-        const char* testStr = nullptr;
-        char rasterPath[255];
-        while((testStr = subdatasetList[i++]) != nullptr) {
-            strLen = CPLStrnlen(testStr, 255);
-            if(EQUAL(testStr + strLen - 4, "NAME")) {
-                CPLStrlcpy(rasterPath, testStr, strLen - 4);
-                CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
-                const char* rasterName = pathPortions[pathPortions.size() - 1];
-                m_children.push_back(ObjectPtr(new Raster(siblingFiles, this,
-                    CAT_RASTER_ANY, rasterName, rasterPath)));
-            }
-        }
-        CSLDestroy(subdatasetList);
-    }
-
-    m_childrenLoaded = true;
-
-    return ObjectContainer::hasChildren();
-}
-
 bool Dataset::isReadOnly() const
 {
-    if(m_DS == nullptr)
+    if(m_DS == nullptr) {
         return true;
+    }
     return m_DS->GetAccess() == GA_ReadOnly;
 }
 
 int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                     const Progress &progress)
 {
-    CPLString newName = options.stringOption("NEW_NAME",
-                                                CPLGetBasename(child->name()));
+    std::string newName = options.asString("NEW_NAME",
+                                           File::getBaseName(child->name()));
     newName = normalizeDatasetName(newName);
     if(move) {
         progress.onProgress(COD_IN_PROCESS, 0.0,
-                        _("Move '%s' to '%s'"), newName.c_str (),
-                            m_name.c_str ());
+                        _("Move '%s' to '%s'"), newName.c_str(), m_name.c_str());
     }
     else {
         progress.onProgress(COD_IN_PROCESS, 0.0,
-                        _("Copy '%s' to '%s'"), newName.c_str (),
-                            m_name.c_str ());
+                        _("Copy '%s' to '%s'"), newName.c_str(), m_name.c_str ());
     }
 
     if(child->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset* const dataset = ngsDynamicCast(SimpleDataset, child);
-        dataset->hasChildren();
+        SimpleDataset * const dataset = ngsDynamicCast(SimpleDataset, child);
+        dataset->loadChildren();
         child = dataset->internalObject();
     }
 
-    CPLString fullNameStr;
+    if(!child) {
+        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                          _("Source object is invalid"));
+    }
+
+    std::string fullNameStr;
     if(Filter::isTable(child->type())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
-            return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                 _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->name().c_str());
         }
@@ -775,25 +747,25 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     else if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
-            return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->name().c_str());
         }
-        bool createOvr = options.boolOption("CREATE_OVERVIEWS", false) &&
-                !options.stringOption("ZOOM_LEVELS", "").empty();
-        bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
+        bool createOvr = options.asBool("CREATE_OVERVIEWS", false) &&
+                !options.asString("ZOOM_LEVELS", "").empty();
+        bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
         OGRFeatureDefn * const srcDefinition = srcFClass->definition();
         std::vector<OGRwkbGeometryType> geometryTypes =
                 srcFClass->geometryTypes();
         OGRwkbGeometryType filterFeometryType =
                 FeatureClass::geometryTypeFromName(
-                    options.stringOption("ACCEPT_GEOMETRY", "ANY"));
+                    options.asString("ACCEPT_GEOMETRY", "ANY"));
         for(OGRwkbGeometryType geometryType : geometryTypes) {
             if(filterFeometryType != geometryType &&
                     filterFeometryType != wkbUnknown) {
                 continue;
             }
-            CPLString createName = newName;
+            std::string createName = newName;
             OGRwkbGeometryType newGeometryType = geometryType;
             if(geometryTypes.size () > 1 && filterFeometryType == wkbUnknown) {
                 createName += "_";
@@ -806,7 +778,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             }
 
             std::unique_ptr<FeatureClass> dstFClass(createFeatureClass(createName,
-                CAT_FC_ANY, srcDefinition, srcFClass->getSpatialReference(),
+                CAT_FC_ANY, srcDefinition, srcFClass->spatialReference(),
                 newGeometryType, options));
             if(nullptr == dstFClass) {
                 return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
@@ -840,8 +812,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     }
     else {
         // TODO: raster and container support
-        return errorMessage(COD_UNSUPPORTED,
-                            _("'%s' has unsuported type"), child->name().c_str());
+        return outMessage(COD_UNSUPPORTED,
+                          _("'%s' has unsuported type"), child->name().c_str());
     }
 
     if(m_childrenLoaded) {
@@ -857,45 +829,47 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
 bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly())
+    if(!isOpened() || isReadOnly()) {
         return false;
+    }
     return Filter::isFeatureClass(type) || Filter::isTable(type) ||
             type == CAT_CONTAINER_SIMPLE;
 }
 
 bool Dataset::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly())
+    if(!isOpened() || isReadOnly()) {
         return false;
+    }
     return Filter::isFeatureClass(type) || Filter::isTable(type);
 }
 
-const char* Dataset::additionsDatasetExtension()
+std::string Dataset::additionsDatasetExtension()
 {
     return ADDS_EXT;
 }
 
-const char*Dataset::attachmentsFolderExtension()
+std::string Dataset::attachmentsFolderExtension()
 {
     return ATTACH_SUFFIX;
 }
 
-Dataset* Dataset::create(ObjectContainer* const parent,
+Dataset *Dataset::create(ObjectContainer * const parent,
                         const enum ngsCatalogObjectType type,
-                        const CPLString& name,
-                        const Options& options)
+                        const std::string &name,
+                        const Options &options)
 {
-    GDALDriver* driver = Filter::getGDALDriver(type);
+    GDALDriver *driver = Filter::getGDALDriver(type);
     if(nullptr == driver) {
         return nullptr;
     }
 
-    Dataset* out;
-    CPLString path = CPLFormFilename(parent->path(), name,
-                                     Filter::getExtension(type));
-    if(options.boolOption("OVERWRITE")) {
-        auto ovr = parent->getChild(CPLFormFilename(nullptr, name,
-                                 Filter::getExtension(type)));
+    Dataset *out;
+    std::string path = File::formFileName(parent->path(), name,
+                                          Filter::extension(type));
+    if(options.asBool("OVERWRITE")) {
+        auto ovr = parent->getChild(File::formFileName("", name,
+                                                       Filter::extension(type)));
         if(ovr && !ovr->destroy()) {
             return nullptr;
         }
@@ -908,54 +882,45 @@ Dataset* Dataset::create(ObjectContainer* const parent,
         out = new Dataset(parent, type, name, path);
     }
 
-    auto ptrOpt = options.getOptions();
-    out->m_DS = driver->Create(path, 0, 0, 0, GDT_Unknown, ptrOpt.get());
+    auto ptrOpt = options.asCharArray();
+    out->m_DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, ptrOpt.get());
 
     return out;
 }
 
-TablePtr Dataset::executeSQL(const char* statement, const char* dialect)
+TablePtr Dataset::executeSQL(const std::string &statement, const std::string &dialect)
 {
-    if(nullptr == m_DS) {
-        errorMessage(_("Not opened."));
-        return TablePtr();
-    }
-
-    CPLMutexHolder holder(m_executeSQLMutex);
-
-    OGRLayer* layer = m_DS->ExecuteSQL(statement, nullptr, dialect);
-    if(nullptr == layer) {
-        errorMessage(CPLGetLastErrorMsg());
-        return TablePtr();
-    }
-    if(layer->GetGeomType() == wkbNone)
-        return TablePtr(new Table(layer, this, CAT_QUERY_RESULT));
-    else
-        return TablePtr(new FeatureClass(layer, this, CAT_QUERY_RESULT_FC));
+    return executeSQL(statement, GeometryPtr(), dialect);
 }
 
-TablePtr Dataset::executeSQL(const char* statement,
-                                    GeometryPtr spatialFilter,
-                                    const char* dialect)
+TablePtr Dataset::executeSQL(const std::string &statement,
+                             GeometryPtr spatialFilter,
+                             const std::string &dialect)
 {
     if(nullptr == m_DS) {
         errorMessage(_("Not opened."));
         return TablePtr();
     }
-    OGRGeometry* spaFilter(nullptr);
+
+    OGRGeometry *spaFilter(nullptr);
+
     if(spatialFilter) {
-        spaFilter = spatialFilter.get()->clone();
+        spaFilter = spatialFilter.get();
     }
-    OGRLayer* layer = m_DS->ExecuteSQL(statement, spaFilter, dialect);
+
+    MutexHolder holder(m_executeSQLMutex);
+
+    OGRLayer *layer = m_DS->ExecuteSQL(statement.c_str(), spaFilter, dialect.c_str());
     if(nullptr == layer) {
         errorMessage(CPLGetLastErrorMsg());
         return TablePtr();
     }
-    if(layer->GetGeomType() == wkbNone)
+    if(layer->GetGeomType() == wkbNone) {
         return TablePtr(new Table(layer, this, CAT_QUERY_RESULT));
-    else
+    }
+    else {
         return TablePtr(new FeatureClass(layer, this, CAT_QUERY_RESULT_FC));
-
+    }
 }
 
 bool Dataset::open(unsigned int openFlags, const Options &options)
@@ -971,11 +936,11 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
             m_addsDS->Reference();
         }
         else {
-            const char* ovrPath = CPLResetExtension(m_path, ADDS_EXT);
+            std::string ovrPath = File::resetExtension(m_path, ADDS_EXT);
             if(Folder::isExists(ovrPath)) {
                 m_addsDS = static_cast<GDALDataset*>(
-                            GDALOpenEx(ovrPath, openFlags, nullptr, nullptr,
-                                       nullptr));
+                            GDALOpenEx(ovrPath.c_str(), openFlags, nullptr,
+                                       nullptr, nullptr));
             }
         }
 
@@ -989,14 +954,14 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
     return result;
 }
 
-OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
+OGRLayer *Dataset::createMetadataTable(GDALDataset *ds)
 {
     CPLErrorReset();
     if(nullptr == ds) {
         return nullptr;
     }
 
-    OGRLayer* metadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
+    OGRLayer *metadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
                                                    wkbNone, nullptr);
     if (nullptr == metadataLayer) {
         return nullptr;
@@ -1018,7 +983,7 @@ OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
     feature->SetField(META_KEY, NGS_VERSION_KEY);
     feature->SetField(META_VALUE, NGS_VERSION_NUM);
     if(metadataLayer->CreateFeature(feature) != OGRERR_NONE) {
-        warningMessage(COD_WARNING, _("Failed to add version to methadata"));
+        outMessage(COD_WARNING, _("Failed to add version to methadata"));
     }
 
     if(ds->GetDriver() == Filter::getGDALDriver(CAT_CONTAINER_GPKG)) {
@@ -1029,7 +994,7 @@ OGRLayer* Dataset::createMetadataTable(GDALDataset* ds)
     return metadataLayer;
 }
 
-bool Dataset::destroyTable(GDALDataset* ds, OGRLayer* layer)
+bool Dataset::destroyTable(GDALDataset *ds, OGRLayer *layer)
 {
     for(int i = 0; i < ds->GetLayerCount (); ++i) {
         if(ds->GetLayer(i) == layer) {
@@ -1042,11 +1007,11 @@ bool Dataset::destroyTable(GDALDataset* ds, OGRLayer* layer)
     return false;
 }
 
-OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
+OGRLayer *Dataset::createOverviewsTable(GDALDataset *ds, const std::string &name)
 {
-    OGRLayer* ovrLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
+    OGRLayer *ovrLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == ovrLayer) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -1059,18 +1024,18 @@ OGRLayer* Dataset::createOverviewsTable(GDALDataset* ds, const char* name)
        ovrLayer->CreateField(&yField) != OGRERR_NONE ||
        ovrLayer->CreateField(&zField) != OGRERR_NONE ||
        ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     return ovrLayer;
 }
 
-OGRLayer* Dataset::createEditHistoryTable(GDALDataset* ds, const char* name)
+OGRLayer *Dataset::createEditHistoryTable(GDALDataset *ds, const std::string &name)
 {
-    OGRLayer* logLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
+    OGRLayer *logLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == logLayer) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -1082,25 +1047,25 @@ OGRLayer* Dataset::createEditHistoryTable(GDALDataset* ds, const char* name)
     if(logLayer->CreateField(&fidField) != OGRERR_NONE ||
        logLayer->CreateField(&afidField) != OGRERR_NONE ||
        logLayer->CreateField(&opField) != OGRERR_NONE) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     return logLayer;
 }
 
-OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
-                                          const char* name)
+OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &path,
+                                        const std::string &name)
 {
-    OGRLayer* attLayer = ds->CreateLayer(name, nullptr, wkbNone, nullptr);
+    OGRLayer *attLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     // Create folder for files
-    if(nullptr != path) {
-        CPLString attachmentsPath = CPLResetExtension(path, ATTACH_SUFFIX);
+    if(path.empty()) {
+        std::string attachmentsPath = File::resetExtension(path, ATTACH_SUFFIX);
         if(!Folder::isExists(attachmentsPath)) {
             Folder::mkDir(attachmentsPath);
         }
@@ -1114,14 +1079,14 @@ OGRLayer* Dataset::createAttachmentsTable(GDALDataset* ds, const char* path,
     if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
        attLayer->CreateField(&descField) != OGRERR_NONE) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     return attLayer;
 }
 
-OGRLayer* Dataset::createAttachmentsTable(const char* name)
+OGRLayer *Dataset::createAttachmentsTable(const std::string &name)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -1134,26 +1099,26 @@ OGRLayer* Dataset::createAttachmentsTable(const char* name)
     return createAttachmentsTable(m_addsDS, m_path, attachmentsTableName(name));
 }
 
-bool Dataset::destroyAttachmentsTable(const char* name)
+bool Dataset::destroyAttachmentsTable(const std::string &name)
 {
     if(!m_addsDS)
         return false;
 
-    OGRLayer* layer = m_addsDS->GetLayerByName(attachmentsTableName(name));
+    OGRLayer *layer = m_addsDS->GetLayerByName(attachmentsTableName(name).c_str());
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
 }
 
-OGRLayer* Dataset::getAttachmentsTable(const char* name)
+OGRLayer *Dataset::getAttachmentsTable(const std::string &name)
 {
     if(!m_addsDS)
         return nullptr;
 
-    return m_addsDS->GetLayerByName(attachmentsTableName(name));
+    return m_addsDS->GetLayerByName(attachmentsTableName(name).c_str());
 }
 
-OGRLayer* Dataset::createEditHistoryTable(const char* name)
+OGRLayer *Dataset::createEditHistoryTable(const std::string &name)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -1166,80 +1131,81 @@ OGRLayer* Dataset::createEditHistoryTable(const char* name)
     return createEditHistoryTable(m_addsDS, historyTableName(name));
 }
 
-bool Dataset::destroyEditHistoryTable(const char* name)
+bool Dataset::destroyEditHistoryTable(const std::string &name)
 {
     if(!m_addsDS)
         return false;
-    OGRLayer* layer = m_addsDS->GetLayerByName(historyTableName(name));
+    OGRLayer *layer = m_addsDS->GetLayerByName(historyTableName(name).c_str());
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
 }
 
-OGRLayer* Dataset::getEditHistoryTable(const char* name)
+OGRLayer *Dataset::getEditHistoryTable(const std::string &name)
 {
     if(!m_addsDS)
         return nullptr;
-    return m_addsDS->GetLayerByName(historyTableName(name));
+    return m_addsDS->GetLayerByName(historyTableName(name).c_str());
 }
 
-void Dataset::clearEditHistoryTable(const char* name)
+void Dataset::clearEditHistoryTable(const std::string &name)
 {
     deleteFeatures(historyTableName(name));
 }
 
-const char* Dataset::historyTableName(const char* name) const
+std::string Dataset::historyTableName(const std::string &name) const
 {
-    return CPLSPrintf("%s%s_%s", NG_PREFIX, name, HISTORY_SUFFIX);
+    return NG_PREFIX + name + "_" + HISTORY_SUFFIX;
 }
 
-const char* Dataset::attachmentsTableName(const char* name) const
+std::string Dataset::attachmentsTableName(const std::string &name) const
 {
-    return CPLSPrintf("%s%s_%s", NG_PREFIX, name, ATTACH_SUFFIX);
+    return NG_PREFIX + name + "_" + ATTACH_SUFFIX;
 }
 
-bool Dataset::deleteFeatures(const char* name)
+bool Dataset::deleteFeatures(const std::string &name)
 {
-    GDALDataset* ds = nullptr;
-    if(m_DS->GetLayerByName(name) != nullptr) {
+    GDALDataset *ds(nullptr);
+    if(m_DS->GetLayerByName(name.c_str()) != nullptr) {
         ds = m_DS;
     }
 
-    if(!ds && m_addsDS->GetLayerByName(name) != nullptr) {
+    if(!ds && m_addsDS->GetLayerByName(name.c_str()) != nullptr) {
         ds = m_addsDS;
     }
 
-    if(!ds)
+    if(!ds) {
         return false;
+    }
     CPLErrorReset();
-    CPLMutexHolder holder(m_executeSQLMutex);
-    ds->ExecuteSQL(CPLSPrintf("DELETE from %s", name), nullptr, nullptr);
+    MutexHolder holder(m_executeSQLMutex);
+    ds->ExecuteSQL(CPLSPrintf("DELETE from %s", name.c_str()), nullptr, nullptr);
     return CPLGetLastErrorType() < CE_Failure;
 }
 
 void Dataset::refresh()
 {
     if(!m_childrenLoaded) {
-        hasChildren();
+        loadChildren();
         return;
     }
 
-    std::vector<const char*> deleteNames, addNames;
+    std::vector<std::string> deleteNames, addNames;
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
-        OGRLayer* layer = m_DS->GetLayer(i);
+        OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             // Hide metadata, overviews, history tables
             if(skipFillFeatureClass(layer)) {
                 continue;
             }
-            const char* layerName = layer->GetName();
+            const char *layerName = layer->GetName();
             CPLDebug("ngstore", "refresh layer %s", layerName);
             addNames.push_back(layerName);
         }
     }
 
     // Fill delete names array
-    for(const ObjectPtr& child : m_children) {
+    for(const ObjectPtr &child : m_children) {
         CPLDebug("ngstore", "refresh del layer %s", child->name().c_str());
         deleteNames.push_back(child->name());
     }
@@ -1247,13 +1213,12 @@ void Dataset::refresh()
     // Remove same names from add and delete arrays
     removeDuplicates(deleteNames, addNames);
 
-    CPLDebug("ngstore", "Add count %ld, delete count %ld", addNames.size(),
-             deleteNames.size());
+    CPLDebug("ngstore", "Add count %ld, delete count %ld", addNames.size(), deleteNames.size());
 
     // Delete objects
     auto it = m_children.begin();
     while(it != m_children.end()) {
-        const char* name = (*it)->name();
+        std::string name = (*it)->name();
         auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
         if(itdn != deleteNames.end()) {
             deleteNames.erase(itdn);
@@ -1265,8 +1230,8 @@ void Dataset::refresh()
     }
 
     // Create new objects
-    for(auto layerName: addNames) {
-        OGRLayer* layer = m_DS->GetLayerByName(layerName);
+    for(const auto &layerName : addNames) {
+        OGRLayer *layer = m_DS->GetLayerByName(layerName.c_str());
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             if(geometryType == wkbNone) {
@@ -1279,6 +1244,82 @@ void Dataset::refresh()
             }
         }
     }
+}
+
+bool Dataset::loadChildren()
+{
+    if(m_childrenLoaded) {
+        return true;
+    }
+
+    if(!isOpened()) {
+        if(!open()) {
+            return false;
+        }
+    }
+
+    // fill vector layers and tables
+    fillFeatureClasses();
+
+    // fill rasters
+    char **subdatasetList = m_DS->GetMetadata("SUBDATASETS");
+    std::vector<std::string> siblingFiles;
+    if(nullptr != subdatasetList) {
+        int i = 0;
+        size_t strLen = 0;
+        const char* testStr = nullptr;
+        char rasterPath[255];
+        while((testStr = subdatasetList[i++]) != nullptr) {
+            strLen = CPLStrnlen(testStr, 255);
+            if(compare(testStr + strLen - 4, "NAME")) {
+                CPLStrlcpy(rasterPath, testStr, strLen - 4);
+                CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
+                const char *rasterName = pathPortions[pathPortions.size() - 1];
+                Dataset *parent = const_cast<Dataset *>(this);
+                m_children.push_back(ObjectPtr(new Raster(siblingFiles, parent,
+                    CAT_RASTER_ANY, rasterName, rasterPath)));
+            }
+        }
+        CSLDestroy(subdatasetList);
+    }
+
+    m_childrenLoaded = true;
+
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// DatasetBatchOperationHolder
+//------------------------------------------------------------------------------
+
+DatasetBatchOperationHolder::DatasetBatchOperationHolder(Dataset *dataset) :
+    m_dataset(dataset)
+{
+    if(nullptr != m_dataset)
+        m_dataset->startBatchOperation();
+}
+
+DatasetBatchOperationHolder::~DatasetBatchOperationHolder()
+{
+    if(nullptr != m_dataset)
+        m_dataset->stopBatchOperation();
+}
+
+//------------------------------------------------------------------------------
+// DatasetExecuteSQLLockHolder
+//------------------------------------------------------------------------------
+
+DatasetExecuteSQLLockHolder::DatasetExecuteSQLLockHolder(Dataset* dataset) :
+    m_dataset(dataset)
+{
+    if(nullptr != m_dataset)
+        m_dataset->lockExecuteSql(true);
+}
+
+DatasetExecuteSQLLockHolder::~DatasetExecuteSQLLockHolder()
+{
+    if(nullptr != m_dataset)
+        m_dataset->lockExecuteSql(false);
 }
 
 } // namespace ngs

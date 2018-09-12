@@ -24,6 +24,9 @@
 #include "ngstore/codes.h"
 #include "objectcontainer.h"
 
+// gdal
+#include "cpl_port.h"
+
 namespace ngs {
 
 class File : public Object
@@ -31,20 +34,31 @@ class File : public Object
 public:
     explicit File(ObjectContainer * const parent = nullptr,
          const enum ngsCatalogObjectType type = CAT_FILE_ANY,
-         const CPLString & name = "",
-         const CPLString & path = "");
+         const std::string &name = "",
+         const std::string &path = "");
 
 public:
-    static bool deleteFile(const char* path);
-    static time_t modificationDate(const char* path);
-    static GIntBig fileSize(const char* path);
-    static bool copyFile(const char* src, const char* dst,
+    static bool deleteFile(const std::string &path);
+    static time_t modificationDate(const std::string &path);
+    static GIntBig fileSize(const std::string &path);
+    static bool copyFile(const std::string &src, const std::string &dst,
                          const Progress &progress = Progress());
-    static bool moveFile(const char* src, const char* dst,
+    static bool moveFile(const std::string &src, const std::string &dst,
                          const Progress &progress = Progress());
-    static bool renameFile(const char* src, const char* dst,
-                         const Progress &progress = Progress());
-    static bool writeFile(const char* file, const void* buffer, size_t size);
+    static bool renameFile(const std::string &src, const std::string &dst,
+                           const Progress &progress = Progress());
+    static bool writeFile(const std::string &file, const void* buffer,
+                          size_t size);
+    static std::string formFileName(const std::string &path,
+                                    const std::string &name,
+                                    const std::string &ext = "");
+    static std::string resetExtension(const std::string &path,
+                                      const std::string &ext = "");
+    static std::string getFileName(const std::string &path);
+    static std::string getBaseName(const std::string &path);
+    static std::string getExtension(const std::string &path);
+    static std::string getDirName(const std::string &path);
+    static std::string getPath(const std::string &path);
     // Object interface
 public:
     virtual bool destroy() override;

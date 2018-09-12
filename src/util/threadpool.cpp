@@ -28,7 +28,8 @@ namespace ngs {
 //------------------------------------------------------------------------------
 // ThreadData
 //------------------------------------------------------------------------------
-ThreadData::ThreadData(bool own) : m_own(own),
+ThreadData::ThreadData(bool own) :
+    m_own(own),
     m_tries(0)
 {
 
@@ -38,8 +39,6 @@ ThreadData::ThreadData(bool own) : m_own(own),
 // ThreadPool
 //------------------------------------------------------------------------------
 ThreadPool::ThreadPool() :
-    m_dataMutex(CPLCreateMutex()),
-    m_threadMutex(CPLCreateMutex()),
     m_function(nullptr),
     m_maxThreadCount(1),
     m_threadCount(0),
@@ -47,15 +46,11 @@ ThreadPool::ThreadPool() :
     m_stopOnFirstFail(false),
     m_failed(false)
 {
-    CPLReleaseMutex(m_dataMutex);
-    CPLReleaseMutex(m_threadMutex);
 }
 
 ThreadPool::~ThreadPool()
 {
     clearThreadData();
-    CPLDestroyMutex(m_dataMutex);
-    CPLDestroyMutex(m_threadMutex);
 }
 
 void ThreadPool::init(unsigned char numThreads, poolThreadFunction function,
@@ -69,18 +64,22 @@ void ThreadPool::init(unsigned char numThreads, poolThreadFunction function,
 
 void ThreadPool::addThreadData(ThreadData *data)
 {
-    CPLAcquireMutex(m_dataMutex, 15.5);
+    m_dataMutex.acquire(15.5);
     m_threadData.push_back(data);
-    CPLReleaseMutex(m_dataMutex);
+    m_dataMutex.release();
 
     newWorker();
 }
 
 void ThreadPool::clearThreadData()
 {
-    CPLMutexHolder holder(m_dataMutex, 25.5);
-    for(ThreadData* data : m_threadData) {
-        if(data->isOwn()) {
+    MutexHolder holder(m_dataMutex, 25.5);
+    if(m_threadData.empty()) {
+        return;
+    }
+
+    for(ThreadData *data : m_threadData) {
+        if(data && data->isOwn()) {
             delete data;
         }
     }
@@ -93,14 +92,14 @@ void ThreadPool::waitComplete(const Progress &progress)
     size_t currentDataCount = dataCount();
     while(true) {
 
-        CPLAcquireMutex(m_threadMutex, 7.0);
+        m_threadMutex.acquire(7.0);
         complete = m_threadCount <= 0;
         double completePercent = double(dataCount()) / currentDataCount;
         if(!progress.onProgress(COD_IN_PROCESS, 1.0 - completePercent,
                                 _("Working..."))) {
             clearThreadData();
         }
-        CPLReleaseMutex(m_threadMutex);
+        m_threadMutex.release();
 
         if(complete) {
             return;
@@ -112,14 +111,14 @@ void ThreadPool::waitComplete(const Progress &progress)
 
 bool ThreadPool::process()
 {
-    CPLAcquireMutex(m_dataMutex, 19.5);
+    m_dataMutex.acquire(19.5);
     if(m_threadData.empty()) {
-        CPLReleaseMutex(m_dataMutex);
+        m_dataMutex.release();
         return false;
     }
     ThreadData* data = m_threadData.front();
     m_threadData.pop_front();
-    CPLReleaseMutex(m_dataMutex);
+    m_dataMutex.release();
     if(nullptr == data) {
         return false; // Should never happened.
     }
@@ -141,7 +140,7 @@ bool ThreadPool::process()
     }
     else {
         data->increaseTries();
-        CPLMutexHolder holder(m_dataMutex, 19.5);
+        MutexHolder holder(m_dataMutex, 19.5);
         m_threadData.push_back(data);
     }
 
@@ -150,11 +149,11 @@ bool ThreadPool::process()
 
 void ThreadPool::finished()
 {
-    CPLAcquireMutex(m_threadMutex, 19.5);
+    m_threadMutex.acquire(19.5);
     m_threadCount--;
-    CPLReleaseMutex(m_threadMutex);
+    m_threadMutex.release();
 
-    CPLMutexHolder holder(m_dataMutex, 19.5);
+    MutexHolder holder(m_dataMutex, 19.5);
     if(m_threadData.empty()) {
         return;
     }
@@ -164,7 +163,7 @@ void ThreadPool::finished()
 
 void ThreadPool::newWorker()
 {
-    CPLMutexHolder holder(m_threadMutex, 19.5);
+    MutexHolder holder(m_threadMutex, 19.5);
     if(m_threadCount == m_maxThreadCount) {
         return;
     }

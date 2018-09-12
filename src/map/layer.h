@@ -34,8 +34,8 @@
 
 namespace ngs {
 
-constexpr const char* LAYER_TYPE_KEY = "type";
-constexpr const char* DEFAULT_LAYER_NAME = "new layer";
+constexpr const char *LAYER_TYPE_KEY = "type";
+constexpr const char *DEFAULT_LAYER_NAME = "new layer";
 
 class Map;
 
@@ -53,36 +53,36 @@ public:
     };
 
 public:
-    explicit Layer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME,
+    explicit Layer(Map *map, const std::string& name = DEFAULT_LAYER_NAME,
                    enum Type type = Type::Invalid);
     virtual ~Layer() = default;
-    virtual bool load(const CPLJSONObject& store,
+    virtual bool load(const CPLJSONObject &store,
                       ObjectContainer *objectContainer = nullptr);
-    virtual CPLJSONObject save(const ObjectContainer * objectContainer = nullptr) const;
+    virtual CPLJSONObject save(const ObjectContainer *objectContainer = nullptr) const;
     virtual ObjectPtr datasource() const { return ObjectPtr();}
-    virtual const CPLString &name() const { return m_name; }
-    virtual void setName(const CPLString &name) { m_name = name; }
+    virtual std::string name() const { return m_name; }
+    virtual void setName(const std::string &name) { m_name = name; }
     virtual bool visible() const { return m_visible; }
     virtual void setVisible(bool visible) { m_visible = visible; }
-    Map* map() const { return m_map; }
+    Map *map() const { return m_map; }
 protected:
-    CPLString m_name;
+    std::string m_name;
     enum Type m_type;
     bool m_visible;
-    Map* m_map;
+    Map *m_map;
 };
 
-typedef std::shared_ptr<Layer> LayerPtr;
-typedef std::set<GIntBig> FeatureIDs;
+using LayerPtr = std::shared_ptr<Layer>;
+using FeatureIDs = std::set<GIntBig>;
 
 class ISelectableFeatureLayer {
 public:
     virtual ~ISelectableFeatureLayer() = default;
-    virtual void setSelectedIds(const FeatureIDs& selectedIds) {
+    virtual void setSelectedIds(const FeatureIDs &selectedIds) {
         m_selectedFIDs.clear();
         m_selectedFIDs.insert(selectedIds.begin(), selectedIds.end());
     }
-    virtual const FeatureIDs& selectedIds() const { return m_selectedFIDs; }
+    virtual const FeatureIDs &selectedIds() const { return m_selectedFIDs; }
     virtual bool hasSelectedIds() const { return !m_selectedFIDs.empty(); }
     virtual void setHideIds(const FeatureIDs& hideIds = FeatureIDs()) {
         m_hideFIDs.clear();
@@ -99,8 +99,8 @@ protected:
 class FeatureLayer : public Layer, public ISelectableFeatureLayer
 {
 public:
-    explicit FeatureLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
-    virtual ~FeatureLayer() = default;
+    explicit FeatureLayer(Map *map, const std::string& name = DEFAULT_LAYER_NAME);
+    virtual ~FeatureLayer() override = default;
     virtual void setFeatureClass(const FeatureClassPtr &featureClass) {
         m_featureClass = featureClass;
     }
@@ -123,8 +123,8 @@ protected:
 class RasterLayer : public Layer
 {
 public:
-    explicit RasterLayer(Map* map, const CPLString& name = DEFAULT_LAYER_NAME);
-    virtual ~RasterLayer() = default;
+    explicit RasterLayer(Map *map, const std::string& name = DEFAULT_LAYER_NAME);
+    virtual ~RasterLayer() override = default;
     virtual void setRaster(const RasterPtr &raster) {
         m_raster = raster;
     }

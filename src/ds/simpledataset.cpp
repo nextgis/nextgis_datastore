@@ -27,31 +27,48 @@
 namespace ngs {
 
 SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
-                             std::vector<CPLString> siblingFiles,
+                             std::vector<std::string> siblingFiles,
                              ObjectContainer * const parent,
-                             const CPLString &name,
-                             const CPLString &path) :
+                             const std::string &name,
+                             const std::string &path) :
     Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
-    m_subType(subType), m_siblingFiles(siblingFiles)
+    m_subType(subType),
+    m_siblingFiles(siblingFiles)
 {
 
+}
+
+std::vector<std::string> SimpleDataset::siblingFiles() const
+{
+    return m_siblingFiles;
 }
 
 ObjectPtr SimpleDataset::internalObject() const
 {
-    if(m_children.empty())
+    if(m_children.empty()) {
         return ObjectPtr();
+    }
     return m_children[0];
 }
 
-bool SimpleDataset::hasChildren()
+bool SimpleDataset::hasChildren() const
 {
-    if(m_childrenLoaded)
-        return false;
+    return false; // Don't show only one child
+}
 
-    Dataset::hasChildren();
-
+bool SimpleDataset::canCreate(const enum ngsCatalogObjectType) const
+{
     return false;
+}
+
+bool SimpleDataset::canPaste(const enum ngsCatalogObjectType) const
+{
+    return false;
+}
+
+enum ngsCatalogObjectType SimpleDataset::subType() const
+{
+    return m_subType;
 }
 
 bool SimpleDataset::destroy()
@@ -64,7 +81,7 @@ bool SimpleDataset::destroy()
     }
 
     for(const auto &siblingFile : m_siblingFiles) {
-        const char* path = CPLFormFilename(m_parent->path(), siblingFile, nullptr);
+        std::string path = File::formFileName(m_parent->path(), siblingFile);
         if(Folder::isDir(path)) {
             Folder::rmDir(path);
         }
@@ -82,36 +99,37 @@ bool SimpleDataset::destroy()
     return true;
 }
 
-void SimpleDataset::fillFeatureClasses()
+void SimpleDataset::fillFeatureClasses() const
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
-        OGRLayer* layer = m_DS->GetLayer(i);
+        OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
-            const char* layerName = layer->GetName();
+            std::string layerName = layer->GetName();
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
+            SimpleDataset *parent = const_cast<SimpleDataset*>(this);
             if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new Table(layer, this,m_subType,
-                                                         layerName)));
+                m_children.push_back(
+                        ObjectPtr(new Table(layer, parent, m_subType, layerName)));
             }
             else {
-                m_children.push_back(ObjectPtr(new FeatureClass(layer, this,
-                                                                m_subType,
-                                                                layerName)));
+                m_children.push_back(
+                            ObjectPtr(new FeatureClass(layer, parent, m_subType,
+                                                       layerName)));
             }
             break;
         }
     }
 }
 
-GDALDataset* SimpleDataset::createAdditionsDataset()
+GDALDataset *SimpleDataset::createAdditionsDataset()
 {
-    GDALDataset* out = Dataset::createAdditionsDataset();
+    GDALDataset *out = Dataset::createAdditionsDataset();
     if(out) {
         m_siblingFiles.push_back(
-                    CPLResetExtension(m_path, Dataset::additionsDatasetExtension()));
+             File::resetExtension(m_path, Dataset::additionsDatasetExtension()));
         m_siblingFiles.push_back(
-                    CPLResetExtension(m_path, Dataset::attachmentsFolderExtension()));
+             File::resetExtension(m_path, Dataset::attachmentsFolderExtension()));
     }
     return out;
 }

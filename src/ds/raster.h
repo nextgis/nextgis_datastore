@@ -27,22 +27,22 @@
 
 namespace ngs {
 
-constexpr const char* KEY_URL = "url";
-constexpr const char* KEY_EPSG = "epsg";
-constexpr const char* KEY_Z_MIN = "z_min";
-constexpr const char* KEY_Z_MAX = "z_max";
-constexpr const char* KEY_Y_ORIGIN_TOP = "y_origin_top";
-constexpr const char* KEY_EXTENT = "extent";
-constexpr const char* KEY_LIMIT_EXTENT = "limit_extent";
-constexpr const char* KEY_BAND_COUNT = "band_count";
-constexpr const char* KEY_CACHE_EXPIRES = "cache_expires";
-constexpr const char* KEY_CACHE_MAX_SIZE = "cache_max_size";
+constexpr const char *KEY_URL = "url";
+constexpr const char *KEY_EPSG = "epsg";
+constexpr const char *KEY_Z_MIN = "z_min";
+constexpr const char *KEY_Z_MAX = "z_max";
+constexpr const char *KEY_Y_ORIGIN_TOP = "y_origin_top";
+constexpr const char *KEY_EXTENT = "extent";
+constexpr const char *KEY_LIMIT_EXTENT = "limit_extent";
+constexpr const char *KEY_BAND_COUNT = "band_count";
+constexpr const char *KEY_CACHE_EXPIRES = "cache_expires";
+constexpr const char *KEY_CACHE_MAX_SIZE = "cache_max_size";
 
 constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60; // 7 days
 constexpr const int defaultCacheMaxSize = 32 * 1024 * 1024; // 32 Mb
 
 typedef struct _imageData {
-    unsigned char* buffer;
+    unsigned char *buffer;
     int width;
     int height;
 } ImageData;
@@ -53,12 +53,12 @@ typedef struct _imageData {
 class Raster : public Object, public DatasetBase, public SpatialDataset
 {
 public:
-    explicit Raster(std::vector<CPLString> siblingFiles,
-           ObjectContainer * const parent = nullptr,
-           const enum ngsCatalogObjectType type = CAT_RASTER_ANY,
-           const CPLString & name = "",
-           const CPLString & path = "");
-    virtual ~Raster();
+    explicit Raster(std::vector<std::string> siblingFiles,
+                    ObjectContainer * const parent = nullptr,
+                    const enum ngsCatalogObjectType type = CAT_RASTER_ANY,
+                    const std::string &name = "",
+                    const std::string &path = "");
+    virtual ~Raster() override;
 public:
     enum WorldFileType {
         FIRSTLASTW,
@@ -68,8 +68,8 @@ public:
     };
 
     bool writeWorldFile(enum WorldFileType type);
-    const Envelope& extent() const { return m_extent; }
-    bool geoTransform(double* transform) const;
+    const Envelope &extent() const { return m_extent; }
+    bool geoTransform(double *transform) const;
     int width() const;
     int height() const;
     int dataSize() const;
@@ -77,22 +77,23 @@ public:
     GDALDataType dataType(int band = 1) const;
     int getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                         int bufXSize, int bufYSize) const;
-    bool pixelData(void* data, int xOff, int yOff, int xSize, int ySize,
+    bool pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
                    int bufXSize, int bufYSize, GDALDataType dataType,
-                   int bandCount, int* bandList, bool read = true,
+                   int bandCount, int *bandList, bool read = true,
                    bool skipLastBand = false);
     bool cacheArea(const Progress &progress, const Options &options);
 
     // Object interface
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
-    virtual char** metadata(const char* domain) const override;
-    virtual bool setMetadataItem(const char* name, const char* value,
-                                 const char* domain) override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual bool setProperty(const std::string &name, const std::string &value,
+                             const std::string &domain) override;
 
     // DatasetBase interface
-    virtual bool open(unsigned int openFlags, const Options &options = Options()) override;
-    virtual const char* options(ngsOptionType optionType) const override;
+    virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
+                      const Options &options = Options()) override;
+    virtual std::string options(ngsOptionType optionType) const override;
 
 protected:
     void setExtent();
@@ -111,18 +112,18 @@ protected:
     Options m_openOptions;
 
 private:
-    std::vector<CPLString> m_siblingFiles;
+    std::vector<std::string> m_siblingFiles;
 //    typedef struct _lockData {
 //        Envelope env;
-//        CPLMutex* mutexRef;
+//        Mutex mutexRef;
 //        unsigned char zoom;
 //    } LockData;
 
 //    std::vector<LockData> m_dataLocks;
-    CPLMutex* m_dataLock;
+    Mutex m_dataLock;
 };
 
-typedef std::shared_ptr<Raster> RasterPtr;
+using RasterPtr = std::shared_ptr<Raster>;
 
 }
 

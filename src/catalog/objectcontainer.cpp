@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -23,55 +23,61 @@
 #include "api_priv.h"
 #include "catalog.h"
 
+#include "util/global.h"
+#include "util/stringutil.h"
+
 namespace ngs {
 
 ObjectContainer::ObjectContainer(ObjectContainer * const parent,
                                  const enum ngsCatalogObjectType type,
-                                 const CPLString &name,
-                                 const CPLString &path) :
-    Object(parent, type, name, path), m_childrenLoaded(false)
+                                 const std::string &name,
+                                 const std::string &path) :
+    Object(parent, type, name, path),
+    m_childrenLoaded(false)
 {
 
 }
 
-ObjectPtr ObjectContainer::getObject(const char *path)
+ObjectPtr ObjectContainer::getObject(const std::string &path)
 {
-    CPLString separator = Catalog::separator();
+    std::string separator = Catalog::separator();
+
     // check relative paths
-    if(EQUALN("..", path, 2))
-        return m_parent->getObject(path + 2 + separator.size());
 
-    hasChildren();
+    if(comparePart("..", path, 2)) {
+        return m_parent->getObject(path.substr(2 + separator.size()));
+    }
 
-    CPLString searchName;
-    size_t pathLen = CPLStrnlen(path, Catalog::maxPathLength());
+    if(!loadChildren()) {
+        return ObjectPtr();
+    }
+
+    std::string searchName;
+    std::string pathRight;
 
     // Get first element
-    for(size_t i = 0; i < pathLen; ++i) {
-        searchName += path[0];
-        path++;
-        if(EQUALN(path, separator, separator.size())) {
-            path += separator.size();
-            break;
-        }
+    size_t pos = path.find(separator);
+    if(pos != std::string::npos) {
+        searchName = path.substr(0, pos);
+        pathRight = path.substr(pos + 1);
+    }
+    else {
+        searchName = path;
     }
 
     // Search child with name searchName
-    for(const ObjectPtr& child : m_children) {
-#ifdef _WIN32 // No case sensitive compare on Windows
-        if(EQUAL(child->name(), searchName)) {
-#else
-        if(child->name().compare(searchName) == 0) {
-#endif
-            if(EQUAL(path, "")) {
+    for(const ObjectPtr &child : m_children) {
+       if(compare(child->name(), searchName)) {
+            if(pathRight.empty()) {
                 // No more path elements
                 return child;
             }
             else {
-                ObjectContainer* const container =
+                ObjectContainer * const container =
                         ngsDynamicCast(ObjectContainer, child);
-                if(nullptr != container)
-                    return container->getObject(path);
+                if(nullptr != container && container->loadChildren()) {
+                    return container->getObject(pathRight);
+                }
             }
         }
     }
@@ -84,27 +90,83 @@ void ObjectContainer::clear()
     m_childrenLoaded = false;
 }
 
-ObjectPtr ObjectContainer::getChild(const CPLString &name) const
+
+void ObjectContainer::refresh()
+{
+
+}
+
+
+bool ObjectContainer::hasChildren() const
+{
+    return !m_children.empty();
+}
+
+
+bool ObjectContainer::isReadOnly() const
+{
+    return true;
+}
+
+bool ObjectContainer::canCreate(const enum ngsCatalogObjectType type) const
+{
+    ngsUnused(type)
+    return false;
+}
+
+bool ObjectContainer::create(const enum ngsCatalogObjectType type,
+                    const std::string &name, const Options &options)
+{
+    ngsUnused(type)
+    ngsUnused(name)
+    ngsUnused(options)
+    return false;
+}
+
+bool ObjectContainer::canPaste(const enum ngsCatalogObjectType type) const
+{
+    ngsUnused(type)
+    return false;
+}
+
+int ObjectContainer::paste(ObjectPtr child, bool move, const Options &options,
+                           const Progress &progress)
+{
+    ngsUnused(child)
+    ngsUnused(move)
+    ngsUnused(options)
+    ngsUnused(progress)
+    return COD_UNSUPPORTED;
+}
+
+ObjectPtr ObjectContainer::getChild(const std::string &name) const
 {
     for(const ObjectPtr& child : m_children) {
-        if(child->name() == name)
+        if(child->name() == name) {
             return child;
+        }
     }
     return ObjectPtr();
 }
 
-void ObjectContainer::removeDuplicates(std::vector<const char *> &deleteNames,
-                                       std::vector<const char *> &addNames)
+bool ObjectContainer::loadChildren()
 {
-    if(addNames.empty())
+    return true;
+}
+
+void ObjectContainer::removeDuplicates(std::vector<std::string> &deleteNames,
+                                       std::vector<std::string> &addNames)
+{
+    if(addNames.empty()) {
         return;
+    }
 
     auto it = deleteNames.begin();
     while(it != deleteNames.end()) {
         auto itan = addNames.begin();
         bool deleteName = false;
         while(itan != addNames.end()) {
-            if(EQUAL(*it, *itan)) {
+            if(EQUAL((*it).c_str(), (*itan).c_str())) {
                 it = deleteNames.erase(it);
                 itan = addNames.erase(itan);
                 deleteName = true;
@@ -123,6 +185,16 @@ void ObjectContainer::removeDuplicates(std::vector<const char *> &deleteNames,
 std::vector<ObjectPtr> ObjectContainer::getChildren() const
 {
     return m_children;
+}
+
+void ObjectContainer::addChild(ObjectPtr object)
+{
+    m_children.push_back(object);
+}
+
+void ObjectContainer::notifyChanges()
+{
+    refresh();
 }
 
 }

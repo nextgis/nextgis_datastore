@@ -30,6 +30,8 @@
 
 namespace ngs {
 
+constexpr const char *FEATURE_SEPARATOR = "#";
+
 
 //------------------------------------------------------------------------------
 // FieldMapPtr
@@ -55,14 +57,14 @@ const int &FieldMapPtr::operator[](int key) const
 // FeaturePtr
 //------------------------------------------------------------------------------
 
-FeaturePtr::FeaturePtr(OGRFeature* feature, Table* table) :
+FeaturePtr::FeaturePtr(OGRFeature *feature, Table *table) :
     shared_ptr( feature, OGRFeature::DestroyFeature ),
     m_table(table)
 {
 
 }
 
-FeaturePtr::FeaturePtr(OGRFeature* feature, const Table* table) :
+FeaturePtr::FeaturePtr(OGRFeature *feature, const Table *table) :
     shared_ptr( feature, OGRFeature::DestroyFeature ),
     m_table(const_cast<Table*>(table))
 {
@@ -76,7 +78,7 @@ FeaturePtr:: FeaturePtr() :
 
 }
 
-FeaturePtr& FeaturePtr::operator=(OGRFeature* feature) {
+FeaturePtr &FeaturePtr::operator=(OGRFeature *feature) {
     reset(feature);
     return *this;
 }
@@ -88,24 +90,19 @@ FeaturePtr& FeaturePtr::operator=(OGRFeature* feature) {
 Table::Table(OGRLayer *layer,
              ObjectContainer * const parent,
              const enum ngsCatalogObjectType type,
-             const CPLString &name) :
+             const std::string &name) :
     Object(parent, type, name, ""),
     m_layer(layer),
     m_attTable(nullptr),
     m_editHistoryTable(nullptr),
-    m_saveEditHistory(NOT_FOUND),
-    m_featureMutex(CPLCreateMutex())
+    m_saveEditHistory(NOT_FOUND)
 {
-    CPLReleaseMutex(m_featureMutex);
 }
 
 Table::~Table()
 {
-    CPLDebug("ngstore", "CPLDestroyMutex(m_featureMutex)");
-    CPLDestroyMutex(m_featureMutex);
-
     if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
-        Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
+        Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
             GDALDataset * const DS = dataset->getGDALDataset();
             if(nullptr != DS && nullptr != m_layer) {
@@ -120,7 +117,7 @@ FeaturePtr Table::createFeature() const
     if(nullptr == m_layer)
         return FeaturePtr();
 
-    OGRFeature* pFeature = OGRFeature::CreateFeature(m_layer->GetLayerDefn());
+    OGRFeature *pFeature = OGRFeature::CreateFeature(m_layer->GetLayerDefn());
     if (nullptr == pFeature)
         return FeaturePtr();
 
@@ -129,23 +126,27 @@ FeaturePtr Table::createFeature() const
 
 FeaturePtr Table::getFeature(GIntBig id) const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return FeaturePtr();
-    CPLMutexHolder holder(m_featureMutex);
-    OGRFeature* pFeature = m_layer->GetFeature(id);
-    if (nullptr == pFeature)
+    }
+    MutexHolder holder(m_featureMutex);
+    OGRFeature *pFeature = m_layer->GetFeature(id);
+    if (nullptr == pFeature) {
         return FeaturePtr();
-
+    }
     return FeaturePtr(pFeature, this);
 }
 
 bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return false;
+    }
 
     CPLErrorReset();
-    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+
+    // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
         if(logEdits) {
@@ -154,10 +155,9 @@ bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
             logEditOperation(opFeature);
         }
         if(dataset && !dataset->isBatchOperation()) {
-            Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
-                                                   fullName().c_str(),
-                                                   feature->GetFID()),
-                                    ngsChangeCode::CC_CREATE_FEATURE);
+            Notify::instance().onNotify(fullName() + FEATURE_SEPARATOR +
+                                        std::to_string(feature->GetFID()),
+                                        ngsChangeCode::CC_CREATE_FEATURE);
         }
         return true;
     }
@@ -167,11 +167,14 @@ bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
 
 bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return false;
+    }
 
     CPLErrorReset();
-    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+
+    // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
         if(logEdits) {
@@ -180,10 +183,9 @@ bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
             logEditOperation(opFeature);
         }
         if(dataset && !dataset->isBatchOperation()) {
-            Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
-                                               fullName().c_str(),
-                                               feature->GetFID()),
-                                    ngsChangeCode::CC_CHANGE_FEATURE);
+            Notify::instance().onNotify(fullName() + FEATURE_SEPARATOR +
+                                        std::to_string(feature->GetFID()),
+                                        ngsChangeCode::CC_CHANGE_FEATURE);
         }
         return true;
     }
@@ -204,6 +206,8 @@ bool Table::deleteFeature(GIntBig id, bool logEdits)
     }
 
     CPLErrorReset();
+
+    // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         deleteAttachments(id, logEdits);
@@ -211,9 +215,8 @@ bool Table::deleteFeature(GIntBig id, bool logEdits)
         if(logEdits) {
             logEditOperation(logFeature);
         }
-        Notify::instance().onNotify(CPLSPrintf("%s#" CPL_FRMT_GIB,
-                                               fullName().c_str(),
-                                               id),
+        Notify::instance().onNotify(fullName() + FEATURE_SEPARATOR +
+                                    std::to_string(id),
                                     ngsChangeCode::CC_DELETE_FEATURE);
         return true;
     }
@@ -228,12 +231,8 @@ bool Table::deleteFeatures(bool logEdits)
     }
 
     CPLErrorReset();
-    Dataset* const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset) {
-        return false;
-    }
-
-    if(dataset->deleteFeatures(name())) {
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(dataset && dataset->deleteFeatures(name())) {
         if(logEdits) {
             FeaturePtr logFeature = logEditFeature(FeaturePtr(), FeaturePtr(),
                                                    CC_DELETEALL_FEATURES);
@@ -251,50 +250,53 @@ bool Table::deleteFeatures(bool logEdits)
 
 GIntBig Table::featureCount(bool force) const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return 0;
+    }
 
-    CPLMutexHolder holder(m_featureMutex);
+    MutexHolder holder(m_featureMutex);
     return m_layer->GetFeatureCount(force ? TRUE : FALSE);
 }
 
 void Table::reset() const
 {
     if(nullptr != m_layer) {
-        CPLMutexHolder holder(m_featureMutex);
+        MutexHolder holder(m_featureMutex);
         m_layer->ResetReading();
     }
 }
 
 FeaturePtr Table::nextFeature() const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return FeaturePtr();
-    CPLMutexHolder holder(m_featureMutex);
+    }
+    MutexHolder holder(m_featureMutex);
     return FeaturePtr(m_layer->GetNextFeature(), this);
 }
 
 int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
-                     const Progress& progress)
+                    const Progress& progress)
 {
     if(!srcTable) {
-        return errorMessage(COD_COPY_FAILED, _("Source table is invalid"));
+        return outMessage(COD_COPY_FAILED, _("Source table is invalid"));
     }
 
     progress.onProgress(COD_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
                        srcTable->name().c_str(), m_name.c_str());
 
+    // Lock any SQL query in dataset
     DatasetBatchOperationHolder holder(dynamic_cast<Dataset*>(m_parent));
 
     GIntBig featureCount = srcTable->featureCount();
     double counter = 0;
     srcTable->reset();
     FeaturePtr feature;
-    while((feature = srcTable->nextFeature ())) {
+    while((feature = srcTable->nextFeature())) {
         double complete = counter / featureCount;
         if(!progress.onProgress(COD_IN_PROCESS, complete,
-                           _("Copy in process ..."))) {
+                                _("Copy in process ..."))) {
             return  COD_CANCELED;
         }
 
@@ -317,19 +319,12 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     return COD_SUCCESS;
 }
 
-const char* Table::fidColumn() const
+std::string Table::fidColumn() const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return "";
+    }
     return m_layer->GetFIDColumn();
-}
-
-char** Table::metadata(const char* domain) const
-{
-    if(nullptr == m_layer)
-        return nullptr;
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_layer->GetMetadata(domain);
 }
 
 bool Table::destroy()
@@ -339,33 +334,47 @@ bool Table::destroy()
         return errorMessage(_("Parent is not dataset"));
     }
 
-    CPLString fullNameStr = fullName();
-    CPLString name = m_name;
-    CPLString attPath = getAttachmentsPath();
-    m_layer->SetAttributeFilter(nullptr);
+    if(dataset->type() == CAT_CONTAINER_SIMPLE) {
+        return dataset->destroy();
+    }
+
+    std::string fullNameStr = fullName();
+    std::string name = m_name;
+    std::string attPath = getAttachmentsPath();
+    setAttributeFilter();
     reset();
     if(dataset->destroyTable(this)) {
-        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
-
         dataset->destroyAttachmentsTable(name); // Attachments table maybe not exists
         Folder::rmDir(attPath);
+
         dataset->destroyEditHistoryTable(name); // Log edit table may be not exists
+
+        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
         return true;
     }
     return false;
 }
 
-void Table::setAttributeFilter(const char* filter)
+void Table::setAttributeFilter(const std::string &filter)
 {
     if(nullptr != m_layer) {
-        m_layer->SetAttributeFilter(filter);
+        MutexHolder holder(m_featureMutex);
+        if(filter.empty()) {
+            m_layer->SetAttributeFilter(nullptr);
+        }
+        else {
+            m_layer->SetAttributeFilter(filter.c_str());
+        }
     }
 }
 
-OGRFeatureDefn*Table::definition() const
+OGRFeatureDefn *Table::definition() const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return nullptr;
+    }
+
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_layer->GetLayerDefn();
 }
 
@@ -407,98 +416,85 @@ bool Table::initEditHistoryTable() const
     return m_editHistoryTable != nullptr;
 }
 
-CPLString Table::getAttachmentsPath() const
+std::string Table::getAttachmentsPath() const
 {
-    const char* dstRootPath = CPLResetExtension(
+    std::string dstRootPath = File::resetExtension(
                 m_parent->path(), Dataset::attachmentsFolderExtension());
-    return CPLFormFilename(dstRootPath, name(), nullptr);
+    return File::formFileName(dstRootPath, name(), "");
 }
 
 void Table::fillFields() const
 {
     m_fields.clear();
     if(nullptr != m_layer) {
-        Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
-        parentDataset->lockExecuteSql(true);
-        OGRFeatureDefn* defn = m_layer->GetLayerDefn();
-        parentDataset->lockExecuteSql(false);
-        if(nullptr == defn || nullptr == parentDataset) {
+        OGRFeatureDefn *defn = definition();
+
+        if(nullptr == defn) {
             return;
         }
 
-        auto propertyList = properties(NG_ADDITIONS_KEY);
+        Properties propertyList = properties(NG_ADDITIONS_KEY);
 
-        parentDataset->lockExecuteSql(true);
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
-            OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
+            OGRFieldDefn *fieldDefn = defn->GetFieldDefn(i);
             Field fieldDesc;
             fieldDesc.m_type = fieldDefn->GetType();
-            CPLStrlcpy(fieldDesc.m_name, fieldDefn->GetNameRef(), 255);
-            //fieldDesc.m_name = fieldDefn->GetNameRef();
+            fieldDesc.m_name = fieldDefn->GetNameRef();
 
-            CPLString alias = propertyList[CPLSPrintf("FIELD_%d_ALIAS", i)];
-            if(alias.empty()) {
-                CPLStrlcpy(fieldDesc.m_alias, fieldDesc.m_name, 255);
-            }
-            else {
-                CPLStrlcpy(fieldDesc.m_alias, alias.c_str(), 1024);
-                //fieldDesc.m_alias = properties[CPLSPrintf("FIELD_%d_ALIAS", i)];
+            fieldDesc.m_alias = propertyList.asString(CPLSPrintf("FIELD_%d_ALIAS", i));
+            if(fieldDesc.m_alias.empty()) {
+                fieldDesc.m_alias = fieldDesc.m_name;
             }
 
-            CPLString originalName = propertyList[CPLSPrintf("FIELD_%d_NAME", i)];
-            if(originalName.empty()) {
-                CPLStrlcpy(fieldDesc.m_originalName, fieldDefn->GetNameRef(), 255);
-            }
-            else {
-                CPLStrlcpy(fieldDesc.m_originalName, originalName.c_str(), 255);
-                //fieldDesc.m_originalName = properties[CPLSPrintf("FIELD_%d_NAME", i)];
+            fieldDesc.m_originalName = propertyList.asString(CPLSPrintf("FIELD_%d_NAME", i));
+            if(fieldDesc.m_originalName.empty()) {
+                fieldDesc.m_originalName = fieldDesc.m_name;
             }
             m_fields.push_back(fieldDesc);
-        }        
-        parentDataset->lockExecuteSql(false);
+        }
 
         // Fill metadata
         propertyList = properties(USER_KEY);
         for(auto it = propertyList.begin(); it != propertyList.end(); ++it) {
-            if(m_layer->GetMetadataItem(it->first, USER_KEY) == nullptr) {
-                m_layer->SetMetadataItem(it->first, it->second, USER_KEY);
+            if(m_layer->GetMetadataItem(it->first.c_str(), USER_KEY) == nullptr) {
+                m_layer->SetMetadataItem(it->first.c_str(), it->second.c_str(),
+                                         USER_KEY);
             }
         }
     }
 }
 
-GIntBig Table::addAttachment(GIntBig fid, const char* fileName,
-                             const char* description, const char* filePath,
-                             char** options, bool logEdits)
+GIntBig Table::addAttachment(GIntBig fid, const std::string &fileName,
+                             const std::string &description,
+                             const std::string &filePath,
+                             const Options &options, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
-    bool move = CPLFetchBool(options, "MOVE", false);
+    bool move = options.asBool("MOVE", false);
 
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
 
     newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
-    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName);
-    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description);
+    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName.c_str());
+    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
-        CPLString dstTablePath = getAttachmentsPath();
+        std::string dstTablePath = getAttachmentsPath();
         if(!Folder::isExists(dstTablePath)) {
             Folder::mkDir(dstTablePath);
         }
-        CPLString dstFeaturePath = CPLFormFilename(dstTablePath,
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
+        std::string dstFeaturePath = File::formFileName(dstTablePath,
+                                                        std::to_string(fid), "");
         if(!Folder::isExists(dstFeaturePath)) {
             Folder::mkDir(dstFeaturePath);
         }
 
-        CPLString dstPath = CPLFormFilename(dstFeaturePath,
-                                            CPLSPrintf(CPL_FRMT_GIB,
-                                                       newAttachment->GetFID()),
-                                            nullptr);
+        std::string dstPath = File::formFileName(dstFeaturePath,
+                                                 std::to_string(newAttachment->GetFID()),
+                                                 "");
         if(Folder::isExists(filePath)) {
             if(move) {
                 File::moveFile(filePath, dstPath);
@@ -531,12 +527,10 @@ bool Table::deleteAttachment(GIntBig aid, bool logEdits)
     bool result = m_attTable->DeleteFeature(aid) == OGRERR_NONE;
     if(result) {
         GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
-        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
-        CPLString attPath = CPLFormFilename(attFeaturePath,
-                                                   CPLSPrintf(CPL_FRMT_GIB, aid),
-                                                   nullptr);
+        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
+                                                        std::to_string(fid), "");
+        std::string attPath = File::formFileName(attFeaturePath,
+                                                 std::to_string(aid), "");
 
         result = File::deleteFile(attPath);
 
@@ -558,15 +552,13 @@ bool Table::deleteAttachments(GIntBig fid, bool logEdits)
         return false;
     }
 
-    dataset->lockExecuteSql(true);
     dataset->executeSQL(CPLSPrintf("DELETE FROM %s_%s WHERE %s = " CPL_FRMT_GIB,
-                                   m_name.c_str(), Dataset::attachmentsFolderExtension(),
+                                   m_name.c_str(),
+                                   Dataset::attachmentsFolderExtension().c_str(),
                                    ATTACH_FEATURE_ID_FIELD, fid));
-    dataset->lockExecuteSql(false);
 
-    CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
-                                               CPLSPrintf(CPL_FRMT_GIB, fid),
-                                               nullptr);
+    std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
+                                                    std::to_string(fid), "");
     Folder::rmDir(attFeaturePath);
 
     if(logEdits) {
@@ -578,8 +570,8 @@ bool Table::deleteAttachments(GIntBig fid, bool logEdits)
     return true;
 }
 
-bool Table::updateAttachment(GIntBig aid, const char* fileName,
-                             const char* description, bool logEdits)
+bool Table::updateAttachment(GIntBig aid, const std::string &fileName,
+                             const std::string &description, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return false;
@@ -590,11 +582,11 @@ bool Table::updateAttachment(GIntBig aid, const char* fileName,
         return false;
     }
 
-    if(fileName) {
-        attFeature->SetField(ATTACH_FILE_NAME_FIELD, fileName);
+    if(!fileName.empty()) {
+        attFeature->SetField(ATTACH_FILE_NAME_FIELD, fileName.c_str());
     }
-    if(description) {
-        attFeature->SetField(ATTACH_DESCRIPTION_FIELD, description);
+    if(!description.empty()) {
+        attFeature->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
     }
 
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
@@ -631,12 +623,10 @@ std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid) const
         info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
 
-        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
-        info.path = CPLFormFilename(attFeaturePath,
-                                    CPLSPrintf(CPL_FRMT_GIB, info.id),
-                                    nullptr);
+        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
+                                                        std::to_string(fid), "");
+        info.path = File::formFileName(attFeaturePath, std::to_string(info.id),
+                                       "");
 
         info.size = File::fileSize(info.path);
 
@@ -649,20 +639,27 @@ std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid) const
 
 bool Table::canDestroy() const
 {
-    Dataset* const dataSet= dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataSet)
+    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
         return false;
-    return !dataSet->isReadOnly();
+    }
+
+    if(dataset->type() == CAT_CONTAINER_SIMPLE) {
+        return dataset->canDestroy();
+    }
+
+    return !dataset->isReadOnly();
 }
 
-void Table::checkSetProperty(const char* key, const char* value, const char* domain)
+void Table::checkSetProperty(const std::string &key, const std::string &value,
+                             const std::string &domain)
 {
-    if(EQUAL(key, LOG_EDIT_HISTORY_KEY) && EQUAL(domain, NG_ADDITIONS_KEY)) {
+    if(compare(key, LOG_EDIT_HISTORY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
         char prevValue = m_saveEditHistory;
-        m_saveEditHistory = EQUAL(value, "ON") ? 1 : 0;
+        m_saveEditHistory = compare(value, "ON") ? 1 : 0;
         if(prevValue != m_saveEditHistory && prevValue == 1) {
             // Clear history table
-            Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+            Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
             if(nullptr != parentDataset) {
                 parentDataset->clearEditHistoryTable(m_name);
             }
@@ -673,79 +670,96 @@ void Table::checkSetProperty(const char* key, const char* value, const char* dom
 bool Table::saveEditHistory()
 {
     if(m_saveEditHistory == NOT_FOUND) {
-        m_saveEditHistory = EQUAL(property(LOG_EDIT_HISTORY_KEY, "OFF",
-                                           NG_ADDITIONS_KEY), "ON") ? 1 : 0;
+        m_saveEditHistory = compare(property(LOG_EDIT_HISTORY_KEY, "OFF",
+                                             NG_ADDITIONS_KEY), "ON") ? 1 : 0;
     }
     return m_saveEditHistory == 1;
 }
 
-bool Table::setProperty(const char* key, const char* value, const char* domain)
+std::string Table::fullPropertyDomain(const std::string &domain) const
 {
-    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    return m_name + "." + domain;
+}
+
+bool Table::setProperty(const std::string &key, const std::string &value,
+                        const std::string &domain)
+{
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
         return false;
     }
 
-    CPLString name = m_name;
-    if(nullptr != domain) {
-        name += CPLString(".") + domain;
+    if(nullptr != m_layer) {
+        m_layer->SetMetadataItem(key.c_str(), value.c_str(), domain.c_str());
     }
-
-    name += CPLString(".") + key;
 
     checkSetProperty(key, value, domain);
 
-    return parentDataset->setProperty(name, value);
+    return parentDataset->setProperty(key, value, fullPropertyDomain(domain));
 }
 
-CPLString Table::property(const char* key, const char* defaultValue,
-                          const char* domain) const
+std::string Table::property(const std::string &key,
+                            const std::string &defaultValue,
+                            const std::string &domain) const
 {
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
-        return "";
+        return defaultValue;
     }
 
-    CPLString name = m_name;
-    if(nullptr != domain) {
-        name += CPLString(".") + domain;
+    if(nullptr != m_layer) {
+        std::string internalProperty = fromCString(
+                    m_layer->GetMetadataItem(key.c_str(), domain.c_str()));
+        if(!internalProperty.empty()) {
+            return internalProperty;
+        }
     }
 
-    name += CPLString(".") + key;
-
-    return parentDataset->property(name, defaultValue);
+    return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
 
 }
 
-std::map<CPLString, CPLString> Table::properties(const char* domain) const
+Properties Table::properties(const std::string &domain) const
 {
-    std::map<CPLString, CPLString> out;
+    Properties out;
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
         return out;
     }
 
-    return parentDataset->properties(m_name, domain);
+    if(nullptr != m_layer) {
+        out = Properties(m_layer->GetMetadata(domain.c_str()));
+    }
+
+    Properties moreProperties = parentDataset->properties(fullPropertyDomain(domain));
+    out.append(moreProperties);
+
+    return out;
 }
 
-void Table::deleteProperties()
+void Table::deleteProperties(const std::string &domain)
 {
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
         return;
     }
 
-    return parentDataset->deleteProperties(m_name);
+    if(nullptr != m_layer) {
+        m_layer->SetMetadata(nullptr, domain.c_str());
+    }
+
+    return parentDataset->deleteProperties(fullPropertyDomain(domain));
 }
 
-const std::vector<Field>& Table::fields() const
+const std::vector<Field> &Table::fields() const
 {
-    if(m_fields.empty())
+    if(m_fields.empty()) {
         fillFields();
+    }
     return m_fields;
 }
 
-void Table::logEditOperation(FeaturePtr opFeature)
+void Table::logEditOperation(const FeaturePtr &opFeature)
 {
     if(!opFeature) {
         return;
@@ -757,7 +771,7 @@ void Table::logEditOperation(FeaturePtr opFeature)
             static_cast<enum ngsChangeCode>(opFeature->GetFieldAsInteger64(
                                                 OPERATION_FIELD));
 
-    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
         return;
     }
@@ -773,13 +787,13 @@ void Table::logEditOperation(FeaturePtr opFeature)
         return;
     }
 
-    GDALDataset* addsDS = parentDataset->m_addsDS;
+    GDALDataset *addsDS = parentDataset->m_addsDS;
     if(code == CC_DELETEALL_ATTACHMENTS) {
         if(fid == NOT_FOUND) {
             return;
         }
         addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s <> -1",
-                                       parentDataset->historyTableName(m_name),
+                                       parentDataset->historyTableName(m_name).c_str(),
                                        FEATURE_ID_FIELD, fid, ATTACH_FEATURE_ID_FIELD),
                            nullptr, nullptr);
         if(m_editHistoryTable->CreateFeature(opFeature) != OGRERR_NONE) {
@@ -791,7 +805,7 @@ void Table::logEditOperation(FeaturePtr opFeature)
 
     // Check delete all
     addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = %d",
-                                   parentDataset->historyTableName(m_name),
+                                   parentDataset->historyTableName(m_name).c_str(),
                                    OPERATION_FIELD, CC_DELETEALL_FEATURES),
                        nullptr, nullptr);
 
@@ -800,7 +814,7 @@ void Table::logEditOperation(FeaturePtr opFeature)
             return;
         }
         addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = %d AND %s = " CPL_FRMT_GIB,
-                                       parentDataset->historyTableName(m_name),
+                                       parentDataset->historyTableName(m_name).c_str(),
                                        OPERATION_FIELD, CC_DELETEALL_ATTACHMENTS,
                                        FEATURE_ID_FIELD, fid),
                            nullptr, nullptr);
@@ -818,7 +832,8 @@ void Table::logEditOperation(FeaturePtr opFeature)
         return;
     }
 
-    m_editHistoryTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, FEATURE_ID_FIELD, fid));
+    m_editHistoryTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
+                                                      FEATURE_ID_FIELD, fid));
     std::vector<FeaturePtr> features;
     FeaturePtr f;
     while((f = m_editHistoryTable->GetNextFeature())) {
@@ -833,7 +848,7 @@ void Table::logEditOperation(FeaturePtr opFeature)
 
         if(!features.empty()) {
             addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB,
-                                       parentDataset->historyTableName(m_name),
+                                       parentDataset->historyTableName(m_name).c_str(),
                                        FEATURE_ID_FIELD, fid),
                            nullptr, nullptr);
         }
@@ -938,16 +953,16 @@ void Table::logEditOperation(FeaturePtr opFeature)
 
 void Table::deleteEditOperation(const ngsEditOperation& op)
 {
-    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
         return;
     }
 
     DatasetExecuteSQLLockHolder holder(parentDataset);
 
-    GDALDataset* addsDS = parentDataset->m_addsDS;
+    GDALDataset *addsDS = parentDataset->m_addsDS;
     addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s = " CPL_FRMT_GIB /*" AND %s = %d"*/,
-                                  parentDataset->historyTableName(m_name),
+                                  parentDataset->historyTableName(m_name).c_str(),
                                   FEATURE_ID_FIELD, op.fid,
                                   ATTACH_FEATURE_ID_FIELD, op.aid/*,
                                   OPERATION_FIELD, op.code*/),

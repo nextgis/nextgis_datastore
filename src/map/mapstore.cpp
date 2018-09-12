@@ -44,8 +44,8 @@ MapStore::MapStore()
     m_maps.push_back(MapViewPtr());
 }
 
-unsigned char MapStore::createMap(const CPLString &name,
-                                  const CPLString &description,
+unsigned char MapStore::createMap(const std::string &name,
+                                  const std::string &description,
                                   unsigned short epsg, const Envelope &bounds)
 {
     if(m_maps.size() >= std::numeric_limits<unsigned char>::max()) {
@@ -54,7 +54,7 @@ unsigned char MapStore::createMap(const CPLString &name,
     m_maps.push_back(MapViewPtr(new GlView(name, description, epsg, bounds)));
     unsigned char result = static_cast<unsigned char>(m_maps.size() - 1);
     if(result != INVALID_MAPID) {
-        Notify::instance().onNotify(CPLSPrintf("%d", result), CC_CREATE_MAP);
+        Notify::instance().onNotify(std::to_string(result), CC_CREATE_MAP);
     }
     return result;
 }
@@ -65,7 +65,7 @@ unsigned char MapStore::openMap(MapFile * const file)
         return INVALID_MAPID;
     }
 
-    MapViewPtr map = file->getMap();
+    MapViewPtr map = file->map();
     if(!map) {
         return INVALID_MAPID;
     }
@@ -114,42 +114,48 @@ bool MapStore::closeMap(unsigned char mapId)
 
 MapViewPtr MapStore::getMap(unsigned char mapId) const
 {    
-    if(mapId >= m_maps.size() || mapId == INVALID_MAPID)
+    if(mapId >= m_maps.size() || mapId == INVALID_MAPID) {
         return MapViewPtr();
+    }
     return m_maps[mapId];
 }
 
-bool MapStore::drawMap(unsigned char mapId, ngsDrawState state, const Progress &progress)
+bool MapStore::drawMap(unsigned char mapId, ngsDrawState state,
+                       const Progress &progress)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     return map->draw(state, progress);
 }
 
-void MapStore::invalidateMap(unsigned char mapId, const Envelope& bounds)
+void MapStore::invalidateMap(unsigned char mapId, const Envelope &bounds)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return;
+    }
     map->invalidate(bounds);
 }
 
 ngsRGBA MapStore::getMapBackgroundColor(unsigned char mapId) const
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return {0,0,0,0};
+    }
     return map->backgroundColor ();
 }
 
 bool MapStore::setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     map->setBackgroundColor(color);
-    Notify::instance().onNotify(CPLSPrintf("%d", mapId), CC_CREATE_MAP);
+    Notify::instance().onNotify(std::to_string(mapId), CC_CREATE_MAP);
 
     return true;
 }
@@ -158,8 +164,9 @@ bool MapStore::setMapSize(unsigned char mapId, int width, int height,
                       bool YAxisInverted)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     map->setDisplaySize(width, height, YAxisInverted);
     return true;
 }
@@ -167,9 +174,9 @@ bool MapStore::setMapSize(unsigned char mapId, int width, int height,
 bool MapStore::setMapCenter(unsigned char mapId, double x, double y)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
-
+    }
     return map->setCenter(x, y);
 }
 
@@ -177,8 +184,9 @@ ngsCoordinate MapStore::getMapCenter(unsigned char mapId) const
 {
     ngsCoordinate out = {0.0, 0.0, 0.0};
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return out;
+    }
 
     OGRRawPoint ptWorld = map->getCenter();
     out.X = ptWorld.x;
@@ -190,36 +198,36 @@ ngsCoordinate MapStore::getMapCenter(unsigned char mapId) const
 bool MapStore::setMapScale(unsigned char mapId, double scale)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
-
+    }
     return map->setScale(scale);
 }
 
 double MapStore::getMapScale(unsigned char mapId) const
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return 1.0;
-
+    }
     return map->getScale();
 }
 
 bool MapStore::setMapRotate(unsigned char mapId, ngsDirection dir, double rotate)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
-
+    }
     return map->setRotate(dir, rotate);
 }
 
 double MapStore::getMapRotate(unsigned char mapId, ngsDirection dir) const
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return 0.0;
-
+    }
     return map->getRotate(dir);
 }
 
@@ -228,9 +236,9 @@ ngsCoordinate MapStore::getMapCoordinate(unsigned char mapId,
 {
     ngsCoordinate out = { 0.0, 0.0, 0.0 };
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return out;
-
+    }
     OGRRawPoint pt = map->displayToWorld(OGRRawPoint(x, y));
     out.X = pt.x;
     out.Y = pt.y;
@@ -242,9 +250,9 @@ ngsPosition MapStore::getDisplayPosition(unsigned char mapId,
 {
     ngsPosition out = {0, 0};
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return out;
-
+    }
     OGRRawPoint pt = map->worldToDisplay(OGRRawPoint(x, y));
     out.X = pt.x;
     out.Y = pt.y;
@@ -256,9 +264,9 @@ ngsCoordinate MapStore::getMapDistance(unsigned char mapId,
 {
     ngsCoordinate out = { 0.0, 0.0, 0.0 };
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return out;
-
+    }
     OGRRawPoint dist = map->getMapDistance(w, h);
     out.X = dist.x;
     out.Y = dist.y;
@@ -270,9 +278,9 @@ ngsPosition MapStore::getDisplayLength(unsigned char mapId,
 {
     ngsPosition out = {0, 0};
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return out;
-
+    }
     OGRRawPoint dist = map->getDisplayLength(w, h);
     out.X = dist.x;
     out.Y = dist.y;
@@ -282,28 +290,32 @@ ngsPosition MapStore::getDisplayLength(unsigned char mapId,
 size_t MapStore::getLayerCount(unsigned char mapId) const
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return 0;
+    }
     return map->layerCount();
 }
 
 LayerPtr MapStore::getLayer(unsigned char mapId, int layerId) const
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
-        return nullptr;
+    if(!map) {
+        return  nullptr;
+    }
     return map->getLayer(layerId);
 }
 
-int MapStore::createLayer(unsigned char mapId, const char *name,
+int MapStore::createLayer(unsigned char mapId, const std::string &name,
                           const ObjectPtr &object)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return NOT_FOUND;
+    }
     int result = map->createLayer(name, object);
     if(result != NOT_FOUND) {
-        Notify::instance().onNotify(CPLSPrintf("%d#%d", mapId, result),
+        Notify::instance().onNotify(std::to_string(mapId) + "#" +
+                                    std::to_string(result),
                                     ngsChangeCode::CC_CREATE_LAYER);
     }
     return result;
@@ -312,19 +324,22 @@ int MapStore::createLayer(unsigned char mapId, const char *name,
 bool MapStore::deleteLayer(unsigned char mapId, Layer *layer)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     return map->deleteLayer(layer);
 }
 
-bool MapStore::reorderLayers(unsigned char mapId, Layer *beforeLayer, Layer *movedLayer)
+bool MapStore::reorderLayers(unsigned char mapId, Layer *beforeLayer,
+                             Layer *movedLayer)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     bool result = map->reorderLayers(beforeLayer, movedLayer);
     if(result) {
-        Notify::instance().onNotify(CPLSPrintf("%d", mapId),
+        Notify::instance().onNotify(std::to_string(mapId),
                                     ngsChangeCode::CC_CHANGE_MAP);
     }
     return result;
@@ -333,16 +348,18 @@ bool MapStore::reorderLayers(unsigned char mapId, Layer *beforeLayer, Layer *mov
 bool MapStore::setOptions(unsigned char mapId, const Options& options)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     return map->setOptions(options);
 }
 
 bool MapStore::setExtentLimits(unsigned char mapId, const Envelope &extentLimits)
 {
     MapViewPtr map = getMap(mapId);
-    if(!map)
+    if(!map) {
         return false;
+    }
     map->setExtentLimits(extentLimits);
     return true;
 }
@@ -361,30 +378,33 @@ MapViewPtr MapStore::initMap()
 
 void MapStore::setInstance(MapStore *pointer)
 {
-    if(gMapStore && nullptr != pointer) // Can be initialized only once.
+    if(gMapStore && nullptr != pointer) { // Can be initialized only once.
         return;
+    }
     gMapStore.reset(pointer);
 }
 
-MapStore* MapStore::getInstance()
+MapStore *MapStore::instance()
 {
     return gMapStore.get();
 }
 
-OverlayPtr MapStore::getOverlay(
-        unsigned char mapId, enum ngsMapOverlayType type) const
+OverlayPtr MapStore::getOverlay(unsigned char mapId,
+                                enum ngsMapOverlayType type) const
 {
     MapViewPtr map = getMap(mapId);
-    if (!map)
+    if (!map) {
         return nullptr;
+    }
     return map->getOverlay(type);
 }
 
 bool MapStore::setOverlayVisible( unsigned char mapId, int typeMask, bool visible)
 {
     MapViewPtr map = getMap(mapId);
-    if (!map)
+    if (!map) {
         return false;
+    }
     map->setOverlayVisible(typeMask, visible);
     return true;
 }

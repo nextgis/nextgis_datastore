@@ -88,7 +88,7 @@ inline GlColor ngsRGBA2Gl(const ngsRGBA& color) {
                 float(color.B) / 255.0f, float(color.A) / 255.0f };
 }
 
-inline ngsRGBA ngsGl2RGBA(const GlColor& color) {
+inline ngsRGBA ngsGl2RGBA(const GlColor &color) {
     return { static_cast<unsigned char>(color.r * 255.0f),
              static_cast<unsigned char>(color.g * 255.0f),
              static_cast<unsigned char>(color.b * 255.0f),
@@ -116,7 +116,7 @@ protected:
     bool m_bound;
 };
 
-typedef std::shared_ptr<GlObject> GlObjectPtr;
+using GlObjectPtr = std::shared_ptr<GlObject>;
 
 }
 

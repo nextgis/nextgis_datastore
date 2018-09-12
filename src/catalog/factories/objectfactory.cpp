@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,9 @@
 // gdal
 #include "cpl_port.h"
 
+#include "catalog/file.h"
 #include "catalog/folder.h"
+#include "util/stringutil.h"
 
 namespace ngs {
 
@@ -34,7 +36,7 @@ ObjectFactory::ObjectFactory() : m_enabled(true)
 
 }
 
-bool ObjectFactory::getEnabled() const
+bool ObjectFactory::enabled() const
 {
     return m_enabled;
 }
@@ -44,9 +46,14 @@ void ObjectFactory::setEnabled(bool enabled)
     m_enabled = enabled;
 }
 
-ObjectFactory::FORMAT_RESULT ObjectFactory::isFormatSupported(
-        const CPLString &name, std::vector<CPLString> extensions,
-        FORMAT_EXT testExts)
+void ObjectFactory::addChild(ObjectContainer * const container, ObjectPtr object)
+{
+    container->addChild(object);
+}
+
+ObjectFactory::FORMAT_RESULT ObjectFactory::isFormatSupported(const std::string &name,
+                                                              std::vector<std::string> extensions,
+                                                              FORMAT_EXT testExts)
 {
     ObjectFactory::FORMAT_RESULT out;
     out.isSupported = false;
@@ -54,69 +61,65 @@ ObjectFactory::FORMAT_RESULT ObjectFactory::isFormatSupported(
     unsigned char counter = 0;
 
     for(const auto& extension : extensions) {
-        if(EQUAL(extension, testExts.mainExt)) { // Check main format extension
+        if(compare(extension, testExts.mainExt)) { // Check main format extension
             counter++;
-            out.name = CPLFormFilename(nullptr, name, extension);
+            out.name = File::formFileName("", name, extension);
         }
         else {
-            int i = 0;
             bool breakCompare = false;
-            while(testExts.mainExts[i] != nullptr) { // Check additional format extensions [required]
-                if(EQUAL(extension, testExts.mainExts[i])) {
+            for(const std::string &mainExt : testExts.mainExts) {
+                // Check additional format extensions [required]
+                if(compare(extension, mainExt)) {
                     counter++;
                     breakCompare = true;
-                    out.siblingFiles.push_back(CPLFormFilename(nullptr, name,
-                                                               extension));
+                    out.siblingFiles.push_back(
+                                File::formFileName("", name, extension));
                 }
-                i++;
             }
             if(!breakCompare) {
-                i = 0;
-                while(testExts.extraExts[i] != nullptr) { // Check additional format extensions [optional]
-                    if(EQUAL(extension, testExts.extraExts[i])) {
-                        out.siblingFiles.push_back(CPLFormFilename(nullptr, name,
-                                                                   extension));
+                for(const std::string &extraExt : testExts.extraExts) {
+                    // Check additional format extensions [optional]
+                    if(compare(extension, extraExt)) {
+                        out.siblingFiles.push_back(
+                                    File::formFileName("", name, extension));
                     }
-                    i++;
                 }
             }
         }
     }
 
-    if(counter > CSLCount(testExts.mainExts) ) {
+    if(counter > testExts.mainExts.size() ) {
         out.isSupported = true;
     }
 
     return out;
 }
 
-void ObjectFactory::checkAdditionalSiblings(const CPLString &path,
-                                            const CPLString &name,
-                                            const char **nameAdds,
-                                            std::vector<CPLString> &siblingFiles)
+void ObjectFactory::checkAdditionalSiblings(const std::string &path,
+                                            const std::string &name,
+                                            const std::vector<std::string> &nameAdds,
+                                            std::vector<std::string> &siblingFiles)
 {
-    int i = 0;
-    while(nameAdds[i] != nullptr) {
-        CPLString newName = name + nameAdds[i];
-        if(Folder::isExists(CPLFormFilename(path, newName, nullptr))) {
+    for(const std::string &nameAdd : nameAdds) {
+        std::string newName = name + nameAdd;
+        if(Folder::isExists(File::formFileName(path, newName))) {
             siblingFiles.push_back(newName);
         }
-        i++;
     }
 }
 
-void ObjectFactory::eraseNames(const CPLString &name,
-                               const std::vector<CPLString> &siblingFiles,
-                               std::vector<const char *> * const names)
+void ObjectFactory::eraseNames(const std::string &name,
+                               const std::vector<std::string> &siblingFiles,
+                               std::vector<std::string> &names)
 {
-    auto lastItem = names->end();
+    auto lastItem = names.end();
     for(const auto& siblingFile : siblingFiles) {
-        lastItem = std::remove(names->begin(), lastItem, siblingFile);
+        lastItem = std::remove(names.begin(), lastItem, siblingFile);
     }
-    lastItem = std::remove(names->begin(), lastItem, name);
+    lastItem = std::remove(names.begin(), lastItem, name);
 
-    if(lastItem != names->end()) {
-        names->erase(lastItem, names->end());
+    if(lastItem != names.end()) {
+        names.erase(lastItem, names.end());
     }
 }
 

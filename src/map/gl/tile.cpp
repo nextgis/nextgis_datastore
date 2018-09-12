@@ -20,21 +20,24 @@
  ****************************************************************************/
 #include "tile.h"
 
+#include "util/global.h"
+
 namespace ngs {
 
-GlTile::GlTile(const GlTile other, bool /*initNew*/) : GlObject(),
+GlTile::GlTile(const GlTile other, bool initNew) : GlObject(),
     m_tileItem(other.m_tileItem),
     m_id(0),
     m_did(0),
     m_filled(false)
 {
+    ngsUnused(initNew);
     m_originalTileSize = other.m_originalTileSize;
     m_originalEnv = other.m_originalEnv;
 
     init(m_originalTileSize, m_originalEnv, m_tileItem.tile.crossExtent);
 }
 
-GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
+GlTile::GlTile(unsigned short tileSize, const TileItem &tileItem) : GlObject(),
     m_tileItem(tileItem),
     m_id(0),
     m_did(0),
@@ -46,7 +49,7 @@ GlTile::GlTile(unsigned short tileSize, const TileItem& tileItem) : GlObject(),
     init(tileSize, tileItem.env, tileItem.tile.crossExtent);
 }
 
-void GlTile::init(unsigned short tileSize, const Envelope& tileItemEnv,
+void GlTile::init(unsigned short tileSize, const Envelope &tileItemEnv,
                   char crossExtent)
 {
     unsigned short newTileSize = static_cast<unsigned short>(

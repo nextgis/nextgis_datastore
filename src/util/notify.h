@@ -21,6 +21,7 @@
 #ifndef NGSNOTIFY_H
 #define NGSNOTIFY_H
 
+#include <string>
 #include <vector>
 
 #include "ngstore/api.h"
@@ -39,7 +40,7 @@ public:
 public:
     void addNotifyReceiver(ngsNotifyFunc function, int notifyTypes);
     void deleteNotifyReceiver(ngsNotifyFunc function);
-    void onNotify(const char* uri, enum ngsChangeCode operation) const;
+    void onNotify(const std::string &uri, enum ngsChangeCode operation) const;
 
 private:
     Notify() = default;

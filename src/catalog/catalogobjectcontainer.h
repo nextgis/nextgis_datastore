@@ -38,13 +38,13 @@ class CatalogObjectContainer
 {
 public:
     static bool isEntryDirectory(
-            ngsCatalogObjectContainer* container, int entryIndex)
+            ngsCatalogObjectContainer *container, int entryIndex)
     {
         return container->entries[entryIndex].type & COT_DIRECTORY;
     }
 
     static bool isEntryFile(
-            ngsCatalogObjectContainer* container, int entryIndex)
+            ngsCatalogObjectContainer *container, int entryIndex)
     {
         return container->entries[entryIndex].type & COT_FILE;
     }
@@ -68,15 +68,14 @@ public:
 
     static CatalogObjectContainerPtr load(const char* path);
 
-    CPLString path()
-    {
+    std::string path() const {
         return m_Path;
     }
 
     ngsCatalogObject getCatalogObject(int id);
 
 protected:
-    CPLString m_Path;
+    std::string m_Path;
 };
 
 }  // namespace ngs

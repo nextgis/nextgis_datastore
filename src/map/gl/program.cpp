@@ -102,7 +102,7 @@ bool GlProgram::load(const GLchar * const vertexShader,
     return true;
 }
 
-void GlProgram::setMatrix(const char* varName, std::array<GLfloat, 16> mat4f)
+void GlProgram::setMatrix(const std::string &varName, std::array<GLfloat, 16> mat4f)
 {
     if(m_loaded) {
         ngsCheckGLError(glUniformMatrix4fv(getVariableId(varName),
@@ -110,7 +110,7 @@ void GlProgram::setMatrix(const char* varName, std::array<GLfloat, 16> mat4f)
     }
 }
 
-void GlProgram::setColor(const char* varName, const GlColor &color)
+void GlProgram::setColor(const std::string &varName, const GlColor &color)
 {
     if(m_loaded) {
         ngsCheckGLError(glUniform4f(getVariableId(varName),
@@ -118,28 +118,28 @@ void GlProgram::setColor(const char* varName, const GlColor &color)
     }
 }
 
-void GlProgram::setInt(const char *varName, GLint value)
+void GlProgram::setInt(const std::string &varName, GLint value)
 {
     if(m_loaded) {
         ngsCheckGLError(glUniform1i(getVariableId(varName), value));
     }
 }
 
-void GlProgram::setInt(const char *varName, GLint value) const
+void GlProgram::setInt(const std::string &varName, GLint value) const
 {
     if(m_loaded) {
         ngsCheckGLError(glUniform1i(getVariableId(varName), value));
     }
 }
 
-void GlProgram::setFloat(const char *varName, GLfloat value)
+void GlProgram::setFloat(const std::string &varName, GLfloat value)
 {
     if(m_loaded) {
         ngsCheckGLError(glUniform1f(getVariableId(varName), value));
     }
 }
 
-void GlProgram::setVertexAttribPointer(const char *varName, GLint size,
+void GlProgram::setVertexAttribPointer(const std::string &varName, GLint size,
                                        GLsizei stride, const GLvoid *pointer)
 {
     if(m_loaded) {
@@ -172,7 +172,7 @@ bool GlProgram::checkShaderCompileStatus(GLuint obj) const
     return true;
 }
 
-GLuint GlProgram::loadShader(GLenum type, const char *shaderSrc)
+GLuint GlProgram::loadShader(GLenum type, const std::string &shaderSrc)
 {
     GLuint shader;
     GLint compiled;
@@ -184,7 +184,8 @@ GLuint GlProgram::loadShader(GLenum type, const char *shaderSrc)
     }
 
     // Load the shader source
-    glShaderSource(shader, 1, &shaderSrc, nullptr);
+    const char *pszShaderSrc = shaderSrc.c_str();
+    glShaderSource(shader, 1, &pszShaderSrc, nullptr);
 
     // Compile the shader
     glCompileShader(shader);
@@ -200,7 +201,7 @@ GLuint GlProgram::loadShader(GLenum type, const char *shaderSrc)
     return shader;
 }
 
-GLint GlProgram::getVariableId(const char *varName)
+GLint GlProgram::getVariableId(const std::string &varName)
 {
     auto it = m_variables.find(varName);
     GLint variableId;
@@ -208,7 +209,7 @@ GLint GlProgram::getVariableId(const char *varName)
         variableId = it->second;
     }
     else {
-        variableId = glGetUniformLocation(m_id, varName);
+        variableId = glGetUniformLocation(m_id, varName.c_str());
         if(variableId > 0) {
             m_variables[varName] = variableId;
         }
@@ -217,7 +218,7 @@ GLint GlProgram::getVariableId(const char *varName)
 }
 
 
-GLint GlProgram::getVariableId(const char *varName) const
+GLint GlProgram::getVariableId(const std::string &varName) const
 {
     auto it = m_variables.find(varName);
     GLint variableId;
@@ -230,7 +231,7 @@ GLint GlProgram::getVariableId(const char *varName) const
     return variableId;
 }
 
-GLint GlProgram::getAttributeId(const char *varName)
+GLint GlProgram::getAttributeId(const std::string &varName)
 {
     auto it = m_variables.find(varName);
     GLint variableId;
@@ -238,7 +239,7 @@ GLint GlProgram::getAttributeId(const char *varName)
         variableId = it->second;
     }
     else {
-        variableId = glGetAttribLocation(m_id, varName);
+        variableId = glGetAttribLocation(m_id, varName.c_str());
         if(variableId >= 0) {
             m_variables[varName] = variableId;
         }

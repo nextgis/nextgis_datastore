@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -24,13 +24,14 @@
 #include <algorithm>
 
 // gdal
-#include "cpl_conv.h"
 #include "api_priv.h"
 
+#include "file.h"
 #include "folder.h"
 #include "localconnections.h"
 
 #include "ngstore/common.h"
+#include "util/global.h"
 #include "util/settings.h"
 #include "util/stringutil.h"
 
@@ -45,9 +46,9 @@ namespace ngs {
 
 static CatalogPtr gCatalog;
 
-constexpr const char * CONNECTIONS_DIR = "connections";
-constexpr const char * CATALOG_PREFIX = "ngc:/";
-constexpr const char * CATALOG_PREFIX_FULL = "ngc://";
+constexpr const char *CONNECTIONS_DIR = "connections";
+constexpr const char *CATALOG_PREFIX = "ngc:/";
+constexpr const char *CATALOG_PREFIX_FULL = "ngc://";
 constexpr int CATALOG_PREFIX_LEN = length(CATALOG_PREFIX_FULL);
 
 Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
@@ -55,28 +56,28 @@ Catalog::Catalog() : ObjectContainer(nullptr, CAT_CONTAINER_ROOT, _("Catalog"))
     m_showHidden = Settings::instance().getBool("catalog/show_hidden", true);
 }
 
-CPLString Catalog::fullName() const
+std::string Catalog::fullName() const
 {
     return CATALOG_PREFIX;
 }
 
-ObjectPtr Catalog::getObject(const char *path)
+ObjectPtr Catalog::getObject(const std::string &path)
 {
-    if(EQUAL(path, CATALOG_PREFIX_FULL))
+    if(compare(path, CATALOG_PREFIX_FULL))
         return std::static_pointer_cast<Object>(gCatalog);
 
     // Skip prefix ngc://
-    path += CATALOG_PREFIX_LEN;
-    return ObjectContainer::getObject(path);
+    return ObjectContainer::getObject(path.substr(CATALOG_PREFIX_LEN));
 }
 
-ObjectPtr Catalog::getObjectByLocalPath(const char *path)
+ObjectPtr Catalog::getObjectBySystemPath(const std::string &path)
 {
-    if(!hasChildren())
+    if(!loadChildren()) {
         return ObjectPtr();
+    }
 
     // Find LocalConnections
-    LocalConnections* localConnections = nullptr;
+    LocalConnections *localConnections = nullptr;
     for(const ObjectPtr &rootObject : m_children) {
         if(rootObject->type() == CAT_CONTAINER_LOCALCONNECTION) {
             localConnections = ngsDynamicCast(LocalConnections, rootObject);
@@ -84,10 +85,45 @@ ObjectPtr Catalog::getObjectByLocalPath(const char *path)
         }
     }
 
-    if(nullptr == localConnections || !localConnections->hasChildren())
+    if(nullptr == localConnections || !localConnections->loadChildren()) {
         return ObjectPtr();
+    }
 
-    return localConnections->getObjectByLocalPath(path);
+    return localConnections->getObjectBySystemPath(path);
+}
+
+bool Catalog::loadChildren()
+{
+    if(m_childrenLoaded) {
+        return true;
+    }
+
+    std::string settingsPath = Settings::getConfigOption("NGS_SETTINGS_PATH");
+    if(settingsPath.empty()) {
+        return false;
+    }
+
+    if(!Folder::mkDir(settingsPath, true)) {
+        return false;
+    }
+    // 1. Load factories
+    m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
+    m_factories.push_back(ObjectFactoryUPtr(new SimpleDatasetFactory()));
+    m_factories.push_back(ObjectFactoryUPtr(new RasterFactory()));
+    m_factories.push_back(ObjectFactoryUPtr(new FileFactory()));
+    m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
+
+    // 2. Load root objects
+    std::string connectionsPath = File::formFileName(settingsPath, CONNECTIONS_DIR);
+    if(!Folder::mkDir(connectionsPath, true)) {
+        return false;
+    }
+
+    Catalog *parent = const_cast<Catalog*>(this);
+    m_children.push_back(ObjectPtr(new LocalConnections(parent, connectionsPath)));
+
+    m_childrenLoaded = true;
+    return true;
 }
 
 void Catalog::freeResources()
@@ -101,58 +137,25 @@ void Catalog::freeResources()
     }
 }
 
-void Catalog::createObjects(ObjectPtr object, std::vector<const char *> names)
+void Catalog::createObjects(ObjectPtr object, std::vector<std::string> &names)
 {
     if(names.empty()) {
         return;
     }
 
-    ObjectContainer* const container = ngsDynamicCast(ObjectContainer, object);
+    ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
     if(nullptr == container) {
         return;
     }
     // Check each factory for objects
     for(const ObjectFactoryUPtr& factory : m_factories) {
-        if(factory->getEnabled()) {
-            factory->createObjects(container, &names);
+        if(factory->enabled()) {
+            factory->createObjects(container, names);
         }
     }
 }
 
-bool Catalog::hasChildren()
-{
-    if(m_childrenLoaded)
-        return ObjectContainer::hasChildren();
-
-    const char* settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
-    if(nullptr == settingsPath)
-        return false;
-
-    if(!Folder::isExists(settingsPath)) {
-        if(!Folder::mkDir(settingsPath))
-            return false;
-    }
-    // 1. Load factories
-    m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
-    m_factories.push_back(ObjectFactoryUPtr(new SimpleDatasetFactory()));
-    m_factories.push_back(ObjectFactoryUPtr(new RasterFactory()));
-    m_factories.push_back(ObjectFactoryUPtr(new FileFactory()));
-    m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
-
-    // 2. Load root objects
-    const char* connectionsPath = CPLFormFilename(settingsPath, CONNECTIONS_DIR,
-                                                  nullptr);
-    if(!Folder::isExists(connectionsPath)) {
-        if(!Folder::mkDir(connectionsPath))
-            return false;
-    }
-    m_children.push_back(ObjectPtr(new LocalConnections(this, connectionsPath)));
-
-    m_childrenLoaded = true;
-    return ObjectContainer::hasChildren();
-}
-
-CPLString Catalog::separator()
+std::string Catalog::separator()
 {
     return "/";
 }
@@ -162,12 +165,13 @@ unsigned short Catalog::maxPathLength()
     return 1024;
 }
 
-CPLString Catalog::toRelativePath(const Object *object,
-                                  const ObjectContainer *objectContainer)
+std::string Catalog::toRelativePath(const Object *object,
+                                    const ObjectContainer *objectContainer)
 {
-    CPLString sep = separator();
-    if(nullptr == object || nullptr == objectContainer)
+    std::string sep = separator();
+    if(nullptr == object || nullptr == objectContainer) {
         return "";
+    }
 
     std::vector<ObjectContainer*> parents;
     ObjectContainer* parent = object->parent();
@@ -180,7 +184,7 @@ CPLString Catalog::toRelativePath(const Object *object,
         parent = parent->parent();
     }
 
-    CPLString prefix("..");
+    std::string prefix("..");
     parent = objectContainer->parent();
     while(parent != nullptr) {
         auto it = std::find(parents.begin(), parents.end(), parent);
@@ -200,39 +204,42 @@ CPLString Catalog::toRelativePath(const Object *object,
     return "";
 }
 
-ObjectPtr Catalog::fromRelativePath(const char *path,
+ObjectPtr Catalog::fromRelativePath(const std::string &path,
                                     ObjectContainer *objectContainer)
 {
-    CPLString sep = separator();
+    std::string sep = separator();
+    std::string tmp = path;
     // Remove separator from begining
-    if(EQUALN(sep, path, sep.size()))
-        path += sep.size();
+    if(comparePart(sep, path, static_cast<unsigned>(sep.size()))) {
+        tmp = tmp.substr(sep.size());
+    }
 
-    if(EQUALN(".", path, 1) && EQUALN(sep, path + 1, sep.size())) {
-        return objectContainer->getObject(path + 1 + sep.size());
+    if(comparePart(".", tmp, 1) &&
+            comparePart(sep, tmp.substr(1), static_cast<unsigned>(sep.size()))) {
+        return objectContainer->getObject(tmp.substr(1 + sep.size()));
     }
     else {
         return objectContainer->getObject(path);
     }
 }
 
-#ifdef _WIN32
-bool Catalog::isFileHidden(const CPLString &path, const char *name)
-#else
-bool Catalog::isFileHidden(const CPLString &/*path*/, const char *name)
-#endif
+bool Catalog::isFileHidden(const std::string &path, const std::string &name) const
+
 {
     if(m_showHidden)
         return false;
 
-    if(EQUALN(name, ".", 1))
+    if(comparePart(name, ".", 1))
         return true;
 
 #ifdef _WIN32
-    DWORD attrs = GetFileAttributes(CPLFormFilename(path, name, nullptr));
+    DWORD attrs = GetFileAttributes(File::formFileName(path, name));
     if (attrs != INVALID_FILE_ATTRIBUTES)
         return attrs & FILE_ATTRIBUTE_HIDDEN;
+#else
+    ngsUnused(path);
 #endif
+
     return false;
 }
 
@@ -253,11 +260,10 @@ CatalogPtr Catalog::instance()
 {
     return gCatalog;
 }
+
 ObjectPtr Catalog::pointer() const
 {
     return Catalog::instance();
 }
 
 }
-
-

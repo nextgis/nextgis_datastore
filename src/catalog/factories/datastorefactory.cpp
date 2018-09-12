@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "datastorefactory.h"
 
+#include "catalog/file.h"
 #include "ds/datastore.h"
 #include "ds/memstore.h"
 #include "ngstore/catalog/filter.h"
@@ -33,37 +34,37 @@ DataStoreFactory::DataStoreFactory() : ObjectFactory()
 }
 
 
-const char* DataStoreFactory::getName() const
+std::string DataStoreFactory::name() const
 {
     return _("NextGIS Data and memory store");
 }
 
 void DataStoreFactory::createObjects(ObjectContainer * const container,
-                                     std::vector<const char*> * const names)
+                                     std::vector<std::string> &names)
 {
-    std::vector<const char*>::iterator it = names->begin();
-    while( it != names->end() ) {
-        const char* ext = CPLGetExtension(*it);
-        if(m_gpkgSupported && EQUAL(ext, DataStore::extension())) {
-            const char* path = CPLFormFilename(container->path(), *it, nullptr);
+    auto it = names.begin();
+    while( it != names.end() ) {
+        std::string ext = File::getExtension(*it);
+        if(m_gpkgSupported && compare(ext, DataStore::extension())) {
+            std::string path = File::formFileName(container->path(), *it);
             addChild(container, ObjectPtr(new DataStore(container, *it, path)));
-            it = names->erase(it);
+            it = names.erase(it);
         }
-        else if(m_memSupported && EQUAL(ext, MemoryStore::extension())) {
-            const char* path = CPLFormFilename(container->path(), *it, nullptr);
+        else if(m_memSupported && compare(ext, MemoryStore::extension())) {
+            std::string path = File::formFileName(container->path(), *it);
             addChild(container, ObjectPtr(new MemoryStore(container, *it, path)));
-            it = names->erase(it);
+            it = names.erase(it);
         }
-        else if(EQUAL(ext, Dataset::attachmentsFolderExtension())) {
-            it = names->erase(it);
+        else if(compare(ext, Dataset::attachmentsFolderExtension())) {
+            it = names.erase(it);
         }
-        else if(EQUAL(ext, "xml") && strstr(*it, DataStore::extension()) !=
-                nullptr) {
-            it = names->erase(it);
+        else if(compare(ext, "xml") && (*it).find(DataStore::extension()) !=
+                std::string::npos) {
+            it = names.erase(it);
         }
-        else if(EQUAL(ext, "xml") && strstr(*it, MemoryStore::extension()) !=
-                nullptr) {
-            it = names->erase(it);
+        else if(compare(ext, "xml") && (*it).find(MemoryStore::extension()) !=
+                std::string::npos) {
+            it = names.erase(it);
         }
         else {
             ++it;

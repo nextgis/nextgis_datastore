@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,35 +18,40 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSSIMPLEDATASETFACTORY_H
-#define NGSSIMPLEDATASETFACTORY_H
+#ifndef NGSMUTEX_H
+#define NGSMUTEX_H
 
-#include "objectfactory.h"
+#include "cpl_multiproc.h"
 
 namespace ngs {
 
-class SimpleDatasetFactory : public ObjectFactory
-{
+/**
+ * @brief The Mutex class
+ */
+class Mutex {
 public:
-    SimpleDatasetFactory();
-
-    // ObjectFactory interface
-public:
-    virtual std::string name() const override;
-    virtual void createObjects(ObjectContainer * const container,
-                               std::vector<std::string> &names) override;
+    Mutex();
+    ~Mutex();
+    void acquire(double timeout = 1000.0);
+    void release();
 private:
-    void addChildInternal(ObjectContainer * const container,
-                  const std::string &name,
-                  const std::string &path,
-                  enum ngsCatalogObjectType subType,
-                  const std::vector<std::string> &siblingFiles,
-                  std::vector<std::string> &names);
-
-private:
-    bool m_shpSupported, m_miSupported, m_geojsonSupported;
+    CPLMutex *m_mutex;
 };
 
-} // namespace ngs
+/**
+ * @brief The MutexHolder class
+ */
+class MutexHolder
+{
+public:
+    MutexHolder(const Mutex &mutex, double timeout = 1000.0);
+    ~MutexHolder();
 
-#endif // NGSSIMPLEDATASETFACTORY_H
+protected:
+    Mutex &m_mutex;
+};
+
+
+}
+
+#endif // NGSMUTEX_H

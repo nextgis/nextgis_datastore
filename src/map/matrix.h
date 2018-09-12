@@ -32,8 +32,8 @@ class Matrix4
 {
 public:
     Matrix4();
-    Matrix4(const Matrix4& other);
-    Matrix4& operator=(const Matrix4& other);
+    Matrix4(const Matrix4 &other);
+    Matrix4 &operator=(const Matrix4 &other);
     int invert();
     void ortho(double left, double right, double bottom, double top, double near,
                double far);

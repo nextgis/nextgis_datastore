@@ -72,7 +72,14 @@ enable_testing()
 include(FindAnyProject)
 include(extlib)
 
-add_subdirectory(bindings)
+find_package(Threads)
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
+
+find_library(DL_LIB dl)
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${DL_LIB})
+find_library(M_LIB m)
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${M_LIB})
+
 add_subdirectory(src)
 add_subdirectory(include)
 add_subdirectory(test)

@@ -43,31 +43,10 @@ public:
     Envelope getExtent() const { return m_rotateExtent; }
     Envelope getExtentLimit() const { return m_extentLimit; }
     OGRRawPoint getCenter() const { return m_center; }
-    OGRRawPoint worldToDisplay(const OGRRawPoint &pt) const {
-        OGRRawPoint newPt(m_worldToDisplayMatrix.project(pt));
-        if(m_YAxisInverted) {
-            newPt.y = m_displayHeight - newPt.y;
-        }
-
-        newPt.x *= m_reduceFactor;
-        newPt.y *= m_reduceFactor;
-
-        return newPt;
-    }
-    OGRRawPoint displayToWorld(const OGRRawPoint &pt) const {
-        OGRRawPoint newPt(pt);
-
-        newPt.x /= m_reduceFactor;
-        newPt.y /= m_reduceFactor;
-
-        if(m_YAxisInverted) {
-            newPt.y = m_displayHeight - newPt.y;
-        }
-
-        return m_invWorldToDisplayMatrix.project(newPt);
-    }
-    Envelope worldToDisplay(const Envelope& env) const;
-    Envelope displayToWorld(const Envelope& env) const;
+    OGRRawPoint worldToDisplay(const OGRRawPoint &pt) const;
+    OGRRawPoint displayToWorld(const OGRRawPoint &pt) const;
+    Envelope worldToDisplay(const Envelope &env) const;
+    Envelope displayToWorld(const Envelope &env) const;
     OGRRawPoint getMapDistance(double w, double h) const;
     OGRRawPoint getDisplayLength(double w, double h) const;
     void setDisplaySize(int width, int height, bool isYAxisInverted);
@@ -86,7 +65,7 @@ public:
         return getTilesForExtent(getExtent(), getZoom(), getYAxisInverted(),
                                  getXAxisLooped());
     }
-    void setExtentLimits(const Envelope& extentLimit);
+    void setExtentLimits(const Envelope &extentLimit);
     void setZoomIncrement(char increment) { m_extraZoom = increment; }
     void setReduceFactor(double factor) { m_reduceFactor = factor; }
 

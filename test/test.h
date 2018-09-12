@@ -18,8 +18,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef TEST_H
-#define TEST_H
+#ifndef NGSTEST_H
+#define NGSTEST_H
 
 #include "gtest/gtest.h"
 //#include "api_priv.h"
@@ -33,4 +33,4 @@
 //#define TMS_MAX_Z 18
 //#define TMS_YORIG_TOP false
 
-#endif // TEST_H
+#endif // NGSTEST_H

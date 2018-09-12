@@ -28,6 +28,7 @@
 
 #include "api_priv.h"
 #include "ds/earcut.hpp"
+#include "util/global.h"
 
 namespace ngs {
 
@@ -71,7 +72,7 @@ Style::Style() : m_vertexShaderSource(nullptr),
 {
 }
 
-const GLchar* Style::getShaderSource(ShaderType type)
+const GLchar* Style::shaderSource(ShaderType type)
 {
     switch (type) {
         case SH_VERTEX:
@@ -82,12 +83,13 @@ const GLchar* Style::getShaderSource(ShaderType type)
     return nullptr;
 }
 
-bool Style::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
-                    enum GlBuffer::BufferType /*type*/)
+bool Style::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+                    enum GlBuffer::BufferType type)
 {
+    ngsUnused(type);
     if (!m_program.loaded()) {
-        bool result = m_program.load(getShaderSource(Style::SH_VERTEX),
-                                     getShaderSource(Style::SH_FRAGMENT));
+        bool result = m_program.load(shaderSource(Style::SH_VERTEX),
+                                     shaderSource(Style::SH_FRAGMENT));
         if(!result) {
             return false;
         }
@@ -101,7 +103,7 @@ bool Style::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
     return true;
 }
 
-void Style::draw(const GlBuffer& buffer) const
+void Style::draw(const GlBuffer &buffer) const
 {
     if (!buffer.bound())
         return;
@@ -109,36 +111,36 @@ void Style::draw(const GlBuffer& buffer) const
     buffer.rebind();
 }
 
-Style *Style::createStyle(const char *name, const TextureAtlas* atlas)
+Style *Style::createStyle(const std::string &name, const TextureAtlas &atlas)
 {
     // NOTE: Add new styles here
-    if(EQUAL(name, "simpleImage"))
+    if(compare(name, "simpleImage"))
         return new SimpleImageStyle;
-    else if(EQUAL(name, "simplePoint"))
+    else if(compare(name, "simplePoint"))
         return new SimplePointStyle;
-    else if(EQUAL(name, "simpleLine"))
+    else if(compare(name, "simpleLine"))
         return new SimpleLineStyle;
-    else if(EQUAL(name, "simpleFill"))
+    else if(compare(name, "simpleFill"))
         return new SimpleFillStyle;
-    else if(EQUAL(name, "simpleFillBordered"))
+    else if(compare(name, "simpleFillBordered"))
         return new SimpleFillBorderedStyle;
-    else if(EQUAL(name, "primitivePoint"))
+    else if(compare(name, "primitivePoint"))
         return new PrimitivePointStyle;
-    else if(EQUAL(name, "marker"))
+    else if(compare(name, "marker"))
         return new MarkerStyle(atlas);
-    else if(EQUAL(name, "simpleLocation"))
+    else if(compare(name, "simpleLocation"))
         return new SimpleLocationStyle;
-    else if(EQUAL(name, "markerLocation"))
+    else if(compare(name, "markerLocation"))
         return new MarkerLocationStyle(atlas);
-    else if(EQUAL(name, "simpleEditPoint"))
+    else if(compare(name, "simpleEditPoint"))
         return new SimpleEditPointStyle;
-    else if(EQUAL(name, "markerEditPoint"))
+    else if(compare(name, "markerEditPoint"))
         return new MarkerEditPointStyle(atlas);
-    else if(EQUAL(name, "editLine"))
+    else if(compare(name, "editLine"))
         return new EditLineStyle;
-    else if(EQUAL(name, "editFill"))
+    else if(compare(name, "editFill"))
         return new EditFillStyle;
-    else if(EQUAL(name, "simpleEditCross"))
+    else if(compare(name, "simpleEditCross"))
         return new SimpleEditCrossStyle;
     return nullptr;
 }
@@ -168,8 +170,8 @@ bool SimpleVectorStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix
 
 bool SimpleVectorStyle::load(const CPLJSONObject &store)
 {
-    ngsRGBA color = ngsHEX2RGBA(store.GetString("color",
-                                             ngsRGBA2HEX(defaultRGBAColor)));
+    ngsRGBA color = ngsHEX2RGBA(
+                store.GetString("color", ngsRGBA2HEX(defaultRGBAColor)));
     setColor(color);
     return true;
 }
@@ -215,7 +217,7 @@ CPLJSONObject PointStyle::save() const
 // SimplePointStyle
 //------------------------------------------------------------------------------
 
-constexpr const GLchar* const pointVertexShaderSource = R"(
+constexpr const GLchar * const pointVertexShaderSource = R"(
     attribute vec3 a_mPosition;
 
     uniform mat4 u_msMatrix;
@@ -234,7 +236,7 @@ constexpr const GLchar* const pointVertexShaderSource = R"(
 // http://stackoverflow.com/a/10506172
 // https://www.cs.uaf.edu/2009/spring/cs480/lecture/02_03_pretty.html
 // http://stackoverflow.com/q/18659332
-constexpr const GLchar* const pointFragmentShaderSource = R"(
+constexpr const GLchar * const pointFragmentShaderSource = R"(
     uniform vec4 u_color;
     uniform int u_type;
 
@@ -343,8 +345,8 @@ SimplePointStyle::SimplePointStyle(enum PointType type) : PointStyle(type)
     m_fragmentShaderSource = pointFragmentShaderSource;
 }
 
-unsigned short SimplePointStyle::addPoint(const SimplePoint& pt, float z,
-                                          unsigned short index, GlBuffer* buffer)
+unsigned short SimplePointStyle::addPoint(const SimplePoint &pt, float z,
+                                          unsigned short index, GlBuffer *buffer)
 {
     buffer->addVertex(pt.x);
     buffer->addVertex(pt.y);
@@ -353,7 +355,7 @@ unsigned short SimplePointStyle::addPoint(const SimplePoint& pt, float z,
     return index;
 }
 
-bool SimplePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+bool SimplePointStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                                enum GlBuffer::BufferType type)
 {
     if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
@@ -361,7 +363,7 @@ bool SimplePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
 
     m_program.setInt("u_type", m_type);
     m_program.setFloat("u_vSize", m_size);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 0, 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 0, nullptr);
 
     return true;
 }
@@ -378,7 +380,7 @@ void SimplePointStyle::draw(const GlBuffer& buffer) const
 //------------------------------------------------------------------------------
 // SimpleLineStyle
 //------------------------------------------------------------------------------
-constexpr const GLchar* const lineVertexShaderSource = R"(
+constexpr const GLchar * const lineVertexShaderSource = R"(
     attribute vec3 a_mPosition;
     attribute vec2 a_normal;
 
@@ -395,7 +397,7 @@ constexpr const GLchar* const lineVertexShaderSource = R"(
     }
 )";
 
-constexpr const GLchar* const lineFragmentShaderSource = R"(
+constexpr const GLchar * const lineFragmentShaderSource = R"(
     uniform vec4 u_color;
 
     void main()
@@ -418,20 +420,20 @@ SimpleLineStyle::SimpleLineStyle() : SimpleVectorStyle(),
     m_styleType = ST_LINE;
 }
 
-bool SimpleLineStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+bool SimpleLineStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                               enum GlBuffer::BufferType type)
 {
     if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
         return false;
 
     m_program.setFloat("u_vLineWidth", m_width);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), nullptr);
     m_program.setVertexAttribPointer("a_normal", 2, 5 * sizeof(float),
                             reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
     return true;
 }
 
-void SimpleLineStyle::draw(const GlBuffer& buffer) const
+void SimpleLineStyle::draw(const GlBuffer &buffer) const
 {
     if(buffer.indexSize() == 0)
         return;
@@ -491,9 +493,9 @@ void SimpleLineStyle::setSegmentCount(unsigned char segmentCount)
     m_segmentCount = segmentCount;
 }
 
-unsigned short SimpleLineStyle::addLineCap(const SimplePoint& point,
-                                           const Normal& normal, float z,
-                                           unsigned short index, GlBuffer* buffer)
+unsigned short SimpleLineStyle::addLineCap(const SimplePoint &point,
+                                           const Normal &normal, float z,
+                                           unsigned short index, GlBuffer *buffer)
 {
     switch(m_capType) {
         case CapType::CT_ROUND:
@@ -605,12 +607,12 @@ size_t SimpleLineStyle::lineCapVerticesCount() const
     return 0;
 }
 
-unsigned short SimpleLineStyle::addLineJoin(const SimplePoint& point,
-                                            const Normal& prevNormal,
-                                            const Normal& normal,
+unsigned short SimpleLineStyle::addLineJoin(const SimplePoint &point,
+                                            const Normal &prevNormal,
+                                            const Normal &normal,
                                             float z,
                                             unsigned short index,
-                                            GlBuffer* buffer)
+                                            GlBuffer *buffer)
 {
 //    float maxWidth = width() * 5;
     float start = angle(prevNormal);
@@ -761,12 +763,12 @@ size_t SimpleLineStyle::lineJoinVerticesCount() const
     return 0;
 }
 
-unsigned short SimpleLineStyle::addSegment(const SimplePoint& pt1,
-                                           const SimplePoint& pt2,
-                                           const Normal& normal,
+unsigned short SimpleLineStyle::addSegment(const SimplePoint &pt1,
+                                           const SimplePoint &pt2,
+                                           const Normal &normal,
                                            float z,
                                            unsigned short index,
-                                           GlBuffer* buffer)
+                                           GlBuffer *buffer)
 {
     // 0
     buffer->addVertex(pt1.x);
@@ -824,9 +826,9 @@ void PrimitivePointStyle::setType(enum PointType type)
     PointStyle::setType(type);
 }
 
-unsigned short PrimitivePointStyle::addPoint(const SimplePoint& pt, float z,
+unsigned short PrimitivePointStyle::addPoint(const SimplePoint &pt, float z,
                                              unsigned short index,
-                                             GlBuffer* buffer)
+                                             GlBuffer *buffer)
 {
     switch(pointType()) {
     case PT_SQUARE:
@@ -1085,20 +1087,20 @@ size_t PrimitivePointStyle::pointVerticesCount() const
     }
 }
 
-bool PrimitivePointStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+bool PrimitivePointStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                               enum GlBuffer::BufferType type)
 {
     if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
         return false;
 
     m_program.setFloat("u_vLineWidth", m_size);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), nullptr);
     m_program.setVertexAttribPointer("a_normal", 2, 5 * sizeof(float),
                             reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
     return true;
 }
 
-void PrimitivePointStyle::draw(const GlBuffer& buffer) const
+void PrimitivePointStyle::draw(const GlBuffer &buffer) const
 {
     if(buffer.indexSize() == 0)
         return;
@@ -1111,8 +1113,10 @@ bool PrimitivePointStyle::load(const CPLJSONObject &store)
 {
     if(!PointStyle::load(store))
         return false;
-    m_segmentCount = static_cast<unsigned char>(store.GetInteger("segments", m_segmentCount));
-    m_starEndsCount = static_cast<unsigned char>(store.GetInteger("starEnds", m_starEndsCount));
+    m_segmentCount = static_cast<unsigned char>(
+                store.GetInteger("segments", m_segmentCount));
+    m_starEndsCount = static_cast<unsigned char>(
+                store.GetInteger("starEnds", m_starEndsCount));
     return true;
 }
 
@@ -1127,7 +1131,7 @@ CPLJSONObject PrimitivePointStyle::save() const
 //------------------------------------------------------------------------------
 // SimpleFillStyle
 //------------------------------------------------------------------------------
-constexpr const GLchar* const fillVertexShaderSource = R"(
+constexpr const GLchar * const fillVertexShaderSource = R"(
     attribute vec3 a_mPosition;
 
     uniform mat4 u_msMatrix;
@@ -1138,7 +1142,7 @@ constexpr const GLchar* const fillVertexShaderSource = R"(
     }
 )";
 
-constexpr const GLchar* const fillFragmentShaderSource = R"(
+constexpr const GLchar * const fillFragmentShaderSource = R"(
     uniform vec4 u_color;
 
     void main()
@@ -1159,7 +1163,7 @@ bool SimpleFillStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
 {
     if (!SimpleVectorStyle::prepare(msMatrix, vsMatrix, type))
         return false;
-    m_program.setVertexAttribPointer("a_mPosition", 3, 0, 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 0, nullptr);
 
     return true;
 }
@@ -1181,8 +1185,8 @@ SimpleFillBorderedStyle::SimpleFillBorderedStyle() : Style()
     m_line.setColor({128,128,128,255});
 }
 
-bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
-                                      const Matrix4& vsMatrix,
+bool SimpleFillBorderedStyle::prepare(const Matrix4 &msMatrix,
+                                      const Matrix4 &vsMatrix,
                                       enum GlBuffer::BufferType type)
 {
     if(type == GlBuffer::BF_LINE) {
@@ -1196,7 +1200,7 @@ bool SimpleFillBorderedStyle::prepare(const Matrix4& msMatrix,
     return true;
 }
 
-void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
+void SimpleFillBorderedStyle::draw(const GlBuffer &buffer) const
 {
     if(buffer.type() == GlBuffer::BF_LINE) {
         m_line.draw(buffer);
@@ -1208,9 +1212,9 @@ void SimpleFillBorderedStyle::draw(const GlBuffer& buffer) const
 
 bool SimpleFillBorderedStyle::load(const CPLJSONObject &store)
 {
-    if(!m_line.load(store.GetObject("line")))
+    if(!m_line.load(store.GetObj("line")))
         return false;
-    if(!m_fill.load(store.GetObject("fill")))
+    if(!m_fill.load(store.GetObj("fill")))
         return false;
 
     return true;
@@ -1257,7 +1261,7 @@ void SimpleFillBorderedStyle::setJoinType(const enum JoinType &joinType)
 //------------------------------------------------------------------------------
 // SimpleImageStyle
 //------------------------------------------------------------------------------
-constexpr const GLchar* const imageVertexShaderSource = R"(
+constexpr const GLchar * const imageVertexShaderSource = R"(
     attribute vec3 a_mPosition;
     attribute vec2 a_texCoord;
 
@@ -1271,7 +1275,7 @@ constexpr const GLchar* const imageVertexShaderSource = R"(
     }
 )";
 
-constexpr const GLchar* const imageFragmentShaderSource = R"(
+constexpr const GLchar * const imageFragmentShaderSource = R"(
     varying vec2 v_texCoord;
     uniform sampler2D s_texture;
 
@@ -1288,7 +1292,7 @@ SimpleImageStyle::SimpleImageStyle() : Style(), m_image(nullptr)
     m_styleType = ST_IMAGE;
 }
 
-bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+bool SimpleImageStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                                enum GlBuffer::BufferType type)
 {
     if (!Style::prepare(msMatrix, vsMatrix, type))
@@ -1298,7 +1302,7 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
         m_image->bind();
     }
     m_program.setInt("s_texture", 0);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 5 * sizeof(float), nullptr);
     m_program.setVertexAttribPointer("a_texCoord", 2, 5 * sizeof(float),
                             reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
 
@@ -1306,7 +1310,7 @@ bool SimpleImageStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
 }
 
 
-void SimpleImageStyle::draw(const GlBuffer& buffer) const
+void SimpleImageStyle::draw(const GlBuffer &buffer) const
 {
     if(!m_image || !m_image->bound())
         return;
@@ -1320,10 +1324,16 @@ void SimpleImageStyle::draw(const GlBuffer& buffer) const
             GL_UNSIGNED_SHORT, nullptr));
 }
 
+bool SimpleImageStyle::load(const CPLJSONObject &store)
+{
+    ngsUnused(store);
+    return true;
+}
+
 //------------------------------------------------------------------------------
 // MarkerStyle
 //------------------------------------------------------------------------------
-constexpr const GLchar* const markerVertexShaderSource = R"(
+constexpr const GLchar * const markerVertexShaderSource = R"(
     attribute vec3 a_mPosition;
     attribute vec2 a_normal;
     attribute vec2 a_texCoord;
@@ -1343,7 +1353,7 @@ constexpr const GLchar* const markerVertexShaderSource = R"(
     }
 )";
 
-constexpr const GLchar* const markerFragmentShaderSource = R"(
+constexpr const GLchar * const markerFragmentShaderSource = R"(
     varying vec2 v_texCoord;
     uniform sampler2D s_texture;
 
@@ -1353,7 +1363,7 @@ constexpr const GLchar* const markerFragmentShaderSource = R"(
     }
 )";
 
-MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) :
+MarkerStyle::MarkerStyle(const TextureAtlas &textureAtlas) :
     PointStyle(PT_MARKER),
     m_iconSet(nullptr),
     m_textureAtlas(textureAtlas)
@@ -1363,10 +1373,10 @@ MarkerStyle::MarkerStyle(const TextureAtlas* textureAtlas) :
     m_styleType = ST_POINT;
 }
 
-void MarkerStyle::setIcon(const char* iconSetName, unsigned short index,
+void MarkerStyle::setIcon(const std::string &iconSetName, unsigned short index,
                           unsigned char width, unsigned char height)
 {
-    m_iconSet = m_textureAtlas->at(iconSetName).get();
+    m_iconSet = m_textureAtlas[iconSetName].get();
     size_t atlasItemSize = m_iconSet->width();
     m_iconSetName = iconSetName;
     m_iconIndex = index;
@@ -1386,8 +1396,13 @@ void MarkerStyle::setIcon(const char* iconSetName, unsigned short index,
     m_lry = float(h) / atlasItemSize;
 }
 
-unsigned short MarkerStyle::addPoint(const SimplePoint& pt, float z,
-                                     unsigned short index, GlBuffer* buffer)
+void MarkerStyle::setType(enum PointType type)
+{
+    ngsUnused(type);
+}
+
+unsigned short MarkerStyle::addPoint(const SimplePoint &pt, float z,
+                                     unsigned short index, GlBuffer *buffer)
 {
     float nx1, ny1, nx2, ny2;
 
@@ -1448,7 +1463,7 @@ unsigned short MarkerStyle::addPoint(const SimplePoint& pt, float z,
     return index;
 }
 
-bool MarkerStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+bool MarkerStyle::prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                                enum GlBuffer::BufferType type)
 {
     if (!Style::prepare(msMatrix, vsMatrix, type))
@@ -1459,7 +1474,7 @@ bool MarkerStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
     }
     m_program.setInt("s_texture", 0);
     m_program.setFloat("u_vLineWidth", m_size);
-    m_program.setVertexAttribPointer("a_mPosition", 3, 7 * sizeof(float), 0);
+    m_program.setVertexAttribPointer("a_mPosition", 3, 7 * sizeof(float), nullptr);
     m_program.setVertexAttribPointer("a_normal", 2, 7 * sizeof(float),
                             reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
     m_program.setVertexAttribPointer("a_texCoord", 2, 7 * sizeof(float),
@@ -1469,7 +1484,7 @@ bool MarkerStyle::prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
 }
 
 
-void MarkerStyle::draw(const GlBuffer& buffer) const
+void MarkerStyle::draw(const GlBuffer &buffer) const
 {
     if(!m_iconSet || !m_iconSet->bound())
         return;
@@ -1483,7 +1498,7 @@ void MarkerStyle::draw(const GlBuffer& buffer) const
                                    GL_UNSIGNED_SHORT, nullptr));
 }
 
-bool MarkerStyle::load(const CPLJSONObject& store)
+bool MarkerStyle::load(const CPLJSONObject &store)
 {
     if(!PointStyle::load(store))
         return false;
@@ -1540,7 +1555,7 @@ void MarkerLocationStyle::setIndex(unsigned short index)
     m_lry = float(h) / atlasItemSize;
 }
 
-bool MarkerLocationStyle::load(const CPLJSONObject& store)
+bool MarkerLocationStyle::load(const CPLJSONObject &store)
 {
     if(!MarkerStyle::load(store))
         return false;
@@ -1597,7 +1612,7 @@ void SimpleEditPointStyle::setEditElementType(enum ngsEditElementType type)
 //------------------------------------------------------------------------------
 // MarkerEditPointStyle
 //------------------------------------------------------------------------------
-MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas* textureAtlas) :
+MarkerEditPointStyle::MarkerEditPointStyle(const TextureAtlas &textureAtlas) :
     MarkerStyle(textureAtlas),
     m_pointIndex(0),
     m_selectedPointIndex(0),
@@ -1642,7 +1657,7 @@ void MarkerEditPointStyle::setIndex(unsigned short index)
     m_lry = float(h) / atlasItemSize;
 }
 
-bool MarkerEditPointStyle::load(const CPLJSONObject& store)
+bool MarkerEditPointStyle::load(const CPLJSONObject &store)
 {
     if(!MarkerStyle::load(store))
         return false;
@@ -1696,15 +1711,16 @@ void EditLineStyle::setEditElementType(enum ngsEditElementType type)
     }
 }
 
-bool EditLineStyle::load(const CPLJSONObject& store)
+bool EditLineStyle::load(const CPLJSONObject &store)
 {
     if(!SimpleLineStyle::load(store))
         return false;
 
-    m_lineColor = ngsHEX2RGBA(store.GetString("line_color",
-                                              ngsRGBA2HEX(m_lineColor)));
-    m_selectedLineColor = ngsHEX2RGBA(store.GetString("selected_line_color",
-                                              ngsRGBA2HEX(m_selectedLineColor)));
+    m_lineColor = ngsHEX2RGBA(
+                store.GetString("line_color", ngsRGBA2HEX(m_lineColor)));
+    m_selectedLineColor = ngsHEX2RGBA(
+                store.GetString("selected_line_color",
+                                ngsRGBA2HEX(m_selectedLineColor)));
 
     setEditElementType(EET_LINE);
     return true;
@@ -1741,15 +1757,16 @@ void EditFillStyle::setEditElementType(enum ngsEditElementType type)
     }
 }
 
-bool EditFillStyle::load(const CPLJSONObject& store)
+bool EditFillStyle::load(const CPLJSONObject &store)
 {
     if(!SimpleFillStyle::load(store))
         return false;
 
-    m_fillColor = ngsHEX2RGBA(store.GetString("fill_color",
-                                              ngsRGBA2HEX(m_fillColor)));
-    m_selectedFillColor = ngsHEX2RGBA(store.GetString("selected_fill_color",
-                                              ngsRGBA2HEX(m_selectedFillColor)));
+    m_fillColor = ngsHEX2RGBA(
+                store.GetString("fill_color", ngsRGBA2HEX(m_fillColor)));
+    m_selectedFillColor = ngsHEX2RGBA(
+                store.GetString("selected_fill_color",
+                                ngsRGBA2HEX(m_selectedFillColor)));
 
     setEditElementType(EET_POLYGON);
     return true;
@@ -1773,6 +1790,11 @@ SimpleEditCrossStyle::SimpleEditCrossStyle(enum PointType type) :
         SimplePointStyle(type)
 {
     setColor(crossColor);
+}
+
+void SimpleLocationStyle::setStatus(enum LocationStyle::Status status)
+{
+    ngsUnused(status);
 }
 
 } // namespace ngs

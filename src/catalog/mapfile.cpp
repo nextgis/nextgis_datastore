@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -30,17 +30,23 @@ constexpr const char* MAP_DOCUMENT_EXT = "ngmd";
 constexpr int MAP_DOCUMENT_EXT_LEN = length(MAP_DOCUMENT_EXT);
 
 MapFile::MapFile(ObjectContainer * const parent,
-                 const CPLString &name,
-                 const CPLString &path) :
+                 const std::string &name,
+                 const std::string &path) :
     File(parent, CAT_FILE_NGMAPDOCUMENT, name, path)
 {
 
 }
 
+MapViewPtr MapFile::map() const
+{
+    return m_mapView;
+}
+
 bool MapFile::open()
 {
-    if(m_mapView && !m_mapView->isClosed())
+    if(m_mapView && !m_mapView->isClosed()) {
         return true;
+    }
     m_mapView = MapStore::initMap();
     return m_mapView->open(this);
 }
@@ -74,15 +80,16 @@ bool MapFile::save(MapViewPtr mapView)
     return result;
 }
 
-const char *MapFile::getExtension()
+std::string MapFile::extension()
 {
     return MAP_DOCUMENT_EXT;
 }
 
 bool MapFile::destroy()
 {
-    if(m_mapView)
+    if(m_mapView) {
         m_mapView->close();
+    }
     return File::destroy();
 }
 

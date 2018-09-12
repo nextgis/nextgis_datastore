@@ -29,22 +29,23 @@ class Folder : public ObjectContainer
 {
 public:
     explicit Folder(ObjectContainer * const parent = nullptr,
-           const CPLString & name = "",
-           const CPLString & path = "");
-    virtual bool hasChildren() override;
+           const std::string &name = "",
+           const std::string &path = "");
+    virtual bool loadChildren() override;
 
     // Static functions
 public:
-    static bool isExists(const char* path);
-    static bool mkDir(const char* path, bool recursive = false);
-    static bool rmDir(const char* path);
-    static bool copyDir(const char* from, const char* to,
+    static std::vector<std::string> listFiles(const std::string &path);
+    static bool isExists(const std::string &path);
+    static bool mkDir(const std::string &path, bool recursive = false);
+    static bool rmDir(const std::string &path);
+    static bool copyDir(const std::string &from, const std::string &to,
                         const Progress &progress = Progress());
-    static bool moveDir(const char* from, const char* to,
+    static bool moveDir(const std::string &from, const std::string &to,
                         const Progress &progress = Progress());
-    static bool isDir(const char* path);
-    static bool isSymlink(const char* path);
-    static bool isHidden(const char* path);
+    static bool isDir(const std::string &path);
+    static bool isSymlink(const std::string &path);
+    static bool isHidden(const std::string &path);
 
     // ObjectContainer interface
 public:
@@ -56,8 +57,8 @@ public:
                       const Progress& progress = Progress()) override;
     virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
     virtual bool create(const enum ngsCatalogObjectType type,
-                        const CPLString& name,
-                        const Options& options) override;
+                        const std::string &name,
+                        const Options &options) override;
 
     // Object interface
 public:
@@ -65,17 +66,16 @@ public:
     virtual bool canDestroy() const override;
 
 protected:
-    static CPLString createUniquePath(const CPLString &path,
-                                      const CPLString &name,
+    static std::string createUniquePath(const std::string &path,
+                                      const std::string &name,
                                       bool isFolder = true,
-                                      const CPLString &add = "",
+                                      const std::string &add = "",
                                       int counter = 0);
 
 protected:
-    std::vector<const char*> fillChildrenNames(char **items);
-    int pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath,
-                        const Progress& progress);
-    int pasteFeatureClass(ObjectPtr child, bool move, const CPLString& newPath,
+    int pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,
+                        const Progress &progress);
+    int pasteFeatureClass(ObjectPtr child, bool move, const std::string &newPath,
                           const Options& options, const Progress& progress);
 };
 

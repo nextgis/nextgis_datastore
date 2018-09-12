@@ -25,8 +25,10 @@
 #include "catalog/folder.h"
 #include "util/settings.h"
 
-constexpr const char* SETTINGS_FILE = "./tmp/settings.json";
+// gdal
+#include "cpl_vsi.h"
 
+constexpr const char *SETTINGS_FILE = "./tmp/settings.json";
 
 TEST(SettingsTests, WriteTest) {
     // just try to create directory
@@ -60,8 +62,19 @@ TEST(SettingsTests, ReadTest) {
 
 
 TEST(SettingsTests, Settings) {
+    char **options = nullptr;
+    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
     ngs::Settings &settings = ngs::Settings::instance();
     EXPECT_EQ(settings.getBool("catalog/show_hidden", false), false);
     settings.set("catalog/show_hidden", true);
     EXPECT_EQ(settings.getBool("catalog/show_hidden", false), true);
+
+    ngsUnInit();
 }

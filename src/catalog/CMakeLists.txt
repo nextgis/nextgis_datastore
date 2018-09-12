@@ -67,9 +67,4 @@ set_target_properties(${LIB_NAME} PROPERTIES
     C_STANDARD 11
 )
 
-if(WITH_GDAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} GDAL_EP)
-endif()
-
-
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)

@@ -47,9 +47,9 @@ public:
      * @param maxY maximum y
      * @return 0 if some error occures or new map identificator if success.
      */
-    virtual unsigned char createMap(const CPLString& name,
-                                    const CPLString& description,
-                                    unsigned short epsg, const Envelope& bounds);
+    virtual unsigned char createMap(const std::string &name,
+                                    const std::string &description,
+                                    unsigned short epsg, const Envelope &bounds);
     virtual unsigned char openMap(MapFile * const file);
     virtual bool saveMap(unsigned char mapId, MapFile * const file);
     virtual bool closeMap(unsigned char mapId);
@@ -61,12 +61,12 @@ public:
     // Map manipulation
     bool drawMap(unsigned char mapId, enum ngsDrawState state,
                 const Progress &progress = Progress());
-    void invalidateMap(unsigned char mapId, const Envelope& bounds);
+    void invalidateMap(unsigned char mapId, const Envelope &bounds);
 
     bool setMapSize(unsigned char mapId, int width, int height,
                    bool YAxisInverted);
     ngsRGBA getMapBackgroundColor(unsigned char mapId) const;
-    bool setMapBackgroundColor(unsigned char mapId, const ngsRGBA& color);
+    bool setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color);
     bool setMapCenter(unsigned char mapId, double x, double y);
     ngsCoordinate getMapCenter(unsigned char mapId) const;
     bool setMapScale(unsigned char mapId, double scale);
@@ -79,11 +79,12 @@ public:
     ngsPosition getDisplayLength(unsigned char mapId, double w, double h) const;
     size_t getLayerCount(unsigned char mapId) const;
     LayerPtr getLayer(unsigned char mapId, int layerId) const;
-    int createLayer(unsigned char mapId, const char* name, const ObjectPtr &object);
-    bool deleteLayer(unsigned char mapId, Layer* layer);
-    bool reorderLayers(unsigned char mapId, Layer* beforeLayer, Layer* movedLayer);
-    bool setOptions(unsigned char mapId, const Options& options);
-    bool setExtentLimits(unsigned char mapId, const Envelope& extentLimits);
+    int createLayer(unsigned char mapId, const std::string &name,
+                    const ObjectPtr &object);
+    bool deleteLayer(unsigned char mapId, Layer *layer);
+    bool reorderLayers(unsigned char mapId, Layer *beforeLayer, Layer *movedLayer);
+    bool setOptions(unsigned char mapId, const Options &options);
+    bool setExtentLimits(unsigned char mapId, const Envelope &extentLimits);
     OverlayPtr getOverlay(unsigned char mapId, enum ngsMapOverlayType type) const;
     bool setOverlayVisible(unsigned char mapId, int typeMask, bool visible);
 
@@ -93,8 +94,8 @@ public:
     static MapViewPtr initMap();
 
 public:
-    static void setInstance(MapStore* pointer);
-    static MapStore* getInstance();
+    static void setInstance(MapStore *pointer);
+    static MapStore *instance();
 
 protected:
     std::vector<MapViewPtr> m_maps;

@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -36,60 +36,96 @@
 namespace ngs {
 
 Folder::Folder(ObjectContainer * const parent,
-               const CPLString & name,
-               const CPLString & path) :
+               const std::string &name,
+               const std::string &path) :
     ObjectContainer(parent, CAT_CONTAINER_DIR, name, path)
 {
 
 }
 
-bool Folder::hasChildren()
+static std::vector<std::string> fillChildrenNames(const std::string &path,
+                                                  char** items)
 {
-    if(m_childrenLoaded)
-        return !m_children.empty();
+    std::vector<std::string> names;
+    CatalogPtr catalog = Catalog::instance();
+    for(int i = 0; items[i] != nullptr; ++i) {
+        if(compare(items[i], ".") || compare(items[i], "..")) {
+            continue;
+        }
+
+        if(catalog->isFileHidden(path, items[i])) {
+            continue;
+        }
+
+        names.push_back(items[i]);
+    }
+
+    return names;
+}
+
+bool Folder::loadChildren()
+{
+    if(m_childrenLoaded) {
+        return true;
+    }
 
     if(m_parent) {
         m_childrenLoaded = true;
-        char** items = CPLReadDir(m_path);
+        char **items = CPLReadDir(m_path.c_str());
 
         // No children in folder
-        if(nullptr == items)
-            return false;
+        if(nullptr == items) {
+            return true;
+        }
 
-        std::vector< const char*> objectNames = fillChildrenNames(items);
+        std::vector<std::string> objectNames = fillChildrenNames(m_path, items);
 
         Catalog::instance()->createObjects(m_parent->getChild(m_name), objectNames);
 
         CSLDestroy(items);
     }
 
-    return !m_children.empty();
+    return true;
 }
 
-bool Folder::isExists(const char* path)
+std::vector<std::string> Folder::listFiles(const std::string &path)
+{
+    std::vector<std::string> out;
+    char **items = CPLReadDir(path.c_str());
+    if(nullptr != items) {
+        int counter = 0;
+        while (items[counter] != nullptr) {
+            out.push_back(items[counter++]);
+        }
+        CSLDestroy(items);
+    }
+    return out;
+}
+
+bool Folder::isExists(const std::string &path)
 {
     VSIStatBufL sbuf;
-    return VSIStatL(path, &sbuf) == 0;
+    return VSIStatL(path.c_str(), &sbuf) == 0;
 }
 
-bool Folder::mkDir(const char* path, bool recursive)
-{   
+bool Folder::mkDir(const std::string &path, bool recursive)
+{
     if(recursive) {
         if(isExists(path)) {
             return true;
         }
 
-        const char* parentDir = CPLGetDirname(path);
+        std::string parentDir = File::getDirName(path);
         if(!mkDir(parentDir, recursive)) {
             return false;
         }
     }
 
-    if(VSIMkdir(path, 0755) != 0) {
-        return errorMessage(_("Create folder failed! Folder '%s'"), path);
+    if(VSIMkdir(path.c_str(), 0755) != 0) {
+        return errorMessage(_("Create folder failed! Folder '%s'"), path.c_str());
     }
 #ifdef _WIN32
-    if (EQUALN(CPLGetFilename(path), ".", 1)) {
+    if (comparePart(File::getFileName(path), ".", 1)) {
         SetFileAttributes(path, FILE_ATTRIBUTE_HIDDEN);
     }
 #endif
@@ -97,31 +133,28 @@ bool Folder::mkDir(const char* path, bool recursive)
 
 }
 
-bool Folder::rmDir(const char* path)
+bool Folder::rmDir(const std::string &path)
 {
     //test if symlink
     if(isSymlink(path)) {
-        if(!File::deleteFile(path)) {
+        if(!File::deleteFile(path.c_str())) {
             return false;
         }
     }
     else {
-        if (CPLUnlinkTree(path) == -1) {
-            return errorMessage(_("Delete folder failed! Folder '%s'"),  path);
+        if (CPLUnlinkTree(path.c_str()) == -1) {
+            return errorMessage(_("Delete folder failed! Folder '%s'"),  path.c_str());
         }
     }
 
     return true;
 }
 
-bool Folder::copyDir(const char* from, const char* to, const Progress& progress)
+bool Folder::copyDir(const std::string &from, const std::string &to,
+                     const Progress& progress)
 {
-    if(EQUAL(from, to)) {
+    if(compare(from.c_str(), to.c_str())) {
         return true;
-    }
-
-    if(EQUALN(to, from, CPLStrnlen(from, 1024))) {
-        return errorMessage(_("Cannot copy folder inside itself"));
     }
 
     if(!Folder::isExists(to)) {
@@ -130,51 +163,55 @@ bool Folder::copyDir(const char* from, const char* to, const Progress& progress)
         }
     }
 
-    char** items = CPLReadDir(from);
+    char** items = CPLReadDir(from.c_str());
     if(nullptr == items) {
         return true;
     }
 
     int count = CSLCount(items);
+    bool result = true;
     for(int i = count - 1; i >= 0; --i ) {
-        if(EQUAL(items[i], ".") || EQUAL(items[i], "..")) {
+        if(compare(items[i], ".") || compare(items[i], "..")) {
             continue;
         }
 
         if(progress.onProgress(COD_IN_PROCESS, double(i) / count,
                                _("Copy file %s"), items[i]) == 0) {
-            return false;
-
+            result = false;
+            break;
         }
 
-        CPLString pathFrom = CPLFormFilename(from, items[i], nullptr);
-        CPLString pathTo = CPLFormFilename(to, items[i], nullptr);
+        std::string pathFrom = File::formFileName(from, items[i]);
+        std::string pathTo = File::formFileName(to, items[i]);
 
         if(isDir(pathFrom)) {
             if(!copyDir(pathFrom, pathTo, progress)) {
-                return false;
+                result = false;
+                break;
             }
         }
         else {
             if(!File::copyFile(pathFrom, pathTo, progress)) {
-                return false;
+                result = false;
+                break;
             }
         }
     }
 
     CSLDestroy(items);
 
-    return true;
+    return result;
 }
 
-bool Folder::moveDir(const char* from, const char* to, const Progress& progress)
+bool Folder::moveDir(const std::string &from, const std::string &to,
+                     const Progress& progress)
 {
-    if(EQUAL(from, to)) {
+    if(compare(from, to)) {
         return true;
     }
 
 #ifdef __WINDOWS__
-    if(STARTS_WITH_CI(to, "/vsi") && EQUALN(from, to, 3)) {
+    if(startsWith(to, "/vsi") && comparePart(from, to, 3)) {
         return File::renameFile(from, to, progress);
     }
 #endif //__WINDOWS__
@@ -186,26 +223,26 @@ bool Folder::moveDir(const char* from, const char* to, const Progress& progress)
     return false;
 }
 
-bool Folder::isDir(const char* path)
+bool Folder::isDir(const std::string &path)
 {
     VSIStatBufL sbuf;
-    return VSIStatL(path, &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
+    return VSIStatL(path.c_str(), &sbuf) == 0 && VSI_ISDIR(sbuf.st_mode);
 }
 
-bool Folder::isSymlink(const char *path)
+bool Folder::isSymlink(const std::string &path)
 {
     VSIStatBufL sbuf;
-    return VSIStatL(path, &sbuf) == 0 && VSI_ISLNK(sbuf.st_mode);
+    return VSIStatL(path.c_str(), &sbuf) == 0 && VSI_ISLNK(sbuf.st_mode);
 }
 
-bool Folder::isHidden(const char *path)
+bool Folder::isHidden(const std::string &path)
 {
 #ifdef _WIN32
     DWORD dwAttrs = GetFileAttributes(path);
     if (dwAttrs != INVALID_FILE_ATTRIBUTES)
         return dwAttrs & FILE_ATTRIBUTE_HIDDEN;
 #endif
-    return EQUALN(CPLGetFilename(path), ".", 1);
+    return comparePart(File::getFileName(path), ".", 1);
 }
 
 bool Folder::destroy()
@@ -213,8 +250,8 @@ bool Folder::destroy()
     if(!rmDir(m_path)) {
         return false;
     }
-    
-    CPLString name = fullName();
+
+    std::string name = fullName();
     if(m_parent) {
         m_parent->notifyChanges();
     }
@@ -232,7 +269,7 @@ bool Folder::canDestroy() const
 void Folder::refresh()
 {
     if(!m_childrenLoaded) {
-        hasChildren();
+        loadChildren();
         return;
     }
 
@@ -240,7 +277,7 @@ void Folder::refresh()
     if(m_parent) {
 
         // Fill add names array
-        char** items = CPLReadDir(m_path);
+        char **items = CPLReadDir(m_path.c_str());
 
         // No children in folder
         if(nullptr == items) {
@@ -248,12 +285,13 @@ void Folder::refresh()
             return;
         }
 
-        std::vector<const char*> deleteNames, addNames;
-        addNames = fillChildrenNames(items);
+        std::vector<std::string> deleteNames, addNames;
+        addNames = fillChildrenNames(m_path, items);
 
         // Fill delete names array
-        for(const ObjectPtr& child : m_children)
+        for(const ObjectPtr& child : m_children) {
             deleteNames.push_back(child->name());
+        }
 
         // Remove same names from add and delete arrays
         removeDuplicates(deleteNames, addNames);
@@ -261,7 +299,7 @@ void Folder::refresh()
         // Delete objects
         auto it = m_children.begin();
         while(it != m_children.end()) {
-            const char* name = (*it)->name();
+            auto name = (*it)->name();
             auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
             if(itdn != deleteNames.end()) {
                 deleteNames.erase(itdn);
@@ -279,8 +317,8 @@ void Folder::refresh()
     }
 }
 
-int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath,
-                            const Progress& progress)
+int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,
+                            const Progress &progress)
 {
     File* fileObject = ngsDynamicCast(File, child);
     int result = move ? COD_MOVE_FAILED : COD_COPY_FAILED;
@@ -296,9 +334,9 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath
         SimpleDataset* sdts = ngsDynamicCast(SimpleDataset, child);
         if(nullptr != sdts) {
             // Get file list and copy file one by one
-            std::vector<CPLString> files = sdts->siblingFiles();
-            CPLString parentPath = sdts->parent()->path();
-            for(CPLString& file : files) {
+            std::vector<std::string> files = sdts->siblingFiles();
+            std::string parentPath = sdts->parent()->path();
+            for(std::string &file : files) {
                 file = parentPath + Catalog::separator() + file;
             }
             files.push_back(child->path());
@@ -306,14 +344,14 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath
             Progress newProgress(progress);
             newProgress.setTotalSteps(static_cast<unsigned char>(files.size()));
 
-            CPLString srcConstPath = CPLResetExtension(child->path(), "");
+            std::string srcConstPath = File::resetExtension(child->path());
             srcConstPath.pop_back();
             size_t constPathLen = srcConstPath.length();
-            CPLString dstConstPath = CPLResetExtension(newPath, "");
+            std::string dstConstPath = File::resetExtension(newPath);
             dstConstPath.pop_back();
             for(auto file : files) {
                 newProgress.setStep(step++);
-                CPLString newFilePath = dstConstPath + file.substr(constPathLen);
+                std::string newFilePath = dstConstPath + file.substr(constPathLen);
                 if(move) {
                     if(!File::moveFile(file, newFilePath, newProgress)) {
                         return COD_MOVE_FAILED;
@@ -336,40 +374,40 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const CPLString& newPath
 }
 
 int Folder::pasteFeatureClass(ObjectPtr child, bool move,
-                              const CPLString& newPath,
+                              const std::string &newPath,
                               const Options& options, const Progress& progress)
 {
     enum ngsCatalogObjectType dstType = static_cast<enum ngsCatalogObjectType>(
-                options.intOption("TYPE", 0));
+                options.asInt("TYPE", 0));
 
     GDALDriver* driver = Filter::getGDALDriver(dstType);
     if(nullptr == driver || !Filter::isFileBased(dstType)) {
-        return errorMessage(COD_UNSUPPORTED,
-                            _("Destination type %d is not supported"), dstType);
+        return outMessage(COD_UNSUPPORTED,
+                          _("Destination type %d is not supported"), dstType);
     }
 
     FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
     if(!srcFClass) {
-        return errorMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
-                            _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
-                            child->name().c_str());
+        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                          _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
+                          child->name().c_str());
     }
 
-    CPLString newName = CPLGetBasename(newPath);
+    std::string newName = File::getBaseName(newPath);
 
-    bool toMulti = options.boolOption("FORCE_GEOMETRY_TO_MULTI", false);
+    bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
     OGRFeatureDefn * const srcDefinition = srcFClass->definition();
     std::vector<OGRwkbGeometryType> geometryTypes =
             srcFClass->geometryTypes();
     OGRwkbGeometryType filterFeometryType =
             FeatureClass::geometryTypeFromName(
-                options.stringOption("ACCEPT_GEOMETRY", "ANY"));
+                options.asString("ACCEPT_GEOMETRY", "ANY"));
     for(OGRwkbGeometryType geometryType : geometryTypes) {
         if(filterFeometryType != geometryType &&
                 filterFeometryType != wkbUnknown) {
             continue;
         }
-        CPLString createName = newName;
+        std::string createName = newName;
         OGRwkbGeometryType newGeometryType = geometryType;
         if(geometryTypes.size () > 1 && filterFeometryType == wkbUnknown) {
             createName += "_";
@@ -383,11 +421,11 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
 
         std::unique_ptr<Dataset> ds(Dataset::create(this, dstType, createName, options));
         if(!ds || !ds->isOpened()) {
-            return errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+            return outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         }
 
         std::unique_ptr<FeatureClass> dstFClass(ds->createFeatureClass(createName,
-            dstType, srcDefinition, srcFClass->getSpatialReference(),
+            dstType, srcDefinition, srcFClass->spatialReference(),
             newGeometryType, options));
         if(nullptr == dstFClass) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
@@ -414,15 +452,15 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
 int Folder::paste(ObjectPtr child, bool move, const Options& options,
                   const Progress& progress)
 {
-    CPLString newPath;
-    if(options.boolOption("CREATE_UNIQUE")) {
+    std::string newPath;
+    if(options.asBool("CREATE_UNIQUE")) {
         newPath = createUniquePath(m_path, child->name());
     }
     else {
-        newPath = CPLFormFilename(m_path, child->name(), nullptr);
+        newPath = File::formFileName(m_path, child->name());
     }
 
-    if(EQUAL(child->path(), newPath)) {
+    if(compare(child->path(), newPath)) {
         return COD_SUCCESS;
     }
 
@@ -446,7 +484,7 @@ bool Folder::canPaste(const enum ngsCatalogObjectType type) const
 bool Folder::isReadOnly() const
 {
     //  Is is working on Windows?
-    return access(m_path, W_OK) != 0;
+    return access(m_path.c_str(), W_OK) != 0;
 //    VSIStatBufL sbuf;
 //    return VSIStatL(m_path, &sbuf) == 0 && (sbuf.st_mode & S_IWUSR ||
 //                                            sbuf.st_mode & S_IWGRP ||
@@ -466,23 +504,24 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
-bool Folder::create(const enum ngsCatalogObjectType type, const CPLString& name,
-                         const Options& options)
+bool Folder::create(const enum ngsCatalogObjectType type,
+                    const std::string &name,
+                    const Options& options)
 {
     bool result = false;
-    CPLString newPath;
-    if(options.boolOption("CREATE_UNIQUE")) {
+    std::string newPath;
+    if(options.asBool("CREATE_UNIQUE")) {
         newPath = createUniquePath(m_path, name);
     }
     else {
-        newPath = CPLFormFilename(m_path, name, nullptr);
+        newPath = File::formFileName(m_path, name);
     }
-    const char* ext = Filter::getExtension(type);
-    if(nullptr != ext && !EQUAL(ext, "")) {
-        newPath = CPLResetExtension(newPath, ext);
+    std::string ext = Filter::extension(type);
+    if(!ext.empty()) {
+        newPath = File::resetExtension(newPath, ext);
     }
-    CPLString newName = CPLGetFilename(newPath);
-    std::vector<CPLString> siblingFiles;
+    std::string newName = File::getFileName(newPath);
+    std::vector<std::string> siblingFiles;
 
     switch (type) {
     case CAT_CONTAINER_DIR:
@@ -515,56 +554,40 @@ bool Folder::create(const enum ngsCatalogObjectType type, const CPLString& name,
     }
 
     if(result) {
-        CPLString nameNotify = fullName() + Catalog::separator() + newName;
+        std::string nameNotify = fullName() + Catalog::separator() + newName;
         Notify::instance().onNotify(nameNotify, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     return result;
 }
 
-CPLString Folder::createUniquePath(const CPLString &path, const CPLString &name,
-                                   bool isFolder, const CPLString &add,
-                                   int counter)
+std::string Folder::createUniquePath(const std::string &path,
+                                     const std::string &name,
+                                     bool isFolder, const std::string &add,
+                                     int counter)
 {
-    CPLString resultPath;
+    std::string resultPath;
     if(counter > 0) {
         CPLString newAdd;
         newAdd.Printf("%s(%d)", add.c_str(), counter);
-        CPLString tmpName = CPLGetBasename(name) + newAdd;
+        std::string tmpName = File::getBaseName(name) + newAdd;
         if(isFolder) {
-            resultPath = CPLFormFilename(path, tmpName, nullptr);
+            resultPath = File::formFileName(path, tmpName);
         }
         else {
-            resultPath = CPLFormFilename(path, tmpName, CPLGetExtension(name));
+            resultPath = File::formFileName(path, tmpName, File::getExtension(name));
         }
     }
     else {
-        resultPath = CPLFormFilename(path, name, nullptr);
+        resultPath = File::formFileName(path, name);
     }
 
-    if(isExists(resultPath))
+    if(isExists(resultPath)) {
         return createUniquePath(path, name, isFolder, add, counter + 1);
-    else
-        return resultPath;
-}
-
-std::vector<const char*> Folder::fillChildrenNames(char** items)
-{
-    std::vector<const char*> names;
-    CatalogPtr catalog = Catalog::instance();
-    for(int i = 0; items[i] != nullptr; ++i) {
-        if(EQUAL(items[i], ".") || EQUAL(items[i], ".."))
-            continue;
-
-        if(catalog->isFileHidden(m_path, items[i]))
-            continue;
-
-        names.push_back(items[i]);
     }
-
-    return names;
+    else {
+        return resultPath;
+    }
 }
 
-
 }
-

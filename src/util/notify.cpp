@@ -49,11 +49,11 @@ void Notify::deleteNotifyReceiver(ngsNotifyFunc function)
     }
 }
 
-void Notify::onNotify(const char *uri, ngsChangeCode operation) const
+void Notify::onNotify(const std::string &uri, ngsChangeCode operation) const
 {
     for(auto it = m_notifyReceivers.begin(); it != m_notifyReceivers.end(); ++it) {
         if((*it).notifyTypes & operation) {
-            (*it).notifyFunc(uri, operation);
+            (*it).notifyFunc(uri.c_str(), operation);
         }
     }
 }

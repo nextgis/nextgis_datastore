@@ -48,7 +48,7 @@ public:
     static bool isDatabase(const enum ngsCatalogObjectType type);
     static bool isFileBased(const enum ngsCatalogObjectType type);
     static GDALDriver *getGDALDriver(const enum ngsCatalogObjectType type);
-    static const char* getExtension(const enum ngsCatalogObjectType type);
+    static std::string extension(const enum ngsCatalogObjectType type);
 protected:
     static bool canDisplay(enum ngsCatalogObjectType type, ObjectPtr object);
 protected:
@@ -59,7 +59,7 @@ class MultiFilter : public Filter
 {
 public:
     MultiFilter();
-    virtual ~MultiFilter() = default;
+    virtual ~MultiFilter() override = default;
     virtual bool canDisplay(ObjectPtr object) const override;
     void addType(enum ngsCatalogObjectType newType);
 

@@ -31,15 +31,15 @@
 
 namespace ngs {
 
-constexpr const char* MAP_EXTENT_KEY = "extent";
-constexpr const char* MAP_ROTATE_X_KEY = "rotate_x";
-constexpr const char* MAP_ROTATE_Y_KEY = "rotate_y";
-constexpr const char* MAP_ROTATE_Z_KEY = "rotate_z";
-constexpr const char* MAP_X_LOOP_KEY = "x_looped";
-constexpr const char* MAP_OVR_VISIBLE_KEY = "overlay_visible_mask";
-constexpr const char* MAP_ICONS_KEY = "icon_sets";
-constexpr const char* NAME_KEY = "name";
-constexpr const char* PATH_KEY = "path";
+constexpr const char *MAP_EXTENT_KEY = "extent";
+constexpr const char *MAP_ROTATE_X_KEY = "rotate_x";
+constexpr const char *MAP_ROTATE_Y_KEY = "rotate_y";
+constexpr const char *MAP_ROTATE_Z_KEY = "rotate_z";
+constexpr const char *MAP_X_LOOP_KEY = "x_looped";
+constexpr const char *MAP_OVR_VISIBLE_KEY = "overlay_visible_mask";
+constexpr const char *MAP_ICONS_KEY = "icon_sets";
+constexpr const char *NAME_KEY = "name";
+constexpr const char *PATH_KEY = "path";
 
 
 MapView::MapView() : Map(),
@@ -47,10 +47,9 @@ MapView::MapView() : Map(),
 {
 }
 
-MapView::MapView(const CPLString& name,
-        const CPLString& description,
-        unsigned short epsg,
-        const Envelope& bounds) : Map(name, description, epsg, bounds),
+MapView::MapView(const std::string &name, const std::string &description,
+                 unsigned short epsg, const Envelope &bounds) :
+    Map(name, description, epsg, bounds),
     MapTransform(480, 640)
 {
 }
@@ -69,13 +68,13 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
     double done = 0.0;
     for(auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
         LayerPtr layer = *it;
-        IRenderLayer* const renderLayer = ngsDynamicCast(IRenderLayer, layer);
+        IRenderLayer * const renderLayer = ngsDynamicCast(IRenderLayer, layer);
         done += renderLayer->draw(state, this, level++, progress);
     }
 
     for (auto it = m_overlays.rbegin(); it != m_overlays.rend(); ++it) {
         OverlayPtr overlay = *it;
-        IOverlay* const iOverlay = ngsDynamicCast(IOverlay, overlay);
+        IOverlay * const iOverlay = ngsDynamicCast(IOverlay, overlay);
         iOverlay->draw(state, this, level++, progress);
     }
 
@@ -99,7 +98,7 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     setRotate(DIR_Z, root.GetDouble(MAP_ROTATE_Z_KEY, 0));
 
     Envelope env;
-    env.load(root.GetObject(MAP_EXTENT_KEY), DEFAULT_BOUNDS);
+    env.load(root.GetObj(MAP_EXTENT_KEY), DEFAULT_BOUNDS);
     setExtent(env);
 
     m_XAxisLooped = root.GetBool(MAP_X_LOOP_KEY, true);
@@ -114,9 +113,9 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     CPLJSONArray iconSets = root.GetArray(MAP_ICONS_KEY);
     for(int i = 0; i < iconSets.Size(); ++i) {
         CPLJSONObject iconSetJsonItem = iconSets[i];
-        CPLString path = iconSetJsonItem.GetString(PATH_KEY, "");
+        std::string path = iconSetJsonItem.GetString(PATH_KEY, "");
 
-        if(STARTS_WITH_CI(path, "/resources/icons/")) {
+        if(startsWith(path, "/resources/icons/")) {
             CPLString mapPath("/vsizip/");
             mapPath += mapFile->path();
             mapPath += path;
@@ -136,7 +135,7 @@ bool MapView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     return true;
 }
 
-bool MapView::saveInternal(CPLJSONObject& root, MapFile * const mapFile)
+bool MapView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 {
     if(!Map::saveInternal(root, mapFile))
         return false;
@@ -150,10 +149,10 @@ bool MapView::saveInternal(CPLJSONObject& root, MapFile * const mapFile)
 
     root.Add(MAP_OVR_VISIBLE_KEY, overlayVisibleMask());
 
-    CPLString tmpPath = mapFile->path();
+    std::string tmpPath = mapFile->path();
     bool copyFromOrigin = false;
     if(Folder::isExists(mapFile->path())) {
-        tmpPath = mapFile->path() + CPLString("~.zip");
+        tmpPath = mapFile->path() + "~.zip";
         if(!File::moveFile(mapFile->path(), tmpPath)) {
             return false;
         }
@@ -165,20 +164,20 @@ bool MapView::saveInternal(CPLJSONObject& root, MapFile * const mapFile)
         CPLJSONObject iconSetJson;
         iconSetJson.Add(NAME_KEY, item.name);
         if(item.ownByMap) {
-            if(!STARTS_WITH_CI(item.path, "/vsizip/")) {
+            if(!startsWith(item.path, "/vsizip/")) {
                 // Copy to map document
-                CPLString iconSetPath("/resources/icons/");
+                std::string iconSetPath("/resources/icons/");
                 iconSetPath += item.name;
-                iconSetPath += CPLString(".") + CPLGetExtension(item.path);
-                CPLString mapPath("/vsizip/");
+                iconSetPath += "." + File::getExtension(item.path);
+                std::string mapPath("/vsizip/");
                 mapPath += mapFile->path();
                 mapPath += iconSetPath;
                 File::copyFile(item.path, mapPath);
                 iconSetJson.Add(PATH_KEY, iconSetPath);
             }
             else {
-                CPLString iconSetPath("/resources/icons/");
-                iconSetPath += CPLGetFilename(item.path);
+                std::string iconSetPath("/resources/icons/");
+                iconSetPath += File::getFileName(item.path);
                 iconSetJson.Add(PATH_KEY, iconSetPath);
             }
         }
@@ -197,8 +196,8 @@ bool MapView::saveInternal(CPLJSONObject& root, MapFile * const mapFile)
 //        VSIFWriteL(memoData, 1, strlen(memoData), fp);
 //        VSIFCloseL(fp);
 
-        CPLString icons = CPLString("/vsizip/") + tmpPath + "/resources/icons/";
-        CPLString newIcons = CPLString("/vsizip/") + mapFile->path() + "/resources/icons/";
+        std::string icons = "/vsizip/" + tmpPath + "/resources/icons/";
+        std::string newIcons = "/vsizip/" + mapFile->path() + "/resources/icons/";
         Folder::copyDir(icons, newIcons);
         File::deleteFile(tmpPath);
     }
@@ -267,9 +266,7 @@ void MapView::setOverlayVisible(int typeMask, bool visible)
 int MapView::overlayVisibleMask() const
 {
     int mask = 0;
-    OverlayPtr overlay;
-
-    overlay = getOverlay(MOT_LOCATION);
+    OverlayPtr overlay = getOverlay(MOT_LOCATION);
     if(overlay && overlay->visible()) {
         mask |= MOT_LOCATION;
     }
@@ -292,17 +289,18 @@ int MapView::overlayVisibleMask() const
     return mask;
 }
 
-bool MapView::setOptions(const Options& options)
+bool MapView::setOptions(const Options &options)
 {
-    double reduceFactor = options.doubleOption("VIEWPORT_REDUCE_FACTOR", 1.0);
+    double reduceFactor = options.asDouble("VIEWPORT_REDUCE_FACTOR", 1.0);
     setReduceFactor(reduceFactor);
 
-    char zoomIncrement = static_cast<char>(options.intOption("ZOOM_INCREMENT", 0));
+    char zoomIncrement = static_cast<char>(options.asInt("ZOOM_INCREMENT", 0));
     setZoomIncrement(zoomIncrement);
     return true;
 }
 
-bool MapView::addIconSet(const char* name, const char* path, bool ownByMap)
+bool MapView::addIconSet(const std::string &name, const std::string &path,
+                         bool ownByMap)
 {
     if(hasIconSet(name)) {
         return false;
@@ -311,12 +309,13 @@ bool MapView::addIconSet(const char* name, const char* path, bool ownByMap)
     return true;
 }
 
-bool MapView::removeIconSet(const char* name)
+bool MapView::removeIconSet(const std::string &name)
 {
     IconSetItem item = {name, "", false};
     auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
-    if(it == m_iconSets.end())
+    if(it == m_iconSets.end()) {
         return false;
+    }
 
     if((*it).ownByMap) {
         if(!File::deleteFile((*it).path)) {
@@ -327,18 +326,20 @@ bool MapView::removeIconSet(const char* name)
     return true;
 }
 
-ImageData MapView::iconSet(const char* name) const
+ImageData MapView::iconSet(const std::string &name) const
 {
     IconSetItem item = {name, "", false};
     auto it = std::find(m_iconSets.begin(), m_iconSets.end(), item);
-    if(it == m_iconSets.end())
+    if(it == m_iconSets.end()) {
         return {nullptr, 0, 0};
+    }
     return iconSetData((*it).path);
 }
 
-ImageData MapView::iconSetData(const CPLString& path) const
+ImageData MapView::iconSetData(const std::string &path) const
 {
-    GDALDataset* dataset = static_cast<GDALDataset*>(GDALOpen(path, GA_ReadOnly));
+    GDALDataset *dataset = static_cast<GDALDataset*>(GDALOpen(path.c_str(),
+                                                              GA_ReadOnly));
     if(nullptr == dataset) {
         return {nullptr, 0, 0};
     }
@@ -360,7 +361,7 @@ ImageData MapView::iconSetData(const CPLString& path) const
     return out;
 }
 
-bool MapView::hasIconSet(const char* name) const
+bool MapView::hasIconSet(const std::string &name) const
 {
     IconSetItem item = {name, "", false};
     return std::find(m_iconSets.begin(), m_iconSets.end(), item) != m_iconSets.end();

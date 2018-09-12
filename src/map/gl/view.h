@@ -4,7 +4,7 @@
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
 *  Author:  NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
-*  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
+*  Copyright (C) 2016-2018 NextGIS, <info@nextgis.com>
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -39,14 +39,14 @@ class GlView : public MapView
 {
 public:
     GlView();
-    GlView(const CPLString& name, const CPLString& description,
+    GlView(const std::string &name, const std::string &description,
             unsigned short epsg, const Envelope &bounds);
-    virtual ~GlView() = default;
-    void freeResource(const GlObjectPtr& resource) {
+    virtual ~GlView() override = default;
+    void freeResource(const GlObjectPtr &resource) {
         m_freeResources.push_back(resource);
     }
-    const TextureAtlas* textureAtlas() const { return &m_textureAtlas; }
-    const SelectionStyles* selectionStyles() const { return &m_selectionStyles; }
+    TextureAtlas textureAtlas() const { return m_textureAtlas; }
+    SelectionStyles selectionStyles() const { return m_selectionStyles; }
 
     // Run in GL context
 protected:
@@ -66,9 +66,9 @@ public:
 
     // Map interface
 protected:
-    virtual LayerPtr createLayer(const char* name = DEFAULT_LAYER_NAME,
+    virtual LayerPtr createLayer(const std::string &name = DEFAULT_LAYER_NAME,
                                  Layer::Type type = Layer::Type::Invalid) override;
-    virtual bool openInternal(const CPLJSONObject& root, MapFile * const mapFile) override;
+    virtual bool openInternal(const CPLJSONObject &root, MapFile * const mapFile) override;
     virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile) override;
 
     // MapView interface
@@ -76,19 +76,14 @@ public:
     virtual bool draw(ngsDrawState state, const Progress &progress) override;
     virtual void invalidate(const Envelope& bounds) override;
     virtual bool setSelectionStyleName(enum ngsStyleType styleType,
-                                       const char* name) override;
+                                       const std::string &name) override;
     virtual bool setSelectionStyle(enum ngsStyleType styleType,
-                                   const CPLJSONObject& style) override {
-        return m_selectionStyles[styleType]->load(style);
-    }
-    virtual const char* selectionStyleName(enum ngsStyleType styleType) const override {
-        return m_selectionStyles[styleType]->name();
-    }
-    virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const override {
-        return m_selectionStyles[styleType]->save();
-    }
-    virtual bool addIconSet(const char* name, const char* path, bool ownByMap) override;
-    virtual bool removeIconSet(const char* name) override;
+                                   const CPLJSONObject &style) override;
+    virtual std::string selectionStyleName(enum ngsStyleType styleType) const override;
+    virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const override;
+    virtual bool addIconSet(const std::string &name, const std::string &path,
+                            bool ownByMap) override;
+    virtual bool removeIconSet(const std::string &name) override;
 
 
     // MapView interface

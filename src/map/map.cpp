@@ -32,15 +32,15 @@
 namespace ngs {
 
 constexpr ngsRGBA DEFAULT_MAP_BK = {210, 245, 255, 255};
-constexpr const char* DEFAULT_MAP_NAME = "new map";
+constexpr const char *DEFAULT_MAP_NAME = "new map";
 
-constexpr const char* MAP_NAME_KEY = "name";
-constexpr const char* MAP_DESCRIPTION_KEY = "descript";
-constexpr const char* MAP_LAYERS_KEY = "layers";
-constexpr const char* MAP_RELATIVEPATHS_KEY = "relative_paths";
-constexpr const char* MAP_EPSG_KEY = "epsg";
-constexpr const char* MAP_BKCOLOR_KEY = "bk_color";
-constexpr const char* MAP_BOUNDS_KEY = "bounds";
+constexpr const char *MAP_NAME_KEY = "name";
+constexpr const char *MAP_DESCRIPTION_KEY = "descript";
+constexpr const char *MAP_LAYERS_KEY = "layers";
+constexpr const char *MAP_RELATIVEPATHS_KEY = "relative_paths";
+constexpr const char *MAP_EPSG_KEY = "epsg";
+constexpr const char *MAP_BKCOLOR_KEY = "bk_color";
+constexpr const char *MAP_BOUNDS_KEY = "bounds";
 
 //------------------------------------------------------------------------------
 // Map
@@ -56,8 +56,8 @@ Map::Map() :
 {
 }
 
-Map::Map(const CPLString& name, const CPLString& description, unsigned short epsg,
-         const Envelope &bounds) :
+Map::Map(const std::string &name, const std::string &description,
+         unsigned short epsg, const Envelope &bounds) :
     m_name(name),
     m_description(description),
     m_epsg(epsg),
@@ -75,7 +75,7 @@ bool Map::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     m_relativePaths = root.GetBool(MAP_RELATIVEPATHS_KEY, true);
     m_epsg = static_cast<unsigned short>(root.GetInteger(MAP_EPSG_KEY,
                                                          DEFAULT_EPSG));
-    m_bounds.load(root.GetObject(MAP_BOUNDS_KEY), DEFAULT_BOUNDS);
+    m_bounds.load(root.GetObj(MAP_BOUNDS_KEY), DEFAULT_BOUNDS);
     setBackgroundColor(ngsHEX2RGBA(root.GetString(MAP_BKCOLOR_KEY,
                                              ngsRGBA2HEX(m_bkColor))));
 
@@ -120,7 +120,7 @@ bool Map::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 bool Map::open(MapFile * const mapFile)
 {
     CPLJSONDocument doc;
-    CPLString mapPath("/vsizip/");
+    std::string mapPath("/vsizip/");
     mapPath += mapFile->path();
     mapPath += "/data.json";
     if(!doc.Load(mapPath)) {
@@ -137,10 +137,11 @@ bool Map::save(MapFile * const mapFile)
     CPLJSONDocument doc;
     CPLJSONObject root = doc.GetRoot();
 
-    if(!saveInternal(root, mapFile))
+    if(!saveInternal(root, mapFile)) {
         return false;
+    }
 
-    CPLString mapPath("/vsizip/");
+    std::string mapPath("/vsizip/");
     mapPath += mapFile->path();
     mapPath += "/data.json";
 
@@ -157,21 +158,23 @@ bool Map::close()
 
 LayerPtr Map::getLayer(int layerId) const
 {
-    if(layerId < 0)
+    if(layerId < 0) {
         return nullptr;
+    }
 
     size_t layerIndex = static_cast<size_t>(layerId);
-    if(layerIndex >= m_layers.size())
+    if(layerIndex >= m_layers.size()) {
         return nullptr;
+    }
     return m_layers[layerIndex];
 }
 
-int Map::createLayer(const char* name, const ObjectPtr &object)
+int Map::createLayer(const std::string &name, const ObjectPtr &object)
 {
     LayerPtr layer;
     if(object->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
-        simpleDS->hasChildren();
+        simpleDS->loadChildren();
         ObjectPtr internalObject = simpleDS->internalObject();
         if(internalObject) {
             return createLayer(name, internalObject);
@@ -180,13 +183,13 @@ int Map::createLayer(const char* name, const ObjectPtr &object)
 
     if(Filter::isFeatureClass(object->type())) {
         layer = createLayer(name, Layer::Type::Vector);
-        FeatureLayer* newFCLayer = ngsStaticCast(FeatureLayer, layer);
+        FeatureLayer *newFCLayer = ngsStaticCast(FeatureLayer, layer);
         FeatureClassPtr fc = std::dynamic_pointer_cast<FeatureClass>(object);
         newFCLayer->setFeatureClass(fc);
     }
     else if(Filter::isRaster(object->type())) {
         layer = createLayer(name, Layer::Type::Raster);
-        RasterLayer* newRasterLayer = ngsStaticCast(RasterLayer, layer);
+        RasterLayer *newRasterLayer = ngsStaticCast(RasterLayer, layer);
         RasterPtr raster = std::dynamic_pointer_cast<Raster>(object);
         if(!raster->isOpened()) {
             raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
@@ -199,8 +202,8 @@ int Map::createLayer(const char* name, const ObjectPtr &object)
         return static_cast<int>(m_layers.size() - 1);
     }
 
-    errorMessage(COD_INVALID, _("Source '%s' is not a valid dataset"),
-                 object->path().c_str());
+    outMessage(COD_INVALID, _("Source '%s' is not a valid dataset"),
+               object->path().c_str());
 
     return NOT_FOUND;
 }
@@ -251,7 +254,7 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
     return true;
 }
 
-LayerPtr Map::createLayer(const char* name, Layer::Type type)
+LayerPtr Map::createLayer(const std::string &name, Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Vector:

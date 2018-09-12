@@ -20,9 +20,15 @@
  ****************************************************************************/
 #include "stringutil.h"
 
+#include "cpl_string.h"
+
 // stl
 #include <algorithm>
+#include <iomanip>
 #include <map>
+#include <sstream>
+
+#include <openssl/md5.h>
 
 namespace ngs {
 
@@ -45,21 +51,21 @@ bool invalidChar (char c)
     return !isprint( static_cast<unsigned char>( c ) );
 }
 
-CPLString stripUnicode(const CPLString &str, const char replaceChar)
+std::string stripUnicode(const std::string &str, const char replaceChar)
 {
-    CPLString out = str;
+    std::string out = str;
     std::replace_if(out.begin (), out.end (), invalidChar, replaceChar);
 
     return out;
 }
 
-CPLString normalize(const CPLString &str, const CPLString &lang)
+std::string normalize(const std::string &str, const std::string &lang)
 {
-    CPLString out = str;
+    std::string out = str;
     if(lang.empty())
         return stripUnicode(str);
 
-    if(EQUALN(lang, "ru", 2)) {
+    if(EQUALN(lang.c_str(), "ru", 2)) {
         auto first = str.begin ();
         char buf[2] = {'\0', '\0'};
         while (first!=str.end ()) {
@@ -76,6 +82,86 @@ CPLString normalize(const CPLString &str, const CPLString &lang)
         return stripUnicode (str);
     }
     return out;
+}
+
+std::vector<std::string> fillStringList(char **strings)
+{
+    std::vector<std::string> out;
+    if(!strings) {
+        return out;
+    }
+    int counter = 0;
+    while(strings[counter] != nullptr) {
+        out.push_back(strings[counter++]);
+    }
+    return out;
+}
+
+bool compare(const std::string &first, const std::string &second,
+             bool caseSensetive)
+{
+    if(caseSensetive) {
+        return first == second;
+    }
+    else {
+        return EQUAL(first.c_str(), second.c_str());
+    }
+}
+
+bool comparePart(const std::string &first, const std::string &second,
+                 unsigned int count, bool caseSensetive)
+{
+    if(first.size() < count || second.size() < count) {
+        return false;
+    }
+    if(caseSensetive) {
+        return first.substr(0, count) == second.substr(0, count);
+    }
+    else {
+        return EQUALN(first.c_str(), second.c_str(), count);
+    }
+}
+
+bool startsWith(const std::string &str, const std::string &part, bool caseSensetive)
+{
+    return comparePart(str, part, static_cast<unsigned>(part.size()), caseSensetive);
+}
+
+std::string md5(const std::string &val)
+{
+    unsigned char digest[MD5_DIGEST_LENGTH];
+
+    const unsigned char *preparedVal =
+            reinterpret_cast<const unsigned char*>(val.c_str());
+    MD5(preparedVal, val.size(), digest);
+
+    std::ostringstream out;
+
+    for(int i = 0; i < MD5_DIGEST_LENGTH; ++i) {
+        out << std::hex << std::setfill('0') << std::setw(2) <<
+               static_cast<unsigned>(digest[i]);
+    }
+
+    return out.str();
+}
+
+int compareStrings(const std::string &first, const std::string &second,
+                   bool caseSensetive)
+{
+    if(caseSensetive) {
+        return first.compare(second);
+    }
+    else {
+        return STRCASECMP(first.c_str(), second.c_str());
+    }
+}
+
+std::string fromCString(const char *str)
+{
+    if(str == nullptr) {
+        return "";
+    }
+    return str;
 }
 
 }

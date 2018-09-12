@@ -29,12 +29,12 @@ class SimpleDataset : public Dataset
 {
 public:
     explicit SimpleDataset(enum ngsCatalogObjectType subType,
-                  std::vector<CPLString> siblingFiles,
-                  ObjectContainer * const parent = nullptr,
-                  const CPLString& name = "",
-                  const CPLString& path = "");
+                           std::vector<std::string> siblingFiles,
+                           ObjectContainer * const parent = nullptr,
+                           const std::string &name = "",
+                           const std::string &path = "");
     ObjectPtr internalObject() const;
-    std::vector<CPLString> siblingFiles() const { return m_siblingFiles; }
+    std::vector<std::string> siblingFiles() const;
 
     // Object interface
 public:
@@ -42,27 +42,23 @@ public:
 
     // ObjectContainer interface
 public:
-    virtual bool hasChildren() override;
-    virtual bool canCreate(const enum ngsCatalogObjectType) const override {
-        return false;
-    }
-    virtual bool canPaste(const enum ngsCatalogObjectType) const override {
-        return false;
-    }
+    virtual bool hasChildren() const override;
+    virtual bool canCreate(const enum ngsCatalogObjectType) const override ;
+    virtual bool canPaste(const enum ngsCatalogObjectType) const override;
 
     // Dataset interface
-    enum ngsCatalogObjectType subType() const { return m_subType; }
+    enum ngsCatalogObjectType subType() const;
 
     // Dataset interface
 protected:
-    virtual GDALDataset* createAdditionsDataset() override;
+    virtual GDALDataset *createAdditionsDataset() override;
 
 protected:
-    virtual void fillFeatureClasses() override;
+    virtual void fillFeatureClasses() const override;
 
 private:
     enum ngsCatalogObjectType m_subType;
-    std::vector<CPLString> m_siblingFiles;
+    std::vector<std::string> m_siblingFiles;
 
 };
 

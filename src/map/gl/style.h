@@ -37,7 +37,7 @@
 
 namespace ngs
 {
-typedef std::map<CPLString, GlImagePtr> TextureAtlas;
+typedef std::map<std::string, GlImagePtr> TextureAtlas;
 
 //------------------------------------------------------------------------------
 // Style
@@ -53,18 +53,18 @@ public:
 
 public:
     Style();
-    virtual ~Style() = default;
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual ~Style() override = default;
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type);
-    virtual void draw(const GlBuffer& buffer) const;
+    virtual void draw(const GlBuffer &buffer) const;
     virtual bool load(const CPLJSONObject &store) = 0;
     virtual CPLJSONObject save() const = 0;
-    virtual const char* name() const = 0;
+    virtual std::string name() const = 0;
     virtual enum ngsStyleType type() const { return m_styleType; }
 
     //static
 public:
-    static Style* createStyle(const char* name, const TextureAtlas* atlas);
+    static Style *createStyle(const std::string &name, const TextureAtlas &atlas);
 
 
     // GlObject interface
@@ -74,16 +74,16 @@ public:
     virtual void destroy() override { m_program.destroy(); } // NOTE: Destroy only style stored GlObjects (i.e. program)
 
 protected:
-    virtual const GLchar* getShaderSource(enum ShaderType type);
+    virtual const GLchar *shaderSource(enum ShaderType type);
 
 protected:
-    const GLchar* m_vertexShaderSource;
-    const GLchar* m_fragmentShaderSource;
+    const GLchar *m_vertexShaderSource;
+    const GLchar *m_fragmentShaderSource;
     GlProgram m_program;
     enum ngsStyleType m_styleType;
 };
 
-typedef std::shared_ptr<Style> StylePtr;
+using StylePtr = std::shared_ptr<Style>;
 
 //------------------------------------------------------------------------------
 // SimpleVectorStyle
@@ -93,7 +93,7 @@ class SimpleVectorStyle : public Style
 {
 public:
     SimpleVectorStyle();
-    virtual void setColor(const ngsRGBA& color) { m_color = ngsRGBA2Gl(color); }
+    virtual void setColor(const ngsRGBA &color) { m_color = ngsRGBA2Gl(color); }
     virtual ngsRGBA color() const { return ngsGl2RGBA(m_color); }
     virtual enum GlBuffer::BufferType bufferType() const = 0;
 
@@ -135,9 +135,9 @@ public:
     float rotation() const { return m_rotation; }
     void setRotation(float rotation) { m_rotation = rotation; }
 
-    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+    virtual unsigned short addPoint(const SimplePoint &pt, float z,
                                     unsigned short index,
-                                    GlBuffer* buffer) = 0;
+                                    GlBuffer *buffer) = 0;
     virtual size_t pointVerticesCount() const = 0;
 
     // Style interface
@@ -151,7 +151,7 @@ protected:
     float m_rotation;
 };
 
-typedef std::shared_ptr<PointStyle> PointStylePtr;
+using PointStylePtr = std::shared_ptr<PointStyle>;
 
 //------------------------------------------------------------------------------
 // SimplePointStyle
@@ -164,9 +164,9 @@ public:
 
     // PointStyle interface
 public:
-    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+    virtual unsigned short addPoint(const SimplePoint &pt, float z,
                                     unsigned short index,
-                                    GlBuffer* buffer) override;
+                                    GlBuffer *buffer) override;
     virtual size_t pointVerticesCount() const override { return 3; }
     virtual enum GlBuffer::BufferType bufferType() const override {
         return GlBuffer::BF_PT;
@@ -174,10 +174,10 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual void draw(const GlBuffer& buffer) const override;
-    virtual const char* name() const override { return "simplePoint"; }
+    virtual void draw(const GlBuffer &buffer) const override;
+    virtual std::string name() const override { return "simplePoint"; }
 };
 
 
@@ -197,9 +197,9 @@ public:
     // PointStyle interface
 public:
     virtual void setType(enum PointType type) override;
-    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+    virtual unsigned short addPoint(const SimplePoint &pt, float z,
                                     unsigned short index,
-                                    GlBuffer* buffer) override;
+                                    GlBuffer *buffer) override;
     virtual size_t pointVerticesCount() const override;
     virtual enum GlBuffer::BufferType bufferType() const override {
         return GlBuffer::BF_FILL;
@@ -207,12 +207,12 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual void draw(const GlBuffer& buffer) const override;
+    virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() const override { return "primitivePoint"; }
+    virtual std::string name() const override { return "primitivePoint"; }
 
 protected:
     unsigned char m_segmentCount;
@@ -249,16 +249,16 @@ public:
     unsigned char segmentCount() const;
     void setSegmentCount(unsigned char segmentCount);
 
-    unsigned short addLineCap(const SimplePoint& point, const Normal& normal,
-                              float z, unsigned short index, GlBuffer* buffer);
+    unsigned short addLineCap(const SimplePoint &point, const Normal &normal,
+                              float z, unsigned short index, GlBuffer *buffer);
     size_t lineCapVerticesCount() const;
-    unsigned short addLineJoin(const SimplePoint& point, const Normal& prevNormal,
-                               const Normal& normal, float z, unsigned short index,
-                               GlBuffer* buffer);
+    unsigned short addLineJoin(const SimplePoint &point, const Normal &prevNormal,
+                               const Normal &normal, float z, unsigned short index,
+                               GlBuffer *buffer);
     size_t lineJoinVerticesCount() const;
-    virtual unsigned short addSegment(const SimplePoint& pt1, const SimplePoint& pt2,
-                              const Normal& normal, float z,
-                              unsigned short index, GlBuffer* buffer);
+    virtual unsigned short addSegment(const SimplePoint &pt1, const SimplePoint &pt2,
+                              const Normal &normal, float z,
+                              unsigned short index, GlBuffer *buffer);
 
     // SimpleVectorStyle
 public:
@@ -268,12 +268,12 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual void draw(const GlBuffer& buffer) const override;
+    virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() const override { return "simpleLine"; }
+    virtual std::string name() const override { return "simpleLine"; }
 
 protected:
     GLint m_normalId;
@@ -296,10 +296,10 @@ public:
 
     // Style interface
 public:
-    virtual void draw(const GlBuffer& buffer) const override;
+    virtual void draw(const GlBuffer &buffer) const override;
     virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual const char* name() const override { return "simpleFill"; }
+    virtual std::string name() const override { return "simpleFill"; }
 
     // SimpleVectorStyle
 public:
@@ -319,8 +319,8 @@ public:
 
     float borderWidth() const { return m_line.width(); }
     void setBorderWidth(float borderWidth) { m_line.setWidth(borderWidth); }
-    void setBorderColor(const ngsRGBA& color) { m_line.setColor(color); }
-    void setColor(const ngsRGBA& color) { m_fill.setColor(color); }
+    void setBorderColor(const ngsRGBA &color) { m_line.setColor(color); }
+    void setColor(const ngsRGBA &color) { m_fill.setColor(color); }
     ngsRGBA color() const { return m_fill.color(); }
     enum CapType capType() const;
     void setCapType(const CapType &capType);
@@ -328,17 +328,17 @@ public:
     void setJoinType(const JoinType &joinType);
     unsigned char segmentCount() const;
     void setSegmentCount(unsigned char segmentCount);
-    SimpleLineStyle* lineStyle() { return &m_line; }
-    SimpleFillStyle* fillStyle() { return &m_fill; }
+    SimpleLineStyle *lineStyle() { return &m_line; }
+    SimpleFillStyle *fillStyle() { return &m_fill; }
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual void draw(const GlBuffer& buffer) const override;
+    virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() const override { return "simpleFillBordered"; }
+    virtual std::string name() const override { return "simpleFillBordered"; }
 
 protected:
     SimpleFillStyle m_fill;
@@ -353,22 +353,22 @@ class SimpleImageStyle : public Style
 {
 public:
     SimpleImageStyle();
-    void setImage(GlImage* const image) { m_image = image; }
+    void setImage(GlImage * const image) { m_image = image; }
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual void draw(const GlBuffer& buffer) const override;
+    virtual void draw(const GlBuffer &buffer) const override;
 
 protected:
-    GlImage* m_image;
+    GlImage *m_image;
 
     // Style interface
 public:
-    virtual bool load(const CPLJSONObject& /*store*/) override { return true; }
+    virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override { return CPLJSONObject(); }
-    virtual const char* name() const override { return "simpleImage"; }
+    virtual std::string name() const override { return "simpleImage"; }
 };
 
 //------------------------------------------------------------------------------
@@ -378,37 +378,37 @@ public:
 class MarkerStyle : public PointStyle
 {
 public:
-    MarkerStyle(const TextureAtlas* textureAtlas);
-    void setIcon(const char* iconSetName, unsigned short index,
+    MarkerStyle(const TextureAtlas &textureAtlas);
+    void setIcon(const std::string &iconSetName, unsigned short index,
                  unsigned char width, unsigned char height);
 
     // PointStyle
 public:
-    virtual void setType(enum PointType /*type*/) override {}
+    virtual void setType(enum PointType type) override;
     virtual size_t pointVerticesCount() const override { return 4; }
-    virtual unsigned short addPoint(const SimplePoint& pt, float z,
+    virtual unsigned short addPoint(const SimplePoint &pt, float z,
                                     unsigned short index,
-                                    GlBuffer* buffer) override;
+                                    GlBuffer *buffer) override;
     virtual enum GlBuffer::BufferType bufferType() const override {
         return GlBuffer::BF_TEX;
     }
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4& msMatrix, const Matrix4& vsMatrix,
+    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
-    virtual void draw(const GlBuffer& buffer) const override;
-    virtual bool load(const CPLJSONObject& store) override;
+    virtual void draw(const GlBuffer &buffer) const override;
+    virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
-    virtual const char* name() const override { return "marker"; }
+    virtual std::string name() const override { return "marker"; }
 
 protected:
-    GlImage* m_iconSet;
+    GlImage *m_iconSet;
     CPLString m_iconSetName;
     unsigned short m_iconIndex;
     unsigned short m_iconWidth;
     unsigned short m_iconHeight;
-    const TextureAtlas* m_textureAtlas;
+    TextureAtlas m_textureAtlas;
 
 protected:
     float m_ulx, m_uly, m_lrx, m_lry;
@@ -443,11 +443,11 @@ public:
         PrimitivePointStyle(type) {}
 
     // Style interface
-    virtual const char* name() const override { return "simpleLocation"; }
+    virtual std::string name() const override { return "simpleLocation"; }
 
     // LocationStyle interface
 public:
-    virtual void setStatus(enum Status /*status*/) override {}
+    virtual void setStatus(enum Status status) override;
 };
 
 //------------------------------------------------------------------------------
@@ -457,12 +457,12 @@ public:
 class MarkerLocationStyle : public MarkerStyle, public LocationStyle
 {
 public:
-    explicit MarkerLocationStyle(const TextureAtlas* textureAtlas) :
+    explicit MarkerLocationStyle(const TextureAtlas &textureAtlas) :
         MarkerStyle(textureAtlas) {}
 
     // Style interface
-    virtual const char* name() const override { return "markerLocation"; }
-    virtual bool load(const CPLJSONObject& store) override;
+    virtual std::string name() const override { return "markerLocation"; }
+    virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
 
 
@@ -498,7 +498,7 @@ class SimpleEditPointStyle : public PrimitivePointStyle, public EditPointStyle
 public:
     explicit SimpleEditPointStyle(enum PointType type = PT_STAR) :
         PrimitivePointStyle(type) {}
-    virtual ~SimpleEditPointStyle() = default;
+    virtual ~SimpleEditPointStyle() override = default;
 
     // EditPointStyle interface
 public:
@@ -512,8 +512,8 @@ public:
 class MarkerEditPointStyle : public MarkerStyle, public EditPointStyle
 {
 public:
-    explicit MarkerEditPointStyle(const TextureAtlas* textureAtlas);
-    virtual ~MarkerEditPointStyle() = default;
+    explicit MarkerEditPointStyle(const TextureAtlas &textureAtlas);
+    virtual ~MarkerEditPointStyle() override = default;
 
     // EditPointStyle interface
 public:
@@ -521,8 +521,8 @@ public:
 
     // Style interface
 public:
-    virtual const char* name() const override { return "markerEditPoint"; }
-    virtual bool load(const CPLJSONObject& store) override;
+    virtual std::string name() const override { return "markerEditPoint"; }
+    virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
 
 protected:
@@ -544,14 +544,14 @@ class EditLineStyle : public SimpleLineStyle
 {
 public:
     EditLineStyle();
-    virtual ~EditLineStyle() = default;
+    virtual ~EditLineStyle() override = default;
 
     void setEditElementType(enum ngsEditElementType type);
 
     // Style interface
 public:
-    virtual const char* name() const override { return "editLine"; }
-    virtual bool load(const CPLJSONObject& store) override;
+    virtual std::string name() const override { return "editLine"; }
+    virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
 
 protected:
@@ -569,14 +569,14 @@ class EditFillStyle : public SimpleFillStyle
 {
 public:
     EditFillStyle();
-    virtual ~EditFillStyle() = default;
+    virtual ~EditFillStyle() override = default;
 
     void setEditElementType(enum ngsEditElementType type);
 
     // Style interface
 public:
-    virtual const char* name() const override { return "editFill"; }
-    virtual bool load(const CPLJSONObject& store) override;
+    virtual std::string name() const override { return "editFill"; }
+    virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
 
 protected:

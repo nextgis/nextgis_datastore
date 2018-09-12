@@ -25,6 +25,11 @@
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     message(FATAL_ERROR "Android not support build type ${CMAKE_BUILD_TYPE}")
 endif()
+
+# if(NOT BUILD_STATIC_LIBS)
+#     message(FATAL_ERROR "Android not support shared or framework builds")
+# endif()
+
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android.toolchain.cmake
     CACHE PATH "Select android toolchain file path")
 
@@ -39,6 +44,6 @@ set_property(CACHE ANDROID_ABI PROPERTY STRINGS "armeabi" "armeabi-v7a"
 #set(ANDROID_APK_SIGNER_KEYSTORE	"~/my-release-key.keystore" CACHE STRING "Keystore for signing the apk file (only required for release apk)")
 #set(ANDROID_APK_SIGNER_ALIAS "myalias" CACHE STRING "Alias for signing the apk file (only required for release apk)")
 
-set(BUILD_BINDINGS ON CACHE BOOL "Build bindings")
-set(BUILD_BINDINGS_JAVA ON CACHE BOOL "Build java bindings")
-
+## TODO: Use interop instead swig
+# set(BUILD_BINDINGS ON CACHE BOOL "Build bindings")
+# set(BUILD_BINDINGS_JAVA ON CACHE BOOL "Build java bindings")

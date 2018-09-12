@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -34,18 +34,13 @@ if(BUILD_TESTS)
         ${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/include)
 
-    find_package(Threads)
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
-
-    find_library(DL_LIB dl)
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${DL_LIB})
-    find_library(M_LIB m)
-    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${M_LIB})
-
-    #list(REMOVE_DUPLICATES TARGET_LINK_LIB)
-
-    #message(STATUS "target_link_libraries(${TARGET_LINK_LIB})")
-    #message(STATUS "link_directories(${LINK_SEARCH_PATHS})")
+    # find_package(Threads)
+    # set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
+    #
+    # find_library(DL_LIB dl)
+    # set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${DL_LIB})
+    # find_library(M_LIB m)
+    # set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${M_LIB})
 
     link_directories(${LINK_SEARCH_PATHS})
 

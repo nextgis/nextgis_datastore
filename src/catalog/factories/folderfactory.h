@@ -32,9 +32,9 @@ public:
 
     // ObjectFactory interface
 public:
-    virtual const char *getName() const override;
+    virtual std::string name() const override;
     virtual void createObjects(ObjectContainer * const container,
-                               std::vector<const char *> * const names) override;
+                               std::vector<std::string> &names) override;
 private:
     bool m_zipSupported;
 };

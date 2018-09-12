@@ -41,7 +41,7 @@ public:
     };
 public:
     explicit GlBuffer(enum BufferType type = BF_TEX);
-    virtual ~GlBuffer();
+    virtual ~GlBuffer() override;
 
     bool canStoreVertices(size_t amount, bool withNormals = false) const;
     GLuint id(bool vertices) const;
@@ -73,7 +73,7 @@ private:
     enum BufferType m_type;
 };
 
-typedef std::shared_ptr<GlBuffer> GlBufferPtr;
+using GlBufferPtr = std::shared_ptr<GlBuffer>;
 
 } // namespace ngs
 

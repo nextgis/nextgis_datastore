@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -21,12 +21,9 @@
 #ifndef NGSOBJECTCONTAINER_H
 #define NGSOBJECTCONTAINER_H
 
-#include "ngstore/codes.h"
 #include "object.h"
 
-#include <vector>
-
-#include "util/options.h"
+#include "util/progress.h"
 
 namespace ngs {
 
@@ -36,37 +33,30 @@ class ObjectContainer : public Object
 public:
     explicit ObjectContainer(ObjectContainer * const parent = nullptr,
                     const enum ngsCatalogObjectType type = CAT_CONTAINER_ANY,
-                    const CPLString & name = "",
-                    const CPLString & path = "");
+                    const std::string &name = "",
+                    const std::string &path = "");
     virtual ~ObjectContainer() = default;
-    virtual ObjectPtr getObject(const char* path);
+    virtual ObjectPtr getObject(const std::string &path);
     virtual void clear();
-    virtual void refresh() {}
-    virtual bool hasChildren() { return !m_children.empty(); }
-    virtual bool isReadOnly() const { return true; }
-    virtual bool canCreate(const enum ngsCatalogObjectType /*type*/) const {
-        return false;
-    }
-    virtual bool create(const enum ngsCatalogObjectType /*type*/,
-                        const CPLString & /*name*/,
-                        const Options& /*options*/ = Options()) {
-        return false;
-    }
-    virtual bool canPaste(const enum ngsCatalogObjectType /*type*/) const {
-        return false;
-    }
-    virtual int paste(ObjectPtr /*child*/, bool /*move*/ = false,
-                      const Options& /*options*/ = Options(),
-                      const Progress &/*progress*/ = Progress()) {
-        return COD_UNSUPPORTED;
-    }
+    virtual void refresh();
+    virtual bool hasChildren() const;
+    virtual bool isReadOnly() const;
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const;
+    virtual bool create(const enum ngsCatalogObjectType type,
+                        const std::string &name,
+                        const Options &options = Options());
+    virtual bool canPaste(const enum ngsCatalogObjectType type) const;
+    virtual int paste(ObjectPtr child, bool move = false,
+                      const Options& options = Options(),
+                      const Progress &progress = Progress());
 
     std::vector<ObjectPtr> getChildren() const;
-    ObjectPtr getChild(const CPLString& name) const;
+    ObjectPtr getChild(const std::string& name) const;
+    virtual bool loadChildren();
 
     // events
 public:
-    virtual void notifyChanges() { refresh(); }
+    virtual void notifyChanges();
 
 protected:
     /**
@@ -74,14 +64,14 @@ protected:
      * container.
      * @param object The child object to add.
      */
-    virtual void addChild(ObjectPtr object) { m_children.push_back(object); }
+    virtual void addChild(ObjectPtr object);
 
 protected:
-    static void removeDuplicates(std::vector<const char*> &deleteNames,
-                                 std::vector<const char*> &addNames);
+    static void removeDuplicates(std::vector<std::string> &deleteNames,
+                                 std::vector<std::string> &addNames);
 
 protected:
-    std::vector<ObjectPtr> m_children;
+    mutable std::vector<ObjectPtr> m_children;
     bool m_childrenLoaded;
 };
 

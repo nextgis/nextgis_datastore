@@ -1,14 +1,13 @@
 /******************************************************************************
- * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
- * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
- * Author: NikitaFeodonit, nfeodonit@yandex.com
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
- *    the Free Software Foundation, either version 32 of the License, or
+ *    the Free Software Foundation, either version 3 of the License, or
  *    (at your option) any later version.
  *
  *    This program is distributed in the hope that it will be useful,
@@ -19,24 +18,39 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
- 
-%include "arrays_java.i";
+#include "mutex.h"
 
-%module Api
+namespace ngs {
 
-// Do we need typemap to android or java.awt Color?
-%extend _ngsRGBA {
-   char *toString() {
-       static char tmp[1024];
-       sprintf(tmp,"RGBS (%g, %g, %g, %g)", self->R, self->G, self->B, self->A);
-       return tmp;
-   }
-   _ngsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
-       ngsRGBA *rgba = (ngsRGBA *) malloc(sizeof(ngsRGBA));
-       rgba->R = r;
-       rgba->G = g;
-       rgba->B = b;
-       rgba->A = a;
-       return rgba;
-   }
-};
+Mutex::Mutex() : m_mutex(CPLCreateMutex())
+{
+    CPLReleaseMutex(m_mutex);
+}
+
+Mutex::~Mutex()
+{
+    CPLDestroyMutex(m_mutex);
+}
+
+void Mutex::acquire(double timeout)
+{
+    CPLAcquireMutex(m_mutex, timeout);
+}
+
+void Mutex::release()
+{
+    CPLReleaseMutex(m_mutex);
+}
+
+MutexHolder::MutexHolder(const Mutex &mutex, double timeout) :
+    m_mutex(const_cast<Mutex &>(mutex))
+{
+    m_mutex.acquire(timeout);
+}
+
+MutexHolder::~MutexHolder()
+{
+    m_mutex.release();
+}
+
+}

@@ -91,7 +91,7 @@ TEST(BasicTests, TestVersions) {
     EXPECT_EQ(268443663, ngsGetVersion("openssl"));
     EXPECT_STREQ("1.0.2", ngsGetVersionString("openssl"));*/
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -135,10 +135,10 @@ TEST(CatalogTests, TestCatalogQuery) {
         count++;
     }
     ASSERT_GE(count, 1);
-    CPLString path2test = CPLSPrintf("ngc://%s", pathInfo[0].name); // Local connections
+    std::string path2test = CPLSPrintf("ngc://%s", pathInfo[0].name); // Local connections
     ngsFree(pathInfo);
 
-    CatalogObjectH path2testObject = ngsCatalogObjectGet(path2test);
+    CatalogObjectH path2testObject = ngsCatalogObjectGet(path2test.c_str());
     pathInfo = ngsCatalogObjectQuery(path2testObject, 0);
     ASSERT_NE(pathInfo, nullptr);
     count = 0;
@@ -162,9 +162,9 @@ TEST(CatalogTests, TestCatalogQuery) {
     ngsFree(pathInfo);
 
     // Test zip support
-    CPLString catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
-    CPLString zipPath = catalogPath + "/data/railway.zip";
-    CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath);
+    std::string catalogPath = ngsCatalogPathFromSystem(CPLGetCurrentDir());
+    std::string zipPath = catalogPath + "/data/railway.zip";
+    CatalogObjectH zipObject = ngsCatalogObjectGet(zipPath.c_str());
 
     pathInfo = ngsCatalogObjectQuery(zipObject, 0);
     ASSERT_NE(pathInfo, nullptr);
@@ -190,14 +190,14 @@ TEST(CatalogTests, TestCreate) {
     ngsListFree(options);
     options = nullptr;
 
-    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
-    CPLString catalogPath = ngsCatalogPathFromSystem(path);
-    ASSERT_STRNE(catalogPath, "");
+    std::string path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
+    std::string catalogPath = ngsCatalogPathFromSystem(path.c_str());
+    ASSERT_STRNE(catalogPath.c_str(), "");
 
     options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_DIR));
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
 
-    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
               COD_SUCCESS);
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
@@ -236,11 +236,13 @@ TEST(CatalogTests, TestCreate) {
     ngsFree(pathInfo);
 
     // Test metadata
-    CPLString osmPath = CPLFormFilename(catalogPath, "osm.wconn", nullptr);
-    CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
-    EXPECT_EQ(ngsCatalogObjectSetMetadataItem(osmRaster, "TMS_CACHE_EXPIRES", "555", ""), COD_SUCCESS);
+    std::string osmPath = CPLFormFilename(catalogPath.c_str(), "osm.wconn",
+                                          nullptr);
+    CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath.c_str());
+    EXPECT_EQ(ngsCatalogObjectSetProperty(osmRaster, "TMS_CACHE_EXPIRES", "555",
+                                          ""), COD_SUCCESS);
 
-    char** metadata = ngsCatalogObjectMetadata(osmRaster, "");
+    char **metadata = ngsCatalogObjectProperties(osmRaster, "");
     if(metadata != nullptr) {
         EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "555"), true);
     }
@@ -249,7 +251,7 @@ TEST(CatalogTests, TestCreate) {
 }
 
 TEST(CatalogTests, TestAreaDownload) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -286,7 +288,7 @@ TEST(CatalogTests, TestAreaDownload) {
     CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
     EXPECT_EQ(ngsDatasetOpen(osmRaster, GDAL_OF_SHARED|GDAL_OF_READONLY|
                              GDAL_OF_VERBOSE_ERROR, nullptr), COD_SUCCESS);
-    char** metadata = ngsCatalogObjectMetadata(osmRaster, "");
+    char** metadata = ngsCatalogObjectProperties(osmRaster, "");
     if(metadata != nullptr) {
         EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "300"), true);
     }
@@ -335,7 +337,7 @@ TEST(CatalogTests, TestDelete) {
 }
 
 TEST(DataStoreTests, TestCreateDataStore) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -344,15 +346,15 @@ TEST(DataStoreTests, TestCreateDataStore) {
     ngsListFree(options);
     options = nullptr;
 
-    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
-    CPLString catalogPath = ngsCatalogPathFromSystem(path);
-    ASSERT_STRNE(catalogPath, "");
+    std::string path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
+    std::string catalogPath = ngsCatalogPathFromSystem(path.c_str());
+    ASSERT_STRNE(catalogPath.c_str(), "");
 
     options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
     options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
-    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ngsListFree(options);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
@@ -374,11 +376,11 @@ TEST(DataStoreTests, TestOpenDataStore) {
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
     ngsListFree(options);
-    CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
-    CPLString catalogPath = ngsCatalogPathFromSystem(path);
-    ASSERT_STRNE(catalogPath, "");
-    CPLString storePath = ngsFormFileName(catalogPath, "main", "ngst");
-    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    std::string path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
+    std::string catalogPath = ngsCatalogPathFromSystem(path.c_str());
+    ASSERT_STRNE(catalogPath.c_str(), "");
+    std::string storePath = ngsFormFileName(catalogPath.c_str(), "main", "ngst");
+    CatalogObjectH store = ngsCatalogObjectGet(storePath.c_str());
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);
 
     size_t count = 0;
@@ -397,7 +399,7 @@ TEST(DataStoreTests, TestOpenDataStore) {
 TEST(DataStoreTests, TestLoadDataStore) {
     counter = 0;
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -406,12 +408,12 @@ TEST(DataStoreTests, TestLoadDataStore) {
 
     ngsListFree(options);
 
-    CPLString testPath = ngsGetCurrentDirectory();
-    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
-    CPLString storePath = catalogPath + "/tmp/main.ngst";
-    CPLString shapePath = catalogPath + "/data/bld.shp";
-    CatalogObjectH store = ngsCatalogObjectGet(storePath);
-    CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+    std::string storePath = catalogPath + "/tmp/main.ngst";
+    std::string shapePath = catalogPath + "/data/bld.shp";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath.c_str());
+    CatalogObjectH shape = ngsCatalogObjectGet(shapePath.c_str());
 
     options = nullptr;
     options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
@@ -427,7 +429,7 @@ TEST(DataStoreTests, TestLoadDataStore) {
 TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     counter = 0;
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -453,7 +455,7 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
 TEST(DataStoreTests, TestLoadAndDelete) {
     counter = 0;
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -607,7 +609,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
 }
 
 TEST(DataStoreTests, TestCreateFeature) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -616,15 +618,15 @@ TEST(DataStoreTests, TestCreateFeature) {
 
     ngsListFree(options);
 
-    CPLString testPath = ngsGetCurrentDirectory();
-    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
-    CPLString fcPath = catalogPath + "/tmp/main.ngst/new_layer";
-    CatalogObjectH featureClass = ngsCatalogObjectGet(fcPath);
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+    std::string fcPath = catalogPath + "/tmp/main.ngst/new_layer";
+    CatalogObjectH featureClass = ngsCatalogObjectGet(fcPath.c_str());
 
     ASSERT_NE(featureClass, nullptr);
     EXPECT_EQ(ngsFeatureClassCount(featureClass), 0);
 
-    ngsField* fields = ngsFeatureClassFields(featureClass);
+    ngsField *fields = ngsFeatureClassFields(featureClass);
     ASSERT_NE(fields, nullptr);
     int count = 0;
     while(fields[count].name != nullptr) {
@@ -680,23 +682,24 @@ TEST(DataStoreTests, TestCreateFeature) {
                                                                    25000);
     ASSERT_NE(newFeature, nullptr);
 
-    CPLString testAttachmentPath = CPLFormFilename(testPath, "download.cmake", nullptr);
+    std::string testAttachmentPath = CPLFormFilename(testPath.c_str(),
+                                                     "download.cmake", nullptr);
     long long id = ngsFeatureAttachmentAdd(newFeature, "test.txt",
                                            "test add atachment",
-                                           testAttachmentPath, nullptr, 1);
+                                           testAttachmentPath.c_str(), nullptr, 1);
     EXPECT_NE(id, -1);
 
     VSIStatBufL sbuf;
-    CPLString path1 = testPath + "/tmp/main.attachments";
-    EXPECT_EQ(VSIStatL(path1, &sbuf), 0);
+    std::string path1 = testPath + "/tmp/main.attachments";
+    EXPECT_EQ(VSIStatL(path1.c_str(), &sbuf), 0);
 
-    CPLString path2 = testPath + "/tmp/main.attachments/new_layer";
-    EXPECT_EQ(VSIStatL(path2, &sbuf), 0);
+    std::string path2 = testPath + "/tmp/main.attachments/new_layer";
+    EXPECT_EQ(VSIStatL(path2.c_str(), &sbuf), 0);
 
-    CPLString path3 = testPath + "/tmp/main.attachments/new_layer/1";
-    EXPECT_EQ(VSIStatL(path3, &sbuf), 0);
+    std::string path3 = testPath + "/tmp/main.attachments/new_layer/1";
+    EXPECT_EQ(VSIStatL(path3.c_str(), &sbuf), 0);
 
-    ngsFeatureAttachmentInfo* list = ngsFeatureAttachmentsGet(newFeature);
+    ngsFeatureAttachmentInfo *list = ngsFeatureAttachmentsGet(newFeature);
     ASSERT_NE(list, nullptr);
     int counter = 0;
     while (list[counter].id != -1) {
@@ -720,7 +723,7 @@ TEST(DataStoreTests, TestCreateFeature) {
     EXPECT_EQ(list[0].rid, 777);
     ngsFree(list);
 
-    ngsEditOperation* ops = ngsFeatureClassGetEditOperations(featureClass);
+    ngsEditOperation *ops = ngsFeatureClassGetEditOperations(featureClass);
     ASSERT_NE(ops, nullptr);
     counter = 0;
     bool hasCreate = false;
@@ -894,7 +897,7 @@ TEST(MapTests, MapSave) {
 }
 
 TEST(MapTests, MapOpen) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -902,11 +905,11 @@ TEST(MapTests, MapOpen) {
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
     ngsListFree(options);
 
-    CPLString testPath = ngsGetCurrentDirectory();
-    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
-    CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+    std::string mapPath = catalogPath + "/tmp/test_map.ngmd";
 
-    unsigned char mapId = ngsMapOpen(mapPath);
+    unsigned char mapId = ngsMapOpen(mapPath.c_str());
     ASSERT_NE(mapId, 0);
 
     EXPECT_EQ(ngsMapLayerCount(mapId), 2);
@@ -919,13 +922,13 @@ TEST(MapTests, MapOpen) {
     LayerH layer0 = ngsMapLayerGet(mapId, 0);
     LayerH layer1 = ngsMapLayerGet(mapId, 1);
 
-    CPLString layer1Name = ngsLayerGetName(layer1);
+    std::string layer1Name = ngsLayerGetName(layer1);
 
     EXPECT_EQ(ngsMapLayerReorder(mapId, layer0, layer1), COD_SUCCESS);
 
     LayerH layerTest = ngsMapLayerGet(mapId, 0);
-    CPLString layerTestName = ngsLayerGetName(layerTest);
-    EXPECT_STREQ(layer1Name, layerTestName);
+    std::string layerTestName = ngsLayerGetName(layerTest);
+    EXPECT_EQ(layer1Name.compare(layerTestName), 0);
 
     EXPECT_EQ(ngsMapLayerDelete(mapId, layerTest), COD_SUCCESS);
 
@@ -937,7 +940,7 @@ TEST(MapTests, MapOpen) {
 }
 
 TEST(MiscTests, TestURLRequest) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -953,11 +956,10 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsAddNameValue(options, "UNSAFESSL", "ON");
 
-    ngsURLRequestResult* result = ngsURLRequest(URT_GET,
+    ngsURLRequestResult *result = ngsURLRequest(URT_GET,
                                                "http://ya.ru", options);
     ASSERT_NE(result, nullptr);
-    EXPECT_GE(result->status, 200);
-    EXPECT_LT(result->status, 400);
+    EXPECT_EQ(result->status, 0);
     ngsURLRequestResultFree(result);
     ngsListFree(options);
 
@@ -971,9 +973,9 @@ TEST(MiscTests, TestURLRequest) {
             "http://demo.nextgis.com/api/component/pyramid/pkg_version", options);
     ngsListFree(options);
 
-    EXPECT_GE(result->status, 200);
-    EXPECT_LT(result->status, 400);
-    CPLString data(reinterpret_cast<const char*>(result->data),
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->status, 0);
+    std::string data(reinterpret_cast<const char*>(result->data),
                    static_cast<size_t>(result->dataLen));
     std::cout << data << std::endl;
     ngsURLRequestResultFree(result);
@@ -987,8 +989,8 @@ TEST(MiscTests, TestURLRequest) {
     result = ngsURLRequest(URT_GET,
             "https://nextgis.com", options);
 
-    EXPECT_GE(result->status, 200);
-    EXPECT_LT(result->status, 400);
+    ASSERT_NE(result, nullptr);
+    EXPECT_GE(result->status, 0);
     ngsURLRequestResultFree(result);
     ngsListFree(options);
 
@@ -1000,8 +1002,8 @@ TEST(MiscTests, TestURLRequest) {
     result = ngsURLRequest(URT_GET,
             "http://tile.openstreetmap.org/9/309/160.png", options);
 
-    EXPECT_GE(result->status, 200);
-    EXPECT_LT(result->status, 400);
+    ASSERT_NE(result, nullptr);
+    EXPECT_GE(result->status, 0);
 
 //    std::ofstream outFile;
 //    outFile.open("osm.png", std::ios::out | std::ios::binary);

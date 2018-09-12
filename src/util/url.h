@@ -28,7 +28,7 @@
 
 namespace ngs {
 
-ngsURLRequestResult* uploadFile(const char* path, const char* url,
+ngsURLRequestResult* uploadFile(const std::string &path, const std::string &url,
                                 const Progress &progress, const Options &options);
 
 }

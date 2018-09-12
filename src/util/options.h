@@ -23,36 +23,36 @@
 
 #include <map>
 #include <memory>
-
-#include "cpl_string.h"
+#include <string>
 
 namespace ngs {
 
-typedef std::unique_ptr<char*, void(*)(char**)> OptionsArrayUPtr;
+using OptionsArrayUPtr = std::unique_ptr<char*, void(*)(char**)>;
 
 class Options
 {
 public:
     Options() = default;
-    explicit Options(char** options);
-    const CPLString &stringOption(const char * key,
-                                  const CPLString & defaultOption = "") const;
-    bool boolOption(const char *key, bool defaultOption = true) const;
-    int intOption(const char *key, int defaultOption = 0) const;
-    double doubleOption(const char *key, double defaultOption = 0.0) const;
-    OptionsArrayUPtr getOptions() const;
-    void addOption(const char *key, const char * value) { m_options[key] = value; }
-    void removeOption(const char *key);
-    bool empty() const { return m_options.empty(); }
-    std::map< CPLString, CPLString >::const_iterator begin() const {
-        return m_options.begin();
-    }
-    std::map< CPLString, CPLString >::const_iterator end() const {
-        return m_options.end();
-    }
+    explicit Options(char **options);
+
+    std::string asString(const std::string &key,
+                         const std::string &defaultOption = "") const;
+    bool asBool(const std::string &key, bool defaultOption = true) const;
+    int asInt(const std::string &key, int defaultOption = 0) const;
+    long asLong(const std::string &key, long defaultOption = 0) const;
+    double asDouble(const std::string &key, double defaultOption = 0.0) const;
+    OptionsArrayUPtr asCharArray() const;
+
+    void add(const std::string &key, const std::string &value);
+    void remove(const std::string &key);
+    bool empty() const;
+    std::map< std::string, std::string >::const_iterator begin() const ;
+    std::map< std::string, std::string >::const_iterator end() const;
+
+    void append(const Options &other);
 
 protected:
-    std::map< CPLString, CPLString > m_options;
+    std::map<std::string, std::string> m_options;
 };
 
 unsigned char getNumberThreads();

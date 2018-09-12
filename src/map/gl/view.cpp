@@ -4,7 +4,7 @@
 *  Author:  Dmitry Baryshnikov, bishop.dev@gmail.com
 *  Author:  NikitaFeodonit, nfeodonit@yandex.com
 *******************************************************************************
-*  Copyright (C) 2016-2017 NextGIS, <info@nextgis.com>
+*  Copyright (C) 2016-2018 NextGIS, <info@nextgis.com>
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ GlView::GlView() : MapView()
     initView();
 }
 
-GlView::GlView(const CPLString &name, const CPLString &description,
+GlView::GlView(const std::string &name, const std::string &description,
                unsigned short epsg, const Envelope &bounds) :
     MapView(name, description, epsg, bounds)
 {
@@ -98,12 +98,13 @@ void GlView::clearBackground()
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const char* name)
+bool GlView::setSelectionStyleName(enum ngsStyleType styleType,
+                                   const std::string &name)
 {
-    if(EQUAL(name, m_selectionStyles[styleType]->name())) {
+    if(compare(name, m_selectionStyles[styleType]->name())) {
         return true;
     }
-    Style* newStyle = Style::createStyle(name, &m_textureAtlas);
+    Style *newStyle = Style::createStyle(name, m_textureAtlas);
     if(nullptr != newStyle) {
         freeResource(m_selectionStyles[styleType]);
         m_selectionStyles[styleType] = StylePtr(newStyle);
@@ -112,7 +113,7 @@ bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const char* name
     return false;
 }
 
-LayerPtr GlView::createLayer(const char *name, Layer::Type type)
+LayerPtr GlView::createLayer(const std::string &name, Layer::Type type)
 {
     switch (type) {
     case Layer::Type::Vector:
@@ -126,9 +127,9 @@ LayerPtr GlView::createLayer(const char *name, Layer::Type type)
 
 bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
 {
-    LayerFillData* layerData = dynamic_cast<LayerFillData*>(threadData);
+    LayerFillData *layerData = dynamic_cast<LayerFillData*>(threadData);
     if (nullptr != layerData) {
-        GlRenderLayer* renderLayer = ngsDynamicCast(GlRenderLayer,
+        GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
                                                     layerData->m_layer);
         if (nullptr != renderLayer) {
             return renderLayer->fill(layerData->m_tile,
@@ -211,7 +212,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     return true;
 }
 
-void GlView::invalidate(const Envelope& bounds)
+void GlView::invalidate(const Envelope &bounds)
 {
     std::vector<GlTilePtr> newTiles;
 
@@ -231,7 +232,7 @@ void GlView::invalidate(const Envelope& bounds)
          }
     }
 
-    for(GlTilePtr& tile : newTiles) {
+    for(const GlTilePtr &tile : newTiles) {
         m_tiles.push_back(tile);
         float z = 0.0f;
         for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
@@ -245,14 +246,30 @@ void GlView::invalidate(const Envelope& bounds)
     m_invalidRegion = bounds;
 }
 
-bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
+bool GlView::setSelectionStyle(enum ngsStyleType styleType,
+                               const CPLJSONObject &style)
+{
+    return m_selectionStyles[styleType]->load(style);
+}
+
+std::string GlView::selectionStyleName(enum ngsStyleType styleType) const
+{
+    return m_selectionStyles.find(styleType)->second->name();
+}
+
+CPLJSONObject GlView::selectionStyle(enum ngsStyleType styleType) const
+{
+    return m_selectionStyles.find(styleType)->second->save();
+}
+
+bool GlView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
 { 
 
     if(!MapView::openInternal(root, mapFile)) {
         return false;
     }
 
-    for(const IconSetItem& item : m_iconSets) {
+    for(const IconSetItem &item : m_iconSets) {
         auto imageData = iconSetData(item.path);
         GlImagePtr texture(new GlImage);
         texture->setImage(imageData.buffer, imageData.height, imageData.width);
@@ -260,35 +277,36 @@ bool GlView::openInternal(const CPLJSONObject& root, MapFile* const mapFile)
         m_textureAtlas[item.name] = texture;
     }
 
-    CPLJSONObject selection = root.GetObject(SELECTION_KEY);
-    Style* style = Style::createStyle(selection.GetString("point_style_name",
-                                                          "primitivePoint"),
-                                      &m_textureAtlas);
+    CPLJSONObject selection = root.GetObj(SELECTION_KEY);
+    Style *style = Style::createStyle(
+                selection.GetString("point_style_name", "primitivePoint"),
+                m_textureAtlas);
     if(nullptr != style) {
-        style->load(selection.GetObject("point_style"));
+        style->load(selection.GetObj("point_style"));
         m_selectionStyles[ST_POINT] = StylePtr(style);
     }
 
-    style = Style::createStyle(selection.GetString("line_style_name",
-                                                   "simpleLine"),
-                               &m_textureAtlas);
+    style = Style::createStyle(
+                selection.GetString("line_style_name", "simpleLine"),
+                m_textureAtlas);
     if(nullptr != style) {
-        style->load(selection.GetObject("line_style"));
+        style->load(selection.GetObj("line_style"));
         m_selectionStyles[ST_LINE] = StylePtr(style);
     }
 
-    style = Style::createStyle(selection.GetString("fill_style_name",
-                                                   "simpleFillBordered"),
-                               &m_textureAtlas);
+    style = Style::createStyle(
+                selection.GetString("fill_style_name", "simpleFillBordered"),
+                m_textureAtlas);
     if(nullptr != style) {
-        style->load(selection.GetObject("fill_style"));
+        style->load(selection.GetObj("fill_style"));
         m_selectionStyles[ST_FILL] = StylePtr(style);
     }
 
     return true;
 }
 
-bool GlView::addIconSet(const char* name, const char* path, bool ownByMap)
+bool GlView::addIconSet(const std::string &name, const std::string &path,
+                        bool ownByMap)
 {
     if(MapView::addIconSet(name, path, ownByMap)) {
         IconSetItem item = {name, "", false};
@@ -305,7 +323,7 @@ bool GlView::addIconSet(const char* name, const char* path, bool ownByMap)
     return false;
 }
 
-bool GlView::removeIconSet(const char* name)
+bool GlView::removeIconSet(const std::string &name)
 {
     if(MapView::removeIconSet(name)) {
         m_textureAtlas[name].reset();
@@ -316,7 +334,7 @@ bool GlView::removeIconSet(const char* name)
 }
 
 
-bool GlView::saveInternal(CPLJSONObject& root, MapFile* const mapFile)
+bool GlView::saveInternal(CPLJSONObject &root, MapFile * const mapFile)
 {
     if(!MapView::saveInternal(root, mapFile))
         return false;
@@ -339,8 +357,8 @@ void GlView::updateTilesList()
     ext.resize(TILE_RESIZE);
     //CPLDebug("ngstore", "Zoom is: %d", getZoom());
     std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
-                                                    false, // False mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
-                                                    getXAxisLooped());
+                                                        false, // False mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
+                                                        getXAxisLooped());
 
     // Remove out of extent Gl tiles
     auto tileIt = m_tiles.begin();
@@ -367,7 +385,7 @@ void GlView::updateTilesList()
     }
 
     // Add new Gl tiles
-    for(const TileItem& tileItem : tileItems) {
+    for(const TileItem &tileItem : tileItems) {
         m_tiles.push_back(GlTilePtr(new GlTile(GLTILE_SIZE, tileItem)));
     }
 
@@ -484,8 +502,8 @@ bool GlView::drawTiles(const Progress &progress)
 
     for (auto overlayIt = m_overlays.rbegin(); overlayIt != m_overlays.rend();
             ++overlayIt) {
-        const OverlayPtr& overlay = *overlayIt;
-        GlRenderOverlay* glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
+        const OverlayPtr &overlay = *overlayIt;
+        GlRenderOverlay *glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
         if (glOverlay) {
             glOverlay->draw();
         }
@@ -506,7 +524,7 @@ bool GlView::drawTiles(const Progress &progress)
 
 void GlView::drawOldTiles()
 {
-    for(const GlTilePtr& oldTile : m_oldTiles) {
+    for(const GlTilePtr &oldTile : m_oldTiles) {
         if(oldTile->filled()){
             m_fboDrawStyle.setImage(oldTile->getImageRef());
             oldTile->getBuffer().rebind();
@@ -519,7 +537,7 @@ void GlView::drawOldTiles()
 
 void GlView::freeOldTiles()
 {
-    for(const GlTilePtr& oldTile : m_oldTiles) {
+    for(const GlTilePtr &oldTile : m_oldTiles) {
         for(const LayerPtr &layer : m_layers) {
             GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer, layer);
             if(renderLayer) {
@@ -535,11 +553,11 @@ void GlView::freeOldTiles()
 void GlView::initView()
 {
     m_selectionStyles[ST_POINT] = StylePtr(
-                Style::createStyle("primitivePoint", &m_textureAtlas));
+                Style::createStyle("primitivePoint", m_textureAtlas));
     m_selectionStyles[ST_LINE] = StylePtr(
-                Style::createStyle("simpleLine", &m_textureAtlas));
+                Style::createStyle("simpleLine", m_textureAtlas));
     m_selectionStyles[ST_FILL] = StylePtr(
-                Style::createStyle("simpleFillBordered", &m_textureAtlas));
+                Style::createStyle("simpleFillBordered", m_textureAtlas));
     createOverlays();
     m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
 }

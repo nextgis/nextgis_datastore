@@ -26,60 +26,33 @@
 
 namespace ngs {
 
-static std::map<CPLString, CPLString> propMapFromList(char** list)
-{
-    std::map<CPLString, CPLString> out;
-    if(nullptr != list) {
-        int i = 0;
-        while (list[i] != nullptr) {
-            const char* item = list[i];
-            size_t len = CPLStrnlen(item, 1024);
-            CPLString key, value;
-            for(size_t j = 0; j < len; ++j) {
-                if(item[j] == '=' || item[j] == ':' ) {
-                    value = CPLString(item + 1 + j);
-                    break;
-                }
-                key += item[j];
-            }
-            out[key] = value;
-            i++;
-        }
-    }
-    return out;
-}
-
 //------------------------------------------------------------------------------
 // StoreObject
 //------------------------------------------------------------------------------
 
-StoreObject::StoreObject(OGRLayer* layer) : m_storeIntLayer(layer)
+StoreObject::StoreObject(OGRLayer *layer) : m_storeIntLayer(layer)
 {
 }
 
 FeaturePtr StoreObject::getFeatureByRemoteId(GIntBig rid) const
 {
-    const Table* table = dynamic_cast<const Table*>(this);
+    const Table *table = dynamic_cast<const Table*>(this);
     if(nullptr == table) {
         return FeaturePtr();
     }
 
-    Dataset* dataset = dynamic_cast<Dataset*>(table->parent());
+    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
     DatasetExecuteSQLLockHolder holder(dataset);
     m_storeIntLayer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
                                                    REMOTE_ID_KEY, rid));
-    OGRFeature* pFeature = m_storeIntLayer->GetNextFeature();
-    FeaturePtr out;
-    if (nullptr != pFeature) {
-        out = FeaturePtr(pFeature, table);
-    }
+    FeaturePtr out(m_storeIntLayer->GetNextFeature(), table);
     m_storeIntLayer->SetAttributeFilter(nullptr);
     return out;
 }
 
 bool StoreObject::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
 {
-    Table* table = dynamic_cast<Table*>(this);
+    Table *table = dynamic_cast<Table*>(this);
     if(nullptr == table) {
         return false;
     }
@@ -88,12 +61,12 @@ bool StoreObject::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
         return false;
     }
 
-    OGRLayer* attTable = table->m_attTable;
+    OGRLayer *attTable = table->m_attTable;
     if(nullptr == attTable) {
         return false;
     }
 
-    Dataset* dataset = dynamic_cast<Dataset*>(table->parent());
+    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
     DatasetExecuteSQLLockHolder holder(dataset);
     FeaturePtr attFeature = attTable->GetFeature(aid);
     if(!attFeature) {
@@ -118,7 +91,7 @@ GIntBig StoreObject::getRemoteId(FeaturePtr feature)
 }
 
 std::vector<ngsEditOperation> StoreObject::fillEditOperations(
-        OGRLayer* editHistoryTable) const
+        OGRLayer *editHistoryTable) const
 {
     std::vector<ngsEditOperation> out;
     if(nullptr == editHistoryTable) {
@@ -145,12 +118,12 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
 
 GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
 {
-    const Table* table = dynamic_cast<const Table*>(this);
+    const Table *table = dynamic_cast<const Table*>(this);
     if(nullptr == table) {
         return NOT_FOUND;
     }
 
-    OGRLayer* attTable = table->m_attTable;
+    OGRLayer *attTable = table->m_attTable;
     if(attTable == nullptr) {
         return NOT_FOUND;
     }
@@ -166,8 +139,8 @@ GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
 //------------------------------------------------------------------------------
 // StoreTable
 //------------------------------------------------------------------------------
-StoreTable::StoreTable(OGRLayer* layer, ObjectContainer* const parent,
-                       const CPLString& name) :
+StoreTable::StoreTable(OGRLayer *layer, ObjectContainer * const parent,
+                       const std::string &name) :
     Table(layer, parent, CAT_TABLE_GPKG, name),
     StoreObject(layer)
 {
@@ -177,7 +150,7 @@ void StoreTable::fillFields() const
 {
     Table::fillFields();
     // Hide remote id field from user
-    if(EQUAL(m_fields.back().m_name, REMOTE_ID_KEY)) {
+    if(compare(m_fields.back().m_name, REMOTE_ID_KEY)) {
         m_fields.pop_back();
     }
 }
@@ -203,13 +176,10 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid) const
         info.id = attFeature->GetFID();
         info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
 
-        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
-        info.path = CPLFormFilename(attFeaturePath,
-                                    CPLSPrintf(CPL_FRMT_GIB, info.id),
-                                    nullptr);
-
+        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
+                                                        std::to_string(fid), "");
+        info.path = File::formFileName(attFeaturePath, std::to_string(info.id),
+                                       "");
         info.size = File::fileSize(info.path);
 
         out.push_back(info);
@@ -218,41 +188,39 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid) const
     return out;
 }
 
-GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
-                             const char* description, const char* filePath,
-                             char** options, bool logEdits)
+GIntBig StoreTable::addAttachment(GIntBig fid, const std::string &fileName,
+                                  const std::string &description,
+                                  const std::string &filePath,
+                                  const Options &options, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
-    bool move = CPLFetchBool(options, "MOVE", false);
-    GIntBig rid = atoll(CSLFetchNameValueDef(options, "RID",
-                                             CPLSPrintf(CPL_FRMT_GIB , INIT_RID_COUNTER)));
+    bool move = options.asBool("MOVE", false);
+    GIntBig rid = options.asLong("RID", INIT_RID_COUNTER);
 
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
 
     newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
-    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName);
-    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description);
+    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName.c_str());
+    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
     newAttachment->SetField(REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
-        CPLString dstTablePath = getAttachmentsPath();
+        std::string dstTablePath = getAttachmentsPath();
         if(!Folder::isExists(dstTablePath)) {
             Folder::mkDir(dstTablePath);
         }
-        CPLString dstFeaturePath = CPLFormFilename(dstTablePath,
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
+        std::string dstFeaturePath = File::formFileName(dstTablePath,
+                                                        std::to_string(fid), "");
         if(!Folder::isExists(dstFeaturePath)) {
             Folder::mkDir(dstFeaturePath);
         }
 
-        CPLString dstPath = CPLFormFilename(dstFeaturePath,
-                                            CPLSPrintf(CPL_FRMT_GIB,
-                                                       newAttachment->GetFID()),
-                                            nullptr);
+        std::string dstPath = File::formFileName(dstFeaturePath,
+                                                 std::to_string(newAttachment->GetFID()),
+                                                 "");
         if(Folder::isExists(filePath)) {
             if(move) {
                 File::moveFile(filePath, dstPath);
@@ -273,32 +241,35 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const char* fileName,
     return NOT_FOUND;
 }
 
-bool StoreTable::setProperty(const char* key, const char* value,
-                                    const char* domain)
+bool StoreTable::setProperty(const std::string &key, const std::string &value,
+                                    const std::string &domain)
 {
     checkSetProperty(key, value, domain);
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
+    return m_layer->SetMetadataItem(key.c_str(),
+                                    value.c_str(), domain.c_str()) == OGRERR_NONE;
 }
 
-CPLString StoreTable::property(const char* key, const char* defaultValue,
-                                         const char* domain) const
+std::string StoreTable::property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    const char* item = m_layer->GetMetadataItem(key, domain);
+    const char *item = m_layer->GetMetadataItem(key.c_str(), domain.c_str());
     return item != nullptr ? item : defaultValue;
 }
 
-std::map<CPLString, CPLString> StoreTable::properties(const char* domain) const
+Properties StoreTable::properties(
+        const std::string &domain) const
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return propMapFromList(m_layer->GetMetadata(domain));
+    return Properties(m_layer->GetMetadata(domain.c_str()));
 }
 
-void StoreTable::deleteProperties()
+void StoreTable::deleteProperties(const std::string &domain)
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    m_layer->SetMetadata(nullptr, nullptr);
+    m_layer->SetMetadata(nullptr, domain.c_str());
 }
 
 std::vector<ngsEditOperation> StoreTable::editOperations() const
@@ -321,7 +292,8 @@ FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
     FeaturePtr logFeature = Table::logEditFeature(feature, attachFeature, code);
     if(logFeature) {
         logFeature->SetField(REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
-        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY, StoreObject::getRemoteId(attachFeature));
+        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY,
+                             StoreObject::getRemoteId(attachFeature));
     }
     return logFeature;
 }
@@ -330,9 +302,9 @@ FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
 // StoreFeatureClass
 //------------------------------------------------------------------------------
 
-StoreFeatureClass::StoreFeatureClass(OGRLayer* layer,
-                                     ObjectContainer* const parent,
-                                     const CPLString& name) :
+StoreFeatureClass::StoreFeatureClass(OGRLayer *layer,
+                                     ObjectContainer * const parent,
+                                     const std::string &name) :
     FeatureClass(layer, parent, CAT_FC_GPKG, name),
     StoreObject(layer)
 {
@@ -345,7 +317,7 @@ void StoreFeatureClass::fillFields() const
 {
     Table::fillFields();
     // Hide remote id field from user
-    if(EQUAL(m_fields.back().m_name, REMOTE_ID_KEY)) {
+    if(compare(m_fields.back().m_name, REMOTE_ID_KEY)) {
         m_fields.pop_back();
     }
 }
@@ -358,7 +330,7 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) c
         return out;
     }
 
-    Dataset* dataset = dynamic_cast<Dataset*>(m_parent);
+    Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     DatasetExecuteSQLLockHolder holder(dataset);
 
     m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
@@ -372,13 +344,10 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) c
         info.id = attFeature->GetFID();
         info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
 
-        CPLString attFeaturePath = CPLFormFilename(getAttachmentsPath(),
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
-        info.path = CPLFormFilename(attFeaturePath,
-                                    CPLSPrintf(CPL_FRMT_GIB, info.id),
-                                    nullptr);
-
+        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
+                                                        std::to_string(fid), "");
+        info.path = File::formFileName(attFeaturePath, std::to_string(info.id),
+                                       "");
         info.size = File::fileSize(info.path);
 
         out.push_back(info);
@@ -387,41 +356,39 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) c
     return out;
 }
 
-GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
-                             const char* description, const char* filePath,
-                             char** options, bool logEdits)
+GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
+                                         const std::string &description,
+                                         const std::string &filePath,
+                                         const Options &options, bool logEdits)
 {
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
-    bool move = CPLFetchBool(options, "MOVE", false);
-    GIntBig rid = atoll(CSLFetchNameValueDef(options, "RID",
-                                             CPLSPrintf(CPL_FRMT_GIB , INIT_RID_COUNTER)));
+    bool move = options.asBool("MOVE", false);
+    GIntBig rid = options.asLong("RID", INIT_RID_COUNTER);
 
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
 
     newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
-    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName);
-    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description);
+    newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName.c_str());
+    newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
     newAttachment->SetField(REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
-        CPLString dstTablePath = getAttachmentsPath();
+        std::string dstTablePath = getAttachmentsPath();
         if(!Folder::isExists(dstTablePath)) {
             Folder::mkDir(dstTablePath);
         }
-        CPLString dstFeaturePath = CPLFormFilename(dstTablePath,
-                                                   CPLSPrintf(CPL_FRMT_GIB, fid),
-                                                   nullptr);
+        std::string dstFeaturePath = File::formFileName(dstTablePath,
+                                                        std::to_string(fid), "");
         if(!Folder::isExists(dstFeaturePath)) {
             Folder::mkDir(dstFeaturePath);
         }
 
-        CPLString dstPath = CPLFormFilename(dstFeaturePath,
-                                            CPLSPrintf(CPL_FRMT_GIB,
-                                                       newAttachment->GetFID()),
-                                            nullptr);
+        std::string dstPath = File::formFileName(dstFeaturePath,
+                                                 std::to_string(newAttachment->GetFID()),
+                                                 "");
         if(Folder::isExists(filePath)) {
             if(move) {
                 File::moveFile(filePath, dstPath);
@@ -443,31 +410,32 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const char* fileName,
     return NOT_FOUND;
 }
 
-bool StoreFeatureClass::setProperty(const char* key, const char* value,
-                                    const char* domain)
+bool StoreFeatureClass::setProperty(const std::string &key, const std::string &value,
+                                    const std::string &domain)
 {
     checkSetProperty(key, value, domain);
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_layer->SetMetadataItem(key, value, domain) == OGRERR_NONE;
+    return m_layer->SetMetadataItem(key.c_str(),
+                                    value.c_str(), domain.c_str()) == OGRERR_NONE;
 }
 
-CPLString StoreFeatureClass::property(const char* key, const char* defaultValue,
-                                         const char* domain) const
+std::string StoreFeatureClass::property(const std::string &key, const std::string &defaultValue,
+                                         const std::string &domain) const
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    const char* item = m_layer->GetMetadataItem(key, domain);
+    const char *item = m_layer->GetMetadataItem(key.c_str(), domain.c_str());
     return item != nullptr ? item : defaultValue;
 }
 
-std::map<CPLString, CPLString> StoreFeatureClass::properties(const char* domain) const
+Properties StoreFeatureClass::properties(const std::string &domain) const
 {
-    return propMapFromList(m_layer->GetMetadata(domain));
+    return Properties(m_layer->GetMetadata(domain.c_str()));
 }
 
-void StoreFeatureClass::deleteProperties()
+void StoreFeatureClass::deleteProperties(const std::string &domain)
 {
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    m_layer->SetMetadata(nullptr, nullptr);
+    m_layer->SetMetadata(nullptr, domain.c_str());
 }
 
 std::vector<ngsEditOperation> StoreFeatureClass::editOperations() const
@@ -485,12 +453,14 @@ std::vector<ngsEditOperation> StoreFeatureClass::editOperations() const
 }
 
 FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
-                                             FeaturePtr attachFeature, ngsChangeCode code)
+                                             FeaturePtr attachFeature,
+                                             ngsChangeCode code)
 {
     FeaturePtr logFeature = Table::logEditFeature(feature, attachFeature, code);
     if(logFeature) {
         logFeature->SetField(REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
-        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY, StoreObject::getRemoteId(attachFeature));
+        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY,
+                             StoreObject::getRemoteId(attachFeature));
     }
     return logFeature;
 }

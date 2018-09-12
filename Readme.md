@@ -4,7 +4,7 @@
 
 ## Intro
 
-NextGIS storage and visualisation support library is a C++ library with C, Python
+NextGIS storage and visualization support library is a C++ library with C, Python
 and Java bindings. The library provides API to optimized vector and raster
 geodata storage, reading and modification (datasource) and maps creation from
 these geodata.
@@ -12,8 +12,8 @@ these geodata.
 Developer can create many maps with different content (layers, based on geodata
 from datasource) and define different styles. Map can be panned and zoomed, the
 current extent is stored in map context. Map can return rendered images to display
-to user in various graphic interfaces. Rendering is optimised for big amounts of geodata and uses non
-blocking (async) functions. Map spatial reference is Web Mercator.
+to user in various graphic interfaces. Rendering is optimized for big amounts of
+geodata and uses non blocking (async) functions. Map spatial reference is Web Mercator.
 
 ## Formats
 
@@ -66,7 +66,7 @@ Library also supports NextGIS Web integration:
 ## Details
 
 During the upload to the internal database (geopackage) the vector geodata is
-projected into EPSG:3857 and generalised for several zoom levels (equivalent to
+projected into EPSG:3857 and generalized for several zoom levels (equivalent to
 4, 8, 12 and 16). This is needed for fast drawing on all map scales. For raster data
 appropriate overviews generated as well.
 

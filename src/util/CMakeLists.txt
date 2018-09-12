@@ -36,6 +36,8 @@ set(HHEADERS
     threadpool.h
     authstore.h
     url.h
+    global.h
+    mutex.h
 )
 
 set(CSOURCES
@@ -50,6 +52,7 @@ set(CSOURCES
     threadpool.cpp
     authstore.cpp
     url.cpp
+    mutex.cpp
 )
 
 set_property(SOURCE url.cpp APPEND_STRING PROPERTY CMAKE_CXX_FLAGS " -Wdisabled-macro-expansion ")
@@ -60,19 +63,7 @@ if(UNIX)
 endif()
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
-
-if(WITH_OpenSSL_EXTERNAL)
-    add_dependencies(${LIB_NAME} OpenSSL_EP)
-endif()
-
-#if(WITH_CURL_EXTERNAL)
-#    add_dependencies(${LIB_NAME} CURL_EP)
-#endif()
-
-if(WITH_GDAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} GDAL_EP)
-endif()
-
+    
 set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 11
     C_STANDARD 11

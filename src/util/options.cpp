@@ -20,7 +20,10 @@
  ****************************************************************************/
 #include "options.h"
 
+#include "stringutil.h"
+
 #include "cpl_multiproc.h"
+#include "cpl_string.h"
 
 namespace ngs {
 
@@ -33,7 +36,7 @@ Options::Options(char **options)
         while (options[i] != nullptr) {
             const char* option = options[i];
             size_t len = CPLStrnlen(option, MAX_OPTION_LEN);
-            CPLString key, value;
+            std::string key, value;
             for(size_t j = 0; j < len; ++j) {
                 if(option[j] == '=' || option[j] == ':' ) {
                     value = option + 1 + j;
@@ -47,8 +50,8 @@ Options::Options(char **options)
     }
 }
 
-const CPLString &Options::stringOption(const char *key,
-                                          const CPLString &defaultOption) const
+std::string Options::asString(const std::string &key,
+                              const std::string &defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())
@@ -56,7 +59,7 @@ const CPLString &Options::stringOption(const char *key,
     return it->second;
 }
 
-bool Options::boolOption(const char *key, bool defaultOption) const
+bool Options::asBool(const std::string &key, bool defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())
@@ -64,43 +67,51 @@ bool Options::boolOption(const char *key, bool defaultOption) const
 
     if(it->second.empty())
         return false;
-    else if(EQUAL(it->second, "OFF"))
+    else if(compare(it->second, "OFF"))
         return false;
-    else if(EQUAL(it->second, "FALSE"))
+    else if(compare(it->second, "FALSE"))
         return false;
-    else if(EQUAL(it->second, "NO"))
+    else if(compare(it->second, "NO"))
         return false;
-    else if(EQUAL(it->second, "0"))
+    else if(compare(it->second, "0"))
         return false;
     return true;
 }
 
-int Options::intOption(const char *key, int defaultOption) const
+int Options::asInt(const std::string &key, int defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())
         return defaultOption;
-    return atoi(it->second);
+    return std::stoi(it->second);
 }
 
-double Options::doubleOption(const char *key, double defaultOption) const
+long Options::asLong(const std::string &key, long defaultOption) const
 {
     auto it = m_options.find(key);
     if(it == m_options.end())
         return defaultOption;
-    return CPLAtofM(it->second);
+    return std::stol(it->second);
 }
 
-OptionsArrayUPtr Options::getOptions() const
+double Options::asDouble(const std::string &key, double defaultOption) const
 {
-    char** options = nullptr;
+    auto it = m_options.find(key);
+    if(it == m_options.end())
+        return defaultOption;
+    return CPLAtofM(it->second.c_str());
+}
+
+OptionsArrayUPtr Options::asCharArray() const
+{
+    char **options = nullptr;
     for(auto it = m_options.begin(); it != m_options.end(); ++it) {
-        options = CSLAddNameValue(options, it->first, it->second);
+        options = CSLAddNameValue(options, it->first.c_str(), it->second.c_str());
     }
     return OptionsArrayUPtr(options, CSLDestroy);
 }
 
-void Options::removeOption(const char *key)
+void Options::remove(const std::string &key)
 {
     auto it = m_options.find(key);
     if(it != m_options.end())
@@ -111,9 +122,9 @@ unsigned char getNumberThreads()
 {
     unsigned char numThreads = static_cast<unsigned char>(CPLGetNumCPUs());
 
-    const char* numThreadsStr = CPLGetConfigOption("GDAL_NUM_THREADS", NULL);
+    const char* numThreadsStr = CPLGetConfigOption("GDAL_NUM_THREADS", nullptr);
     if(numThreadsStr) {
-        if(!EQUAL(numThreadsStr, "ALL_CPUS")) {
+        if(!compare(numThreadsStr, "ALL_CPUS")) {
             numThreads = static_cast<unsigned char>(atoi(numThreadsStr));
         }
     }
@@ -123,6 +134,31 @@ unsigned char getNumberThreads()
     }
 
     return numThreads;
+}
+
+void  Options::add(const std::string &key, const std::string &value)
+{
+    m_options[key] = value;
+}
+
+bool  Options::empty() const
+{
+    return m_options.empty();
+}
+
+std::map< std::string, std::string >::const_iterator  Options::begin() const
+{
+    return m_options.begin();
+}
+
+std::map< std::string, std::string >::const_iterator  Options::end() const
+{
+    return m_options.end();
+}
+
+void Options::append(const Options &other)
+{
+    m_options.insert(other.m_options.begin(), other.m_options.end());
 }
 
 }

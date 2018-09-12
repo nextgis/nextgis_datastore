@@ -25,6 +25,7 @@
 
 #include "cpl_multiproc.h"
 
+#include "mutex.h"
 #include "progress.h"
 
 namespace ngs {
@@ -77,7 +78,7 @@ protected:
 
 protected:
     std::list<ThreadData*> m_threadData;
-    CPLMutex *m_dataMutex, *m_threadMutex;
+    Mutex m_dataMutex, m_threadMutex;
     poolThreadFunction m_function;
     unsigned char m_maxThreadCount, m_threadCount;
     unsigned char m_tries;

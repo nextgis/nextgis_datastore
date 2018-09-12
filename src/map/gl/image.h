@@ -31,13 +31,13 @@ class GlImage : public GlObject
 {
 public:
     GlImage();
-    virtual ~GlImage();
-    void setImage(GLubyte* imageData, GLsizei width, GLsizei height) {
+    virtual ~GlImage() override;
+    void setImage(GLubyte *imageData, GLsizei width, GLsizei height) {
         m_imageData = static_cast<GLubyte*>(imageData);
         m_width = width;
         m_height = height;
     }
-    void setImage(const ImageData& data) {
+    void setImage(const ImageData &data) {
         m_imageData = static_cast<GLubyte*>(data.buffer);
         m_width = data.width;
         m_height = data.height;
@@ -56,13 +56,13 @@ public:
     void setSmooth(bool smooth) { m_smooth = smooth; }
 
 protected:
-    GLubyte* m_imageData;
+    GLubyte *m_imageData;
     GLsizei m_width, m_height;
     GLuint m_id;
     bool m_smooth;
 };
 
-typedef std::shared_ptr<GlImage> GlImagePtr;
+using GlImagePtr = std::shared_ptr<GlImage>;
 
 } // namespace ngs
 

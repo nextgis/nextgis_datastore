@@ -31,7 +31,7 @@ namespace ngs {
 
 Matrix4::Matrix4()
 {
-    clear ();
+    clear();
 }
 
 Matrix4::Matrix4(const Matrix4 &other)
@@ -367,7 +367,7 @@ OGRRawPoint Matrix4::project(const OGRRawPoint &pt) const
 std::array<float, 16> Matrix4::dataF() const
 {
     std::array<float, 16> out;
-    for(size_t i = 0; i < 16; ++i){
+    for(size_t i = 0; i < 16; ++i) {
         out[i] = static_cast<float>(m_values[i]);
     }
     return out;

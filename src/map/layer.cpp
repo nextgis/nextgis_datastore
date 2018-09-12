@@ -23,19 +23,20 @@
 #include "catalog/catalog.h"
 #include "ds/simpledataset.h"
 #include "ngstore/util/constants.h"
+#include "util/global.h"
 #include "util/error.h"
 
 namespace ngs {
 
-constexpr const char* LAYER_NAME_KEY = "name";
-constexpr const char* LAYER_SOURCE_KEY = "src";
-constexpr const char* LAYER_VISIBLE_KEY = "visible";
+constexpr const char *LAYER_NAME_KEY = "name";
+constexpr const char *LAYER_SOURCE_KEY = "src";
+constexpr const char *LAYER_VISIBLE_KEY = "visible";
 
 //------------------------------------------------------------------------------
 // Layer
 //------------------------------------------------------------------------------
 
-Layer::Layer(Map* map, const CPLString &name, Type type) :
+Layer::Layer(Map *map, const std::string &name, Type type) :
     m_name(name),
     m_type(type),
     m_visible(true),
@@ -43,15 +44,17 @@ Layer::Layer(Map* map, const CPLString &name, Type type) :
 {
 }
 
-bool Layer::load(const CPLJSONObject &store, ObjectContainer * /*objectContainer*/)
+bool Layer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
+    ngsUnused(objectContainer);
     m_name = store.GetString(LAYER_NAME_KEY, m_name);
     m_visible = store.GetBool(LAYER_VISIBLE_KEY, m_visible);
     return true;
 }
 
-CPLJSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
+CPLJSONObject Layer::save(const ObjectContainer *objectContainer) const
 {
+    ngsUnused(objectContainer);
     CPLJSONObject out;
     out.Add(LAYER_NAME_KEY, m_name);
     out.Add(LAYER_TYPE_KEY, static_cast<int>(m_type));
@@ -63,8 +66,8 @@ CPLJSONObject Layer::save(const ObjectContainer * /*objectContainer*/) const
 // FeatureLayer
 //------------------------------------------------------------------------------
 
-FeatureLayer::FeatureLayer(Map* map, const CPLString& name) : Layer(map, name,
-                                                                    Type::Vector)
+FeatureLayer::FeatureLayer(Map *map, const std::string &name) :
+    Layer(map, name, Type::Vector)
 {
 }
 
@@ -75,7 +78,7 @@ bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectConta
         return false;
     }
 
-    const char* path = store.GetString(LAYER_SOURCE_KEY, "");
+    std::string path = store.GetString(LAYER_SOURCE_KEY, "");
     ObjectPtr fcObject;
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
@@ -83,7 +86,7 @@ bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectConta
         fcObject = catalog->getObject(path);
     }
     else { // relative path
-        CPLDebug("ngstore", "Layer load %s", path);
+        CPLDebug("ngstore", "Layer load %s", path.c_str());
         fcObject = Catalog::fromRelativePath(path, objectContainer);
     }
 
@@ -91,7 +94,7 @@ bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectConta
     if(m_featureClass) {
         return true;
     }
-    CPLDebug("ngstore", "Layer load %s failed", path);
+    CPLDebug("ngstore", "Layer load %s failed", path.c_str());
     return false;
 }
 
@@ -103,8 +106,8 @@ CPLJSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
         out.Add(LAYER_SOURCE_KEY, m_featureClass->path());
     }
     else { // relative path
-        out.Add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_featureClass.get(),
-                                                          objectContainer));
+        out.Add(LAYER_SOURCE_KEY,
+                Catalog::toRelativePath(m_featureClass.get(), objectContainer));
     }
     return out;
 }
@@ -113,18 +116,19 @@ CPLJSONObject FeatureLayer::save(const ObjectContainer *objectContainer) const
 // RasterLayer
 //------------------------------------------------------------------------------
 
-RasterLayer::RasterLayer(Map* map, const CPLString& name) : Layer(map, name,
-                                                                  Type::Raster)
+RasterLayer::RasterLayer(Map *map, const std::string &name) :
+    Layer(map, name, Type::Raster)
 {
 }
 
 
 bool RasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
-    if(!Layer::load(store, objectContainer))
+    if(!Layer::load(store, objectContainer)) {
         return false;
+    }
 
-    const char* path = store.GetString(LAYER_SOURCE_KEY, "");
+    std::string path = store.GetString(LAYER_SOURCE_KEY, "");
     ObjectPtr fcObject;
     // Check absolute or relative catalog path
     if(nullptr == objectContainer) { // absolute path
@@ -140,7 +144,7 @@ bool RasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContai
         return m_raster->open(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR);
     }
     else {
-        errorMessage(_("Raster not found in path: %s"), path);
+        errorMessage(_("Raster not found in path: %s"), path.c_str());
     }
     return false;
 }
@@ -153,8 +157,8 @@ CPLJSONObject RasterLayer::save(const ObjectContainer *objectContainer) const
         out.Add(LAYER_SOURCE_KEY, m_raster->path());
     }
     else { // relative path
-        out.Add(LAYER_SOURCE_KEY, Catalog::toRelativePath(m_raster.get(),
-                                                          objectContainer));
+        out.Add(LAYER_SOURCE_KEY,
+                Catalog::toRelativePath(m_raster.get(), objectContainer));
     }
     return out;
 }

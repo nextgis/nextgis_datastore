@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -32,21 +32,22 @@ public:
 
     // ObjectFactory interface
 public:
-    virtual const char* getName() const override;
+    virtual std::string name() const override;
     virtual void createObjects(ObjectContainer * const container,
-                               std::vector<const char *> * const names) override;
+                               std::vector<std::string> &names) override;
     // static
 public:
-    static const char* remoteConnectionExtension() { return "wconn"; }
-    static bool createRemoteConnection(const enum ngsCatalogObjectType type, const char *path,
+    static std::string remoteConnectionExtension();
+    static bool createRemoteConnection(const enum ngsCatalogObjectType type,
+                                       const std::string &path,
                                        const Options &options);
 private:
-    void addChild(ObjectContainer * const container,
-                  const CPLString& name,
-                  const CPLString& path,
-                  enum ngsCatalogObjectType subType,
-                  const std::vector<CPLString> &siblingFiles,
-                  std::vector<const char *> * const names);
+    void addChildInternal(ObjectContainer * const container,
+                          const std::string &name,
+                          const std::string &path,
+                          enum ngsCatalogObjectType subType,
+                          const std::vector<std::string> &siblingFiles,
+                          std::vector<std::string> &names);
 
 private:
     bool m_tiffSupported, m_wmstmsSupported;

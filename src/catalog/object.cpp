@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -20,14 +20,16 @@
  ****************************************************************************/
 #include "object.h"
 
+#include "util/global.h"
+
 #include "catalog.h"
 
 namespace ngs {
 
-Object::Object(ObjectContainer *const parent,
+Object::Object(ObjectContainer * const parent,
                const enum ngsCatalogObjectType type,
-               const CPLString & name,
-               const CPLString & path) :
+               const std::string &name,
+               const std::string &path) :
     m_name(name),
     m_path(path),
     m_parent(parent),
@@ -36,11 +38,27 @@ Object::Object(ObjectContainer *const parent,
 
 }
 
-CPLString Object::fullName() const
+std::string Object::name() const
 {
-    CPLString out;
-    if(nullptr != m_parent)
+    return m_name;
+}
+
+std::string Object::path() const
+{
+    return m_path;
+}
+
+enum ngsCatalogObjectType Object::type() const
+{
+    return m_type;
+}
+
+std::string Object::fullName() const
+{
+    std::string out;
+    if(nullptr != m_parent) {
         out = m_parent->fullName();
+    }
     out += Catalog::separator() + m_name;
 
     return out;
@@ -49,10 +67,78 @@ CPLString Object::fullName() const
 ObjectPtr Object::pointer() const
 {
     for(const auto& child : m_parent->getChildren()) {
-        if(child.get() == this)
+        if(child.get() == this) {
             return child;
+        }
     }
     return ObjectPtr();
 }
+
+bool Object::destroy()
+{
+    return false;
+}
+
+bool Object::canDestroy() const
+{
+    return false;
+}
+
+bool Object::rename(const std::string &newName)
+{
+    ngsUnused(newName)
+    return false;
+}
+
+bool Object::canRename() const
+{
+    return false;
+}
+
+ObjectContainer *Object::parent() const
+{
+    return m_parent;
+}
+
+Properties Object::properties(const std::string &domain) const
+{
+    ngsUnused(domain);
+    return Properties();
+}
+
+std::string Object::property(const std::string &key,
+                             const std::string &defaultValue,
+                             const std::string &domain) const
+{
+    ngsUnused(key);
+    ngsUnused(defaultValue);
+    ngsUnused(domain);
+    return "";
+}
+
+bool Object::setProperty(const std::string &key, const std::string &value,
+                         const std::string &domain)
+{
+    ngsUnused(key)
+    ngsUnused(value)
+    ngsUnused(domain)
+            return false;
+}
+
+void Object::deleteProperties(const std::string &domain)
+{
+    ngsUnused(domain);
+}
+
+void Object::setName(const std::string &value)
+{
+    m_name = value;
+}
+
+void Object::setPath(const std::string &value)
+{
+    m_path = value;
+}
+
 
 } // namespace ngs

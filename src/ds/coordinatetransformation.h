@@ -29,37 +29,35 @@
 
 namespace ngs {
 
-typedef std::shared_ptr<OGRSpatialReference> SpatialReferencePtr;
+using SpatialReferencePtr = std::shared_ptr<OGRSpatialReference>;
 
 /**
  * @brief The SpatialDataset interface class for datasets with spatial reference.
  */
 class SpatialDataset {
 public:
-    SpatialDataset() : m_spatialReference(nullptr) {}
+    SpatialDataset();
     virtual ~SpatialDataset() = default;
-    virtual OGRSpatialReference* getSpatialReference() const {
-        return m_spatialReference; }
+    virtual OGRSpatialReference *spatialReference() const;
 protected:
-    OGRSpatialReference* m_spatialReference;
+    OGRSpatialReference *m_spatialReference;
 };
 
+/**
+ * @brief The CoordinateTransformation class
+ */
 class CoordinateTransformation
 {
 public:
-    explicit CoordinateTransformation(OGRSpatialReference* srcSRS,
-                             OGRSpatialReference* dstSRS);
+    explicit CoordinateTransformation(OGRSpatialReference *srcSRS,
+                                      OGRSpatialReference *dstSRS);
     ~CoordinateTransformation();
-    bool transform(OGRGeometry* geom) {
-        if(nullptr == m_oCT)
-            return false;
-        return geom->transform(m_oCT) == OGRERR_NONE;
-    }
+    bool transform(OGRGeometry *geom);
 protected:
     // no copy constructor
-    CoordinateTransformation(const CoordinateTransformation& /*other*/) = default;
+    CoordinateTransformation(const CoordinateTransformation &other) = default;
 protected:
-    OGRCoordinateTransformation* m_oCT;
+    OGRCoordinateTransformation *m_oCT;
 };
 
 }

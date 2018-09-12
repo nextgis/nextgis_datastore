@@ -29,9 +29,9 @@ class LocalConnections : public ObjectContainer
 {
 public:
     explicit LocalConnections(ObjectContainer * const parent = nullptr,
-                     const CPLString & path = "");
-    virtual bool hasChildren() override;
-    virtual ObjectPtr getObjectByLocalPath(const char* path);
+                     const std::string &path = "");
+    virtual bool loadChildren() override;
+    virtual ObjectPtr getObjectBySystemPath(const std::string &path) const;
 };
 
 }

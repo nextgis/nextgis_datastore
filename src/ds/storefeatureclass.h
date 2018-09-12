@@ -30,12 +30,12 @@ constexpr GIntBig INIT_RID_COUNTER = NOT_FOUND; //-1000000;
 class StoreObject
 {
 public:
-    StoreObject(OGRLayer* layer);
+    StoreObject(OGRLayer *layer);
     virtual ~StoreObject() = default;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
     virtual bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
     std::vector<ngsEditOperation> fillEditOperations(
-            OGRLayer* editHistoryTable) const;
+            OGRLayer *editHistoryTable) const;
 
     // static
 public:
@@ -46,28 +46,31 @@ protected:
     GIntBig getAttachmentRemoteId(GIntBig aid) const;
 
 protected:
-    OGRLayer* m_storeIntLayer;
+    OGRLayer *m_storeIntLayer;
 };
 
 class StoreTable : public Table, public StoreObject
 {
 public:
-    StoreTable(OGRLayer* layer, ObjectContainer* const parent = nullptr,
-               const CPLString & name = "");
-    virtual ~StoreTable() = default;
+    StoreTable(OGRLayer *layer, ObjectContainer * const parent = nullptr,
+               const std::string &name = "");
+    virtual ~StoreTable() override = default;
 
     // Table interface
 public:
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const override;
-    virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
-                                  const char* description, const char* filePath,
-                                  char** options, bool logEdits = true) override;
-    virtual bool setProperty(const char* key, const char* value,
-                             const char* domain) override;
-    virtual CPLString property(const char* key, const char* defaultValue,
-                                  const char* domain) const override;
-    virtual std::map<CPLString, CPLString> properties(const char* domain) const override;
-    virtual void deleteProperties() override;
+    virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
+                                  const std::string &description,
+                                  const std::string &filePath,
+                                  const Options &options = Options(),
+                                  bool logEdits = true) override;
+    virtual bool setProperty(const std::string &key, const std::string &value,
+                             const std::string &domain) override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                               const std::string &domain) const override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual void deleteProperties(const std::string &domain) override;
     virtual std::vector<ngsEditOperation> editOperations() const override;
 
     // Table interface
@@ -82,22 +85,25 @@ protected:
 class StoreFeatureClass : public FeatureClass, public StoreObject
 {
 public:
-    StoreFeatureClass(OGRLayer* layer, ObjectContainer* const parent = nullptr,
-                      const CPLString & name = "");
-    virtual ~StoreFeatureClass() = default;
+    StoreFeatureClass(OGRLayer *layer, ObjectContainer * const parent = nullptr,
+                      const std::string &name = "");
+    virtual ~StoreFeatureClass() override = default;
 
     // Table interface
 public:
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const override;
-    virtual GIntBig addAttachment(GIntBig fid, const char* fileName,
-                                  const char* description, const char* filePath,
-                                  char** options, bool logEdits = true) override;
-    virtual bool setProperty(const char* key, const char* value,
-                             const char* domain) override;
-    virtual CPLString property(const char* key, const char* defaultValue,
-                                  const char* domain) const override;
-    virtual std::map<CPLString, CPLString> properties(const char* domain) const override;
-    virtual void deleteProperties() override;
+    virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
+                                  const std::string &description,
+                                  const std::string &filePath,
+                                  const Options  &options = Options(),
+                                  bool logEdits = true) override;
+    virtual bool setProperty(const std::string &key, const std::string &value,
+                             const std::string &domain) override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual void deleteProperties(const std::string &domain) override;
     virtual std::vector<ngsEditOperation> editOperations() const override;
 
     // Table interface

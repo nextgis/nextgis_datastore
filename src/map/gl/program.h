@@ -38,26 +38,26 @@ public:
 
     bool loaded() const { return m_loaded; }
     void use() const { ngsCheckGLError(glUseProgram(m_id)); }
-    void setMatrix(const char* varName, std::array<GLfloat, 16> mat4f);
-    void setColor(const char *varName, const GlColor& color);
-    void setInt(const char *varName, GLint value);
-    void setInt(const char *varName, GLint value) const;
-    void setFloat(const char *varName, GLfloat value);
-    void setVertexAttribPointer(const char *varName, GLint size,
-                                GLsizei stride, const GLvoid * pointer);
+    void setMatrix(const std::string &varName, std::array<GLfloat, 16> mat4f);
+    void setColor(const std::string &varName, const GlColor &color);
+    void setInt(const std::string &varName, GLint value);
+    void setInt(const std::string &varName, GLint value) const;
+    void setFloat(const std::string &varName, GLfloat value);
+    void setVertexAttribPointer(const std::string &varName, GLint size,
+                                GLsizei stride, const GLvoid *pointer);
     void destroy();
 
 protected:
     bool checkLinkStatus(GLuint obj) const;
     bool checkShaderCompileStatus(GLuint obj) const;
-    GLuint loadShader(GLenum type, const char *shaderSrc);
-    GLint getVariableId(const char* varName);
-    GLint getVariableId(const char* varName) const;
-    GLint getAttributeId(const char* varName);
+    GLuint loadShader(GLenum type, const std::string &shaderSrc);
+    GLint getVariableId(const std::string &varName);
+    GLint getVariableId(const std::string &varName) const;
+    GLint getAttributeId(const std::string &varName);
 protected:
     GLuint m_id;
     bool m_loaded;
-    std::map<const char*, GLint> m_variables;
+    std::map<std::string, GLint> m_variables;
 };
 
 } // namespace ngs

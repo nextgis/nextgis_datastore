@@ -42,23 +42,23 @@ void AuthNotifyFunction(const char* url, CPLHTTPAuthChangeCode operation)
 // AuthStore
 //------------------------------------------------------------------------------
 
-bool AuthStore::addAuth(const char *url, const Options &options)
+bool AuthStore::addAuth(const std::string &url, const Options &options)
 {
-    auto optionsPtr = options.getOptions();
-    if(CPLHTTPAuthAdd(url, optionsPtr.get(), AuthNotifyFunction) == CE_None) {
+    auto optionsPtr = options.asCharArray();
+    if(CPLHTTPAuthAdd(url.c_str(), optionsPtr.get(), AuthNotifyFunction) == CE_None) {
         return true;
     }
     return false;
 }
 
-void AuthStore::deleteAuth(const char* url)
+void AuthStore::deleteAuth(const std::string &url)
 {
-    CPLHTTPAuthDelete(url);
+    CPLHTTPAuthDelete(url.c_str());
 }
 
-Options AuthStore::description(const char *url)
+Options AuthStore::description(const std::string &url)
 {
-    return Options(CPLHTTPAuthProperties(url));
+    return Options(CPLHTTPAuthProperties(url.c_str()));
 }
 
 } // namespace ngs

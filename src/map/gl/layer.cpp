@@ -28,7 +28,7 @@
 #include "layer.h"
 #include "style.h"
 #include "view.h"
-
+#include "util/global.h"
 #include "util/error.h"
 
 namespace ngs {
@@ -39,20 +39,18 @@ constexpr unsigned char MAX_ZOOM = 18;
 // IGlRenderLayer
 //------------------------------------------------------------------------------
 
-GlRenderLayer::GlRenderLayer() : m_dataMutex(CPLCreateMutex())
+GlRenderLayer::GlRenderLayer()
 {
-    CPLReleaseMutex(m_dataMutex);
 }
 
 GlRenderLayer::~GlRenderLayer()
 {
-    CPLDestroyMutex(m_dataMutex);
 }
 
-void GlRenderLayer::free(GlTilePtr tile)
+void GlRenderLayer::free(const GlTilePtr &tile)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
-    CPLMutexHolder holder(m_dataMutex, lockTime);
+    MutexHolder holder(m_dataMutex, lockTime);
     auto it = m_tiles.find(tile->getTile());
     if(it != m_tiles.end()) {
         if(it->second) {
@@ -61,7 +59,7 @@ void GlRenderLayer::free(GlTilePtr tile)
         m_tiles.erase(it);
     }
 
-    for(const StylePtr& style : m_oldStyles) {
+    for(const StylePtr &style : m_oldStyles) {
         style->destroy();
     }
     m_oldStyles.clear();
@@ -72,17 +70,18 @@ void GlRenderLayer::free(GlTilePtr tile)
 // GlFeatureLayer
 //------------------------------------------------------------------------------
 
-GlFeatureLayer::GlFeatureLayer(Map* map, const CPLString &name) :
+GlFeatureLayer::GlFeatureLayer(Map *map, const std::string &name) :
     FeatureLayer(map, name),
     GlRenderLayer()
 {
 }
 
-bool GlFeatureLayer::fill(GlTilePtr tile, float z, bool /*isLastTry*/)
+bool GlFeatureLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 {
+    ngsUnused(isLastTry);
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
-        CPLMutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -90,7 +89,7 @@ bool GlFeatureLayer::fill(GlTilePtr tile, float z, bool /*isLastTry*/)
     VectorGlObject *bufferArray = nullptr;
     VectorTile vtile = m_featureClass->getTile(tile->getTile(), tile->getExtent());
     if(vtile.empty()) {
-        CPLMutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -110,18 +109,18 @@ bool GlFeatureLayer::fill(GlTilePtr tile, float z, bool /*isLastTry*/)
     }
 
     if(!bufferArray) {
-        CPLMutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
 
-    CPLMutexHolder holder(m_dataMutex, lockTime);
+    MutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = GlObjectPtr(bufferArray);
 
     return true;
 }
 
-bool GlFeatureLayer::draw(GlTilePtr tile)
+bool GlFeatureLayer::draw(const GlTilePtr &tile)
 {
     if(!tile) {
         return true;
@@ -130,7 +129,7 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
         return true; // Should never happened
     }
 
-    CPLMutexHolder holder(m_dataMutex, 5);
+    MutexHolder holder(m_dataMutex, 5);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
         return false; // Data not yet loaded
@@ -157,13 +156,13 @@ bool GlFeatureLayer::draw(GlTilePtr tile)
     return true;
 }
 
-void GlFeatureLayer::setStyle(const char* name)
+void GlFeatureLayer::setStyle(const std::string &name)
 {
-    if(EQUAL(name, m_style->name())) {
+    if(compare(name, m_style->name())) {
         return;
     }
 
-    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    GlView *mapView = dynamic_cast<GlView*>(m_map);
     StylePtr newStyle = StylePtr(Style::createStyle(name, mapView->textureAtlas()));
     if(newStyle) {
         m_oldStyles.push_back(m_style);
@@ -175,13 +174,14 @@ bool GlFeatureLayer::load(const CPLJSONObject &store,
                           ObjectContainer *objectContainer)
 {
     bool result = FeatureLayer::load(store, objectContainer);
-    if(!result)
+    if(!result) {
         return false;
-    const char* styleName = store.GetString("style_name", "");
-    if(styleName != nullptr && !EQUAL(styleName, "")) {
-        GlView* mapView = dynamic_cast<GlView*>(m_map);
+    }
+    std::string styleName = store.GetString("style_name", "");
+    if(!styleName.empty()) {
+        GlView *mapView = dynamic_cast<GlView*>(m_map);
         m_style = StylePtr(Style::createStyle(styleName, mapView->textureAtlas()));
-        return m_style->load(store.GetObject("style"));
+        return m_style->load(store.GetObj("style"));
     }
     return true;
 }
@@ -199,7 +199,7 @@ CPLJSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
 void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
 {
     FeatureLayer::setFeatureClass(featureClass);
-    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    GlView *mapView = dynamic_cast<GlView*>(m_map);
     switch(OGR_GT_Flatten(featureClass->geometryType())) {
     case wkbPoint:
     case wkbMultiPoint:
@@ -223,7 +223,7 @@ VectorGlObject *GlFeatureLayer::fillPoints(const VectorTile &tile, float z)
     auto it = items.begin();
     unsigned short index = 0;
     GlBuffer *buffer = new GlBuffer(GlBuffer::BF_PT);
-    PointStyle* style = ngsDynamicCast(PointStyle, m_style);
+    PointStyle *style = ngsDynamicCast(PointStyle, m_style);
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
         if(!m_hideFIDs.empty() && tileItem.isIdsPresent(m_hideFIDs)) {
@@ -261,7 +261,7 @@ VectorGlObject *GlFeatureLayer::fillLines(const VectorTile &tile, float z)
     auto it = items.begin();
     unsigned short index = 0;
     GlBuffer *buffer = new GlBuffer(GlBuffer::BF_LINE);
-    SimpleLineStyle* style = ngsStaticCast(SimpleLineStyle, m_style);
+    SimpleLineStyle *style = ngsStaticCast(SimpleLineStyle, m_style);
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
@@ -348,7 +348,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile, float z)
     unsigned short lineIndex = 0;
     GlBuffer *fillBuffer = new GlBuffer(GlBuffer::BF_FILL);
     GlBuffer *lineBuffer = new GlBuffer(GlBuffer::BF_LINE);
-    SimpleLineStyle* style = ngsStaticCast(SimpleLineStyle, m_style);
+    SimpleLineStyle *style = ngsStaticCast(SimpleLineStyle, m_style);
 
     while(it != items.end()) {
         VectorTileItem tileItem = *it;
@@ -392,7 +392,7 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile, float z)
 
         // Fill borders
         // FIXME: May be more styles with borders
-        if(EQUAL(m_style->name(), "simpleFillBordered")) {
+        if(compare(m_style->name(), "simpleFillBordered")) {
 
         auto borders = (*it).borderIndices();
         for(auto border : borders) {
@@ -464,12 +464,14 @@ VectorGlObject *GlFeatureLayer::fillPolygons(const VectorTile &tile, float z)
 // GlSelectableFeatureLayer
 //------------------------------------------------------------------------------
 
-GlSelectableFeatureLayer::GlSelectableFeatureLayer(Map* map,
-                                                   const CPLString &name) :
+GlSelectableFeatureLayer::GlSelectableFeatureLayer(Map *map,
+                                                   const std::string &name) :
     GlFeatureLayer(map, name)
 {
-    GlView* mapView = dynamic_cast<GlView*>(map);
-    m_selectionStyles = mapView->selectionStyles();
+    GlView *mapView = dynamic_cast<GlView*>(map);
+    if(mapView) {
+        m_selectionStyles = mapView->selectionStyles();
+    }
 }
 
 StylePtr GlSelectableFeatureLayer::selectionStyle() const
@@ -478,10 +480,10 @@ StylePtr GlSelectableFeatureLayer::selectionStyle() const
         return StylePtr();
     }
 
-    return m_selectionStyles->at(m_style->type());
+    return m_selectionStyles.find(m_style->type())->second;
 }
 
-bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
+bool GlSelectableFeatureLayer::drawSelection(const GlTilePtr &tile)
 {
     if(!tile) {
         return true;
@@ -491,7 +493,7 @@ bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
         return true; // Not draw selected features if no style provided
     }
 
-    CPLMutexHolder holder(m_dataMutex, 5);
+    MutexHolder holder(m_dataMutex, 5);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
         return false; // Data not yet loaded
@@ -520,20 +522,20 @@ bool GlSelectableFeatureLayer::drawSelection(GlTilePtr tile)
     return true;
 }
 
-VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile& tile,
+VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile &tile,
                                                      float z)
 {
     VectorSelectableGlObject *bufferArray = new VectorSelectableGlObject;
     auto items = tile.items();
     auto it = items.begin();
     unsigned short index = 0;
-    GlBuffer* buffer = nullptr;
-    PointStyle* style = nullptr;
+    GlBuffer *buffer = nullptr;
+    PointStyle *style = nullptr;
 
-    PointStyle* drawStyle = ngsDynamicCast(PointStyle, m_style);
-    PointStyle* selectStyle = ngsDynamicCast(PointStyle, selectionStyle());
-    GlBuffer* draw = new GlBuffer(drawStyle->bufferType());
-    GlBuffer* select = new GlBuffer(selectStyle->bufferType());
+    PointStyle *drawStyle = ngsDynamicCast(PointStyle, m_style);
+    PointStyle *selectStyle = ngsDynamicCast(PointStyle, selectionStyle());
+    GlBuffer *draw = new GlBuffer(drawStyle->bufferType());
+    GlBuffer *select = new GlBuffer(selectStyle->bufferType());
     unsigned short drawIndex = 0;
     unsigned short selectIndex = 0;
 
@@ -579,7 +581,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile& tile,
                 index = 0;
             }
 
-            const SimplePoint& pt = tileItem.point(i);
+            const SimplePoint &pt = tileItem.point(i);
             index = style->addPoint(pt, z, index, buffer);
         }
         ++it;
@@ -598,19 +600,19 @@ VectorGlObject* GlSelectableFeatureLayer::fillPoints(const VectorTile& tile,
     return bufferArray;
 }
 
-VectorGlObject* GlSelectableFeatureLayer::fillLines(const VectorTile& tile,
+VectorGlObject *GlSelectableFeatureLayer::fillLines(const VectorTile &tile,
                                                     float z)
 {
-    VectorSelectableGlObject* bufferArray = new VectorSelectableGlObject;
+    VectorSelectableGlObject *bufferArray = new VectorSelectableGlObject;
     auto items = tile.items();
     auto it = items.begin();
     unsigned short index = 0;
-    GlBuffer* buffer = nullptr;
-    GlBuffer* draw = new GlBuffer(GlBuffer::BF_LINE);
-    GlBuffer* select = new GlBuffer(GlBuffer::BF_LINE);
-    SimpleLineStyle* drawStyle = ngsDynamicCast(SimpleLineStyle, m_style);
-    SimpleLineStyle* selectStyle = ngsDynamicCast(SimpleLineStyle, selectionStyle());
-    SimpleLineStyle* style = nullptr;
+    GlBuffer *buffer = nullptr;
+    GlBuffer *draw = new GlBuffer(GlBuffer::BF_LINE);
+    GlBuffer *select = new GlBuffer(GlBuffer::BF_LINE);
+    SimpleLineStyle *drawStyle = ngsDynamicCast(SimpleLineStyle, m_style);
+    SimpleLineStyle *selectStyle = ngsDynamicCast(SimpleLineStyle, selectionStyle());
+    SimpleLineStyle *style = nullptr;
     unsigned short drawIndex = 0;
     unsigned short selectIndex = 0;
 
@@ -752,31 +754,31 @@ VectorGlObject* GlSelectableFeatureLayer::fillLines(const VectorTile& tile,
     return bufferArray;
 }
 
-VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
+VectorGlObject *GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
                                                        float z)
 {
-    VectorSelectableGlObject* bufferArray = new VectorSelectableGlObject;
+    VectorSelectableGlObject *bufferArray = new VectorSelectableGlObject;
     auto items = tile.items();
     auto it = items.begin();
     unsigned short fillIndex = 0;
     unsigned short lineIndex = 0;
-    GlBuffer* drawFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
-    GlBuffer* drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
-    GlBuffer* selectFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
-    GlBuffer* selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
-    GlBuffer* fillBuffer = nullptr;
-    GlBuffer* lineBuffer = nullptr;
+    GlBuffer *drawFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+    GlBuffer *drawLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+    GlBuffer *selectFillBuffer = new GlBuffer(GlBuffer::BF_FILL);
+    GlBuffer *selectLineBuffer = new GlBuffer(GlBuffer::BF_LINE);
+    GlBuffer *fillBuffer = nullptr;
+    GlBuffer *lineBuffer = nullptr;
 
-    SimpleFillBorderedStyle* drawStyle = ngsDynamicCast(SimpleFillBorderedStyle,
+    SimpleFillBorderedStyle *drawStyle = ngsDynamicCast(SimpleFillBorderedStyle,
                                                         m_style);
-    SimpleLineStyle* drawLineStyle = drawStyle->lineStyle();
+    SimpleLineStyle *drawLineStyle = drawStyle->lineStyle();
 
-    SimpleFillBorderedStyle* selectStyle = ngsDynamicCast(SimpleFillBorderedStyle,
+    SimpleFillBorderedStyle *selectStyle = ngsDynamicCast(SimpleFillBorderedStyle,
                                                           selectionStyle());
-    SimpleLineStyle* selectLineStyle = selectStyle->lineStyle();
+    SimpleLineStyle *selectLineStyle = selectStyle->lineStyle();
 
-    SimpleFillBorderedStyle* style;
-    SimpleLineStyle* lineStyle;
+    SimpleFillBorderedStyle *style;
+    SimpleLineStyle *lineStyle;
 
     unsigned short selectFillIndex = 0;
     unsigned short selectLineIndex = 0;
@@ -844,6 +846,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
         // FIXME: Expected indices should fit to buffer as points can
 //        unsigned short maxFillIndex = 0;
         for(auto indexPoint : indices) {
+            ngsUnused(indexPoint);
             fillBuffer->addIndex(fillIndex++);
 //            fillBuffer->addIndex(fillIndex + indexPoint);
 //            if(maxFillIndex < indexPoint) {
@@ -855,7 +858,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
 
         // Fill borders
         // FIXME: May be more styles with borders
-        if(EQUAL(style->name(), "simpleFillBordered")) {
+        if(compare(style->name(), "simpleFillBordered")) {
 
         auto borders = (*it).borderIndices();
         for(auto border : borders) {
@@ -970,7 +973,7 @@ VectorGlObject* GlSelectableFeatureLayer::fillPolygons(const VectorTile& tile,
 // GlRasterLayer
 //------------------------------------------------------------------------------
 
-GlRasterLayer::GlRasterLayer(Map* map, const CPLString &name) :
+GlRasterLayer::GlRasterLayer(Map *map, const std::string &name) :
     RasterLayer(map, name),
     GlRenderLayer(),
     m_red(1),
@@ -982,11 +985,11 @@ GlRasterLayer::GlRasterLayer(Map* map, const CPLString &name) :
 {
 }
 
-bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
+bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 {
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
-        CPLMutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -1004,7 +1007,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
 
     if(!outExt.isInit()) {
         CPLDebug("ngstore", "fill layer %s not intersect - x: %f, y: %f", m_raster->name().c_str(), rasterExtent.minX(), rasterExtent.minY());
-        CPLMutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -1100,7 +1103,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
     int dataSize = GDALGetDataTypeSize(m_dataType) / 8;
     size_t bufferSize = static_cast<size_t>(outWidth * outHeight *
                                             dataSize * 4); // NOTE: We use RGBA to store textures
-    GLubyte* pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
+    GLubyte *pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
     if(m_alpha == 0) {
         std::memset(pixData, 255 - m_transparency, bufferSize);
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,
@@ -1108,7 +1111,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
             CPLFree(pixData);
 
             if(isLastTry) {
-                CPLMutexHolder holder(m_dataMutex, lockTime);
+                MutexHolder holder(m_dataMutex, lockTime);
                 m_tiles[tile->getTile()] = GlObjectPtr();
                 return true;
             }
@@ -1124,7 +1127,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
             CPLFree(pixData);
 
             if(isLastTry) {
-                CPLMutexHolder holder(m_dataMutex, lockTime);
+                MutexHolder holder(m_dataMutex, lockTime);
                 m_tiles[tile->getTile()] = GlObjectPtr();
                 return true;
             }
@@ -1138,7 +1141,7 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
     image->setSmooth(smooth);
 
     // FIXME: Reproject intersect raster extent to tile extent
-    GlBuffer* tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);
+    GlBuffer *tileExtentBuff = new GlBuffer(GlBuffer::BF_TEX);
     tileExtentBuff->addVertex(static_cast<float>(outExt.minX()));
     tileExtentBuff->addVertex(static_cast<float>(outExt.minY()));
     tileExtentBuff->addVertex(z);
@@ -1168,13 +1171,13 @@ bool GlRasterLayer::fill(GlTilePtr tile, float z, bool isLastTry)
 
     GlObjectPtr tileData(new RasterGlObject(tileExtentBuff, image));
 
-    CPLMutexHolder holder(m_dataMutex, lockTime);
+    MutexHolder holder(m_dataMutex, lockTime);
     m_tiles[tile->getTile()] = tileData;
 
     return true;
 }
 
-bool GlRasterLayer::draw(GlTilePtr tile)
+bool GlRasterLayer::draw(const GlTilePtr &tile)
 {
     if(!tile) {
         return true;
@@ -1184,27 +1187,26 @@ bool GlRasterLayer::draw(GlTilePtr tile)
     }
 
     double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
-    CPLAcquireMutex(m_dataMutex, lockTime);
-    //CPLMutexHolder holder(m_dataMutex, lockTime);
+    m_dataMutex.acquire(lockTime);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
-        CPLReleaseMutex(m_dataMutex);
+        m_dataMutex.release();
         return false; // Data not yet loaded
     }
 
     auto second = tileDataIt->second;
-    CPLReleaseMutex(m_dataMutex);
+    m_dataMutex.release();
 
     if(!second) {
         return true; // Out of tile extent
     }    
 
-    RasterGlObject* rasterGlObject = ngsStaticCast(RasterGlObject, second);
+    RasterGlObject *rasterGlObject = ngsStaticCast(RasterGlObject, second);
 
     // Bind everything before call prepare and set matrices
-    GlImage* img = rasterGlObject->getImageRef();
+    GlImage *img = rasterGlObject->getImageRef();
     ngsStaticCast(SimpleImageStyle, m_style)->setImage(img);
-    GlBuffer* extBuff = rasterGlObject->getBufferRef();
+    GlBuffer *extBuff = rasterGlObject->getBufferRef();
     if(extBuff->bound()) {
         extBuff->rebind();
     }
@@ -1281,13 +1283,13 @@ bool GlRasterLayer::draw(GlTilePtr tile)
 //    return true; */
 }
 
-void GlRasterLayer::setStyle(const char* name)
+void GlRasterLayer::setStyle(const std::string &name)
 {
-    if(EQUAL(name, m_style->name())) {
+    if(compare(name, m_style->name())) {
         return;
     }
 
-    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    GlView *mapView = dynamic_cast<GlView*>(m_map);
     StylePtr newStyle = StylePtr(Style::createStyle(name, mapView->textureAtlas()));
     if(newStyle) {
         m_oldStyles.push_back(m_style);
@@ -1298,9 +1300,10 @@ void GlRasterLayer::setStyle(const char* name)
 bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
 {
     bool result = RasterLayer::load(store, objectContainer);
-    if(!result)
+    if(!result) {
         return false;
-    CPLJSONObject raster = store.GetObject("raster");
+    }
+    CPLJSONObject raster = store.GetObj("raster");
     if(raster.IsValid()) {
         m_red = static_cast<unsigned char>(raster.GetInteger("red", m_red));
         m_green = static_cast<unsigned char>(raster.GetInteger("green", m_green));
@@ -1310,7 +1313,7 @@ bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectCont
                                                                       m_transparency));
     }
 
-    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    GlView *mapView = dynamic_cast<GlView*>(m_map);
     m_style = StylePtr(Style::createStyle("simpleImage", mapView->textureAtlas()));
     return true;
 }
@@ -1332,7 +1335,7 @@ void GlRasterLayer::setRaster(const RasterPtr &raster)
 {
     RasterLayer::setRaster(raster);
     // Create default style
-    GlView* mapView = dynamic_cast<GlView*>(m_map);
+    GlView *mapView = dynamic_cast<GlView*>(m_map);
     m_style = StylePtr(Style::createStyle("simpleImage", mapView->textureAtlas()));
 
     if(raster->bandCount() == 4) {
@@ -1344,7 +1347,7 @@ void GlRasterLayer::setRaster(const RasterPtr &raster)
 // RasterGlObject
 //------------------------------------------------------------------------------
 
-RasterGlObject::RasterGlObject(GlBuffer* tileExtentBuff, GlImage *image) :
+RasterGlObject::RasterGlObject(GlBuffer *tileExtentBuff, GlImage *image) :
     GlObject(),
     m_extentBuffer(tileExtentBuff),
     m_image(image)
@@ -1382,8 +1385,9 @@ VectorGlObject::VectorGlObject() :
 
 void VectorGlObject::bind()
 {
-    if(m_bound)
+    if(m_bound) {
         return;
+    }
     for(GlBufferPtr& buffer : m_buffers) {
         buffer->bind();
     }
@@ -1416,8 +1420,9 @@ VectorSelectableGlObject::VectorSelectableGlObject() :
 
 void VectorSelectableGlObject::bind()
 {
-    if(m_bound)
+    if(m_bound) {
         return;
+    }
 
     for(GlBufferPtr& buffer : m_buffers) {
         buffer->bind();

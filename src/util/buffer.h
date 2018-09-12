@@ -62,7 +62,7 @@ private:
     bool m_own;
 };
 
-typedef std::shared_ptr<Buffer> BufferPtr;
+using BufferPtr = std::shared_ptr<Buffer>;
 
 }
 

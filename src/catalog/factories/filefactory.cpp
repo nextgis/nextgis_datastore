@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -29,21 +29,21 @@ FileFactory::FileFactory() : ObjectFactory()
 
 }
 
-const char *FileFactory::getName() const
+std::string FileFactory::name() const
 {
     return _("Files");
 }
 
 void FileFactory::createObjects(ObjectContainer * const container,
-                                       std::vector<const char *> * const names)
+                                       std::vector<std::string> &names)
 {
-    std::vector<const char *>::iterator it = names->begin();
-    while( it != names->end() ) {
-        const char* ext = CPLGetExtension(*it);
-        if(EQUAL(MapFile::getExtension(), ext)) {
-            const char* path = CPLFormFilename(container->path(), *it, nullptr);
+    auto it = names.begin();
+    while( it != names.end() ) {
+        std::string ext = File::getExtension(*it);
+        if(compare(MapFile::extension(), ext)) {
+            std::string path = File::formFileName(container->path(), *it);
             addChild(container, ObjectPtr(new MapFile(container, *it, path)));
-            it = names->erase(it);
+            it = names.erase(it);
         } // TODO: Add txt, log support. Do we need prj, spr support here?
         else {
             ++it;

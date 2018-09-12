@@ -73,11 +73,11 @@ TEST(MapTests, TestCreate) {
     ngs::CatalogPtr catalog = ngs::Catalog::instance();
     CPLString tmpDir = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
     ngs::Folder::mkDir(tmpDir);
-    ngs::ObjectPtr tmpDirObj = catalog->getObjectByLocalPath(tmpDir);
+    ngs::ObjectPtr tmpDirObj = catalog->getObjectBySystemPath(tmpDir);
     ASSERT_NE(tmpDirObj, nullptr);
     ngs::ObjectContainer* tmpDirContainer =
             ngsDynamicCast(ngs::ObjectContainer, tmpDirObj);
-    CPLString mapPath = CPLFormFilename(tmpDirObj->path(), "default", "ngmd");
+    CPLString mapPath = CPLFormFilename(tmpDirObj->path().c_str(), "default", "ngmd");
     CPLString iconsPath = CPLFormFilename(CPLGetCurrentDir(), "data", nullptr);
     CPLString iconSet = CPLFormFilename(iconsPath, "tex", "png");
     defMap->addIconSet("simple", iconSet, true);
@@ -108,7 +108,7 @@ TEST(MapTests, TestOpenMap) {
     ngs::MapStore mapStore;
     ngs::CatalogPtr catalog = ngs::Catalog::instance();
     CPLString tmpDir = CPLFormFilename(CPLGetCurrentDir(), "tmp", nullptr);
-    ngs::ObjectPtr tmpDirObj = catalog->getObjectByLocalPath(tmpDir);
+    ngs::ObjectPtr tmpDirObj = catalog->getObjectBySystemPath(tmpDir);
     ASSERT_NE(tmpDirObj, nullptr);
     ngs::ObjectContainer* tmpDirContainer =
             ngsDynamicCast(ngs::ObjectContainer, tmpDirObj);

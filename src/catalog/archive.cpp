@@ -21,31 +21,48 @@
 #include "archive.h"
 
 #include "file.h"
+
+#include "util/global.h"
 #include "util/notify.h"
 
 namespace ngs {
 
 ArchiveFolder::ArchiveFolder(ObjectContainer * const parent,
-                             const CPLString &name,
-                             const CPLString &path) :
+                             const std::string &name,
+                             const std::string &path) :
     Folder(parent, name, path)
 {
     m_type = CAT_CONTAINER_ARCHIVE_DIR;
 }
 
+bool ArchiveFolder::canCreate(const enum ngsCatalogObjectType type) const
+{
+    ngsUnused(type);
+    return false;
+}
+
+bool ArchiveFolder::canDestroy() const
+{
+    return false;
+}
+
 Archive::Archive(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
-                 const CPLString &name,
-                 const CPLString &path) :
+                 const std::string &name,
+                 const std::string &path) :
     ArchiveFolder(parent, name, path)
 {
     m_type = type;
 }
 
+bool Archive::canDestroy() const
+{
+    return Folder::canDestroy();
+}
+
 bool Archive::destroy()
 {
-    CPLString sysPath = m_path.substr(CPLStrnlen(
-                                          Archive::getPathPrefix(m_type), 16));
+    std::string sysPath = m_path.substr(Archive::pathPrefix(m_type).size());
     if(!File::deleteFile(sysPath)) {
         return false;
     }
@@ -58,7 +75,7 @@ bool Archive::destroy()
     return true;
 }
 
-const char *Archive::getExtension(const enum ngsCatalogObjectType type)
+std::string Archive::extension(const enum ngsCatalogObjectType type)
 {
     switch (type) {
     case CAT_CONTAINER_ARCHIVE_ZIP:
@@ -68,7 +85,7 @@ const char *Archive::getExtension(const enum ngsCatalogObjectType type)
     }
 }
 
-const char *Archive::getPathPrefix(const enum ngsCatalogObjectType type)
+std::string Archive::pathPrefix(const enum ngsCatalogObjectType type)
 {
     switch (type) {
     case CAT_CONTAINER_ARCHIVE_ZIP:

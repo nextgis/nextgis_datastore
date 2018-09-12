@@ -29,6 +29,7 @@
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
 #include "util/notify.h"
+#include "util/stringutil.h"
 
 namespace ngs {
 
@@ -41,48 +42,54 @@ constexpr unsigned short DOWNLOAD_THREAD_COUNT = 5;
 
 class DownloadData : public ThreadData {
 public:
-    DownloadData(const CPLString& basePath, const CPLString& url, int expires,
-                 const Tile& tile, const Options& options, bool own) :
-        ThreadData(own), m_tile(tile), m_basePath(basePath), m_url(url),
-        m_expires(expires), m_options(options) {
-
-    }
+    DownloadData(const std::string &basePath, const std::string &url, int expires,
+                 const Tile &tile, const Options &options, bool own);
     Tile m_tile;
-    CPLString m_basePath, m_url;
+    std::string m_basePath, m_url;
     int m_expires;
     Options m_options;
 };
+
+DownloadData::DownloadData(const std::string &basePath, const std::string &url,
+                           int expires, const Tile &tile, const Options &options,
+                           bool own) :
+    ThreadData(own),
+    m_tile(tile),
+    m_basePath(basePath),
+    m_url(url),
+    m_expires(expires),
+    m_options(options)
+{
+}
 
 //------------------------------------------------------------------------------
 // Raster
 //------------------------------------------------------------------------------
 
-Raster::Raster(std::vector<CPLString> siblingFiles,
+Raster::Raster(std::vector<std::string> siblingFiles,
                ObjectContainer * const parent,
                const enum ngsCatalogObjectType type,
-               const CPLString &name,
-               const CPLString &path) :  Object(parent, type, name, path),
+               const std::string &name,
+               const std::string &path) : Object(parent, type, name, path),
     DatasetBase(),
     SpatialDataset(),
     m_openFlags(GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR),
-    m_siblingFiles(siblingFiles),
-    m_dataLock(CPLCreateMutex())
+    m_siblingFiles(siblingFiles)
 {
-    CPLReleaseMutex(m_dataLock);
 }
 
 Raster::~Raster()
 {
 //    freeLocks(true);
-    CPLDestroyMutex(m_dataLock);
     if(m_spatialReference)
         delete m_spatialReference;
 }
 
 bool Raster::open(unsigned int openFlags, const Options &options)
 {
-    if(isOpened())
+    if(isOpened()) {
         return true;
+    }
 
     m_openFlags = openFlags;
     m_openOptions = options;
@@ -108,11 +115,11 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                     root.GetInteger(KEY_BAND_COUNT, 4));
 
         Envelope extent;
-        extent.load(root.GetObject(KEY_EXTENT), DEFAULT_BOUNDS);
-        m_extent.load(root.GetObject(KEY_LIMIT_EXTENT), DEFAULT_BOUNDS);
+        extent.load(root.GetObj(KEY_EXTENT), DEFAULT_BOUNDS);
+        m_extent.load(root.GetObj(KEY_LIMIT_EXTENT), DEFAULT_BOUNDS);
         int cacheExpires = root.GetInteger(KEY_CACHE_EXPIRES, defaultCacheExpires);
         int cacheMaxSize = root.GetInteger(KEY_CACHE_MAX_SIZE, defaultCacheMaxSize);
-        const char* connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
+        const char *connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
             "<UpperLeftX>%f</UpperLeftX><UpperLeftY>%f</UpperLeftY>"
             "<LowerRightX>%f</LowerRightX><LowerRightY>%f</LowerRightY>"
@@ -149,15 +156,13 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             m_DS->SetMetadataItem("TMS_LIMIT_Y_MAX", CPLSPrintf("%f", m_extent.maxY()), "");
 
             // Set USER metadata
-            CPLJSONObject user = root.GetObject(USER_KEY);
+            CPLJSONObject user = root.GetObj(USER_KEY);
             if(user.IsValid()) {
-                CPLJSONObject** children = user.GetChildren();
-                int i = 0;
-                CPLJSONObject* child = nullptr;
-                while((child = children[i++]) != nullptr) {
-                    const char* name = child->GetName();
-                    CPLString value;
-                    switch(child->GetType()) {
+                std::vector<CPLJSONObject> children = user.GetChildren();
+                for(const CPLJSONObject &child : children) {
+                    std::string name = child.GetName();
+                    std::string value;
+                    switch(child.GetType()) {
                     case CPLJSONObject::Null:
                         value = "<null>";
                         break;
@@ -168,24 +173,26 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                         value = "<array>";
                         break;
                     case CPLJSONObject::Boolean:
-                        value = child->GetBool(true) ? "TRUE" : "FALSE";
+                        value = child.ToBool(true) ? "TRUE" : "FALSE";
                         break;
                     case CPLJSONObject::String:
-                        value = child->GetString("");
+                        value = child.ToString("");
                         break;
                     case CPLJSONObject::Integer:
-                        value = CPLSPrintf("%d", child->GetInteger(0));
+                        value = std::to_string(child.ToInteger(0));
                         break;
                     case CPLJSONObject::Long:
-                        value = CPLSPrintf("%ld", child->GetLong(0));
+                        value = std::to_string(child.ToLong(0));
                         break;
                     case CPLJSONObject::Double:
-                        value = CPLSPrintf("%f", child->GetDouble(0.0));
+                        value = std::to_string(child.ToDouble(0.0));
+                        break;
+                    default:
+                        value = "<unknown>";
                         break;
                     }
-                    m_DS->SetMetadataItem(name, value, USER_KEY);
+                    m_DS->SetMetadataItem(name.c_str(), value.c_str(), USER_KEY);
                 }
-                CPLJSONObject::DestroyJSONObjectList(children);
             }
         }
         return result;
@@ -213,7 +220,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         return false;
     }
 
-    CPLMutexHolder holder(m_dataLock, 0.05);
+    MutexHolder holder(m_dataLock, 0.05);
 
     CPLErrorReset();
     int pixelSpace(0);
@@ -227,7 +234,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     }
 
     // Lock pixel area to read/write until exit
-//    CPLMutex *dataLock = nullptr;
+//    Mutex dataLock;
 
 //    int deltaX = xSize - 1;
 //    int deltaY = ySize - 1;
@@ -245,7 +252,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 
 //    bool exists = dataLock != nullptr;
 //    if(!exists) {
-//        CPLMutexHolder holder(m_dataLock, 16.0);
+//        MutexHolder holder(m_dataLock, 16.0);
 
 //        dataLock = CPLCreateMutex();
 //        m_dataLocks.push_back({testEnv, dataLock, zoom});
@@ -275,17 +282,18 @@ bool Raster::destroy()
 {
     if(Filter::isFileBased(m_type)) {
         if(File::deleteFile(m_path)) {
-            Folder::rmDir(m_DS->GetMetadataItem("CACHE_PATH", ""));
-            CPLString name = fullName();
-            if(m_parent)
+            Folder::rmDir(fromCString(m_DS->GetMetadataItem("CACHE_PATH")));
+            std::string name = fullName();
+            if(m_parent) {
                 m_parent->notifyChanges();
+            }
             Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
             return  true;
         }
     }
 
     return errorMessage(_("The data type %d cannot be deleted. Path: %s"),
-                 m_type, m_path.c_str());
+                        m_type, m_path.c_str());
 }
 
 bool Raster::canDestroy() const
@@ -293,26 +301,26 @@ bool Raster::canDestroy() const
     return Filter::isFileBased(m_type); // NOTE: Now supported only fila based rasters
 }
 
-char** Raster::metadata(const char* domain) const {
-    if(nullptr == m_DS)
-        return nullptr;
+Properties Raster::properties(const std::string &domain) const {
+    if(nullptr == m_DS) {
+        return Properties();
+    }
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_DS->GetMetadata(domain);
+    return Properties(m_DS->GetMetadata(domain.c_str()));
 }
 
-bool Raster::setMetadataItem(const char* name, const char* value, const char* domain)
+bool Raster::setProperty(const std::string &name, const std::string &value,
+                         const std::string &domain)
 {
-    if(domain == nullptr || !(EQUAL(domain, USER_KEY) == true ||
-            EQUAL(domain, "") == true)) {
-        return false;
+    bool result = false;
+    if(!isOpened()) {
+        open();
     }
-
-    bool result = true;
     if(m_DS != nullptr) {
-        result = m_DS->SetMetadataItem(name, value, domain) == CE_None;
+        result = m_DS->SetMetadataItem(name.c_str(), value.c_str(), domain.c_str()) == CE_None;
     }
 
-    if(result) {
+    if(result && compare(domain, USER_KEY)) {
         CPLJSONDocument connectionFile;
         if(!connectionFile.Load(m_path)) {
             return false;
@@ -320,16 +328,16 @@ bool Raster::setMetadataItem(const char* name, const char* value, const char* do
         CPLJSONObject root = connectionFile.GetRoot();
 
         bool needReopen = false;
-        if(EQUAL("TMS_CACHE_EXPIRES", name)) { // Only allow to change cache_expires
-            root.Set(KEY_CACHE_EXPIRES, atoi(value));
+        if(compare("TMS_CACHE_EXPIRES", name)) { // Only allow to change cache_expires
+            root.Set(KEY_CACHE_EXPIRES, std::stoi(value));
             needReopen = true;
         }
-        else if(EQUAL("TMS_CACHE_MAX_SIZE", name)) { // Only allow to change cache_expires
-            root.Set(KEY_CACHE_MAX_SIZE, atoi(value));
+        else if(compare("TMS_CACHE_MAX_SIZE", name)) { // Only allow to change cache_expires
+            root.Set(KEY_CACHE_MAX_SIZE, std::stoi(value));
             needReopen = true;
         }
         else {
-            CPLJSONObject user = root.GetObject(USER_KEY);
+            CPLJSONObject user = root.GetObj(USER_KEY);
             if(!user.IsValid()) {
                 user.Set(name, value);
             }
@@ -340,7 +348,10 @@ bool Raster::setMetadataItem(const char* name, const char* value, const char* do
             }
         }
 
-        result = connectionFile.Save(m_path);
+        result = connectionFile.Save(m_path);        
+        if(!result) {
+            return result;
+        }
 
         if(needReopen && m_type == CAT_RASTER_TMS) {
             close();
@@ -403,7 +414,7 @@ void Raster::freeLocks(bool all)
 {
     unsigned char threadCount = static_cast<unsigned char>(
                 atoi(CPLGetConfigOption("GDAL_NUM_THREADS", "1")));
-    CPLMutexHolder holder(m_dataLock, 50.0);
+    MutexHolder holder(m_dataLock, 50.0);
     if(all) {
         for(auto &lock : m_dataLocks) {
             CPLAcquireMutex(lock.mutexRef, 1000.0);
@@ -435,15 +446,15 @@ void Raster::freeLocks(bool all)
 }
 */
 
-const char *Raster::options(ngsOptionType optionType) const
+std::string Raster::options(ngsOptionType optionType) const
 {
     return DatasetBase::options(m_type, optionType);
 }
 
 bool Raster::writeWorldFile(enum WorldFileType type)
 {
-    CPLString ext = CPLGetExtension(m_path);
-    CPLString newExt;
+    std::string ext = File::getExtension(m_path);
+    std::string newExt;
 
     switch(type) {
     case FIRSTLASTW:
@@ -469,84 +480,86 @@ bool Raster::writeWorldFile(enum WorldFileType type)
     if(m_DS->GetGeoTransform(geoTransform) != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
     }
-    return GDALWriteWorldFile(m_path, newExt, geoTransform) == 0 ? false : true;
+    return GDALWriteWorldFile(m_path.c_str(), newExt.c_str(),
+                              geoTransform) == 0 ? false : true;
 }
 
 bool Raster::geoTransform(double *transform) const
 {
-    if(!isOpened())
+    if(!isOpened()) {
         return false;
+    }
     return m_DS->GetGeoTransform(transform) == CE_None;
 }
 
 int Raster::width() const
 {
-    if(!isOpened())
+    if(!isOpened()) {
         return 0;
+    }
     return m_DS->GetRasterXSize();
 }
 
 int Raster::height() const
 {
-    if(!isOpened())
+    if(!isOpened()) {
         return 0;
+    }
     return m_DS->GetRasterYSize();
 }
 
 int Raster::dataSize() const
 {
-    if(!isOpened())
+    if(!isOpened() || m_DS->GetRasterCount() == 0) {
         return 0;
-    if(m_DS->GetRasterCount() == 0)
-        return 0;
+    }
     GDALDataType dt = m_DS->GetRasterBand(1)->GetRasterDataType();
     return GDALGetDataTypeSize(dt) / 8;
 }
 
 unsigned short Raster::bandCount() const
 {
-    if(!isOpened())
+    if(!isOpened()) {
         return 0;
+    }
     return static_cast<unsigned short>(m_DS->GetRasterCount());
 }
 
 GDALDataType Raster::dataType(int band) const
 {
-    if(!isOpened())
+    if(!isOpened() || m_DS->GetRasterCount() == 0) {
         return GDT_Unknown;
-    if(m_DS->GetRasterCount() == 0)
-        return GDT_Unknown;
+    }
     return  m_DS->GetRasterBand(band)->GetRasterDataType();
 }
 
 int Raster::getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                             int bufXSize, int bufYSize) const
 {
-    if(!isOpened())
+    if(!isOpened() || m_DS->GetRasterCount() == 0) {
         return 0;
-    if(m_DS->GetRasterCount() == 0)
-        return 0;
-
+    }
     return GDALBandGetBestOverviewLevel2(m_DS->GetRasterBand(1), xOff, yOff,
                                          xSize, ySize, bufXSize, bufYSize, nullptr);
 }
 
-static CPLLock* hLock = nullptr;
+static CPLLock *hLock = nullptr;
 
 bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
 {
     DownloadData* data = dynamic_cast<DownloadData*>(threadData);
-    if(data == NULL) {
+    if(nullptr == data) {
         return true;
     }
 
-    CPLString url = data->m_url.replaceAll("${x}", CPLSPrintf("%d", data->m_tile.x));
-    url = url.replaceAll("${y}", CPLSPrintf("%d", data->m_tile.y));
-    url = url.replaceAll("${z}", CPLSPrintf("%d", data->m_tile.z));
+    CPLString url(data->m_url);
+    url = url.replaceAll("${x}", std::to_string(data->m_tile.x));
+    url = url.replaceAll("${y}", std::to_string(data->m_tile.y));
+    url = url.replaceAll("${z}", std::to_string(data->m_tile.z));
 
-    CPLString fileName = CPLMD5String(url);
-    CPLString dirPath = CPLSPrintf("%c/%c", fileName[0], fileName[1]);
-    CPLString path = CPLFormFilename(data->m_basePath, dirPath, nullptr);
+    std::string fileName = md5(url);
+    std::string dirPath = CPLSPrintf("%c/%c", fileName[0], fileName[1]);
+    std::string path = File::formFileName(data->m_basePath, dirPath, "");
 
     if(!Folder::isExists(path)) {
         CPLLockHolderD(&hLock, LOCK_RECURSIVE_MUTEX);
@@ -556,21 +569,18 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
         }
     }
 
-    path = CPLFormFilename(path, fileName, nullptr);
-    VSIStatBufL sStatBuf;
-    if(VSIStatL(path, &sStatBuf) == 0) {
-        // Check if tile already exist and not expired
-        if(time(nullptr) - sStatBuf.st_mtime < data->m_expires) {
-            return true;
-        }
+    path = File::formFileName(path, fileName, "");
+    File::modificationDate(path);
+    if(time(nullptr) - File::modificationDate(path) < data->m_expires) {
+        return true;
     }
 
     // Download tile and save it to cache
-    auto optionsPtr = data->m_options.getOptions();
-    CPLHTTPResult* result = CPLHTTPFetch(url, optionsPtr.get());
+    auto optionsPtr = data->m_options.asCharArray();
+    CPLHTTPResult *result = CPLHTTPFetch(url, optionsPtr.get());
     if(result->nStatus != 0) {
-        errorMessage(COD_REQUEST_FAILED, result->pszErrBuf);
-        CPLHTTPDestroyResult( result );
+        outMessage(COD_REQUEST_FAILED, result->pszErrBuf);
+        CPLHTTPDestroyResult(result);
         return false;
     }
 
@@ -585,51 +595,52 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
 bool Raster::cacheArea(const Progress &progress, const Options &options)
 {
     if(!isOpened()) {
-        return errorMessage(COD_UNSUPPORTED,
-                            "Raster must be oppened.");
+        return outMessage(COD_UNSUPPORTED,
+                          "Raster must be oppened.");
     }
     if(m_type != CAT_RASTER_TMS) {
-        return errorMessage(COD_UNSUPPORTED,
-                            "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
+        return outMessage(COD_UNSUPPORTED,
+                          "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
     }
 
-    double minX = options.doubleOption("MINX", DEFAULT_BOUNDS.minX());
-    double minY = options.doubleOption("MINY", DEFAULT_BOUNDS.minY());
-    double maxX = options.doubleOption("MAXX", DEFAULT_BOUNDS.maxX());
-    double maxY = options.doubleOption("MAXY", DEFAULT_BOUNDS.maxY());
+    double minX = options.asDouble("MINX", DEFAULT_BOUNDS.minX());
+    double minY = options.asDouble("MINY", DEFAULT_BOUNDS.minY());
+    double maxX = options.asDouble("MAXX", DEFAULT_BOUNDS.maxX());
+    double maxY = options.asDouble("MAXY", DEFAULT_BOUNDS.maxY());
     Envelope extent(minX, minY, maxX, maxY);
 
     std::set<unsigned char> zoomLevels;
 
-    const CPLString &zoomLevelListStr = options.stringOption("ZOOM_LEVELS", "");
-    char** zoomLevelArray = CSLTokenizeString2(zoomLevelListStr, ",", 0);
+    const std::string zoomLevelListStr = options.asString("ZOOM_LEVELS", "");
+    char **zoomLevelArray = CSLTokenizeString2(zoomLevelListStr.c_str(), ",", 0);
     if(nullptr != zoomLevelArray) {
         int i = 0;
-        const char* zoomLevel;
+        const char *zoomLevel;
         while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
-            zoomLevels.insert(static_cast<unsigned char>(atoi(zoomLevel)));
+            zoomLevels.insert(static_cast<unsigned char>(std::stoi(zoomLevel)));
         }
         CSLDestroy(zoomLevelArray);
     }
 
     if(zoomLevels.empty()) {
-        return errorMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
+        return outMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
     }
 
     Options loadOptions(options);
-    loadOptions.removeOption("MINX");
-    loadOptions.removeOption("MINY");
-    loadOptions.removeOption("MAXX");
-    loadOptions.removeOption("MAXY");
-    loadOptions.removeOption("ZOOM_LEVELS");
+    loadOptions.remove("MINX");
+    loadOptions.remove("MINY");
+    loadOptions.remove("MAXX");
+    loadOptions.remove("MAXY");
+    loadOptions.remove("ZOOM_LEVELS");
 
     // Get cache path
-    CPLString basePath = m_DS->GetMetadataItem("CACHE_PATH", "");
-    CPLString url = m_DS->GetMetadataItem("TMS_URL", "");
-    int expires = atoi(m_DS->GetMetadataItem("TMS_CACHE_EXPIRES", ""));
+    std::string basePath = fromCString(m_DS->GetMetadataItem("CACHE_PATH"));
+    std::string url = fromCString(m_DS->GetMetadataItem("TMS_URL"));
+    const char *strExpires = m_DS->GetMetadataItem("TMS_CACHE_EXPIRES");
+    int expires = std::stoi(strExpires == nullptr ? "0" : strExpires);
 
     bool reverseY = false;
-    if(EQUAL(m_DS->GetMetadataItem("TMS_Y_ORIGIN_TOP", ""), "top")) {
+    if(compare(fromCString(m_DS->GetMetadataItem("TMS_Y_ORIGIN_TOP")), "top")) {
         reverseY = true;
     }
 
@@ -644,7 +655,8 @@ bool Raster::cacheArea(const Progress &progress, const Options &options)
 
     for(auto zoomLevel : zoomLevels) {
         std::vector<TileItem> items =
-                MapTransform::getTilesForExtent(extent, zoomLevel, reverseY, true);
+                MapTransform::getTilesForExtent(extent, zoomLevel, reverseY,
+                                                true);
 
         for(auto item : items) {
             threadPool.addThreadData(new DownloadData(basePath, url, expires,

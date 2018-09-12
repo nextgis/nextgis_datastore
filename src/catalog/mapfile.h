@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -30,15 +30,15 @@ class MapFile : public File
 {
 public:
     explicit MapFile(ObjectContainer * const parent = nullptr,
-            const CPLString & name = "",
-            const CPLString & path = "");
-    MapViewPtr getMap() const { return m_mapView; }
+                     const std::string &name = "",
+                     const std::string &path = "");
+    MapViewPtr map() const;
     bool open();
     bool save(MapViewPtr mapView);
 
     // static
 public:
-    static const char *getExtension();
+    static std::string extension();
 
     // Object interface
 public:

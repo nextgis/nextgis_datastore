@@ -28,9 +28,9 @@ namespace ngs {
 class AuthStore
 {
 public:
-    static bool addAuth(const char *url, const Options& options);
-    static void deleteAuth(const char* url);
-    static Options description(const char* url);
+    static bool addAuth(const std::string &url, const Options &options);
+    static void deleteAuth(const std::string &url);
+    static Options description(const std::string &url);
 
 private:
     AuthStore() = default;

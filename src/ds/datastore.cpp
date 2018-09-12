@@ -40,13 +40,16 @@
 #include "ngstore/util/constants.h"
 #include "ngstore/version.h"
 
+#include "util/global.h"
 #include "util/notify.h"
 #include "util/error.h"
 #include "util/stringutil.h"
 
+#include <catalog/file.h>
+
 namespace ngs {
 
-constexpr const char* STORE_EXT = "ngst"; // NextGIS Store
+constexpr const char *STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
 
 //------------------------------------------------------------------------------
@@ -54,8 +57,8 @@ constexpr int STORE_EXT_LEN = length(STORE_EXT);
 //------------------------------------------------------------------------------
 
 DataStore::DataStore(ObjectContainer * const parent,
-                     const CPLString &name,
-                     const CPLString &path) :
+                     const std::string &name,
+                     const std::string &path) :
     Dataset(parent, CAT_CONTAINER_NGS, name, path),
     m_disableJournalCounter(0)
 {
@@ -69,65 +72,66 @@ DataStore::~DataStore()
     m_spatialReference = nullptr;
 }
 
-bool DataStore::isNameValid(const char* name) const
+bool DataStore::isNameValid(const std::string &name) const
 {
-    if(nullptr == name || EQUAL(name, ""))
+    if(name.empty())
         return false;
-    if(EQUALN(name, STORE_EXT, STORE_EXT_LEN))
+    if(comparePart(name, STORE_EXT, STORE_EXT_LEN))
         return false;
 
     return Dataset::isNameValid(name);
 }
 
-CPLString DataStore::normalizeFieldName(const CPLString& name) const
+std::string DataStore::normalizeFieldName(const std::string &name) const
 {
-    if(EQUAL(REMOTE_ID_KEY, name)) {
-        CPLString out = name + "_";
+    if(compare(REMOTE_ID_KEY, name)) {
+        std::string out = name + "_";
         return out;
     }
-    if(EQUAL("fid", name) || EQUAL("geom", name)) {
-        CPLString out = name + "_";
+    if(compare("fid", name) || compare("geom", name)) {
+        std::string out = name + "_";
         return out;
     }
     return Dataset::normalizeFieldName(name);
 }
 
-void DataStore::fillFeatureClasses()
+void DataStore::fillFeatureClasses() const
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i){
-        OGRLayer* layer = m_DS->GetLayer(i);
+        OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             if(skipFillFeatureClass(layer)) {
                 continue;
             }
 
-            const char* layerName = layer->GetName();
+            const char *layerName = layer->GetName();
+            DataStore *parent = const_cast<DataStore*>(this);
             if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new StoreTable(layer, this,
-                                                         layerName)));
+                m_children.push_back(ObjectPtr(new StoreTable(layer, parent,
+                                                              layerName)));
             }
             else {
-                m_children.push_back(ObjectPtr(new StoreFeatureClass(layer, this,
+                m_children.push_back(ObjectPtr(new StoreFeatureClass(layer, parent,
                                                                      layerName)));
             }
         }
     }
 }
 
-bool DataStore::create(const char* path)
+bool DataStore::create(const std::string &path)
 {
     CPLErrorReset();
-    if(nullptr == path || EQUAL(path, "")) {
+    if(path.empty()) {
         return errorMessage(_("The path is empty"));
     }
 
-    GDALDriver* poDriver = Filter::getGDALDriver(CAT_CONTAINER_NGS);
+    GDALDriver *poDriver = Filter::getGDALDriver(CAT_CONTAINER_NGS);
     if(poDriver == nullptr) {
         return errorMessage(_("GeoPackage driver is not present"));
     }
 
-    GDALDataset* DS = poDriver->Create(path, 0, 0, 0, GDT_Unknown, nullptr);
+    GDALDataset *DS = poDriver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
     if(DS == nullptr) {
         return errorMessage(CPLGetLastErrorMsg());
     }
@@ -138,7 +142,7 @@ bool DataStore::create(const char* path)
     return true;
 }
 
-const char* DataStore::extension()
+std::string DataStore::extension()
 {
     return STORE_EXT;
 }
@@ -154,7 +158,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 
     CPLErrorReset();
 
-    int version = atoi(property(NGS_VERSION_KEY, "0"));
+    int version = std::stoi(property(NGS_VERSION_KEY, "0"));
 
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
         return errorMessage(_("Upgrade storage failed"));
@@ -163,23 +167,25 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     return true;
 }
 
-FeatureClass* DataStore::createFeatureClass(const CPLString& name,
-                                            enum ngsCatalogObjectType /*objectType*/,
-                                           OGRFeatureDefn* const definition,
-                                           OGRSpatialReference* spatialRef,
-                                           OGRwkbGeometryType type,
-                                           const Options& options,
-                                           const Progress& progress)
+FeatureClass *DataStore::createFeatureClass(const std::string &name,
+                                            enum ngsCatalogObjectType objectType,
+                                            OGRFeatureDefn * const definition,
+                                            OGRSpatialReference *spatialRef,
+                                            OGRwkbGeometryType type,
+                                            const Options &options,
+                                            const Progress& progress)
 {
     if(nullptr == m_DS) {
         errorMessage(_("Not opened"));
         return nullptr;
     }
 
-    CPLMutexHolder holder(m_executeSQLMutex);
+    ngsUnused(objectType);
 
-    OGRLayer* layer = m_DS->CreateLayer(name, spatialRef, type,
-                                        options.getOptions().get());
+    MutexHolder holder(m_executeSQLMutex);
+
+    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
+                                        options.asCharArray().get());
 
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
@@ -187,33 +193,33 @@ FeatureClass* DataStore::createFeatureClass(const CPLString& name,
     }
 
     for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
-        OGRFieldDefn* srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
         OGRFieldDefn dstField(srcField);
 
-        CPLString newFieldName;
+        std::string newFieldName;
         if(definition->GetFieldCount() - 1 == i) {
             newFieldName = srcField->GetNameRef();
         }
         else {
             newFieldName = normalizeFieldName(srcField->GetNameRef());
-            if(!EQUAL(newFieldName, srcField->GetNameRef())) {
+            if(!compare(newFieldName, srcField->GetNameRef())) {
                 progress.onProgress(COD_WARNING, 0.0,
                                     _("Field %s of source table was renamed to %s in destination tables"),
                                     srcField->GetNameRef(), newFieldName.c_str());
             }
         }
 
-        dstField.SetName(newFieldName);
+        dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
             errorMessage(CPLGetLastErrorMsg());
             return nullptr;
         }
     }
 
-    FeatureClass* out = new StoreFeatureClass(layer, this, name);
+    FeatureClass *out = new StoreFeatureClass(layer, this, name);
 
-    if(options.boolOption("CREATE_OVERVIEWS", false) &&
-            !options.stringOption("ZOOM_LEVELS", "").empty()) {
+    if(options.asBool("CREATE_OVERVIEWS", false) &&
+            !options.asString("ZOOM_LEVELS", "").empty()) {
         out->createOverviews(progress, options);
     }
 
@@ -226,8 +232,8 @@ FeatureClass* DataStore::createFeatureClass(const CPLString& name,
     return out;
 }
 
-Table* DataStore::createTable(const CPLString& name,
-                              enum ngsCatalogObjectType /*objectType*/,
+Table *DataStore::createTable(const std::string &name,
+                              enum ngsCatalogObjectType objectType,
                               OGRFeatureDefn* const definition,
                               const Options& options, const Progress& progress)
 {
@@ -236,10 +242,12 @@ Table* DataStore::createTable(const CPLString& name,
         return nullptr;
     }
 
-    CPLMutexHolder holder(m_executeSQLMutex);
+    ngsUnused(objectType);
 
-    OGRLayer* layer = m_DS->CreateLayer(name, nullptr, wkbNone,
-                                        options.getOptions().get());
+    MutexHolder holder(m_executeSQLMutex);
+
+    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), nullptr, wkbNone,
+                                        options.asCharArray().get());
 
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
@@ -247,30 +255,30 @@ Table* DataStore::createTable(const CPLString& name,
     }
 
     for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
-        OGRFieldDefn* srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
         OGRFieldDefn dstField(srcField);
 
-        CPLString newFieldName;
+        std::string newFieldName;
         if(definition->GetFieldCount() - 1 == i) {
             newFieldName = srcField->GetNameRef();
         }
         else {
             newFieldName = normalizeFieldName(srcField->GetNameRef());
-            if(!EQUAL(newFieldName, srcField->GetNameRef())) {
+            if(!compare(newFieldName, srcField->GetNameRef())) {
                 progress.onProgress(COD_WARNING, 0.0,
                                     _("Field %s of source table was renamed to %s in destination tables"),
                                     srcField->GetNameRef(), newFieldName.c_str());
             }
         }
 
-        dstField.SetName(newFieldName);
+        dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
             errorMessage(CPLGetLastErrorMsg());
             return nullptr;
         }
     }
 
-    Table* out = new StoreTable(layer, this, name);
+    Table *out = new StoreTable(layer, this, name);
 
     if(m_parent) {
         m_parent->notifyChanges();
@@ -281,26 +289,30 @@ Table* DataStore::createTable(const CPLString& name,
     return out;
 }
 
-bool DataStore::setProperty(const char* key, const char* value)
+bool DataStore::setProperty(const std::string &key, const std::string &value,
+                            const std::string &domain)
 {
-    CPLMutexHolder holder(m_executeSQLMutex);
-    return m_DS->SetMetadataItem(key, value, NG_ADDITIONS_KEY) == OGRERR_NONE;
+    MutexHolder holder(m_executeSQLMutex);
+    return m_DS->SetMetadataItem(key.c_str(), value.c_str(), domain.c_str()) ==
+            OGRERR_NONE;
 }
 
-CPLString DataStore::property(const char* key, const char* defaultValue) const
+std::string DataStore::property(const std::string &key,
+                                const std::string &defaultValue,
+                                const std::string &domain) const
 {
-    CPLMutexHolder holder(m_executeSQLMutex);
-    const char* out = m_DS->GetMetadataItem(key, NG_ADDITIONS_KEY);
+    MutexHolder holder(m_executeSQLMutex);
+    const char *out = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
     return nullptr == out ? defaultValue : out;
 }
 
-std::map<CPLString, CPLString> DataStore::properties(const char* table, const char* domain) const
+Properties DataStore::properties(const std::string &domain) const
 {
-    ObjectPtr child = getChild(table);
-    Table* tablePtr = ngsDynamicCast(Table, child);
-    if(nullptr != tablePtr) // TODO: Fix infinity loop for table
-        return tablePtr->properties(domain);
-    return std::map<CPLString, CPLString>();
+    if(nullptr == m_DS) {
+        return Properties();
+    }
+
+    return Properties(m_DS->GetMetadata(domain.c_str()));
 }
 
 bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
@@ -312,25 +324,25 @@ bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 }
 
 bool DataStore::create(const enum ngsCatalogObjectType type,
-                       const CPLString& name, const Options& options)
+                       const std::string &name, const Options& options)
 {
-    CPLString newName = normalizeDatasetName(name);
+    std::string newName = normalizeDatasetName(name);
 
     // Get field definitions
-    OGRFeatureDefn fieldDefinition(newName);
-    int fieldCount = options.intOption("FIELD_COUNT", 0);
+    OGRFeatureDefn fieldDefinition(newName.c_str());
+    int fieldCount = options.asInt("FIELD_COUNT", 0);
     struct fieldData {
-        CPLString name, alias;
+        std::string name, alias;
     };
     std::vector<fieldData> fields;
 
     for(int i = 0; i < fieldCount; ++i) {
-        CPLString fieldName = options.stringOption(CPLSPrintf("FIELD_%d_NAME", i), "");
+        std::string fieldName = options.asString(CPLSPrintf("FIELD_%d_NAME", i), "");
         if(fieldName.empty()) {
             return errorMessage(_("Name for field %d is not defined"), i);
         }
 
-        CPLString fieldAlias = options.stringOption(CPLSPrintf("FIELD_%d_ALIAS", i), "");
+        std::string fieldAlias = options.asString(CPLSPrintf("FIELD_%d_ALIAS", i), "");
         if(fieldAlias.empty()) {
             fieldAlias = fieldName;
         }
@@ -338,12 +350,12 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         fields.push_back(data);
 
         OGRFieldType fieldType = FeatureClass::fieldTypeFromName(
-                    options.stringOption(CPLSPrintf("FIELD_%d_TYPE", i), ""));
-        OGRFieldDefn field(fieldName, fieldType);
-        CPLString defaultValue = options.stringOption(
+                    options.asString(CPLSPrintf("FIELD_%d_TYPE", i), ""));
+        OGRFieldDefn field(fieldName.c_str(), fieldType);
+        std::string defaultValue = options.asString(
                     CPLSPrintf("FIELD_%d_DEFAULT_VAL", i), "");
         if(!defaultValue.empty()) {
-            field.SetDefault(defaultValue);
+            field.SetDefault(defaultValue.c_str());
         }
         fieldDefinition.AddFieldDefn(&field);
     }
@@ -356,7 +368,7 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     ObjectPtr object;
     if(type == CAT_FC_GPKG) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
-                    options.stringOption("GEOMETRY_TYPE", ""));
+                    options.asString("GEOMETRY_TYPE", ""));
         if(wkbUnknown == geomType) {
             return errorMessage(_("Unsupported geometry type"));
         }
@@ -375,23 +387,22 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         return false;
     }
 
-    Table* table = ngsDynamicCast(Table, object);
+    Table *table = ngsDynamicCast(Table, object);
 
     // Store aliases and field original names in properties
     for(size_t i = 0; i < fields.size(); ++i) {
-        table->setProperty(CPLSPrintf("FIELD_%ld_NAME", i), fields[i].name, NG_ADDITIONS_KEY);
-        table->setProperty(CPLSPrintf("FIELD_%ld_ALIAS", i), fields[i].alias, NG_ADDITIONS_KEY);
+        table->setProperty("FIELD_" + std::to_string(i) + "_NAME", fields[i].name, NG_ADDITIONS_KEY);
+        table->setProperty("FIELD_" + std::to_string(i) + "_ALIAS", fields[i].alias, NG_ADDITIONS_KEY);
     }
 
-    bool saveEditHistory = options.boolOption(LOG_EDIT_HISTORY_KEY, false);
+    bool saveEditHistory = options.asBool(LOG_EDIT_HISTORY_KEY, false);
     table->setProperty(LOG_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", NG_ADDITIONS_KEY);
 
     // Store user defined options in properties
     for(auto it = options.begin(); it != options.end(); ++it) {
-        if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
-            table->setProperty(CPLSPrintf("%s",
-                                       it->first.c_str() + USER_PREFIX_KEY_LEN),
-                                       it->second, USER_KEY);
+        if(comparePart(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+            table->setProperty(it->first.substr(USER_PREFIX_KEY_LEN),
+                               it->second, USER_KEY);
         }
     }
 
@@ -402,8 +413,9 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     return true;
 }
 
-bool DataStore::upgrade(int /* oldVersion */)
+bool DataStore::upgrade(int oldVersion)
 {
+    ngsUnused(oldVersion);
     // no structure changes for version 1
     return true;
 }
@@ -431,7 +443,7 @@ void DataStore::enableJournal(bool enable)
     }
 }
 
-OGRLayer* DataStore::createAttachmentsTable(const char* name)
+OGRLayer *DataStore::createAttachmentsTable(const std::string &name)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -441,17 +453,18 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
         return nullptr;
     }
 
-    CPLString attLayerName(attachmentsTableName(name));
-    OGRLayer* attLayer = m_addsDS->CreateLayer(attLayerName, nullptr, wkbNone, nullptr);
+    std::string attLayerName(attachmentsTableName(name));
+    OGRLayer *attLayer = m_addsDS->CreateLayer(attLayerName.c_str(), nullptr,
+                                               wkbNone, nullptr);
     if (nullptr == attLayer) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     // Create folder for files
-    if(nullptr != m_path) {
-        CPLString attachmentsPath = CPLResetExtension(m_path,
-                                                      attachmentsFolderExtension());
+    if(!m_path.empty()) {
+        std::string attachmentsPath = File::resetExtension(m_path.c_str(),
+                                                    attachmentsFolderExtension());
         if(!Folder::isExists(attachmentsPath)) {
             Folder::mkDir(attachmentsPath);
         }
@@ -468,14 +481,14 @@ OGRLayer* DataStore::createAttachmentsTable(const char* name)
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
        attLayer->CreateField(&descField) != OGRERR_NONE ||
        attLayer->CreateField(&ridField) != OGRERR_NONE) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     return attLayer;
 }
 
-OGRLayer*DataStore::createEditHistoryTable(const char* name)
+OGRLayer *DataStore::createEditHistoryTable(const std::string &name)
 {
     if(!m_addsDS) {
         createAdditionsDataset();
@@ -485,10 +498,11 @@ OGRLayer*DataStore::createEditHistoryTable(const char* name)
         return nullptr;
     }
 
-    CPLString logLayerName(historyTableName(name));
-    OGRLayer* logLayer = m_addsDS->CreateLayer(logLayerName, nullptr, wkbNone, nullptr);
+    std::string logLayerName(historyTableName(name));
+    OGRLayer *logLayer = m_addsDS->CreateLayer(logLayerName.c_str(), nullptr,
+                                               wkbNone, nullptr);
     if (nullptr == logLayer) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -506,11 +520,16 @@ OGRLayer*DataStore::createEditHistoryTable(const char* name)
        logLayer->CreateField(&opField) != OGRERR_NONE ||
        logLayer->CreateField(&ridField) != OGRERR_NONE ||
        logLayer->CreateField(&aridField) != OGRERR_NONE) {
-        errorMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
     return logLayer;
+}
+
+bool DataStore::isBatchOperation() const
+{
+    return m_disableJournalCounter > 0;
 }
 
 } // namespace ngs

@@ -76,17 +76,46 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     else()
         set(WITH_LibXml2 ON CACHE BOOL "LibXml2 off" FORCE)
     endif()
+
+    macro(FIND_HEADERS lib header have)
+        set(THIRD_PARTY_INCLUDE_PATH ${CMAKE_BINARY_DIR}/third-party)
+        find_path(${lib}_PATH ${header} PATHS
+            ${THIRD_PARTY_INCLUDE_PATH}/src/${lib}_EP
+            ${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build
+        )
+        if(${lib}_PATH)
+            include_directories(${${lib}_PATH})
+            add_definitions(-D${have})
+        endif()
+    endmacro()
+
+    find_headers(SQLite3 sqlite3.h HAVE_SQLITE3_H)
+    find_headers(JSONC json_c_version.h HAVE_JSON_C_VERSION_H)
+    find_headers(PROJ4 proj_api.h HAVE_PROJ_API_H)
+    find_headers(JPEG jpeglib.h HAVE_JPEGLIB_H)
+    find_headers(TIFF tiff.h HAVE_TIFF_H)
+    find_headers(GeoTIFF geotiff.h HAVE_GEOTIFF_H)
+    find_headers(PNG png.h HAVE_PNG_H)
+    find_headers(EXPAT expat.h HAVE_EXPAT_H)
+    find_headers(ICONV iconv.h HAVE_ICONV_H)
+
+    # find_path(SQLite3_PATH sqlite3.h PATHS
+    #     ${THIRD_PARTY_INCLUDE_PATH}/SQLite3_EP)
+    # if(SQLite3_PATH)
+    #     include_directories (${SQLite3_PATH})
+    #     add_definitions (-DHAVE_SQLITE3_H)
+    # endif()
+
     add_definitions (-DHAVE_CURLVER_H)
     add_definitions (-DHAVE_GEOS_C_H)
-    add_definitions (-DHAVE_SQLITE3_H)
-    add_definitions (-DHAVE_JSON_C_VERSION_H)
-    add_definitions (-DHAVE_PROJ_API_H)
-    add_definitions (-DHAVE_JPEGLIB_H)
-    add_definitions (-DHAVE_TIFF_H)
-    add_definitions (-DHAVE_GEOTIFF_H)
-    add_definitions (-DHAVE_PNG_H)
-    add_definitions (-DHAVE_EXPAT_H)
-    add_definitions (-DHAVE_ICONV_H)
+    # add_definitions (-DHAVE_JSON_C_VERSION_H)
+    # add_definitions (-DHAVE_PROJ_API_H)
+    # add_definitions (-DHAVE_JPEGLIB_H)
+    # add_definitions (-DHAVE_TIFF_H)
+    # add_definitions (-DHAVE_GEOTIFF_H)
+    # add_definitions (-DHAVE_PNG_H)
+    # add_definitions (-DHAVE_EXPAT_H)
+    # add_definitions (-DHAVE_ICONV_H)
     add_definitions (-DHAVE_ZLIB_H)
     add_definitions (-DHAVE_OPENSSLV_H)
 
@@ -102,13 +131,15 @@ find_anyproject(OpenSSL REQUIRED SHARED OFF CMAKE_ARGS
     -DOPENSSL_NO_AFALGENG=ON
     -DOPENSSL_NO_ASM=ON # Not working for mobile platform yet
     -DOPENSSL_NO_DYNAMIC_ENGINE=ON
-    -DOPENSSL_NO_STATIC_ENGINE=ON
+    -DOPENSSL_NO_STATIC_ENGINE=OFF
     -DOPENSSL_NO_DEPRECATED=ON
     -DOPENSSL_NO_UNIT_TEST=ON
 ) # TODO: Disable max alghorithms. Check TLS v1.2 working!
 
 # For fast cut by envelope
-find_anyproject(GEOS REQUIRED SHARED OFF)
+find_anyproject(GEOS REQUIRED SHARED OFF CMAKE_ARGS
+    -DGEOS_ENABLE_TESTS=OFF
+)
 # For attachment file send
 find_anyproject(CURL REQUIRED SHARED OFF CMAKE_ARGS
     -DBUILD_CURL_EXE=OFF
@@ -118,7 +149,7 @@ find_anyproject(CURL REQUIRED SHARED OFF CMAKE_ARGS
     -DCMAKE_USE_OPENSSL=ON
 )
 
-find_anyproject(GDAL REQUIRED VERSION 2.3.4 EXACT SHARED OFF CMAKE_ARGS
+find_anyproject(GDAL REQUIRED VERSION 2.6.0 EXACT SHARED OFF CMAKE_ARGS
     -DENABLE_PLSCENES=OFF
     -DENABLE_AAIGRID_GRASSASCIIGRID=OFF
     -DENABLE_ADRG_SRP=OFF
@@ -142,6 +173,7 @@ find_anyproject(GDAL REQUIRED VERSION 2.3.4 EXACT SHARED OFF CMAKE_ARGS
     -DENABLE_ERS=OFF
     -DENABLE_FIT=OFF
     -DENABLE_GFF=OFF
+    -DENABLE_GIF=OFF
     -DENABLE_GRIB=OFF
     -DENABLE_GSAG_GSBG_GS7BG=OFF
     -DENABLE_GXF=OFF

@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -29,17 +29,15 @@ class ArchiveFolder : public Folder
 {
 public:
     explicit ArchiveFolder(ObjectContainer * const parent = nullptr,
-                  const CPLString & name = "",
-                  const CPLString & path = "");
+                           const std::string &name = "",
+                           const std::string &path = "");
     // ObjectContainer interface
 public:
-    virtual bool canCreate(const enum ngsCatalogObjectType /*type*/) const override {
-        return false;
-    }
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
 
     // Object interface
 public:
-    virtual bool canDestroy() const override { return false; }
+    virtual bool canDestroy() const override;
 
 };
 
@@ -48,17 +46,17 @@ class Archive : public ArchiveFolder
 public:
     explicit Archive(ObjectContainer * const parent = nullptr,
             const enum ngsCatalogObjectType type = CAT_CONTAINER_ARCHIVE,
-            const CPLString & name = "",
-            const CPLString & path = "");
+            const std::string &name = "",
+            const std::string &path = "");
 
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override { return Folder::canDestroy(); }
+    virtual bool canDestroy() const override;
 
     // Static
-    static const char* getExtension(const enum ngsCatalogObjectType type);
-    static const char* getPathPrefix(const enum ngsCatalogObjectType type);
+    static std::string extension(const enum ngsCatalogObjectType type);
+    static std::string pathPrefix(const enum ngsCatalogObjectType type);
 
 };
 

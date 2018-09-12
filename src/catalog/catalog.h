@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -29,23 +29,23 @@
 namespace ngs {
 
 class Catalog;
-typedef std::shared_ptr< Catalog > CatalogPtr;
-
+using CatalogPtr = std::shared_ptr<Catalog>;
 
 class Catalog : public ObjectContainer
 {
 public:
     Catalog();
-    virtual ~Catalog() = default;
-    virtual CPLString fullName() const override;
-    virtual ObjectPtr getObject(const char* path) override;
-    virtual ObjectPtr getObjectByLocalPath(const char* path);
+    virtual ~Catalog() override = default;
+    virtual std::string fullName() const override;
+    virtual ObjectPtr getObject(const std::string &path) override;
     virtual void freeResources();
-    virtual void createObjects(ObjectPtr object, std::vector< const char *> names);
-    virtual bool hasChildren() override;
+    virtual void createObjects(ObjectPtr object,
+                               std::vector<std::string> &names);
 
-    bool isFileHidden(const CPLString& path, const char* name);
+    bool isFileHidden(const std::string &path, const std::string &name) const;
     void setShowHidden(bool value);
+    virtual ObjectPtr getObjectBySystemPath(const std::string &path);
+    virtual bool loadChildren() override;
 
     // Object interface
 public:
@@ -53,22 +53,22 @@ public:
 
     // static
 public:
-    static void setInstance(Catalog* pointer);
+    static void setInstance(Catalog *pointer);
     static CatalogPtr instance();
-    static CPLString separator();
+    static std::string separator();
     static unsigned short maxPathLength();
-    static CPLString toRelativePath(const Object* object,
-                                    const ObjectContainer *objectContainer);
-    static ObjectPtr fromRelativePath(const char* path,
+    static std::string toRelativePath(const Object *object,
+                                      const ObjectContainer *objectContainer);
+    static ObjectPtr fromRelativePath(const std::string &path,
                                       ObjectContainer *objectContainer);
 
 private:
     Catalog(Catalog const&) = delete;
-    Catalog& operator= (Catalog const&) = delete;
+    Catalog &operator= (Catalog const&) = delete;
 
 protected:
     bool m_showHidden;
-    std::vector<ObjectFactoryUPtr> m_factories;
+    mutable std::vector<ObjectFactoryUPtr> m_factories;
 
 };
 

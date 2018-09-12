@@ -66,18 +66,6 @@ set(CSOURCES
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
-#if(WITH_OpenSSL_EXTERNAL)
-#    add_dependencies(${LIB_NAME} OpenSSL_EP)
-#endif()
-
-#if(WITH_CURL_EXTERNAL)
-#    add_dependencies(${LIB_NAME} CURL_EP)
-#endif()
-
-if(WITH_GDAL_EXTERNAL)
-    add_dependencies(${LIB_NAME} GDAL_EP)
-endif()
-
 set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 11
     C_STANDARD 11

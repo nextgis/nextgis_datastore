@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "rasterfactory.h"
 
+#include "catalog/file.h"
 #include "ds/geometry.h"
 #include "ds/raster.h"
 #include "ngstore/catalog/filter.h"
@@ -28,15 +29,18 @@
 
 namespace ngs {
 
-static const char* tifMainExts[] = {nullptr};
-static const char* tifExtraExts[] = {"tfw", "tiffw", "wld", "tifw", "aux", "ovr",
-                                     "tif.xml", "tiff.xml", "aux.xml",
-                                     "ovr.aux.xml", "rrd", "xml", "lgo", "prj",
-                                     "imd", "pvl", "att", "eph", "rpb", "rpc",
-                                     nullptr};
-constexpr FORMAT_EXT tifExt = {"tif", tifMainExts, tifExtraExts};
-constexpr FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
-static const char* tifAdds[] = {"_rpc.txt", "-browse.jpg", "_readme.txt", nullptr};
+static const std::vector<std::string> tifMainExts;
+static const std::vector<std::string> tifExtraExts = {
+    "tfw", "tiffw", "wld", "tifw", "aux", "ovr", "tif.xml", "tiff.xml", "aux.xml",
+    "ovr.aux.xml", "rrd", "xml", "lgo", "prj", "imd", "pvl", "att", "eph", "rpb",
+    "rpc"
+};
+
+static const FORMAT_EXT tifExt = {"tif", tifMainExts, tifExtraExts};
+static const FORMAT_EXT tiffExt = {"tiff", tifMainExts, tifExtraExts};
+static const std::vector<std::string> tifAdds = {
+    "_rpc.txt", "-browse.jpg", "_readme.txt"
+};
 
 constexpr const char* KEY_TYPE = "type";
 constexpr const char* KEY_X_MIN = "x_min";
@@ -66,19 +70,19 @@ RasterFactory::RasterFactory()
 
 }
 
-const char* RasterFactory::getName() const
+std::string RasterFactory::name() const
 {
     return _("Rasters");
 }
 
 void RasterFactory::createObjects(ObjectContainer * const container,
-                                  std::vector<const char *> * const names)
+                                  std::vector<std::string> &names)
 {
     nameExtMap nameExts;
-    auto it = names->begin();
-    while( it != names->end() ) {
-        const char* ext = CPLGetExtension(*it);
-        const char* baseName = CPLGetBasename(*it);
+    auto it = names.begin();
+    while( it != names.end() ) {
+        auto ext = File::getExtension(*it);
+        auto baseName = File::getBaseName(*it);
         nameExts[baseName].push_back(ext);
         ++it;
     }
@@ -87,41 +91,41 @@ void RasterFactory::createObjects(ObjectContainer * const container,
 
         // Check if ESRI Shapefile
         if(m_tiffSupported) {
-        FORMAT_RESULT result = isFormatSupported(
-                    nameExtsItem.first, nameExtsItem.second, tifExt);
-        if(result.isSupported) {
-            const char* path = CPLFormFilename(container->path(), result.name,
-                                               nullptr);
-            checkAdditionalSiblings(container->path(), result.name, tifAdds,
-                                    result.siblingFiles);
-            addChild(container, result.name, path, CAT_RASTER_TIFF,
-                     result.siblingFiles, names);
-        }
-        result = isFormatSupported(
-                    nameExtsItem.first, nameExtsItem.second, tiffExt);
-        if(result.isSupported) {
-            const char* path = CPLFormFilename(container->path(), result.name,
-                                               nullptr);
-            checkAdditionalSiblings(container->path(), result.name, tifAdds,
-                                    result.siblingFiles);
-            addChild(container, result.name, path, CAT_RASTER_TIFF,
-                     result.siblingFiles, names);
-        }
+            FORMAT_RESULT result = isFormatSupported(
+                        nameExtsItem.first, nameExtsItem.second, tifExt);
+            if(result.isSupported) {
+                std::string path = File::formFileName(container->path(),
+                                                      result.name);
+                checkAdditionalSiblings(container->path(), result.name, tifAdds,
+                                        result.siblingFiles);
+                addChildInternal(container, result.name, path, CAT_RASTER_TIFF,
+                         result.siblingFiles, names);
+            }
+            result = isFormatSupported(
+                        nameExtsItem.first, nameExtsItem.second, tiffExt);
+            if(result.isSupported) {
+                std::string path = File::formFileName(container->path(),
+                                                      result.name);
+                checkAdditionalSiblings(container->path(), result.name, tifAdds,
+                                        result.siblingFiles);
+                addChildInternal(container, result.name, path, CAT_RASTER_TIFF,
+                         result.siblingFiles, names);
+            }
         }
 
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
-            if(EQUAL(nameExtsItem.second[0], remoteConnectionExtension())) {
+            if(compare(nameExtsItem.second[0], remoteConnectionExtension())) {
                 CPLJSONDocument connectionFile;
-                const char* path = CPLFormFilename(container->path(),
-                                                   nameExtsItem.first,
-                                                   remoteConnectionExtension());
+                std::string path = File::formFileName(container->path(),
+                                                      nameExtsItem.first,
+                                                      remoteConnectionExtension());
                 if(connectionFile.Load(path)) {
-                    std::vector<CPLString> siblingFiles;
+                    std::vector<std::string> siblingFiles;
                     enum ngsCatalogObjectType type =
                             static_cast<enum ngsCatalogObjectType>(
                                 connectionFile.GetRoot().GetInteger(
                                     KEY_TYPE, CAT_UNKNOWN));
-                    addChild(container, nameExtsItem.first + "." +
+                    addChildInternal(container, nameExtsItem.first + "." +
                              remoteConnectionExtension(), path, type,
                              siblingFiles, names);
                 }
@@ -131,39 +135,39 @@ void RasterFactory::createObjects(ObjectContainer * const container,
 }
 
 bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
-                                           const char* path,
+                                           const std::string &path,
                                            const Options &options)
 {
     switch(type) {
     case CAT_RASTER_TMS:
     {
-        CPLString url = options.stringOption(KEY_URL);
+        std::string url = options.asString(KEY_URL);
         if(url.empty()) {
             return errorMessage(_("Missign required option 'url'"));
         }
 
-        int epsg = options.intOption(KEY_EPSG, NOT_FOUND);
+        int epsg = options.asInt(KEY_EPSG, NOT_FOUND);
         if(epsg < 0) {
             return errorMessage(_("Missign required option 'epsg'"));
         }
-        int z_min = options.intOption(KEY_Z_MIN, 0);
-        int z_max = options.intOption(KEY_Z_MAX, 18);
-        bool y_origin_top = options.boolOption(KEY_Y_ORIGIN_TOP, true);
+        int z_min = options.asInt(KEY_Z_MIN, 0);
+        int z_max = options.asInt(KEY_Z_MAX, 18);
+        bool y_origin_top = options.asBool(KEY_Y_ORIGIN_TOP, true);
 
         Envelope fullExtent;
-        fullExtent.setMinX(options.doubleOption(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
-        fullExtent.setMaxX(options.doubleOption(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
-        fullExtent.setMinY(options.doubleOption(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
-        fullExtent.setMaxY(options.doubleOption(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
+        fullExtent.setMinX(options.asDouble(KEY_X_MIN, DEFAULT_BOUNDS.minX()));
+        fullExtent.setMaxX(options.asDouble(KEY_X_MAX, DEFAULT_BOUNDS.maxX()));
+        fullExtent.setMinY(options.asDouble(KEY_Y_MIN, DEFAULT_BOUNDS.minY()));
+        fullExtent.setMaxY(options.asDouble(KEY_Y_MAX, DEFAULT_BOUNDS.maxY()));
         if(!fullExtent.isInit()) {
             fullExtent = DEFAULT_BOUNDS;
         }
 
         Envelope limitExtent;
-        limitExtent.setMinX(options.doubleOption(KEY_LIMIT_X_MIN, DEFAULT_BOUNDS.minX()));
-        limitExtent.setMaxX(options.doubleOption(KEY_LIMIT_X_MAX, DEFAULT_BOUNDS.maxX()));
-        limitExtent.setMinY(options.doubleOption(KEY_LIMIT_Y_MIN, DEFAULT_BOUNDS.minY()));
-        limitExtent.setMaxY(options.doubleOption(KEY_LIMIT_Y_MAX, DEFAULT_BOUNDS.maxY()));
+        limitExtent.setMinX(options.asDouble(KEY_LIMIT_X_MIN, DEFAULT_BOUNDS.minX()));
+        limitExtent.setMaxX(options.asDouble(KEY_LIMIT_X_MAX, DEFAULT_BOUNDS.maxX()));
+        limitExtent.setMinY(options.asDouble(KEY_LIMIT_Y_MIN, DEFAULT_BOUNDS.minY()));
+        limitExtent.setMaxY(options.asDouble(KEY_LIMIT_Y_MAX, DEFAULT_BOUNDS.maxY()));
         if(!limitExtent.isInit()) {
             limitExtent = DEFAULT_BOUNDS;
         }
@@ -177,21 +181,21 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         root.Add(KEY_Y_ORIGIN_TOP, y_origin_top);
         root.Add(KEY_EXTENT, fullExtent.save());
         root.Add(KEY_LIMIT_EXTENT, limitExtent.save());
-        root.Add(KEY_CACHE_EXPIRES, options.intOption(KEY_CACHE_EXPIRES,
+        root.Add(KEY_CACHE_EXPIRES, options.asInt(KEY_CACHE_EXPIRES,
                                                       defaultCacheExpires));
-        root.Add(KEY_CACHE_MAX_SIZE, options.intOption(KEY_CACHE_MAX_SIZE,
+        root.Add(KEY_CACHE_MAX_SIZE, options.asInt(KEY_CACHE_MAX_SIZE,
                                                        defaultCacheMaxSize));
-        root.Add(KEY_BAND_COUNT, options.intOption(KEY_BAND_COUNT, 3));
+        root.Add(KEY_BAND_COUNT, options.asInt(KEY_BAND_COUNT, 3));
         CPLJSONObject user;
         for(auto it = options.begin(); it != options.end(); ++it) {
-            if(EQUALN(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
-                user.Add(it->first.c_str() + USER_PREFIX_KEY_LEN, it->second);
+            if(comparePart(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+                user.Add(it->first.substr(USER_PREFIX_KEY_LEN), it->second);
             }
         }
         root.Add(USER_KEY, user);
 
-        const char* newPath = CPLResetExtension(path,
-                                    remoteConnectionExtension());
+        std::string newPath = File::resetExtension(path,
+                                                   remoteConnectionExtension());
         return connectionFile.Save(newPath);
     }
     default:
@@ -199,17 +203,22 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
     }
 }
 
-void RasterFactory::addChild(ObjectContainer * const container,
-                                    const CPLString &name,
-                                    const CPLString &path,
+void RasterFactory::addChildInternal(ObjectContainer * const container,
+                                    const std::string &name,
+                                    const std::string &path,
                                     enum ngsCatalogObjectType subType,
-                                    const std::vector<CPLString> &siblingFiles,
-                                    std::vector<const char *> * const names)
+                                    const std::vector<std::string> &siblingFiles,
+                                    std::vector<std::string> &names)
 {
     ObjectFactory::addChild(container,
                             ObjectPtr(new Raster(siblingFiles, container,
                                                  subType, name, path)));
     eraseNames(name, siblingFiles, names);
+}
+
+std::string RasterFactory::remoteConnectionExtension()
+{
+    return "wconn";
 }
 
 } // namespace ngs

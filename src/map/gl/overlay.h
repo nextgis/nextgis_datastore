@@ -4,7 +4,7 @@
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -48,11 +48,11 @@ public:
 class GlEditLayerOverlay : public EditLayerOverlay, public GlRenderOverlay
 {
 public:
-    explicit GlEditLayerOverlay(MapView* map);
-    virtual ~GlEditLayerOverlay() = default;
+    explicit GlEditLayerOverlay(MapView *map);
+    virtual ~GlEditLayerOverlay() override = default;
 
-    bool setStyleName(enum ngsEditStyleType type, const char* name);
-    bool setStyle(enum ngsEditStyleType type, const CPLJSONObject& jsonStyle);
+    bool setStyleName(enum ngsEditStyleType type, const std::string &name);
+    bool setStyle(enum ngsEditStyleType type, const CPLJSONObject &jsonStyle);
     CPLJSONObject style(enum ngsEditStyleType type) const;
 
     // Overlay interface
@@ -64,18 +64,13 @@ public:
     virtual bool undo() override;
     virtual bool redo() override;
 
-    virtual bool addPoint(OGRPoint* coordinates = nullptr) override;
-    virtual enum ngsEditDeleteType deletePoint() override;
+    virtual bool addPoint(double x, double y) override;
+    virtual enum ngsEditDeleteResult deletePoint() override;
     virtual bool addHole() override;
-    virtual enum ngsEditDeleteType deleteHole() override;
+    virtual enum ngsEditDeleteResult deleteHole() override;
     virtual bool addGeometryPart() override;
-    virtual enum ngsEditDeleteType deleteGeometryPart() override;
-
-protected:
-    virtual bool singleTap(const OGRRawPoint& mapCoordinates) override;
-    virtual bool shiftPoint(const OGRRawPoint& mapOffset) override;
-    virtual void setGeometry(GeometryUPtr geometry) override;
-    virtual void freeResources() override;
+    virtual enum ngsEditDeleteResult deleteGeometryPart() override;
+    virtual ngsPointId touch(double x, double y, enum ngsMapTouchType type) override;
 
     // GlRenderOverlay interface
 public:
@@ -83,30 +78,20 @@ public:
     virtual bool draw() override;
 
 protected:
-    void fillPoints();
-    void fillLines();
-    void fillPolygons();
     void freeGlStyle(StylePtr style);
     void freeGlBuffer(GlObjectPtr buffer);
     void freeGlBuffers();
 
 private:
-    using GetPointFunc = std::function<SimplePoint(int index)>;
-    using GetLineFunc = std::function<const OGRLineString*(int index)>;
-    using GetPolygonFunc = std::function<const OGRPolygon*(int index)>;
-    using IsSelectedGeometryFunc = std::function<bool(int index)>;
-
-    void fillPointElements(int numPoints, GetPointFunc getPointFunc,
-                           IsSelectedGeometryFunc isSelectedPointFunc);
-    void fillMedianPointElements(int numPoints, GetPointFunc getPointFunc,
-                                 IsSelectedGeometryFunc isSelectedMedianPointFunc);
-    void fillLineElements(int numLines, GetLineFunc getLineFunc,
-                          IsSelectedGeometryFunc isSelectedLineFunc,
+    void fillPointElements(const std::vector<OGRRawPoint> &points, int selectedPointId);
+    void fillMiddlePointElements(const std::vector<OGRRawPoint> &points);
+    void fillLineElements(std::vector<Line> lines, int selectedLine,
+                          int selectedPoint,
                           bool addToBuffer = false);
-    void fillLineBuffers(const OGRLineString* line, VectorGlObject* bufferArray);
-    void fillPolygonElements(int numPolygons, GetPolygonFunc getPolygonFunc,
-                             IsSelectedGeometryFunc isSelectedPolygonFunc);
-    void fillPolygonBuffers(const OGRPolygon* polygon, VectorGlObject* bufferArray);
+    void fillLineBuffers(const Line &lineline, VectorGlObject* bufferArray);
+    void fillPolygonElements(std::vector<Polygon> polygons, int selectedPart,
+                             int selectedRing, int selectedPoint);
+    void fillPolygonBuffers(const Polygon &polygon, VectorGlObject *bufferArray);
     void fillCrossElement();
 
 private:
@@ -120,11 +105,11 @@ private:
 class GlLocationOverlay : public LocationOverlay, public GlRenderOverlay
 {
 public:
-    explicit GlLocationOverlay(MapView* map);
-    virtual ~GlLocationOverlay() = default;
+    explicit GlLocationOverlay(MapView *map);
+    virtual ~GlLocationOverlay() override = default;
 
-    bool setStyleName(const char* name);
-    bool setStyle(const CPLJSONObject& style);
+    bool setStyleName(const std::string &name);
+    bool setStyle(const CPLJSONObject &style);
     CPLJSONObject style() const { return m_style->save(); }
 
     // GlRenderOverlay interface

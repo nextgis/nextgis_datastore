@@ -22,6 +22,24 @@
 
 namespace ngs {
 
+//------------------------------------------------------------------------------
+// SpatialDataset
+//------------------------------------------------------------------------------
+
+SpatialDataset::SpatialDataset() : m_spatialReference(nullptr)
+{
+}
+
+OGRSpatialReference *SpatialDataset::spatialReference() const
+{
+    return m_spatialReference;
+}
+
+
+//------------------------------------------------------------------------------
+// CoordinateTransformation
+//------------------------------------------------------------------------------
+
 CoordinateTransformation::CoordinateTransformation(
         OGRSpatialReference* srcSRS, OGRSpatialReference* dstSRS)
 {
@@ -41,6 +59,11 @@ CoordinateTransformation::~CoordinateTransformation()
                     reinterpret_cast<OGRCoordinateTransformationH>(m_oCT));
 }
 
-
+bool CoordinateTransformation::transform(OGRGeometry *geom)
+{
+    if(nullptr == m_oCT)
+        return false;
+    return geom->transform(m_oCT) == OGRERR_NONE;
+}
 
 }
