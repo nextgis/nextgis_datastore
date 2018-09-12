@@ -43,7 +43,3 @@ set_property(CACHE ANDROID_ABI PROPERTY STRINGS "armeabi" "armeabi-v7a"
 #set(ANDROID_APK_RUN "0" CACHE BOOL "Run created apk file on the device automatically? (installs it automatically as well, \"ANDROID_APK_INSTALL\"-option is ignored)")
 #set(ANDROID_APK_SIGNER_KEYSTORE	"~/my-release-key.keystore" CACHE STRING "Keystore for signing the apk file (only required for release apk)")
 #set(ANDROID_APK_SIGNER_ALIAS "myalias" CACHE STRING "Alias for signing the apk file (only required for release apk)")
-
-## TODO: Use interop instead swig
-# set(BUILD_BINDINGS ON CACHE BOOL "Build bindings")
-# set(BUILD_BINDINGS_JAVA ON CACHE BOOL "Build java bindings")

@@ -11,7 +11,7 @@ cd build
 
 # TODO: -DBUILD_TESTING=ON -DBUILD_TESTS=ON CC="arm-linux-androideabi-gcc" CXX="arm-linux-androideabi-g++" -DANDROID_ABI=x86_64
 cmake .. \
- -DANDROID_NDK=$HOME/android-ndk/android-ndk-r13b \
+ -DANDROID_NDK=$HOME/android-ndk/android-ndk-r17c \
  -DCMAKE_TOOLCHAIN_FILE=$HOME/android-ndk/android-ndk-r13b/build/cmake/android.toolchain.cmake \
  -DANDROID_ABI=armeabi-v7a \
  -DANDROID_NATIVE_API_LEVEL=9 \
