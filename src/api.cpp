@@ -350,7 +350,7 @@ char **ngsListAddNameValue(char **list, const char *name, const char *value)
 }
 
 /**
- * @brief ngsDestroyList Destroy list created using ngsAddNameValue
+ * @brief ngsDestroyList Destroy list created using ngsListAddNameValue
  * @param list The list to destroy.
  */
 void ngsListFree(char **list)

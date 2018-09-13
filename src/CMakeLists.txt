@@ -201,8 +201,6 @@ set_target_properties(${LIB_NAME} PROPERTIES
     C_VISIBILITY_PRESET hidden
 )
 
-set_property(TARGET ${LIB_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-
 target_link_extlibraries(${LIB_NAME})
 
 set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${LIB_NAME} PARENT_SCOPE)

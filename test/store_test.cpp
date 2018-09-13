@@ -48,8 +48,8 @@ int ngsGDALProgressFunc(double /*dfComplete*/, const char */*pszMessage*/,
 
 TEST(StoreTests, TestJSONSAXPArser) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -57,9 +57,9 @@ TEST(StoreTests, TestJSONSAXPArser) {
     ngsListFree(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
-    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     counter = 0;
     CPLJSONDocument doc;
     EXPECT_EQ(doc.LoadUrl("http://demo.nextgis.com/api/component/pyramid/pkg_version",

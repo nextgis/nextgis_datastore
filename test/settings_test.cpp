@@ -63,8 +63,8 @@ TEST(SettingsTests, ReadTest) {
 
 TEST(SettingsTests, Settings) {
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
