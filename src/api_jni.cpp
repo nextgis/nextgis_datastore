@@ -120,8 +120,9 @@ static int progressProxyFunc(enum ngsCode status, double complete,
     }
 
     jstring stringMessage = g_env->NewStringUTF(message);
+    long long progressArgumentsDigit = reinterpret_cast<long long>(progressArguments);
     jint res = g_env->CallStaticIntMethod(g_APIClass, g_ProgressMid, status, complete, message,
-                                          reinterpret_cast<int>(progressArguments));
+                                          static_cast<jint>(progressArgumentsDigit));
     g_env->DeleteLocalRef(stringMessage);
 
     if (g_env->ExceptionCheck()) {
