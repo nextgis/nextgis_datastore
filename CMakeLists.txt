@@ -72,6 +72,8 @@ enable_testing()
 include(FindAnyProject)
 include(extlib)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 find_package(Threads)
 set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
 

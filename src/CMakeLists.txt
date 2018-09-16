@@ -199,7 +199,6 @@ set_target_properties(${LIB_NAME} PROPERTIES
     C_STANDARD 11
     CXX_VISIBILITY_PRESET hidden
     C_VISIBILITY_PRESET hidden
-    POSITION_INDEPENDENT_CODE ON
 )
 
 target_link_extlibraries(${LIB_NAME})

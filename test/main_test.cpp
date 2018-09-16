@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
@@ -59,7 +59,7 @@ TEST(BasicTests, TestVersions) {
     EXPECT_STREQ("3.5.0-CAPI-1.9.0", ngsGetVersionString("geos"));
 
     EXPECT_EQ(3011001, ngsGetVersion("sqlite"));
-    EXPECT_STREQ("3.11.1", ngsGetVersionString("sqlite"));    
+    EXPECT_STREQ("3.11.1", ngsGetVersionString("sqlite"));
 
     EXPECT_EQ(3171, ngsGetVersion("jsonc"));
     EXPECT_STREQ("0.12.99", ngsGetVersionString("jsonc"));
@@ -92,8 +92,8 @@ TEST(BasicTests, TestVersions) {
     EXPECT_STREQ("1.0.2", ngsGetVersionString("openssl"));*/
 
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -120,8 +120,8 @@ TEST(BasicTests, TestInlines) {
 
 TEST(CatalogTests, TestCatalogQuery) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -181,8 +181,8 @@ TEST(CatalogTests, TestCatalogQuery) {
 
 TEST(CatalogTests, TestCreate) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     // TODO: GDAL_DATA, LOCALE
@@ -194,8 +194,8 @@ TEST(CatalogTests, TestCreate) {
     std::string catalogPath = ngsCatalogPathFromSystem(path.c_str());
     ASSERT_STRNE(catalogPath.c_str(), "");
 
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_DIR));
-    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_DIR));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
 
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
@@ -215,12 +215,12 @@ TEST(CatalogTests, TestCreate) {
     EXPECT_GE(count, 2);
     ngsFree(pathInfo);
 
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_RASTER_TMS));
-    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
-    options = ngsAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
-    options = ngsAddNameValue(options, "epsg", "3857");
-    options = ngsAddNameValue(options, "z_min", "0");
-    options = ngsAddNameValue(options, "z_max", "19");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_RASTER_TMS));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
+    options = ngsListAddNameValue(options, "epsg", "3857");
+    options = ngsListAddNameValue(options, "z_min", "0");
+    options = ngsListAddNameValue(options, "z_max", "19");
 
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "osm.wconn", options),
               COD_SUCCESS);
@@ -252,11 +252,11 @@ TEST(CatalogTests, TestCreate) {
 
 TEST(CatalogTests, TestAreaDownload) {
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
-    options = ngsAddNameValue(options, "CACHE_DIR",
+    options = ngsListAddNameValue(options, "CACHE_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp/cache",
                                               nullptr));
 
@@ -269,13 +269,14 @@ TEST(CatalogTests, TestAreaDownload) {
     ASSERT_STRNE(catalogPath, "");
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
 
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_RASTER_TMS));
-    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
-    options = ngsAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
-    options = ngsAddNameValue(options, "epsg", "3857");
-    options = ngsAddNameValue(options, "z_min", "0");
-    options = ngsAddNameValue(options, "z_max", "19");
-    options = ngsAddNameValue(options, "cache_expires", "300");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_RASTER_TMS));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "url", "http://bing.com/maps/default.aspx?cp={x}~{y}&lvl={z}&style=r");
+    // options = ngsListAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
+    options = ngsListAddNameValue(options, "epsg", "3857");
+    options = ngsListAddNameValue(options, "z_min", "0");
+    options = ngsListAddNameValue(options, "z_max", "19");
+    options = ngsListAddNameValue(options, "cache_expires", "300");
 
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "cache_test.wconn", options),
               COD_SUCCESS);
@@ -294,11 +295,11 @@ TEST(CatalogTests, TestAreaDownload) {
     }
 
     // Download area
-    options = ngsAddNameValue(options, "MINX", "4183837.05");
-    options = ngsAddNameValue(options, "MINY", "7505200.05");
-    options = ngsAddNameValue(options, "MAXX", "4192825.05");
-    options = ngsAddNameValue(options, "MAXY", "7513067.05");
-    options = ngsAddNameValue(options, "ZOOM_LEVELS", "12,13");
+    options = ngsListAddNameValue(options, "MINX", "4183837.05");
+    options = ngsListAddNameValue(options, "MINY", "7505200.05");
+    options = ngsListAddNameValue(options, "MAXX", "4192825.05");
+    options = ngsListAddNameValue(options, "MAXY", "7513067.05");
+    options = ngsListAddNameValue(options, "ZOOM_LEVELS", "8,9");
 
     EXPECT_EQ(ngsRasterCacheArea(osmRaster, options, nullptr, nullptr),
               COD_SUCCESS);
@@ -310,8 +311,8 @@ TEST(CatalogTests, TestAreaDownload) {
 
 TEST(CatalogTests, TestDelete) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -338,8 +339,8 @@ TEST(CatalogTests, TestDelete) {
 
 TEST(DataStoreTests, TestCreateDataStore) {
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -350,8 +351,8 @@ TEST(DataStoreTests, TestCreateDataStore) {
     std::string catalogPath = ngsCatalogPathFromSystem(path.c_str());
     ASSERT_STRNE(catalogPath.c_str(), "");
 
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
-    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
     EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);
     ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
@@ -369,8 +370,8 @@ TEST(DataStoreTests, TestCreateDataStore) {
 
 TEST(DataStoreTests, TestOpenDataStore) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -400,8 +401,8 @@ TEST(DataStoreTests, TestLoadDataStore) {
     counter = 0;
 
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -416,7 +417,7 @@ TEST(DataStoreTests, TestLoadDataStore) {
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath.c_str());
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
@@ -430,8 +431,8 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     counter = 0;
 
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -456,8 +457,8 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     counter = 0;
 
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -472,8 +473,8 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
-    options = ngsAddNameValue(options, "NEW_NAME", "delete_me");
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "ON");
+    options = ngsListAddNameValue(options, "NEW_NAME", "delete_me");
 
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
@@ -485,8 +486,8 @@ TEST(DataStoreTests, TestLoadAndDelete) {
 
     counter = 0;
     options = nullptr;
-    options = ngsAddNameValue(options, "FORCE", "ON");
-    options = ngsAddNameValue(options, "ZOOM_LEVELS",
+    options = ngsListAddNameValue(options, "FORCE", "ON");
+    options = ngsListAddNameValue(options, "ZOOM_LEVELS",
                               "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
     EXPECT_EQ(ngsFeatureClassCreateOverviews(newFC1, options, ngsTestProgressFunc, nullptr), COD_SUCCESS);
     EXPECT_GE(counter, 1);
@@ -512,8 +513,8 @@ TEST(DataStoreTests, TestCopyFCToGeoJSON) {
     counter = 0;
 
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -529,8 +530,8 @@ TEST(DataStoreTests, TestCopyFCToGeoJSON) {
     CatalogObjectH json = ngsCatalogObjectGet(jsonPath);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GEOJSON));
-    options = ngsAddNameValue(options, "OVERWRITE", "ON");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GEOJSON));
+    options = ngsListAddNameValue(options, "OVERWRITE", "ON");
     EXPECT_EQ(ngsCatalogObjectCopy(store, json, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
 
@@ -541,8 +542,8 @@ TEST(DataStoreTests, TestCopyFCToGeoJSON) {
 
 TEST(DataStoreTests, TestCreateFeatureClass) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -557,24 +558,24 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     ngsFree(pathInfo);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
-    options = ngsAddNameValue(options, "USER.SOURCE_URL", "https://nextgis.com");
-    options = ngsAddNameValue(options, "USER.SOURCE_SRS", "4326");
-    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "POINT");
-    options = ngsAddNameValue(options, "FIELD_COUNT", "4");
-    options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
-    options = ngsAddNameValue(options, "FIELD_0_NAME", "type");
-    options = ngsAddNameValue(options, "FIELD_0_ALIAS", "тип");
-    options = ngsAddNameValue(options, "FIELD_1_TYPE", "STRING");
-    options = ngsAddNameValue(options, "FIELD_1_NAME", "desc");
-    options = ngsAddNameValue(options, "FIELD_1_ALIAS", "описание");
-    options = ngsAddNameValue(options, "FIELD_2_TYPE", "REAL");
-    options = ngsAddNameValue(options, "FIELD_2_NAME", "val");
-    options = ngsAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
-    options = ngsAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
-    options = ngsAddNameValue(options, "FIELD_3_NAME", "date");
-    options = ngsAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
-    options = ngsAddNameValue(options, "LOG_EDIT_HISTORY", "ON");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
+    options = ngsListAddNameValue(options, "USER.SOURCE_URL", "https://nextgis.com");
+    options = ngsListAddNameValue(options, "USER.SOURCE_SRS", "4326");
+    options = ngsListAddNameValue(options, "GEOMETRY_TYPE", "POINT");
+    options = ngsListAddNameValue(options, "FIELD_COUNT", "4");
+    options = ngsListAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsListAddNameValue(options, "FIELD_0_NAME", "type");
+    options = ngsListAddNameValue(options, "FIELD_0_ALIAS", "тип");
+    options = ngsListAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsListAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsListAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsListAddNameValue(options, "FIELD_2_TYPE", "REAL");
+    options = ngsListAddNameValue(options, "FIELD_2_NAME", "val");
+    options = ngsListAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
+    options = ngsListAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
+    options = ngsListAddNameValue(options, "FIELD_3_NAME", "date");
+    options = ngsListAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
+    options = ngsListAddNameValue(options, "LOG_EDIT_HISTORY", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options), COD_SUCCESS);
     ngsListFree(options);
@@ -583,20 +584,20 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     EXPECT_NE(newFC, nullptr);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
-    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "LINESTRING");
-    options = ngsAddNameValue(options, "FIELD_COUNT", "3");
-    options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
-    options = ngsAddNameValue(options, "FIELD_0_NAME", "id");
-    options = ngsAddNameValue(options, "FIELD_0_ALIAS", "идентификатор");
-    options = ngsAddNameValue(options, "FIELD_1_TYPE", "STRING");
-    options = ngsAddNameValue(options, "FIELD_1_NAME", "desc");
-    options = ngsAddNameValue(options, "FIELD_1_ALIAS", "описание");
-    options = ngsAddNameValue(options, "FIELD_2_TYPE", "DATE_TIME");
-    options = ngsAddNameValue(options, "FIELD_2_NAME", "date");
-    options = ngsAddNameValue(options, "FIELD_2_ALIAS", "Это дата");
-    options = ngsAddNameValue(options, "CREATE_OVERVIEWS", "ON");
-    options = ngsAddNameValue(options, "ZOOM_LEVELS", "3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPKG));
+    options = ngsListAddNameValue(options, "GEOMETRY_TYPE", "LINESTRING");
+    options = ngsListAddNameValue(options, "FIELD_COUNT", "3");
+    options = ngsListAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsListAddNameValue(options, "FIELD_0_NAME", "id");
+    options = ngsListAddNameValue(options, "FIELD_0_ALIAS", "идентификатор");
+    options = ngsListAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsListAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsListAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsListAddNameValue(options, "FIELD_2_TYPE", "DATE_TIME");
+    options = ngsListAddNameValue(options, "FIELD_2_NAME", "date");
+    options = ngsListAddNameValue(options, "FIELD_2_ALIAS", "Это дата");
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "ON");
+    options = ngsListAddNameValue(options, "ZOOM_LEVELS", "3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18");
 
     EXPECT_EQ(ngsCatalogObjectCreate(store, "r_1502560461_99719", options), COD_SUCCESS);
     ngsListFree(options);
@@ -610,8 +611,8 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
 
 TEST(DataStoreTests, TestCreateFeature) {
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -745,8 +746,8 @@ TEST(DataStoreTests, TestCreateFeature) {
 
 TEST(DataStoreTest, TestCreateVectorOverviews) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -764,8 +765,8 @@ TEST(DataStoreTest, TestCreateVectorOverviews) {
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     // Create overviews
     options = nullptr;
-    options = ngsAddNameValue(options, "FORCE", "ON");
-    options = ngsAddNameValue(options, "ZOOM_LEVELS",
+    options = ngsListAddNameValue(options, "FORCE", "ON");
+    options = ngsListAddNameValue(options, "ZOOM_LEVELS",
                               "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
 
     CPLString cpdShapePath = catalogPath + "/tmp/bld.shp";
@@ -783,11 +784,10 @@ TEST(DataStoreTest, TestCreateVectorOverviews) {
     EXPECT_EQ(VSIStatL(path, &sbuf), 0);
 }
 
-
 TEST(DataStoreTest, TestCreateMemoryDatasource) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -800,8 +800,8 @@ TEST(DataStoreTest, TestCreateMemoryDatasource) {
     CPLString storePath = catalogPath + "/tmp";
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
 
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_MEM));
-    options = ngsAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_MEM));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     EXPECT_EQ(ngsCatalogObjectCreate(store, "test_mem", options), COD_SUCCESS);
     CatalogObjectH newStore = ngsCatalogObjectGet(CPLString(storePath + "/test_mem.ngmem"));
     EXPECT_NE(newStore, nullptr);
@@ -810,23 +810,23 @@ TEST(DataStoreTest, TestCreateMemoryDatasource) {
     ngsListFree(options);
     options = nullptr;
 
-    options = ngsAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_MEM));
-    options = ngsAddNameValue(options, "EPSG", "3857");
-    options = ngsAddNameValue(options, "LCO.ADVERTIZE_UTF8", "ON");
-    options = ngsAddNameValue(options, "GEOMETRY_TYPE", "POINT");
-    options = ngsAddNameValue(options, "FIELD_COUNT", "4");
-    options = ngsAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
-    options = ngsAddNameValue(options, "FIELD_0_NAME", "type");
-    options = ngsAddNameValue(options, "FIELD_0_ALIAS", "тип");
-    options = ngsAddNameValue(options, "FIELD_1_TYPE", "STRING");
-    options = ngsAddNameValue(options, "FIELD_1_NAME", "desc");
-    options = ngsAddNameValue(options, "FIELD_1_ALIAS", "описание");
-    options = ngsAddNameValue(options, "FIELD_2_TYPE", "REAL");
-    options = ngsAddNameValue(options, "FIELD_2_NAME", "val");
-    options = ngsAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
-    options = ngsAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
-    options = ngsAddNameValue(options, "FIELD_3_NAME", "date");
-    options = ngsAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_MEM));
+    options = ngsListAddNameValue(options, "EPSG", "3857");
+    options = ngsListAddNameValue(options, "LCO.ADVERTIZE_UTF8", "ON");
+    options = ngsListAddNameValue(options, "GEOMETRY_TYPE", "POINT");
+    options = ngsListAddNameValue(options, "FIELD_COUNT", "4");
+    options = ngsListAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsListAddNameValue(options, "FIELD_0_NAME", "type");
+    options = ngsListAddNameValue(options, "FIELD_0_ALIAS", "тип");
+    options = ngsListAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsListAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsListAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsListAddNameValue(options, "FIELD_2_TYPE", "REAL");
+    options = ngsListAddNameValue(options, "FIELD_2_NAME", "val");
+    options = ngsListAddNameValue(options, "FIELD_2_ALIAS", "плавающая точка");
+    options = ngsListAddNameValue(options, "FIELD_3_TYPE", "DATE_TIME");
+    options = ngsListAddNameValue(options, "FIELD_3_NAME", "date");
+    options = ngsListAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
 
     EXPECT_EQ(ngsCatalogObjectCreate(newStore, "new_layer", options), COD_SUCCESS);
     ngsListFree(options);
@@ -839,8 +839,8 @@ TEST(DataStoreTest, TestCreateMemoryDatasource) {
 
 TEST(DataStoreTests, TestDeleteDataStore) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -860,8 +860,8 @@ constexpr const char* DEFAULT_MAP_NAME = "new map";
 
 TEST(MapTests, MapSave) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -898,8 +898,8 @@ TEST(MapTests, MapSave) {
 
 TEST(MapTests, MapOpen) {
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
@@ -941,20 +941,20 @@ TEST(MapTests, MapOpen) {
 
 TEST(MiscTests, TestURLRequest) {
     char **options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
-    // options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
+    // options = ngsListAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
     ngsListFree(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
-    options = ngsAddNameValue(options, "TIMEOUT", "20");
-    options = ngsAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
-    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+    options = ngsListAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsListAddNameValue(options, "TIMEOUT", "20");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
 
     ngsURLRequestResult *result = ngsURLRequest(URT_GET,
                                                "http://ya.ru", options);
@@ -964,11 +964,11 @@ TEST(MiscTests, TestURLRequest) {
     ngsListFree(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
-    options = ngsAddNameValue(options, "TIMEOUT", "20");
-    options = ngsAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
-    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+    options = ngsListAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsListAddNameValue(options, "TIMEOUT", "20");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     result = ngsURLRequest(URT_GET,
             "http://demo.nextgis.com/api/component/pyramid/pkg_version", options);
     ngsListFree(options);
@@ -981,11 +981,11 @@ TEST(MiscTests, TestURLRequest) {
     ngsURLRequestResultFree(result);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
-    options = ngsAddNameValue(options, "TIMEOUT", "20");
-    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
-    options = ngsAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsListAddNameValue(options, "TIMEOUT", "20");
+    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
     result = ngsURLRequest(URT_GET,
             "https://nextgis.com", options);
 
@@ -995,10 +995,10 @@ TEST(MiscTests, TestURLRequest) {
     ngsListFree(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
-    options = ngsAddNameValue(options, "TIMEOUT", "20");
-    options = ngsAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "CONNECTTIMEOUT", "15");
+    options = ngsListAddNameValue(options, "TIMEOUT", "20");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
     result = ngsURLRequest(URT_GET,
             "http://tile.openstreetmap.org/9/309/160.png", options);
 
@@ -1017,20 +1017,20 @@ TEST(MiscTests, TestURLRequest) {
 
 TEST(MiscTests, TestJSONURLLoad) {
     char** options = nullptr;
-    options = ngsAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsAddNameValue(options, "SETTINGS_DIR",
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
-    // options = ngsAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
+    // options = ngsListAddNameValue(options, "SSL_CERT_FILE", "~/tmp/no.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
     ngsListFree(options);
 
     options = nullptr;
-    options = ngsAddNameValue(options, "CONNECTTIMEOUT", "15");
-    options = ngsAddNameValue(options, "TIMEOUT", "20");
-    options = ngsAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsAddNameValue(options, "RETRY_DELAY", "5");
-    options = ngsAddNameValue(options, "UNSAFESSL", "ON");
+    options = ngsListAddNameValue(options, "CONNECTTIMEOUT", "20");
+    options = ngsListAddNameValue(options, "TIMEOUT", "20");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
 
     JsonDocumentH doc = ngsJsonDocumentCreate();
     ASSERT_NE(doc, nullptr);
@@ -1042,17 +1042,16 @@ TEST(MiscTests, TestJSONURLLoad) {
     EXPECT_GE(counter, 1);
     ngsListFree(options);
 
-
     JSONObjectH root = ngsJsonDocumentRoot(doc);
     ASSERT_NE(root, nullptr);
 
     JSONObjectH ngwVersion = ngsJsonObjectGetObject(root, "nextgisweb");
     ASSERT_NE(ngwVersion, nullptr);
 
-    CPLString version = ngsJsonObjectGetString(ngwVersion, "0");
-    EXPECT_STRNE(version, "0");
+    EXPECT_STRNE("0", ngsJsonObjectGetString(ngwVersion, "0"));
 
     ngsJsonObjectFree(ngwVersion);
+
     ngsJsonObjectFree(root);
     ngsJsonDocumentFree(doc);
 

@@ -10,4 +10,4 @@ cmake --build . --config release -- -j 4
 # ./main_test
 # cd ..
 # cmake --build . --config release --target test
-ctest -V
+ctest --output-on-failure

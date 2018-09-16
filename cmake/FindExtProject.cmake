@@ -390,7 +390,7 @@ function(find_extproject name)
         INSTALL_DIR ${EXT_INSTALL_DIR}
         GIT_REPOSITORY ${repo_url}
         GIT_TAG ${repo_branch}
-        GIT_SHALLOW TRUE
+        # GIT_SHALLOW TRUE Failed in googletest update step
         CMAKE_ARGS ${find_extproject_CMAKE_ARGS}
         UPDATE_DISCONNECTED ${EXT_UPDATE_DISCONNECTED}
         DOWNLOAD_COMMAND "" # Git clone is executed below

@@ -20,10 +20,6 @@ matrix:
       language: cpp
       dist: trusty
       sudo: required
-    #  cache:
-    #    apt: true
-    #    directories:
-    #      - $HOME/.ccache
       env:
         - BUILD_NAME=linux_gcc
         - DETAILS=""
@@ -32,57 +28,41 @@ matrix:
       language: cpp
       dist: trusty
       sudo: required
-    #  cache:
-    #    apt: true
-    #    directories:
-    #      - $HOME/.ccache
       env:
         - BUILD_NAME=linux_clang
         - DETAILS=""
-    - osx_image: xcode8.3
-      language: objective-c
-      compiler: clang
-     # cache:
-     #   apt: true
-     #   directories:
-     #     - $HOME/.ccache
-      env:
-        - BUILD_NAME=osx
-        - DETAILS=""
-    - os: linux
-      compiler: gcc
-      language: cpp
-      sudo: true
-      dist: trusty
-      cache:
-    #    apt: true
-        directories:
-    #      - $HOME/.ccache
-          - $HOME/downloads
-    #  apt:
-    #    packages:
-    #      - ccache
-    #      - swig
-      env:
-        - BUILD_NAME=android
-        - DETAILS=""
-    - os: linux
-      compiler: clang
-      language: cpp
-      sudo: true
-      dist: trusty
-      cache:
-    #    apt: true
-        directories:
-    #      - $HOME/.ccache
-          - $HOME/downloads
-    #  apt:
-    #    packages:
-    #      - ccache
-    #      - swig
-      env:
-        - BUILD_NAME=android_cmake
-        - DETAILS=""
+    # - osx_image: xcode8.3
+    #   language: objective-c
+    #   compiler: clang
+    #   env:
+    #     - BUILD_NAME=osx
+    #     - DETAILS=""
+    # - os: linux
+    #   compiler: gcc
+    #   language: cpp
+    #   sudo: true
+    #   dist: trusty
+    #   cache:
+    # #    apt: true
+    #     directories:
+    # #      - $HOME/.ccache
+    #       - $HOME/downloads
+    #   env:
+    #     - BUILD_NAME=android
+    #     - DETAILS=""
+    # - os: linux
+    #   compiler: clang
+    #   language: cpp
+    #   sudo: true
+    #   dist: trusty
+    #   cache:
+    # #    apt: true
+    #     directories:
+    # #      - $HOME/.ccache
+    #       - $HOME/downloads
+    #   env:
+    #     - BUILD_NAME=android_cmake
+    #     - DETAILS=""
 
 install:
   - ./ci/travis/${BUILD_NAME}/install.sh
