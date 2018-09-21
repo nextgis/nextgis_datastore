@@ -34,14 +34,6 @@ if(BUILD_TESTS)
         ${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/include)
 
-    # find_package(Threads)
-    # set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
-    #
-    # find_library(DL_LIB dl)
-    # set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${DL_LIB})
-    # find_library(M_LIB m)
-    # set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${M_LIB})
-
     link_directories(${LINK_SEARCH_PATHS})
 
     set(HHEADERS
@@ -79,6 +71,15 @@ endif()"
             CXX_STANDARD 11
             C_STANDARD 11
         )
+
+        if(APPLE)
+            # For debug
+            add_custom_command(TARGET ${exe_name}
+                POST_BUILD COMMAND
+                ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "~/Applications/NextGIS/Library/Frameworks/"
+                $<TARGET_FILE:${exe_name}>)
+        endif()
+
         add_test(NAME ${name} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${exe_name})
     endmacro ()
 

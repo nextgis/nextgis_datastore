@@ -117,7 +117,7 @@ NGS_EXTERNC const char *ngsGetCurrentDirectory();
 NGS_EXTERNC char **ngsListAddNameValue(char **list, const char *name,
                                    const char *value);
 NGS_EXTERNC void ngsListFree(char **list);
-NGS_EXTERNC const char* ngsFormFileName(const char *path, const char *name,
+NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension);
 NGS_EXTERNC void ngsFree(void *pointer);
 
@@ -514,4 +514,40 @@ NGS_EXTERNC JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId);
 ///** Map canvas functions */
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
+
+/**
+ * QMS
+ */
+
+typedef struct _ngsQMSItem
+{
+    int id;
+    const char *name;
+    const char *desc;
+    enum ngsCatalogObjectType type; /**< May be CAT_RASTER_TMS, CAT_RASTER_WMS, CAT_FC_GEOJSON */
+    const char *iconUrl;
+    enum ngsCode status; /**< May be COD_SUCCESS, COD_WARNING, COD_REQUEST_FAILED */
+    ngsExtent extent;
+} ngsQMSItem;
+
+NGS_EXTERNC ngsQMSItem *ngsQMSQuery(char **options);
+
+typedef struct _ngsQMSItemProperties
+{
+    int id;
+    enum ngsCode status; /**< May be COD_SUCCESS, COD_WARNING, COD_REQUEST_FAILED */
+    const char *url;
+    const char *name;
+    const char *desc;
+    enum ngsCatalogObjectType type; /**< May be CAT_RASTER_TMS, CAT_RASTER_WMS, CAT_FC_GEOJSON */
+    int EPSG;
+    int z_min;
+    int z_max;
+    const char *iconUrl;
+    ngsExtent extent;
+    char y_origin_top;
+} ngsQMSItemProperties;
+
+NGS_EXTERNC ngsQMSItemProperties ngsQMSQueryProperties(int itemId);
+
 #endif // NGSAPI_H

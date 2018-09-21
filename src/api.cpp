@@ -51,6 +51,8 @@
 #include "util/url.h"
 #include "util/versionutil.h"
 
+#include <catalog/folder.h>
+
 using namespace ngs;
 
 constexpr const char *HTTP_TIMEOUT = "10";
@@ -144,18 +146,23 @@ static void initGDAL(const char *dataPath, const char *cachePath)
     //SetCSVFilenameHook( CSVFileOverride );
 }
 
-static std::vector<std::vector<char>> cStrings;
+static Mutex gMutex;
+static std::vector<void*> cStrings;
 static const char *storeCString(const std::string &str)
 {
-    std::vector<char> charName(str.begin(), str.end());
-    charName.push_back('\0');
-    cStrings.push_back(charName);
-    return &cStrings.back()[0];
+    char *data = CPLStrdup(str.c_str());
+    MutexHolder holder(gMutex);
+    cStrings.push_back(data);
+    return data;
 }
 
 static void clearCStrings()
 {
     if(cStrings.size() > 150) {
+        MutexHolder holder(gMutex);
+        for(size_t i = 0; i < 75; ++i) {
+            CPLFree(cStrings[i]);
+        }
         cStrings.erase(cStrings.begin(), cStrings.begin() + 75);
     }
 }
@@ -236,6 +243,12 @@ int ngsInit(char **options)
         return outMessage(COD_NOT_SPECIFIED, _("GDAL_DATA option is required"));
     }
 #endif
+
+    if(nullptr != cachePath) {
+        if(!Folder::isExists(cachePath)) {
+            Folder::mkDir(cachePath, true);
+        }
+    }
 
     initGDAL(dataPath, cachePath);
 
@@ -915,34 +928,23 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
     ngsCatalogObjectInfo *output = nullptr;
     size_t outputSize = 0;
     ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
-    if(!container) {
-//        if(!objectFilter.canDisplay(catalogObjectPointer)) {
-            return nullptr;
-//        }
-
-//        output = static_cast<ngsCatalogObjectInfo*>(
-//                    CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-//        output[0] = {catalogObject->name(), catalogObject->type(), catalogObject};
-//        output[1] = {nullptr, -1, nullptr};
-//        return output;
+    if(!container || !objectFilter.canDisplay(catalogObjectPointer)) {
+        return nullptr;
     }
 
     clearCStrings();
 
-    container->loadChildren();
-    if(!container->hasChildren()) {
-        if(container->type() == CAT_CONTAINER_SIMPLE) {
-            SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
-            output = static_cast<ngsCatalogObjectInfo*>(
-                                    CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-            output[0] = {storeCString(catalogObject->name()),
-                         simpleDS->subType(), catalogObject};
-            output[1] = {nullptr, -1, nullptr};
-            return output;
-        }
-        return nullptr;
+    if(container->type() == CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
+        output = static_cast<ngsCatalogObjectInfo*>(
+                                CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
+        output[0] = {storeCString(catalogObject->name()),
+                     simpleDS->subType(), catalogObject};
+        output[1] = {nullptr, -1, nullptr};
+        return output;
     }
 
+    container->loadChildren();
     auto children = container->getChildren();
     if(children.empty()) {
         return nullptr;
@@ -953,9 +955,6 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
             SimpleDataset *simpleDS = nullptr;
             if(child->type() == CAT_CONTAINER_SIMPLE) {
                 simpleDS = ngsDynamicCast(SimpleDataset, child);
-                if(simpleDS && !simpleDS->loadChildren()) {
-                    continue;
-                }
             }
 
             outputSize++;
@@ -965,7 +964,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
             const char *name = storeCString(child->name());
             if(simpleDS) {
                 output[outputSize - 1] = {name, simpleDS->subType(),
-                                          simpleDS->internalObject().get()};
+                                          child.get()};
             }
             else {
                 output[outputSize - 1] = {name, child->type(), child.get()};
@@ -3525,3 +3524,257 @@ JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId)
 //    initMapStore();
 //    return gMapStore->getDisplayLength (mapId, w, h);
 //}
+
+constexpr const char *qmsAPIURL = "https://qms.nextgis.com/api/v1/";
+
+static enum ngsCode qmsStatusToCode(const std::string &status)
+{
+    if(status.empty()) {
+        return COD_REQUEST_FAILED;
+    }
+
+    if(EQUAL(status.c_str(), "works")) {
+        return COD_SUCCESS;
+    }
+
+    if(EQUAL(status.c_str(), "problematic")) {
+        return COD_WARNING;
+    }
+
+    return COD_REQUEST_FAILED;
+}
+
+static enum ngsCatalogObjectType qmsTypeToCode(const std::string &type)
+{
+    if(type.empty()) {
+        return CAT_UNKNOWN;
+    }
+
+    if(EQUAL(type.c_str(), "tms")) {
+        return CAT_RASTER_TMS;
+    }
+
+    if(EQUAL(type.c_str(), "wms")) {
+        return CAT_CONTAINER_WMS;
+    }
+
+    if(EQUAL(type.c_str(), "wfs")) {
+        return CAT_CONTAINER_WFS;
+    }
+
+    if(EQUAL(type.c_str(), "geojson")) {
+        return CAT_FC_GEOJSON;
+    }
+
+    return CAT_UNKNOWN;
+}
+
+static ngsExtent qmsExtentToStruct(const std::string &extent)
+{
+    ngsExtent out = {DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.minY(),
+                     DEFAULT_BOUNDS.maxX(), DEFAULT_BOUNDS.maxY()};
+/*    if(extent.empty()) {
+        return out;
+    }
+    // Drop SRID part - 10 chars
+    std::string wkt = extent.substr(10);
+    OGRGeometry *poGeom = nullptr;
+    OGRSpatialReference srsWGS;
+    srsWGS.importFromEPSG(4326);
+    if(OGRGeometryFactory::createFromWkt(wkt.c_str(), &srsWGS, &poGeom) !=
+            OGRERR_NONE ) {
+        OGRSpatialReference srsWebMercator;
+        srsWebMercator.importFromEPSG(3857);
+        if(poGeom->transformTo(&srsWebMercator) != OGRERR_NONE) {
+            OGREnvelope env;
+            poGeom->getEnvelope(&env);
+            out = {env.MinX, env.MinY, env.MaxX, env.MaxY};
+        }
+    }
+*/    return out;
+}
+
+/**
+ * @brief ngsQMSQuery Query QuickMapservices for specific geoservices
+ * @param options key-value list. All keys are optional. Available keys are:
+ *  type - services type. May be tms, wms, wfs, geojson
+ *  epsg - services spatial reference EPSG code
+ *  cumulative_status - services status. May be works, problematic, failed
+ *  search - search string for a specific geoserver
+ *  intersects_extent - only services bounding boxes intersecting privided
+ *                      extents will return. Extent mast be in WKT or EWKT format.
+ *  ordering - an order in which services will return. May be name, -name, id,
+ *             -id, created_at, -created_at, updated_at, -updated_at
+ *  limit - return services maximum count. Works together with offset.
+ *  offset - offset from the begining of the return list. Works together with limit.
+ * @return
+ */
+ngsQMSItem *ngsQMSQuery(char **options)
+{
+    Options opt(options);
+    std::string url(qmsAPIURL);
+    url.append("geoservices/");
+    bool firstParam = true;
+
+    std::string val = opt.asString("type");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?type=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&type=" + val);
+        }
+    }
+
+    val = opt.asString("epsg");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?epsg=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&epsg=" + val);
+        }
+    }
+
+    val = opt.asString("cumulative_status");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?cumulative_status=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&cumulative_status=" + val);
+        }
+    }
+
+    val = opt.asString("search");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?search=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&search=" + val);
+        }
+    }
+
+    val = opt.asString("intersects_extent");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?intersects_extent=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&intersects_extent=" + val);
+        }
+    }
+
+    val = opt.asString("ordering");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?ordering=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&ordering=" + val);
+        }
+    }
+
+    val = opt.asString("limit", "20");
+    if(firstParam) {
+        url.append("?limit=" + val);
+        firstParam = false;
+    }
+    else {
+        url.append("&limit=" + val);
+    }
+
+    val = opt.asString("offset", "0");
+    if(firstParam) {
+        url.append("?offset=" + val);
+        firstParam = false;
+    }
+    else {
+        url.append("&offset=" + val);
+    }
+
+    ngsQMSItem *out = nullptr;
+    CPLJSONDocument qmsItem;
+    if(qmsItem.LoadUrl(url, nullptr)) {
+        clearCStrings();
+        CPLJSONObject root = qmsItem.GetRoot();
+        CPLJSONArray services = root.GetArray("results");
+        size_t size = static_cast<size_t>(services.Size() + 1);
+        out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem) * size));
+        ngsExtent ext;
+        for(int i = 0; i < services.Size(); ++i) {
+            CPLJSONObject service = services[i];
+            int iconId = service.GetInteger("icon", -1);
+            std::string iconUrl;
+            if(iconId != -1) {
+                iconUrl = storeCString(std::string(qmsAPIURL) + "icons/" +
+                                       std::to_string(iconId) + "/content");
+            }
+
+            out[i] = { service.GetInteger("id"),
+                       storeCString(service.GetString("name")),
+                       storeCString(service.GetString("desc")),
+                       qmsTypeToCode(service.GetString("type")),
+                       storeCString(iconUrl),
+                       qmsStatusToCode(service.GetString("status")),
+                       qmsExtentToStruct(service.GetString("extent"))
+                     };
+
+        }
+
+        out[services.Size()] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED,
+                ext};
+    }
+    else {
+        out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem)));
+        ngsExtent ext;
+        out[0] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED, ext};
+
+    }
+
+    return out;
+}
+
+/**
+ * @brief ngsQMSQueryProperties Get QuickMapServices geoservice details
+ * @param itemId QuickMapServices geoservice identifier
+ * @return struct of type ngsQMSItemProperties
+ */
+ngsQMSItemProperties ngsQMSQueryProperties(int itemId)
+{
+    ngsQMSItemProperties out = {-1, COD_REQUEST_FAILED, "", "", "", CAT_UNKNOWN,
+                                -1, -1, -1, "", {0.0, 0.0, 0.0, 0.0}, 0};
+    CPLJSONDocument qmsItem;
+    if(qmsItem.LoadUrl(std::string(qmsAPIURL) + "geoservices/" +
+                    std::to_string(itemId), nullptr)) {
+
+        clearCStrings();
+
+        out.id = itemId;
+        CPLJSONObject root = qmsItem.GetRoot();
+        out.status = qmsStatusToCode(root.GetString("cumulative_status", "failed"));
+        out.url = storeCString(root.GetString("url"));
+        out.name = storeCString(root.GetString("name"));
+        out.desc = storeCString(root.GetString("desc"));
+        out.type = qmsTypeToCode(root.GetString("type"));
+        out.EPSG = root.GetInteger("epsg", 3857);
+        out.z_min = root.GetInteger("z_min", 0);
+        out.z_max = root.GetInteger("z_max", 20);
+        int iconId = root.GetInteger("icon", -1);
+        if(iconId != -1) {
+            out.iconUrl = storeCString(std::string(qmsAPIURL) + "icons/" +
+                                       std::to_string(iconId) + "/content");
+        }
+        out.y_origin_top = root.GetBool("y_origin_top");
+        out.extent = qmsExtentToStruct(root.GetString("extent"));
+    }
+
+    return out;
+}

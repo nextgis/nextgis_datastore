@@ -39,7 +39,7 @@ MapTransform::MapTransform(int width, int height) :
     m_YAxisInverted(false),
     m_XAxisLooped(true),
     m_extraZoom(0),
-    m_scaleMax(14.0), //std::numeric_limits<double>::max()),
+    m_scaleMax(std::numeric_limits<double>::max()), //14.0), //
     m_scaleMin(std::numeric_limits<double>::min()),
     m_extentLimit(DEFAULT_BOUNDS_Y2X4),
     m_reduceFactor(1.0)

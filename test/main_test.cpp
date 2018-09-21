@@ -119,7 +119,7 @@ TEST(BasicTests, TestInlines) {
 }
 
 TEST(CatalogTests, TestCatalogQuery) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -180,7 +180,7 @@ TEST(CatalogTests, TestCatalogQuery) {
 }
 
 TEST(CatalogTests, TestCreate) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",

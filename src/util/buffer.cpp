@@ -38,7 +38,7 @@ Buffer::Buffer() :
 
 }
 
-Buffer::Buffer(GByte* data, int size, bool own) :
+Buffer::Buffer(GByte *data, int size, bool own) :
     m_size(size),
     m_mallocSize(size),
     m_data(data),

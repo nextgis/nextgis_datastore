@@ -31,19 +31,19 @@ class Buffer
 {
 public:
     Buffer();
-    Buffer(GByte* data, int size, bool own = true);
+    Buffer(GByte *data, int size, bool own = true);
     ~Buffer();
 
     // getters
-    GByte* data() const { return m_data; }
+    GByte *data() const { return m_data; }
     int size() const { return m_size; }
 
-    Buffer& put(GUInt32 val);
-    Buffer& put(float val);
-    Buffer& put(GByte val);
-    Buffer& put(GUInt16 val);
-    Buffer& put(GUIntBig val);
-    Buffer& put(GIntBig val);
+    Buffer &put(GUInt32 val);
+    Buffer &put(float val);
+    Buffer &put(GByte val);
+    Buffer &put(GUInt16 val);
+    Buffer &put(GUIntBig val);
+    Buffer &put(GIntBig val);
 
     GUInt32 getULong();
     float getFloat();
@@ -57,7 +57,7 @@ public:
 private:
     int m_size;
     int m_mallocSize;
-    GByte* m_data;
+    GByte *m_data;
     size_t m_currentPos;
     bool m_own;
 };
