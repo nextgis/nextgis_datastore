@@ -32,7 +32,6 @@
 #include "program.h"
 
 #include "ds/geometry.h"
-#include "map/matrix.h"
 #include "ngstore/api.h"
 
 namespace ngs
@@ -54,7 +53,7 @@ public:
 public:
     Style();
     virtual ~Style() override = default;
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type);
     virtual void draw(const GlBuffer &buffer) const;
     virtual bool load(const CPLJSONObject &store) = 0;
@@ -99,7 +98,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual bool load(const CPLJSONObject &store) override;
     virtual CPLJSONObject save() const override;
@@ -174,7 +173,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer &buffer) const override;
     virtual std::string name() const override { return "simplePoint"; }
@@ -207,7 +206,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
@@ -268,7 +267,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
@@ -297,7 +296,7 @@ public:
     // Style interface
 public:
     virtual void draw(const GlBuffer &buffer) const override;
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual std::string name() const override { return "simpleFill"; }
 
@@ -333,7 +332,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;
@@ -357,7 +356,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer &buffer) const override;
 
@@ -395,7 +394,7 @@ public:
 
     // Style interface
 public:
-    virtual bool prepare(const Matrix4 &msMatrix, const Matrix4 &vsMatrix,
+    virtual bool prepare(const glm::mat4 &msMatrix, const glm::mat4 &vsMatrix,
                          enum GlBuffer::BufferType type) override;
     virtual void draw(const GlBuffer &buffer) const override;
     virtual bool load(const CPLJSONObject &store) override;

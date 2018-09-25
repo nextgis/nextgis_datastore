@@ -65,11 +65,8 @@ GlView::GlView(const std::string &name, const std::string &description,
 
 void GlView::clearTiles()
 {
-    auto it = m_tiles.begin();
-    while(it != m_tiles.end()) {
-        (*it)->destroy();
-        it = m_tiles.erase(it);
-    }
+    std::for_each(m_tiles.begin(), m_tiles.end(), [](GlTilePtr &tile){ tile->destroy(); });
+    m_tiles.clear();
 }
 
 void GlView::setBackgroundColor(const ngsRGBA &color)
@@ -93,7 +90,7 @@ bool GlView::close()
 void GlView::clearBackground()
 {
     ngsCheckGLError(glClearColor(m_glBkColor.r, m_glBkColor.g, m_glBkColor.b,
-                                  m_glBkColor.a));
+                                 m_glBkColor.a));
     ngsCheckGLError(glClearDepth(1.0));
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
@@ -141,11 +138,7 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
 	return true;
 }
 
-#ifdef NGS_GL_DEBUG
-bool GlView::draw(ngsDrawState /*state*/, const Progress &/*progress*/)
-#else
 bool GlView::draw(ngsDrawState state, const Progress &progress)
-#endif // NGS_GL_DEBUG
 {
     if (DS_NOTHING == state) {
         return true;
@@ -156,6 +149,9 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
 
 
 #ifdef NGS_GL_DEBUG
+
+    ngsUnused(state);
+    ngsUnused(progress);
 //    setRotate(DIR_Z, M_PI/6);
 
     clearBackground();
@@ -263,7 +259,7 @@ CPLJSONObject GlView::selectionStyle(enum ngsStyleType styleType) const
 }
 
 bool GlView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
-{ 
+{
 
     if(!MapView::openInternal(root, mapFile)) {
         return false;
@@ -395,11 +391,9 @@ void GlView::updateTilesList()
 
 void GlView::freeResources()
 {
-    auto freeResorceIt = m_freeResources.begin();
-    while(freeResorceIt != m_freeResources.end()) {
-        (*freeResorceIt)->destroy();
-        freeResorceIt = m_freeResources.erase(freeResorceIt);
-    }
+    std::for_each(m_freeResources.begin(), m_freeResources.end(),
+                  [](GlObjectPtr &glObj){ glObj->destroy(); });
+    m_freeResources.clear();
 }
 
 bool GlView::drawTiles(const Progress &progress)
@@ -416,7 +410,7 @@ bool GlView::drawTiles(const Progress &progress)
 
     double done = 0.0;
     double totalDrawCalls = m_layers.size() * m_tiles.size() - 0.0000001;
-    for (const GlTilePtr& tile : m_tiles) {
+    for(const GlTilePtr& tile : m_tiles) {
         bool drawTile = true;
         if(tile->filled()) {
             done += m_layers.size();
@@ -439,7 +433,7 @@ bool GlView::drawTiles(const Progress &progress)
             ngsCheckGLError(glEnable(GL_BLEND));
 
             unsigned char filled = 0;
-            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
 
                 const LayerPtr &layer = *layerIt;
@@ -450,7 +444,7 @@ bool GlView::drawTiles(const Progress &progress)
                 }
             }
 
-            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
                 const LayerPtr &layer = *layerIt;
                 GlSelectableFeatureLayer *renderLayer =

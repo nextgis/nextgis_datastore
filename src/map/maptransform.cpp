@@ -25,6 +25,7 @@
 
 #include "api_priv.h"
 #include "ds/geometry.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace ngs {
 
@@ -210,7 +211,7 @@ bool MapTransform::setExtent(const Envelope &env)
 
 bool MapTransform::updateExtent()
 {
-    double doubleScale = m_scale * 2;
+    double doubleScale = m_scale * 2.0;
     double halfWidth = double(m_displayWidht) / doubleScale;
     double halfHeight = double(m_displayHeight) / doubleScale;
     m_extent.setMinX(m_center.x - halfWidth);
@@ -224,7 +225,7 @@ bool MapTransform::updateExtent()
 
 //    double scaleX = halfWidth / DEFAULT_BOUNDS.getMaxX();
 //    double scaleY = halfHeight / DEFAULT_BOUNDS.getMaxY();
-    m_scaleWorld = 1 / m_scale;//std::min(scaleX, scaleY);
+    m_scaleWorld = 1.0 / m_scale;//std::min(scaleX, scaleY);
 
     fixExtent();
 
@@ -244,16 +245,17 @@ bool MapTransform::updateExtent()
 void MapTransform::initMatrices()
 {
     // world -> scene matrix
-    m_sceneMatrix.clear();
+    m_sceneMatrix = glm::ortho(static_cast<float>(m_extent.minX()),
+                               static_cast<float>(m_extent.maxX()),
+                               static_cast<float>(m_extent.minY()),
+                               static_cast<float>(m_extent.maxY()),
+                               static_cast<float>(DEFAULT_BOUNDS.minX()),
+                               static_cast<float>(DEFAULT_BOUNDS.maxX()));
 
-    m_sceneMatrix.ortho(m_extent.minX(), m_extent.maxX(),
-                        m_extent.minY(), m_extent.maxY(),
-                        DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
-
-
-    if(!isEqual(m_rotate[DIR_X], 0.0)){
-        m_sceneMatrix.rotateX(m_rotate[DIR_X]);
-    }
+    // TODO:
+//    if(!isEqual(m_rotate[DIR_X], 0.0)){
+//        m_sceneMatrix.rotateX(m_rotate[DIR_X]);
+//    }
 
     /* TODO: no idea about Y axis rotation
     if(!isEqual(m_rotate[Y], 0.0)){
@@ -262,78 +264,71 @@ void MapTransform::initMatrices()
     */
 
     // world -> scene inv matrix
-    m_invSceneMatrix = m_sceneMatrix;
-    m_invSceneMatrix.invert();
+    m_invSceneMatrix = glm::inverse(m_sceneMatrix);
 
     // scene -> view inv matrix
-    m_invViewMatrix.clear();
+//    float maxDeep = std::max(m_displayWidht, m_displayHeight);
 
-    double maxDeep = std::max(m_displayWidht, m_displayHeight);
+    m_invViewMatrix = glm::ortho(0.0f, static_cast<float>(m_displayWidht),
+                                 0.0f, static_cast<float>(m_displayHeight),
+                                 -1.f, 1.f); //0.0f, maxDeep);
 
-    m_invViewMatrix.ortho(0, m_displayWidht, 0, m_displayHeight, 0, maxDeep);
-
-    if(!isEqual(m_rotate[DIR_X], 0.0)){
-        m_invViewMatrix.rotateX(-m_rotate[DIR_X]);
-    }
+    // TODO:
+//    if(!isEqual(m_rotate[DIR_X], 0.0)){
+//        m_invViewMatrix.rotateX(-m_rotate[DIR_X]);
+//    }
 
     // scene -> view matrix
-    m_viewMatrix = m_invViewMatrix;
-    m_viewMatrix.invert();
+    m_viewMatrix = glm::inverse(m_invViewMatrix);
 
-    m_worldToDisplayMatrix = m_viewMatrix;
-    m_worldToDisplayMatrix.multiply(m_sceneMatrix);
+    m_worldToDisplayMatrix = m_viewMatrix * m_sceneMatrix;
 
-    m_invWorldToDisplayMatrix = m_invSceneMatrix;
-    m_invWorldToDisplayMatrix.multiply(m_invViewMatrix);
+    m_invWorldToDisplayMatrix = m_invSceneMatrix * m_invViewMatrix;
 
-    // Z axis rotation
-    if(!isEqual(m_rotate[DIR_Z], 0.0)){
-        OGRRawPoint center = m_extent.center();
-        m_sceneMatrix.translate(center.x, center.y, 0);
-        m_sceneMatrix.rotateZ(m_rotate[DIR_Z]);
-        m_sceneMatrix.translate(-center.x, -center.y, 0);
+    // TODO: Z axis rotation
+//    if(!isEqual(m_rotate[DIR_Z], 0.0)){
+//        OGRRawPoint center = m_extent.center();
+//        m_sceneMatrix.translate(center.x, center.y, 0);
+//        m_sceneMatrix.rotateZ(m_rotate[DIR_Z]);
+//        m_sceneMatrix.translate(-center.x, -center.y, 0);
 
-        m_worldToDisplayMatrix.rotateZ(-m_rotate[DIR_Z]);
-        m_invWorldToDisplayMatrix.rotateZ(m_rotate[DIR_Z]);
-    }
+//        m_worldToDisplayMatrix.rotateZ(-m_rotate[DIR_Z]);
+//        m_invWorldToDisplayMatrix.rotateZ(m_rotate[DIR_Z]);
+//    }
 }
 
 void MapTransform::setRotateExtent()
 {
 
-    OGRRawPoint pt, inPt[4];
-    inPt[0] = OGRRawPoint(0, 0);
-    inPt[1] = OGRRawPoint(0, m_displayHeight);
-    inPt[2] = OGRRawPoint(m_displayWidht, m_displayHeight);
-    inPt[3] = OGRRawPoint(m_displayWidht, 0);
+    glm::vec4 pt, inPt[4];
+    inPt[0] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    inPt[1] = glm::vec4(0.0f, m_displayHeight, 0.0f, 1.0f);
+    inPt[2] = glm::vec4(m_displayWidht, m_displayHeight, 0.0f, 1.0f);
+    inPt[3] = glm::vec4(m_displayWidht, 0.0f, 0.0f, 1.0f);
 
-    pt = m_invWorldToDisplayMatrix.project (inPt[0]);
-    m_rotateExtent.setMinX(pt.x);
-    m_rotateExtent.setMaxX(pt.x);
-    m_rotateExtent.setMinY(pt.y);
-    m_rotateExtent.setMaxY(pt.y);
+    pt = m_invWorldToDisplayMatrix * inPt[0];
+    m_rotateExtent.setMinX(double(pt[0]));
+    m_rotateExtent.setMaxX(double(pt[0]));
+    m_rotateExtent.setMinY(double(pt[1]));
+    m_rotateExtent.setMaxY(double(pt[1]));
 
 
     for(unsigned char i = 1; i < 4; ++i) {
-        pt = m_invWorldToDisplayMatrix.project (inPt[i]);
-        if(pt.x > m_rotateExtent.maxX())
-            m_rotateExtent.setMaxX(pt.x);
-        if(pt.x < m_rotateExtent.minX())
-            m_rotateExtent.setMinX(pt.x);
-        if(pt.y > m_rotateExtent.maxY())
-            m_rotateExtent.setMaxY(pt.y);
-        if(pt.y < m_rotateExtent.minY())
-            m_rotateExtent.setMinY(pt.y);
+        pt = m_invWorldToDisplayMatrix * inPt[i];
+        if(double(pt[0]) > m_rotateExtent.maxX())
+            m_rotateExtent.setMaxX(double(pt[0]));
+        if(double(pt[0]) < m_rotateExtent.minX())
+            m_rotateExtent.setMinX(double(pt[0]));
+        if(double(pt[1]) > m_rotateExtent.maxY())
+            m_rotateExtent.setMaxY(double(pt[1]));
+        if(double(pt[1]) < m_rotateExtent.minY())
+            m_rotateExtent.setMinY(double(pt[1]));
     }
 }
 
 double MapTransform::fixScale(double scale)
 {
-    if(scale > m_scaleMax)
-        scale = m_scaleMax;
-    if(scale < m_scaleMin)
-        scale = m_scaleMin;
-    return scale;
+    return glm::clamp(scale, m_scaleMin, m_scaleMax);
 }
 
 void MapTransform::fixExtent()
@@ -374,8 +369,9 @@ OGRRawPoint MapTransform::fixCenter(double x, double y)
 
 unsigned char MapTransform::getZoom() const {
     // 156412.0 is m/pixel on 0 zoom. See http://wiki.openstreetmap.org/wiki/Zoom_levels
-    double retVal = lg(156412.0 / m_scaleWorld) + m_extraZoom;
-    return retVal < 0 ? 0 : static_cast<unsigned char>(retVal + 0.5);
+    double metersPerTile = 156543.04; //156412.0; // DEFAULT_BOUNDS.width() * exp2(0) / 256;
+    double retVal = lg(metersPerTile / m_scaleWorld) + m_extraZoom;
+    return retVal < 0.0 ? 0.0 : static_cast<unsigned char>(retVal + 0.5);
 }
 
 void MapTransform::setExtentLimits(const Envelope &extentLimit)
@@ -408,14 +404,14 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     int tilesInMapOneDim = 1 << zoom;
     double halfTilesInMapOneDim = tilesInMapOneDim * 0.5;
     double tilesSizeOneDim = DEFAULT_BOUNDS.maxX() / halfTilesInMapOneDim;
-    int begX = static_cast<int>( floor(extent.minX() / tilesSizeOneDim +
-                                       halfTilesInMapOneDim) );
-    int begY = static_cast<int>( floor(extent.minY() / tilesSizeOneDim +
-                                       halfTilesInMapOneDim) );
-    int endX = static_cast<int>( ceil(extent.maxX() / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) );
-    int endY = static_cast<int>( ceil(extent.maxY() / tilesSizeOneDim +
-                                      halfTilesInMapOneDim) );
+    int begX = static_cast<int>(std::floor(extent.minX() / tilesSizeOneDim +
+                                       halfTilesInMapOneDim));
+    int begY = static_cast<int>(std::floor(extent.minY() / tilesSizeOneDim +
+                                       halfTilesInMapOneDim));
+    int endX = static_cast<int>(std::ceil(extent.maxX() / tilesSizeOneDim +
+                                      halfTilesInMapOneDim));
+    int endY = static_cast<int>(std::ceil(extent.maxY() / tilesSizeOneDim +
+                                      halfTilesInMapOneDim));
     if(begY == endY) {
         endY++;
     }
@@ -457,16 +453,20 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
     double fullBoundsMinX = DEFAULT_BOUNDS.minX();
     double fullBoundsMinY = DEFAULT_BOUNDS.minY();
     for (int x = begX; x < endX; ++x) {
+        realX = x;
+        crossExt = 0;
+        if (realX < 0) {
+            crossExt = -1;
+            realX += tilesInMapOneDim;
+        } else if (realX >= tilesInMapOneDim) {
+            crossExt = 1;
+            realX -= tilesInMapOneDim;
+        }
+        double minX = fullBoundsMinX + realX * tilesSizeOneDim;
+        env.setMinX(minX);
+        env.setMaxX(minX + tilesSizeOneDim);
+
         for (int y = begY; y < endY; ++y) {
-            realX = x;
-            crossExt = 0;
-            if (realX < 0) {
-                crossExt = -1;
-                realX += tilesInMapOneDim;
-            } else if (realX >= tilesInMapOneDim) {
-                crossExt = 1;
-                realX -= tilesInMapOneDim;
-            }
 
             if (reverseY) {
                 realY = tilesInMapOneDim - y - 1;
@@ -478,14 +478,11 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
                 continue;
             }
 
-            double minX = fullBoundsMinX + realX * tilesSizeOneDim;
             double minY = fullBoundsMinY + realY * tilesSizeOneDim;
-            env.setMinX(minX);
-            env.setMaxX(minX + tilesSizeOneDim);
             env.setMinY(minY);
             env.setMaxY(minY + tilesSizeOneDim);
-            TileItem item = { {realX, realY, zoom, crossExt}, env };
-            result.push_back(item);
+            Tile tile = {realX, realY, zoom, crossExt};
+            result.push_back( { tile, env } );
 
             if(result.size() > MAX_TILES_COUNT) { // Limit for tiles array size
                 return result;
@@ -498,36 +495,34 @@ std::vector<TileItem> MapTransform::getTilesForExtent(
 
 OGRRawPoint MapTransform::worldToDisplay(const OGRRawPoint &pt) const
 {
-    OGRRawPoint newPt(m_worldToDisplayMatrix.project(pt));
+    glm::vec4 newPt(static_cast<float>(pt.x), static_cast<float>(pt.y), 0.0f, 1.0f);
+
+    glm::vec4 out = m_worldToDisplayMatrix * newPt;
+
     if(m_YAxisInverted) {
-        newPt.y = m_displayHeight - newPt.y;
+        out[1] = m_displayHeight - out[1];
     }
 
-    newPt.x *= m_reduceFactor;
-    newPt.y *= m_reduceFactor;
+    out[0] *= m_reduceFactor;
+    out[1] *= m_reduceFactor;
 
-    return newPt;
+    return OGRRawPoint(static_cast<double>(out[0]), static_cast<double>(out[1]));
 }
 
 OGRRawPoint MapTransform::displayToWorld(const OGRRawPoint &pt) const
 {
-    OGRRawPoint newPt(pt);
+    glm::vec4 newPt(static_cast<float>(pt.x), static_cast<float>(pt.y), 0.0f, 1.0f);
 
-    newPt.x /= m_reduceFactor;
-    newPt.y /= m_reduceFactor;
-
-    if(m_YAxisInverted) {
-        newPt.y = m_displayHeight - newPt.y;
-    }
-
-    // FIXME: Is it right?
-    OGRRawPoint out = m_invWorldToDisplayMatrix.project(newPt);
+    newPt[0] /= m_reduceFactor;
+    newPt[1] /= m_reduceFactor;
 
     if(m_YAxisInverted) {
-        out.y = -out.y;
+        newPt[1] = m_displayHeight - newPt[1];
     }
 
-    return out;
+    glm::vec4 out = m_invWorldToDisplayMatrix * newPt;
+
+    return OGRRawPoint(static_cast<double>(out[0]), static_cast<double>(out[1]));
 }
 
 } // namespace ngs

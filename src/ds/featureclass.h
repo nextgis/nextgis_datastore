@@ -32,7 +32,7 @@
 
 namespace ngs {
 
-constexpr double TILE_RESIZE = 1.1;
+constexpr double TILE_RESIZE = 1.0;
 
 class FeatureClass;
 using FeatureClassPtr = std::shared_ptr<FeatureClass>;

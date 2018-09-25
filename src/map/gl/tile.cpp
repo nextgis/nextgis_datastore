@@ -21,6 +21,7 @@
 #include "tile.h"
 
 #include "util/global.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace ngs {
 
@@ -90,10 +91,14 @@ void GlTile::init(unsigned short tileSize, const Envelope &tileItemEnv,
 
     Envelope resizeOriginal(tileItemEnv);
     resizeOriginal.resize(TILE_RESIZE);
-    m_sceneMatrix.ortho(resizeOriginal.minX(), resizeOriginal.maxX(),
-                        resizeOriginal.minY(), resizeOriginal.maxY(),
-                        DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.maxX());
-    m_invViewMatrix.ortho(0, newTileSize, 0, newTileSize, -1.0, 1.0);
+    m_sceneMatrix = glm::ortho(static_cast<float>(resizeOriginal.minX()),
+                               static_cast<float>(resizeOriginal.maxX()),
+                               static_cast<float>(resizeOriginal.minY()),
+                               static_cast<float>(resizeOriginal.maxY()),
+                               static_cast<float>(DEFAULT_BOUNDS.minX()),
+                               static_cast<float>(DEFAULT_BOUNDS.maxX()));
+    m_invViewMatrix = glm::ortho(0.0f, static_cast<float>(newTileSize), 0.0f,
+                                 static_cast<float>(newTileSize), -1.0f, 1.0f);
 
     m_tileSize = newTileSize;
     m_tileItem.env = resizeOriginal;

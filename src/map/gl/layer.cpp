@@ -999,22 +999,36 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
     }
 
     Envelope rasterExtent = m_raster->extent();
-    const Envelope & tileExtent = tile->getExtent();
+    Envelope tileExtent = tile->getExtent();
+
+    // Increase extent to fix losse several pixels on tile border
+    double tileExtentW = tileExtent.width();
+    double tileExtentH = tileExtent.height();
+    if(tileExtentW < 15000.0) {
+        glm::vec4 v(1.0f, 0.0f, 0.0f, 0.0f);
+        glm::vec4 s = tile->getSceneMatrix() * v;
+
+        tileExtent.resize(1.0 + double(s[0]));
+
+        tileExtentW = tileExtent.width();
+        tileExtentH = tileExtent.height();
+    }
 
     // FIXME: Reproject tile extent to raster extent
 
     Envelope outExt = rasterExtent.intersect(tileExtent);
 
     if(!outExt.isInit()) {
-        CPLDebug("ngstore", "fill layer %s not intersect - x: %f, y: %f", m_raster->name().c_str(), rasterExtent.minX(), rasterExtent.minY());
+        CPLDebug("ngstore", "fill layer %s not intersect - x: %f, y: %f",
+                 m_raster->name().c_str(), rasterExtent.minX(), rasterExtent.minY());
         MutexHolder holder(m_dataMutex, lockTime);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
 
     // Create inverse geotransform to get pixel data
-    double geoTransform[6] = { 0 };
-    double invGeoTransform[6] = { 0 };
+    double geoTransform[6] = { 0.0 };
+    double invGeoTransform[6] = { 0.0 };
     bool noTransform = false;
     if(m_raster->geoTransform(geoTransform)) {
         noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
@@ -1025,11 +1039,9 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 
     // Calc output buffer width and height
     int outWidth = static_cast<int>(rasterExtent.width() *
-                                    tile->getSizeInPixels() /
-                                    tileExtent.width());
+                                    tile->getSizeInPixels() / tileExtentW);
     int outHeight = static_cast<int>(rasterExtent.height() *
-                                     tile->getSizeInPixels() /
-                                     tileExtent.height());
+                                     tile->getSizeInPixels() / tileExtentH);
 
     if(noTransform) {
         // Swap min/max Y
@@ -1081,7 +1093,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 
     int overview = MAX_ZOOM;
     bool smooth = false;
-    if(outWidth > width && outHeight > height ) { // Read original raster
+    if(outWidth >= width && outHeight >= height ) { // Read original raster
         outWidth = width;
         outHeight = height;
         smooth = true;
@@ -1104,6 +1116,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
     size_t bufferSize = static_cast<size_t>(outWidth * outHeight *
                                             dataSize * 4); // NOTE: We use RGBA to store textures
     GLubyte *pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
+
     if(m_alpha == 0) {
         std::memset(pixData, 255 - m_transparency, bufferSize);
         if(!m_raster->pixelData(pixData, minX, minY, width, height, outWidth,

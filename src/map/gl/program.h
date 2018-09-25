@@ -26,6 +26,8 @@
 #include <array>
 #include <map>
 
+#include "map/glm/mat4x4.hpp"
+
 namespace ngs {
 
 class GlProgram
@@ -38,7 +40,7 @@ public:
 
     bool loaded() const { return m_loaded; }
     void use() const { ngsCheckGLError(glUseProgram(m_id)); }
-    void setMatrix(const std::string &varName, std::array<GLfloat, 16> mat4f);
+    void setMatrix(const std::string &varName, const glm::mat4 &mat4f);
     void setColor(const std::string &varName, const GlColor &color);
     void setInt(const std::string &varName, GLint value);
     void setInt(const std::string &varName, GLint value) const;

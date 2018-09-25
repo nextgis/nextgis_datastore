@@ -23,6 +23,7 @@
 #include "cpl_string.h"
 
 #include "api_priv.h"
+#include "glm/gtc/type_ptr.hpp"
 #include "util/error.h"
 
 namespace ngs {
@@ -102,11 +103,11 @@ bool GlProgram::load(const GLchar * const vertexShader,
     return true;
 }
 
-void GlProgram::setMatrix(const std::string &varName, std::array<GLfloat, 16> mat4f)
+void GlProgram::setMatrix(const std::string &varName, const glm::mat4 &mat4f)
 {
     if(m_loaded) {
         ngsCheckGLError(glUniformMatrix4fv(getVariableId(varName),
-                                           1, GL_FALSE, mat4f.data()));
+                                           1, GL_FALSE, glm::value_ptr(mat4f)));
     }
 }
 

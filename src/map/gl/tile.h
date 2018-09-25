@@ -25,7 +25,7 @@
 #include "functions.h"
 #include "image.h"
 #include "ds/geometry.h"
-#include "map/matrix.h"
+#include "map/glm/mat4x4.hpp"
 
 namespace ngs {
 
@@ -37,8 +37,6 @@ constexpr int GLTILE_SIZE = 256;
 constexpr int GLTILE_SIZE = 512;
 #endif
 
-
-
 class GlTile : public GlObject
 {
 public:
@@ -46,16 +44,16 @@ public:
     explicit GlTile(const GlTile other, bool initNew);
     virtual ~GlTile() override = default;
 
-    Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
-    Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
+    glm::mat4 getSceneMatrix() const { return m_sceneMatrix; }
+    glm::mat4 getInvViewMatrix() const { return m_invViewMatrix; }
     GlImage *getImageRef() const { return const_cast<GlImage*>(&m_image); }
     const GlBuffer &getBuffer() const { return m_tile; }
     const Tile &getTile() const { return  m_tileItem.tile; }
-    const Envelope& getExtent() const { return m_tileItem.env; }
+    const Envelope &getExtent() const { return m_tileItem.env; }
     bool filled() const { return m_filled; }
     void setFilled(bool filled = true) { m_filled = filled; }
     size_t getSizeInPixels() const {
-        return size_t(m_originalTileSize/*m_image.getWidth()*/ * 256.0 / GLTILE_SIZE);
+        return size_t(m_originalTileSize);///*m_image.getWidth()*/ * 256.0 / GLTILE_SIZE);
     }
     unsigned short tileSize() const { return  m_tileSize; }
 
@@ -76,8 +74,8 @@ protected:
     GlImage m_image;
     GLuint m_id, m_did;
     GlBuffer m_tile;
-    Matrix4 m_sceneMatrix;
-    Matrix4 m_invViewMatrix;
+    glm::mat4 m_sceneMatrix;
+    glm::mat4 m_invViewMatrix;
     bool m_filled;
     unsigned short m_tileSize, m_originalTileSize;
     Envelope m_originalEnv;

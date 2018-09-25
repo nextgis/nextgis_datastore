@@ -23,8 +23,8 @@
 
 #include "ogr_core.h"
 
-#include "matrix.h"
 #include "ds/geometry.h"
+#include "glm/mat4x4.hpp"
 #include "ngstore/api.h"
 
 namespace ngs {
@@ -56,8 +56,8 @@ public:
     bool setExtent(const Envelope &env);
     unsigned char getZoom() const;
     double getScale() const { return m_scale; }
-    Matrix4 getSceneMatrix() const { return m_sceneMatrix; }
-    Matrix4 getInvViewMatrix() const { return m_invViewMatrix; }
+    glm::mat4 getSceneMatrix() const { return m_sceneMatrix; }
+    glm::mat4 getInvViewMatrix() const { return m_invViewMatrix; }
 
     bool getXAxisLooped() const { return m_XAxisLooped; }
     bool getYAxisInverted() const { return m_YAxisInverted; }
@@ -95,11 +95,13 @@ protected:
     Envelope m_extent, m_rotateExtent;
     double m_ratio;
     bool m_YAxisInverted, m_XAxisLooped;
-    /* NOTE: sceneMatrix transform from world coordinates to GL coordinates -1 x 1
+
+    /* NOTE: sceneMatrix transform from world coordinates to GL coordinates -1.0f x 1.0f
      * viewMatrix transform from GL coordinates to display coordinates 640 x 480
      */
-    Matrix4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
-    Matrix4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
+    // worldToSceneMatrix
+    glm::mat4 m_sceneMatrix, m_viewMatrix, m_worldToDisplayMatrix;
+    glm::mat4 m_invSceneMatrix, m_invViewMatrix, m_invWorldToDisplayMatrix;
 
     // Limits
     char m_extraZoom;

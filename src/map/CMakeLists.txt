@@ -31,7 +31,7 @@ set(HHEADERS
     mapstore.h
     maptransform.h
     mapview.h
-    matrix.h
+#    matrix.h
     overlay.h
 #    vector.h
     gl/view.h
@@ -51,7 +51,7 @@ set(CSOURCES
     mapstore.cpp
     maptransform.cpp
     mapview.cpp
-    matrix.cpp
+#    matrix.cpp
     overlay.cpp
     gl/view.cpp
     gl/program.cpp

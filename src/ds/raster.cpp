@@ -220,7 +220,7 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         return false;
     }
 
-    MutexHolder holder(m_dataLock, 0.05);
+    MutexHolder holder(m_dataLock, 0.15);
 
     CPLErrorReset();
     int pixelSpace(0);
