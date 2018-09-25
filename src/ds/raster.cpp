@@ -220,8 +220,6 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         return false;
     }
 
-    MutexHolder holder(m_dataLock, 0.15);
-
     CPLErrorReset();
     int pixelSpace(0);
     int lineSpace(0);
@@ -232,6 +230,8 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
         lineSpace = bufXSize * pixelSpace;
         bandSpace = dataSize;
     }
+
+    MutexHolder holder(m_dataLock, 0.05);
 
     // Lock pixel area to read/write until exit
 //    Mutex dataLock;
