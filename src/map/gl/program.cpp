@@ -23,7 +23,7 @@
 #include "cpl_string.h"
 
 #include "api_priv.h"
-#include "glm/gtc/type_ptr.hpp"
+#include "map/glm/gtc/type_ptr.hpp"
 #include "util/error.h"
 
 namespace ngs {

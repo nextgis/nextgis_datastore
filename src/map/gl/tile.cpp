@@ -20,8 +20,8 @@
  ****************************************************************************/
 #include "tile.h"
 
+#include "map/glm/gtc/matrix_transform.hpp"
 #include "util/global.h"
-#include "glm/gtc/matrix_transform.hpp"
 
 namespace ngs {
 
