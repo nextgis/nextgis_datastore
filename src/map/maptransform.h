@@ -24,7 +24,7 @@
 #include "ogr_core.h"
 
 #include "ds/geometry.h"
-#include "glm/mat4x4.hpp"
+#include "map/glm/mat4x4.hpp"
 #include "ngstore/api.h"
 
 namespace ngs {
