@@ -4,7 +4,7 @@
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -528,6 +528,7 @@ typedef struct _ngsQMSItem
     const char *iconUrl;
     enum ngsCode status; /**< May be COD_SUCCESS, COD_WARNING, COD_REQUEST_FAILED */
     ngsExtent extent;
+    int total;
 } ngsQMSItem;
 
 NGS_EXTERNC ngsQMSItem *ngsQMSQuery(char **options);

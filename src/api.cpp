@@ -342,7 +342,7 @@ void ngsSettingsSetString(const char *key, const char *value)
 //------------------------------------------------------------------------------
 
 /**
- * @brief ngsGetCurrentDirectory Returns curretnt working directory
+ * @brief ngsGetCurrentDirectory Returns current working directory
  * @return Current directory path in OS
  */
 const char *ngsGetCurrentDirectory()
@@ -519,7 +519,7 @@ void ngsURLRequestResultFree(ngsURLRequestResult *result)
  * started with this URL will add authorisation header.
  * @param options Authorisation options.
  * HTTPAUTH_TYPE - Requered. The authorisation type (i.e. bearer).
- * HTTPAUTH_CLIENT_ID - Client identificator for bearer
+ * HTTPAUTH_CLIENT_ID - Client identifier for bearer
  * HTTPAUTH_TOKEN_SERVER - Token validate/update server
  * HTTPAUTH_ACCESS_TOKEN - Access token
  * HTTPAUTH_REFRESH_TOKEN - Refresh token
@@ -589,7 +589,7 @@ JsonDocumentH ngsJsonDocumentCreate()
 /**
  * @brief ngsJsonDocumentDestroy Destroy JSON document created using
  * ngsJsonDocumentCreate
- * @param document JSON documetn hadler.
+ * @param document JSON document handler.
  */
 void ngsJsonDocumentFree(JsonDocumentH document)
 {
@@ -909,8 +909,8 @@ JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
 //------------------------------------------------------------------------------
 
 /**
- * @brief catalogObjectQuery Request the contents of some catalog conatiner object.
- * @param object Catalog object. Must be container (containes some catalog objects).
+ * @brief catalogObjectQuery Request the contents of some catalog container object.
+ * @param object Catalog object. Must be container (contain some catalog objects).
  * @param objectFilter Filter output results
  * @return List of ngsCatalogObjectInfo items or NULL. The last element of list always NULL.
  * The list must be deallocated using ngsFree function.
@@ -1105,7 +1105,7 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * @param callback Progress function (template is ngsProgressFunc) executed
  * periodically to report progress and cancel. If returns 1 the execution will
  * continue, 0 - cancelled.
- * @param callbackData Progress fuction parameter.
+ * @param callbackData Progress function parameter.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectCopy(CatalogObjectH srcObject,
@@ -1598,7 +1598,7 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature,
 /**
  * @brief ngsFeatureClassDeleteFeature Delete feature/row from the table
  * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
- * @param id Feature identificator to delete
+ * @param id Feature identifier to delete
  * @param logEdits If log edit operation enabled this key can manage to log or
  * not this edit operation
  * @return COD_SUCCESS if everything is OK
@@ -1677,9 +1677,9 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 }
 
 /**
- * @brief ngsFeatureClassGetFeature Returns feature by identificator
+ * @brief ngsFeatureClassGetFeature Returns feature by identifier
  * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
- * @param id Feature identificator
+ * @param id Feature identifier
  * @return Feature handle
  */
 FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
@@ -1973,8 +1973,8 @@ GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry)
 }
 
 /**
- * @brief ngsGeometryFree Free geometry handle. Only usefull if geometry created,
- * but not addet to feature
+ * @brief ngsGeometryFree Free geometry handle. Only useful if geometry created,
+ * but not added to a feature
  * @param geometry Geometry handle
  */
 void ngsGeometryFree(GeometryH geometry)
@@ -2230,10 +2230,10 @@ void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,
  * @brief ngsRasterCacheArea Download tiles for zoom levels and area
  * @param object Raster to download tiles
  * @param options Key=value list of options.
- * - MINX - minimum X coordinate of bounting box
- * - MINY - minimum Y coordinate of bounting box
- * - MAXX - maximum X coordinate of bounting box
- * - MAXY - maximum Y coordinate of bounting box
+ * - MINX - minimum X coordinate of bounding box
+ * - MINY - minimum Y coordinate of bounding box
+ * - MAXX - maximum X coordinate of bounding box
+ * - MAXY - maximum Y coordinate of bounding box
  * - ZOOM_LEVELS - comma separated values of zoom levels
  * @param callback Progress function
  * @param callbackData Progress function arguments
@@ -2268,7 +2268,7 @@ int ngsRasterCacheArea(CatalogObjectH object, char** options,
  * @param minY minimum Y coordinate
  * @param maxX maximum X coordinate
  * @param maxY maximum Y coordinate
- * @return 0 if create failed or map identificator.
+ * @return 0 if create failed or map identifier.
  */
 unsigned char ngsMapCreate(const char *name, const char *description,
                  unsigned short epsg, double minX, double minY,
@@ -2302,7 +2302,7 @@ unsigned char ngsMapOpen(const char *path)
 
 /**
  * @brief ngsMapSave Saves map to file
- * @param mapId Map identificator to save
+ * @param mapId Map identifier to save
  * @param path Path to store map data
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -2310,7 +2310,7 @@ int ngsMapSave(unsigned char mapId, const char *path)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        return MapStore::invalidMapId();
+        return COD_SAVE_FAILED;
     }
     CatalogPtr catalog = Catalog::instance();
     ObjectPtr mapFileObject = catalog->getObject(fromCString(path));
@@ -2339,7 +2339,7 @@ int ngsMapSave(unsigned char mapId, const char *path)
 
 /**
  * @brief ngsMapClose Closes map and free resources
- * @param mapId Map identificator to close
+ * @param mapId Map identifier to close
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapClose(unsigned char mapId)
@@ -2354,7 +2354,7 @@ int ngsMapClose(unsigned char mapId)
 
 /**
  * @brief ngsMapSetSize Sets map size in pixels
- * @param mapId Map identificator received from create or open map functions
+ * @param mapId Map identifier received from create or open map functions
  * @param width Output image width
  * @param height Output image height
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -2371,7 +2371,7 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
 
 /**
  * @brief ngsDrawMap Starts drawing map in specified (in ngsInitMap) extent
- * @param mapId Map identificator received from create or open map functions
+ * @param mapId Map identifier received from create or open map functions
  * @param state Draw state (NORMAL, PRESERVED, REDRAW)
  * @param callback Progress function
  * @param callbackData Progress function arguments
@@ -2401,7 +2401,7 @@ int ngsMapInvalidate(unsigned char mapId, ngsExtent bounds)
 
 /**
  * @brief ngsGetMapBackgroundColor Map background color
- * @param mapId Map identificator received from create or open map functions
+ * @param mapId Map identifier received from create or open map functions
  * @return map background color struct
  */
 ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
@@ -2416,7 +2416,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
 
 /**
  * @brief ngsSetMapBackgroundColor Sets map background color
- * @param mapId Map identificator received from create or open map functions
+ * @param mapId Map identifier received from create or open map functions
  * @param color Background color
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -2432,7 +2432,7 @@ int ngsMapSetBackgroundColor(unsigned char mapId, ngsRGBA color)
 
 /**
  * @brief ngsMapSetCenter Sets new map center coordinates
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param x X coordinate
  * @param y Y coordinate
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -2448,7 +2448,7 @@ int ngsMapSetCenter(unsigned char mapId, double x, double y)
 
 /**
  * @brief ngsMapGetCenter Gets map center for current view (extent)
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @return Coordinate structure. If error occurred all coordinates set to 0.0
  */
 ngsCoordinate ngsMapGetCenter(unsigned char mapId)
@@ -2463,7 +2463,7 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
 
 /**
  * @brief ngsMapGetCoordinate Geographic coordinates for display position
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param x X position
  * @param y Y position
  * @return Geographic coordinates
@@ -2480,7 +2480,7 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
 
 /**
  * @brief ngsMapSetScale Sets current map scale
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param scale value to set
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -2495,7 +2495,7 @@ int ngsMapSetScale(unsigned char mapId, double scale)
 
 /**
  * @brief ngsMapGetScale Returns current map scale
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @return Current map scale or 1
  */
 double ngsMapGetScale(unsigned char mapId)
@@ -2510,7 +2510,7 @@ double ngsMapGetScale(unsigned char mapId)
 
 /**
  * @brief ngsMapCreateLayer Creates new layer in map
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param name Layer name
  * @param path Path to map file inside catalog in form ngc://some path/
  * @return Layer Id or -1
@@ -2535,7 +2535,7 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
 
 /**
  * @brief ngsMapLayerReorder Reorders layers in map
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param beforeLayer Before this layer insert movedLayer. May be null. In that
  * case layer will be moved to the end of map
  * @param movedLayer Layer to move
@@ -2554,7 +2554,7 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
 
 /**
  * @brief ngsMapSetRotate Sets map rotate
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param dir Rotate direction. May be X, Y or Z
  * @param rotate value to set
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -2570,7 +2570,7 @@ int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
 
 /**
  * @brief ngsMapGetRotate Returns map rotate value
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param dir Rotate direction. May be X, Y or Z
  * @return rotate value or 0 if error occured
  */
@@ -2586,7 +2586,7 @@ double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
 
 /**
  * @brief ngsMapGetDistance Map distance from display length
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param w Width
  * @param h Height
  * @return ngsCoordinate where X distance along x axis and Y along y axis
@@ -2603,7 +2603,7 @@ ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
 
 /**
  * @brief ngsMapLayerCount Returns layer count in map
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @return Layer count in map
  */
 int ngsMapLayerCount(unsigned char mapId)
@@ -2618,7 +2618,7 @@ int ngsMapLayerCount(unsigned char mapId)
 
 /**
  * @brief ngsMapLayerGet Returns map layer handle
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param layerId Layer index
  * @return Layer handle. The caller should not delete it.
  */
@@ -2634,7 +2634,7 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
 
 /**
  * @brief ngsMapLayerDelete Deletes layer from map
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param layer Layer handle get from ngsMapLayerGet() function.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -2650,9 +2650,9 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
 
 /**
  * @brief ngsMapSetOptions Set map options
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param options Key=Value list of options. Available options are:
- *   ZOOM_INCREMENT - Add integer value to zomm level correspondent to scale. May be negative
+ *   ZOOM_INCREMENT - Add integer value to zoom level correspondent to scale. May be negative
  *   VIEWPORT_REDUCE_FACTOR - Reduce view size on provided value. Make sense to
  *     reduce number of tiles in map extent. The tiles will be more pixelate
  * @return ngsCode value - COD_SUCCESS if everything is OK
@@ -2669,7 +2669,7 @@ int ngsMapSetOptions(unsigned char mapId, char **options)
 
 /**
  * @brief ngsMapSetExtentLimits Set limits to prevent pan out of them.
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param minX Minimum X coordinate
  * @param minY Minimum Y coordinate
  * @param maxX Maximum X coordinate
@@ -2771,7 +2771,7 @@ int ngsMapSetExtent(unsigned char mapId, ngsExtent extent)
 
 /**
  * @brief ngsMapGetSelectionStyle Map selection style as json
- * @param mapId Map identificator
+ * @param mapId Map identifier
  * @param styleType Style type (Point, Line or fill)
  * @return NULL or JSON style handle. The handle must be freed by ngsJsonObjectFree.
  */
@@ -3211,8 +3211,8 @@ char ngsEditOverlayCanRedo(unsigned char mapId)
 
 /**
  * @brief ngsEditOverlaySave Saves edits in feature class
- * @param mapId Map identificator the edit overlay belongs to
- * @return Feature handle or NULL if error occured
+ * @param mapId Map identifier the edit overlay belongs to
+ * @return Feature handle or NULL if error occurred
  */
 FeatureH ngsEditOverlaySave(unsigned char mapId)
 {
@@ -3573,7 +3573,7 @@ static ngsExtent qmsExtentToStruct(const std::string &extent)
 {
     ngsExtent out = {DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.minY(),
                      DEFAULT_BOUNDS.maxX(), DEFAULT_BOUNDS.maxY()};
-/*    if(extent.empty()) {
+    if(extent.empty() || extent.size() < 11) {
         return out;
     }
     // Drop SRID part - 10 chars
@@ -3581,8 +3581,7 @@ static ngsExtent qmsExtentToStruct(const std::string &extent)
     OGRGeometry *poGeom = nullptr;
     OGRSpatialReference srsWGS;
     srsWGS.importFromEPSG(4326);
-    if(OGRGeometryFactory::createFromWkt(wkt.c_str(), &srsWGS, &poGeom) !=
-            OGRERR_NONE ) {
+    if(OGRGeometryFactory::createFromWkt(wkt.c_str(), &srsWGS, &poGeom) != OGRERR_NONE ) {
         OGRSpatialReference srsWebMercator;
         srsWebMercator.importFromEPSG(3857);
         if(poGeom->transformTo(&srsWebMercator) != OGRERR_NONE) {
@@ -3591,23 +3590,23 @@ static ngsExtent qmsExtentToStruct(const std::string &extent)
             out = {env.MinX, env.MinY, env.MaxX, env.MaxY};
         }
     }
-*/    return out;
+    return out;
 }
 
 /**
- * @brief ngsQMSQuery Query QuickMapservices for specific geoservices
+ * @brief ngsQMSQuery Query QuickMapServices for specific geoservices
  * @param options key-value list. All keys are optional. Available keys are:
  *  type - services type. May be tms, wms, wfs, geojson
  *  epsg - services spatial reference EPSG code
  *  cumulative_status - services status. May be works, problematic, failed
  *  search - search string for a specific geoserver
- *  intersects_extent - only services bounding boxes intersecting privided
+ *  intersects_extent - only services bounding boxes intersecting provided
  *                      extents will return. Extent mast be in WKT or EWKT format.
  *  ordering - an order in which services will return. May be name, -name, id,
  *             -id, created_at, -created_at, updated_at, -updated_at
  *  limit - return services maximum count. Works together with offset.
- *  offset - offset from the begining of the return list. Works together with limit.
- * @return
+ *  offset - offset from the beginning of the return list. Works together with limit.
+ * @return array of ngsQMSItem structures. User mast free array using ngsFree.
  */
 ngsQMSItem *ngsQMSQuery(char **options)
 {
@@ -3618,13 +3617,8 @@ ngsQMSItem *ngsQMSQuery(char **options)
 
     std::string val = opt.asString("type");
     if(!val.empty()) {
-        if(firstParam) {
-            url.append("?type=" + val);
-            firstParam = false;
-        }
-        else {
-            url.append("&type=" + val);
-        }
+        url.append("?type=" + val);
+        firstParam = false;
     }
 
     val = opt.asString("epsg");
@@ -3694,21 +3688,21 @@ ngsQMSItem *ngsQMSQuery(char **options)
     val = opt.asString("offset", "0");
     if(firstParam) {
         url.append("?offset=" + val);
-        firstParam = false;
     }
     else {
         url.append("&offset=" + val);
     }
 
+    ngsExtent ext = {0.0, 0.0, 0.0, 0.0};
     ngsQMSItem *out = nullptr;
     CPLJSONDocument qmsItem;
     if(qmsItem.LoadUrl(url, nullptr)) {
         clearCStrings();
         CPLJSONObject root = qmsItem.GetRoot();
+        int count = root.GetInteger("count");
         CPLJSONArray services = root.GetArray("results");
         size_t size = static_cast<size_t>(services.Size() + 1);
         out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem) * size));
-        ngsExtent ext;
         for(int i = 0; i < services.Size(); ++i) {
             CPLJSONObject service = services[i];
             int iconId = service.GetInteger("icon", -1);
@@ -3724,19 +3718,18 @@ ngsQMSItem *ngsQMSQuery(char **options)
                        qmsTypeToCode(service.GetString("type")),
                        storeCString(iconUrl),
                        qmsStatusToCode(service.GetString("status")),
-                       qmsExtentToStruct(service.GetString("extent"))
+                       qmsExtentToStruct(service.GetString("extent")),
+                       count
                      };
 
         }
 
         out[services.Size()] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED,
-                ext};
+                ext, -1};
     }
     else {
         out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem)));
-        ngsExtent ext;
-        out[0] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED, ext};
-
+        out[0] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED, ext, -1};
     }
 
     return out;
