@@ -77,14 +77,39 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
         set(WITH_LibXml2 ON CACHE BOOL "LibXml2 off" FORCE)
     endif()
 
+    set(THIRD_PARTY_INCLUDE_PATH ${CMAKE_BINARY_DIR}/third-party)
+
+    macro( find_exthost_path )
+        set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER )
+        set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER )
+        set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER )
+
+        find_path( ${ARGN} )
+
+        set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM ONLY )
+        set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY )
+        set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY )
+    endmacro()
+
     macro(FIND_HEADERS lib header have)
-        set(THIRD_PARTY_INCLUDE_PATH ${CMAKE_BINARY_DIR}/third-party)
-        find_path(${lib}_PATH ${header} PATHS
-            ${THIRD_PARTY_INCLUDE_PATH}/src/${lib}_EP
-            ${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build
+        # message(STATUS "Try to search include for ${lib} header ${header} in paths:\n${THIRD_PARTY_INCLUDE_PATH}/src/${lib}_EP\n${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build")
+        find_exthost_path(${lib}_PATH "${header}"
+            PATHS
+                "${THIRD_PARTY_INCLUDE_PATH}/src/${lib}_EP"
+                "${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build"
+            PATH_SUFFIXES
+                "src" "include" "libtiff" "lib"
         )
         if(${lib}_PATH)
+            message(STATUS "Include path: ${${lib}_PATH}")
             include_directories(${${lib}_PATH})
+            include_directories(${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build)
+            if(${lib} STREQUAL "JPEG")
+                include_directories(${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build/8)
+            endif()
+            if(${lib} STREQUAL "TIFF")
+                include_directories(${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build/libtiff)
+            endif()
             add_definitions(-D${have})
         endif()
     endmacro()

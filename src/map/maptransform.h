@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -26,6 +26,7 @@
 #include "ds/geometry.h"
 #include "map/glm/mat4x4.hpp"
 #include "ngstore/api.h"
+#include "util/mutex.h"
 
 namespace ngs {
 
@@ -108,6 +109,7 @@ protected:
     double m_scaleMax, m_scaleMin;
     Envelope m_extentLimit;
     double m_reduceFactor;
+    Mutex m_mutex;
 };
 
 }

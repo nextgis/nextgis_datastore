@@ -22,7 +22,6 @@
 #define NGSGLTILE_H
 
 #include "buffer.h"
-#include "functions.h"
 #include "image.h"
 #include "ds/geometry.h"
 #include "map/glm/mat4x4.hpp"

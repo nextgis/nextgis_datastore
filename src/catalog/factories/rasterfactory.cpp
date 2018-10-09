@@ -54,7 +54,7 @@ constexpr const char* KEY_LIMIT_Y_MAX = "limit_y_max";
 
 RasterFactory::RasterFactory()
 {
-    m_tiffSupported = Filter::getGDALDriver(CAT_RASTER_TIFF);
+    m_tiffSupported = static_cast<bool>(Filter::getGDALDriver(CAT_RASTER_TIFF));
     m_wmstmsSupported =  Filter::getGDALDriver(CAT_RASTER_WMS) ||
             Filter::getGDALDriver(CAT_RASTER_TMS);
 
@@ -72,7 +72,7 @@ RasterFactory::RasterFactory()
 
 std::string RasterFactory::name() const
 {
-    return _("Rasters");
+    return _("Raster");
 }
 
 void RasterFactory::createObjects(ObjectContainer * const container,
@@ -143,12 +143,12 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
     {
         std::string url = options.asString(KEY_URL);
         if(url.empty()) {
-            return errorMessage(_("Missign required option 'url'"));
+            return errorMessage(_("Missing required option 'url'"));
         }
 
         int epsg = options.asInt(KEY_EPSG, NOT_FOUND);
         if(epsg < 0) {
-            return errorMessage(_("Missign required option 'epsg'"));
+            return errorMessage(_("Missing required option 'epsg'"));
         }
         int z_min = options.asInt(KEY_Z_MIN, 0);
         int z_max = options.asInt(KEY_Z_MAX, 18);
@@ -194,8 +194,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         }
         root.Add(USER_KEY, user);
 
-        std::string newPath = File::resetExtension(path,
-                                                   remoteConnectionExtension());
+        std::string newPath = File::resetExtension(path, remoteConnectionExtension());
         return connectionFile.Save(newPath);
     }
     default:

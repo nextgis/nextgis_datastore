@@ -284,6 +284,7 @@ void ngsFreeResources(char full)
             catalog->freeResources();
         }
     }
+    clearCStrings();
 }
 
 /**
@@ -293,7 +294,7 @@ void ngsFreeResources(char full)
  */
 const char *ngsGetLastErrorMessage()
 {
-    return getLastError();
+    return storeCString(getLastError());
 }
 
 /**
@@ -1838,7 +1839,7 @@ const char *ngsFeatureGetFieldAsString(FeatureH feature, int field)
         outMessage(COD_INVALID, _("The object handle is null"));
         return "";
     }
-    return (*featurePtrPointer)->GetFieldAsString(field);
+    return storeCString((*featurePtrPointer)->GetFieldAsString(field));
 }
 
 int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field, int *year,
@@ -2029,7 +2030,7 @@ ngsGeometryType ngsGeometryGetType(GeometryH geometry)
 
 const char *ngsGeometryToJson(GeometryH geometry)
 {
-    return static_cast<OGRGeometry*>(geometry)->exportToJson();
+    return storeCString(static_cast<OGRGeometry*>(geometry)->exportToJson());
 }
 
 CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG,
@@ -2268,9 +2269,9 @@ int ngsRasterCacheArea(CatalogObjectH object, char** options,
  * @param minY minimum Y coordinate
  * @param maxX maximum X coordinate
  * @param maxY maximum Y coordinate
- * @return 0 if create failed or map identifier.
+ * @return -1 if create failed or map identifier.
  */
-unsigned char ngsMapCreate(const char *name, const char *description,
+char ngsMapCreate(const char *name, const char *description,
                  unsigned short epsg, double minX, double minY,
                  double maxX, double maxY)
 {
@@ -2279,16 +2280,15 @@ unsigned char ngsMapCreate(const char *name, const char *description,
         return MapStore::invalidMapId();
     }
     Envelope bound(minX, minY, maxX, maxY);
-    return mapStore->createMap(fromCString(name), fromCString(description), epsg,
-                               bound);
+    return mapStore->createMap(fromCString(name), fromCString(description), epsg, bound);
 }
 
 /**
  * @brief ngsMapOpen Opens existing map from file
  * @param path Path to map file inside catalog in form ngc://some path/
- * @return 0 if open failed or map id.
+ * @return -1 if open failed or map id.
  */
-unsigned char ngsMapOpen(const char *path)
+char ngsMapOpen(const char *path)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2306,7 +2306,7 @@ unsigned char ngsMapOpen(const char *path)
  * @param path Path to store map data
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSave(unsigned char mapId, const char *path)
+int ngsMapSave(char mapId, const char *path)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2342,7 +2342,7 @@ int ngsMapSave(unsigned char mapId, const char *path)
  * @param mapId Map identifier to close
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapClose(unsigned char mapId)
+int ngsMapClose(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2357,16 +2357,16 @@ int ngsMapClose(unsigned char mapId)
  * @param mapId Map identifier received from create or open map functions
  * @param width Output image width
  * @param height Output image height
+ * @param isYAxisInverted Is Y axis inverted (1 - inverted, 0 - ont inverted)
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverted)
+int ngsMapSetSize(char mapId, int width, int height, char isYAxisInverted)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
         return outMessage(COD_CLOSE_FAILED, _("MapStore is not initialized"));
     }
-    return mapStore->setMapSize(mapId, width, height, isYAxisInverted == 1 ?
-                                    true : false) ? COD_SUCCESS : COD_SET_FAILED;
+    return mapStore->setMapSize(mapId, width, height, isYAxisInverted == 1) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 /**
@@ -2377,8 +2377,7 @@ int ngsMapSetSize(unsigned char mapId, int width, int height, int isYAxisInverte
  * @param callbackData Progress function arguments
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
-               ngsProgressFunc callback, void *callbackData)
+int ngsMapDraw(char mapId, enum ngsDrawState state, ngsProgressFunc callback, void *callbackData)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2388,7 +2387,7 @@ int ngsMapDraw(unsigned char mapId, enum ngsDrawState state,
     return mapStore->drawMap(mapId, state, progress) ? COD_SUCCESS : COD_DRAW_FAILED;
 }
 
-int ngsMapInvalidate(unsigned char mapId, ngsExtent bounds)
+int ngsMapInvalidate(char mapId, ngsExtent bounds)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2404,7 +2403,7 @@ int ngsMapInvalidate(unsigned char mapId, ngsExtent bounds)
  * @param mapId Map identifier received from create or open map functions
  * @return map background color struct
  */
-ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
+ngsRGBA ngsMapGetBackgroundColor(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2420,7 +2419,7 @@ ngsRGBA ngsMapGetBackgroundColor(unsigned char mapId)
  * @param color Background color
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetBackgroundColor(unsigned char mapId, ngsRGBA color)
+int ngsMapSetBackgroundColor(char mapId, ngsRGBA color)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2437,7 +2436,7 @@ int ngsMapSetBackgroundColor(unsigned char mapId, ngsRGBA color)
  * @param y Y coordinate
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetCenter(unsigned char mapId, double x, double y)
+int ngsMapSetCenter(char mapId, double x, double y)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2451,7 +2450,7 @@ int ngsMapSetCenter(unsigned char mapId, double x, double y)
  * @param mapId Map identifier
  * @return Coordinate structure. If error occurred all coordinates set to 0.0
  */
-ngsCoordinate ngsMapGetCenter(unsigned char mapId)
+ngsCoordinate ngsMapGetCenter(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2468,7 +2467,7 @@ ngsCoordinate ngsMapGetCenter(unsigned char mapId)
  * @param y Y position
  * @return Geographic coordinates
  */
-ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
+ngsCoordinate ngsMapGetCoordinate(char mapId, double x, double y)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2484,7 +2483,7 @@ ngsCoordinate ngsMapGetCoordinate(unsigned char mapId, double x, double y)
  * @param scale value to set
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetScale(unsigned char mapId, double scale)
+int ngsMapSetScale(char mapId, double scale)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2498,7 +2497,7 @@ int ngsMapSetScale(unsigned char mapId, double scale)
  * @param mapId Map identifier
  * @return Current map scale or 1
  */
-double ngsMapGetScale(unsigned char mapId)
+double ngsMapGetScale(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2515,7 +2514,7 @@ double ngsMapGetScale(unsigned char mapId)
  * @param path Path to map file inside catalog in form ngc://some path/
  * @return Layer Id or -1
  */
-int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
+int ngsMapCreateLayer(char mapId, const char *name, const char *path)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2541,7 +2540,7 @@ int ngsMapCreateLayer(unsigned char mapId, const char *name, const char *path)
  * @param movedLayer Layer to move
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLayer)
+int ngsMapLayerReorder(char mapId, LayerH beforeLayer, LayerH movedLayer)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2559,7 +2558,7 @@ int ngsMapLayerReorder(unsigned char mapId, LayerH beforeLayer, LayerH movedLaye
  * @param rotate value to set
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
+int ngsMapSetRotate(char mapId, ngsDirection dir, double rotate)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2574,7 +2573,7 @@ int ngsMapSetRotate(unsigned char mapId, ngsDirection dir, double rotate)
  * @param dir Rotate direction. May be X, Y or Z
  * @return rotate value or 0 if error occured
  */
-double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
+double ngsMapGetRotate(char mapId, ngsDirection dir)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2591,7 +2590,7 @@ double ngsMapGetRotate(unsigned char mapId, ngsDirection dir)
  * @param h Height
  * @return ngsCoordinate where X distance along x axis and Y along y axis
  */
-ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
+ngsCoordinate ngsMapGetDistance(char mapId, double w, double h)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2606,7 +2605,7 @@ ngsCoordinate ngsMapGetDistance(unsigned char mapId, double w, double h)
  * @param mapId Map identifier
  * @return Layer count in map
  */
-int ngsMapLayerCount(unsigned char mapId)
+int ngsMapLayerCount(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2622,7 +2621,7 @@ int ngsMapLayerCount(unsigned char mapId)
  * @param layerId Layer index
  * @return Layer handle. The caller should not delete it.
  */
-LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
+LayerH ngsMapLayerGet(char mapId, int layerId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2638,7 +2637,7 @@ LayerH ngsMapLayerGet(unsigned char mapId, int layerId)
  * @param layer Layer handle get from ngsMapLayerGet() function.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
+int ngsMapLayerDelete(char mapId, LayerH layer)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2657,7 +2656,7 @@ int ngsMapLayerDelete(unsigned char mapId, LayerH layer)
  *     reduce number of tiles in map extent. The tiles will be more pixelate
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetOptions(unsigned char mapId, char **options)
+int ngsMapSetOptions(char mapId, char **options)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2676,8 +2675,7 @@ int ngsMapSetOptions(unsigned char mapId, char **options)
  * @param maxY Maximum Y coordinate
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
-                                      double maxX, double maxY)
+int ngsMapSetExtentLimits(char mapId, double minX, double minY, double maxX, double maxY)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2689,7 +2687,7 @@ int ngsMapSetExtentLimits(unsigned char mapId, double minX, double minY,
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
+ngsExtent ngsMapGetExtent(char mapId, int epsg)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2753,7 +2751,7 @@ ngsExtent ngsMapGetExtent(unsigned char mapId, int epsg)
     return {0.0, 0.0, 0.0, 0.0};
 }
 
-int ngsMapSetExtent(unsigned char mapId, ngsExtent extent)
+int ngsMapSetExtent(char mapId, ngsExtent extent)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2775,7 +2773,7 @@ int ngsMapSetExtent(unsigned char mapId, ngsExtent extent)
  * @param styleType Style type (Point, Line or fill)
  * @return NULL or JSON style handle. The handle must be freed by ngsJsonObjectFree.
  */
-JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId, enum ngsStyleType styleType)
+JsonObjectH ngsMapGetSelectionStyle(char mapId, enum ngsStyleType styleType)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2791,8 +2789,7 @@ JsonObjectH ngsMapGetSelectionStyle(unsigned char mapId, enum ngsStyleType style
     return new CPLJSONObject(mapView->selectionStyle(styleType));
 }
 
-int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
-                             JsonObjectH style)
+int ngsMapSetSelectionsStyle(char mapId, enum ngsStyleType styleType, JsonObjectH style)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2809,7 +2806,7 @@ int ngsMapSetSelectionsStyle(unsigned char mapId, enum ngsStyleType styleType,
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-const char *ngsMapGetSelectionStyleName(unsigned char mapId, ngsStyleType styleType)
+const char *ngsMapGetSelectionStyleName(char mapId, ngsStyleType styleType)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2825,8 +2822,7 @@ const char *ngsMapGetSelectionStyleName(unsigned char mapId, ngsStyleType styleT
     return storeCString(mapView->selectionStyleName(styleType));
 }
 
-int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType,
-                                const char *name)
+int ngsMapSetSelectionStyleName(char mapId, enum ngsStyleType styleType, const char *name)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2840,8 +2836,7 @@ int ngsMapSetSelectionStyleName(unsigned char mapId, enum ngsStyleType styleType
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsMapIconSetAdd(unsigned char mapId, const char *name, const char *path,
-                     char ownByMap)
+int ngsMapIconSetAdd(char mapId, const char *name, const char *path, char ownByMap)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2855,7 +2850,7 @@ int ngsMapIconSetAdd(unsigned char mapId, const char *name, const char *path,
                 COD_SUCCESS : COD_INSERT_FAILED;
 }
 
-int ngsMapIconSetRemove(unsigned char mapId, const char *name)
+int ngsMapIconSetRemove(char mapId, const char *name)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -2869,7 +2864,7 @@ int ngsMapIconSetRemove(unsigned char mapId, const char *name)
     return mapView->removeIconSet(fromCString(name)) ? COD_SUCCESS : COD_DELETE_FAILED;
 }
 
-char ngsMapIconSetExists(unsigned char mapId, const char *name)
+char ngsMapIconSetExists(char mapId, const char *name)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -3085,7 +3080,7 @@ int ngsLayerSetHideIds(LayerH layer, long long *ids, int size)
 //------------------------------------------------------------------------------
 
 
-static OverlayPtr getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
+static OverlayPtr getOverlay(char mapId, enum ngsMapOverlayType type)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -3101,7 +3096,7 @@ static OverlayPtr getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
 }
 
 template<typename T>
-static T *getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
+static T *getOverlay(char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
@@ -3111,7 +3106,7 @@ static T *getOverlay(unsigned char mapId, enum ngsMapOverlayType type)
     return ngsDynamicCast(T, overlay);
 }
 
-int ngsOverlaySetVisible(unsigned char mapId, int typeMask, char visible)
+int ngsOverlaySetVisible(char mapId, int typeMask, char visible)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -3121,7 +3116,7 @@ int ngsOverlaySetVisible(unsigned char mapId, int typeMask, char visible)
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
+char ngsOverlayGetVisible(char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
@@ -3139,8 +3134,7 @@ char ngsOverlayGetVisible(unsigned char mapId, enum ngsMapOverlayType type)
  *   CROSS - ON/OFF, show or hide a cross in the map center
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
-int ngsOverlaySetOptions(unsigned char mapId, enum ngsMapOverlayType type,
-                         char **options)
+int ngsOverlaySetOptions(char mapId, enum ngsMapOverlayType type, char **options)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
@@ -3150,7 +3144,7 @@ int ngsOverlaySetOptions(unsigned char mapId, enum ngsMapOverlayType type,
     return overlay->setOptions(editOptions) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
-char **ngsOverlayGetOptions(unsigned char mapId, enum ngsMapOverlayType type)
+char **ngsOverlayGetOptions(char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
     if(!overlay) {
@@ -3163,8 +3157,7 @@ char **ngsOverlayGetOptions(unsigned char mapId, enum ngsMapOverlayType type)
     return options.asCharArray().release();
 }
 
-ngsPointId ngsEditOverlayTouch(unsigned char mapId, double x, double y,
-                               enum ngsMapTouchType type)
+ngsPointId ngsEditOverlayTouch(char mapId, double x, double y, enum ngsMapTouchType type)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3173,7 +3166,7 @@ ngsPointId ngsEditOverlayTouch(unsigned char mapId, double x, double y,
     return editOverlay->touch(x, y, type);
 }
 
-char ngsEditOverlayUndo(unsigned char mapId)
+char ngsEditOverlayUndo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3182,7 +3175,7 @@ char ngsEditOverlayUndo(unsigned char mapId)
     return editOverlay->undo();
 }
 
-char ngsEditOverlayRedo(unsigned char mapId)
+char ngsEditOverlayRedo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3191,7 +3184,7 @@ char ngsEditOverlayRedo(unsigned char mapId)
     return editOverlay->redo();
 }
 
-char ngsEditOverlayCanUndo(unsigned char mapId)
+char ngsEditOverlayCanUndo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3200,7 +3193,7 @@ char ngsEditOverlayCanUndo(unsigned char mapId)
     return editOverlay->canUndo();
 }
 
-char ngsEditOverlayCanRedo(unsigned char mapId)
+char ngsEditOverlayCanRedo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3214,7 +3207,7 @@ char ngsEditOverlayCanRedo(unsigned char mapId)
  * @param mapId Map identifier the edit overlay belongs to
  * @return Feature handle or NULL if error occurred
  */
-FeatureH ngsEditOverlaySave(unsigned char mapId)
+FeatureH ngsEditOverlaySave(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3229,7 +3222,7 @@ FeatureH ngsEditOverlaySave(unsigned char mapId)
     return new FeaturePtr(savedFeature);
 }
 
-int ngsEditOverlayCancel(unsigned char mapId)
+int ngsEditOverlayCancel(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3239,8 +3232,7 @@ int ngsEditOverlayCancel(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer,
-                                        char empty)
+int ngsEditOverlayCreateGeometryInLayer(char mapId, LayerH layer, char empty)
 {
     if(!layer) {
         return outMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
@@ -3263,7 +3255,7 @@ int ngsEditOverlayCreateGeometryInLayer(unsigned char mapId, LayerH layer,
 }
 
 
-int ngsEditOverlayCreateGeometry(unsigned char mapId, ngsGeometryType type)
+int ngsEditOverlayCreateGeometry(char mapId, ngsGeometryType type)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3275,8 +3267,7 @@ int ngsEditOverlayCreateGeometry(unsigned char mapId, ngsGeometryType type)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
-                               long long featureId)
+int ngsEditOverlayEditGeometry(char mapId, LayerH layer, long long featureId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3309,7 +3300,7 @@ int ngsEditOverlayEditGeometry(unsigned char mapId, LayerH layer,
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayDeleteGeometry(unsigned char mapId)
+int ngsEditOverlayDeleteGeometry(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3322,7 +3313,7 @@ int ngsEditOverlayDeleteGeometry(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayAddPoint(unsigned char mapId)
+int ngsEditOverlayAddPoint(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3332,7 +3323,7 @@ int ngsEditOverlayAddPoint(unsigned char mapId)
     return editOverlay->createPoint() ? COD_SUCCESS : COD_INSERT_FAILED;
 }
 
-int ngsEditOverlayAddVertex(unsigned char mapId, ngsCoordinate coordinates)
+int ngsEditOverlayAddVertex(char mapId, ngsCoordinate coordinates)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3343,7 +3334,7 @@ int ngsEditOverlayAddVertex(unsigned char mapId, ngsCoordinate coordinates)
                 COD_SUCCESS : COD_INSERT_FAILED;
 }
 
-enum ngsEditDeleteResult ngsEditOverlayDeletePoint(unsigned char mapId)
+enum ngsEditDeleteResult ngsEditOverlayDeletePoint(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3352,7 +3343,7 @@ enum ngsEditDeleteResult ngsEditOverlayDeletePoint(unsigned char mapId)
     return editOverlay->deletePoint();
 }
 
-int ngsEditOverlayAddHole(unsigned char mapId)
+int ngsEditOverlayAddHole(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3364,7 +3355,7 @@ int ngsEditOverlayAddHole(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-enum ngsEditDeleteResult ngsEditOverlayDeleteHole(unsigned char mapId)
+enum ngsEditDeleteResult ngsEditOverlayDeleteHole(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3373,7 +3364,7 @@ enum ngsEditDeleteResult ngsEditOverlayDeleteHole(unsigned char mapId)
     return editOverlay->deleteHole();
 }
 
-int ngsEditOverlayAddGeometryPart(unsigned char mapId)
+int ngsEditOverlayAddGeometryPart(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3385,7 +3376,7 @@ int ngsEditOverlayAddGeometryPart(unsigned char mapId)
     return COD_SUCCESS;
 }
 
-void ngsEditOverlaySetWalkingMode(unsigned char mapId, char enable)
+void ngsEditOverlaySetWalkingMode(char mapId, char enable)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3394,7 +3385,7 @@ void ngsEditOverlaySetWalkingMode(unsigned char mapId, char enable)
     editOverlay->setWalkingMode(enable == 1);
 }
 
-char ngsEditOverlayGetWalkingMode(unsigned char mapId)
+char ngsEditOverlayGetWalkingMode(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3408,7 +3399,7 @@ char ngsEditOverlayGetWalkingMode(unsigned char mapId)
  * @param mapId
  * @return The value from enum ngsEditDeleteResult
  */
-enum ngsEditDeleteResult ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
+enum ngsEditDeleteResult ngsEditOverlayDeleteGeometryPart(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3417,7 +3408,7 @@ enum ngsEditDeleteResult ngsEditOverlayDeleteGeometryPart(unsigned char mapId)
     return editOverlay->deleteGeometryPart();
 }
 
-GeometryH ngsEditOverlayGetGeometry(unsigned char mapId)
+GeometryH ngsEditOverlayGetGeometry(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -3426,8 +3417,7 @@ GeometryH ngsEditOverlayGetGeometry(unsigned char mapId)
     return editOverlay->geometry();
 }
 
-int ngsEditOverlaySetStyle(unsigned char mapId, enum ngsEditStyleType type,
-                           JsonObjectH style)
+int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type, JsonObjectH style)
 {
     GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
@@ -3437,8 +3427,7 @@ int ngsEditOverlaySetStyle(unsigned char mapId, enum ngsEditStyleType type,
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsEditOverlaySetStyleName(unsigned char mapId, enum ngsEditStyleType type,
-                               const char* name)
+int ngsEditOverlaySetStyleName(char mapId, enum ngsEditStyleType type, const char* name)
 {
     GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
@@ -3447,8 +3436,7 @@ int ngsEditOverlaySetStyleName(unsigned char mapId, enum ngsEditStyleType type,
     return overlay->setStyleName(type, name) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
-JsonObjectH ngsEditOverlayGetStyle(unsigned char mapId,
-                                   enum ngsEditStyleType type)
+JsonObjectH ngsEditOverlayGetStyle(char mapId, enum ngsEditStyleType type)
 {
     GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
@@ -3457,8 +3445,7 @@ JsonObjectH ngsEditOverlayGetStyle(unsigned char mapId,
     return new CPLJSONObject(overlay->style(type));
 }
 
-int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
-                             float direction, float accuracy)
+int ngsLocationOverlayUpdate(char mapId, ngsCoordinate location, float direction, float accuracy)
 {
     LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
@@ -3469,7 +3456,7 @@ int ngsLocationOverlayUpdate(unsigned char mapId, ngsCoordinate location,
     return COD_SUCCESS;
 }
 
-int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style)
+int ngsLocationOverlaySetStyle(char mapId, JsonObjectH style)
 {
     GlLocationOverlay *overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
@@ -3480,7 +3467,7 @@ int ngsLocationOverlaySetStyle(unsigned char mapId, JsonObjectH style)
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name)
+int ngsLocationOverlaySetStyleName(char mapId, const char* name)
 {
     GlLocationOverlay *overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
@@ -3490,7 +3477,7 @@ int ngsLocationOverlaySetStyleName(unsigned char mapId, const char* name)
     return overlay->setStyleName(name) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
-JsonObjectH ngsLocationOverlayGetStyle(unsigned char mapId)
+JsonObjectH ngsLocationOverlayGetStyle(char mapId)
 {
     GlLocationOverlay *overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {

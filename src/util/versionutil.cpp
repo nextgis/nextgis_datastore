@@ -41,7 +41,7 @@
 #endif
 
 #ifdef HAVE_JSON_C_VERSION_H
-#include "json-c/json_c_version.h"
+#include "json_c_version.h"
 #endif
 
 #ifdef HAVE_PROJ_API_H
@@ -332,5 +332,5 @@ std::string ngs::getVersionString(const std::string &request)
 #endif
     else if(compare(request, "self"))
         return NGS_VERSION;
-    return nullptr;
+    return "";
 }

@@ -211,6 +211,7 @@ bool MapTransform::setExtent(const Envelope &env)
 
 bool MapTransform::updateExtent()
 {
+    MutexHolder holder(m_mutex);
     double doubleScale = m_scale * 2.0;
     double halfWidth = double(m_displayWidht) / doubleScale;
     double halfHeight = double(m_displayHeight) / doubleScale;

@@ -190,7 +190,7 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
             if(tile->filled())
                 continue;
             float z = 0.0f;
-            for (auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
+            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
                  ++layerIt) {
                 const LayerPtr &layer = *layerIt;
                 m_threadPool.addThreadData(new LayerFillData(tile, layer, z, true));
@@ -398,6 +398,7 @@ void GlView::freeResources()
 
 bool GlView::drawTiles(const Progress &progress)
 {
+    MutexHolder holder(m_mutex);
 //    ngsCheckGLError(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
     ngsCheckGLError(glDisable(GL_BLEND));
 
@@ -473,7 +474,7 @@ bool GlView::drawTiles(const Progress &progress)
             glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
             // Make the window the target
-            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, 1)); // 0 - back, 1 - front.
+            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, MAIN_FRAMEBUFFER));
             ngsCheckGLError(glDisable(GL_DEPTH_TEST));
 
             if(filled != m_layers.size()) { // == 0
@@ -554,6 +555,11 @@ void GlView::initView()
                 Style::createStyle("simpleFillBordered", m_textureAtlas));
     createOverlays();
     m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
+
+    m_glBkColor.r = float(m_bkColor.R) / 255;
+    m_glBkColor.g = float(m_bkColor.G) / 255;
+    m_glBkColor.b = float(m_bkColor.B) / 255;
+    m_glBkColor.a = float(m_bkColor.A) / 255;
 }
 
 double GlView::pixelSize(int zoom)

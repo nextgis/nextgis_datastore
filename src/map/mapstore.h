@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -45,52 +45,49 @@ public:
      * @param minY minimum y
      * @param maxX maximum x
      * @param maxY maximum y
-     * @return 0 if some error occures or new map identificator if success.
+     * @return 0 if some error occurs or new map identifier if success.
      */
-    virtual unsigned char createMap(const std::string &name,
-                                    const std::string &description,
-                                    unsigned short epsg, const Envelope &bounds);
-    virtual unsigned char openMap(MapFile * const file);
-    virtual bool saveMap(unsigned char mapId, MapFile * const file);
-    virtual bool closeMap(unsigned char mapId);
-    virtual MapViewPtr getMap(unsigned char mapId) const;
+    virtual char createMap(const std::string &name,
+                           const std::string &description,
+                           unsigned short epsg, const Envelope &bounds);
+    virtual char openMap(MapFile * const file);
+    virtual bool saveMap(char mapId, MapFile * const file);
+    virtual bool closeMap(char mapId);
+    virtual MapViewPtr getMap(char mapId) const;
 
     //
     void freeResources() { m_maps.clear(); }
 
     // Map manipulation
-    bool drawMap(unsigned char mapId, enum ngsDrawState state,
-                const Progress &progress = Progress());
-    void invalidateMap(unsigned char mapId, const Envelope &bounds);
+    bool drawMap(char mapId, enum ngsDrawState state, const Progress &progress = Progress());
+    void invalidateMap(char mapId, const Envelope &bounds);
 
-    bool setMapSize(unsigned char mapId, int width, int height,
-                   bool YAxisInverted);
-    ngsRGBA getMapBackgroundColor(unsigned char mapId) const;
-    bool setMapBackgroundColor(unsigned char mapId, const ngsRGBA &color);
-    bool setMapCenter(unsigned char mapId, double x, double y);
-    ngsCoordinate getMapCenter(unsigned char mapId) const;
-    bool setMapScale(unsigned char mapId, double scale);
-    double getMapScale(unsigned char mapId) const;
-    bool setMapRotate(unsigned char mapId, enum ngsDirection dir, double rotate);
-    double getMapRotate(unsigned char mapId, enum ngsDirection dir) const;
-    ngsCoordinate getMapCoordinate(unsigned char mapId, double x, double y) const;
-    ngsPosition getDisplayPosition(unsigned char mapId, double x, double y) const;
-    ngsCoordinate getMapDistance(unsigned char mapId, double w, double h) const;
-    ngsPosition getDisplayLength(unsigned char mapId, double w, double h) const;
-    size_t getLayerCount(unsigned char mapId) const;
-    LayerPtr getLayer(unsigned char mapId, int layerId) const;
-    int createLayer(unsigned char mapId, const std::string &name,
-                    const ObjectPtr &object);
-    bool deleteLayer(unsigned char mapId, Layer *layer);
-    bool reorderLayers(unsigned char mapId, Layer *beforeLayer, Layer *movedLayer);
-    bool setOptions(unsigned char mapId, const Options &options);
-    bool setExtentLimits(unsigned char mapId, const Envelope &extentLimits);
-    OverlayPtr getOverlay(unsigned char mapId, enum ngsMapOverlayType type) const;
-    bool setOverlayVisible(unsigned char mapId, int typeMask, bool visible);
+    bool setMapSize(char mapId, int width, int height, bool YAxisInverted);
+    ngsRGBA getMapBackgroundColor(char mapId) const;
+    bool setMapBackgroundColor(char mapId, const ngsRGBA &color);
+    bool setMapCenter(char mapId, double x, double y);
+    ngsCoordinate getMapCenter(char mapId) const;
+    bool setMapScale(char mapId, double scale);
+    double getMapScale(char mapId) const;
+    bool setMapRotate(char mapId, enum ngsDirection dir, double rotate);
+    double getMapRotate(char mapId, enum ngsDirection dir) const;
+    ngsCoordinate getMapCoordinate(char mapId, double x, double y) const;
+    ngsPosition getDisplayPosition(char mapId, double x, double y) const;
+    ngsCoordinate getMapDistance(char mapId, double w, double h) const;
+    ngsPosition getDisplayLength(char mapId, double w, double h) const;
+    size_t getLayerCount(char mapId) const;
+    LayerPtr getLayer(char mapId, int layerId) const;
+    int createLayer(char mapId, const std::string &name, const ObjectPtr &object);
+    bool deleteLayer(char mapId, Layer *layer);
+    bool reorderLayers(char mapId, Layer *beforeLayer, Layer *movedLayer);
+    bool setOptions(char mapId, const Options &options);
+    bool setExtentLimits(char mapId, const Envelope &extentLimits);
+    OverlayPtr getOverlay(char mapId, enum ngsMapOverlayType type) const;
+    bool setOverlayVisible(char mapId, int typeMask, bool visible);
 
     // static
 public:
-    static unsigned char invalidMapId();
+    static char invalidMapId();
     static MapViewPtr initMap();
 
 public:

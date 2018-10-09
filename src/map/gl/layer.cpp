@@ -1001,7 +1001,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
     Envelope rasterExtent = m_raster->extent();
     Envelope tileExtent = tile->getExtent();
 
-    // Increase extent to fix losse several pixels on tile border
+    // Increase extent to fix lose several pixels on tile border
     double tileExtentW = tileExtent.width();
     double tileExtentH = tileExtent.height();
     if(tileExtentW < 15000.0) {
