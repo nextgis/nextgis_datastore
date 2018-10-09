@@ -872,12 +872,12 @@ TEST(MapTests, MapSave) {
     CPLString shapePath = catalogPath + "/data/bld.shp";
     CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
 
-    unsigned char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
+    char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
                                        ngs::DEFAULT_BOUNDS.minX(),
                                        ngs::DEFAULT_BOUNDS.minY(),
                                        ngs::DEFAULT_BOUNDS.maxX(),
                                        ngs::DEFAULT_BOUNDS.maxY());
-    ASSERT_NE(mapId, 0);
+    ASSERT_NE(mapId, -1);
     EXPECT_EQ(ngsMapLayerCount(mapId), 0);
 
     EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 0", shapePath), 0);
@@ -909,8 +909,8 @@ TEST(MapTests, MapOpen) {
     std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
     std::string mapPath = catalogPath + "/tmp/test_map.ngmd";
 
-    unsigned char mapId = ngsMapOpen(mapPath.c_str());
-    ASSERT_NE(mapId, 0);
+    char mapId = ngsMapOpen(mapPath.c_str());
+    ASSERT_NE(mapId, -1);
 
     EXPECT_EQ(ngsMapLayerCount(mapId), 2);
 
