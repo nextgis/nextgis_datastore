@@ -4,8 +4,8 @@
 
 ## Intro
 
-NextGIS storage and visualization support library is a C++ library with C, Python
-and Java bindings. The library provides API to optimized vector and raster
+NextGIS storage and visualization support library is a C++ library with C
+and Kotlin bindings. The library provides API to optimized vector and raster
 geodata storage, reading and modification (datasource) and maps creation from
 these geodata.
 
@@ -13,7 +13,8 @@ Developer can create many maps with different content (layers, based on geodata
 from datasource) and define different styles. Map can be panned and zoomed, the
 current extent is stored in map context. Map can return rendered images to display
 to user in various graphic interfaces. Rendering is optimized for big amounts of
-geodata and uses non blocking (async) functions. Map spatial reference is Web Mercator.
+geodata and uses non blocking (async) functions. Map spatial reference is Web 
+Mercator (EPSG:3857).
 
 ## Formats
 
@@ -76,12 +77,10 @@ instances of library.
 # Usage
 
 The library can be linked from desktop software or used via bindings. There are
-special support scripts for mobile platforms (Android and iOS). See. /opt/android
-and /opt/ios folders.
+special support scripts for mobile platforms (Android and iOS). See /opt/ios folder.
 
-For Android the gradle script includes several support functions and main build
-and copy tasks. Also special Android.mk and application.mk files with linked
-libraries and supported ABIs set.
+For Android JNI used to access library functions in Kotlin. The special kotlin wrapper
+library is at [separate repository](https://github.com/nextgis/android_maplib).
 
 For iOS special Python script *build_framework.py* to build XCode framework.
 Carthage support enabled. The special swift wrapper library is at
