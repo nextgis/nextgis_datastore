@@ -406,7 +406,9 @@ bool GlView::drawTiles(const Progress &progress)
 
     // Preserve current viewport
     GLint viewport[4];
+    GLint currentFramebuffer = 0; // 0 - back, 1 - front.
     glGetIntegerv( GL_VIEWPORT, viewport );
+    glGetIntegerv( GL_FRAMEBUFFER_BINDING, &currentFramebuffer);
 
 
     double done = 0.0;
@@ -434,8 +436,7 @@ bool GlView::drawTiles(const Progress &progress)
             ngsCheckGLError(glEnable(GL_BLEND));
 
             unsigned char filled = 0;
-            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
-                 ++layerIt) {
+            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend(); ++layerIt) {
 
                 const LayerPtr &layer = *layerIt;
                 GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
@@ -445,8 +446,7 @@ bool GlView::drawTiles(const Progress &progress)
                 }
             }
 
-            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend();
-                 ++layerIt) {
+            for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend(); ++layerIt) {
                 const LayerPtr &layer = *layerIt;
                 GlSelectableFeatureLayer *renderLayer =
                         ngsDynamicCast(GlSelectableFeatureLayer, layer);
@@ -458,8 +458,7 @@ bool GlView::drawTiles(const Progress &progress)
             if(filled == m_layers.size()) {
                 // Free layer data
                 for(const LayerPtr &layer : m_layers) {
-                    GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
-                                                                 layer);
+                    GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer, layer);
                     if(renderLayer) {
                         renderLayer->free(tile);
                     }
@@ -474,7 +473,7 @@ bool GlView::drawTiles(const Progress &progress)
             glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
             // Make the window the target
-            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, MAIN_FRAMEBUFFER));
+            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, currentFramebuffer));
             ngsCheckGLError(glDisable(GL_DEPTH_TEST));
 
             if(filled != m_layers.size()) { // == 0
@@ -495,8 +494,7 @@ bool GlView::drawTiles(const Progress &progress)
     ngsCheckGLError(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     ngsCheckGLError(glEnable(GL_BLEND));
 
-    for (auto overlayIt = m_overlays.rbegin(); overlayIt != m_overlays.rend();
-            ++overlayIt) {
+    for (auto overlayIt = m_overlays.rbegin(); overlayIt != m_overlays.rend(); ++overlayIt) {
         const OverlayPtr &overlay = *overlayIt;
         GlRenderOverlay *glOverlay = ngsDynamicCast(GlRenderOverlay, overlay);
         if (glOverlay) {

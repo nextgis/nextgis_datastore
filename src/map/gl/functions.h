@@ -22,7 +22,6 @@
 #define NGSGLFUNCTIONS_H
 
 #if __APPLE__
-    #define MAIN_FRAMEBUFFER 1 // 0 - back, 1 - front.
     #include "TargetConditionals.h"
     #if TARGET_OS_IPHONE
         #define GLES
@@ -38,13 +37,11 @@
         #error Unsupported Apple platform
     #endif
 #elif __ANDROID__
-    #define MAIN_FRAMEBUFFER 0
     #define GLES
     #define GL_GLEXT_PROTOTYPES 1
     #include <GLES2/gl2.h>
     #include <GLES2/gl2ext.h>
 #else
-    #define MAIN_FRAMEBUFFER 1
     #define GL_GLEXT_PROTOTYPES
     #include <GLES2/gl2.h>
     #include <GLES2/gl2ext.h>
