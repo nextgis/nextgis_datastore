@@ -58,9 +58,9 @@ TEST(MapTests, TestCreate) {
 
 
     ngs::MapStore mapStore;
-    unsigned char mapId = mapStore.createMap(DEFAULT_MAP_NAME, "unit test",
+    char mapId = mapStore.createMap(DEFAULT_MAP_NAME, "unit test",
                                              DEFAULT_EPSG, ngs::DEFAULT_BOUNDS);
-    EXPECT_GE(mapId, 1);
+    EXPECT_GE(mapId, 0);
 
     ngs::MapViewPtr defMap = mapStore.getMap(mapId);
     ASSERT_NE(defMap, nullptr);
@@ -119,8 +119,8 @@ TEST(MapTests, TestOpenMap) {
     ngs::ObjectPtr mapFileObj = tmpDirContainer->getChild("default.ngmd");
     ngs::MapFile* mapFile = ngsDynamicCast(ngs::MapFile, mapFileObj);
 
-    unsigned char mapId = mapStore.openMap(mapFile);
-    EXPECT_GE(mapId, 1);
+    char mapId = mapStore.openMap(mapFile);
+    EXPECT_GE(mapId, 0);
     ngs::MapViewPtr defMap = mapStore.getMap(mapId);
     ASSERT_NE(defMap, nullptr);
     EXPECT_EQ(defMap->hasIconSet("simple"), true);
