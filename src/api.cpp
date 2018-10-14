@@ -2319,18 +2319,16 @@ int ngsMapSave(char mapId, const char *path)
         mapFile = ngsDynamicCast(MapFile, mapFileObject);
     }
     else { // create new MapFile
-        std::string newPath = File::resetExtension(fromCString(path),
-                                                   MapFile::extension());
+        std::string newPath = File::resetExtension(fromCString(path), MapFile::extension());
         std::string saveFolder = File::getPath(newPath);
         std::string saveName = File::getFileName(newPath);
         ObjectPtr object = catalog->getObject(saveFolder);
         ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
-        mapFile = new MapFile(container, saveName,
-                        File::formFileName(object->path(), saveName, ""));
+        mapFile = new MapFile(container, saveName, File::formFileName(object->path(), saveName, ""));
         mapFileObject = ObjectPtr(mapFile);
     }
 
-    if(!mapFile || !mapStore->saveMap(mapId, mapFile)) {
+    if(!mapStore->saveMap(mapId, mapFile)) {
         return COD_SAVE_FAILED;
     }
 
@@ -2339,7 +2337,7 @@ int ngsMapSave(char mapId, const char *path)
 
 /**
  * @brief ngsMapClose Closes map and free resources
- * @param mapId Map identifier to close
+ * @param mapId Map identifier
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapClose(char mapId)
@@ -2349,6 +2347,38 @@ int ngsMapClose(char mapId)
         return outMessage(COD_CLOSE_FAILED, _("MapStore is not initialized"));
     }
     return mapStore->closeMap(mapId) ? COD_SUCCESS : COD_CLOSE_FAILED;
+}
+
+/**
+ * @brief ngsMapReopen. Reopen map.
+ * @param mapId Map identifier
+ * @param path Path to store map data
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsMapReopen(char mapId, const char *path)
+{
+    MapStore * const mapStore = MapStore::instance();
+    if(nullptr == mapStore) {
+        return COD_SAVE_FAILED;
+    }
+    CatalogPtr catalog = Catalog::instance();
+    ObjectPtr mapFileObject = catalog->getObject(fromCString(path));
+    MapFile *mapFile;
+    if(mapFileObject) {
+        mapFile = ngsDynamicCast(MapFile, mapFileObject);
+    }
+    else { // create new MapFile
+        std::string newPath = File::resetExtension(fromCString(path),
+                                                   MapFile::extension());
+        std::string saveFolder = File::getPath(newPath);
+        std::string saveName = File::getFileName(newPath);
+        ObjectPtr object = catalog->getObject(saveFolder);
+        ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
+        mapFile = new MapFile(container, saveName,
+                              File::formFileName(object->path(), saveName, ""));
+        mapFileObject = ObjectPtr(mapFile);
+    }
+    return mapStore->reopenMap(mapId, mapFile) ? COD_SUCCESS : COD_CLOSE_FAILED;
 }
 
 

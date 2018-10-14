@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -48,7 +48,7 @@ typedef struct _imageData {
 } ImageData;
 
 /**
- * @brief The Raster dataset class represent image or raster
+ * @brief The Raster dataset class represents image or raster
  */
 class Raster : public Object, public DatasetBase, public SpatialDataset
 {
@@ -102,10 +102,6 @@ protected:
 protected:
     static bool cacheAreaJobThreadFunc(ThreadData *threadData);
 
-
-//private:
-//    void freeLocks(bool all = false);
-
 protected:
     Envelope m_extent;
     unsigned int m_openFlags;
@@ -113,13 +109,6 @@ protected:
 
 private:
     std::vector<std::string> m_siblingFiles;
-//    typedef struct _lockData {
-//        Envelope env;
-//        Mutex mutexRef;
-//        unsigned char zoom;
-//    } LockData;
-
-//    std::vector<LockData> m_dataLocks;
     Mutex m_dataLock;
 };
 

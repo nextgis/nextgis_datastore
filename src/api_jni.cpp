@@ -1434,14 +1434,15 @@ NGS_JNI_FUNC(jint, mapCreate)(JNIEnv *env, jobject thisObj, jstring name, jstrin
     jint epsg, jdouble minX, jdouble minY, jdouble maxX, jdouble maxY)
 {
     ngsUnused(thisObj);
-    return ngsMapCreate(jniString(env, name).c_str(), jniString(env, description).c_str(),
-                        static_cast<unsigned short>(epsg), minX, minY, maxX, maxY);
+    return static_cast<jint>(ngsMapCreate(jniString(env, name).c_str(),
+                                          jniString(env, description).c_str(),
+                                          static_cast<unsigned short>(epsg), minX, minY, maxX, maxY));
 }
 
 NGS_JNI_FUNC(jint, mapOpen)(JNIEnv *env, jobject thisObj, jstring path)
 {
     ngsUnused(thisObj);
-    return ngsMapOpen(jniString(env, path).c_str());
+    return static_cast<jint>(ngsMapOpen(jniString(env, path).c_str()));
 }
 
 NGS_JNI_FUNC(jboolean, mapSave)(JNIEnv *env, jobject thisObj, jint mapId, jstring path)
@@ -1456,6 +1457,12 @@ NGS_JNI_FUNC(jboolean, mapClose)(JNIEnv *env, jobject thisObj, jint mapId)
     ngsUnused(env);
     ngsUnused(thisObj);
     return ngsMapClose(static_cast<char>(mapId)) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jint, mapReopen)(JNIEnv *env, jobject thisObj, jint mapId, jstring path)
+{
+    ngsUnused(thisObj);
+    return static_cast<jint>(ngsMapReopen(mapId, jniString(env, path).c_str()));
 }
 
 NGS_JNI_FUNC(jint, mapLayerCount)(JNIEnv *env, jobject thisObj, jint mapId)

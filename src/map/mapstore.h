@@ -53,6 +53,7 @@ public:
     virtual char openMap(MapFile * const file);
     virtual bool saveMap(char mapId, MapFile * const file);
     virtual bool closeMap(char mapId);
+    virtual bool reopenMap(char mapId, MapFile * const file);
     virtual MapViewPtr getMap(char mapId) const;
 
     //

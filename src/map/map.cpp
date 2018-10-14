@@ -124,7 +124,6 @@ bool Map::open(MapFile * const mapFile)
     mapPath += mapFile->path();
     mapPath += "/data.json";
     if(!doc.Load(mapPath)) {
-//    if(!doc.Load(mapFile->path())) {
         return false;
     }
 
@@ -146,7 +145,6 @@ bool Map::save(MapFile * const mapFile)
     mapPath += "/data.json";
 
     return doc.Save(mapPath);
-    //return doc.Save(mapFile->path());
 }
 
 bool Map::close()
