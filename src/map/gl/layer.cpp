@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -30,10 +30,12 @@
 #include "view.h"
 #include "util/global.h"
 #include "util/error.h"
+#include "util/settings.h"
 
 namespace ngs {
 
 constexpr unsigned char MAX_ZOOM = 18;
+constexpr double LOCK_TIME = 5.0;
 
 //------------------------------------------------------------------------------
 // IGlRenderLayer
@@ -49,8 +51,7 @@ GlRenderLayer::~GlRenderLayer()
 
 void GlRenderLayer::free(const GlTilePtr &tile)
 {
-    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
-    MutexHolder holder(m_dataMutex, lockTime);
+    MutexHolder holder(m_dataMutex, LOCK_TIME);
     auto it = m_tiles.find(tile->getTile());
     if(it != m_tiles.end()) {
         if(it->second) {
@@ -79,9 +80,8 @@ GlFeatureLayer::GlFeatureLayer(Map *map, const std::string &name) :
 bool GlFeatureLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 {
     ngsUnused(isLastTry);
-    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
-        MutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -89,7 +89,7 @@ bool GlFeatureLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
     VectorGlObject *bufferArray = nullptr;
     VectorTile vtile = m_featureClass->getTile(tile->getTile(), tile->getExtent());
     if(vtile.empty()) {
-        MutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -109,12 +109,12 @@ bool GlFeatureLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
     }
 
     if(!bufferArray) {
-        MutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
 
-    MutexHolder holder(m_dataMutex, lockTime);
+    MutexHolder holder(m_dataMutex, LOCK_TIME);
     m_tiles[tile->getTile()] = GlObjectPtr(bufferArray);
 
     return true;
@@ -987,9 +987,8 @@ GlRasterLayer::GlRasterLayer(Map *map, const std::string &name) :
 
 bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 {
-    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
     if(!m_visible) {
-        MutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -1021,7 +1020,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
     if(!outExt.isInit()) {
         CPLDebug("ngstore", "fill layer %s not intersect - x: %f, y: %f",
                  m_raster->name().c_str(), rasterExtent.minX(), rasterExtent.minY());
-        MutexHolder holder(m_dataMutex, lockTime);
+        MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
     }
@@ -1124,7 +1123,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
             CPLFree(pixData);
 
             if(isLastTry) {
-                MutexHolder holder(m_dataMutex, lockTime);
+                MutexHolder holder(m_dataMutex, LOCK_TIME);
                 m_tiles[tile->getTile()] = GlObjectPtr();
                 return true;
             }
@@ -1140,7 +1139,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
             CPLFree(pixData);
 
             if(isLastTry) {
-                MutexHolder holder(m_dataMutex, lockTime);
+                MutexHolder holder(m_dataMutex, LOCK_TIME);
                 m_tiles[tile->getTile()] = GlObjectPtr();
                 return true;
             }
@@ -1184,7 +1183,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 
     GlObjectPtr tileData(new RasterGlObject(tileExtentBuff, image));
 
-    MutexHolder holder(m_dataMutex, lockTime);
+    MutexHolder holder(m_dataMutex, LOCK_TIME);
     m_tiles[tile->getTile()] = tileData;
 
     return true;
@@ -1199,8 +1198,7 @@ bool GlRasterLayer::draw(const GlTilePtr &tile)
         return true; // Should never happened
     }
 
-    double lockTime = CPLAtofM(CPLGetConfigOption("HTTP_TIMEOUT", "5"));
-    m_dataMutex.acquire(lockTime);
+    m_dataMutex.acquire(LOCK_TIME);
     auto tileDataIt = m_tiles.find(tile->getTile());
     if(tileDataIt == m_tiles.end()) {
         m_dataMutex.release();

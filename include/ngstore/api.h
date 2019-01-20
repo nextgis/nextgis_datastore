@@ -381,6 +381,7 @@ NGS_EXTERNC char ngsMapCreate(const char *name, const char *description,
 NGS_EXTERNC char ngsMapOpen(const char *path);
 NGS_EXTERNC int ngsMapSave(char mapId, const char *path);
 NGS_EXTERNC int ngsMapClose(char mapId);
+NGS_EXTERNC int ngsMapReopen(char mapId, const char *path);
 NGS_EXTERNC int ngsMapLayerCount(char mapId);
 NGS_EXTERNC int ngsMapCreateLayer(char mapId, const char *name, const char *path);
 NGS_EXTERNC LayerH ngsMapLayerGet(char mapId, int layerId);

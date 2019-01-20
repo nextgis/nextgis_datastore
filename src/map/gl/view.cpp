@@ -89,14 +89,12 @@ bool GlView::close()
 // NOTE: Should be run on OpenGL current context
 void GlView::clearBackground()
 {
-    ngsCheckGLError(glClearColor(m_glBkColor.r, m_glBkColor.g, m_glBkColor.b,
-                                 m_glBkColor.a));
+    ngsCheckGLError(glClearColor(m_glBkColor.r, m_glBkColor.g, m_glBkColor.b, m_glBkColor.a));
     ngsCheckGLError(glClearDepth(1.0));
     ngsCheckGLError(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-bool GlView::setSelectionStyleName(enum ngsStyleType styleType,
-                                   const std::string &name)
+bool GlView::setSelectionStyleName(enum ngsStyleType styleType, const std::string &name)
 {
     if(compare(name, m_selectionStyles[styleType]->name())) {
         return true;
@@ -126,11 +124,9 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
 {
     LayerFillData *layerData = dynamic_cast<LayerFillData*>(threadData);
     if (nullptr != layerData) {
-        GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
-                                                    layerData->m_layer);
+        GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,layerData->m_layer);
         if (nullptr != renderLayer) {
-            return renderLayer->fill(layerData->m_tile,
-                                     layerData->m_zlevel,
+            return renderLayer->fill(layerData->m_tile, layerData->m_zlevel,
                                      layerData->tries() >= MAX_TRIES);
         }
     }
@@ -140,13 +136,8 @@ bool GlView::layerDataFillJobThreadFunc(ThreadData* threadData)
 
 bool GlView::draw(ngsDrawState state, const Progress &progress)
 {
-    if (DS_NOTHING == state) {
-        return true;
-    }
-
     // Prepare
     prepareContext();
-
 
 #ifdef NGS_GL_DEBUG
 
@@ -167,13 +158,13 @@ bool GlView::draw(ngsDrawState state, const Progress &progress)
     clearBackground();
 
     if(m_layers.empty()) {
-        //clearBackground();
         progress.onProgress(COD_FINISHED, 1.0, _("No layers. Nothing to render."));
         return true;
     }
 
     switch (state) {
     case DS_NOTHING: // Pleased compiler
+        progress.onProgress(COD_FINISHED, 1.0, _("Nothing to render."));
         return true;
     case DS_REDRAW:
         clearTiles();
@@ -274,25 +265,22 @@ bool GlView::openInternal(const CPLJSONObject &root, MapFile * const mapFile)
     }
 
     CPLJSONObject selection = root.GetObj(SELECTION_KEY);
-    Style *style = Style::createStyle(
-                selection.GetString("point_style_name", "primitivePoint"),
-                m_textureAtlas);
+    Style *style = Style::createStyle(selection.GetString("point_style_name", "primitivePoint"),
+            m_textureAtlas);
     if(nullptr != style) {
         style->load(selection.GetObj("point_style"));
         m_selectionStyles[ST_POINT] = StylePtr(style);
     }
 
-    style = Style::createStyle(
-                selection.GetString("line_style_name", "simpleLine"),
-                m_textureAtlas);
+    style = Style::createStyle(selection.GetString("line_style_name", "simpleLine"),
+            m_textureAtlas);
     if(nullptr != style) {
         style->load(selection.GetObj("line_style"));
         m_selectionStyles[ST_LINE] = StylePtr(style);
     }
 
-    style = Style::createStyle(
-                selection.GetString("fill_style_name", "simpleFillBordered"),
-                m_textureAtlas);
+    style = Style::createStyle(selection.GetString("fill_style_name", "simpleFillBordered"),
+            m_textureAtlas);
     if(nullptr != style) {
         style->load(selection.GetObj("fill_style"));
         m_selectionStyles[ST_FILL] = StylePtr(style);
@@ -352,8 +340,7 @@ void GlView::updateTilesList()
     Envelope ext = getExtent();
     ext.resize(TILE_RESIZE);
     //CPLDebug("ngstore", "Zoom is: %d", getZoom());
-    std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(),
-                                                        false, // False mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
+    std::vector<TileItem> tileItems = getTilesForExtent(ext, getZoom(), false, // False mean that we use OSM/Google tile scheme in map. Not connected with getYAxisInverted()
                                                         getXAxisLooped());
 
     // Remove out of extent Gl tiles
@@ -439,8 +426,7 @@ bool GlView::drawTiles(const Progress &progress)
             for(auto layerIt = m_layers.rbegin(); layerIt != m_layers.rend(); ++layerIt) {
 
                 const LayerPtr &layer = *layerIt;
-                GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer,
-                                                             layer);
+                GlRenderLayer *renderLayer = ngsDynamicCast(GlRenderLayer, layer);
                 if(renderLayer && renderLayer->draw(tile)) {
                     filled++;
                 }
@@ -473,7 +459,7 @@ bool GlView::drawTiles(const Progress &progress)
             glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
             // Make the window the target
-            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, currentFramebuffer));
+            ngsCheckGLError(glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(currentFramebuffer)));
             ngsCheckGLError(glDisable(GL_DEPTH_TEST));
 
             if(filled != m_layers.size()) { // == 0
@@ -484,8 +470,7 @@ bool GlView::drawTiles(const Progress &progress)
         if(drawTile) { // Don't draw tiles with only background
             m_fboDrawStyle.setImage(tile->getImageRef());
             tile->getBuffer().rebind();
-            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(),
-                                   tile->getBuffer().type());
+            m_fboDrawStyle.prepare(getSceneMatrix(), getInvViewMatrix(), tile->getBuffer().type());
             m_fboDrawStyle.draw(tile->getBuffer());
         }
     }
@@ -545,12 +530,9 @@ void GlView::freeOldTiles()
 
 void GlView::initView()
 {
-    m_selectionStyles[ST_POINT] = StylePtr(
-                Style::createStyle("primitivePoint", m_textureAtlas));
-    m_selectionStyles[ST_LINE] = StylePtr(
-                Style::createStyle("simpleLine", m_textureAtlas));
-    m_selectionStyles[ST_FILL] = StylePtr(
-                Style::createStyle("simpleFillBordered", m_textureAtlas));
+    m_selectionStyles[ST_POINT] = StylePtr(Style::createStyle("primitivePoint", m_textureAtlas));
+    m_selectionStyles[ST_LINE] = StylePtr(Style::createStyle("simpleLine", m_textureAtlas));
+    m_selectionStyles[ST_FILL] = StylePtr(Style::createStyle("simpleFillBordered", m_textureAtlas));
     createOverlays();
     m_threadPool.init(getNumberThreads(), layerDataFillJobThreadFunc, MAX_TRIES);
 
@@ -569,10 +551,8 @@ double GlView::pixelSize(int zoom)
 
 void GlView::createOverlays()
 {
-    m_overlays[overlayIndexForType(MOT_EDIT)] = OverlayPtr(
-                new GlEditLayerOverlay(this));
-    m_overlays[overlayIndexForType(MOT_LOCATION)] = OverlayPtr(
-                new GlLocationOverlay(this));
+    m_overlays[overlayIndexForType(MOT_EDIT)] = OverlayPtr(new GlEditLayerOverlay(this));
+    m_overlays[overlayIndexForType(MOT_LOCATION)] = OverlayPtr(new GlLocationOverlay(this));
     // TODO: add track and figures overlays
     //m_overlays.push_back(OverlayPtr(new GlCurrentTrackOverlay(*this)));
 }

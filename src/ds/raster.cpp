@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -29,11 +29,10 @@
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
 #include "util/notify.h"
+#include "util/settings.h"
 #include "util/stringutil.h"
 
 namespace ngs {
-
-//constexpr unsigned char LOCKS_EXTRA_COUNT = 10;
 
 //------------------------------------------------------------------------------
 // DownloadData
@@ -119,6 +118,10 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         m_extent.load(root.GetObj(KEY_LIMIT_EXTENT), DEFAULT_BOUNDS);
         int cacheExpires = root.GetInteger(KEY_CACHE_EXPIRES, defaultCacheExpires);
         int cacheMaxSize = root.GetInteger(KEY_CACHE_MAX_SIZE, defaultCacheMaxSize);
+
+        const Settings &settings = Settings::instance();
+        int timeout = settings.getInteger("http/timeout", 5);
+
         const char *connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
             "<UpperLeftX>%f</UpperLeftX><UpperLeftY>%f</UpperLeftY>"
@@ -128,13 +131,10 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
             "<BlockSizeY>256</BlockSizeY><BandsCount>%d</BandsCount>"
             "<Cache><Type>file</Type><Expires>%d</Expires><MaxSize>%d</MaxSize>"
-            "</Cache><ZeroBlockHttpCodes>204,404</ZeroBlockHttpCodes></GDAL_WMS>",
-                                         url.c_str(), extent.minX(),
-                                         extent.maxY(), extent.maxX(),
-                                         extent.minY(), z_max,
-                                         y_origin_top ? "top" : "bottom",
-                                         epsg, bandCount, cacheExpires,
-                                         cacheMaxSize);
+            "</Cache><MaxConnections>1</MaxConnections><Timeout>%d</Timeout><AdviseRead>false</AdviseRead>"
+            "<ZeroBlockHttpCodes>204,404</ZeroBlockHttpCodes></GDAL_WMS>",
+            url.c_str(), extent.minX(), extent.maxY(), extent.maxX(), extent.minY(), z_max,
+            y_origin_top ? "top" : "bottom", epsg, bandCount, cacheExpires, cacheMaxSize, timeout);
 
         bool result = DatasetBase::open(connStr, openFlags, options);
         if(result) {
@@ -265,43 +265,11 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
 
     MutexHolder holder(m_dataLock, 0.05);
 
-    // Lock pixel area to read/write until exit
-//    Mutex dataLock;
-
-//    int deltaX = xSize - 1;
-//    int deltaY = ySize - 1;
-//    Envelope testEnv(xOff - deltaX, yOff - deltaY,
-//                     xOff + xSize + deltaX, yOff + ySize + deltaY);
-//    CPLAcquireMutex(m_dataLock, 15.0);
-
-//    for(auto &lock : m_dataLocks) {
-//        if(lock.env.intersects(testEnv) && lock.zoom == zoom) {
-//            dataLock = lock.mutexRef;
-//            break;
-//        }
-//    }
-//    CPLReleaseMutex(m_dataLock);
-
-//    bool exists = dataLock != nullptr;
-//    if(!exists) {
-//        MutexHolder holder(m_dataLock, 16.0);
-
-//        dataLock = CPLCreateMutex();
-//        m_dataLocks.push_back({testEnv, dataLock, zoom});
-//    }
-
-//    if(exists) {
-//        CPLAcquireMutex(dataLock, 17.0);
-//    }
-
     CPLErr result = m_DS->RasterIO(read ? GF_Read : GF_Write, xOff, yOff,
                                    xSize, ySize, data, bufXSize, bufYSize,
                                    dataType, skipLastBand ? bandCount - 1 :
                                                             bandCount, bandList,
                                    pixelSpace, lineSpace, bandSpace);
-
-//    CPLReleaseMutex(dataLock);
-//    freeLocks();
 
     if(result != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
@@ -443,43 +411,6 @@ void Raster::setExtent()
         Envelope(0.0, 0.0, static_cast<double>(xSize), static_cast<double>(ySize));
 }
 
-/*
-void Raster::freeLocks(bool all)
-{
-    unsigned char threadCount = static_cast<unsigned char>(
-                atoi(CPLGetConfigOption("GDAL_NUM_THREADS", "1")));
-    MutexHolder holder(m_dataLock, 50.0);
-    if(all) {
-        for(auto &lock : m_dataLocks) {
-            CPLAcquireMutex(lock.mutexRef, 1000.0);
-            CPLReleaseMutex(lock.mutexRef);
-            CPLDestroyMutex(lock.mutexRef);
-        }
-        m_dataLocks.clear();
-    }
-    else {
-        if(m_dataLocks.size() > threadCount * LOCKS_EXTRA_COUNT) {
-            size_t freeCount = m_dataLocks.size() - threadCount;
-            for(size_t i = 0; i < freeCount; ++i) {
-                if(m_dataLocks[i].mutexRef) {
-                    CPLAcquireMutex(m_dataLocks[i].mutexRef, 5.0);
-                    CPLReleaseMutex(m_dataLocks[i].mutexRef);
-                    CPLDestroyMutex(m_dataLocks[i].mutexRef);
-                    m_dataLocks[i].mutexRef = nullptr;
-                }
-                else {
-                    m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
-                                        i);
-                    return;
-                }
-            }
-            m_dataLocks.erase(m_dataLocks.begin(), m_dataLocks.begin() +
-                                freeCount);
-        }
-    }
-}
-*/
-
 std::string Raster::options(ngsOptionType optionType) const
 {
     return DatasetBase::options(m_type, optionType);
@@ -514,8 +445,7 @@ bool Raster::writeWorldFile(enum WorldFileType type)
     if(m_DS->GetGeoTransform(geoTransform) != CE_None) {
         return errorMessage(CPLGetLastErrorMsg());
     }
-    return GDALWriteWorldFile(m_path.c_str(), newExt.c_str(),
-                              geoTransform) == 0 ? false : true;
+    return GDALWriteWorldFile(m_path.c_str(), newExt.c_str(), geoTransform) != 0;
 }
 
 bool Raster::geoTransform(double *transform) const
@@ -629,12 +559,12 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
 bool Raster::cacheArea(const Progress &progress, const Options &options)
 {
     if(!isOpened()) {
-        return outMessage(COD_UNSUPPORTED,
-                          "Raster must be oppened.");
+        outMessage(COD_UNSUPPORTED, "Raster must be opened.");
+        return false;
     }
     if(m_type != CAT_RASTER_TMS) {
-        return outMessage(COD_UNSUPPORTED,
-                          "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
+        outMessage(COD_UNSUPPORTED, "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
+        return false;
     }
 
     double minX = options.asDouble("MINX", DEFAULT_BOUNDS.minX());
@@ -657,7 +587,8 @@ bool Raster::cacheArea(const Progress &progress, const Options &options)
     }
 
     if(zoomLevels.empty()) {
-        return outMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
+        outMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
+        return false;
     }
 
     Options loadOptions(options);

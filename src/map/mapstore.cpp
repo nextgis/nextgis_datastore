@@ -115,6 +115,30 @@ bool MapStore::closeMap(char mapId)
     return false;
 }
 
+bool MapStore::reopenMap(char mapId, MapFile * const file)
+{
+    MapViewPtr map = getMap(mapId);
+    if(!map) {
+        return errorMessage(_("Map with id %d not exists"), mapId);
+    }
+
+    if(!map->close()) {
+        return false;
+    }
+
+    if(nullptr == file || !file->open()) {
+        return false;
+    }
+
+    map = file->map();
+    if(!map) {
+        return false;
+    }
+
+    m_maps[mapId] = map;
+    return true;
+}
+
 MapViewPtr MapStore::getMap(char mapId) const
 {    
     if(mapId >= m_maps.size() || mapId == INVALID_MAPID) {
