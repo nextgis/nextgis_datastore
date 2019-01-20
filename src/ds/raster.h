@@ -107,7 +107,7 @@ protected:
 //    void freeLocks(bool all = false);
 
 protected:
-    Envelope m_extent;
+    Envelope m_extent, m_pixelExtent;
     unsigned int m_openFlags;
     Options m_openOptions;
 

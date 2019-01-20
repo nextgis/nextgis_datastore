@@ -1,10 +1,10 @@
-/******************************************************************************
+﻿/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -94,7 +94,7 @@ typedef int (*ngsProgressFunc)(enum ngsCode status, double complete,
  */
 typedef void (*ngsNotifyFunc)(const char *uri, enum ngsChangeCode operation);
 
-/**
+/*
  * Common functions
  */
 
@@ -109,7 +109,7 @@ NGS_EXTERNC void ngsRemoveNotifyFunction(ngsNotifyFunc function);
 NGS_EXTERNC const char *ngsSettingsGetString(const char *key, const char *defaultVal);
 NGS_EXTERNC void ngsSettingsSetString(const char *key, const char *value);
 
-/**
+/*
  * Proxy to GDAL functions
  */
 
@@ -121,14 +121,16 @@ NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension);
 NGS_EXTERNC void ngsFree(void *pointer);
 
-/**
+/*
  * Miscellaneous functions
  */
 typedef void *JsonDocumentH;
 typedef void *JsonObjectH;
 NGS_EXTERNC ngsURLRequestResult *ngsURLRequest(enum ngsURLRequestType type,
                                               const char *url,
-                                              char **options);
+                                              char **options,
+                                               ngsProgressFunc callback,
+                                               void *callbackData);
 NGS_EXTERNC ngsURLRequestResult *ngsURLUploadFile(const char *path,
                                                   const char *url,
                                                   char **options,
@@ -191,7 +193,7 @@ NGS_EXTERNC int ngsJsonObjectSetLongForKey(JsonObjectH object,
 NGS_EXTERNC int ngsJsonObjectSetBoolForKey(JsonObjectH object,
                                            const char *name, int value);
 
-/**
+/*
  * Catalog functions
  */
 
@@ -224,7 +226,7 @@ NGS_EXTERNC int ngsCatalogObjectSetProperty(CatalogObjectH object,
                                                 const char *domain);
 NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
 
-/**
+/*
  * Feature class
  */
 
@@ -359,13 +361,13 @@ NGS_EXTERNC void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature,
 
 //NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
 
-/**
-  * Raster
-  */
+/*
+ * Raster
+ */
 NGS_EXTERNC int ngsRasterCacheArea(CatalogObjectH object, char **options,
                                    ngsProgressFunc callback, void *callbackData);
 
-/**
+/*
  * Map functions
  *
  *  ngsCreateMap -> ngsInitMap -> ngsSaveMap [optional]
@@ -413,7 +415,7 @@ NGS_EXTERNC int ngsMapIconSetAdd(char mapId, const char *name, const char *path,
 NGS_EXTERNC int ngsMapIconSetRemove(char mapId, const char *name);
 NGS_EXTERNC char ngsMapIconSetExists(char mapId, const char *name);
 
-/**
+/*
  * Layer functions
  */
 
@@ -429,7 +431,7 @@ NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char *name);
 NGS_EXTERNC int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size);
 NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
 
-/**
+/*
  * Overlay functions
  */
 
@@ -483,7 +485,7 @@ NGS_EXTERNC JsonObjectH ngsLocationOverlayGetStyle(char mapId);
 //NGS_EXTERNC ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y);
 //NGS_EXTERNC ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h);
 
-/**
+/*
  * QMS
  */
 
@@ -518,5 +520,21 @@ typedef struct _ngsQMSItemProperties
 } ngsQMSItemProperties;
 
 NGS_EXTERNC ngsQMSItemProperties ngsQMSQueryProperties(int itemId);
+
+/*
+ * Account
+ */
+
+NGS_EXTERNC const char *ngsAccountGetFirstName();
+NGS_EXTERNC const char *ngsAccountGetLastName();
+NGS_EXTERNC const char *ngsAccountGetEmail();
+NGS_EXTERNC const char *ngsAccountBitmapPath();
+NGS_EXTERNC char ngsAccountIsAuthorized();
+NGS_EXTERNC void ngsAccountExit();
+NGS_EXTERNC char ngsAccountIsFuncAvailable(const char *application,
+                                           const char *function);
+NGS_EXTERNC char ngsAccountSupported();
+NGS_EXTERNC char ngsAccountUpdateUserInfo();
+NGS_EXTERNC char ngsAccountUpdateSupportInfo();
 
 #endif // NGSAPI_H

@@ -23,10 +23,8 @@
 // stl
 #include <iostream>
 #include <cstring>
-#include <cpl_http.h>
 
 // gdal
-#include "cpl_http.h"
 #include "cpl_json.h"
 
 #if __APPLE__
@@ -35,6 +33,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
+#include "catalog/folder.h"
 #include "ds/simpledataset.h"
 #include "ds/storefeatureclass.h"
 #include "map/mapstore.h"
@@ -43,6 +42,7 @@
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
+#include "util/account.h"
 #include "util/authstore.h"
 #include "util/error.h"
 #include "util/notify.h"
@@ -51,19 +51,9 @@
 #include "util/url.h"
 #include "util/versionutil.h"
 
-#include <catalog/folder.h>
+
 
 using namespace ngs;
-
-constexpr const char *HTTP_TIMEOUT = "10";
-constexpr const char *HTTP_USE_GZIP = "ON";
-#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-constexpr const char *CACHEMAX = "4";
-#elif __ANDROID__
-constexpr const char *CACHEMAX = "4";
-#else
-constexpr const char *CACHEMAX = "64";
-#endif
 
 static bool gDebugMode = false;
 
@@ -72,55 +62,23 @@ bool isDebugMode()
     return gDebugMode;
 }
 
-/* special hook for find EPSG files
-static const char *CSVFileOverride( const char * pszInput )
-{
-    return crash here as we need to duplicate string -> CPLFindFile ("", pszInput);
-}
-*/
-
 static void initGDAL(const char *dataPath, const char *cachePath)
 {
-    const Settings &settings = Settings::instance();
+    Settings &settings = Settings::instance();
     // set config options
     if(dataPath) {
         CPLSetConfigOption("GDAL_DATA", dataPath);
         CPLDebug("ngstore", "GDAL_DATA path set to %s", dataPath);
     }
 
-    CPLSetConfigOption("GDAL_CACHEMAX",
-                       settings.getString("common/cachemax", CACHEMAX).c_str());
-    CPLSetConfigOption("GDAL_HTTP_USERAGENT",
-                       settings.getString("http/useragent", NGS_USERAGENT).c_str());
-    CPLSetConfigOption("CPL_CURL_GZIP",
-                       settings.getString("http/use_gzip", HTTP_USE_GZIP).c_str());
-    CPLSetConfigOption("GDAL_HTTP_TIMEOUT",
-                       settings.getString("http/timeout", HTTP_TIMEOUT).c_str());
-    CPLSetConfigOption("GDAL_DRIVER_PATH", "disabled");
-#ifdef NGS_MOBILE // for mobile devices
-    CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
-                       settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
-                                          ".apk, .ngmd").c_str());
-#else
+    if(cachePath) {
+        CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
+        settings.set("common/cache_path", std::string(cachePath));
+    }
+
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
                        settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
                                           ".ngmd").c_str());
-#endif
-    if(cachePath) {
-        CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
-    }
-    if(isDebugMode()) {
-        CPLSetConfigOption("CPL_DEBUG", "ON");
-        CPLSetConfigOption("CPL_CURL_VERBOSE", "ON");
-    }
-
-    CPLSetConfigOption("CPL_ZIP_ENCODING",
-                       settings.getString("common/zip_encoding", "CP866").c_str());
-
-    CPLDebug("ngstore", "HTTP user agent set to: %s", NGS_USERAGENT);
-
-    CPLSetConfigOption("GDAL_VALIDATE_CREATION_OPTIONS", "OFF");
-    CPLSetConfigOption("GDAL_VALIDATE_OPEN_OPTIONS", "OFF");
 
     // Register drivers
 #ifdef NGS_MOBILE // NOTE: Keep in sync with extlib.cmake gdal options. For mobile devices
@@ -140,10 +98,10 @@ static void initGDAL(const char *dataPath, const char *cachePath)
     RegisterOGRGeoJSON();
     RegisterOGRGeoPackage();
     RegisterOGRSQLite();
+    RegisterNGW();
 #else
     GDALAllRegister();
 #endif
-    //SetCSVFilenameHook( CSVFileOverride );
 }
 
 static Mutex gMutex;
@@ -206,12 +164,19 @@ const char *ngsGetVersionString(const char *request)
 int ngsInit(char **options)
 {
     gDebugMode = 0 != CSLFetchBoolean(options, "DEBUG_MODE", 0);
+
+    if(isDebugMode()) {
+        CPLSetConfigOption("CPL_DEBUG", "ON");
+        CPLSetConfigOption("CPL_CURL_VERBOSE", "ON");
+    }
+
     CPLDebug("ngstore", "debug mode %s", gDebugMode ? "ON" : "OFF");
     const char *dataPath = CSLFetchNameValue(options, "GDAL_DATA");
     const char *cachePath = CSLFetchNameValue(options, "CACHE_DIR");
     const char *settingsPath = CSLFetchNameValue(options, "SETTINGS_DIR");
     if(settingsPath) {
         CPLSetConfigOption("NGS_SETTINGS_PATH", settingsPath);
+        CPLDebug("ngstore", "NGS_SETTINGS_PATH path set to %s", settingsPath);
     }
 
     // Number threads
@@ -356,7 +321,8 @@ const char *ngsGetCurrentDirectory()
  * @param list The list pointer or NULL. If NULL provided the new list will be created
  * @param name Key name to add
  * @param value Value to add
- * @return List with added key=value string. List must bree freed using ngsDestroyList.
+ * @return List with added key=value string. User must free returned
+ * value via ngsDestroyList.
  */
 char **ngsListAddNameValue(char **list, const char *name, const char *value)
 {
@@ -420,7 +386,7 @@ void ngsFree(void *pointer)
  * - HEADER_FILE=filename: filename of a text file with "key: value" headers
  * - HTTPAUTH=[BASIC/NTLM/GSSNEGOTIATE/ANY] to specify an authentication scheme to use
  * - USERPWD=userid:password to specify a user and password for authentication
- * - POSTFIELDS=val, where val is a nul-terminated string to be passed to the server
+ * - POSTFIELDS=val, where val is a null-terminated string to be passed to the server
  *   with a POST request
  * - PROXY=val, to make requests go through a proxy server, where val is of the
  *   form proxy.server.com:port_number
@@ -436,7 +402,8 @@ void ngsFree(void *pointer)
  * @return structure of type ngsURLRequestResult
  */
 ngsURLRequestResult *ngsURLRequest(enum ngsURLRequestType type, const char *url,
-                                   char **options)
+                                   char **options, ngsProgressFunc callback,
+                                   void *callbackData)
 {
     Options requestOptions(options);
     switch (type) {
@@ -454,49 +421,34 @@ ngsURLRequestResult *ngsURLRequest(enum ngsURLRequestType type, const char *url,
         break;
     }
 
-    ngsURLRequestResult *out = new ngsURLRequestResult;
-    auto optionsPtr = requestOptions.asCharArray();
-    CPLHTTPResult *result = CPLHTTPFetch(url, optionsPtr.get());
-
-    if(result->nStatus != 0) {
-        outMessage(COD_REQUEST_FAILED, result->pszErrBuf);
-        out->status = result->nStatus;
-        out->headers = nullptr;
-        out->dataLen = 0;
-        out->data = nullptr;
-
-        CPLHTTPDestroyResult( result );
-
-        return out;
-    }
-    else if(result->pszErrBuf) {
-        outMessage(COD_WARNING, result->pszErrBuf);
-    }
-
-    unsigned char *buffer = new unsigned char[result->nDataLen];
-    std::memcpy(buffer, result->pabyData, static_cast<size_t>(result->nDataLen));
-
-    out->status = result->nStatus;
-    out->headers = result->papszHeaders;
-    out->dataLen = result->nDataLen;
-    out->data = buffer;
-
-    // Transfer own to out, don't delete with result
-    result->papszHeaders = nullptr;
-
-    CPLHTTPDestroyResult( result );
-
-    return out;
+    Progress progress(callback, callbackData);
+    return http::fetch(fromCString(url), progress, requestOptions);
 }
+
+/**
+ * @brief uploadFile Upload file to url
+ * @param path Path to file in operating system
+ * @param url URL to upload file
+ * @param progress Periodically executed progress function with parameters
+ * @param options The key=value list of options:
+ * - FORM_FILE_NAME=val, where val is upload file name.
+ * - FORM_KEY_0=val...FORM_KEY_N, where val is name of form item.
+ * - FORM_VALUE_0=val...FORM_VALUE_N, where val is value of the form item.
+ * - FORM_ITEM_COUNT=val, where val is count of form items.
+ * Available additional keys see in ngsURLRequest.
+ * @return ngsURLRequestResult structure. The result must be freed by caller via
+ * delete
+ */
 
 ngsURLRequestResult *ngsURLUploadFile(const char *path, const char *url,
                                       char **options, ngsProgressFunc callback,
                                       void *callbackData)
 {
     Options requestOptions(options);
+    requestOptions.add("FORM_FILE_PATH", fromCString(path));
     Progress progress(callback, callbackData);
 
-    return uploadFile(fromCString(path), fromCString(url), progress, requestOptions);
+    return http::fetch(fromCString(url), progress, requestOptions);
 }
 
 /**
@@ -508,7 +460,7 @@ void ngsURLRequestResultFree(ngsURLRequestResult *result)
     if(nullptr == result) {
         return;
     }
-    delete result->data;
+    CPLFree(result->data);
     CSLDestroy(result->headers);
     delete result;
 }
@@ -537,23 +489,23 @@ int ngsURLAuthAdd(const char *url, char **options)
         return COD_INVALID;
     }
     Options opt(options);
-    return AuthStore::addAuth(url, opt) ? COD_SUCCESS : COD_INSERT_FAILED;
+    return AuthStore::authAdd(url, opt) ? COD_SUCCESS : COD_INSERT_FAILED;
 }
 
 /**
  * @brief ngsURLAuthGet If Authorization properties changed, this
  * function helps to get them back.
  * @param url The URL to search authorization options.
- * @return Key=value list (may be empty). User mast free returned
+ * @return Key=value list (may be empty). User must free returned
  * value via ngsDestroyList.
  */
 char **ngsURLAuthGet(const char *url)
 {
-    Options option = AuthStore::description(fromCString(url));
-    if(option.empty()) {
+    Properties properties = AuthStore::authProperties(fromCString(url));
+    if(properties.empty()) {
         return nullptr;
     }
-    return option.asCharArray().release();
+    return properties.asCPLStringList().StealList();
 }
 
 /**
@@ -563,7 +515,7 @@ char **ngsURLAuthGet(const char *url)
  */
 int ngsURLAuthDelete(const char *url)
 {
-    AuthStore::deleteAuth(fromCString(url));
+    AuthStore::authRemove(fromCString(url));
     return COD_SUCCESS;
 }
 
@@ -616,9 +568,11 @@ int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url, char **optio
         return outMessage(COD_LOAD_FAILED, _("Layer pointer is null"));
     }
 
+    CPLStringList requestOptions(options, FALSE);
+    requestOptions = http::addAuthHeaders(url, requestOptions);
     Progress progress(callback, callbackData);
-    return doc->LoadUrl(fromCString(url), options, ngsGDALProgress, &progress) ?
-                COD_SUCCESS : COD_LOAD_FAILED;
+    return doc->LoadUrl(fromCString(url), requestOptions, ngsGDALProgress,
+                        &progress) ? COD_SUCCESS : COD_LOAD_FAILED;
 }
 
 /**
@@ -1249,6 +1203,7 @@ const char *ngsCatalogObjectName(CatalogObjectH object)
  * @param object Catalog object the metadata requested
  * @param domain The metadata specific domain or NULL
  * @return The list of key=value items or NULL. The last item of list always NULL.
+ * User must free returned value via ngsDestroyList.
  */
 char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
 {
@@ -1260,7 +1215,7 @@ char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
     Properties propeties = static_cast<Object*>(object)->properties(
                 fromCString(domain));
 
-    return propeties.asCharArray().release();
+    return propeties.asCPLStringList().StealList();
 }
 
 int ngsCatalogObjectSetProperty(CatalogObjectH object, const char *name,
@@ -1716,7 +1671,7 @@ int ngsFeatureClassSetFilter(CatalogObjectH object, GeometryH geometryFilter,
     }
     else {
         featureClass->setSpatialFilter(
-                GeometryPtr(static_cast<OGRGeometry*>(geometryFilter)->clone()));
+                    static_cast<OGRGeometry*>(geometryFilter)->clone());
     }
     return COD_SUCCESS;
 }
@@ -2327,7 +2282,7 @@ int ngsMapSave(char mapId, const char *path)
         ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
         mapFile = new MapFile(container, saveName,
                         File::formFileName(object->path(), saveName, ""));
-        mapFileObject = ObjectPtr(mapFile);
+        mapFileObject = ObjectPtr(mapFile); // Get linker worning here
     }
 
     if(!mapFile || !mapStore->saveMap(mapId, mapFile)) {
@@ -3144,6 +3099,13 @@ int ngsOverlaySetOptions(char mapId, enum ngsMapOverlayType type, char **options
     return overlay->setOptions(editOptions) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
+/**
+ * @brief ngsOverlayGetOptions Get overlay options.
+ * @param mapId Map identifier.
+ * @param type Overlay type.
+ * @return Key=value list (may be empty). User must free returned
+ * value via ngsDestroyList.
+ */
 char **ngsOverlayGetOptions(char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlay(mapId, type);
@@ -3154,7 +3116,7 @@ char **ngsOverlayGetOptions(char mapId, enum ngsMapOverlayType type)
     if(options.empty()) {
         return nullptr;
     }
-    return options.asCharArray().release();
+    return options.asCPLStringList().StealList();
 }
 
 ngsPointId ngsEditOverlayTouch(char mapId, double x, double y, enum ngsMapTouchType type)
@@ -3417,7 +3379,8 @@ GeometryH ngsEditOverlayGetGeometry(char mapId)
     return editOverlay->geometry();
 }
 
-int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type, JsonObjectH style)
+int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type,
+                           JsonObjectH style)
 {
     GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
@@ -3427,7 +3390,8 @@ int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type, JsonObjectH s
                 COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsEditOverlaySetStyleName(char mapId, enum ngsEditStyleType type, const char* name)
+int ngsEditOverlaySetStyleName(char mapId, enum ngsEditStyleType type,
+                               const char* name)
 {
     GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
@@ -3445,7 +3409,8 @@ JsonObjectH ngsEditOverlayGetStyle(char mapId, enum ngsEditStyleType type)
     return new CPLJSONObject(overlay->style(type));
 }
 
-int ngsLocationOverlayUpdate(char mapId, ngsCoordinate location, float direction, float accuracy)
+int ngsLocationOverlayUpdate(char mapId, ngsCoordinate location, float direction,
+                             float accuracy)
 {
     LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
@@ -3682,10 +3647,9 @@ ngsQMSItem *ngsQMSQuery(char **options)
 
     ngsExtent ext = {0.0, 0.0, 0.0, 0.0};
     ngsQMSItem *out = nullptr;
-    CPLJSONDocument qmsItem;
-    if(qmsItem.LoadUrl(url, nullptr)) {
+    CPLJSONObject root = http::fetchJson(url);
+    if(root.IsValid()) {
         clearCStrings();
-        CPLJSONObject root = qmsItem.GetRoot();
         int count = root.GetInteger("count");
         CPLJSONArray services = root.GetArray("results");
         size_t size = static_cast<size_t>(services.Size() + 1);
@@ -3731,14 +3695,12 @@ ngsQMSItemProperties ngsQMSQueryProperties(int itemId)
 {
     ngsQMSItemProperties out = {-1, COD_REQUEST_FAILED, "", "", "", CAT_UNKNOWN,
                                 -1, -1, -1, "", {0.0, 0.0, 0.0, 0.0}, 0};
-    CPLJSONDocument qmsItem;
-    if(qmsItem.LoadUrl(std::string(qmsAPIURL) + "geoservices/" +
-                    std::to_string(itemId), nullptr)) {
-
+    CPLJSONObject root = http::fetchJson(std::string(qmsAPIURL) + "geoservices/" +
+                                         std::to_string(itemId));
+    if(root.IsValid()) {
         clearCStrings();
 
         out.id = itemId;
-        CPLJSONObject root = qmsItem.GetRoot();
         out.status = qmsStatusToCode(root.GetString("cumulative_status", "failed"));
         out.url = storeCString(root.GetString("url"));
         out.name = storeCString(root.GetString("name"));
@@ -3757,4 +3719,97 @@ ngsQMSItemProperties ngsQMSQueryProperties(int itemId)
     }
 
     return out;
+}
+
+/**
+ * @brief ngsAccountGetFirstName Get NextGIS user first name.
+ * @return User first name string.
+ */
+const char *ngsAccountGetFirstName()
+{
+    return storeCString(Account::instance().firstName());
+}
+
+/**
+ * @brief ngsAccountGetLastName Get NextGIS user last name.
+ * @return User last name string.
+ */
+const char *ngsAccountGetLastName()
+{
+    return storeCString(Account::instance().lastName());
+}
+
+/**
+ * @brief ngsAccountGetEmail Get NextGIS user email.
+ * @return User email string.
+ */
+const char *ngsAccountGetEmail()
+{
+    return storeCString(Account::instance().email());
+}
+
+/**
+ * @brief ngsAccountBitmapPath Get avatar image path.
+ * @return Avatar image path or empty string.
+ */
+const char *ngsAccountBitmapPath()
+{
+    return storeCString(Account::instance().avatarFilePath());
+}
+
+/**
+ * @brief ngsAccountIsAuthorized Is user authorised or not.
+ * @return 1 if user authorized.
+ */
+char ngsAccountIsAuthorized()
+{
+    return Account::instance().isUserAuthorized() ? 1 : 0;
+}
+
+/**
+ * @brief ngsAccountExit Exit from account. Any persistend settings and avatar
+ * image will be deleted.
+ */
+void ngsAccountExit()
+{
+    Account::instance().exit();
+}
+
+/**
+ * @brief ngsAccountIsFuncAvailable Is function available.
+ * @param application Application requested function.
+ * @param function Function name to check.
+ * @return 1 if function available.
+ */
+char ngsAccountIsFuncAvailable(const char *application, const char *function)
+{
+    return Account::instance().isFunctionAvailable(fromCString(application),
+                                                   fromCString(function)) ? 1 : 0;
+}
+
+/**
+ * @brief ngsAccountSupported Is account supported or not.
+ * @return 1 if account supported.
+ */
+char ngsAccountSupported()
+{
+    return Account::instance().isUserSupported();
+}
+
+/**
+ * @brief ngsAccountUpdateUserInfo Update user information.
+ * @return 1 if update finished successfully.
+ */
+char ngsAccountUpdateUserInfo()
+{
+    return Account::instance().updateUserInfo() ? 1 : 0;
+}
+
+/**
+ * @brief ngsAccountUpdateSupportInfo Update user support information.
+ * @return 1 if update finished successfully.
+ */
+char ngsAccountUpdateSupportInfo()
+{
+    return Account::instance().updateSupportInfo() ? 1 : 0;
 }

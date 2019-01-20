@@ -3,7 +3,6 @@
 set -e
 
 echo "Add NextGIS PPA"
-sudo add-apt-repository -y ppa:nextgis/dev
 sudo add-apt-repository -y ppa:nextgis/ppa
 sudo apt-get update -qq
 echo "Install dependencies"

@@ -21,6 +21,7 @@
 #include "authstore.h"
 
 #include "cpl_http.h"
+#include "cpl_json.h"
 
 #include "api_priv.h"
 #include "util/error.h"
@@ -28,37 +29,245 @@
 
 namespace ngs {
 
-void AuthNotifyFunction(const char* url, CPLHTTPAuthChangeCode operation)
+/**
+ * @brief The HTTPAuthBasic class Basic HTTP authorisation.
+ */
+class HTTPAuthBasic : public IHTTPAuth {
+
+public:
+    explicit HTTPAuthBasic(const std::string &login, const std::string &password);
+    virtual ~HTTPAuthBasic() override = default;
+    virtual const std::string header() override { return "Authorization: Basic " + m_basicAuth; }
+    virtual const Properties properties() const override;
+
+private:
+    std::string m_basicAuth;
+};
+
+HTTPAuthBasic::HTTPAuthBasic(const std::string &login, const std::string &password)
 {
-    if(operation == HTTPAUTH_EXPIRED) {
-        Notify::instance().onNotify(url, CC_TOKEN_EXPIRED);
+    std::string str = login + ":" + password;
+    char *encodedStr = CPLBase64Encode(static_cast<int>(str.size()),
+                                       reinterpret_cast<const GByte*>(str.data()));
+    m_basicAuth = encodedStr;
+    CPLFree(encodedStr);
+}
+
+const Properties HTTPAuthBasic::properties() const
+{
+    Properties out;
+    out.add("type", "basic");
+    out.add("basic", m_basicAuth);
+    return out;
+}
+
+/**
+ * @brief The HTTPAuthBearer class
+ */
+class HTTPAuthBearer : public IHTTPAuth {
+
+public:
+    explicit HTTPAuthBearer(const std::string &url, const std::string &clientId,
+                            const std::string &tokenServer, const std::string &accessToken,
+                            const std::string &updateToken, int expiresIn,
+                            time_t lastCheck);
+    virtual ~HTTPAuthBearer() override = default;
+    virtual const std::string header() override;
+    virtual const Properties properties() const override;
+
+private:
+    std::string m_url;
+    std::string m_clientId;
+    std::string m_accessToken;
+    std::string m_updateToken;
+    std::string m_tokenServer;
+    int m_expiresIn;
+    time_t m_lastCheck;
+};
+
+HTTPAuthBearer::HTTPAuthBearer(const std::string &url, const std::string &clientId,
+                               const std::string &tokenServer, const std::string &accessToken,
+                               const std::string &updateToken, int expiresIn,
+                               time_t lastCheck) : IHTTPAuth(),
+    m_url(url),
+    m_clientId(clientId),
+    m_accessToken(accessToken),
+    m_updateToken(updateToken),
+    m_tokenServer(tokenServer),
+    m_expiresIn(expiresIn),
+    m_lastCheck(lastCheck)
+{
+
+}
+
+const Properties HTTPAuthBearer::properties() const
+{
+    Properties out;
+    out.add("type", "bearer");
+    out.add("clientId", m_clientId);
+    out.add("accessToken", m_accessToken);
+    out.add("updateToken", m_updateToken);
+    out.add("tokenServer", m_tokenServer);
+    out.add("expiresIn", std::to_string(m_expiresIn));
+    return out;
+}
+
+const std::string HTTPAuthBearer::header()
+{
+    // 1. Check if expires if not return current access token
+    time_t now = time(nullptr);
+    double seconds = difftime(now, m_lastCheck);
+    if(seconds < m_expiresIn) {
+        CPLDebug("ngstore", "Token is not expired. Url: %s", m_url.c_str());
+        return "Authorization: Bearer " + m_accessToken;
     }
-    else if(operation == HTTPAUTH_UPDATE) {
-        Notify::instance().onNotify(url, CC_TOKEN_CHANGED);
+
+    // 2. Try to update token
+    CPLStringList requestOptions;
+    requestOptions.AddNameValue("CUSTOMREQUEST", "POST");
+    requestOptions.AddNameValue("POSTFIELDS",
+                                CPLSPrintf("grant_type=refresh_token&client_id=%s&refresh_token=%s",
+                                           m_clientId.c_str(),
+                                           m_updateToken.c_str()));
+
+    CPLHTTPResult *result = CPLHTTPFetch(m_tokenServer.c_str(), requestOptions);
+
+    if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
+        CPLHTTPDestroyResult( result );
+        CPLDebug("ngstore", "Failed to refresh token. Return last not expired. Url: %s",
+                 m_url.c_str());
+        return "Authorization: Bearer " + m_accessToken;
     }
+
+    CPLJSONDocument resultJson;
+    if(!resultJson.LoadMemory(result->pabyData, result->nDataLen)) {
+        CPLHTTPDestroyResult( result );
+        CPLDebug("ngstore", "Token is expired. Url: %s", m_url.c_str());
+        Notify::instance().onNotify(m_url, CC_TOKEN_EXPIRED);
+        return "expired";
+    }
+    CPLHTTPDestroyResult( result );
+
+    // 4. Save new update and access tokens
+    CPLJSONObject root = resultJson.GetRoot();
+    if(!EQUAL(root.GetString("error", "").c_str(), "")) {
+        CPLDebug("ngstore", "Token is expired. Url: %s.Error: %s.", m_url.c_str(),
+                 root.GetString("error", "").c_str());
+        Notify::instance().onNotify(m_url, CC_TOKEN_EXPIRED);
+        return "expired";
+    }
+
+    m_accessToken = root.GetString("access_token", m_accessToken);
+    m_updateToken = root.GetString("refresh_token", m_updateToken);
+    m_expiresIn = root.GetInteger("expires_in", m_expiresIn);
+    m_lastCheck = now;
+
+    // 5. Return new Auth Header
+    CPLDebug("ngstore", "Token updated. Url: %s", m_url.c_str());
+    Notify::instance().onNotify(m_url, CC_TOKEN_CHANGED);
+
+    return "Authorization: Bearer " + m_accessToken;
 }
 
 //------------------------------------------------------------------------------
 // AuthStore
 //------------------------------------------------------------------------------
 
-bool AuthStore::addAuth(const std::string &url, const Options &options)
+AuthStore &AuthStore::instance()
 {
-    auto optionsPtr = options.asCharArray();
-    if(CPLHTTPAuthAdd(url.c_str(), optionsPtr.get(), AuthNotifyFunction) == CE_None) {
+    static AuthStore s;
+    return s;
+}
+
+bool AuthStore::authAdd(const std::string &url, const Options &options)
+{
+    if(options["type"] == "bearer") {
+        int expiresIn = std::stoi(options["expiresIn"]);
+        std::string clientId = options["clientId"];
+        std::string tokenServer = options["tokenServer"];
+        std::string accessToken = options["accessToken"];
+        std::string updateToken = options["updateToken"];
+        time_t lastCheck = 0;
+        if(expiresIn == -1) {
+            std::string postPayload =
+                    CPLSPrintf("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s",
+                               options["code"].c_str(),
+                               options["redirectUri"].c_str(), clientId.c_str());
+
+            CPLStringList requestOptions;
+            requestOptions.AddNameValue("CUSTOMREQUEST", "POST");
+            requestOptions.AddNameValue("POSTFIELDS", postPayload.c_str());
+
+            time_t now = time(nullptr);
+            CPLJSONDocument fetchToken;
+            bool result = fetchToken.LoadUrl(tokenServer, requestOptions);
+            if(!result) {
+                CPLDebug("ngstore", "Failed to get tokens");
+                return false;
+            }
+
+            CPLJSONObject root = fetchToken.GetRoot();
+            accessToken = root.GetString("access_token", accessToken);
+            updateToken = root.GetString("refresh_token", updateToken);
+            expiresIn = root.GetInteger("expires_in", expiresIn);
+            lastCheck = now;
+        }
+
+        IHTTPAuth *auth = new HTTPAuthBearer(url, clientId, tokenServer,
+                                             accessToken, updateToken,
+                                             expiresIn, lastCheck);
+        instance().add(url, auth);
         return true;
+    }
+    else if(options["type"] == "basic")
+    {
+        IHTTPAuth *auth = new HTTPAuthBasic(options["login"], options["password"]);
+        instance().add(url, auth);
     }
     return false;
 }
 
-void AuthStore::deleteAuth(const std::string &url)
+void AuthStore::authRemove(const std::string &url)
 {
-    CPLHTTPAuthDelete(url.c_str());
+    instance().remove(url);
 }
 
-Options AuthStore::description(const std::string &url)
+Properties AuthStore::authProperties(const std::string &url)
 {
-    return Options(CPLHTTPAuthProperties(url.c_str()));
+    return instance().properties(url);
+}
+
+const std::string AuthStore::authHeader(const std::string &url)
+{
+    return instance().header(url);
+}
+
+void AuthStore::add(const std::string &url, IHTTPAuth *auth)
+{
+    m_auths[url] = auth;
+}
+
+void AuthStore::remove(const std::string &url)
+{
+    m_auths.erase(url);
+}
+
+Properties AuthStore::properties(const std::string &url)
+{
+    if(m_auths[url] == nullptr) {
+        return Properties();
+    }
+    return m_auths[url]->properties();
+}
+
+const std::string AuthStore::header(const std::string &url) const
+{
+    for(auto pair : m_auths) {
+        if(STARTS_WITH_CI(url.c_str(), pair.first.c_str())) {
+            return pair.second->header();
+        }
+    }
+    return "";
 }
 
 } // namespace ngs

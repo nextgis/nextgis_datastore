@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author:   Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2017-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -59,7 +59,8 @@ private:
     Settings();
     ~Settings();
     Settings(Settings const&) = delete;
-    Settings& operator= (Settings const&) = delete;
+    Settings &operator= (Settings const&) = delete;
+    void init();
 
 private:
     CPLJSONDocument m_settings;

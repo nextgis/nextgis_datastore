@@ -24,7 +24,7 @@
 
 namespace ngs {
 
-Progress::Progress(ngsProgressFunc progressFunc, void* progressArguments ) :
+Progress::Progress(ngsProgressFunc progressFunc, void *progressArguments ) :
     m_progressFunc(progressFunc),
     m_progressArguments(progressArguments),
     m_totalSteps(1),
@@ -34,10 +34,11 @@ Progress::Progress(ngsProgressFunc progressFunc, void* progressArguments ) :
 }
 
 bool Progress::onProgress(ngsCode status, double complete,
-                          const char* format, ...) const
+                          const char *format, ...) const
 {
-    if(nullptr == m_progressFunc)
+    if(nullptr == m_progressFunc) {
         return true; // No cancel from user
+    }
     va_list args;
     CPLString message;
     va_start( args, format );
@@ -52,12 +53,14 @@ bool Progress::onProgress(ngsCode status, double complete,
 }
 
 int ngsGDALProgress(double complete, const char *message,  void *progressArg) {
-    Progress* progress = static_cast<Progress*>(progressArg);
-    if(nullptr == progress)
+    Progress *progress = static_cast<Progress*>(progressArg);
+    if(nullptr == progress) {
         return 1;
+    }
     ngsCode status = COD_FINISHED;
-    if(complete < 1.0)
+    if(complete < 1.0) {
         status = COD_IN_PROCESS;
+    }
     return progress->onProgress(status, complete, message) ? 1 : 0;
 }
 

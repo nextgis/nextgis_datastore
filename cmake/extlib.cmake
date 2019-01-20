@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -98,7 +98,7 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
                 "${THIRD_PARTY_INCLUDE_PATH}/src/${lib}_EP"
                 "${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build"
             PATH_SUFFIXES
-                "src" "include" "libtiff" "lib"
+                "src" "include" "libtiff" "lib" "libcurl" "curl"
         )
         if(${lib}_PATH)
             message(STATUS "Include path: ${${lib}_PATH}")
@@ -109,6 +109,9 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
             endif()
             if(${lib} STREQUAL "TIFF")
                 include_directories(${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build/libtiff)
+            endif()
+            if(${lib} STREQUAL "CURL")
+                include_directories(${THIRD_PARTY_INCLUDE_PATH}/build/${lib}_EP-build/libcurl)
             endif()
             add_definitions(-D${have})
         endif()
@@ -123,15 +126,8 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     find_headers(PNG png.h HAVE_PNG_H)
     find_headers(EXPAT expat.h HAVE_EXPAT_H)
     find_headers(ICONV iconv.h HAVE_ICONV_H)
+    find_headers(CURL curlver.h HAVE_CURLVER_H)
 
-    # find_path(SQLite3_PATH sqlite3.h PATHS
-    #     ${THIRD_PARTY_INCLUDE_PATH}/SQLite3_EP)
-    # if(SQLite3_PATH)
-    #     include_directories (${SQLite3_PATH})
-    #     add_definitions (-DHAVE_SQLITE3_H)
-    # endif()
-
-    add_definitions (-DHAVE_CURLVER_H)
     add_definitions (-DHAVE_GEOS_C_H)
     # add_definitions (-DHAVE_JSON_C_VERSION_H)
     # add_definitions (-DHAVE_PROJ_API_H)
@@ -143,9 +139,6 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     # add_definitions (-DHAVE_ICONV_H)
     add_definitions (-DHAVE_ZLIB_H)
     add_definitions (-DHAVE_OPENSSLV_H)
-
-    # add_definitions (-DHAVE_BOOST_VERSION_HPP)
-# Not needed     add_definitions (-DHAVE_CGAL_VERSION_H)
 endif()
 
 # Not needed find_anyproject(CGAL REQUIRED SHARED OFF)
@@ -165,16 +158,8 @@ find_anyproject(OpenSSL REQUIRED SHARED OFF CMAKE_ARGS
 find_anyproject(GEOS REQUIRED SHARED OFF CMAKE_ARGS
     -DGEOS_ENABLE_TESTS=OFF
 )
-# For attachment file send
-find_anyproject(CURL REQUIRED SHARED OFF CMAKE_ARGS
-    -DBUILD_CURL_EXE=OFF
-    -DHTTP_ONLY=ON
-    -DENABLE_THREADED_RESOLVER=ON
-    -DCMAKE_USE_GSSAPI=OFF
-    -DCMAKE_USE_OPENSSL=ON
-)
 
-find_anyproject(GDAL REQUIRED VERSION 2.6.0 EXACT SHARED OFF CMAKE_ARGS
+find_anyproject(GDAL REQUIRED VERSION 2.4.0 SHARED OFF CMAKE_ARGS
     -DENABLE_PLSCENES=OFF
     -DENABLE_AAIGRID_GRASSASCIIGRID=OFF
     -DENABLE_ADRG_SRP=OFF

@@ -40,9 +40,11 @@ public:
 
     virtual void setTotalSteps(unsigned char value) { m_totalSteps = value; }
     virtual void setStep(unsigned char value) { m_step = value; }
+    unsigned char totalSteps() const { return m_totalSteps; }
+    unsigned char step() const { return m_step; }
 protected:
     ngsProgressFunc m_progressFunc;
-    void* m_progressArguments;
+    void *m_progressArguments;
     unsigned char m_totalSteps;
     unsigned char m_step;
 };

@@ -25,18 +25,46 @@
 
 namespace ngs {
 
+using Properties = Options;
+
+/**
+ * @brief The IHTTPAuth class is base class for HTTP Authorization headers
+ */
+class IHTTPAuth {
+public:
+    virtual ~IHTTPAuth() = default;
+    virtual const std::string header() = 0;
+    virtual const Properties properties() const = 0;
+};
+
+/**
+ * @brief The AuthStore class. Storage for auth data.
+ */
 class AuthStore
 {
 public:
-    static bool addAuth(const std::string &url, const Options &options);
-    static void deleteAuth(const std::string &url);
-    static Options description(const std::string &url);
+    static bool authAdd(const std::string &url, const Options &options);
+    static void authRemove(const std::string &url);
+    static Properties authProperties(const std::string &url);
+    static const std::string authHeader(const std::string &url);
+
+public:
+    void add(const std::string &url, IHTTPAuth *auth);
+    void remove(const std::string &url);
+    Properties properties(const std::string &url);
+    const std::string header(const std::string &url) const;
 
 private:
     AuthStore() = default;
     ~AuthStore() = default;
     AuthStore(AuthStore const&) = delete;
     AuthStore& operator= (AuthStore const&) = delete;
+
+private:
+    static AuthStore &instance();
+
+private:
+    std::map<std::string, IHTTPAuth*> m_auths;
 };
 
 } // namespace ngs

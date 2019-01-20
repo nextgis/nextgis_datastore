@@ -39,25 +39,24 @@ constexpr const char *MAP_MAX_Y_KEY = "max_y";
 constexpr unsigned short MAX_EDGE_INDEX = 65534;
 
 //------------------------------------------------------------------------------
-// Envelope
+// GeometryPtr
 //------------------------------------------------------------------------------
-Envelope::Envelope(const OGREnvelope &env) :
-    m_minX(env.MinX),
-    m_minY(env.MinY),
-    m_maxX(env.MaxX),
-    m_maxY(env.MaxY)
-{
 
+GeometryPtr::GeometryPtr(OGRGeometry *geom) :
+    shared_ptr(geom, OGRGeometryFactory::destroyGeometry)
+{
 }
 
-void Envelope::set(const OGREnvelope &env)
+GeometryPtr::GeometryPtr() :
+    shared_ptr(nullptr, OGRGeometryFactory::destroyGeometry)
 {
-    m_minX = env.MinX;
-    m_minY = env.MinY;
-    m_maxX = env.MaxX;
-    m_maxY = env.MaxY;
 }
 
+GeometryPtr &GeometryPtr::operator=(OGRGeometry *geom)
+{
+    reset(geom);
+    return *this;
+}
 
 //------------------------------------------------------------------------------
 // VectorTileItem
@@ -67,7 +66,6 @@ VectorTileItem::VectorTileItem() :
      m_valid(false),
      m_2d(true)
 {
-
 }
 
 void VectorTileItem::removeId(GIntBig id)
@@ -333,6 +331,23 @@ bool VectorTile::empty() const
 //------------------------------------------------------------------------------
 // Envelope
 //------------------------------------------------------------------------------
+
+Envelope::Envelope(const OGREnvelope &env) :
+    m_minX(env.MinX),
+    m_minY(env.MinY),
+    m_maxX(env.MaxX),
+    m_maxY(env.MaxY)
+{
+
+}
+
+void Envelope::set(const OGREnvelope &env)
+{
+    m_minX = env.MinX;
+    m_minY = env.MinY;
+    m_maxX = env.MaxX;
+    m_maxY = env.MaxY;
+}
 
 Envelope::Envelope() :
     m_minX(DBLNAN),
@@ -1783,9 +1798,9 @@ EditGeometry *EditGeometry::fromGDALGeometry(OGRGeometry *geom)
         case wkbLineString:
             return new EditLine(static_cast<OGRLineString*>(geom));
 
-        case wkbPolygon: 
+        case wkbPolygon:
             return new EditPolygon(static_cast<OGRPolygon*>(geom));
-            
+
         case wkbMultiPoint:
             return new EditMultiPoint(static_cast<OGRMultiPoint*>(geom));
 

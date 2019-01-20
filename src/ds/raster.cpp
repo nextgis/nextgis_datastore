@@ -194,6 +194,29 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                     m_DS->SetMetadataItem(name.c_str(), value.c_str(), USER_KEY);
                 }
             }
+
+            // Set pixel limits from m_extent
+            double geoTransform[6] = { 0.0 };
+            double invGeoTransform[6] = { 0.0 };
+            bool noTransform = false;
+            if(m_DS->GetGeoTransform(geoTransform) == CE_None) {
+                noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
+            }
+
+            if(noTransform) {
+                double minX, minY, maxX, maxY;
+                GDALApplyGeoTransform(invGeoTransform, m_extent.minX(),
+                                      m_extent.minY(), &minX, &maxY);
+
+                GDALApplyGeoTransform(invGeoTransform, m_extent.maxX(),
+                                      m_extent.maxY(), &maxX, &minY);
+                m_pixelExtent = Envelope(minX, minY, maxX, maxY);
+            }
+            else {
+                m_pixelExtent = Envelope(0.0, 0.0,
+                    std::numeric_limits<double>::max(),
+                    std::numeric_limits<double>::max());
+            }
         }
         return result;
     }
@@ -225,10 +248,19 @@ bool Raster::pixelData(void *data, int xOff, int yOff, int xSize, int ySize,
     int lineSpace(0);
     int bandSpace(0);
     if(bandCount > 1) {
-        int dataSize = GDALGetDataTypeSize(dataType) / 8;
+        int dataSize = GDALGetDataTypeSizeBytes(dataType);
         pixelSpace = dataSize * bandCount;
         lineSpace = bufXSize * pixelSpace;
         bandSpace = dataSize;
+    }
+
+    // Check if m_extent intersects pixel bounds
+    // return false to get null tile
+    if(!m_pixelExtent.intersects(
+        Envelope(static_cast<double>(xOff), static_cast<double>(yOff),
+                 static_cast<double>(xOff + xSize),
+                 static_cast<double>(yOff + ySize)))) {
+        return false;
     }
 
     MutexHolder holder(m_dataLock, 0.05);
@@ -348,7 +380,7 @@ bool Raster::setProperty(const std::string &name, const std::string &value,
             }
         }
 
-        result = connectionFile.Save(m_path);        
+        result = connectionFile.Save(m_path);
         if(!result) {
             return result;
         }
@@ -363,7 +395,7 @@ bool Raster::setProperty(const std::string &name, const std::string &value,
 
 void Raster::setExtent()
 {
-    double geoTransform[6] = {0};
+    double geoTransform[6] = {0.0};
     int xSize = m_DS->GetRasterXSize();
     int ySize = m_DS->GetRasterYSize();
     if(m_DS->GetGeoTransform(geoTransform) == CE_None) {
@@ -407,6 +439,8 @@ void Raster::setExtent()
         m_extent.setMinX(0);
         m_extent.setMinY(0);
     }
+    m_pixelExtent =
+        Envelope(0.0, 0.0, static_cast<double>(xSize), static_cast<double>(ySize));
 }
 
 /*
@@ -514,7 +548,7 @@ int Raster::dataSize() const
         return 0;
     }
     GDALDataType dt = m_DS->GetRasterBand(1)->GetRasterDataType();
-    return GDALGetDataTypeSize(dt) / 8;
+    return GDALGetDataTypeSizeBytes(dt);
 }
 
 unsigned short Raster::bandCount() const
@@ -576,9 +610,9 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
     }
 
     // Download tile and save it to cache
-    auto optionsPtr = data->m_options.asCharArray();
-    CPLHTTPResult *result = CPLHTTPFetch(url, optionsPtr.get());
-    if(result->nStatus != 0) {
+    auto requestOptions = data->m_options.asCPLStringList();
+    CPLHTTPResult *result = CPLHTTPFetch(url, requestOptions);
+    if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
         outMessage(COD_REQUEST_FAILED, result->pszErrBuf);
         CPLHTTPDestroyResult(result);
         return false;

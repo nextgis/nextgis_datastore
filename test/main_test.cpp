@@ -859,7 +859,7 @@ constexpr ngsRGBA DEFAULT_MAP_BK = {199, 199, 199, 199};
 constexpr const char* DEFAULT_MAP_NAME = "new map";
 
 TEST(MapTests, MapSave) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -873,10 +873,10 @@ TEST(MapTests, MapSave) {
     CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
 
     char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
-                                       ngs::DEFAULT_BOUNDS.minX(),
-                                       ngs::DEFAULT_BOUNDS.minY(),
-                                       ngs::DEFAULT_BOUNDS.maxX(),
-                                       ngs::DEFAULT_BOUNDS.maxY());
+                              ngs::DEFAULT_BOUNDS.minX(),
+                              ngs::DEFAULT_BOUNDS.minY(),
+                              ngs::DEFAULT_BOUNDS.maxX(),
+                              ngs::DEFAULT_BOUNDS.maxY());
     ASSERT_NE(mapId, -1);
     EXPECT_EQ(ngsMapLayerCount(mapId), 0);
 
@@ -957,7 +957,8 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
 
     ngsURLRequestResult *result = ngsURLRequest(URT_GET,
-                                               "http://ya.ru", options);
+                                               "http://ya.ru", options,
+                                                nullptr, nullptr);
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->status, 0);
     ngsURLRequestResultFree(result);
@@ -970,7 +971,8 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     result = ngsURLRequest(URT_GET,
-            "http://demo.nextgis.com/api/component/pyramid/pkg_version", options);
+            "http://dev.nextgis.com/sandbox/api/component/pyramid/pkg_version",
+                           options, nullptr, nullptr);
     ngsListFree(options);
 
     ASSERT_NE(result, nullptr);
@@ -986,8 +988,8 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     options = ngsListAddNameValue(options, "MAX_RETRY", "20");
     options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
-    result = ngsURLRequest(URT_GET,
-            "https://nextgis.com", options);
+    result = ngsURLRequest(URT_GET, "https://nextgis.com", options, nullptr,
+                           nullptr);
 
     ASSERT_NE(result, nullptr);
     EXPECT_GE(result->status, 0);
@@ -999,8 +1001,8 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsListAddNameValue(options, "TIMEOUT", "20");
     options = ngsListAddNameValue(options, "MAX_RETRY", "20");
     options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
-    result = ngsURLRequest(URT_GET,
-            "http://tile.openstreetmap.org/9/309/160.png", options);
+    result = ngsURLRequest(URT_GET, "http://tile.openstreetmap.org/9/309/160.png",
+                           options, nullptr, nullptr);
 
     ASSERT_NE(result, nullptr);
     EXPECT_GE(result->status, 0);
@@ -1016,7 +1018,7 @@ TEST(MiscTests, TestURLRequest) {
 }
 
 TEST(MiscTests, TestJSONURLLoad) {
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
@@ -1036,7 +1038,7 @@ TEST(MiscTests, TestJSONURLLoad) {
     ASSERT_NE(doc, nullptr);
     counter = 0;
     EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
-                                     "http://demo.nextgis.com/api/component/pyramid/pkg_version",
+            "http://dev.nextgis.com/sandbox/api/component/pyramid/pkg_version",
                                      options, ngsTestProgressFunc, nullptr),
               COD_SUCCESS);
     EXPECT_GE(counter, 1);
@@ -1056,4 +1058,60 @@ TEST(MiscTests, TestJSONURLLoad) {
     ngsJsonDocumentFree(doc);
 
     ngsUnInit();
+}
+
+TEST(MiscTests, TestBasicAuth) {
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+
+    JsonDocumentH doc = ngsJsonDocumentCreate();
+    ASSERT_NE(doc, nullptr);
+    counter = 0;
+    options = nullptr;
+    options = ngsListAddNameValue(options, "CONNECTTIMEOUT", "20");
+    options = ngsListAddNameValue(options, "TIMEOUT", "20");
+    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
+    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
+    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
+    EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
+            "http://dev.nextgis.com/sandbox/api/component/auth/current_user",
+                                     options, ngsTestProgressFunc, nullptr),
+              COD_SUCCESS);
+
+    JSONObjectH root = ngsJsonDocumentRoot(doc);
+    ASSERT_NE(root, nullptr);
+
+    EXPECT_STREQ(ngsJsonObjectGetStringForKey(root, "keyname", ""), "guest");
+
+    ngsJsonObjectFree(root);
+    ngsJsonDocumentFree(doc);
+
+    char **authOptions = nullptr;
+    authOptions = ngsListAddNameValue(authOptions, "type", "basic");
+    authOptions = ngsListAddNameValue(authOptions, "login", "administrator");
+    authOptions = ngsListAddNameValue(authOptions, "password", "admin");
+
+    ngsURLAuthAdd("http://dev.nextgis.com/sandbox", authOptions);
+    ngsListFree(authOptions);
+
+    doc = ngsJsonDocumentCreate();
+
+    EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
+            "http://dev.nextgis.com/sandbox/api/component/auth/current_user",
+                                     options, ngsTestProgressFunc, nullptr),
+              COD_SUCCESS);
+
+    root = ngsJsonDocumentRoot(doc);
+    ASSERT_NE(root, nullptr);
+
+    EXPECT_STREQ(ngsJsonObjectGetStringForKey(root, "keyname", ""), "administrator");
+
+    ngsListFree(options);
+    ngsJsonObjectFree(root);
+    ngsJsonDocumentFree(doc);
 }

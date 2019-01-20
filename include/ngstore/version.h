@@ -26,8 +26,8 @@
 #define STR(x) STR_HELPER(x)
 
 #define NGS_VERSION_MAJOR 0
-#define NGS_VERSION_MINOR 6
-#define NGS_VERSION_REV   1
+#define NGS_VERSION_MINOR 8
+#define NGS_VERSION_REV   0
 #define NGS_VERSION  STR(NGS_VERSION_MAJOR) "." STR(NGS_VERSION_MINOR) "." \
     STR(NGS_VERSION_REV)
 
@@ -39,7 +39,7 @@
 #define NGS_USERAGENT "Next.GIS store library " NGS_VERSION " [" NGS_ABI "]"
 #endif
 
-#define NGS_COMPUTE_VERSION(maj,min,rev) ((maj)*10000+(min)*100+rev) // maj - any, min < 99, rev < 99
+#define NGS_COMPUTE_VERSION(maj,min,rev) ((maj)*10000+(min)*100+rev) // major - any, min < 99, rev < 99
 #define NGS_VERSION_NUM NGS_COMPUTE_VERSION(NGS_VERSION_MAJOR,NGS_VERSION_MINOR,NGS_VERSION_REV)
 
 /*  check if the current version is at least major.minor.revision */

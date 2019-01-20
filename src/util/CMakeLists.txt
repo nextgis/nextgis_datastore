@@ -38,6 +38,7 @@ set(HHEADERS
     url.h
     global.h
     mutex.h
+    account.h
 )
 
 set(CSOURCES
@@ -53,6 +54,7 @@ set(CSOURCES
     authstore.cpp
     url.cpp
     mutex.cpp
+    account.cpp
 )
 
 set_property(SOURCE url.cpp APPEND_STRING PROPERTY CMAKE_CXX_FLAGS " -Wdisabled-macro-expansion ")

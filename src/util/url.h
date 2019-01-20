@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -26,10 +26,22 @@
 #include "options.h"
 #include "progress.h"
 
+#include "cpl_json.h"
+
 namespace ngs {
 
-ngsURLRequestResult* uploadFile(const std::string &path, const std::string &url,
-                                const Progress &progress, const Options &options);
+namespace http {
+
+ngsURLRequestResult *fetch(const std::string &url, const Progress &progress,
+                           const Options &options);
+bool getFile(const std::string &url, const std::string &path,
+             const Progress &progress = Progress(),
+             const Options &options = Options());
+CPLJSONObject fetchJson(const std::string &url,
+                        const Progress &progress = Progress(),
+                        const Options &options = Options());
+CPLStringList addAuthHeaders(const std::string &url, CPLStringList &options);
+}
 
 }
 

@@ -31,7 +31,7 @@ static std::string gLastMsg;
 
 int outMessage(enum ngsCode errorCode, const char *fmt, ...)
 {
-    if(errorCode >= COD_UNEXPECTED_ERROR) {
+    if(errorCode >= COD_UNEXPECTED_ERROR && nullptr != fmt) {
         va_list args;
 
         // Expand the error message
@@ -59,12 +59,14 @@ bool errorMessage(const char *fmt, ...)
 
 void warningMessage(const char *fmt, ...)
 {
-    va_list args;
+    if(nullptr != fmt) {
+        va_list args;
 
-    // Expand the error message
-    va_start(args, fmt);
-    CPLErrorV(CE_Warning, CPLE_AppDefined, fmt, args);
-    va_end(args);
+        // Expand the error message
+        va_start(args, fmt);
+        CPLErrorV(CE_Warning, CPLE_AppDefined, fmt, args);
+        va_end(args);
+    }
     CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
     gLastMsg = CPLGetLastErrorMsg();
 }

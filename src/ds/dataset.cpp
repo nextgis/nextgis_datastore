@@ -150,9 +150,9 @@ bool DatasetBase::open(const std::string &path, unsigned int openFlags,
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
 
     CPLErrorReset();
-    auto openOptions = options.asCharArray();
-    m_DS = static_cast<GDALDataset*>(GDALOpenEx( path.c_str(), openFlags, nullptr,
-                                                 openOptions.get(), nullptr));
+    auto openOptions = options.asCPLStringList();
+    m_DS = static_cast<GDALDataset*>(GDALOpenEx(path.c_str(), openFlags, nullptr,
+                                                openOptions, nullptr));
 
     if(m_DS == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
@@ -161,7 +161,8 @@ bool DatasetBase::open(const std::string &path, unsigned int openFlags,
             openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
             openFlags |= GDAL_OF_READONLY;
             m_DS = static_cast<GDALDataset*>(GDALOpenEx( path.c_str(), openFlags,
-                                          nullptr, openOptions.get(), nullptr));
+                                                         nullptr, openOptions,
+                                                         nullptr));
             if(nullptr == m_DS) {
                 errorMessage(CPLGetLastErrorMsg());
                 return false; // Error message comes from GDALOpenEx
@@ -231,7 +232,7 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
     }
 
     OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
-                                        options.asCharArray().get());
+                                        options.asCPLStringList());
 
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
@@ -562,10 +563,9 @@ GDALDataset *Dataset::createAdditionsDataset()
         options.add("METADATA", "NO");
         options.add("SPATIALITE", "NO");
         options.add("INIT_WITH_EPSG", "NO");
-        auto createOptionsPointer = options.asCharArray();
 
         GDALDataset *DS = poDriver->Create(ovrPath.c_str(), 0, 0, 0, GDT_Unknown,
-                                           createOptionsPointer.get());
+                                           options.asCPLStringList());
         if(DS == nullptr) {
             errorMessage(CPLGetLastErrorMsg());
             return nullptr;
@@ -882,8 +882,8 @@ Dataset *Dataset::create(ObjectContainer * const parent,
         out = new Dataset(parent, type, name, path);
     }
 
-    auto ptrOpt = options.asCharArray();
-    out->m_DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, ptrOpt.get());
+    out->m_DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown,
+                               options.asCPLStringList());
 
     return out;
 }

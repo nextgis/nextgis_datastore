@@ -131,6 +131,7 @@ function(get_compiler_version ver)
         set(COMPILER "${COMPILER}-${ANDROID_ABI}")
     endif()
 
+    # Debug
     # set(COMPILER Clang-9.0)
 
     set(${ver} ${COMPILER} PARENT_SCOPE)

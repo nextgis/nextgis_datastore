@@ -102,13 +102,13 @@ double Options::asDouble(const std::string &key, double defaultOption) const
     return CPLAtofM(it->second.c_str());
 }
 
-OptionsArrayUPtr Options::asCharArray() const
+CPLStringList Options::asCPLStringList() const
 {
-    char **options = nullptr;
-    for(auto it = m_options.begin(); it != m_options.end(); ++it) {
-        options = CSLAddNameValue(options, it->first.c_str(), it->second.c_str());
+    CPLStringList out;
+    for(auto pair : m_options) {
+        out.AddNameValue(pair.first.c_str(), pair.second.c_str());
     }
-    return OptionsArrayUPtr(options, CSLDestroy);
+    return out;
 }
 
 void Options::remove(const std::string &key)
@@ -136,7 +136,7 @@ unsigned char getNumberThreads()
     return numThreads;
 }
 
-void  Options::add(const std::string &key, const std::string &value)
+void Options::add(const std::string &key, const std::string &value)
 {
     m_options[key] = value;
 }
@@ -159,6 +159,11 @@ std::map< std::string, std::string >::const_iterator  Options::end() const
 void Options::append(const Options &other)
 {
     m_options.insert(other.m_options.begin(), other.m_options.end());
+}
+
+std::string Options::operator[](std::string key) const
+{
+    return m_options.at(key);
 }
 
 }

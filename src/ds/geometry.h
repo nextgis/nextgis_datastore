@@ -38,7 +38,14 @@ namespace ngs {
 constexpr double BIG_VALUE = 100000000.0; // 100 000 000
 constexpr float BIG_VALUE_F = 100000000.0f; // 100 000 000
 
-using GeometryPtr = std::shared_ptr<OGRGeometry>;
+class GeometryPtr : public std::shared_ptr<OGRGeometry>
+{
+public:
+    GeometryPtr(OGRGeometry *geom);
+    GeometryPtr();
+    GeometryPtr &operator=(OGRGeometry *geom);
+    operator OGRGeometry*() const { return get(); }
+};
 
 class Envelope
 {

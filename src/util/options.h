@@ -21,13 +21,15 @@
 #ifndef NGSOPTIONS_H
 #define NGSOPTIONS_H
 
+// gdal
+#include "cpl_string.h"
+
+// std
 #include <map>
 #include <memory>
 #include <string>
 
 namespace ngs {
-
-using OptionsArrayUPtr = std::unique_ptr<char*, void(*)(char**)>;
 
 class Options
 {
@@ -41,15 +43,16 @@ public:
     int asInt(const std::string &key, int defaultOption = 0) const;
     long asLong(const std::string &key, long defaultOption = 0) const;
     double asDouble(const std::string &key, double defaultOption = 0.0) const;
-    OptionsArrayUPtr asCharArray() const;
+    CPLStringList asCPLStringList() const;
 
     void add(const std::string &key, const std::string &value);
     void remove(const std::string &key);
     bool empty() const;
-    std::map< std::string, std::string >::const_iterator begin() const ;
+    std::map< std::string, std::string >::const_iterator begin() const;
     std::map< std::string, std::string >::const_iterator end() const;
 
     void append(const Options &other);
+    std::string operator[](std::string key) const;
 
 protected:
     std::map<std::string, std::string> m_options;

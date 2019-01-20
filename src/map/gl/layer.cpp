@@ -210,7 +210,7 @@ void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
         m_style = StylePtr(Style::createStyle("simpleLine", mapView->textureAtlas()));
         break;
     case wkbPolygon:
-    case wkbMultiPolygon:        
+    case wkbMultiPolygon:
         m_style = StylePtr(Style::createStyle("simpleFillBordered", mapView->textureAtlas()));
         break;
     }
@@ -733,7 +733,7 @@ VectorGlObject *GlSelectableFeatureLayer::fillLines(const VectorTile &tile,
                     buffer = draw;
                     drawIndex = 0;
                 }
-                index = 0;                
+                index = 0;
             }
 
             index = style->addSegment(pt1, pt2, normal, z, index, buffer);
@@ -1112,7 +1112,7 @@ bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
         }
     }
 
-    int dataSize = GDALGetDataTypeSize(m_dataType) / 8;
+    int dataSize = GDALGetDataTypeSizeBytes(m_dataType);
     size_t bufferSize = static_cast<size_t>(outWidth * outHeight *
                                             dataSize * 4); // NOTE: We use RGBA to store textures
     GLubyte *pixData = static_cast<GLubyte*>(CPLMalloc(bufferSize));
@@ -1212,7 +1212,7 @@ bool GlRasterLayer::draw(const GlTilePtr &tile)
 
     if(!second) {
         return true; // Out of tile extent
-    }    
+    }
 
     RasterGlObject *rasterGlObject = ngsStaticCast(RasterGlObject, second);
 

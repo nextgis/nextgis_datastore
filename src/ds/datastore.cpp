@@ -185,7 +185,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
     MutexHolder holder(m_executeSQLMutex);
 
     OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
-                                        options.asCharArray().get());
+                                        options.asCPLStringList());
 
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
@@ -247,7 +247,7 @@ Table *DataStore::createTable(const std::string &name,
     MutexHolder holder(m_executeSQLMutex);
 
     OGRLayer *layer = m_DS->CreateLayer(name.c_str(), nullptr, wkbNone,
-                                        options.asCharArray().get());
+                                        options.asCPLStringList());
 
     if(layer == nullptr) {
         errorMessage(CPLGetLastErrorMsg());
