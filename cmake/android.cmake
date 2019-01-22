@@ -30,13 +30,17 @@ endif()
 #     message(FATAL_ERROR "Android not support shared or framework builds")
 # endif()
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android.toolchain.cmake
-    CACHE PATH "Select android toolchain file path")
+if(NOT CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android.toolchain.cmake
+        CACHE PATH "Select android toolchain file path")
+endif()
 
-set(ANDROID_ABI "armeabi-v7a" CACHE STRING "Select Android ABI")
-set_property(CACHE ANDROID_ABI PROPERTY STRINGS "armeabi" "armeabi-v7a"
-    "armeabi-v7a with NEON" "armeabi-v7a with VFPV3" "armeabi-v6 with VFP"
-    "x86" "mips" "arm64-v8a" "x86_64" "mips64")
+if(NOT ANDROID_ABI)
+    set(ANDROID_ABI "armeabi-v7a" CACHE STRING "Select Android ABI")
+    set_property(CACHE ANDROID_ABI PROPERTY STRINGS "armeabi" "armeabi-v7a"
+        "armeabi-v7a with NEON" "armeabi-v7a with VFPV3" "armeabi-v6 with VFP"
+        "x86" "mips" "arm64-v8a" "x86_64" "mips64")
+endif()
 
 #set(ANDROID_APK_API_LEVEL "10" CACHE STRING "Android APK API level")
 #set(ANDROID_APK_INSTALL "0" CACHE BOOL "Install created apk file on the device automatically?")
