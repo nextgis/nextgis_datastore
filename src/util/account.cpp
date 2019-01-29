@@ -19,10 +19,10 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 
+#include "api_priv.h"
 #include "account.h"
 #include "authstore.h"
 #include "error.h"
-#include "global.h"
 #include "settings.h"
 #include "stringutil.h"
 #include "url.h"

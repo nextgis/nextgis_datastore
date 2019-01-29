@@ -21,7 +21,6 @@
 #include "tile.h"
 
 #include "map/glm/gtc/matrix_transform.hpp"
-#include "util/global.h"
 
 namespace ngs {
 

@@ -39,14 +39,15 @@
 
 namespace ngs {
 
-constexpr const char * LOCAL_CONN_FILE = "connections";
-constexpr const char * LOCAL_CONN_FILE_EXT = "json";
+constexpr const char *LOCAL_CONN_FILE = "connections";
+constexpr const char *LOCAL_CONN_FILE_EXT = "json";
 
 LocalConnections::LocalConnections(ObjectContainer * const parent,
                                    const std::string &path) :
-    ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION, _("Local connections"),
-                    path)
+    ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION,
+                    _("Local connections"), path)
 {
+    Folder::mkDir(path, true); // Try to create connections folder
     m_path = File::formFileName(path, LOCAL_CONN_FILE, LOCAL_CONN_FILE_EXT);
 }
 
@@ -86,8 +87,8 @@ bool LocalConnections::loadChildren()
                 }
                 std::string connName = connection.GetString("name");
                 std::string connPath = connection.GetString("path");
-                m_children.push_back(ObjectPtr(
-                                         new Folder(parent, connName, connPath)));
+                m_children.push_back(
+                            ObjectPtr(new Folder(parent, connName, connPath)));
             }
         }
     }
@@ -110,9 +111,10 @@ bool LocalConnections::loadChildren()
         const char *homeDir = getenv("HOME");
 
         if(nullptr == homeDir) {
-           struct passwd* pwd = getpwuid(getuid());
-           if (pwd)
+           struct passwd *pwd = getpwuid(getuid());
+           if (pwd) {
               homeDir = pwd->pw_dir;
+           }
         }
         connectionPaths.push_back(std::make_pair(_("Home"), homeDir));
         connectionPaths.push_back(std::make_pair(_("Documents"),
@@ -214,9 +216,9 @@ bool LocalConnections::loadChildren()
 
            connections.Add(connection);
 
-           m_children.push_back(ObjectPtr(
-                                    new Folder(parent, connectionPath.first,
-                                                   connectionPath.second)));
+           m_children.push_back(
+                       ObjectPtr(new Folder(parent, connectionPath.first,
+                                            connectionPath.second)));
        }
        root.Add("connections", connections);
        doc.Save(m_path);
@@ -239,8 +241,8 @@ ObjectPtr LocalConnections::getObjectBySystemPath(const std::string &path) const
         }
 
         if(comparePart(path, testPath, static_cast<unsigned>(testPath.size()))) {
-            ObjectContainer * const container = ngsDynamicCast(ObjectContainer,
-                                                               child);
+            ObjectContainer * const container =
+                    ngsDynamicCast(ObjectContainer, child);
             if(nullptr != container) {
                 std::string endPath = path.substr(testPath.size());
 #ifdef _WIN32

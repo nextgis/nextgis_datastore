@@ -20,7 +20,11 @@
  ****************************************************************************/
 #include "stringutil.h"
 
+#include "api_priv.h"
+#include "error.h"
+
 #include "cpl_string.h"
+#include "settings.h"
 
 // stl
 #include <algorithm>
@@ -28,7 +32,9 @@
 #include <map>
 #include <sstream>
 
+#include <openssl/evp.h>
 #include <openssl/md5.h>
+#include <openssl/rand.h>
 
 namespace ngs {
 
@@ -45,6 +51,9 @@ const static std::map<const char*, const char*> ruMap = { {"а", "a"}, {"б", "b
     {"Ц", "Z"}, {"Ч", "Ch"}, {"Ш", "Sh"}, {"Щ", "Ch"}, {"Ь", "'"}, {"Ы", "Y"},
     {"Ъ", "'"}, {"Э", "E"}, {"Ю", "Yu"}, {"Я", "Ya"}
  };
+
+constexpr unsigned int BLOCK_SIZE = 16;
+constexpr unsigned int KEY_SIZE = 32;
 
 bool invalidChar (char c)
 {
@@ -145,6 +154,40 @@ std::string md5(const std::string &val)
     return out.str();
 }
 
+std::string crypt_salt()
+{
+    return random(BLOCK_SIZE);
+}
+
+std::string crypt_key()
+{
+    return random(KEY_SIZE);
+}
+
+static std::string toHex(unsigned char *value, int size)
+{
+    std::ostringstream out;
+
+    for(int i = 0; i < size; ++i) {
+        out << std::hex << std::setfill('0') << std::setw(2) <<
+               static_cast<unsigned>(value[i]);
+    }
+
+    return out.str();
+}
+
+std::string random(int size)
+{
+    unsigned char *key = new unsigned char[size];
+    int rc = RAND_bytes(key, size);
+    if (rc != 1) {
+        errorMessage(_("Failed to generate random string."));
+        return "";
+    }
+
+    return toHex(key, size);
+}
+
 int compareStrings(const std::string &first, const std::string &second,
                    bool caseSensetive)
 {
@@ -162,6 +205,113 @@ std::string fromCString(const char *str)
         return "";
     }
     return str;
+}
+
+using EVP_CIPHER_CTX_free_ptr = std::unique_ptr<EVP_CIPHER_CTX,
+    decltype(&::EVP_CIPHER_CTX_free)>;
+
+// Adapted from https://wiki.openssl.org/images/5/5d/Evp-encrypt-cxx.tar.gz
+std::string encrypt(const std::string& ptext)
+{
+    if(ptext.size() > 256) {
+        errorMessage(_("Too long text to encrypt"));
+        return "";
+    }
+
+    // Load the necessary cipher
+    EVP_add_cipher(EVP_aes_256_cbc());
+
+    EVP_CIPHER_CTX_free_ptr ctx(EVP_CIPHER_CTX_new(), ::EVP_CIPHER_CTX_free);
+
+    Settings &settings = Settings::instance();
+    std::string iv = settings.getString("crypt/iv", "");
+
+    int count = 0;
+    GByte *pabyiv = CPLHexToBinary(iv.c_str(), &count);
+    GByte *pabykey = CPLHexToBinary(CPLGetConfigOption("CRYPT_KEY", ""), &count);
+
+    int rc = EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, pabykey,
+                                pabyiv);
+
+    CPLFree(pabyiv);
+    CPLFree(pabykey);
+
+    if (rc != 1) {
+        errorMessage(_("EVP_EncryptInit_ex failed"));
+        return "";
+    }
+
+    // Recovered text expands upto BLOCK_SIZE
+    int out_len1 = 0;
+    unsigned char ctext[512];
+
+    rc = EVP_EncryptUpdate(ctx.get(), ctext, &out_len1,
+                           reinterpret_cast<const unsigned char*>(&ptext[0]),
+                           static_cast<int>(ptext.size()));
+    if (rc != 1) {
+        errorMessage(_("EVP_EncryptUpdate failed"));
+        return "";
+    }
+
+    int out_len2 = 0;
+    rc = EVP_EncryptFinal_ex(ctx.get(), ctext + out_len1, &out_len2);
+    if (rc != 1) {
+        errorMessage(_("EVP_EncryptFinal_ex failed"));
+        return "";
+    }
+
+    return toHex(ctext, out_len1 + out_len2);
+}
+
+std::string decrypt(const std::string& ctext)
+{
+    std::string rtext;
+    // Load the necessary cipher
+    EVP_add_cipher(EVP_aes_256_cbc());
+
+    EVP_CIPHER_CTX_free_ptr ctx(EVP_CIPHER_CTX_new(), ::EVP_CIPHER_CTX_free);
+    Settings &settings = Settings::instance();
+    std::string iv = settings.getString("crypt/iv", "");
+
+    int count = 0;
+    GByte *pabyiv = CPLHexToBinary(iv.c_str(), &count);
+    GByte *pabykey = CPLHexToBinary(CPLGetConfigOption("CRYPT_KEY", ""), &count);
+    int rc = EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, pabykey,
+                                pabyiv);
+
+    CPLFree(pabyiv);
+    CPLFree(pabykey);
+
+    if (rc != 1) {
+        errorMessage(_("EVP_DecryptInit_ex failed"));
+        return "";
+    }
+
+    GByte *ctextIn = CPLHexToBinary(ctext.c_str(), &count);
+
+    // Recovered text contracts upto BLOCK_SIZE
+    rtext.resize(static_cast<size_t>(count));
+    int out_len1 = 0;
+    rc = EVP_DecryptUpdate(ctx.get(), reinterpret_cast<unsigned char*>(&rtext[0]),
+            &out_len1, ctextIn, count);
+    if (rc != 1) {
+        errorMessage(_("EVP_DecryptUpdate failed"));
+        return "";
+    }
+
+    int out_len2 = 0;
+    rc = EVP_DecryptFinal_ex(ctx.get(), reinterpret_cast<unsigned char*>(&rtext[0]) + out_len1,
+            &out_len2);
+
+    if (rc != 1) {
+        errorMessage(_("EVP_DecryptFinal_ex failed"));
+        return "";
+    }
+
+    // Set recovered text size now that we know it
+    rtext.resize(static_cast<size_t>(out_len1 + out_len2));
+
+    return rtext;
 }
 
 }

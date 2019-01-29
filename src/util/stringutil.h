@@ -44,6 +44,11 @@ bool startsWith(const std::string &str, const std::string &part,
                 bool caseSensetive = false);
 std::string md5(const std::string &val);
 std::string fromCString(const char *str);
+std::string random(int size);
+std::string crypt_salt();
+std::string crypt_key();
+std::string encrypt(const std::string& ptext);
+std::string decrypt(const std::string& ctext);
 
 }
 #endif // NGSSTRINGUTIL_H

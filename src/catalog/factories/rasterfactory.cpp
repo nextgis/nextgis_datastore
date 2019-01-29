@@ -42,15 +42,14 @@ static const std::vector<std::string> tifAdds = {
     "_rpc.txt", "-browse.jpg", "_readme.txt"
 };
 
-constexpr const char* KEY_TYPE = "type";
-constexpr const char* KEY_X_MIN = "x_min";
-constexpr const char* KEY_X_MAX = "x_max";
-constexpr const char* KEY_Y_MIN = "y_min";
-constexpr const char* KEY_Y_MAX = "y_max";
-constexpr const char* KEY_LIMIT_X_MIN = "limit_x_min";
-constexpr const char* KEY_LIMIT_X_MAX = "limit_x_max";
-constexpr const char* KEY_LIMIT_Y_MIN = "limit_y_min";
-constexpr const char* KEY_LIMIT_Y_MAX = "limit_y_max";
+constexpr const char *KEY_X_MIN = "x_min";
+constexpr const char *KEY_X_MAX = "x_max";
+constexpr const char *KEY_Y_MIN = "y_min";
+constexpr const char *KEY_Y_MAX = "y_max";
+constexpr const char *KEY_LIMIT_X_MIN = "limit_x_min";
+constexpr const char *KEY_LIMIT_X_MAX = "limit_x_max";
+constexpr const char *KEY_LIMIT_Y_MIN = "limit_y_min";
+constexpr const char *KEY_LIMIT_Y_MAX = "limit_y_max";
 
 RasterFactory::RasterFactory()
 {
@@ -87,9 +86,7 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         ++it;
     }
 
-    for(const auto& nameExtsItem : nameExts) {
-
-        // Check if ESRI Shapefile
+    for(const auto &nameExtsItem : nameExts) {
         if(m_tiffSupported) {
             FORMAT_RESULT result = isFormatSupported(
                         nameExtsItem.first, nameExtsItem.second, tifExt);
@@ -114,20 +111,22 @@ void RasterFactory::createObjects(ObjectContainer * const container,
         }
 
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
-            if(compare(nameExtsItem.second[0], remoteConnectionExtension())) {
+            if(compare(nameExtsItem.second[0], Filter::extension(CAT_RASTER_TMS))) {
                 CPLJSONDocument connectionFile;
-                std::string path = File::formFileName(container->path(),
-                                                      nameExtsItem.first,
-                                                      remoteConnectionExtension());
+                std::string path = File::formFileName(
+                            container->path(), nameExtsItem.first,
+                            Filter::extension(CAT_RASTER_TMS));
                 if(connectionFile.Load(path)) {
                     std::vector<std::string> siblingFiles;
                     enum ngsCatalogObjectType type =
                             static_cast<enum ngsCatalogObjectType>(
                                 connectionFile.GetRoot().GetInteger(
                                     KEY_TYPE, CAT_UNKNOWN));
-                    addChildInternal(container, nameExtsItem.first + "." +
-                             remoteConnectionExtension(), path, type,
+                    if(Filter::isRaster(type)) {
+                        addChildInternal(container, nameExtsItem.first + "." +
+                             Filter::extension(type), path, type,
                              siblingFiles, names);
+                    }
                 }
             }
         }
@@ -194,7 +193,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         }
         root.Add(USER_KEY, user);
 
-        std::string newPath = File::resetExtension(path, remoteConnectionExtension());
+        std::string newPath = File::resetExtension(path, Filter::extension(type));
         return connectionFile.Save(newPath);
     }
     default:
@@ -213,11 +212,6 @@ void RasterFactory::addChildInternal(ObjectContainer * const container,
                             ObjectPtr(new Raster(siblingFiles, container,
                                                  subType, name, path)));
     eraseNames(name, siblingFiles, names);
-}
-
-std::string RasterFactory::remoteConnectionExtension()
-{
-    return "wconn";
 }
 
 } // namespace ngs

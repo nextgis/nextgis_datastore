@@ -20,9 +20,8 @@
  ****************************************************************************/
 #include "archive.h"
 
+#include "api_priv.h"
 #include "file.h"
-
-#include "util/global.h"
 #include "util/notify.h"
 
 namespace ngs {

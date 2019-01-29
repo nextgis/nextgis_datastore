@@ -28,6 +28,8 @@
 
 namespace ngs {
 
+constexpr const char *KEY_TYPE = "type";
+
 typedef std::map<std::string, std::vector<std::string>> nameExtMap;
 typedef struct _formatExt {
     std::string mainExt;

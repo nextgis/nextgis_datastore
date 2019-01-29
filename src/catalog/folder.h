@@ -46,7 +46,13 @@ public:
     static bool isDir(const std::string &path);
     static bool isSymlink(const std::string &path);
     static bool isHidden(const std::string &path);
-
+    static std::vector<std::string> fillChildrenNames(const std::string &path,
+                                                      char** items);
+    static std::string createUniquePath(const std::string &path,
+                                      const std::string &name,
+                                      bool isFolder = true,
+                                      const std::string &add = "",
+                                      int counter = 0);
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
@@ -64,13 +70,6 @@ public:
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
-
-protected:
-    static std::string createUniquePath(const std::string &path,
-                                      const std::string &name,
-                                      bool isFolder = true,
-                                      const std::string &add = "",
-                                      int counter = 0);
 
 protected:
     int pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,

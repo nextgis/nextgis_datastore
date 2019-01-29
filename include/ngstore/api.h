@@ -141,6 +141,9 @@ NGS_EXTERNC int ngsURLAuthAdd(const char *url, char **options);
 NGS_EXTERNC char **ngsURLAuthGet(const char *url);
 NGS_EXTERNC int ngsURLAuthDelete(const char *url);
 NGS_EXTERNC const char *ngsMD5(const char *value);
+NGS_EXTERNC const char *ngsRandomString(int length);
+NGS_EXTERNC const char *ngsEncryptString(const char *text);
+NGS_EXTERNC const char *ngsDecryptString(const char *text);
 
 NGS_EXTERNC JsonDocumentH ngsJsonDocumentCreate();
 NGS_EXTERNC void ngsJsonDocumentFree(JsonDocumentH document);
@@ -151,7 +154,7 @@ NGS_EXTERNC int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url,
 NGS_EXTERNC JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document);
 NGS_EXTERNC void ngsJsonObjectFree(JsonObjectH object);
 NGS_EXTERNC int ngsJsonObjectType(JsonObjectH object);
-NGS_EXTERNC int ngsJsonObjectValid(JsonObjectH object);
+NGS_EXTERNC char ngsJsonObjectValid(JsonObjectH object);
 NGS_EXTERNC const char *ngsJsonObjectName(JsonObjectH object);
 NGS_EXTERNC JsonObjectH *ngsJsonObjectChildren(JsonObjectH object);
 NGS_EXTERNC void ngsJsonObjectChildrenListFree(JsonObjectH *list);
@@ -161,7 +164,7 @@ NGS_EXTERNC double ngsJsonObjectGetDouble(JsonObjectH object,
                                           double defaultValue);
 NGS_EXTERNC int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue);
 NGS_EXTERNC long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue);
-NGS_EXTERNC int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue);
+NGS_EXTERNC char ngsJsonObjectGetBool(JsonObjectH object, char defaultValue);
 NGS_EXTERNC JsonObjectH ngsJsonObjectGetArray(JsonObjectH object,
                                               const char *name);
 NGS_EXTERNC JsonObjectH ngsJsonObjectGetObject(JsonObjectH object,
@@ -179,19 +182,19 @@ NGS_EXTERNC int ngsJsonObjectGetIntegerForKey(JsonObjectH object,
                                               int defaultValue);
 NGS_EXTERNC long ngsJsonObjectGetLongForKey(JsonObjectH object,
                                             const char *name, long defaultValue);
-NGS_EXTERNC int ngsJsonObjectGetBoolForKey(JsonObjectH object,
-                                           const char *name, int defaultValue);
-NGS_EXTERNC int ngsJsonObjectSetStringForKey(JsonObjectH object,
+NGS_EXTERNC char ngsJsonObjectGetBoolForKey(JsonObjectH object,
+                                           const char *name, char defaultValue);
+NGS_EXTERNC char ngsJsonObjectSetStringForKey(JsonObjectH object,
                                              const char *name,
                                              const char *value);
-NGS_EXTERNC int ngsJsonObjectSetDoubleForKey(JsonObjectH object,
+NGS_EXTERNC char ngsJsonObjectSetDoubleForKey(JsonObjectH object,
                                              const char *name, double value);
-NGS_EXTERNC int ngsJsonObjectSetIntegerForKey(JsonObjectH object,
+NGS_EXTERNC char ngsJsonObjectSetIntegerForKey(JsonObjectH object,
                                               const char *name, int value);
-NGS_EXTERNC int ngsJsonObjectSetLongForKey(JsonObjectH object,
+NGS_EXTERNC char ngsJsonObjectSetLongForKey(JsonObjectH object,
                                            const char *name, long value);
-NGS_EXTERNC int ngsJsonObjectSetBoolForKey(JsonObjectH object,
-                                           const char *name, int value);
+NGS_EXTERNC char ngsJsonObjectSetBoolForKey(JsonObjectH object,
+                                           const char *name, char value);
 
 /*
  * Catalog functions

@@ -29,9 +29,9 @@
 #include "file.h"
 #include "folder.h"
 #include "localconnections.h"
+#include "remoteconnections.h"
 
 #include "ngstore/common.h"
-#include "util/global.h"
 #include "util/settings.h"
 #include "util/stringutil.h"
 
@@ -115,12 +115,10 @@ bool Catalog::loadChildren()
 
     // 2. Load root objects
     std::string connectionsPath = File::formFileName(settingsPath, CONNECTIONS_DIR);
-    if(!Folder::mkDir(connectionsPath, true)) {
-        return false;
-    }
-
     Catalog *parent = const_cast<Catalog*>(this);
     m_children.push_back(ObjectPtr(new LocalConnections(parent, connectionsPath)));
+    m_children.push_back(ObjectPtr(new GISServerConnections(parent, connectionsPath)));
+    m_children.push_back(ObjectPtr(new DatabaseConnections(parent, connectionsPath)));
 
     m_childrenLoaded = true;
     return true;
@@ -129,8 +127,8 @@ bool Catalog::loadChildren()
 void Catalog::freeResources()
 {
     for(ObjectPtr &child : m_children) {
-        ObjectContainer * const container = ngsDynamicCast(ObjectContainer,
-                                                           child);
+        ObjectContainer * const container =
+                ngsDynamicCast(ObjectContainer, child);
         if(nullptr != container) {
             container->clear();
         }
@@ -148,7 +146,7 @@ void Catalog::createObjects(ObjectPtr object, std::vector<std::string> &names)
         return;
     }
     // Check each factory for objects
-    for(const ObjectFactoryUPtr& factory : m_factories) {
+    for(const ObjectFactoryUPtr &factory : m_factories) {
         if(factory->enabled()) {
             factory->createObjects(container, names);
         }
@@ -174,7 +172,7 @@ std::string Catalog::toRelativePath(const Object *object,
     }
 
     std::vector<ObjectContainer*> parents;
-    ObjectContainer* parent = object->parent();
+    ObjectContainer *parent = object->parent();
     if(parent == objectContainer) {
         return "." + sep + object->name();
     }
@@ -251,8 +249,9 @@ void Catalog::setShowHidden(bool value)
 
 void Catalog::setInstance(Catalog *pointer)
 {
-    if(gCatalog && nullptr != pointer) // Can be initialized only once.
+    if(gCatalog && nullptr != pointer) { // Can be initialized only once.
         return;
+    }
     gCatalog.reset(pointer);
 }
 

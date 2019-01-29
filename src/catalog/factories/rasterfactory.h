@@ -37,7 +37,6 @@ public:
                                std::vector<std::string> &names) override;
     // static
 public:
-    static std::string remoteConnectionExtension();
     static bool createRemoteConnection(const enum ngsCatalogObjectType type,
                                        const std::string &path,
                                        const Options &options);

@@ -40,7 +40,6 @@
 #include "ngstore/util/constants.h"
 #include "ngstore/version.h"
 
-#include "util/global.h"
 #include "util/notify.h"
 #include "util/error.h"
 #include "util/stringutil.h"

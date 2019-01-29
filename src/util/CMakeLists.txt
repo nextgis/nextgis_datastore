@@ -36,7 +36,6 @@ set(HHEADERS
     threadpool.h
     authstore.h
     url.h
-    global.h
     mutex.h
     account.h
 )

@@ -124,6 +124,12 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
            type == CAT_FC_CSV || type == CAT_FC_MEM;
 }
 
+bool Filter::isConnection(const enum ngsCatalogObjectType type)
+{
+    return (type >= CAT_CONTAINER_WFS && type <= CAT_CONTAINER_NGW) ||
+            type == CAT_CONTAINER_POSTGRES;
+}
+
 GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
 {
 
@@ -225,6 +231,8 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
     case CAT_CONTAINER_WFS:
     case CAT_CONTAINER_WMS:
     case CAT_CONTAINER_NGW:
+    case CAT_RASTER_WMS:
+    case CAT_RASTER_TMS:
         return "wconn";
     case CAT_CONTAINER_NGS:
         return DataStore::extension();

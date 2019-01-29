@@ -28,8 +28,8 @@ namespace ngs {
 class LocalConnections : public ObjectContainer
 {
 public:
-    explicit LocalConnections(ObjectContainer * const parent = nullptr,
-                     const std::string &path = "");
+    explicit LocalConnections(ObjectContainer * const parent,
+                              const std::string &path = "");
     virtual bool loadChildren() override;
     virtual ObjectPtr getObjectBySystemPath(const std::string &path) const;
 };

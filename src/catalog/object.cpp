@@ -20,8 +20,7 @@
  ****************************************************************************/
 #include "object.h"
 
-#include "util/global.h"
-
+#include "api_priv.h"
 #include "catalog.h"
 
 namespace ngs {

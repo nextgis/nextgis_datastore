@@ -33,6 +33,7 @@ set(HHEADERS
     archive.h
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
     localconnections.h
+    remoteconnections.h
     mapfile.h
     factories/objectfactory.h
     factories/folderfactory.h
@@ -40,6 +41,7 @@ set(HHEADERS
     factories/datastorefactory.h
     factories/simpledatasetfactory.h
     factories/rasterfactory.h
+    factories/connectionfactory.h
 )
 
 set(CSOURCES
@@ -51,6 +53,7 @@ set(CSOURCES
     archive.cpp
     filter.cpp
     localconnections.cpp
+    remoteconnections.cpp
     mapfile.cpp
     factories/objectfactory.cpp
     factories/folderfactory.cpp
@@ -58,6 +61,7 @@ set(CSOURCES
     factories/datastorefactory.cpp
     factories/simpledatasetfactory.cpp
     factories/rasterfactory.cpp
+    factories/connectionfactory.cpp
 )
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})

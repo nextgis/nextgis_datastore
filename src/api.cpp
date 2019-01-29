@@ -80,6 +80,12 @@ static void initGDAL(const char *dataPath, const char *cachePath)
                        settings.getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
                                           ".ngmd").c_str());
 
+    // Generate salt for encrypt/decrypt
+    std::string iv = settings.getString("crypt/iv", "");
+    if(iv.empty()) {
+        settings.set("crypt/iv", crypt_salt());
+    }
+
     // Register drivers
 #ifdef NGS_MOBILE // NOTE: Keep in sync with extlib.cmake gdal options. For mobile devices
     GDALRegister_VRT();
@@ -150,6 +156,7 @@ const char *ngsGetVersionString(const char *request)
 /**
  * @brief ngsInit Init library structures
  * @param options Init library options list:
+ * - APP_NAME - application name to test function availability in account
  * - CACHE_DIR - path to cache directory (mainly for TMS/WMS cache)
  * - SETTINGS_DIR - path to settings directory
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
@@ -159,6 +166,8 @@ const char *ngsGetVersionString(const char *request)
  * - GL_MULTISAMPLE - Enable sampling if applicable
  * - SSL_CERT_FILE - Path to ssl cert file (*.pem)
  * - HOME - Root directory for library
+ * - APP_NAME - Application name for logs and check function availability
+ * - CRYPT_KEY - Key to encrypt/decrypt passwords
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
@@ -196,6 +205,18 @@ int ngsInit(char **options)
     if(home) {
         CPLSetConfigOption("NGS_HOME", home);
         CPLDebug("ngstore", "NGS_HOME path set to %s", home);
+    }
+
+    const char *appName = CSLFetchNameValue(options, "APP_NAME");
+    if(appName) {
+        CPLSetConfigOption("APP_NAME", appName);
+        CPLDebug("ngstore", "APP_NAME set to %s", appName);
+    }
+
+    const char *cryptKey = CSLFetchNameValue(options, "CRYPT_KEY");
+    if(cryptKey) {
+        CPLSetConfigOption("CRYPT_KEY", cryptKey);
+        CPLDebug("ngstore", "CRYPT_KEY set to %s", cryptKey);
     }
 
 #ifdef HAVE_LIBINTL_H
@@ -352,7 +373,7 @@ const char *ngsFormFileName(const char *path, const char *name,
 }
 
 /**
- * @brief ngsFree Free pointer allocated using some function.
+ * @brief ngsFree Free pointer allocated using some function or malloc/realloc.
  * @param pointer A pointer to free.
  */
 void ngsFree(void *pointer)
@@ -530,6 +551,36 @@ const char *ngsMD5(const char *value)
 }
 
 /**
+ * @brief ngsRandomString Generate random hex string.
+ * @param length Length or original byte array transfromed to hex.
+ * @return random hex string.
+ */
+const char *ngsRandomString(int length)
+{
+    return storeCString(random(length));
+}
+
+/**
+ * @brief ngsEncryptString Encrypt string.
+ * @param text String to encrypt.
+ * @return Encrypted string.
+ */
+const char *ngsEncryptString(const char *text)
+{
+    return storeCString(encrypt(fromCString(text)));
+}
+
+/**
+ * @brief ngsDecryptString Decrypt string.
+ * @param text String to decrypt.
+ * @return Decrypted string.
+ */
+const char *ngsDecryptString(const char *text)
+{
+    return storeCString(decrypt(fromCString(text)));
+}
+
+/**
  * @brief ngsJsonDocumentCreate Creates new JSON document
  * @return New JSON document handle. The handle must be deallocated using
  * ngsJsonDocumentDestroy function.
@@ -542,7 +593,7 @@ JsonDocumentH ngsJsonDocumentCreate()
 /**
  * @brief ngsJsonDocumentDestroy Destroy JSON document created using
  * ngsJsonDocumentCreate
- * @param document JSON document handler.
+ * @param document JSON document handle.
  */
 void ngsJsonDocumentFree(JsonDocumentH document)
 {
@@ -579,7 +630,7 @@ int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url, char **optio
  * @brief ngsJsonDocumentRoot Gets JSON document root object.
  * @param document JSON document
  * @return JSON object handle or NULL. The handle must be deallocated using
- * ngsJsonObjectDestroy function.
+ * ngsJsonObjectFree function.
  */
 JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document)
 {
@@ -591,7 +642,10 @@ JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document)
     return new CPLJSONObject(doc->GetRoot());
 }
 
-
+/**
+ * @brief ngsJsonObjectFree Free allocated json object.
+ * @param object Json object handle.
+ */
 void ngsJsonObjectFree(JsonObjectH object)
 {
     if(nullptr != object) {
@@ -599,6 +653,20 @@ void ngsJsonObjectFree(JsonObjectH object)
     }
 }
 
+/**
+ * @brief ngsJsonObjectType Get json object type.
+ * @param object Json object handle.
+ * @return Json object type as integer:
+ * - Unknown = 0
+ * - Null = 1
+ * - Object = 2
+ * - Array = 3
+ * - Boolean = 4
+ * - String = 5
+ * - Integer = 6
+ * - Long = 7
+ * - Double = 8
+ */
 int ngsJsonObjectType(JsonObjectH object)
 {
     if(nullptr == object) {
@@ -608,7 +676,12 @@ int ngsJsonObjectType(JsonObjectH object)
     return static_cast<CPLJSONObject*>(object)->GetType();
 }
 
-int ngsJsonObjectValid(JsonObjectH object)
+/**
+ * @brief ngsJsonObjectValid Get is json object valid or not.
+ * @param object Json object handle.
+ * @return 1 if json object valid.
+ */
+char ngsJsonObjectValid(JsonObjectH object)
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -617,6 +690,11 @@ int ngsJsonObjectValid(JsonObjectH object)
     return static_cast<CPLJSONObject*>(object)->IsValid() ? 1 : 0;
 }
 
+/**
+ * @brief ngsJsonObjectName Get json object name.
+ * @param object Json object handle.
+ * @return Name string.
+ */
 const char *ngsJsonObjectName(JsonObjectH object)
 {
     if(nullptr == object) {
@@ -626,6 +704,12 @@ const char *ngsJsonObjectName(JsonObjectH object)
     return storeCString(static_cast<CPLJSONObject*>(object)->GetName());
 }
 
+/**
+ * @brief ngsJsonObjectChildren Get json object children.
+ * @param object Json object handle.
+ * @return List of json object handles or null. List must be deallocated
+ * using ngsJsonObjectChildrenListFree.
+ */
 JsonObjectH *ngsJsonObjectChildren(JsonObjectH object)
 {
     if(nullptr == object) {
@@ -645,6 +729,10 @@ JsonObjectH *ngsJsonObjectChildren(JsonObjectH object)
     return out;
 }
 
+/**
+ * @brief ngsJsonObjectChildrenListFree Free list returned from ngsJsonObjectChildren.
+ * @param list List of json object handles to free.
+ */
 void ngsJsonObjectChildrenListFree(JsonObjectH *list)
 {
     if(nullptr == list) {
@@ -660,6 +748,12 @@ void ngsJsonObjectChildrenListFree(JsonObjectH *list)
     delete [] list;
 }
 
+/**
+ * @brief ngsJsonObjectGetString Get string value from json object.
+ * @param object Json object handle.
+ * @param defaultValue Default string value to return.
+ * @return String value.
+ */
 const char *ngsJsonObjectGetString(JsonObjectH object, const char *defaultValue)
 {
     if(nullptr == object) {
@@ -671,6 +765,12 @@ const char *ngsJsonObjectGetString(JsonObjectH object, const char *defaultValue)
                             fromCString(defaultValue)));
 }
 
+/**
+ * @brief ngsJsonObjectGetDouble Get double value from json object.
+ * @param object Json object handle.
+ * @param defaultValue Default double value to return.
+ * @return Double value.
+ */
 double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue)
 {
     if(nullptr == object) {
@@ -680,6 +780,12 @@ double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue)
     return static_cast<CPLJSONObject*>(object)->ToDouble(defaultValue);
 }
 
+/**
+ * @brief ngsJsonObjectGetInteger Get integer value from json object.
+ * @param object Json object handle.
+ * @param defaultValue Default integer value to return.
+ * @return Integer value.
+ */
 int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue)
 {
     if(nullptr == object) {
@@ -689,6 +795,12 @@ int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue)
     return static_cast<CPLJSONObject*>(object)->ToInteger(defaultValue);
 }
 
+/**
+ * @brief ngsJsonObjectGetLong Get long value from json object.
+ * @param object Json object handle.
+ * @param defaultValue Default long value to return.
+ * @return Long value.
+ */
 long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue)
 {
     if(nullptr == object) {
@@ -698,7 +810,13 @@ long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue)
     return static_cast<CPLJSONObject*>(object)->ToLong(defaultValue);
 }
 
-int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue)
+/**
+ * @brief ngsJsonObjectGetBool Get boolean value from json object.
+ * @param object Json object handle.
+ * @param defaultValue Default boolean value to return.
+ * @return Boolean value.
+ */
+char ngsJsonObjectGetBool(JsonObjectH object, char defaultValue)
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -707,7 +825,13 @@ int ngsJsonObjectGetBool(JsonObjectH object, int defaultValue)
     return static_cast<CPLJSONObject*>(object)->ToBool(defaultValue) ? 1 : 0;
 }
 
-
+/**
+ * @brief ngsJsonObjectGetStringForKey Get string value for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param defaultValue Default string value.
+ * @return String value.
+ */
 const char *ngsJsonObjectGetStringForKey(JsonObjectH object, const char *name,
                                          const char *defaultValue)
 {
@@ -719,6 +843,13 @@ const char *ngsJsonObjectGetStringForKey(JsonObjectH object, const char *name,
                           fromCString(name), fromCString(defaultValue)));
 }
 
+/**
+ * @brief ngsJsonObjectGetDoubleForKey Get double value for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param defaultValue Default double value.
+ * @return Double value.
+ */
 double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char *name,
                                     double defaultValue)
 {
@@ -730,6 +861,13 @@ double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char *name,
                                                           defaultValue);
 }
 
+/**
+ * @brief ngsJsonObjectGetIntegerForKey Get integer value for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param defaultValue Default integer value.
+ * @return Integer value.
+ */
 int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char *name,
                                   int defaultValue)
 {
@@ -741,6 +879,13 @@ int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char *name,
                                                            defaultValue);
 }
 
+/**
+ * @brief ngsJsonObjectGetLongForKey Get long value for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param defaultValue Default long value.
+ * @return Long value.
+ */
 long ngsJsonObjectGetLongForKey(JsonObjectH object, const char *name,
                                 long defaultValue)
 {
@@ -752,8 +897,15 @@ long ngsJsonObjectGetLongForKey(JsonObjectH object, const char *name,
                                                         defaultValue);
 }
 
-int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char *name,
-                               int defaultValue)
+/**
+ * @brief ngsJsonObjectGetBoolForKey Get boolean value for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param defaultValue Default boolean value.
+ * @return Boolean value.
+ */
+char ngsJsonObjectGetBoolForKey(JsonObjectH object, const char *name,
+                               char defaultValue)
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
@@ -763,64 +915,110 @@ int ngsJsonObjectGetBoolForKey(JsonObjectH object, const char *name,
                                                         defaultValue) ? 1 : 0;
 }
 
-int ngsJsonObjectSetStringForKey(JsonObjectH object, const char *name,
-                                 const char* value)
+/**
+ * @brief ngsJsonObjectSetStringForKey Set string value to key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param value String value.
+ * @return 1 on success.
+ */
+char ngsJsonObjectSetStringForKey(JsonObjectH object, const char *name,
+                                 const char *value)
 {
     if(nullptr == object) {
-        return outMessage(COD_GET_FAILED, _("The object handle is null"));
+        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), fromCString(value));
-    return COD_SUCCESS;
+    return 1;
 }
 
-int ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char *name,
+/**
+ * @brief ngsJsonObjectSetDoubleForKey Set double value to key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param value Double value.
+ * @return 1 on success.
+ */
+char ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char *name,
                                  double value)
 {
     if(nullptr == object) {
-        return outMessage(COD_GET_FAILED, _("The object handle is null"));
+        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), value);
-    return COD_SUCCESS;
+    return 1;
 }
 
-int ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name,
+/**
+ * @brief ngsJsonObjectSetIntegerForKey Set integer value to key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param value Integer value.
+ * @return 1 on success.
+ */
+char ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name,
                                   int value)
 {
     if(nullptr == object) {
-        return outMessage(COD_GET_FAILED, _("The object handle is null"));
+        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), value);
-    return COD_SUCCESS;
+    return 1;
 }
 
-int ngsJsonObjectSetLongForKey(JsonObjectH object, const char *name, long value)
+/**
+ * @brief ngsJsonObjectSetLongForKey Set long value to key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param value Long value.
+ * @return 1 on success.
+ */
+char ngsJsonObjectSetLongForKey(JsonObjectH object, const char *name, long value)
 {
     if(nullptr == object) {
-        return outMessage(COD_GET_FAILED, _("The object handle is null"));
+        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), GInt64(value));
-    return COD_SUCCESS;
+    return 1;
 }
 
-int ngsJsonObjectSetBoolForKey(JsonObjectH object, const char *name, int value)
+/**
+ * @brief ngsJsonObjectSetBoolForKey Set boolean for key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @param value Boolean value.
+ * @return 1 on success.
+ */
+char ngsJsonObjectSetBoolForKey(JsonObjectH object, const char *name, char value)
 {
     if(nullptr == object) {
-        return outMessage(COD_GET_FAILED, _("The object handle is null"));
+        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        return 0;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), value);
-    return COD_SUCCESS;
+    return 1;
 }
 
+/**
+ * @brief ngsJsonObjectGetArray Get json object as array for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @return Json array object handle or null.
+ */
 JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char *name)
 {
     if(nullptr == object) {
@@ -830,6 +1028,12 @@ JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char *name)
     return new CPLJSONArray(static_cast<CPLJSONObject*>(object)->GetArray(name));
 }
 
+/**
+ * @brief ngsJsonObjectGetObject Get json object for specific key.
+ * @param object Json object handle.
+ * @param name Key name.
+ * @return Json array object handle or null.
+ */
 JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char *name)
 {
     if(nullptr == object) {
@@ -840,6 +1044,11 @@ JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char *name)
                 static_cast<CPLJSONObject*>(object)->GetObj(fromCString(name)));
 }
 
+/**
+ * @brief ngsJsonArraySize Get json array size.
+ * @param object Json array object handle.
+ * @return Size of json array.
+ */
 int ngsJsonArraySize(JsonObjectH object)
 {
     if(nullptr == object) {
@@ -849,6 +1058,12 @@ int ngsJsonArraySize(JsonObjectH object)
     return static_cast<CPLJSONArray*>(object)->Size();
 }
 
+/**
+ * @brief ngsJsonArrayItem Get json array item by index.
+ * @param object Json array object handle.
+ * @param index Item index.
+ * @return Json object handle or null.
+ */
 JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
 {
     if(nullptr == object) {
@@ -933,7 +1148,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
 }
 
 /**
- * @brief ngsCatalogObjectQuery Queries name and type of child objects for
+ * @brief ngsCatalogObjectQuery Query name and type of child objects for
  * provided path and filter
  * @param object The handle of catalog object
  * @param filter Only objects correspondent to provided filter will be return
@@ -949,7 +1164,7 @@ ngsCatalogObjectInfo *ngsCatalogObjectQuery(CatalogObjectH object, int filter)
 }
 
 /**
- * @brief ngsCatalogObjectQueryMultiFilter Queries name and type of child objects for
+ * @brief ngsCatalogObjectQueryMultiFilter Query name and type of child objects for
  * provided path and filters
  * @param object The handle of catalog object
  * @param filter Only objects correspondent to provided filters will be return.
@@ -972,7 +1187,7 @@ ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
 }
 
 /**
- * @brief ngsCatalogObjectDelete Deletes catalog object on specified path
+ * @brief ngsCatalogObjectDelete Delete catalog object at specified path
  * @param object The handle of catalog object
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
@@ -992,7 +1207,7 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
 }
 
 /**
- * @brief ngsCatalogObjectCreate Creates new catalog object
+ * @brief ngsCatalogObjectCreate Create new catalog object
  * @param object The handle of catalog object
  * @param name The new object name
  * @param options The array of create object options. Caller must free this
@@ -1051,7 +1266,7 @@ const char *ngsCatalogPathFromSystem(const char *path)
 }
 
 /**
- * @brief ngsCatalogObjectCopy Copies or moves catalog object to another location
+ * @brief ngsCatalogObjectCopy Copy or move catalog object to another location
  * @param srcObject Source catalog object
  * @param dstObjectContainer Destination catalog container
  * @param options Copy options. This is a list of key=value items.
@@ -1087,7 +1302,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                           srcCatalogObjectPointer->fullName().c_str());
     }
 
-    // If dataset - open it.
+    // If dataset - let's open it.
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(dstCatalogObjectContainer);
     if(datasetBase && !datasetBase->isOpened()) {
         datasetBase->open();
@@ -1218,6 +1433,14 @@ char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
     return propeties.asCPLStringList().StealList();
 }
 
+/**
+ * @brief ngsCatalogObjectSetProperty Set catalog object property.
+ * @param object Catalog object handle.
+ * @param name Property name.
+ * @param value Property value.
+ * @param domain Property domain.
+ * @return ngsCode value - COD_SUCCESS if everything is OK.
+ */
 int ngsCatalogObjectSetProperty(CatalogObjectH object, const char *name,
                                     const char *value, const char *domain)
 {

@@ -445,10 +445,17 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     CPLString shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
     CatalogObjectH store = ngsCatalogObjectGet(storePath);
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
+
     ngsFeatureClassBatchMode(store, 1);
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
+                                   ngsTestProgressFunc, nullptr), COD_FUNCTION_NOT_AVAILABLE);
+
+    shapePath = catalogPath + "/data/railway-mini.zip/railway-mini.shp";
+    shape = ngsCatalogObjectGet(shapePath);
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFeatureClassBatchMode(store, 0);
+
     EXPECT_GE(counter, 1);
     ngsUnInit();
 }
@@ -1114,4 +1121,27 @@ TEST(MiscTests, TestBasicAuth) {
     ngsListFree(options);
     ngsJsonObjectFree(root);
     ngsJsonDocumentFree(doc);
+
+    ngsUnInit();
+}
+
+TEST(MiscTests, TestCrypt) {
+    const char *key = ngsRandomString(32);
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    options = ngsListAddNameValue(options, "CRYPT_KEY", key);
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+
+    const char *ptext = "Create your GIS in a couple of minutes using a web browser. Upload your geodata. Make an unlimited number of web maps. Share your geodata with friends and colleagues from any part of the world.";
+
+    const char *ctext = ngsEncryptString(ptext);
+    const char *rtext = ngsDecryptString(ctext);
+
+    EXPECT_STREQ(ptext, rtext);
+
+    ngsUnInit();
 }

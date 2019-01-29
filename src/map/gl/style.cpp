@@ -28,7 +28,6 @@
 
 #include "api_priv.h"
 #include "ds/earcut.hpp"
-#include "util/global.h"
 
 namespace ngs {
 

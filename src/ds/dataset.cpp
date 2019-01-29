@@ -38,6 +38,8 @@
 #include "util/notify.h"
 #include "util/stringutil.h"
 
+#include <util/account.h>
+
 namespace ngs {
 
 constexpr std::array<char, 22> forbiddenChars = {{':', '@', '#', '%', '^', '&', '*',
@@ -723,6 +725,16 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->name().c_str());
         }
+
+        if(srcTable->featureCount() > 1000) {
+            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+            if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
+                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                                  _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
+                                  move ? _("move") : _("copy"), srcTable->featureCount());
+            }
+        }
+
         OGRFeatureDefn * const srcDefinition = srcTable->definition();
         std::unique_ptr<Table> dstTable(createTable(newName, CAT_TABLE_ANY,
                                                     srcDefinition,
@@ -751,6 +763,16 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                                 child->name().c_str());
         }
+
+        if(srcFClass->featureCount() > 1000) {
+            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+            if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
+                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                                  _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
+                                  move ? _("move") : _("copy"), srcFClass->featureCount());
+            }
+        }
+
         bool createOvr = options.asBool("CREATE_OVERVIEWS", false) &&
                 !options.asString("ZOOM_LEVELS", "").empty();
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);

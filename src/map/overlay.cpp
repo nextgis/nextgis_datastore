@@ -27,7 +27,6 @@
 #include "ds/geometry.h"
 #include "map/gl/layer.h"
 #include "map/mapview.h"
-#include "util/global.h"
 #include "util/error.h"
 #include "util/settings.h"
 

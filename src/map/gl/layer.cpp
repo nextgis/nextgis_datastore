@@ -28,7 +28,6 @@
 #include "layer.h"
 #include "style.h"
 #include "view.h"
-#include "util/global.h"
 #include "util/error.h"
 #include "util/settings.h"
 

@@ -1,9 +1,9 @@
 /******************************************************************************
- * Project:  libngstore
- * Purpose:  NextGIS store and visualisation support library
- * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
+ * Project: libngstore
+ * Purpose: NextGIS store and visualization support library
+ * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,10 +18,29 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#ifndef NGSCONNECTIONFACTORY_H
+#define NGSCONNECTIONFACTORY_H
 
-#ifndef NGSGLOBAL_H
-#define NGSGLOBAL_H
+#include "objectfactory.h"
 
-#define ngsUnused(x) (void)x;
+namespace ngs {
 
-#endif // NGSGLOBAL_H
+
+class ConnectionFactory : public ObjectFactory
+{
+public:
+    ConnectionFactory();
+
+    // ObjectFactory interface
+public:
+    virtual std::string name() const override;
+    virtual void createObjects(ObjectContainer * const container,
+                               std::vector<std::string> &names) override;
+
+protected:
+    bool m_wmsSupported, m_wfsSupported, m_ngwSupported, m_pgSupported;
+};
+
+}
+
+#endif // NGSCONNECTIONFACTORY_H

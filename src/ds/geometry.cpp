@@ -25,8 +25,6 @@
 
 #include "api_priv.h"
 
-#include "util/global.h"
-
 namespace ngs {
 
 constexpr double DBLNAN = 0.0;

@@ -33,6 +33,8 @@
 #include "util/notify.h"
 #include "util/error.h"
 
+#include <util/account.h>
+
 namespace ngs {
 
 Folder::Folder(ObjectContainer * const parent,
@@ -43,8 +45,8 @@ Folder::Folder(ObjectContainer * const parent,
 
 }
 
-static std::vector<std::string> fillChildrenNames(const std::string &path,
-                                                  char** items)
+std::vector<std::string> Folder::fillChildrenNames(const std::string &path,
+                                                   char** items)
 {
     std::vector<std::string> names;
     CatalogPtr catalog = Catalog::instance();
@@ -163,7 +165,7 @@ bool Folder::copyDir(const std::string &from, const std::string &to,
         }
     }
 
-    char** items = CPLReadDir(from.c_str());
+    char **items = CPLReadDir(from.c_str());
     if(nullptr == items) {
         return true;
     }
@@ -320,7 +322,7 @@ void Folder::refresh()
 int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,
                             const Progress &progress)
 {
-    File* fileObject = ngsDynamicCast(File, child);
+    File *fileObject = ngsDynamicCast(File, child);
     int result = move ? COD_MOVE_FAILED : COD_COPY_FAILED;
     if(nullptr != fileObject) {
         if(move) {
@@ -331,7 +333,7 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPa
         }
     }
     else {
-        SimpleDataset* sdts = ngsDynamicCast(SimpleDataset, child);
+        SimpleDataset *sdts = ngsDynamicCast(SimpleDataset, child);
         if(nullptr != sdts) {
             // Get file list and copy file one by one
             std::vector<std::string> files = sdts->siblingFiles();
@@ -375,12 +377,12 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPa
 
 int Folder::pasteFeatureClass(ObjectPtr child, bool move,
                               const std::string &newPath,
-                              const Options& options, const Progress& progress)
+                              const Options &options, const Progress &progress)
 {
     enum ngsCatalogObjectType dstType = static_cast<enum ngsCatalogObjectType>(
                 options.asInt("TYPE", 0));
 
-    GDALDriver* driver = Filter::getGDALDriver(dstType);
+    GDALDriver *driver = Filter::getGDALDriver(dstType);
     if(nullptr == driver || !Filter::isFileBased(dstType)) {
         return outMessage(COD_UNSUPPORTED,
                           _("Destination type %d is not supported"), dstType);
@@ -391,6 +393,16 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
         return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                           _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                           child->name().c_str());
+    }
+
+    // Check function available
+    if(srcFClass->featureCount() > 1000) {
+        const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+        if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
+            return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                              _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
+                              move ? _("move") : _("copy"), srcFClass->featureCount());
+        }
     }
 
     std::string newName = File::getBaseName(newPath);

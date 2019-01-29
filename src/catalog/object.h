@@ -74,7 +74,7 @@ protected:
 
 private:
     Object(Object const&) = delete;
-    Object& operator= (Object const&) = delete;
+    Object &operator= (Object const&) = delete;
 
 protected:
     std::string m_name, m_path;

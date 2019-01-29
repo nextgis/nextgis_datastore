@@ -676,7 +676,7 @@ NGS_JNI_FUNC(jboolean, jsonObjectSetStringForKey)(JNIEnv *env, jobject thisObj, 
     ngsUnused(thisObj);
     return ngsJsonObjectSetStringForKey(reinterpret_cast<JsonObjectH>(object),
                                         jniString(env, name).c_str(),
-                                        jniString(env, value).c_str()) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+                                        jniString(env, value).c_str()) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jboolean, jsonObjectSetDoubleForKey)(JNIEnv *env, jobject thisObj, jlong object,
@@ -684,7 +684,7 @@ NGS_JNI_FUNC(jboolean, jsonObjectSetDoubleForKey)(JNIEnv *env, jobject thisObj, 
 {
     ngsUnused(thisObj);
     return ngsJsonObjectSetDoubleForKey(reinterpret_cast<JsonObjectH>(object),
-                                         jniString(env, name).c_str(), value) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+                                         jniString(env, name).c_str(), value) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jboolean, jsonObjectSetIntegerForKey)(JNIEnv *env, jobject thisObj, jlong object,
@@ -692,7 +692,7 @@ NGS_JNI_FUNC(jboolean, jsonObjectSetIntegerForKey)(JNIEnv *env, jobject thisObj,
 {
     ngsUnused(thisObj);
     return ngsJsonObjectSetIntegerForKey(reinterpret_cast<JsonObjectH>(object),
-                                      jniString(env, name).c_str(), value) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+                                      jniString(env, name).c_str(), value) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jboolean, jsonObjectSetLongForKey)(JNIEnv *env, jobject thisObj, jlong object,
@@ -700,7 +700,7 @@ NGS_JNI_FUNC(jboolean, jsonObjectSetLongForKey)(JNIEnv *env, jobject thisObj, jl
 {
     ngsUnused(thisObj);
     return ngsJsonObjectSetLongForKey(reinterpret_cast<JsonObjectH>(object),
-                                      jniString(env, name).c_str(), value) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+                                      jniString(env, name).c_str(), value) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jboolean, jsonObjectSetBoolForKey)(JNIEnv *env, jobject thisObj, jlong object,
@@ -708,7 +708,7 @@ NGS_JNI_FUNC(jboolean, jsonObjectSetBoolForKey)(JNIEnv *env, jobject thisObj, jl
 {
     ngsUnused(thisObj);
     return ngsJsonObjectSetBoolForKey(reinterpret_cast<JsonObjectH>(object),
-                                      jniString(env, name).c_str(), value) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+                                      jniString(env, name).c_str(), value) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 /**

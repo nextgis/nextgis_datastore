@@ -40,7 +40,6 @@
 #include "ngstore/util/constants.h"
 #include "ngstore/version.h"
 
-#include "util/global.h"
 #include "util/notify.h"
 #include "util/error.h"
 #include "util/stringutil.h"
@@ -49,7 +48,6 @@ namespace ngs {
 
 constexpr const char *MEMSTORE_EXT = "ngmem"; // NextGIS Memory store
 constexpr int MEMSTORE_EXT_LEN = length(MEMSTORE_EXT);
-constexpr const char *KEY_TYPE = "type";
 constexpr const char *TYPE_VAL = "memory store";
 constexpr const char *KEY_LAYERS = "layers";
 constexpr const char *KEY_LCO_PREFIX = "LCO.";

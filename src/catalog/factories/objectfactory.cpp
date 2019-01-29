@@ -51,9 +51,9 @@ void ObjectFactory::addChild(ObjectContainer * const container, ObjectPtr object
     container->addChild(object);
 }
 
-ObjectFactory::FORMAT_RESULT ObjectFactory::isFormatSupported(const std::string &name,
-                                                              std::vector<std::string> extensions,
-                                                              FORMAT_EXT testExts)
+ObjectFactory::FORMAT_RESULT ObjectFactory::isFormatSupported(
+        const std::string &name, std::vector<std::string> extensions,
+        FORMAT_EXT testExts)
 {
     ObjectFactory::FORMAT_RESULT out;
     out.isSupported = false;

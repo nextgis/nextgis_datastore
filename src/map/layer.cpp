@@ -23,7 +23,6 @@
 #include "catalog/catalog.h"
 #include "ds/simpledataset.h"
 #include "ngstore/util/constants.h"
-#include "util/global.h"
 #include "util/error.h"
 
 namespace ngs {

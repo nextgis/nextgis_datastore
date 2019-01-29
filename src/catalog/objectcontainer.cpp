@@ -22,8 +22,6 @@
 
 #include "api_priv.h"
 #include "catalog.h"
-
-#include "util/global.h"
 #include "util/stringutil.h"
 
 namespace ngs {
