@@ -47,11 +47,11 @@ public:
                         const Options &options = Options());
     virtual bool canPaste(const enum ngsCatalogObjectType type) const;
     virtual int paste(ObjectPtr child, bool move = false,
-                      const Options& options = Options(),
+                      const Options &options = Options(),
                       const Progress &progress = Progress());
 
     std::vector<ObjectPtr> getChildren() const;
-    ObjectPtr getChild(const std::string& name) const;
+    ObjectPtr getChild(const std::string &name) const;
     virtual bool loadChildren();
 
     // events

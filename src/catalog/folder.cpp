@@ -37,6 +37,21 @@
 
 namespace ngs {
 
+//------------------------------------------------------------------------------
+// FolderConnection
+//------------------------------------------------------------------------------
+FolderConnection::FolderConnection(ObjectContainer * const parent,
+                                   const std::string &name,
+                                   const std::string &path) :
+    Folder(parent, name, path)
+{
+    m_type = CAT_CONTAINER_DIR_LINK;
+}
+
+//------------------------------------------------------------------------------
+// Folder
+//------------------------------------------------------------------------------
+
 Folder::Folder(ObjectContainer * const parent,
                const std::string &name,
                const std::string &path) :

@@ -1126,7 +1126,7 @@ TEST(MiscTests, TestBasicAuth) {
 }
 
 TEST(MiscTests, TestCrypt) {
-    const char *key = ngsRandomString(32);
+    const char *key = ngsGeneratePrivateKey();
     char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsListAddNameValue(options, "SETTINGS_DIR",
@@ -1142,6 +1142,11 @@ TEST(MiscTests, TestCrypt) {
     const char *rtext = ngsDecryptString(ctext);
 
     EXPECT_STREQ(ptext, rtext);
+
+    const char *deviceId = ngsGetDeviceId();
+    CPLDebug("ngstore", "Device ID: %s", deviceId);
+
+    EXPECT_STRNE(deviceId, "");
 
     ngsUnInit();
 }

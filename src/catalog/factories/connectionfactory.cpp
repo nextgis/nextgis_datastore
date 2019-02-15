@@ -19,12 +19,17 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "connectionfactory.h"
-
+#include "ngw.h"
 #include "catalog/file.h"
 #include "ngstore/catalog/filter.h"
+#include "util/error.h"
 #include "util/stringutil.h"
 
 namespace ngs {
+
+constexpr const char *KEY_URL = "url";
+constexpr const char *KEY_LOGIN = "login";
+constexpr const char *KEY_PASSWORD = "password";
 
 ConnectionFactory::ConnectionFactory() : ObjectFactory()
 {
@@ -62,8 +67,9 @@ void ConnectionFactory::createObjects(ObjectContainer * const container,
             std::string path = File::formFileName(container->path(), *it);
             enum ngsCatalogObjectType type = typeFromConnectionFile(path);
             if(Filter::isConnection(type)) {
-                // TODO: Create object from connection
-                // addChild(container, ObjectPtr(new DataStore(container, *it, path)));
+                // Create object from connection
+                 addChild(container,
+                          ObjectPtr(new NGWConnection(container, *it, path)));
 
                 it = names.erase(it);
             }
@@ -82,6 +88,44 @@ void ConnectionFactory::createObjects(ObjectContainer * const container,
         else {
             ++it;
         }
+    }
+}
+
+bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
+                                               const std::string &path,
+                                               const Options &options)
+{
+    switch(type) {
+    case CAT_CONTAINER_NGW:
+    {
+        std::string url = options.asString(KEY_URL);
+        if(url.empty()) {
+            return errorMessage(_("Missing required option 'url'"));
+        }
+
+        std::string login = options.asString("login");
+        if(login.empty()) {
+            login = "guest";
+        }
+        else {
+            login = CPLString(login).Trim();
+        }
+        std::string password = options.asString("password");
+
+        CPLJSONDocument connectionFile;
+        CPLJSONObject root = connectionFile.GetRoot();
+        root.Add(KEY_TYPE, type);
+        root.Add(KEY_URL, url);
+        root.Add(KEY_LOGIN, login);
+        if(!password.empty()) {
+            root.Add(KEY_PASSWORD, encrypt(password));
+        }
+
+        std::string newPath = File::resetExtension(path, Filter::extension(type));
+        return connectionFile.Save(newPath);
+    }
+    default:
+        return errorMessage(_("Unsupported connection type %d"), type);
     }
 }
 

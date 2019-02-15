@@ -141,7 +141,8 @@ NGS_EXTERNC int ngsURLAuthAdd(const char *url, char **options);
 NGS_EXTERNC char **ngsURLAuthGet(const char *url);
 NGS_EXTERNC int ngsURLAuthDelete(const char *url);
 NGS_EXTERNC const char *ngsMD5(const char *value);
-NGS_EXTERNC const char *ngsRandomString(int length);
+NGS_EXTERNC const char *ngsGetDeviceId();
+NGS_EXTERNC const char *ngsGeneratePrivateKey();
 NGS_EXTERNC const char *ngsEncryptString(const char *text);
 NGS_EXTERNC const char *ngsDecryptString(const char *text);
 

@@ -38,7 +38,8 @@ bool Filter::canDisplay(enum ngsCatalogObjectType type, ObjectPtr object)
     if(!object)
         return  false;
 
-    if(type == CAT_UNKNOWN)
+    // Always display root and unknown types
+    if(type == CAT_UNKNOWN || object->type() == CAT_CONTAINER_ROOT)
         return true;
 
     // Always display containers except filtering of container type
@@ -48,7 +49,7 @@ bool Filter::canDisplay(enum ngsCatalogObjectType type, ObjectPtr object)
     if(object->type() == type)
         return true;
 
-    if(isContainer(type) && (object->type() == CAT_CONTAINER_LOCALCONNECTION ||
+    if(isContainer(type) && (object->type() == CAT_CONTAINER_ANY ||
                              object->type() == CAT_CONTAINER_DIR))
         return true;
 

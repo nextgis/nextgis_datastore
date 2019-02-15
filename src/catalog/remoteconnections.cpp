@@ -175,7 +175,7 @@ int Connections::paste(ObjectPtr child, bool move, const Options& options,
 //------------------------------------------------------------------------------
 GISServerConnections::GISServerConnections(ObjectContainer * const parent,
                                            const std::string &path) :
-    Connections(parent, CAT_CONTAINER_GISCONNECTION,
+    Connections(parent, CAT_CONTAINER_GISCONNECTIONS,
                     _("GIS Server connections"), path)
 {
     m_path = File::formFileName(path, GIS_CONN_DIR);
@@ -214,12 +214,11 @@ bool GISServerConnections::create(const enum ngsCatalogObjectType type,
 
     switch (type) {
     case CAT_CONTAINER_NGW:
-// TODO:
-//        result = ConnectionFactory::createRemoteConnection(type, newPath, options);
-//        if(result && m_childrenLoaded) {
+        result = ConnectionFactory::createRemoteConnection(type, newPath, options);
+        if(result && m_childrenLoaded) {
 //            m_children.push_back(ObjectPtr(new Raster(siblingFiles, this, type,
 //                                                      newName, newPath)));
-//        }
+        }
         break;
     default:
         break;
@@ -238,7 +237,7 @@ bool GISServerConnections::create(const enum ngsCatalogObjectType type,
 //------------------------------------------------------------------------------
 DatabaseConnections::DatabaseConnections(ObjectContainer * const parent,
                                            const std::string &path) :
-    Connections(parent, CAT_CONTAINER_DBCONNECTION,
+    Connections(parent, CAT_CONTAINER_DBCONNECTIONS,
                     _("Database connections"), path)
 {
     m_path = File::formFileName(path, DB_CONN_DIR);

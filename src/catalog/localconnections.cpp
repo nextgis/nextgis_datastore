@@ -44,7 +44,7 @@ constexpr const char *LOCAL_CONN_FILE_EXT = "json";
 
 LocalConnections::LocalConnections(ObjectContainer * const parent,
                                    const std::string &path) :
-    ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTION,
+    ObjectContainer(parent, CAT_CONTAINER_LOCALCONNECTIONS,
                     _("Local connections"), path)
 {
     Folder::mkDir(path, true); // Try to create connections folder

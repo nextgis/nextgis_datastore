@@ -157,7 +157,7 @@ const char *ngsGetVersionString(const char *request)
  * @brief ngsInit Init library structures
  * @param options Init library options list:
  * - APP_NAME - application name to test function availability in account
- * - CACHE_DIR - path to cache directory (mainly for TMS/WMS cache)
+ * - CACHE_DIR - path to cache files directory (mainly for TMS/WMS cache)
  * - SETTINGS_DIR - path to settings directory
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/disable debug mode
@@ -172,7 +172,7 @@ const char *ngsGetVersionString(const char *request)
  */
 int ngsInit(char **options)
 {
-    gDebugMode = 0 != CSLFetchBoolean(options, "DEBUG_MODE", 0);
+    gDebugMode = 0 != CPLFetchBool(options, "DEBUG_MODE", false);
 
     if(isDebugMode()) {
         CPLSetConfigOption("CPL_DEBUG", "ON");
@@ -551,13 +551,21 @@ const char *ngsMD5(const char *value)
 }
 
 /**
- * @brief ngsRandomString Generate random hex string.
- * @param length Length or original byte array transfromed to hex.
+ * @brief ngsGetDeviceId Generate unique devide identifier.
+ * @return hex string.
+ */
+const char *ngsGetDeviceId()
+{
+    return storeCString(deviceId());
+}
+
+/**
+ * @brief ngsGeneratePrivateKey Generate private key to encrypt/decrypt.
  * @return random hex string.
  */
-const char *ngsRandomString(int length)
+const char *ngsGeneratePrivateKey()
 {
-    return storeCString(random(length));
+    return storeCString(random(32));
 }
 
 /**
@@ -1344,10 +1352,14 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
 
 /**
  * @brief ngsCatalogObjectOptions Queries catalog object options.
- * @param object The handle of catalog object
+ * @param object The handle of a catalog object.
  * @param optionType The one of ngsOptionTypes enum values:
- * OT_CREATE_DATASOURCE, OT_CREATE_RASTER, OT_CREATE_LAYER,
- * OT_CREATE_LAYER_FIELD, OT_OPEN, OT_LOAD
+ * - OT_CREATE_DATASOURCE,
+ * - OT_CREATE_RASTER,
+ * - OT_CREATE_LAYER,
+ * - OT_CREATE_LAYER_FIELD,
+ * - OT_OPEN,
+ * - OT_LOAD
  * @return Options description in xml form.
  */
 const char *ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
@@ -1414,9 +1426,9 @@ const char *ngsCatalogObjectName(CatalogObjectH object)
 }
 
 /**
- * @brief ngsCatalogObjectMetadata Returns catalog object metadata
- * @param object Catalog object the metadata requested
- * @param domain The metadata specific domain or NULL
+ * @brief ngsCatalogObjectMetadata Get catalog object metadata.
+ * @param object A catalog object the metadata requested.
+ * @param domain The metadata in specific domain or NULL.
  * @return The list of key=value items or NULL. The last item of list always NULL.
  * User must free returned value via ngsDestroyList.
  */

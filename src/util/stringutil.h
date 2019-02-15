@@ -49,6 +49,7 @@ std::string crypt_salt();
 std::string crypt_key();
 std::string encrypt(const std::string& ptext);
 std::string decrypt(const std::string& ctext);
+std::string deviceId();
 
 }
 #endif // NGSSTRINGUTIL_H

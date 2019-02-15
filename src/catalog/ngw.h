@@ -18,33 +18,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSCONNECTIONFACTORY_H
-#define NGSCONNECTIONFACTORY_H
+#ifndef NGSNGWCONNECTION_H
+#define NGSNGWCONNECTION_H
 
-#include "objectfactory.h"
+#include "objectcontainer.h"
 
 namespace ngs {
 
-
-class ConnectionFactory : public ObjectFactory
+class NGWResourceGroup : public ObjectContainer
 {
 public:
-    ConnectionFactory();
+    explicit NGWResourceGroup(ObjectContainer * const parent,
+                         const std::string &name,
+                         const std::string &path);
+};
 
-    // ObjectFactory interface
+class NGWConnection : public NGWResourceGroup
+{
 public:
-    virtual std::string name() const override;
-    virtual void createObjects(ObjectContainer * const container,
-                               std::vector<std::string> &names) override;
-    // static
-public:
-    static bool createRemoteConnection(const enum ngsCatalogObjectType type,
-                                       const std::string &path,
-                                       const Options &options);
-protected:
-    bool m_wmsSupported, m_wfsSupported, m_ngwSupported, m_pgSupported;
+    explicit NGWConnection(ObjectContainer * const parent,
+                         const std::string &name,
+                         const std::string &path);
+    virtual bool loadChildren() override;
 };
 
 }
 
-#endif // NGSCONNECTIONFACTORY_H
+#endif // NGSNGWCONNECTION_H

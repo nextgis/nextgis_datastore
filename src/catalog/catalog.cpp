@@ -79,7 +79,7 @@ ObjectPtr Catalog::getObjectBySystemPath(const std::string &path)
     // Find LocalConnections
     LocalConnections *localConnections = nullptr;
     for(const ObjectPtr &rootObject : m_children) {
-        if(rootObject->type() == CAT_CONTAINER_LOCALCONNECTION) {
+        if(rootObject->type() == CAT_CONTAINER_LOCALCONNECTIONS) {
             localConnections = ngsDynamicCast(LocalConnections, rootObject);
             break;
         }

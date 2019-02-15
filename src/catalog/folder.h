@@ -78,6 +78,14 @@ protected:
                           const Options& options, const Progress& progress);
 };
 
+class FolderConnection : public Folder
+{
+public:
+    explicit FolderConnection(ObjectContainer * const parent = nullptr,
+           const std::string &name = "",
+           const std::string &path = "");
+};
+
 }
 
 #endif // NGSFOLDER_H

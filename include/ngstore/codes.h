@@ -123,7 +123,7 @@ enum ngsCatalogObjectType {
     CAT_UNKNOWN,
     CAT_CONTAINER_ANY = 50,         /**< Any container border */
     CAT_CONTAINER_ROOT,
-    CAT_CONTAINER_LOCALCONNECTION,
+    CAT_CONTAINER_LOCALCONNECTIONS, /**< Local system folder connections */
     CAT_CONTAINER_DIR,
     CAT_CONTAINER_ARCHIVE,
     CAT_CONTAINER_ARCHIVE_ZIP,
@@ -143,8 +143,11 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_SQLITE,
     CAT_CONTAINER_SIMPLE,           /**< For one layer containers */
     CAT_CONTAINER_MEM,              /**< For memory layers */
-    CAT_CONTAINER_GISCONNECTION,    /**< GIS Servers/services connections */
-    CAT_CONTAINER_DBCONNECTION,     /**< Database servers connections */
+    CAT_CONTAINER_GISCONNECTIONS,   /**< GIS Servers/services connections */
+    CAT_CONTAINER_DBCONNECTIONS,    /**< Database servers connections */
+    CAT_CONTAINER_NGWCONNECTION,    /**< NextGIS Web connection */
+    CAT_CONTAINER_NGWGROUP,         /**< NextGIS Web resource group */
+    CAT_CONTAINER_DIR_LINK,         /**< Local connection to folder or symlink */
     CAT_CONTAINER_ALL = 499,
     CAT_FC_ANY = 500,               /**< Any Feature class */
     CAT_FC_ESRI_SHAPEFILE,

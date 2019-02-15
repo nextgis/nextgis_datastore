@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -35,6 +35,7 @@ set(HHEADERS
     localconnections.h
     remoteconnections.h
     mapfile.h
+    ngw.h
     factories/objectfactory.h
     factories/folderfactory.h
     factories/filefactory.h
@@ -55,6 +56,8 @@ set(CSOURCES
     localconnections.cpp
     remoteconnections.cpp
     mapfile.cpp
+    ngw.cpp
+    ngw_api.cpp
     factories/objectfactory.cpp
     factories/folderfactory.cpp
     factories/filefactory.cpp
