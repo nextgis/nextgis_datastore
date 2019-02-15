@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2018-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -330,7 +330,7 @@ NGS_JNI_FUNC(void, settingsSetString)(JNIEnv *env, jobject thisObj, jstring key,
     ngsSettingsSetString(jniString(env, key).c_str(), jniString(env, value).c_str());
 }
 
-/**
+/*
  * Proxy to GDAL functions
  */
 
@@ -354,15 +354,24 @@ NGS_JNI_FUNC(void, free)(JNIEnv *env, jobject thisObj, jlong pointer)
     ngsFree(reinterpret_cast<void *>(pointer));
 }
 
-/**
+/*
  * Miscellaneous functions
  */
 
-NGS_JNI_FUNC(jobject, URLRequest)(JNIEnv *env, jobject thisObj, jint type, jstring url, jobjectArray options)
+NGS_JNI_FUNC(jobject, URLRequest)(JNIEnv *env, jobject thisObj, jint type, jstring url,
+        jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result = ngsURLRequest(static_cast<ngsURLRequestType>(type),
-                                                jniString(env, url).c_str(), toOptions(env, options));
+    ngsURLRequestResult *result;
+    if(callbackId == 0) {
+        result = ngsURLRequest(static_cast<ngsURLRequestType>(type), jniString(env, url).c_str(),
+                               toOptions(env, options), nullptr, nullptr);
+    }
+    else {
+        result = ngsURLRequest(static_cast<ngsURLRequestType>(type), jniString(env, url).c_str(),
+                               toOptions(env, options), progressProxyFunc,
+                               reinterpret_cast<void *>(callbackId));
+    }
     int status = result->status;
     std::string value(reinterpret_cast<const char*>(result->data),
                       static_cast<unsigned long>(result->dataLen));
@@ -375,11 +384,20 @@ NGS_JNI_FUNC(jobject, URLRequest)(JNIEnv *env, jobject thisObj, jint type, jstri
     return env->NewObjectA(g_RequestResultClass, g_RequestResultInitMid, args);
 }
 
-NGS_JNI_FUNC(jobject, URLRequestJson)(JNIEnv *env, jobject thisObj, jint type, jstring url, jobjectArray options)
+NGS_JNI_FUNC(jobject, URLRequestJson)(JNIEnv *env, jobject thisObj, jint type, jstring url,
+        jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result = ngsURLRequest(static_cast<ngsURLRequestType>(type),
-                                                jniString(env, url).c_str(), toOptions(env, options));
+    ngsURLRequestResult *result;
+    if(callbackId == 0) {
+        result = ngsURLRequest(static_cast<ngsURLRequestType>(type), jniString(env, url).c_str(),
+                               toOptions(env, options), nullptr, nullptr);
+    }
+    else {
+        result = ngsURLRequest(static_cast<ngsURLRequestType>(type), jniString(env, url).c_str(),
+                               toOptions(env, options), progressProxyFunc,
+                               reinterpret_cast<void *>(callbackId));
+    }
     int status = result->status;
     CPLJSONDocument doc;
     long handle = 0;
@@ -394,11 +412,21 @@ NGS_JNI_FUNC(jobject, URLRequestJson)(JNIEnv *env, jobject thisObj, jint type, j
     return env->NewObjectA(g_RequestResultJsonClass, g_RequestResultJsonInitMid, args);
 }
 
-NGS_JNI_FUNC(jobject, URLRequestRaw)(JNIEnv *env, jobject thisObj, jint type, jstring url, jobjectArray options)
+NGS_JNI_FUNC(jobject, URLRequestRaw)(JNIEnv *env, jobject thisObj, jint type, jstring url,
+        jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result = ngsURLRequest(static_cast<ngsURLRequestType>(type),
-                                                jniString(env, url).c_str(), toOptions(env, options));
+    ngsURLRequestResult *result;
+    if(callbackId == 0) {
+        result = ngsURLRequest(static_cast<ngsURLRequestType>(type),
+                               jniString(env, url).c_str(), toOptions(env, options), nullptr,
+                               nullptr);
+    }
+    else {
+        result = ngsURLRequest(static_cast<ngsURLRequestType>(type),
+                              jniString(env, url).c_str(), toOptions(env, options),
+                              progressProxyFunc, reinterpret_cast<void *>(callbackId));
+    }
     int status = result->status;
     jbyteArray barray = env->NewByteArray(result->dataLen);
     env->SetByteArrayRegion(barray, 0, result->dataLen,
@@ -423,7 +451,8 @@ NGS_JNI_FUNC(jobject, URLUploadFile)(JNIEnv *env, jobject thisObj, jstring path,
     }
     else {
         result = ngsURLUploadFile(jniString(env, path).c_str(), jniString(env, url).c_str(),
-                                  toOptions(env, options), progressProxyFunc, reinterpret_cast<void *>(callbackId));
+                                  toOptions(env, options), progressProxyFunc,
+                                  reinterpret_cast<void *>(callbackId));
     }
 
     CPLJSONDocument doc;
@@ -711,7 +740,7 @@ NGS_JNI_FUNC(jboolean, jsonObjectSetBoolForKey)(JNIEnv *env, jobject thisObj, jl
                                       jniString(env, name).c_str(), value) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
-/**
+/*
  * Catalog functions
  */
 
@@ -871,7 +900,7 @@ NGS_JNI_FUNC(void, catalogObjectRefresh)(JNIEnv *env, jobject thisObj, jlong obj
     ngsCatalogObjectRefresh(reinterpret_cast<CatalogObjectH>(object));
 }
 
-/**
+/*
  * Feature class
  */
 
@@ -1408,9 +1437,9 @@ NGS_JNI_FUNC(void, storeFeatureSetAttachmentRemoteId)(JNIEnv *env, jobject thisO
     ngsStoreFeatureSetAttachmentRemoteId(reinterpret_cast<FeatureH>(feature), aid, rid);
 }
 
-/**
-  * Raster
-  */
+/*
+ * Raster
+ */
 
 NGS_JNI_FUNC(jboolean, rasterCacheArea)(JNIEnv *env, jobject thisObj, jlong object, jobjectArray options, jint callbackId)
 {
@@ -1719,7 +1748,7 @@ NGS_JNI_FUNC(jboolean, mapIconSetExists)(JNIEnv *env, jobject thisObj, jint mapI
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
-/**
+/*
  * Layer functions
  */
 
@@ -1814,7 +1843,7 @@ NGS_JNI_FUNC(jboolean, layerSetHideIds)(JNIEnv *env, jobject thisObj, jlong laye
                               idsStdArray.data(), size) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
-/**
+/*
  * Overlay functions
  */
 
@@ -1928,12 +1957,12 @@ NGS_JNI_FUNC(jboolean, editOverlayCreateGeometry)(JNIEnv *env, jobject thisObj, 
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
-NGS_JNI_FUNC(jboolean, editOverlayEditGeometry)(JNIEnv *env, jobject thisObj, jint mapId, jlong layer, jlong feateureId)
+NGS_JNI_FUNC(jboolean, editOverlayEditGeometry)(JNIEnv *env, jobject thisObj, jint mapId, jlong layer, jlong featureId)
 {
     ngsUnused(env);
     ngsUnused(thisObj);
     return ngsEditOverlayEditGeometry(static_cast<char>(mapId),
-                                      reinterpret_cast<LayerH>(layer), feateureId) == COD_SUCCESS ?
+                                      reinterpret_cast<LayerH>(layer), featureId) == COD_SUCCESS ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 
 }
@@ -2082,7 +2111,7 @@ NGS_JNI_FUNC(jlong, locationOverlayGetStyle)(JNIEnv *env, jobject thisObj, jint 
     return reinterpret_cast<jlong>(ngsLocationOverlayGetStyle(static_cast<char>(mapId)));
 }
 
-/**
+/*
  * QMS
  */
 
@@ -2134,4 +2163,75 @@ NGS_JNI_FUNC(jobject, QMSQueryProperties)(JNIEnv *env, jobject thisObj, jint ite
     args[10].l = toEnvelope(env, properties.extent);
     args[11].z = properties.y_origin_top == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
     return env->NewObjectA(g_QMSItemPropertiesClass, g_QMSItemPropertiesInitMid, args);
+}
+
+/*
+ * Account
+ */
+
+NGS_JNI_FUNC(jstring, accountGetFirstName)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsAccountGetFirstName());
+}
+
+NGS_JNI_FUNC(jstring, accountGetLastName)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsAccountGetLastName());
+}
+
+NGS_JNI_FUNC(jstring, accountGetEmail)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsAccountGetEmail());
+}
+
+NGS_JNI_FUNC(jstring, accountBitmapPath)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsAccountBitmapPath());
+}
+
+NGS_JNI_FUNC(jboolean, accountIsAuthorized)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountIsAuthorized() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(void, accountExit)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountExit();
+}
+
+NGS_JNI_FUNC(jboolean, accountIsFuncAvailable)(JNIEnv *env, jobject thisObj, jstring application,
+        jstring function)
+{
+    ngsUnused(thisObj);
+    return ngsAccountIsFuncAvailable(jniString(env, application).c_str(),
+            jniString(env, function).c_str()) ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, accountSupported)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountSupported() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, accountUpdateUserInfo)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountUpdateUserInfo() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, accountUpdateSupportInfo)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountUpdateSupportInfo() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
