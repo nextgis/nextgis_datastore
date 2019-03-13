@@ -30,7 +30,7 @@ constexpr const char* REMOTE_ID_KEY = "rid";
 constexpr const char* ATTACHMENT_REMOTE_ID_KEY = "arid";
 
 /**
- * @brief The geodata storage and manipulation class for raster, vector geodata
+ * @brief The storage and manipulation class for raster and vector spatial data
  * and attachments
  */
 class DataStore : public Dataset, public SpatialDataset
@@ -40,6 +40,8 @@ public:
               const std::string &name = "",
               const std::string &path = "");
     virtual ~DataStore() override;
+    bool hasTracksTable() const;
+    ObjectPtr getTracksTable();
 
     // static
 public:
@@ -92,6 +94,7 @@ protected:
     virtual bool isNameValid(const std::string &name) const override;
     virtual std::string normalizeFieldName(const std::string &name) const override;
     virtual void fillFeatureClasses() const override;
+    bool createTracksTable();
 
 protected:
     void enableJournal(bool enable);
@@ -99,6 +102,7 @@ protected:
 
 protected:
     unsigned char m_disableJournalCounter;
+    ObjectPtr m_tracksTable;
 
 };
 

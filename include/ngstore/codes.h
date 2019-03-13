@@ -166,6 +166,7 @@ enum ngsCatalogObjectType {
     CAT_FC_CSV,
     CAT_FC_GPKG,
     CAT_FC_LITE,
+    CAT_FC_GPX,
     CAT_FC_ALL = 999,
     CAT_RASTER_ANY = 1000,          /**< Any raster */
     CAT_RASTER_BMP,

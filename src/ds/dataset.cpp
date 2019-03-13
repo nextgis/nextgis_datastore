@@ -198,7 +198,7 @@ constexpr const char *HISTORY_SUFFIX = "editlog";
 // Overviews
 constexpr const char *OVR_SUFFIX = "overviews";
 
-constexpr const char *METHADATA_TABLE_NAME = "nga_meta";
+constexpr const char *METADATA_TABLE_NAME = "nga_meta";
 
 constexpr const char *NG_PREFIX = "nga_";
 constexpr int NG_PREFIX_LEN = length(NG_PREFIX);
@@ -438,7 +438,7 @@ void Dataset::deleteProperties(const std::string &domain)
         return;
     }
     executeSQL(CPLSPrintf("DELETE FROM %s WHERE %s LIKE \"%s.%%\"",
-                          METHADATA_TABLE_NAME, META_KEY, domain.c_str()));
+                          METADATA_TABLE_NAME, META_KEY, domain.c_str()));
 }
 
 bool Dataset::isNameValid(const std::string &name) const
@@ -448,7 +448,7 @@ bool Dataset::isNameValid(const std::string &name) const
             return false;
         }
     }
-    if(compare(METHADATA_TABLE_NAME, name) && Filter::isDatabase(m_type)) {
+    if(compare(METADATA_TABLE_NAME, name) && Filter::isDatabase(m_type)) {
         return false;
     }
     return true;
@@ -507,7 +507,7 @@ std::string Dataset::normalizeFieldName(const std::string &name) const
 
 bool Dataset::skipFillFeatureClass(OGRLayer *layer) const
 {
-    if(compare(layer->GetName(), METHADATA_TABLE_NAME)) {
+    if(compare(layer->GetName(), METADATA_TABLE_NAME)) {
         return true;
     }
     if(comparePart(layer->GetName(), NG_PREFIX, NG_PREFIX_LEN)) {
@@ -970,7 +970,7 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
             warningMessage(CPLGetLastErrorMsg());
         }
         else {
-            m_metadata = m_addsDS->GetLayerByName(METHADATA_TABLE_NAME);
+            m_metadata = m_addsDS->GetLayerByName(METADATA_TABLE_NAME);
         }
     }
     return result;
@@ -983,7 +983,7 @@ OGRLayer *Dataset::createMetadataTable(GDALDataset *ds)
         return nullptr;
     }
 
-    OGRLayer *metadataLayer = ds->CreateLayer(METHADATA_TABLE_NAME, nullptr,
+    OGRLayer *metadataLayer = ds->CreateLayer(METADATA_TABLE_NAME, nullptr,
                                                    wkbNone, nullptr);
     if (nullptr == metadataLayer) {
         return nullptr;

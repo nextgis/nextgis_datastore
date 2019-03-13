@@ -56,6 +56,9 @@
 using namespace ngs;
 
 static bool gDebugMode = false;
+constexpr char API_TRUE = 1;
+constexpr char API_FALSE = 0;
+
 
 bool isDebugMode()
 {
@@ -551,12 +554,13 @@ const char *ngsMD5(const char *value)
 }
 
 /**
- * @brief ngsGetDeviceId Generate unique devide identifier.
+ * @brief ngsGetDeviceId Generate unique device identifier.
+ * @param regenerate If true regenerate device id.
  * @return hex string.
  */
-const char *ngsGetDeviceId()
+const char *ngsGetDeviceId(bool regenerate)
 {
-    return storeCString(deviceId());
+    return storeCString(deviceId(regenerate));
 }
 
 /**
@@ -695,7 +699,7 @@ char ngsJsonObjectValid(JsonObjectH object)
         outMessage(COD_GET_FAILED, _("The object handle is null"));
         return 0;
     }
-    return static_cast<CPLJSONObject*>(object)->IsValid() ? 1 : 0;
+    return static_cast<CPLJSONObject*>(object)->IsValid() ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -830,7 +834,7 @@ char ngsJsonObjectGetBool(JsonObjectH object, char defaultValue)
         outMessage(COD_GET_FAILED, _("The object handle is null"));
         return defaultValue;
     }
-    return static_cast<CPLJSONObject*>(object)->ToBool(defaultValue) ? 1 : 0;
+    return static_cast<CPLJSONObject*>(object)->ToBool(defaultValue) ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -920,7 +924,7 @@ char ngsJsonObjectGetBoolForKey(JsonObjectH object, const char *name,
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->GetBool(fromCString(name),
-                                                        defaultValue) ? 1 : 0;
+                                                        defaultValue) ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -955,12 +959,12 @@ char ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char *name,
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
-        return 0;
+        return API_FALSE;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), value);
-    return 1;
+    return API_TRUE;
 }
 
 /**
@@ -975,12 +979,12 @@ char ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name,
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
-        return 0;
+        return API_FALSE;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), value);
-    return 1;
+    return API_TRUE;
 }
 
 /**
@@ -994,12 +998,12 @@ char ngsJsonObjectSetLongForKey(JsonObjectH object, const char *name, long value
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
-        return 0;
+        return API_FALSE;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), GInt64(value));
-    return 1;
+    return API_TRUE;
 }
 
 /**
@@ -1013,12 +1017,12 @@ char ngsJsonObjectSetBoolForKey(JsonObjectH object, const char *name, char value
 {
     if(nullptr == object) {
         outMessage(COD_GET_FAILED, _("The object handle is null"));
-        return 0;
+        return API_FALSE;
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(object);
     gdalJsonObject->Set(fromCString(name), value);
-    return 1;
+    return API_TRUE;
 }
 
 /**
@@ -1090,8 +1094,8 @@ JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
  * @brief catalogObjectQuery Request the contents of some catalog container object.
  * @param object Catalog object. Must be container (contain some catalog objects).
  * @param objectFilter Filter output results
- * @return List of ngsCatalogObjectInfo items or NULL. The last element of list always NULL.
- * The list must be deallocated using ngsFree function.
+ * @return List of ngsCatalogObjectInfo items or nullptr. The last element of list always nullptr.
+ * The list must be freed using ngsFree function.
  */
 static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
                                                 const Filter &objectFilter)
@@ -1571,7 +1575,7 @@ static Raster *getRasterFromHandle(CatalogObjectH object)
     return ngsDynamicCast(Raster, catalogObjectPointer);
 }
 
-static DatasetBase *getDataseFromHandle(CatalogObjectH object)
+static DatasetBase *getDatasetFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
@@ -1590,7 +1594,7 @@ static DatasetBase *getDataseFromHandle(CatalogObjectH object)
 
 int ngsDatasetOpen(CatalogObjectH object, unsigned int openFlags, char **openOptions)
 {
-    DatasetBase *dataset = getDataseFromHandle(object);
+    DatasetBase *dataset = getDatasetFromHandle(object);
     if(!dataset) {
         return COD_OPEN_FAILED;
     }
@@ -1601,17 +1605,17 @@ int ngsDatasetOpen(CatalogObjectH object, unsigned int openFlags, char **openOpt
 
 char ngsDatasetIsOpened(CatalogObjectH object)
 {
-    DatasetBase *dataset = getDataseFromHandle(object);
+    DatasetBase *dataset = getDatasetFromHandle(object);
     if(!dataset) {
-        return 0;
+        return API_FALSE;
     }
 
-    return dataset->isOpened() ? 1 : 0;
+    return dataset->isOpened() ? API_TRUE : API_FALSE;
 }
 
 int ngsDatasetClose(CatalogObjectH object)
 {
-    DatasetBase *dataset = getDataseFromHandle(object);
+    DatasetBase *dataset = getDatasetFromHandle(object);
     if(!dataset) {
         return COD_CLOSE_FAILED;
     }
@@ -1623,7 +1627,7 @@ int ngsDatasetClose(CatalogObjectH object)
  * @brief ngsFeatureClassFields Feature class fields
  * @param object Feature class handle
  * @return NULL or list of ngsField structure pointers. The list last element
- * always has nullptr name and alias, The list must be deallocated using ngsFree
+ * always has nullptr name and alias, The list must be freed using ngsFree
  * function.
  */
 ngsField *ngsFeatureClassFields(CatalogObjectH object)
@@ -1637,7 +1641,7 @@ ngsField *ngsFeatureClassFields(CatalogObjectH object)
 
     const std::vector<Field> &fields = table->fields();
     ngsField *fieldsList = static_cast<ngsField*>(
-                CPLMalloc(size_t(fields.size() + 1) * sizeof(ngsField)));
+                CPLMalloc((fields.size() + 1) * sizeof(ngsField)));
 
     int count = 0;
     for(const Field &field : fields) {
@@ -1662,7 +1666,7 @@ ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object)
 {
     FeatureClass* featureClass = getFeatureClassFromHandle(object);
     if(!featureClass) {
-        return 0;
+        return wkbUnknown;
     }
     return featureClass->geometryType();
 }
@@ -1975,9 +1979,9 @@ char ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex)
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
         outMessage(COD_INVALID, _("The object handle is null"));
-        return 0;
+        return API_FALSE;
     }
-    return (*featurePtrPointer)->IsFieldSetAndNotNull(fieldIndex) ? 1 : 0;
+    return (*featurePtrPointer)->IsFieldSetAndNotNull(fieldIndex) ? API_TRUE : API_FALSE;
 
 }
 
@@ -2210,7 +2214,7 @@ int ngsGeometryTransform(GeometryH geometry, CoordinateTransformationH ct)
 
 char ngsGeometryIsEmpty(GeometryH geometry)
 {
-    return static_cast<OGRGeometry*>(geometry)->IsEmpty() ? 1 : 0;
+    return static_cast<OGRGeometry*>(geometry)->IsEmpty() ? API_TRUE : API_FALSE;
 }
 
 ngsGeometryType ngsGeometryGetType(GeometryH geometry)
@@ -2331,7 +2335,11 @@ int ngsFeatureAttachmentDelete(FeatureH feature, long long aid, char logEdits)
     return table->deleteAttachment(aid, logEdits == 1);
 }
 
-static std::vector<Table::AttachmentInfo> info;
+/**
+ * @brief ngsFeatureAttachmentsGet Get attachments of specified feature.
+ * @param feature Feature to get attachments.
+ * @return Array of ngsFeatureAttachmentInfo structures. User must free array using ngsFree function.
+ */
 ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -2354,7 +2362,7 @@ ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature)
     clearCStrings();
 
     GIntBig fid = (*featurePtrPointer)->GetFID();
-    info = table->attachments(fid);
+    std::vector<Table::AttachmentInfo> info = table->attachments(fid);
     ngsFeatureAttachmentInfo *out = static_cast<ngsFeatureAttachmentInfo*>(
                 CPLMalloc((info.size() + 1) * sizeof(ngsFeatureAttachmentInfo)));
     int counter = 0;
@@ -3300,7 +3308,7 @@ int ngsLayerSetHideIds(LayerH layer, long long *ids, int size)
 //------------------------------------------------------------------------------
 
 
-static OverlayPtr getOverlay(char mapId, enum ngsMapOverlayType type)
+static OverlayPtr getOverlayPtr(char mapId, enum ngsMapOverlayType type)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
@@ -3318,7 +3326,7 @@ static OverlayPtr getOverlay(char mapId, enum ngsMapOverlayType type)
 template<typename T>
 static T *getOverlay(char mapId, enum ngsMapOverlayType type)
 {
-    OverlayPtr overlay = getOverlay(mapId, type);
+    OverlayPtr overlay = getOverlayPtr(mapId, type);
     if(!overlay) {
         outMessage(COD_GET_FAILED, _("Overlay pointer is null"));
         return nullptr;
@@ -3397,36 +3405,36 @@ char ngsEditOverlayUndo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return 0;
+        return API_FALSE;
     }
-    return editOverlay->undo();
+    return editOverlay->undo() ? API_TRUE : API_FALSE;
 }
 
 char ngsEditOverlayRedo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return 0;
+        return API_FALSE;
     }
-    return editOverlay->redo();
+    return editOverlay->redo() ? API_TRUE : API_FALSE;
 }
 
 char ngsEditOverlayCanUndo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return 0;
+        return API_FALSE;
     }
-    return editOverlay->canUndo();
+    return editOverlay->canUndo() ? API_TRUE : API_FALSE;
 }
 
 char ngsEditOverlayCanRedo(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return 0;
+        return API_FALSE;
     }
-    return editOverlay->canRedo();
+    return editOverlay->canRedo() ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -3616,9 +3624,9 @@ char ngsEditOverlayGetWalkingMode(char mapId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
-        return 0;
+        return API_FALSE;
     }
-    return editOverlay->isWalkingMode() ? 1 : 0;
+    return editOverlay->isWalkingMode() ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -3823,7 +3831,7 @@ static ngsExtent qmsExtentToStruct(const std::string &extent)
  *             -id, created_at, -created_at, updated_at, -updated_at
  *  limit - return services maximum count. Works together with offset.
  *  offset - offset from the beginning of the return list. Works together with limit.
- * @return array of ngsQMSItem structures. User mast free array using ngsFree.
+ * @return array of ngsQMSItem structures. User must free array using ngsFree.
  */
 ngsQMSItem *ngsQMSQuery(char **options)
 {
@@ -4028,7 +4036,7 @@ const char *ngsAccountBitmapPath()
  */
 char ngsAccountIsAuthorized()
 {
-    return Account::instance().isUserAuthorized() ? 1 : 0;
+    return Account::instance().isUserAuthorized() ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -4049,7 +4057,7 @@ void ngsAccountExit()
 char ngsAccountIsFuncAvailable(const char *application, const char *function)
 {
     return Account::instance().isFunctionAvailable(fromCString(application),
-                                                   fromCString(function)) ? 1 : 0;
+                                                   fromCString(function)) ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -4067,7 +4075,7 @@ char ngsAccountSupported()
  */
 char ngsAccountUpdateUserInfo()
 {
-    return Account::instance().updateUserInfo() ? 1 : 0;
+    return Account::instance().updateUserInfo() ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -4076,5 +4084,147 @@ char ngsAccountUpdateUserInfo()
  */
 char ngsAccountUpdateSupportInfo()
 {
-    return Account::instance().updateSupportInfo() ? 1 : 0;
+    return Account::instance().updateSupportInfo() ? API_TRUE : API_FALSE;
+}
+
+static DataStore *getDataStoreFromHandle(CatalogObjectH object)
+{
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        outMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(!catalogObjectPointer) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return ngsDynamicCast(DataStore, catalogObjectPointer);
+}
+
+/**
+ * @brief ngsStoreGetTrackTable Get tracks table from store. If table is not exists it will create.
+ * @param store Store to get tracks table.
+ * @return Tracks table object or NULL.
+ */
+CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store)
+{
+    DataStore *dataStore = getDataStoreFromHandle(store);
+    if(!dataStore) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+    return dataStore->getTracksTable().get();
+}
+
+/**
+ * @brief ngsStoreHasTracksTable Check if tracks table is exists.
+ * @param store Store to check if tracks table exists.
+ * @return return 1 if exists, otherwise 0.
+ */
+char ngsStoreHasTracksTable(CatalogObjectH store)
+{
+    DataStore *dataStore = getDataStoreFromHandle(store);
+    if(!dataStore) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return API_FALSE;
+    }
+
+    return dataStore->hasTracksTable() ? API_TRUE : API_FALSE;
+}
+
+static TracksTable *getTracksTableFromHandle(CatalogObjectH object)
+{
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        outMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr catalogObjectPointer = catalogObject->pointer();
+    if(!catalogObjectPointer) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    return ngsDynamicCast(TracksTable, catalogObjectPointer);
+}
+
+/**
+ * @brief ngsTrackSync Send track points to NextGIS tracking service.
+ * @param tracksTable Table where fetch points to send.
+ * @param maxPointCount Maximum points at one send request.
+ */
+void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount)
+{
+    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    if(!table) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return;
+    }
+    table->sync(maxPointCount);
+}
+
+/**
+ * @brief ngsTrackGetList Get tracks list.
+ * @param tracksTable Table where tracks points stored.
+ * @return List or NULL. User must free list using ngsFree method.
+ */
+ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
+{
+    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    if(!table) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+
+    auto list = table->getTracks();
+
+    ngsTrackInfo *outList = static_cast<ngsTrackInfo*>(
+            CPLMalloc((list.size() + 1) * sizeof(ngsTrackInfo)));
+
+    int count = 0;
+    for(const auto &listItem : list) {
+        outList[count++] = {storeCString(listItem.name), listItem.startTimeStamp, listItem.stopTimeStamp};
+    }
+
+    outList[count] = {nullptr, -1, -1};
+    return outList;
+
+}
+
+/**
+ * @brief ngsTrackAddPoint Add point to tracks table.
+ * @param tracksTable Table handle.
+ * @param trackName Track name.
+ * @param x X coordinate.
+ * @param y Y coordinate.
+ * @param z Z coordinate.
+ * @param acc Accuracy.
+ * @param speed Speed.
+ * @param course Course.
+ * @param timeStamp Time stamp.
+ * @param satCount Satellite count using to get fix.
+ * @param newTrack Is this point start new track.
+ * @param newSegment Is this point start new segment.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double x, double y, double z,
+        float acc, float speed, float course, long timeStamp, int satCount, char newTrack, char newSegment)
+{
+    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    if(!table) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return API_FALSE;
+    }
+
+    return table->addPoint(fromCString(trackName), x, y, z, acc, speed, course, timeStamp, satCount, newTrack,
+            newSegment) ? API_TRUE : API_FALSE;
 }

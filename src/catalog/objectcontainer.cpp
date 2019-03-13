@@ -139,8 +139,8 @@ int ObjectContainer::paste(ObjectPtr child, bool move, const Options &options,
 
 ObjectPtr ObjectContainer::getChild(const std::string &name) const
 {
-    for(const ObjectPtr& child : m_children) {
-        if(child->name() == name) {
+    for(const ObjectPtr &child : m_children) {
+        if(compare(child->name(),name)) {
             return child;
         }
     }

@@ -49,7 +49,7 @@ std::string crypt_salt();
 std::string crypt_key();
 std::string encrypt(const std::string& ptext);
 std::string decrypt(const std::string& ctext);
-std::string deviceId();
+std::string deviceId(bool regenerate = false);
 
 }
 #endif // NGSSTRINGUTIL_H

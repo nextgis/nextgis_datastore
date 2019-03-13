@@ -101,15 +101,17 @@ FeatureClass::~FeatureClass()
 
 OGRwkbGeometryType FeatureClass::geometryType() const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return wkbUnknown;
+    }
     return m_layer->GetGeomType();
 }
 
 std::string FeatureClass::geometryColumn() const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return "";
+    }
     return m_layer->GetGeometryColumn();
 }
 
@@ -122,7 +124,7 @@ std::vector<std::string> FeatureClass::geometryColumns() const
     OGRFeatureDefn *defn = m_layer->GetLayerDefn();
     for(int i = 0; i < defn->GetGeomFieldCount(); ++i) {
         OGRGeomFieldDefn *geom = defn->GetGeomFieldDefn(i);
-        out.push_back(geom->GetNameRef());
+        out.emplace_back(geom->GetNameRef());
     }
     return out;
 }
@@ -226,7 +228,7 @@ bool FeatureClass::hasOverviews() const
         return false;
     }
 
-    return dataset->getOverviewsTable(name());
+    return dataset->getOverviewsTable(name()) != nullptr;
 }
 
 double FeatureClass::pixelSize(int zoom, bool precize)
@@ -1122,7 +1124,7 @@ bool FeatureClass::deleteFeature(GIntBig id, bool logEdits)
                 setTileFeature(tile);
             }
             else if(tile) {
-                result = m_ovrTable->DeleteFeature(tile->GetFID());
+                result = m_ovrTable->DeleteFeature(tile->GetFID()) == OGRERR_NONE;
             }
         }
     }

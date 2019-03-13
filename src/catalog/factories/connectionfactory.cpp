@@ -19,8 +19,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "connectionfactory.h"
-#include "ngw.h"
 #include "catalog/file.h"
+#include "catalog/ngw.h"
 #include "ngstore/catalog/filter.h"
 #include "util/error.h"
 #include "util/stringutil.h"

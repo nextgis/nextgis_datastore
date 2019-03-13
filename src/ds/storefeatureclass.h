@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +27,9 @@ namespace ngs {
 
 constexpr GIntBig INIT_RID_COUNTER = NOT_FOUND; //-1000000;
 
+/**
+ * StoreObject
+ */
 class StoreObject
 {
 public:
@@ -49,6 +52,9 @@ protected:
     OGRLayer *m_storeIntLayer;
 };
 
+/**
+ * StoreTable
+ */
 class StoreTable : public Table, public StoreObject
 {
 public:
@@ -82,6 +88,9 @@ protected:
     virtual void fillFields() const override;
 };
 
+/**
+ * StoreFeatureClass
+ */
 class StoreFeatureClass : public FeatureClass, public StoreObject
 {
 public:
@@ -113,6 +122,33 @@ protected:
 
 protected:
     virtual void fillFields() const override;
+};
+
+/**
+ * TracksTable
+ */
+
+typedef struct _TrackInfo {
+    std::string name;
+    long startTimeStamp;
+    long stopTimeStamp;
+} TrackInfo;
+
+class TracksTable : public FeatureClass
+{
+public:
+    TracksTable(OGRLayer *layer, ObjectContainer * const parent = nullptr);
+    virtual ~TracksTable() override = default;
+
+    void sync(int maxPointCount = 100);
+    std::vector<TrackInfo> getTracks() const;
+    bool addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed, float course,
+            long timeStamp, int satCount, bool newTrack, bool newSegment);
+    // Use copyFeatures for export
+
+private:
+    int m_lastTrackId;
+    int m_lastSegmentId;
 };
 
 } // namespace ngs

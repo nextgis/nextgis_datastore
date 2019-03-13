@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include <ctime>
 #include "storefeatureclass.h"
 
 #include "datastore.h"
@@ -465,6 +466,92 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
     return logFeature;
 }
 
+//------------------------------------------------------------------------------
+// TracksTable
+//------------------------------------------------------------------------------
+TracksTable::TracksTable(OGRLayer *layer, ObjectContainer * const parent) :
+    FeatureClass(layer, parent, CAT_FC_GPKG, "Tracks"),
+    m_lastTrackId(0),
+    m_lastSegmentId(0)
+{
+    Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
+    TablePtr result = dataset->executeSQL("SELECT max(track_fid) FROM nga_tracks", "SQLITE");
+    if(result) {
+        FeaturePtr resultFeature = result->nextFeature();
+        m_lastTrackId = resultFeature->GetFieldAsInteger(0);
+    }
+}
+
+void TracksTable::sync(int maxPointCount)
+{
+    // TODO: Add sync with NextGIS tracking.
+}
+
+static long dateFieldToLong(const FeaturePtr &feature, int field)
+{
+    int year = 0;
+    int month = 0;
+    int day = 0;
+    int hour = 0;
+    int minute = 0;
+    int second = 0;
+    if(feature->GetFieldAsDateTime(field, &year, &month, &day, &hour, &minute, &second, nullptr) == TRUE) {
+        struct tm timeInfo = {second, minute, hour, day, month - 1, year - 1900};
+        return mktime(&timeInfo);
+    }
+
+    return 0;
+}
+
+std::vector<TrackInfo> TracksTable::getTracks() const
+{
+    std::vector<TrackInfo> out;
+    Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
+    TablePtr result = dataset->executeSQL(
+            "SELECT track_name, max(time_stamp), min(time_stamp) FROM nga_tracks GROUP BY track_fid",
+            "SQLITE");
+    FeaturePtr feature;
+    while((feature = result->nextFeature())) {
+        out.emplace_back({feature->GetFieldAsString(0), dateFieldToLong(feature, 1), dateFieldToLong(feature, 2)});
+    }
+    return out;
+}
+
+bool TracksTable::addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed,
+        float course, long timeStamp, int satCount, bool newTrack, bool newSegment)
+{
+    FeaturePtr feature = createFeature();
+    if(newTrack) {
+        feature->SetField(" track_fid", ++m_lastTrackId);
+        m_lastSegmentId = 0;
+    }
+    else {
+        feature->SetField(" track_fid", m_lastTrackId);
+        if(newSegment) {
+            feature->SetField(" track_seg_id", ++m_lastSegmentId);
+        }
+        else {
+            feature->SetField(" track_seg_id", m_lastSegmentId);
+        }
+    }
+
+    feature->SetField("track_name", name.c_str());
+    std::tm *gmtTime = std::gmtime(&timeStamp);
+    feature->SetField("time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
+            gmtTime->tm_min, gmtTime->tm_sec);
+    feature->SetField("sat", satCount);
+    feature->SetField("speed", speed);
+    feature->SetField("course", course);
+    feature->SetField("pdop", accuracy);
+    feature->SetField("fix", satCount > 3 ? "3d" : "2d");
+
+    feature->SetGeometryDirectly(new OGRPoint(x, y, z));
+
+    CPLErrorReset();
+    // Lock all Dataset SQL queries here
+    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
+    return m_layer->CreateFeature(feature) == OGRERR_NONE;
+}
 
 } // namespace ngs
 

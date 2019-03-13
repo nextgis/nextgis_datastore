@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -50,6 +50,7 @@ namespace ngs {
 
 constexpr const char *STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
+constexpr const char *TRACKS_TABLE = "nga_tracks";
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -73,11 +74,12 @@ DataStore::~DataStore()
 
 bool DataStore::isNameValid(const std::string &name) const
 {
-    if(name.empty())
+    if(name.empty()) {
         return false;
-    if(comparePart(name, STORE_EXT, STORE_EXT_LEN))
+    }
+    if(comparePart(name, STORE_EXT, STORE_EXT_LEN)) {
         return false;
-
+    }
     return Dataset::isNameValid(name);
 }
 
@@ -181,6 +183,8 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
 
     ngsUnused(objectType);
 
+    CPLErrorReset();
+
     MutexHolder holder(m_executeSQLMutex);
 
     OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
@@ -240,6 +244,8 @@ Table *DataStore::createTable(const std::string &name,
         errorMessage(_("Not opened"));
         return nullptr;
     }
+
+    CPLErrorReset();
 
     ngsUnused(objectType);
 
@@ -316,10 +322,10 @@ Properties DataStore::properties(const std::string &domain) const
 
 bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly())
+    if(!isOpened() || isReadOnly()) {
         return false;
+    }
     return type == CAT_FC_GPKG || type == CAT_TABLE_GPKG;
-
 }
 
 bool DataStore::create(const enum ngsCatalogObjectType type,
@@ -398,10 +404,10 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     table->setProperty(LOG_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", NG_ADDITIONS_KEY);
 
     // Store user defined options in properties
-    for(auto it = options.begin(); it != options.end(); ++it) {
-        if(comparePart(it->first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
-            table->setProperty(it->first.substr(USER_PREFIX_KEY_LEN),
-                               it->second, USER_KEY);
+    for(const auto &it : options) {
+        if(comparePart(it.first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+            table->setProperty(it.first.substr(USER_PREFIX_KEY_LEN),
+                               it.second, USER_KEY);
         }
     }
 
@@ -462,7 +468,7 @@ OGRLayer *DataStore::createAttachmentsTable(const std::string &name)
 
     // Create folder for files
     if(!m_path.empty()) {
-        std::string attachmentsPath = File::resetExtension(m_path.c_str(),
+        std::string attachmentsPath = File::resetExtension(m_path,
                                                     attachmentsFolderExtension());
         if(!Folder::isExists(attachmentsPath)) {
             Folder::mkDir(attachmentsPath);
@@ -529,6 +535,115 @@ OGRLayer *DataStore::createEditHistoryTable(const std::string &name)
 bool DataStore::isBatchOperation() const
 {
     return m_disableJournalCounter > 0;
+}
+
+bool DataStore::hasTracksTable() const
+{
+    if(nullptr == m_DS) {
+        return false;
+    }
+    return m_DS->GetLayerByName(TRACKS_TABLE) != nullptr;
+}
+
+bool DataStore::createTracksTable()
+{
+    CPLStringList options;
+    options.AddString("GEOMETRY_NULLABLE=NO");
+    options.AddString("SPATIAL_INDEX=NO");
+
+    MutexHolder holder(m_executeSQLMutex);
+
+    // GPX_ELE_AS_25D
+    OGRLayer *layer = m_DS->CreateLayer(TRACKS_TABLE, m_spatialReference, wkbPointZM,
+                                        options);
+
+    if(layer == nullptr) {
+        return errorMessage(CPLGetLastErrorMsg());
+    }
+
+    // Add fields
+    OGRFieldDefn nameField("track_name", OFTString);        // 0
+    nameField.SetWidth(127);
+    if(layer->CreateField(&nameField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn timeStampField("time_stamp", OFTDateTime);
+    timeStampField.SetDefault("CURRENT_TIMESTAMP");
+    if(layer->CreateField(&timeStampField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn trackFIDField("track_fid", OFTInteger );
+    trackFIDField.SetNullable(FALSE);
+    if(layer->CreateField(&trackFIDField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn trackSeqIDField("track_seg_id", OFTInteger );
+    trackSeqIDField.SetNullable(FALSE);
+    if(layer->CreateField(&trackSeqIDField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn timeField("time", OFTDateTime);
+    timeField.SetNullable(FALSE);
+    if(layer->CreateField(&timeField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn satField("sat", OFTInteger);
+    satField.SetDefault("0");
+    if(layer->CreateField(&satField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn speedField("speed", OFTReal);
+    speedField.SetDefault("0.0");
+    if(layer->CreateField(&speedField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn courseField("course", OFTReal);
+    courseField.SetDefault("0.0");
+    if(layer->CreateField(&courseField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn pdopField("pdop", OFTReal);
+    pdopField.SetDefault("0.0");
+    if(layer->CreateField(&pdopField) != OGRERR_NONE) {
+        return false;
+    }
+
+    // A 2D fix gives only longitude and latitude. It needs a minimum of 3 satellites.
+    // A 3D fix gives full longitude latitude + altitude position. It needs a minimum of 4 satellites.
+    OGRFieldDefn fixField("fix", OFTString);
+    fixField.SetWidth(3);
+    if(layer->CreateField(&fixField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn syncedField("synced", OFTInteger);
+    syncedField.SetDefault("0");
+    return layer->CreateField(&syncedField) == OGRERR_NONE;
+
+}
+
+ObjectPtr DataStore::getTracksTable()
+{
+    if(m_tracksTable) {
+        return m_tracksTable;
+    }
+
+    if(!hasTracksTable()) {
+        if(!createTracksTable()) {
+            return ObjectPtr();
+        }
+    }
+
+    m_tracksTable = ObjectPtr(new TracksTable(m_DS->GetLayerByName(TRACKS_TABLE), this));
+    return m_tracksTable;
 }
 
 } // namespace ngs

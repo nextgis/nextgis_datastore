@@ -141,7 +141,7 @@ NGS_EXTERNC int ngsURLAuthAdd(const char *url, char **options);
 NGS_EXTERNC char **ngsURLAuthGet(const char *url);
 NGS_EXTERNC int ngsURLAuthDelete(const char *url);
 NGS_EXTERNC const char *ngsMD5(const char *value);
-NGS_EXTERNC const char *ngsGetDeviceId();
+NGS_EXTERNC const char *ngsGetDeviceId(bool regenerate);
 NGS_EXTERNC const char *ngsGeneratePrivateKey();
 NGS_EXTERNC const char *ngsEncryptString(const char *text);
 NGS_EXTERNC const char *ngsDecryptString(const char *text);
@@ -363,8 +363,6 @@ NGS_EXTERNC void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature,
                                                       long long aid,
                                                       long long rid);
 
-//NGS_EXTERNC const char* ngsDataStoreGetOptions(ngsDataStoreOptionsTypes optionType);
-
 /*
  * Raster
  */
@@ -541,5 +539,25 @@ NGS_EXTERNC char ngsAccountIsFuncAvailable(const char *application,
 NGS_EXTERNC char ngsAccountSupported();
 NGS_EXTERNC char ngsAccountUpdateUserInfo();
 NGS_EXTERNC char ngsAccountUpdateSupportInfo();
+
+/*
+ * Tracks
+ */
+
+typedef struct _ngsTrackInfo {
+    const char *name;
+    long startTimeStamp;
+    long stopTimeStamp;
+} ngsTrackInfo;
+
+NGS_EXTERNC CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store);
+NGS_EXTERNC char ngsStoreHasTracksTable(CatalogObjectH store);
+NGS_EXTERNC void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount);
+NGS_EXTERNC ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable);
+//TODO: NGS_EXTERNC char ngsTrackExport(long start, long stop, const char *path);
+NGS_EXTERNC char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double x, double y, double z,
+                                  float acc, float speed, float course, long timeStamp, int satCount, char newTrack,
+                                  char newSegment);
+
 
 #endif // NGSAPI_H

@@ -20,12 +20,19 @@
  ****************************************************************************/
 
 #include <jni.h>
-#include <vector>
-#include <cpl_json.h>
-#include <util/global.h>
 
-#include "ngstore/api.h"
+// gdal
+#include "cpl_json.h"
 #include "cpl_string.h"
+
+// std
+#include <vector>
+
+// project
+#include "api_priv.h"
+#include "ngstore/api.h"
+#include "ngstore/common.h"
+
 
 #define NGS_JNI_FUNC(type, name) extern "C" JNIEXPORT type JNICALL Java_com_nextgis_maplib_API_ ## name
 
@@ -86,6 +93,8 @@ static jclass g_QMSItemClass;
 static jmethodID g_QMSItemInitMid;
 static jclass g_QMSItemPropertiesClass;
 static jmethodID g_QMSItemPropertiesInitMid;
+static jclass g_TrackInfoClass;
+static jmethodID g_TrackInfoInitMid;
 
 //static jclass g_Class;
 //static jmethodID g_InitMid;
@@ -134,7 +143,7 @@ static int progressProxyFunc(enum ngsCode status, double complete,
     }
 
     jstring stringMessage = g_env->NewStringUTF(message);
-    long long progressArgumentsDigit = reinterpret_cast<long long>(progressArguments);
+    auto progressArgumentsDigit = reinterpret_cast<long long>(progressArguments);
     jint res = g_env->CallStaticIntMethod(g_APIClass, g_ProgressMid, status, complete, stringMessage,
                                           static_cast<jint>(progressArgumentsDigit));
     g_env->DeleteLocalRef(stringMessage);
@@ -205,6 +214,7 @@ NGS_JNI_FUNC(void, unInit)(JNIEnv *env, jobject thisObj)
     env->DeleteGlobalRef(g_TouchResultClass);
     env->DeleteGlobalRef(g_QMSItemClass);
     env->DeleteGlobalRef(g_QMSItemPropertiesClass);
+    env->DeleteGlobalRef(g_TrackInfoClass);
 }
 
 static bool getClassInitMethod(JNIEnv *env, const char *className, const char *signature,
@@ -297,6 +307,10 @@ NGS_JNI_FUNC(jboolean, init)(JNIEnv *env, jobject thisObj, jobjectArray optionsA
     }
 
     if(!getClassInitMethod(env, "com/nextgis/maplib/QMSItemPropertiesInt", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILjava/lang/String;Lcom/nextgis/maplib/Envelope;Z)V", g_QMSItemPropertiesClass, g_QMSItemPropertiesInitMid)) {
+        return NGS_JNI_FALSE;
+    }
+
+    if(!getClassInitMethod(env, "com/nextgis/maplib/TrackInfoInt", "(Ljava/lang/String;JJ)V", g_TrackInfoClass, g_TrackInfoInitMid)) {
         return NGS_JNI_FALSE;
     }
 
@@ -495,6 +509,18 @@ NGS_JNI_FUNC(jstring, md5)(JNIEnv *env, jobject thisObj, jstring value)
 {
     ngsUnused(thisObj);
     return env->NewStringUTF(ngsMD5(jniString(env, value).c_str()));
+}
+
+NGS_JNI_FUNC(jstring, getDeviceId)(JNIEnv *env, jobject thisObj, jboolean regenerate)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsGetDeviceId(regenerate == JNI_TRUE));
+}
+
+NGS_JNI_FUNC(jstring, generatePrivateKey)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsGeneratePrivateKey());
 }
 
 NGS_JNI_FUNC(jlong, jsonDocumentCreate)(JNIEnv *env, jobject thisObj)
@@ -2234,4 +2260,56 @@ NGS_JNI_FUNC(jboolean, accountUpdateSupportInfo)(JNIEnv *env, jobject thisObj)
     ngsUnused(thisObj);
     ngsUnused(env);
     return ngsAccountUpdateSupportInfo() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jlong, storeGetTracksTable)(JNIEnv *env, jobject thisObj, jlong object)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return reinterpret_cast<jlong>(ngsStoreGetTracksTable(reinterpret_cast<CatalogObjectH>(object)));
+}
+
+NGS_JNI_FUNC(void, trackSync)(JNIEnv *env, jobject thisObj, jlong object, jint maxPointCount)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    ngsTrackSync(reinterpret_cast<CatalogObjectH>(object), maxPointCount);
+}
+
+NGS_JNI_FUNC(jobjectArray, trackGetList)(JNIEnv *env, jobject thisObj, jlong object)
+{
+    ngsUnused(thisObj);
+    int counter = 0;
+    ngsTrackInfo *list = ngsTrackGetList(reinterpret_cast<CatalogObjectH>(object));
+    std::vector<jobject> obArray;
+    while(list[counter].startTimeStamp != -1) {
+        jvalue args[3];
+        args[0].l = env->NewStringUTF(list[counter].name);
+        args[1].j = list[counter].startTimeStamp;
+        args[2].j = list[counter].stopTimeStamp;
+        obArray.push_back(env->NewObjectA(g_TrackInfoClass, g_TrackInfoInitMid, args));
+        counter++;
+    }
+    ngsFree(list);
+
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_TrackInfoClass, 0);
+    for(int i = 0; i < obArray.size(); ++i) {
+        env->SetObjectArrayElement(array, i, obArray[i]);
+    }
+    return array;
+}
+
+//NGS_JNI_FUNC(jboolean, trackExport)(JNIEnv *env, jobject thisObj, jlong start, jlong stop, jstring path)
+//{
+//    ngsUnused(thisObj);
+//    return ngsTrackExport(start, stop, jniString(env, path).c_str()) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+//}
+
+NGS_JNI_FUNC(jboolean, trackAddPoint)(JNIEnv *env, jobject thisObj, jlong object, jstring name, jdouble x, jdouble y, jdouble z,
+                                      jfloat acc, jfloat speed, jfloat course, jlong timeStamp, jint satCount,
+                                      jboolean newTrack, jboolean newSegment)
+{
+    ngsUnused(thisObj);
+    return ngsTrackAddPoint(reinterpret_cast<CatalogObjectH>(object), jniString(env, name).c_str(), x, y, z, acc,
+            speed, course, timeStamp, satCount, newTrack, newSegment) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
