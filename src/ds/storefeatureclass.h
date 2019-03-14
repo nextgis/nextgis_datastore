@@ -146,9 +146,14 @@ public:
             long timeStamp, int satCount, bool newTrack, bool newSegment);
     // Use copyFeatures for export
 
+    // Object interface
+public:
+    virtual ObjectPtr pointer() const override;
+
 private:
     int m_lastTrackId;
     int m_lastSegmentId;
+    int m_lastSegmentPtId;
 };
 
 } // namespace ngs

@@ -451,7 +451,11 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
             return outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         }
 
-        std::unique_ptr<FeatureClass> dstFClass(ds->createFeatureClass(createName,
+        std::string fc_name = options.asString("LAYER_NAME", newName);
+        if(dstType == CAT_FC_GPX) {
+            newGeometryType = wkbPoint25D;
+        }
+        std::unique_ptr<FeatureClass> dstFClass(ds->createFeatureClass(fc_name,
             dstType, srcDefinition, srcFClass->spatialReference(),
             newGeometryType, options));
         if(nullptr == dstFClass) {
@@ -479,12 +483,13 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
 int Folder::paste(ObjectPtr child, bool move, const Options& options,
                   const Progress& progress)
 {
+    std::string fileName = options.asString("DS_NAME", child->name());
     std::string newPath;
     if(options.asBool("CREATE_UNIQUE")) {
-        newPath = createUniquePath(m_path, child->name());
+        newPath = createUniquePath(m_path, fileName);
     }
     else {
-        newPath = File::formFileName(m_path, child->name());
+        newPath = File::formFileName(m_path, fileName);
     }
 
     if(compare(child->path(), newPath)) {

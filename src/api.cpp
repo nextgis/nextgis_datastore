@@ -3346,7 +3346,7 @@ int ngsOverlaySetVisible(char mapId, int typeMask, char visible)
 
 char ngsOverlayGetVisible(char mapId, enum ngsMapOverlayType type)
 {
-    OverlayPtr overlay = getOverlay(mapId, type);
+    OverlayPtr overlay = getOverlayPtr(mapId, type);
     if(!overlay) {
         return false;
     }
@@ -3364,7 +3364,7 @@ char ngsOverlayGetVisible(char mapId, enum ngsMapOverlayType type)
  */
 int ngsOverlaySetOptions(char mapId, enum ngsMapOverlayType type, char **options)
 {
-    OverlayPtr overlay = getOverlay(mapId, type);
+    OverlayPtr overlay = getOverlayPtr(mapId, type);
     if(!overlay) {
         return COD_GET_FAILED;
     }
@@ -3381,7 +3381,7 @@ int ngsOverlaySetOptions(char mapId, enum ngsMapOverlayType type, char **options
  */
 char **ngsOverlayGetOptions(char mapId, enum ngsMapOverlayType type)
 {
-    OverlayPtr overlay = getOverlay(mapId, type);
+    OverlayPtr overlay = getOverlayPtr(mapId, type);
     if(!overlay) {
         return nullptr;
     }

@@ -547,6 +547,11 @@ bool DataStore::hasTracksTable() const
 
 bool DataStore::createTracksTable()
 {
+    if(!isOpened()) {
+        if(!open()) {
+            return false;
+        }
+    }
     CPLStringList options;
     options.AddString("GEOMETRY_NULLABLE=NO");
     options.AddString("SPATIAL_INDEX=NO");
@@ -554,7 +559,7 @@ bool DataStore::createTracksTable()
     MutexHolder holder(m_executeSQLMutex);
 
     // GPX_ELE_AS_25D
-    OGRLayer *layer = m_DS->CreateLayer(TRACKS_TABLE, m_spatialReference, wkbPointZM,
+    OGRLayer *layer = m_DS->CreateLayer(TRACKS_TABLE, m_spatialReference, wkbPoint,
                                         options);
 
     if(layer == nullptr) {
@@ -562,17 +567,6 @@ bool DataStore::createTracksTable()
     }
 
     // Add fields
-    OGRFieldDefn nameField("track_name", OFTString);        // 0
-    nameField.SetWidth(127);
-    if(layer->CreateField(&nameField) != OGRERR_NONE) {
-        return false;
-    }
-
-    OGRFieldDefn timeStampField("time_stamp", OFTDateTime);
-    timeStampField.SetDefault("CURRENT_TIMESTAMP");
-    if(layer->CreateField(&timeStampField) != OGRERR_NONE) {
-        return false;
-    }
 
     OGRFieldDefn trackFIDField("track_fid", OFTInteger );
     trackFIDField.SetNullable(FALSE);
@@ -586,35 +580,97 @@ bool DataStore::createTracksTable()
         return false;
     }
 
+    OGRFieldDefn trackSeqPtIDField("track_seg_point_id", OFTInteger );
+    trackSeqPtIDField.SetNullable(FALSE);
+    if(layer->CreateField(&trackSeqPtIDField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn nameField("track_name", OFTString);
+    nameField.SetWidth(127);
+    if(layer->CreateField(&nameField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn eleField("ele", OFTReal);
+    eleField.SetDefault("0.0");
+    if(layer->CreateField(&eleField) != OGRERR_NONE) {
+        return false;
+    }
+
     OGRFieldDefn timeField("time", OFTDateTime);
     timeField.SetNullable(FALSE);
     if(layer->CreateField(&timeField) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn satField("sat", OFTInteger);
-    satField.SetDefault("0");
-    if(layer->CreateField(&satField) != OGRERR_NONE) {
+    OGRFieldDefn magvarField("magvar", OFTReal);
+    magvarField.SetDefault("0.0");
+    if(layer->CreateField(&magvarField) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn speedField("speed", OFTReal);
-    speedField.SetDefault("0.0");
-    if(layer->CreateField(&speedField) != OGRERR_NONE) {
+    OGRFieldDefn geoidheightField("geoidheight", OFTReal);
+    geoidheightField.SetDefault("0.0");
+    if(layer->CreateField(&geoidheightField) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn courseField("course", OFTReal);
-    courseField.SetDefault("0.0");
-    if(layer->CreateField(&courseField) != OGRERR_NONE) {
+    OGRFieldDefn nameField2("name", OFTString );
+    if(layer->CreateField(&nameField2) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn pdopField("pdop", OFTReal);
-    pdopField.SetDefault("0.0");
-    if(layer->CreateField(&pdopField) != OGRERR_NONE) {
+    OGRFieldDefn cmtField("cmt", OFTString );
+    if(layer->CreateField(&cmtField) != OGRERR_NONE) {
         return false;
     }
+
+    OGRFieldDefn descField("desc", OFTString );
+    descField.SetDefault(NGS_USERAGENT);
+    if(layer->CreateField(&descField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn srcField("src", OFTString );
+    const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+    srcField.SetDefault(appName);
+    if(layer->CreateField(&srcField) != OGRERR_NONE) {
+        return false;
+    }
+
+    for(int i = 1;i <= 2; ++i) {
+        char szFieldName[32];
+        snprintf(szFieldName, sizeof(szFieldName), "link%d_href", i);
+        OGRFieldDefn oFieldLinkHref( szFieldName, OFTString );
+        if(layer->CreateField(&oFieldLinkHref) != OGRERR_NONE) {
+            return false;
+        }
+
+        snprintf(szFieldName, sizeof(szFieldName), "link%d_text", i);
+        OGRFieldDefn oFieldLinkText( szFieldName, OFTString );
+        if(layer->CreateField(&oFieldLinkText) != OGRERR_NONE) {
+            return false;
+        }
+
+        snprintf(szFieldName, sizeof(szFieldName), "link%d_type", i);
+        OGRFieldDefn oFieldLinkType( szFieldName, OFTString );
+        if(layer->CreateField(&oFieldLinkType) != OGRERR_NONE) {
+            return false;
+        }
+    }
+
+    OGRFieldDefn symField("sym", OFTString );
+    if(layer->CreateField(&symField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn typeField("type", OFTString );
+    if(layer->CreateField(&typeField) != OGRERR_NONE) {
+        return false;
+    }
+
+    /* Accuracy info */
 
     // A 2D fix gives only longitude and latitude. It needs a minimum of 3 satellites.
     // A 3D fix gives full longitude latitude + altitude position. It needs a minimum of 4 satellites.
@@ -624,10 +680,62 @@ bool DataStore::createTracksTable()
         return false;
     }
 
+    OGRFieldDefn satField("sat", OFTInteger);
+    satField.SetDefault("0");
+    if(layer->CreateField(&satField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn hdopField("hdop", OFTReal );
+    hdopField.SetDefault("0.0");
+    if(layer->CreateField(&hdopField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn vdopField("vdop", OFTReal );
+    vdopField.SetDefault("0.0");
+    if(layer->CreateField(&vdopField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn pdopField("pdop", OFTReal);
+    pdopField.SetDefault("0.0");
+    if(layer->CreateField(&pdopField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn ageofgpsdataField("ageofdgpsdata", OFTReal );
+    if(layer->CreateField(&ageofgpsdataField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn dgpsidField("dgpsid", OFTInteger );
+    if(layer->CreateField(&dgpsidField) != OGRERR_NONE) {
+        return false;
+    }
+
+    // Addtional fields
+    OGRFieldDefn courseField("cource", OFTReal);
+    courseField.SetDefault("0.0");
+    if(layer->CreateField(&courseField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn speedField("speed", OFTReal);
+    speedField.SetDefault("0.0");
+    if(layer->CreateField(&speedField) != OGRERR_NONE) {
+        return false;
+    }
+
+    OGRFieldDefn timeStampField("time_stamp", OFTDateTime);
+    timeStampField.SetDefault("CURRENT_TIMESTAMP");
+    if(layer->CreateField(&timeStampField) != OGRERR_NONE) {
+        return false;
+    }
+
     OGRFieldDefn syncedField("synced", OFTInteger);
     syncedField.SetDefault("0");
     return layer->CreateField(&syncedField) == OGRERR_NONE;
-
 }
 
 ObjectPtr DataStore::getTracksTable()

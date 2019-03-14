@@ -89,7 +89,8 @@ bool Filter::isSimpleDataset(const enum ngsCatalogObjectType type)
             type == CAT_FC_MAPINFO_MIF ||
             type == CAT_FC_GML ||
             type == CAT_FC_GEOJSON ||
-            type == CAT_FC_CSV;
+            type == CAT_FC_CSV ||
+            type == CAT_FC_GPX;
 }
 
 bool Filter::isContainer(const enum ngsCatalogObjectType type)
@@ -122,7 +123,7 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
           (type >= CAT_FC_ESRI_SHAPEFILE && type < CAT_FC_POSTGIS) ||
           (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
           (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||
-           type == CAT_FC_CSV || type == CAT_FC_MEM;
+           type == CAT_FC_CSV || type == CAT_FC_MEM || type == CAT_FC_GPX;
 }
 
 bool Filter::isConnection(const enum ngsCatalogObjectType type)
@@ -192,6 +193,8 @@ GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
         return GetGDALDriverManager()->GetDriverByName("S57");
     case CAT_FC_CSV:
         return GetGDALDriverManager()->GetDriverByName("CSV");
+    case CAT_FC_GPX:
+        return GetGDALDriverManager()->GetDriverByName("GPX");
     case CAT_RASTER_BMP:
         return GetGDALDriverManager()->GetDriverByName("BMP");
     case CAT_RASTER_TIFF:
@@ -258,6 +261,7 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
     case CAT_FC_DXF:
     case CAT_FC_GML:
     case CAT_FC_CSV:
+    case CAT_FC_GPX:
     case CAT_RASTER_BMP:
     case CAT_RASTER_TIFF:
     case CAT_RASTER_TIL:

@@ -557,10 +557,11 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
 
     ngsListFree(options);
 
-    CPLString testPath = ngsGetCurrentDirectory();
-    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
-    CPLString storePath = catalogPath + "/tmp/main.ngst";
-    CatalogObjectH store = ngsCatalogObjectGet(storePath);
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+    std::string storePath = catalogPath + "/tmp/main.ngst";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath.c_str());
+    ASSERT_NE(store, nullptr);
     ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(store, 0);
     ngsFree(pathInfo);
 
@@ -747,6 +748,99 @@ TEST(DataStoreTests, TestCreateFeature) {
     EXPECT_GE(counter, 2);
     EXPECT_EQ(hasCreate, true); // Check that insert and update operations log only insert
     ngsFree(ops);
+
+    ngsUnInit();
+}
+
+TEST(DataStoreTest, TestTracks) {
+    char** options = nullptr;
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+
+    ngsListFree(options);
+
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+    catalogPath += "/tmp/";
+    std::string storePath = catalogPath + "main.ngst";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath.c_str());
+    if(store == nullptr) {
+        options = nullptr;
+        options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
+        options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+        CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
+        EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);
+        ngsListFree(options);
+    }
+
+    options = nullptr;
+    store = ngsCatalogObjectGet(storePath.c_str());
+    ASSERT_NE(store, nullptr);
+    CatalogObjectH tracks = ngsStoreGetTracksTable(store);
+    ASSERT_NE(tracks, nullptr);
+
+    EXPECT_EQ(ngsStoreHasTracksTable(store), 1);
+
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1, 0), 1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100, 1, 0, 0), 1);
+    CPLSleep(1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1000, 2, 0, 0), 1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 10000, 3, 0, 0), 1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 100000, 4, 0, 0), 1);
+    CPLSleep(1);
+    // New segment
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 1000000, 5, 0, 1), 1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 10000000, 6, 0, 0), 1);
+    CPLSleep(1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 100000000, 7, 0, 0), 1); // 1552551416
+    // New track
+    CPLSleep(1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 1000000000, 8, 1, 0), 1);
+    CPLSleep(1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 1100000000, 9, 0, 0), 1);
+    CPLSleep(1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 1200000000, 10, 0, 0), 1);
+
+    counter = 0;
+    ngsTrackInfo *info = ngsTrackGetList(tracks);
+    long start(0), stop(0);
+    while(info[counter].name != nullptr) {
+        std::cout << counter << ". " << info[counter].name << ", "
+                  << info[counter].startTimeStamp << " -- "
+                  << info[counter].stopTimeStamp << "\n";
+        start = info[counter].startTimeStamp;
+        stop = info[counter].stopTimeStamp;
+        counter++;
+    }
+    ngsFree(info);
+    ASSERT_GE(counter, 2);
+
+    char buffer [80];
+    strftime (buffer,80,"%FT%TZ", localtime(&start));
+    std::string startStr = buffer;
+    strftime (buffer,80,"%FT%TZ", localtime(&stop));
+    std::string stopStr = buffer;
+    counter = 0;
+    EXPECT_EQ(ngsFeatureClassSetFilter(tracks, nullptr,
+                                       CPLSPrintf("time_stamp >= '%s' and time_stamp <= '%s'",
+                                                  startStr.c_str(), stopStr.c_str())),
+              COD_SUCCESS);
+
+    // Export to GPX
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_FC_GPX));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "DS_NAME", "test_tracks");
+    options = ngsListAddNameValue(options, "LAYER_NAME", "track_points");
+    options = ngsListAddNameValue(options, "GPX_USE_EXTENSIONS", "ON");
+    options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "ON");
+
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
+    EXPECT_EQ(ngsCatalogObjectCopy(tracks, catalog, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsListFree(options);
 
     ngsUnInit();
 }
@@ -1101,7 +1195,7 @@ TEST(MiscTests, TestBasicAuth) {
     char **authOptions = nullptr;
     authOptions = ngsListAddNameValue(authOptions, "type", "basic");
     authOptions = ngsListAddNameValue(authOptions, "login", "administrator");
-    authOptions = ngsListAddNameValue(authOptions, "password", "admin");
+    authOptions = ngsListAddNameValue(authOptions, "password", "demodemo");
 
     ngsURLAuthAdd("http://dev.nextgis.com/sandbox", authOptions);
     ngsListFree(authOptions);
@@ -1143,7 +1237,7 @@ TEST(MiscTests, TestCrypt) {
 
     EXPECT_STREQ(ptext, rtext);
 
-    const char *deviceId = ngsGetDeviceId();
+    const char *deviceId = ngsGetDeviceId(false);
     CPLDebug("ngstore", "Device ID: %s", deviceId);
 
     EXPECT_STRNE(deviceId, "");

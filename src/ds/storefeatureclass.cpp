@@ -472,7 +472,8 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
 TracksTable::TracksTable(OGRLayer *layer, ObjectContainer * const parent) :
     FeatureClass(layer, parent, CAT_FC_GPKG, "Tracks"),
     m_lastTrackId(0),
-    m_lastSegmentId(0)
+    m_lastSegmentId(0),
+    m_lastSegmentPtId(0)
 {
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     TablePtr result = dataset->executeSQL("SELECT max(track_fid) FROM nga_tracks", "SQLITE");
@@ -495,12 +496,11 @@ static long dateFieldToLong(const FeaturePtr &feature, int field)
     int hour = 0;
     int minute = 0;
     int second = 0;
-    if(feature->GetFieldAsDateTime(field, &year, &month, &day, &hour, &minute, &second, nullptr) == TRUE) {
-        struct tm timeInfo = {second, minute, hour, day, month - 1, year - 1900};
-        return mktime(&timeInfo);
-    }
 
-    return 0;
+    sscanf(feature->GetFieldAsString(field), "%d-%d-%dT%d:%d:%dZ",
+              &year, &month, &day, &hour, &minute, &second);
+    struct tm timeInfo = {second, minute, hour, day, month - 1, year - 1900};
+    return mktime(&timeInfo);
 }
 
 std::vector<TrackInfo> TracksTable::getTracks() const
@@ -508,11 +508,14 @@ std::vector<TrackInfo> TracksTable::getTracks() const
     std::vector<TrackInfo> out;
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     TablePtr result = dataset->executeSQL(
-            "SELECT track_name, max(time_stamp), min(time_stamp) FROM nga_tracks GROUP BY track_fid",
+            "SELECT track_name, min(time_stamp), max(time_stamp) FROM nga_tracks GROUP BY track_fid",
             "SQLITE");
     FeaturePtr feature;
     while((feature = result->nextFeature())) {
-        out.emplace_back({feature->GetFieldAsString(0), dateFieldToLong(feature, 1), dateFieldToLong(feature, 2)});
+        TrackInfo info = {feature->GetFieldAsString(0),
+                          dateFieldToLong(feature, 1),
+                          dateFieldToLong(feature, 2)};
+        out.emplace_back(info);
     }
     return out;
 }
@@ -522,18 +525,23 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
 {
     FeaturePtr feature = createFeature();
     if(newTrack) {
-        feature->SetField(" track_fid", ++m_lastTrackId);
+        feature->SetField("track_fid", ++m_lastTrackId);
         m_lastSegmentId = 0;
+        m_lastSegmentPtId = 0;
     }
     else {
-        feature->SetField(" track_fid", m_lastTrackId);
-        if(newSegment) {
-            feature->SetField(" track_seg_id", ++m_lastSegmentId);
-        }
-        else {
-            feature->SetField(" track_seg_id", m_lastSegmentId);
-        }
+        feature->SetField("track_fid", m_lastTrackId);
     }
+
+    if(newSegment) {
+        feature->SetField("track_seg_id", ++m_lastSegmentId);
+        m_lastSegmentPtId = 0;
+    }
+    else {
+        feature->SetField("track_seg_id", m_lastSegmentId);
+    }
+
+    feature->SetField("track_seg_point_id", ++m_lastSegmentPtId);
 
     feature->SetField("track_name", name.c_str());
     std::tm *gmtTime = std::gmtime(&timeStamp);
@@ -544,13 +552,25 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     feature->SetField("course", course);
     feature->SetField("pdop", accuracy);
     feature->SetField("fix", satCount > 3 ? "3d" : "2d");
+    feature->SetField("ele", z);
 
-    feature->SetGeometryDirectly(new OGRPoint(x, y, z));
+    feature->SetGeometryDirectly(new OGRPoint(x, y));
 
     CPLErrorReset();
     // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_layer->CreateFeature(feature) == OGRERR_NONE;
+}
+
+
+ObjectPtr TracksTable::pointer() const
+{
+    DataStore *dataset = dynamic_cast<DataStore*>(m_parent);
+    if(dataset == nullptr) {
+        return ObjectPtr();
+    }
+
+    return dataset->getTracksTable();
 }
 
 } // namespace ngs
