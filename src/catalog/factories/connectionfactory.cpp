@@ -108,7 +108,11 @@ bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType t
             login = "guest";
         }
         else {
+            std::string oldLogin;
             login = CPLString(login).Trim();
+            if(oldLogin != login) {
+                warningMessage("Login was trimmed!");
+            }
         }
         std::string password = options.asString("password");
 

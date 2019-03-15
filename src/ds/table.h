@@ -35,20 +35,24 @@ namespace ngs {
 
 constexpr const char* LOG_EDIT_HISTORY_KEY = "LOG_EDIT_HISTORY";
 
-class FieldMapPtr : public std::shared_ptr<int>
-{
-public:
-    explicit FieldMapPtr(unsigned long size);
-    int &operator[](int key);
-    const int &operator[](int key) const;
-};
-
 typedef struct _Field {
     std::string m_name;
     std::string m_originalName;
     std::string m_alias;
     OGRFieldType m_type;
 } Field;
+
+class FieldMapPtr : public std::shared_ptr<int>
+{
+public:
+    explicit FieldMapPtr(const std::vector<Field> &src,
+                         const std::vector<Field> &dst);
+    explicit FieldMapPtr(unsigned long size);
+    int &operator[](int key);
+    const int &operator[](int key) const;
+    void matchFields(const std::vector<Field> &src,
+                       const std::vector<Field> &dst);
+};
 
 class Table;
 

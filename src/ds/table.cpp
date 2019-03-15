@@ -36,6 +36,12 @@ constexpr const char *FEATURE_SEPARATOR = "#";
 //------------------------------------------------------------------------------
 // FieldMapPtr
 //-------------------------------------------------
+FieldMapPtr::FieldMapPtr(const std::vector<Field> &src,
+                         const std::vector<Field> &dst) :
+    shared_ptr(static_cast<int*>(CPLMalloc(sizeof(int) * src.size())), CPLFree)
+{
+    matchFields(src, dst);
+}
 
 FieldMapPtr::FieldMapPtr(unsigned long size) :
     shared_ptr(static_cast<int*>(CPLMalloc(sizeof(int) * size)), CPLFree)
@@ -53,6 +59,24 @@ const int &FieldMapPtr::operator[](int key) const
     return get()[key];
 }
 
+void FieldMapPtr::matchFields(const std::vector<Field> &src,
+                   const std::vector<Field> &dst)
+{
+    for(size_t i = 0; i < src.size(); ++i) {
+        bool matchFields = false;
+        for (size_t j = 0; j < dst.size(); ++j) {
+            if(compare(src[i].m_name, dst[j].m_name)) {
+                get()[i] = static_cast<int>(j);
+                matchFields = true;
+                break;
+            }
+        }
+
+        if(!matchFields) {
+            get()[i] = -1;
+        }
+    }
+}
 //------------------------------------------------------------------------------
 // FeaturePtr
 //------------------------------------------------------------------------------

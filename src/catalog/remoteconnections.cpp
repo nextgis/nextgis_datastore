@@ -56,10 +56,10 @@ bool Connections::loadChildren()
 
     if(m_parent) {
         m_childrenLoaded = true;
-        char **items = CPLReadDir(m_path.c_str());
+        CPLStringList items(CPLReadDir(m_path.c_str()));
 
         // No children in folder
-        if(nullptr == items) {
+        if(items.empty()) {
             return true;
         }
 
@@ -69,7 +69,6 @@ bool Connections::loadChildren()
         Catalog::instance()->createObjects(m_parent->getChild(m_name),
                                            objectNames);
 
-        CSLDestroy(items);
     }
 
     return true;
@@ -92,10 +91,10 @@ void Connections::refresh()
     if(m_parent) {
 
         // Fill add names array
-        char **items = CPLReadDir(m_path.c_str());
+        CPLStringList items(CPLReadDir(m_path.c_str()));
 
         // No children in folder
-        if(nullptr == items) {
+        if(items.empty()) {
             clear();
             return;
         }
@@ -127,8 +126,6 @@ void Connections::refresh()
 
         // Add objects
         Catalog::instance()->createObjects(m_parent->getChild(m_name), addNames);
-
-        CSLDestroy(items);
     }
 }
 

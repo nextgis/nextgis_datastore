@@ -604,27 +604,27 @@ bool DataStore::createTracksTable()
         return false;
     }
 
-    OGRFieldDefn magvarField("magvar", OFTReal);
-    magvarField.SetDefault("0.0");
-    if(layer->CreateField(&magvarField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn magvarField("magvar", OFTReal);
+//    magvarField.SetDefault("0.0");
+//    if(layer->CreateField(&magvarField) != OGRERR_NONE) {
+//        return false;
+//    }
 
-    OGRFieldDefn geoidheightField("geoidheight", OFTReal);
-    geoidheightField.SetDefault("0.0");
-    if(layer->CreateField(&geoidheightField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn geoidheightField("geoidheight", OFTReal);
+//    geoidheightField.SetDefault("0.0");
+//    if(layer->CreateField(&geoidheightField) != OGRERR_NONE) {
+//        return false;
+//    }
 
-    OGRFieldDefn nameField2("name", OFTString );
-    if(layer->CreateField(&nameField2) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn nameField2("name", OFTString );
+//    if(layer->CreateField(&nameField2) != OGRERR_NONE) {
+//        return false;
+//    }
 
-    OGRFieldDefn cmtField("cmt", OFTString );
-    if(layer->CreateField(&cmtField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn cmtField("cmt", OFTString );
+//    if(layer->CreateField(&cmtField) != OGRERR_NONE) {
+//        return false;
+//    }
 
     OGRFieldDefn descField("desc", OFTString );
     descField.SetDefault(NGS_USERAGENT);
@@ -639,36 +639,36 @@ bool DataStore::createTracksTable()
         return false;
     }
 
-    for(int i = 1;i <= 2; ++i) {
-        char szFieldName[32];
-        snprintf(szFieldName, sizeof(szFieldName), "link%d_href", i);
-        OGRFieldDefn oFieldLinkHref( szFieldName, OFTString );
-        if(layer->CreateField(&oFieldLinkHref) != OGRERR_NONE) {
-            return false;
-        }
+//    for(int i = 1;i <= 2; ++i) {
+//        char szFieldName[32];
+//        snprintf(szFieldName, sizeof(szFieldName), "link%d_href", i);
+//        OGRFieldDefn oFieldLinkHref( szFieldName, OFTString );
+//        if(layer->CreateField(&oFieldLinkHref) != OGRERR_NONE) {
+//            return false;
+//        }
 
-        snprintf(szFieldName, sizeof(szFieldName), "link%d_text", i);
-        OGRFieldDefn oFieldLinkText( szFieldName, OFTString );
-        if(layer->CreateField(&oFieldLinkText) != OGRERR_NONE) {
-            return false;
-        }
+//        snprintf(szFieldName, sizeof(szFieldName), "link%d_text", i);
+//        OGRFieldDefn oFieldLinkText( szFieldName, OFTString );
+//        if(layer->CreateField(&oFieldLinkText) != OGRERR_NONE) {
+//            return false;
+//        }
 
-        snprintf(szFieldName, sizeof(szFieldName), "link%d_type", i);
-        OGRFieldDefn oFieldLinkType( szFieldName, OFTString );
-        if(layer->CreateField(&oFieldLinkType) != OGRERR_NONE) {
-            return false;
-        }
-    }
+//        snprintf(szFieldName, sizeof(szFieldName), "link%d_type", i);
+//        OGRFieldDefn oFieldLinkType( szFieldName, OFTString );
+//        if(layer->CreateField(&oFieldLinkType) != OGRERR_NONE) {
+//            return false;
+//        }
+//    }
 
-    OGRFieldDefn symField("sym", OFTString );
-    if(layer->CreateField(&symField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn symField("sym", OFTString );
+//    if(layer->CreateField(&symField) != OGRERR_NONE) {
+//        return false;
+//    }
 
-    OGRFieldDefn typeField("type", OFTString );
-    if(layer->CreateField(&typeField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn typeField("type", OFTString );
+//    if(layer->CreateField(&typeField) != OGRERR_NONE) {
+//        return false;
+//    }
 
     /* Accuracy info */
 
@@ -686,17 +686,17 @@ bool DataStore::createTracksTable()
         return false;
     }
 
-    OGRFieldDefn hdopField("hdop", OFTReal );
-    hdopField.SetDefault("0.0");
-    if(layer->CreateField(&hdopField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn hdopField("hdop", OFTReal );
+//    hdopField.SetDefault("0.0");
+//    if(layer->CreateField(&hdopField) != OGRERR_NONE) {
+//        return false;
+//    }
 
-    OGRFieldDefn vdopField("vdop", OFTReal );
-    vdopField.SetDefault("0.0");
-    if(layer->CreateField(&vdopField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn vdopField("vdop", OFTReal );
+//    vdopField.SetDefault("0.0");
+//    if(layer->CreateField(&vdopField) != OGRERR_NONE) {
+//        return false;
+//    }
 
     OGRFieldDefn pdopField("pdop", OFTReal);
     pdopField.SetDefault("0.0");
@@ -704,18 +704,18 @@ bool DataStore::createTracksTable()
         return false;
     }
 
-    OGRFieldDefn ageofgpsdataField("ageofdgpsdata", OFTReal );
-    if(layer->CreateField(&ageofgpsdataField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn ageofgpsdataField("ageofdgpsdata", OFTReal );
+//    if(layer->CreateField(&ageofgpsdataField) != OGRERR_NONE) {
+//        return false;
+//    }
 
-    OGRFieldDefn dgpsidField("dgpsid", OFTInteger );
-    if(layer->CreateField(&dgpsidField) != OGRERR_NONE) {
-        return false;
-    }
+//    OGRFieldDefn dgpsidField("dgpsid", OFTInteger );
+//    if(layer->CreateField(&dgpsidField) != OGRERR_NONE) {
+//        return false;
+//    }
 
     // Addtional fields
-    OGRFieldDefn courseField("cource", OFTReal);
+    OGRFieldDefn courseField("course", OFTReal);
     courseField.SetDefault("0.0");
     if(layer->CreateField(&courseField) != OGRERR_NONE) {
         return false;

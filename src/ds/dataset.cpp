@@ -743,13 +743,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
 
-        auto dstFields = dstTable->fields();
         // Create fields map. We expected equal count of fields
-        FieldMapPtr fieldMap(dstFields.size());
-        for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
-            fieldMap[i] = i;
-        }
-
+        FieldMapPtr fieldMap(srcTable->fields(), dstTable->fields());
         int result = dstTable->copyRows(srcTable, fieldMap, progress);
         if(result != COD_SUCCESS) {
             return result;

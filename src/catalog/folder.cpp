@@ -461,13 +461,9 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
         if(nullptr == dstFClass) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
-        auto dstFields = dstFClass->fields();
-        // Create fields map. We expected equal count of fields
-        FieldMapPtr fieldMap(dstFields.size());
-        for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
-            fieldMap[i] = i;
-        }
 
+        // Create fields map. We expected equal count of fields
+        FieldMapPtr fieldMap(srcFClass->fields(), dstFClass->fields());
         int result = dstFClass->copyFeatures(srcFClass, fieldMap,
                                              filterFeometryType,
                                              progress, options);
@@ -480,8 +476,8 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
     return COD_SUCCESS;
 }
 
-int Folder::paste(ObjectPtr child, bool move, const Options& options,
-                  const Progress& progress)
+int Folder::paste(ObjectPtr child, bool move, const Options &options,
+                  const Progress &progress)
 {
     std::string fileName = options.asString("DS_NAME", child->name());
     std::string newPath;
