@@ -208,6 +208,8 @@ NGS_EXTERNC ngsCatalogObjectInfo *ngsCatalogObjectQuery(CatalogObjectH object,
 NGS_EXTERNC ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(
         CatalogObjectH object, int *filters, int filterCount);
 NGS_EXTERNC int ngsCatalogObjectDelete(CatalogObjectH object);
+NGS_EXTERNC char ngsCatalogObjectCanCreate(CatalogObjectH object,
+                                           enum ngsCatalogObjectType type);
 NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char *name,
                                        char **options);
 NGS_EXTERNC int ngsCatalogObjectCopy(CatalogObjectH srcObject,
@@ -229,6 +231,8 @@ NGS_EXTERNC int ngsCatalogObjectSetProperty(CatalogObjectH object,
                                                 const char *value,
                                                 const char *domain);
 NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
+NGS_EXTERNC char ngsCatalogCheckConnection(enum ngsCatalogObjectType type,
+                                           char **options);
 
 /*
  * Feature class

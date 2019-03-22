@@ -205,7 +205,7 @@ TEST(CatalogTests, TestCreate) {
     ngsListFree(options);
     options = nullptr;
 
-    ngsCatalogObjectInfo* pathInfo = ngsCatalogObjectQuery(catalog, 0);
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
     size_t count = 0;
     while(pathInfo[count].name) {
@@ -289,7 +289,7 @@ TEST(CatalogTests, TestAreaDownload) {
     CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
     EXPECT_EQ(ngsDatasetOpen(osmRaster, GDAL_OF_SHARED|GDAL_OF_READONLY|
                              GDAL_OF_VERBOSE_ERROR, nullptr), COD_SUCCESS);
-    char** metadata = ngsCatalogObjectProperties(osmRaster, "");
+    char **metadata = ngsCatalogObjectProperties(osmRaster, "");
     if(metadata != nullptr) {
         EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "300"), true);
     }
@@ -334,6 +334,38 @@ TEST(CatalogTests, TestDelete) {
     }
     EXPECT_GE(count, 2);
     ngsFree(pathInfo);
+    ngsUnInit();
+}
+
+
+TEST(CatalogTests, TestCreateConnection) {
+    char** options = nullptr;
+    std::string path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                       nullptr);
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR", path.c_str());
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+    options = nullptr;
+
+    CatalogObjectH conn = ngsCatalogObjectGet("ngc://GIS Server connections");
+    ASSERT_NE(conn, nullptr);
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGW));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "login", "guest");
+    options = ngsListAddNameValue(options, "url", "demo.nextgis.com");
+    options = ngsListAddNameValue(options, "is_guest", "ON");
+
+    EXPECT_EQ(ngsCatalogObjectCreate(conn, "demo.nextgis.com", options),
+              COD_SUCCESS);
+
+    ngsListFree(options);
+    options = nullptr;
+
+    VSIStatBufL sbuf;
+    std::string path1 = path + "/connections/gisconnections/demo.nextgis.com.wconn";
+    EXPECT_EQ(VSIStatL(path1.c_str(), &sbuf), 0);
+
     ngsUnInit();
 }
 
@@ -752,7 +784,7 @@ TEST(DataStoreTests, TestCreateFeature) {
     ngsUnInit();
 }
 
-TEST(DataStoreTest, TestTracks) {
+TEST(DataStoreTest, TestTracksTable) {
     char** options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
     options = ngsListAddNameValue(options, "SETTINGS_DIR",

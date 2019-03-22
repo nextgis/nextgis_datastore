@@ -536,44 +536,58 @@ bool Folder::create(const enum ngsCatalogObjectType type,
                     const std::string &name,
                     const Options& options)
 {
+    if(!loadChildren()) {
+        return false;
+    }
     bool result = false;
-    std::string newPath;
+    std::string newName = name;
+    // Add extension if upsent
+    if(!compare(File::getExtension(name), Filter::extension(type))) {
+        newName = name + "." + Filter::extension(type);
+    }
+
     if(options.asBool("CREATE_UNIQUE")) {
-        newPath = createUniquePath(m_path, name);
+        newName = createUniqueName(newName, false);
     }
-    else {
-        newPath = File::formFileName(m_path, name);
+
+    std::string newPath = File::formFileName(m_path, newName);
+    if(hasChild(newName)) {
+        if(options.asBool("OVERWRITE")) {
+            if(!File::deleteFile(newPath)) {
+                return errorMessage(_("Failed to overwrite %s"), newName.c_str());
+            }
+        }
+        else {
+            return errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+                              newName.c_str());
+        }
     }
-    std::string ext = Filter::extension(type);
-    if(!ext.empty()) {
-        newPath = File::resetExtension(newPath, ext);
-    }
-    std::string newName = File::getFileName(newPath);
+
     std::vector<std::string> siblingFiles;
 
     switch (type) {
     case CAT_CONTAINER_DIR:
         result = mkDir(newPath);
-        if(result && m_childrenLoaded) {
+        if(result) {
             m_children.push_back(ObjectPtr(new Folder(this, newName, newPath)));
         }
         break;
     case CAT_CONTAINER_NGS:
         result = DataStore::create(newPath);
-        if(result && m_childrenLoaded) {
+        if(result) {
             m_children.push_back(ObjectPtr(new DataStore(this, newName, newPath)));
         }
         break;
     case CAT_RASTER_TMS:
         result = RasterFactory::createRemoteConnection(type, newPath, options);
-        if(result && m_childrenLoaded) {
+        if(result) {
             m_children.push_back(ObjectPtr(new Raster(siblingFiles, this, type,
                                                       newName, newPath)));
         }
         break;
     case CAT_CONTAINER_MEM:
         result = MemoryStore::create(newPath, options);
-        if(result && m_childrenLoaded) {
+        if(result) {
             m_children.push_back(ObjectPtr(new MemoryStore(this, newName, newPath)));
         }
         break;

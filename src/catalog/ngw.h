@@ -23,23 +23,123 @@
 
 #include "objectcontainer.h"
 
+#include "cpl_json.h"
+
 namespace ngs {
 
-class NGWResourceGroup : public ObjectContainer
+constexpr const char *KEY_URL = "url";
+constexpr const char *KEY_LOGIN = "login";
+constexpr const char *KEY_PASSWORD = "password";
+constexpr const char *KEY_IS_GUEST = "is_guest";
+
+/**
+ * @brief NGW namespace
+ */
+namespace ngw {
+    std::string getPermisionsUrl(const std::string &url,
+                                 const std::string &resourceId);
+    std::string getResourceUrl(const std::string &url,
+                               const std::string &resourceId);
+    std::string getChildrenUrl(const std::string &url,
+                               const std::string &resourceId);
+    std::string getRouteUrl(const std::string &url);
+    std::string getCurrentUserUrl(const std::string &url);
+    bool checkVersion(const std::string &version, int major, int minor, int patch);
+    std::string createResource(const std::string &url, const std::string &payload,
+                               char **httpOptions);
+    bool deleteResource(const std::string &url, const std::string &resourceId,
+        char **httpOptions);
+    std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type);
+}
+
+/**
+ * @brief The NGWResouceBase class
+ */
+class NGWResourceBase
+{
+public:
+    explicit NGWResourceBase(const std::string &url,
+                            const std::string &resourceId = "0");
+    bool remove();
+protected:
+    std::string m_url, m_resourceId;
+};
+
+/**
+ * @brief The NGWResouce class
+ */
+class NGWResource : public Object, public NGWResourceBase
+{
+public:
+    explicit NGWResource(ObjectContainer * const parent,
+                         const enum ngsCatalogObjectType type,
+                         const std::string &name,
+                         const std::string &url,
+                         const std::string &resourceId = "0");
+    // Object interface
+public:
+    virtual bool destroy() override;
+};
+
+/**
+ * @brief The NGWResourceGroup class
+ */
+class NGWResourceGroup : public ObjectContainer, public NGWResourceBase
 {
 public:
     explicit NGWResourceGroup(ObjectContainer * const parent,
                          const std::string &name,
-                         const std::string &path);
+                         const std::string &url,
+                         const std::string &resourceId = "0");
+    virtual ObjectPtr getResource(const std::string &resourceId) const;
+    virtual void addResource(const CPLJSONObject &resource);
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+
+    // ObjectContainer interface
+public:
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
+    virtual bool create(const enum ngsCatalogObjectType type,
+                        const std::string &name, const Options &options) override;
 };
 
+/**
+ * @brief The NGWTrackersGroup class
+ */
+class NGWTrackersGroup : public NGWResourceGroup
+{
+public:
+    explicit NGWTrackersGroup(ObjectContainer * const parent,
+                         const std::string &name,
+                         const std::string &url,
+                         const std::string &resourceId = "0");
+
+    // ObjectContainer interface
+public:
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
+    virtual bool create(const enum ngsCatalogObjectType type,
+                        const std::string &name, const Options &options) override;
+};
+
+/**
+ * @brief The NGWConnection class
+ */
 class NGWConnection : public NGWResourceGroup
 {
 public:
     explicit NGWConnection(ObjectContainer * const parent,
                          const std::string &name,
                          const std::string &path);
+    virtual ~NGWConnection() override;
     virtual bool loadChildren() override;
+
+private:
+    void fillCapabilities();
+
+private:
+    std::string m_searchApiUrl, m_versionApiUrl;
 };
 
 }

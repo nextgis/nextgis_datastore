@@ -134,8 +134,8 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_POSTGRES_SCHEMA,
     CAT_CONTAINER_WFS,
     CAT_CONTAINER_WMS,
-    CAT_CONTAINER_NGW,
-    CAT_CONTAINER_NGS,
+    CAT_CONTAINER_NGW,              /**< NextGIS Web connection */
+    CAT_CONTAINER_NGS,              /**< NextGIS storage (GPKG with additions) */
     CAT_CONTAINER_KML,
     CAT_CONTAINER_KMZ,
     CAT_CONTAINER_SXF,
@@ -145,8 +145,8 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_MEM,              /**< For memory layers */
     CAT_CONTAINER_GISCONNECTIONS,   /**< GIS Servers/services connections */
     CAT_CONTAINER_DBCONNECTIONS,    /**< Database servers connections */
-    CAT_CONTAINER_NGWCONNECTION,    /**< NextGIS Web connection */
     CAT_CONTAINER_NGWGROUP,         /**< NextGIS Web resource group */
+    CAT_CONTAINER_NGWTRACKERGROUP,  /**< NextGIS Web trackers group */
     CAT_CONTAINER_DIR_LINK,         /**< Local connection to folder or symlink */
     CAT_CONTAINER_ALL = 499,
     CAT_FC_ANY = 500,               /**< Any Feature class */
@@ -205,7 +205,8 @@ enum ngsCatalogObjectType {
     CAT_FILE_ALL = 2499,
     CAT_QUERY_RESULT,
     CAT_QUERY_RESULT_FC,
-    CAT_RASTER_FC_ANY
+    CAT_RASTER_FC_ANY,
+    CAT_NGW_TRACKER             /**< NextGIS Web tracker */
 };
 
 /**

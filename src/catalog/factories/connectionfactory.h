@@ -41,6 +41,8 @@ public:
     static bool createRemoteConnection(const enum ngsCatalogObjectType type,
                                        const std::string &path,
                                        const Options &options);
+    static bool checkRemoteConnection(const enum ngsCatalogObjectType type,
+                                      const Options &options);
 protected:
     bool m_wmsSupported, m_wfsSupported, m_ngwSupported, m_pgSupported;
 };

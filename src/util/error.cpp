@@ -77,4 +77,10 @@ const char *getLastError()
     return gLastMsg.c_str();
 }
 
+void resetError()
+{
+    CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
+    gLastMsg.clear();
+}
+
 }

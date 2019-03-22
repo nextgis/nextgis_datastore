@@ -73,6 +73,7 @@ private:
 };
 
 using ObjectFactoryUPtr = std::unique_ptr<ObjectFactory>;
+enum ngsCatalogObjectType typeFromConnectionFile(const std::string &path);
 
 }
 

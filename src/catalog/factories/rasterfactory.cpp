@@ -112,21 +112,15 @@ void RasterFactory::createObjects(ObjectContainer * const container,
 
         if(m_wmstmsSupported && !nameExtsItem.second.empty()) {
             if(compare(nameExtsItem.second[0], Filter::extension(CAT_RASTER_TMS))) {
-                CPLJSONDocument connectionFile;
                 std::string path = File::formFileName(
                             container->path(), nameExtsItem.first,
                             Filter::extension(CAT_RASTER_TMS));
-                if(connectionFile.Load(path)) {
+                enum ngsCatalogObjectType type = typeFromConnectionFile(path);
+                if(Filter::isRaster(type)) {
                     std::vector<std::string> siblingFiles;
-                    enum ngsCatalogObjectType type =
-                            static_cast<enum ngsCatalogObjectType>(
-                                connectionFile.GetRoot().GetInteger(
-                                    KEY_TYPE, CAT_UNKNOWN));
-                    if(Filter::isRaster(type)) {
-                        addChildInternal(container, nameExtsItem.first + "." +
-                             Filter::extension(type), path, type,
-                             siblingFiles, names);
-                    }
+                    addChildInternal(container, nameExtsItem.first + "." +
+                         Filter::extension(type), path, type,
+                         siblingFiles, names);
                 }
             }
         }

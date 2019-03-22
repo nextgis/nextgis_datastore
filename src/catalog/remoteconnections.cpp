@@ -22,14 +22,15 @@
 #include "catalog.h"
 #include "file.h"
 #include "folder.h"
+#include "ngw.h"
 #include "remoteconnections.h"
 
 #include "factories/connectionfactory.h"
 #include "ngstore/catalog/filter.h"
+#include "util/account.h"
+#include "util/error.h"
 #include "util/notify.h"
 #include "util/stringutil.h"
-
-
 
 namespace ngs {
 
@@ -137,16 +138,23 @@ bool Connections::canPaste(const enum ngsCatalogObjectType type) const
 int Connections::paste(ObjectPtr child, bool move, const Options& options,
                   const Progress& progress)
 {
-    std::string newPath;
+    std::string newName = child->name();
     if(options.asBool("CREATE_UNIQUE")) {
-        newPath = Folder::createUniquePath(m_path, child->name());
-    }
-    else {
-        newPath = File::formFileName(m_path, child->name());
+        newName = createUniqueName(child->name(), false);
     }
 
-    if(compare(child->path(), newPath)) {
-        return COD_SUCCESS;
+    std::string newPath = File::formFileName(m_path, newName);
+    if(hasChild(newName)) {
+        if(options.asBool("OVERWRITE")) {
+            if(!File::deleteFile(newPath)) {
+                return outMessage(COD_DELETE_FAILED, _("Failed to overwrite %s"),
+                                  newName.c_str());
+            }
+        }
+        else {
+            return outMessage(COD_CANCELED, _("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+                              newName.c_str());
+        }
     }
 
     File *fileObject = ngsDynamicCast(File, child);
@@ -184,8 +192,28 @@ bool GISServerConnections::canCreate(const enum ngsCatalogObjectType type) const
     switch (type) {
     case CAT_CONTAINER_WFS:
     case CAT_CONTAINER_WMS:
-    case CAT_CONTAINER_NGW:
         return true;
+    case CAT_CONTAINER_NGW:
+    {
+        int counter = 0;
+        for (const auto &child : m_children) {
+            if(child->type() == type) {
+                counter++;
+            }
+
+            if(counter > 1) {
+                break;
+            }
+        }
+
+        if(counter > 1) {
+            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+            if(!Account::instance().isFunctionAvailable(appName, "create_ngw_connection")) {
+                return errorMessage(_("Cannot create more than 1 NextGIS Web connection on your plan, or account is not authorized"));
+            }
+        }
+        return true;
+    }
     default:
         return false;
     }
@@ -195,26 +223,38 @@ bool GISServerConnections::create(const enum ngsCatalogObjectType type,
                     const std::string &name,
                     const Options& options)
 {
+    if(!loadChildren()) {
+        return false;
+    }
     bool result = false;
-    std::string newPath;
+
+    std::string newName = name;
+    if(!compare(File::getExtension(name), Filter::extension(type))) {
+        newName = name + "." + Filter::extension(type);
+    }
+
     if(options.asBool("CREATE_UNIQUE")) {
-        newPath = Folder::createUniquePath(m_path, name);
+        newName = createUniqueName(newName, false);
     }
-    else {
-        newPath = File::formFileName(m_path, name);
+
+    std::string newPath = File::formFileName(m_path, newName);
+    if(hasChild(newName)) {
+        if(options.asBool("OVERWRITE")) {
+            if(!File::deleteFile(newPath)) {
+                return errorMessage(_("Failed to overwrite %s"), newName.c_str());
+            }
+        }
+        else {
+            return errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+                              newName.c_str());
+        }
     }
-    std::string ext = Filter::extension(type);
-    if(!ext.empty()) {
-        newPath = File::resetExtension(newPath, ext);
-    }
-    std::string newName = File::getFileName(newPath);
 
     switch (type) {
     case CAT_CONTAINER_NGW:
         result = ConnectionFactory::createRemoteConnection(type, newPath, options);
-        if(result && m_childrenLoaded) {
-//            m_children.push_back(ObjectPtr(new Raster(siblingFiles, this, type,
-//                                                      newName, newPath)));
+        if(result) {
+            m_children.push_back(ObjectPtr(new NGWConnection(this, newName, newPath)));
         }
         break;
     default:

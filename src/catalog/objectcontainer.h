@@ -53,6 +53,11 @@ public:
     std::vector<ObjectPtr> getChildren() const;
     ObjectPtr getChild(const std::string &name) const;
     virtual bool loadChildren();
+    virtual std::string createUniqueName(const std::string &name,
+                                         bool isContainer = true,
+                                         const std::string &add = "",
+                                         int counter = 0) const;
+    virtual bool hasChild(const std::string &name) const;
 
     // events
 public:

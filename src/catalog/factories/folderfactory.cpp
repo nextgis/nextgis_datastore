@@ -46,9 +46,7 @@ void FolderFactory::createObjects(ObjectContainer * const container,
                                        std::vector<std::string> &names)
 {
     auto it = names.begin();
-    bool deleted;
     while(it != names.end()) {
-        deleted = false;
         std::string path = File::formFileName(container->path(), *it);
         if(Folder::isDir(path)) {
             if(container->type() == CAT_CONTAINER_ARCHIVE_DIR) { // Check if this is archive folder
@@ -59,13 +57,13 @@ void FolderFactory::createObjects(ObjectContainer * const container,
                     addChild(container,
                              ObjectPtr(new ArchiveFolder(container, *it, vsiPath)));
                     it = names.erase(it);
-                    deleted = true;
+                    continue;
                 }
             }
             else {
                 addChild(container, ObjectPtr(new Folder(container, *it, path)));
                 it = names.erase(it);
-                deleted = true;
+                continue;
             }
         }
         else if(m_zipSupported) {
@@ -78,13 +76,10 @@ void FolderFactory::createObjects(ObjectContainer * const container,
                                                CAT_CONTAINER_ARCHIVE_ZIP,
                                                *it, vsiPath)));
                 it = names.erase(it);
-                deleted = true;
+                continue;
             }
         }
-
-        if(!deleted) {
-            ++it;
-        }
+        ++it;
     }
 }
 

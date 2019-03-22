@@ -36,11 +36,13 @@
 #include "util/stringutil.h"
 
 // factories
+#include "factories/connectionfactory.h"
 #include "factories/datastorefactory.h"
 #include "factories/folderfactory.h"
 #include "factories/filefactory.h"
 #include "factories/simpledatasetfactory.h"
 #include "factories/rasterfactory.h"
+
 
 namespace ngs {
 
@@ -107,6 +109,7 @@ bool Catalog::loadChildren()
         return false;
     }
     // 1. Load factories
+    m_factories.push_back(ObjectFactoryUPtr(new ConnectionFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new DataStoreFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new SimpleDatasetFactory()));
     m_factories.push_back(ObjectFactoryUPtr(new RasterFactory()));

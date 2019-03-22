@@ -18,6 +18,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include "file.h"
 #include "objectcontainer.h"
 
 #include "api_priv.h"
@@ -150,6 +151,38 @@ ObjectPtr ObjectContainer::getChild(const std::string &name) const
 bool ObjectContainer::loadChildren()
 {
     return true;
+}
+
+std::string ObjectContainer::createUniqueName(const std::string &name,
+                                              bool isContainer,
+                                              const std::string &add,
+                                              int counter) const
+{
+    std::string resultName = name;
+    if(counter > 0) {
+        CPLString newAdd;
+        newAdd.Printf("%s(%d)", add.c_str(), counter);
+        resultName = File::getBaseName(name) + newAdd;
+        if(!isContainer) {
+            resultName = resultName + "." + File::getExtension(name);
+        }
+    }
+
+    if(hasChild(resultName)) {
+        return createUniqueName(name, isContainer, add, counter + 1);
+    }
+
+    return resultName;
+}
+
+bool ObjectContainer::hasChild(const std::string &name) const
+{
+    for(const auto &child : m_children) {
+        if(compare(child->name(), name, true)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void ObjectContainer::removeDuplicates(std::vector<std::string> &deleteNames,

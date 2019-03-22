@@ -19,17 +19,15 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "connectionfactory.h"
+#include "folder.h"
 #include "catalog/file.h"
 #include "catalog/ngw.h"
 #include "ngstore/catalog/filter.h"
+#include "util/authstore.h"
 #include "util/error.h"
 #include "util/stringutil.h"
 
 namespace ngs {
-
-constexpr const char *KEY_URL = "url";
-constexpr const char *KEY_LOGIN = "login";
-constexpr const char *KEY_PASSWORD = "password";
 
 ConnectionFactory::ConnectionFactory() : ObjectFactory()
 {
@@ -43,17 +41,6 @@ ConnectionFactory::ConnectionFactory() : ObjectFactory()
 std::string ConnectionFactory::name() const
 {
     return _("Remote connections (Dadatabases, GIS Servers)");
-}
-
-static enum ngsCatalogObjectType typeFromConnectionFile(const std::string &path)
-{
-    enum ngsCatalogObjectType out = CAT_UNKNOWN;
-    CPLJSONDocument connectionFile;
-    if(connectionFile.Load(path)) {
-        out = static_cast<enum ngsCatalogObjectType>(
-                    connectionFile.GetRoot().GetInteger(KEY_TYPE, CAT_UNKNOWN));
-    }
-    return out;
 }
 
 void ConnectionFactory::createObjects(ObjectContainer * const container,
@@ -70,8 +57,8 @@ void ConnectionFactory::createObjects(ObjectContainer * const container,
                 // Create object from connection
                  addChild(container,
                           ObjectPtr(new NGWConnection(container, *it, path)));
-
                 it = names.erase(it);
+                continue;
             }
         }
         else if(m_pgSupported &&
@@ -83,11 +70,10 @@ void ConnectionFactory::createObjects(ObjectContainer * const container,
                 // addChild(container, ObjectPtr(new DataStore(container, *it, path)));
 
                 it = names.erase(it);
+                continue;
             }
         }
-        else {
-            ++it;
-        }
+        ++it;
     }
 }
 
@@ -103,30 +89,93 @@ bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType t
             return errorMessage(_("Missing required option 'url'"));
         }
 
-        std::string login = options.asString("login");
+        std::string login = options.asString(KEY_LOGIN);
         if(login.empty()) {
             login = "guest";
         }
         else {
-            std::string oldLogin;
+            std::string oldLogin(login);
             login = CPLString(login).Trim();
-            if(oldLogin != login) {
+            if(!compare(oldLogin, login, true)) {
                 warningMessage("Login was trimmed!");
             }
         }
-        std::string password = options.asString("password");
+        std::string password = options.asString(KEY_PASSWORD);
+        bool isGuest = options.asBool(KEY_IS_GUEST);
 
         CPLJSONDocument connectionFile;
         CPLJSONObject root = connectionFile.GetRoot();
         root.Add(KEY_TYPE, type);
         root.Add(KEY_URL, url);
         root.Add(KEY_LOGIN, login);
+        root.Add(KEY_IS_GUEST, isGuest);
         if(!password.empty()) {
             root.Add(KEY_PASSWORD, encrypt(password));
         }
 
-        std::string newPath = File::resetExtension(path, Filter::extension(type));
-        return connectionFile.Save(newPath);
+        return connectionFile.Save(path);
+    }
+    default:
+        return errorMessage(_("Unsupported connection type %d"), type);
+    }
+}
+
+bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType type,
+                                              const Options &options)
+{
+    resetError();
+    switch(type) {
+    case CAT_CONTAINER_NGW:
+    {
+        std::string url = options.asString(KEY_URL);
+        if(url.empty()) {
+            return errorMessage(_("Missing required option 'url'"));
+        }
+
+        std::string login = options.asString(KEY_LOGIN);
+        if(login.empty()) {
+            login = "guest";
+        }
+        else {
+            std::string oldLogin(login);
+            login = CPLString(login).Trim();
+            if(!compare(oldLogin, login, true)) {
+                warningMessage("Login was trimmed!");
+            }
+        }
+        std::string password = options.asString(KEY_PASSWORD);
+
+        CPLStringList requestOptions;
+        std::string headers = "Accept: */*";
+        Options authOptions;
+        authOptions.add(KEY_TYPE, "basic");
+        authOptions.add(KEY_LOGIN, login);
+        authOptions.add(KEY_PASSWORD, password);
+        AuthStore::authAdd(url, authOptions);
+        std::string auth = AuthStore::authHeader(url);
+        AuthStore::authRemove(url);
+        if(!auth.empty()) {
+            headers += "\r\n";
+            headers += auth;
+        }
+        requestOptions.AddNameValue("HEADERS", headers.c_str());
+
+        CPLJSONDocument checkReq;
+        if(!checkReq.LoadUrl(ngw::getCurrentUserUrl(url), requestOptions)) {
+            return errorMessage(CPLGetLastErrorMsg());
+        }
+
+        CPLJSONObject root = checkReq.GetRoot();
+        if(!root.IsValid()) {
+            return errorMessage(_("Response is invalid"));
+        }
+
+        if(root.GetString("keyname") == login) {
+            return true;
+        }
+
+        return errorMessage(_("User '%s' failed to connect to %s."),
+                            login.c_str(), url.c_str());
     }
     default:
         return errorMessage(_("Unsupported connection type %d"), type);

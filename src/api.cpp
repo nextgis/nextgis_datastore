@@ -34,6 +34,7 @@
 #include "catalog/catalog.h"
 #include "catalog/mapfile.h"
 #include "catalog/folder.h"
+#include "catalog/factories/connectionfactory.h"
 #include "ds/simpledataset.h"
 #include "ds/storefeatureclass.h"
 #include "map/mapstore.h"
@@ -50,8 +51,6 @@
 #include "util/stringutil.h"
 #include "util/url.h"
 #include "util/versionutil.h"
-
-
 
 using namespace ngs;
 
@@ -1219,6 +1218,29 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
 }
 
 /**
+ * @brief ngsCatalogObjectCanCreate Check if type can be created in catalog object
+ * @param object Catalog object (expected container type)
+ * @param type Type to check
+ * @return 1 if container can create such type, else - 0.
+ */
+char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType type)
+{
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        warningMessage(_("The object handle is null"));
+        return 0;
+    }
+
+    ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
+    if(nullptr == container) {
+        warningMessage(_("The object handle is null"));
+        return 0;
+    }
+
+    return container->canCreate(type) ? 1 : 0;
+}
+
+/**
  * @brief ngsCatalogObjectCreate Create new catalog object
  * @param object The handle of catalog object
  * @param name The new object name
@@ -1487,6 +1509,12 @@ void ngsCatalogObjectRefresh(CatalogObjectH object)
         return;
     }
     container->refresh();
+}
+
+char ngsCatalogCheckConnection(enum ngsCatalogObjectType type, char **options)
+{
+    Options checkOptions(options);
+    return ConnectionFactory::checkRemoteConnection(type, checkOptions) ? 1 : 0;
 }
 
 //------------------------------------------------------------------------------

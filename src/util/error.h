@@ -25,6 +25,7 @@
 
 namespace ngs {
 
+void resetError();
 int outMessage(enum ngsCode errorCode, const char *fmt, ...);
 bool errorMessage(const char *fmt, ...);
 void warningMessage(const char *fmt, ...);

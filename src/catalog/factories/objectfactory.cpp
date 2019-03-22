@@ -23,6 +23,7 @@
 #include <algorithm>
 
 // gdal
+#include "cpl_json.h"
 #include "cpl_port.h"
 
 #include "catalog/file.h"
@@ -123,5 +124,15 @@ void ObjectFactory::eraseNames(const std::string &name,
     }
 }
 
+enum ngsCatalogObjectType typeFromConnectionFile(const std::string &path)
+{
+    CPLJSONDocument connectionFile;
+    if(connectionFile.Load(path)) {
+        return static_cast<enum ngsCatalogObjectType>(
+                    connectionFile.GetRoot().GetInteger(
+                        KEY_TYPE, CAT_UNKNOWN));
+    }
+    return CAT_UNKNOWN;
+}
 
 }
