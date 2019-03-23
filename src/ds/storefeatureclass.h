@@ -154,6 +154,7 @@ private:
     int m_lastTrackId;
     int m_lastSegmentId;
     int m_lastSegmentPtId;
+    Mutex m_syncMutex;
 };
 
 } // namespace ngs

@@ -27,7 +27,6 @@
 
 namespace ngs {
 
-constexpr const char *KEY_URL = "url";
 constexpr const char *KEY_EPSG = "epsg";
 constexpr const char *KEY_Z_MIN = "z_min";
 constexpr const char *KEY_Z_MAX = "z_max";

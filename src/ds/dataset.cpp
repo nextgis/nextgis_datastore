@@ -926,6 +926,7 @@ TablePtr Dataset::executeSQL(const std::string &statement,
     }
 
     MutexHolder holder(m_executeSQLMutex);
+    CPLErrorReset();
 
     OGRLayer *layer = m_DS->ExecuteSQL(statement.c_str(), spaFilter, dialect.c_str());
     if(nullptr == layer) {

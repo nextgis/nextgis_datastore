@@ -27,6 +27,8 @@
 
 namespace ngs {
 
+constexpr const char *KEY_URL = "url";
+
 class ObjectContainer : public Object
 {
     friend class ObjectFactory;

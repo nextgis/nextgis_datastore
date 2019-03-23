@@ -816,25 +816,29 @@ TEST(DataStoreTest, TestTracksTable) {
 
     EXPECT_EQ(ngsStoreHasTracksTable(store), 1);
 
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1, 0), 1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100, 1, 0, 0), 1);
-    CPLSleep(1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1000, 2, 0, 0), 1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 10000, 3, 0, 0), 1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 100000, 4, 0, 0), 1);
-    CPLSleep(1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, time(nullptr), 0, 1, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, time(nullptr), 1, 0, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, time(nullptr), 2, 0, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, time(nullptr), 3, 0, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, time(nullptr), 4, 0, 0), 1);
+    CPLSleep(1.0);
     // New segment
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 1000000, 5, 0, 1), 1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 10000000, 6, 0, 0), 1);
-    CPLSleep(1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 100000000, 7, 0, 0), 1); // 1552551416
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, time(nullptr), 5, 0, 1), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, time(nullptr), 6, 0, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, time(nullptr), 7, 0, 0), 1);
+    CPLSleep(1.0);
     // New track
-    CPLSleep(1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 1000000000, 8, 1, 0), 1);
-    CPLSleep(1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 1100000000, 9, 0, 0), 1);
-    CPLSleep(1);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 1200000000, 10, 0, 0), 1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, time(nullptr), 8, 1, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, time(nullptr), 9, 0, 0), 1);
+    CPLSleep(0.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, time(nullptr), 10, 0, 0), 1);
 
     counter = 0;
     ngsTrackInfo *info = ngsTrackGetList(tracks);
@@ -873,6 +877,8 @@ TEST(DataStoreTest, TestTracksTable) {
     EXPECT_EQ(ngsCatalogObjectCopy(tracks, catalog, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsListFree(options);
+
+//    ngsTrackSync(tracks, 5);
 
     ngsUnInit();
 }

@@ -24,6 +24,7 @@
 #include "datastore.h"
 #include "catalog/file.h"
 #include "catalog/folder.h"
+#include "catalog/ngw.h"
 
 namespace ngs {
 
@@ -483,11 +484,6 @@ TracksTable::TracksTable(OGRLayer *layer, ObjectContainer * const parent) :
     }
 }
 
-void TracksTable::sync(int maxPointCount)
-{
-    // TODO: Add sync with NextGIS tracking.
-}
-
 static long dateFieldToLong(const FeaturePtr &feature, int field)
 {
     int year = 0;
@@ -501,6 +497,87 @@ static long dateFieldToLong(const FeaturePtr &feature, int field)
               &year, &month, &day, &hour, &minute, &second);
     struct tm timeInfo = {second, minute, hour, day, month - 1, year - 1900};
     return mktime(&timeInfo);
+}
+
+void TracksTable::sync(int maxPointCount)
+{
+    MutexHolder holder(m_syncMutex); // Don't allow simultaneous syncing
+    setAttributeFilter("synced = 0");
+    OGRCoordinateTransformation *ct =
+            OGRCreateCoordinateTransformation(
+                m_spatialReference, OGRSpatialReference::GetWGS84SRS());
+    OGRFeatureDefn *def = definition();
+    int timeIndex = def->GetFieldIndex("time");
+    int eleIndex = def->GetFieldIndex("ele");
+    int satIndex = def->GetFieldIndex("sat");
+    int fixIndex = def->GetFieldIndex("fix");
+    int speedIndex = def->GetFieldIndex("speed");
+    int accIndex = def->GetFieldIndex("pdop");
+
+    std::string fid = m_layer->GetFIDColumn();
+
+    CPLJSONArray *payload = new CPLJSONArray;
+    FeaturePtr feature;
+    std::vector<std::string> updateWhere;
+    GIntBig first = std::numeric_limits<GIntBig>::max();
+    GIntBig last = 0;
+
+    while((feature = nextFeature())) {
+        OGRGeometry *geom = feature->GetGeometryRef();
+        if(geom && geom->transform(ct) == OGRERR_NONE) {
+            if(first > feature->GetFID()) {
+                first = feature->GetFID();
+            }
+            if(last < feature->GetFID()) {
+                last = feature->GetFID();
+            }
+            OGRPoint *pt = static_cast<OGRPoint*>(geom);
+            CPLJSONObject item;
+            item.Add("lt", pt->getY());
+            item.Add("ln", pt->getX());
+            GInt64 timestamp = dateFieldToLong(feature, timeIndex);
+            item.Add("ts", timestamp);
+            item.Add("a", feature->GetFieldAsDouble(eleIndex));
+            item.Add("s", feature->GetFieldAsInteger(satIndex));
+            int fix = compare(feature->GetFieldAsString(fixIndex), "3d", true) ? 3 : 2;
+            item.Add("ft", fix);
+            item.Add("sp", feature->GetFieldAsDouble(speedIndex) * 3.6); // Convert from meters pre second to kilometers per hour
+            item.Add("ha", feature->GetFieldAsDouble(accIndex));
+
+            payload->Add(item);
+
+            if(payload->Size() >= maxPointCount) {
+                if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::Plain))) {
+                    updateWhere.emplace_back(
+                        fid + " >= " + std::to_string(first) + " AND " +
+                        fid + " <= " + std::to_string(last));
+                }
+                delete payload;
+                payload = new CPLJSONArray;
+
+                first = std::numeric_limits<GIntBig>::max();
+                last = 0;
+            }
+        }
+    }
+    setAttributeFilter("");
+
+    if(payload->Size() > 0) {
+        if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::Plain))) {
+            updateWhere.emplace_back(
+                fid + " >= " + std::to_string(first) + " AND " +
+                fid + " <= " + std::to_string(last));
+        }
+    }
+    delete payload;
+
+    if(!updateWhere.empty()) {
+        Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
+        for(const auto &where : updateWhere) {
+            dataset->executeSQL("UPDATE nga_tracks SET synced = 1 WHERE " + where,
+                                "SQLITE");
+        }
+    }
 }
 
 std::vector<TrackInfo> TracksTable::getTracks() const
@@ -548,9 +625,9 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     feature->SetField("time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
             gmtTime->tm_min, gmtTime->tm_sec);
     feature->SetField("sat", satCount);
-    feature->SetField("speed", speed);
-    feature->SetField("course", course);
-    feature->SetField("pdop", accuracy);
+    feature->SetField("speed", static_cast<double>(speed));
+    feature->SetField("course", static_cast<double>(course));
+    feature->SetField("pdop", static_cast<double>(accuracy));
     feature->SetField("fix", satCount > 3 ? "3d" : "2d");
     feature->SetField("ele", z);
 

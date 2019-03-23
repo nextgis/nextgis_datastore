@@ -27,7 +27,6 @@
 
 namespace ngs {
 
-constexpr const char *KEY_URL = "url";
 constexpr const char *KEY_LOGIN = "login";
 constexpr const char *KEY_PASSWORD = "password";
 constexpr const char *KEY_IS_GUEST = "is_guest";
@@ -50,6 +49,10 @@ namespace ngw {
     bool deleteResource(const std::string &url, const std::string &resourceId,
         char **httpOptions);
     std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type);
+
+    // Tracks
+    std::string getTrackerUrl();
+    bool sendTrackPoints(const std::string &payload);
 }
 
 /**

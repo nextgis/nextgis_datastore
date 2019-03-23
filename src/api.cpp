@@ -32,6 +32,7 @@
 #endif
 
 #include "catalog/catalog.h"
+#include "catalog/ngw.h"
 #include "catalog/mapfile.h"
 #include "catalog/folder.h"
 #include "catalog/factories/connectionfactory.h"
@@ -4183,6 +4184,21 @@ static TracksTable *getTracksTableFromHandle(CatalogObjectH object)
     }
 
     return ngsDynamicCast(TracksTable, catalogObjectPointer);
+}
+
+/**
+ * @brief ngsTrackIsRegistered Check if tracker is registered at track.nextgis.com
+ * @return 1 if registered or 0 if not.
+ */
+char ngsTrackIsRegistered()
+{
+    CPLJSONDocument checkReq;
+    CPLStringList headers;
+    headers.AddNameValue("HEADERS", "Accept: */*");
+    if(checkReq.LoadUrl(ngw::getTrackerUrl() + "/registered", headers)) {
+        return checkReq.GetRoot().GetBool("registered", false);
+    }
+    return 0;
 }
 
 /**

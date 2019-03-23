@@ -46,6 +46,9 @@ int outMessage(enum ngsCode errorCode, const char *fmt, ...)
 
 bool errorMessage(const char *fmt, ...)
 {
+    if(nullptr == fmt || EQUAL(fmt, "")) {
+        return true; // No error
+    }
     va_list args;
 
     // Expand the error message

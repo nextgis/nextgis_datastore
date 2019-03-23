@@ -556,6 +556,7 @@ typedef struct _ngsTrackInfo {
 
 NGS_EXTERNC CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store);
 NGS_EXTERNC char ngsStoreHasTracksTable(CatalogObjectH store);
+NGS_EXTERNC char ngsTrackIsRegistered();
 NGS_EXTERNC void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount);
 NGS_EXTERNC ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable);
 //TODO: NGS_EXTERNC char ngsTrackExport(long start, long stop, const char *path);

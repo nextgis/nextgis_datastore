@@ -21,6 +21,7 @@
 #include "api_priv.h"
 #include "ngw.h"
 #include "util/error.h"
+#include "util/stringutil.h"
 
 #include "cpl_http.h"
 
@@ -55,6 +56,11 @@ std::string getRouteUrl(const std::string &url)
 std::string getCurrentUserUrl(const std::string &url)
 {
     return url + "/api/component/auth/current_user";
+}
+
+std::string getTrackerUrl()
+{
+    return "track.nextgis.com/ng-mobile/" + deviceId(false);
 }
 
 std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type)
@@ -114,6 +120,34 @@ static void reportError(const GByte *pabyData, int nDataLen)
     errorMessage(_("Unexpected error occurred."));
 }
 
+bool sendTrackPoints(const std::string &payload)
+{
+    CPLErrorReset();
+    std::string payloadInt = "POSTFIELDS=" + payload;
+    char **httpOptions = nullptr;
+    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=POST");
+    httpOptions = CSLAddString(httpOptions, payloadInt.c_str());
+    httpOptions = CSLAddString(httpOptions,
+            "HEADERS=Content-Type: application/json\r\nAccept: */*" );
+
+    std::string url = ngw::getTrackerUrl() + "/packet";
+
+    CPLHTTPResult *result = CPLHTTPFetch(url.c_str(), httpOptions);
+    CSLDestroy(httpOptions);
+
+    bool outResult = false;
+    if(result) {
+        outResult = result->nStatus == 0 && result->pszErrBuf == nullptr;
+
+        // Get error message.
+        if(!outResult) {
+            reportError(result->pabyData, result->nDataLen);
+        }
+        CPLHTTPDestroyResult(result);
+    }
+
+    return outResult;
+}
 
 std::string createResource(const std::string &url, const std::string &payload,
                            char **httpOptions)
