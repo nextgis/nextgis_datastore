@@ -484,7 +484,7 @@ TracksTable::TracksTable(OGRLayer *layer, ObjectContainer * const parent) :
     }
 }
 
-static long dateFieldToLong(const FeaturePtr &feature, int field)
+static long dateFieldToLong(const FeaturePtr &feature, int field, bool isString = true)
 {
     int year = 0;
     int month = 0;
@@ -493,8 +493,14 @@ static long dateFieldToLong(const FeaturePtr &feature, int field)
     int minute = 0;
     int second = 0;
 
-    sscanf(feature->GetFieldAsString(field), "%d-%d-%dT%d:%d:%dZ",
+    if(isString) {
+        sscanf(feature->GetFieldAsString(field), "%d-%d-%dT%d:%d:%dZ",
               &year, &month, &day, &hour, &minute, &second);
+    }
+    else {
+        feature->GetFieldAsDateTime(field, &year, &month, &day, &hour, &minute,
+                                    &second, nullptr);
+    }
     struct tm timeInfo = {second, minute, hour, day, month - 1, year - 1900};
     return mktime(&timeInfo);
 }
@@ -524,18 +530,18 @@ void TracksTable::sync(int maxPointCount)
 
     while((feature = nextFeature())) {
         OGRGeometry *geom = feature->GetGeometryRef();
-        if(geom && geom->transform(ct) == OGRERR_NONE) {
+        OGRPoint *pt = static_cast<OGRPoint*>(geom);
+        if(pt && pt->transform(ct) == OGRERR_NONE) {
             if(first > feature->GetFID()) {
                 first = feature->GetFID();
             }
             if(last < feature->GetFID()) {
                 last = feature->GetFID();
             }
-            OGRPoint *pt = static_cast<OGRPoint*>(geom);
             CPLJSONObject item;
             item.Add("lt", pt->getY());
             item.Add("ln", pt->getX());
-            GInt64 timestamp = dateFieldToLong(feature, timeIndex);
+            GInt64 timestamp = dateFieldToLong(feature, timeIndex, false);
             item.Add("ts", timestamp);
             item.Add("a", feature->GetFieldAsDouble(eleIndex));
             item.Add("s", feature->GetFieldAsInteger(satIndex));
@@ -561,6 +567,7 @@ void TracksTable::sync(int maxPointCount)
         }
     }
     setAttributeFilter("");
+    OGRCoordinateTransformation::DestroyCT(ct);
 
     if(payload->Size() > 0) {
         if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::Plain))) {
@@ -621,7 +628,8 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     feature->SetField("track_seg_point_id", ++m_lastSegmentPtId);
 
     feature->SetField("track_name", name.c_str());
-    std::tm *gmtTime = std::gmtime(&timeStamp);
+    long gmtTimeStamp = timeStamp / 1000;
+    std::tm *gmtTime = std::gmtime(&gmtTimeStamp);
     feature->SetField("time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
             gmtTime->tm_min, gmtTime->tm_sec);
     feature->SetField("sat", satCount);

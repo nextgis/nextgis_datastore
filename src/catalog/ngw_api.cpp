@@ -60,7 +60,7 @@ std::string getCurrentUserUrl(const std::string &url)
 
 std::string getTrackerUrl()
 {
-    return "track.nextgis.com/ng-mobile/" + deviceId(false);
+    return "track.nextgis.com/ng-mobile/" + deviceId(false); //std::string("971f1-ffc-0f7073");//
 }
 
 std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type)

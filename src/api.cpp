@@ -4248,13 +4248,13 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
  * @brief ngsTrackAddPoint Add point to tracks table.
  * @param tracksTable Table handle.
  * @param trackName Track name.
- * @param x X coordinate.
- * @param y Y coordinate.
+ * @param x X coordinate (EPSG:3857).
+ * @param y Y coordinate (EPSG:3857).
  * @param z Z coordinate.
  * @param acc Accuracy.
  * @param speed Speed.
  * @param course Course.
- * @param timeStamp Time stamp.
+ * @param timeStamp Time stamp (UTC in millieconds).
  * @param satCount Satellite count using to get fix.
  * @param newTrack Is this point start new track.
  * @param newSegment Is this point start new segment.

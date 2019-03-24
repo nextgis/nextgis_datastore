@@ -784,6 +784,11 @@ TEST(DataStoreTests, TestCreateFeature) {
     ngsUnInit();
 }
 
+static long gpsTime()
+{
+    return time(nullptr) * 1000;
+}
+
 TEST(DataStoreTest, TestTracksTable) {
     char** options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
@@ -816,29 +821,29 @@ TEST(DataStoreTest, TestTracksTable) {
 
     EXPECT_EQ(ngsStoreHasTracksTable(store), 1);
 
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, time(nullptr), 0, 1, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, time(nullptr), 1, 0, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, time(nullptr), 2, 0, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, time(nullptr), 3, 0, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, time(nullptr), 4, 0, 0), 1);
-    CPLSleep(1.0);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, gpsTime(), 0, 1, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, gpsTime(), 1, 0, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, gpsTime(), 2, 0, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, gpsTime(), 3, 0, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, gpsTime(), 4, 0, 0), 1);
+    CPLSleep(2.0);
     // New segment
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, time(nullptr), 5, 0, 1), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, time(nullptr), 6, 0, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, time(nullptr), 7, 0, 0), 1);
-    CPLSleep(1.0);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, gpsTime(), 5, 0, 1), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, gpsTime(), 6, 0, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test1", 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, gpsTime(), 7, 0, 0), 1);
+    CPLSleep(2.0);
     // New track
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, time(nullptr), 8, 1, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, time(nullptr), 9, 0, 0), 1);
-    CPLSleep(0.5);
-    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, time(nullptr), 10, 0, 0), 1);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, gpsTime(), 8, 1, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, gpsTime(), 9, 0, 0), 1);
+    CPLSleep(1.5);
+    EXPECT_EQ(ngsTrackAddPoint(tracks, "test2", 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, gpsTime(), 10, 0, 0), 1);
 
     counter = 0;
     ngsTrackInfo *info = ngsTrackGetList(tracks);
