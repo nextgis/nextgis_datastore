@@ -58,10 +58,13 @@
 // 1. CMake add generate translation macros
 // 2. Load translation catalog files code
 // 3. Init locale, etc.
+// https://www.gnu.org/software/gettext/manual/html_node/Mark-Keywords.html
 #ifdef HAVE_LIBINTL_H
-#include <libintl.h>
+//#include <libintl.h>
+//#define _(String) gettext (String)
+#define _(String) (String)
 #else
-#define gettext(String) (String)
+//#define gettext(String) (String)
 #define _(String) (String)
 #endif
 
