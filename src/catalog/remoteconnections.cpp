@@ -32,6 +32,8 @@
 #include "util/notify.h"
 #include "util/stringutil.h"
 
+#include <algorithm>
+
 namespace ngs {
 
 constexpr const char *GIS_CONN_DIR = "gisconnections";
@@ -114,7 +116,7 @@ void Connections::refresh()
         // Delete objects
         auto it = m_children.begin();
         while(it != m_children.end()) {
-            std::string name = (*it)->name();
+            auto name = (*it)->name();
             auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
             if(itdn != deleteNames.end()) {
                 deleteNames.erase(itdn);
