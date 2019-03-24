@@ -114,7 +114,7 @@ void Connections::refresh()
         // Delete objects
         auto it = m_children.begin();
         while(it != m_children.end()) {
-            auto name = (*it)->name();
+            std::string name = (*it)->name();
             auto itdn = std::find(deleteNames.begin(), deleteNames.end(), name);
             if(itdn != deleteNames.end()) {
                 deleteNames.erase(itdn);
