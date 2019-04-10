@@ -144,7 +144,7 @@ public:
     std::vector<TrackInfo> getTracks() const;
     bool addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed, float course,
             long timeStamp, int satCount, bool newTrack, bool newSegment);
-    // Use copyFeatures for export
+    void deletePoints(long start, long end);
 
     // Object interface
 public:

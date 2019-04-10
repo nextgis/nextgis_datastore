@@ -159,7 +159,6 @@ const char *ngsGetVersionString(const char *request)
 /**
  * @brief ngsInit Init library structures
  * @param options Init library options list:
- * - APP_NAME - application name to test function availability in account
  * - CACHE_DIR - path to cache files directory (mainly for TMS/WMS cache)
  * - SETTINGS_DIR - path to settings directory
  * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
@@ -211,7 +210,7 @@ int ngsInit(char **options)
     }
 
     const char *appName = CSLFetchNameValue(options, "APP_NAME");
-    if(appName) {
+    if(appName && !EQUAL(appName, "")) {
         CPLSetConfigOption("APP_NAME", appName);
         CPLDebug("ngstore", "APP_NAME set to %s", appName);
     }
@@ -4145,6 +4144,13 @@ CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store)
         outMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
+
+    if(!dataStore->isOpened()) {
+        if(!dataStore->open()) {
+            return nullptr;
+        }
+    }
+
     return dataStore->getTracksTable().get();
 }
 
@@ -4159,6 +4165,12 @@ char ngsStoreHasTracksTable(CatalogObjectH store)
     if(!dataStore) {
         outMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return API_FALSE;
+    }
+
+    if(!dataStore->isOpened()) {
+        if(!dataStore->open()) {
+            return API_FALSE;
+        }
     }
 
     return dataStore->hasTracksTable() ? API_TRUE : API_FALSE;
@@ -4196,9 +4208,9 @@ char ngsTrackIsRegistered()
     CPLStringList headers;
     headers.AddNameValue("HEADERS", "Accept: */*");
     if(checkReq.LoadUrl(ngw::getTrackerUrl() + "/registered", headers)) {
-        return checkReq.GetRoot().GetBool("registered", false);
+        return checkReq.GetRoot().GetBool("registered", false) ? API_TRUE : API_FALSE;
     }
-    return 0;
+    return API_FALSE;
 }
 
 /**
@@ -4245,16 +4257,16 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
 }
 
 /**
- * @brief ngsTrackAddPoint Add point to tracks table.
+ * @brief ngsTrackAddPoint Add point to a tracks table.
  * @param tracksTable Table handle.
  * @param trackName Track name.
- * @param x X coordinate (EPSG:3857).
- * @param y Y coordinate (EPSG:3857).
+ * @param x X coordinate (EPSG:4326).
+ * @param y Y coordinate (EPSG:4326).
  * @param z Z coordinate.
  * @param acc Accuracy.
  * @param speed Speed.
  * @param course Course.
- * @param timeStamp Time stamp (UTC in millieconds).
+ * @param timeStamp Time stamp (UTC in milliseconds).
  * @param satCount Satellite count using to get fix.
  * @param newTrack Is this point start new track.
  * @param newSegment Is this point start new segment.
@@ -4271,4 +4283,24 @@ char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double 
 
     return table->addPoint(fromCString(trackName), x, y, z, acc, speed, course, timeStamp, satCount, newTrack,
             newSegment) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * ngsTrackDeletePoints Delete points from a tracks table.
+ *
+ * @param tracksTable Table handle.
+ * @param start Start timestamp.
+ * @param stop End timestamp.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop)
+{
+    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    if(!table) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return API_FALSE;
+    }
+
+    table->deletePoints(start, stop);
+    return EQUAL(getLastError(), "") ? API_TRUE : API_FALSE;
 }

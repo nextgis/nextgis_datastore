@@ -84,6 +84,7 @@ void resetError()
 {
     CPLLockHolderD(&hAtomicOpLock, LOCK_SPIN);
     gLastMsg.clear();
+    CPLErrorReset();
 }
 
 }

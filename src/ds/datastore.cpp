@@ -427,7 +427,7 @@ bool DataStore::upgrade(int oldVersion)
 
 void DataStore::enableJournal(bool enable)
 {
-    if(enable) {        
+    if(enable) {
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
             // executeSQL("PRAGMA synchronous = FULL", "SQLITE");
@@ -547,11 +547,10 @@ bool DataStore::hasTracksTable() const
 
 bool DataStore::createTracksTable()
 {
-    if(!isOpened()) {
-        if(!open()) {
-            return false;
-        }
+    if(nullptr == m_DS) {
+        return false;
     }
+
     CPLStringList options;
     options.AddString("GEOMETRY_NULLABLE=NO");
     options.AddString("SPATIAL_INDEX=NO");
@@ -568,19 +567,19 @@ bool DataStore::createTracksTable()
 
     // Add fields
 
-    OGRFieldDefn trackFIDField("track_fid", OFTInteger );
+    OGRFieldDefn trackFIDField("track_fid", OFTInteger);
     trackFIDField.SetNullable(FALSE);
     if(layer->CreateField(&trackFIDField) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn trackSeqIDField("track_seg_id", OFTInteger );
+    OGRFieldDefn trackSeqIDField("track_seg_id", OFTInteger);
     trackSeqIDField.SetNullable(FALSE);
     if(layer->CreateField(&trackSeqIDField) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn trackSeqPtIDField("track_seg_point_id", OFTInteger );
+    OGRFieldDefn trackSeqPtIDField("track_seg_point_id", OFTInteger);
     trackSeqPtIDField.SetNullable(FALSE);
     if(layer->CreateField(&trackSeqPtIDField) != OGRERR_NONE) {
         return false;
@@ -626,13 +625,13 @@ bool DataStore::createTracksTable()
 //        return false;
 //    }
 
-    OGRFieldDefn descField("desc", OFTString );
+    OGRFieldDefn descField("desc", OFTString);
     descField.SetDefault(NGS_USERAGENT);
     if(layer->CreateField(&descField) != OGRERR_NONE) {
         return false;
     }
 
-    OGRFieldDefn srcField("src", OFTString );
+    OGRFieldDefn srcField("src", OFTString);
     const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
     srcField.SetDefault(appName);
     if(layer->CreateField(&srcField) != OGRERR_NONE) {
@@ -755,4 +754,3 @@ ObjectPtr DataStore::getTracksTable()
 }
 
 } // namespace ngs
-

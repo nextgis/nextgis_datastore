@@ -70,6 +70,7 @@ public:
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
+    virtual Properties properties(const std::string &domain) const override;
 
 protected:
     int pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,

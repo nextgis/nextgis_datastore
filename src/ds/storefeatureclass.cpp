@@ -25,6 +25,12 @@
 #include "catalog/file.h"
 #include "catalog/folder.h"
 #include "catalog/ngw.h"
+#include "ngstore/version.h"
+#include "util/error.h"
+
+#ifdef WIN32
+#define timegm _mkgmtime
+#endif
 
 namespace ngs {
 
@@ -502,7 +508,7 @@ static long dateFieldToLong(const FeaturePtr &feature, int field, bool isString 
                                     &second, nullptr);
     }
     struct tm timeInfo = {second, minute, hour, day, month - 1, year - 1900};
-    return mktime(&timeInfo);
+    return timegm(&timeInfo);
 }
 
 void TracksTable::sync(int maxPointCount)
@@ -638,15 +644,34 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     feature->SetField("pdop", static_cast<double>(accuracy));
     feature->SetField("fix", satCount > 3 ? "3d" : "2d");
     feature->SetField("ele", z);
+    feature->SetField("desc", NGS_USERAGENT);
 
-    feature->SetGeometryDirectly(new OGRPoint(x, y));
+    OGRPoint *newPt = new OGRPoint(x, y);
+    newPt->assignSpatialReference(OGRSpatialReference::GetWGS84SRS());
+    newPt->transformTo(m_spatialReference);
+    feature->SetGeometryDirectly(newPt);
 
-    CPLErrorReset();
+    resetError();
     // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return m_layer->CreateFeature(feature) == OGRERR_NONE;
 }
 
+static std::string longToISO(long timeStamp)
+{
+    long gmtTimeStamp = timeStamp / 1000;
+    std::tm *gmtTime = std::gmtime(&gmtTimeStamp);
+    return CPLSPrintf("%d-%d-%dT%d:%d:%dZ", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
+                      gmtTime->tm_min, gmtTime->tm_sec);
+}
+
+void TracksTable::deletePoints(long start, long end)
+{
+    resetError();
+    Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
+    dataset->executeSQL("DELETE FROM nga_tracks WHERE time_stamp >= '" + longToISO(start) +
+    "' AND time_stamp <= '" + longToISO(end) + "'", "SQLITE");
+}
 
 ObjectPtr TracksTable::pointer() const
 {

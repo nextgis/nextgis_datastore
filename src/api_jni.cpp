@@ -2269,6 +2269,13 @@ NGS_JNI_FUNC(jlong, storeGetTracksTable)(JNIEnv *env, jobject thisObj, jlong obj
     return reinterpret_cast<jlong>(ngsStoreGetTracksTable(reinterpret_cast<CatalogObjectH>(object)));
 }
 
+NGS_JNI_FUNC(jboolean, trackIsRegistered)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsTrackIsRegistered() == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
 NGS_JNI_FUNC(void, trackSync)(JNIEnv *env, jobject thisObj, jlong object, jint maxPointCount)
 {
     ngsUnused(thisObj);
@@ -2299,12 +2306,6 @@ NGS_JNI_FUNC(jobjectArray, trackGetList)(JNIEnv *env, jobject thisObj, jlong obj
     return array;
 }
 
-//NGS_JNI_FUNC(jboolean, trackExport)(JNIEnv *env, jobject thisObj, jlong start, jlong stop, jstring path)
-//{
-//    ngsUnused(thisObj);
-//    return ngsTrackExport(start, stop, jniString(env, path).c_str()) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
-//}
-
 NGS_JNI_FUNC(jboolean, trackAddPoint)(JNIEnv *env, jobject thisObj, jlong object, jstring name, jdouble x, jdouble y, jdouble z,
                                       jfloat acc, jfloat speed, jfloat course, jlong timeStamp, jint satCount,
                                       jboolean newTrack, jboolean newSegment)
@@ -2312,4 +2313,10 @@ NGS_JNI_FUNC(jboolean, trackAddPoint)(JNIEnv *env, jobject thisObj, jlong object
     ngsUnused(thisObj);
     return ngsTrackAddPoint(reinterpret_cast<CatalogObjectH>(object), jniString(env, name).c_str(), x, y, z, acc,
             speed, course, timeStamp, satCount, newTrack, newSegment) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, trackDeletePoints)(JNIEnv *env, jobject thisObj, jlong object, jlong start, jlong stop)
+{
+    ngsUnused(thisObj);
+    return ngsTrackDeletePoints(reinterpret_cast<CatalogObjectH>(object), start, stop) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }

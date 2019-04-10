@@ -110,12 +110,6 @@ if(IOS)
 
 endif()
 
-set(OBJ_LIBRARIES)
-add_subdirectory (ds)
-add_subdirectory (catalog)
-add_subdirectory (map)
-add_subdirectory (util)
-
 if(ANDROID)
     add_definitions(-DNGS_ABI="Android ${ANDROID_ABI}" -DNGS_MOBILE)
 elseif(IOS)
@@ -129,6 +123,13 @@ else()
         add_definitions(-DNGS_ABI="UNIX")
     endif()
 endif()
+
+set(OBJ_LIBRARIES)
+add_subdirectory (ds)
+add_subdirectory (catalog)
+add_subdirectory (map)
+add_subdirectory (util)
+
 
 set(LIB_NAME ${PROJECT_NAME})
 if(WIN32)

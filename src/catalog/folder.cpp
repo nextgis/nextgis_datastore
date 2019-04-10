@@ -283,6 +283,16 @@ bool Folder::canDestroy() const
     return !isReadOnly(); // FIXME: Do we need to check parent can write too?
 }
 
+Properties Folder::properties(const std::string &domain) const
+{
+    if(domain.empty()) {
+        Properties out;
+        out.add("system_path", m_path);
+        return out;
+    }
+    return ObjectContainer::properties(domain);
+}
+
 void Folder::refresh()
 {
     if(!m_childrenLoaded) {
@@ -410,8 +420,8 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
                           child->name().c_str());
     }
 
-    // Check function available
-    if(srcFClass->featureCount() > 1000) {
+    // Check function available except GPX.
+    if(dstType != CAT_FC_GPX && srcFClass->featureCount() > 1000) {
         const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
         if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
             return outMessage(COD_FUNCTION_NOT_AVAILABLE,

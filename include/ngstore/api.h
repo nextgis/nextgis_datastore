@@ -559,10 +559,10 @@ NGS_EXTERNC char ngsStoreHasTracksTable(CatalogObjectH store);
 NGS_EXTERNC char ngsTrackIsRegistered();
 NGS_EXTERNC void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount);
 NGS_EXTERNC ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable);
-//TODO: NGS_EXTERNC char ngsTrackExport(long start, long stop, const char *path);
 NGS_EXTERNC char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double x, double y, double z,
                                   float acc, float speed, float course, long timeStamp, int satCount, char newTrack,
                                   char newSegment);
+NGS_EXTERNC char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop);
 
 
 #endif // NGSAPI_H
