@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -79,7 +79,7 @@ GlFeatureLayer::GlFeatureLayer(Map *map, const std::string &name) :
 bool GlFeatureLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 {
     ngsUnused(isLastTry);
-    if(!m_visible) {
+    if(!(m_visible && tile->getTile().z > m_minZoom && tile->getTile().z < m_maxZoom)) {
         MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;
@@ -986,7 +986,7 @@ GlRasterLayer::GlRasterLayer(Map *map, const std::string &name) :
 
 bool GlRasterLayer::fill(const GlTilePtr &tile, float z, bool isLastTry)
 {
-    if(!m_visible) {
+    if(!(m_visible && tile->getTile().z > m_minZoom && tile->getTile().z < m_maxZoom)) {
         MutexHolder holder(m_dataMutex, LOCK_TIME);
         m_tiles[tile->getTile()] = GlObjectPtr();
         return true;

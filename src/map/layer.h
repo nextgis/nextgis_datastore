@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -63,12 +63,17 @@ public:
     virtual std::string name() const { return m_name; }
     virtual void setName(const std::string &name) { m_name = name; }
     virtual bool visible() const { return m_visible; }
+    virtual float minZoom() const { return m_minZoom; }
+    virtual float maxZoom() const { return m_maxZoom; }
     virtual void setVisible(bool visible) { m_visible = visible; }
+    virtual void setMinZoom(float zoom) { m_minZoom = zoom; }
+    virtual void setMaxZoom(float zoom) { m_maxZoom = zoom; }
     Map *map() const { return m_map; }
 protected:
     std::string m_name;
     enum Type m_type;
     bool m_visible;
+    float m_minZoom, m_maxZoom;
     Map *m_map;
 };
 

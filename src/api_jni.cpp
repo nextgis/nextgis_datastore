@@ -164,7 +164,7 @@ static char **toOptions(JNIEnv *env, jobjectArray optionsArray)
     int count = env->GetArrayLength(optionsArray);
     char **nativeOptions = nullptr;
     for (int i = 0; i < count; ++i) {
-        jstring option = (jstring) (env->GetObjectArrayElement(optionsArray, i));
+        auto option = reinterpret_cast<jstring>(env->GetObjectArrayElement(optionsArray, i));
         nativeOptions = CSLAddString(nativeOptions, jniString(env, option).c_str());
     }
 
@@ -221,7 +221,7 @@ static bool getClassInitMethod(JNIEnv *env, const char *className, const char *s
                                jclass &classVar, jmethodID &methodVar)
 {
     jclass clazz = env->FindClass(className);
-    classVar = static_cast<jclass>(env->NewGlobalRef(clazz));
+    classVar = reinterpret_cast<jclass>(env->NewGlobalRef(clazz));
     methodVar = env->GetMethodID(classVar, "<init>", signature);
 
     return methodVar != nullptr;
@@ -237,10 +237,10 @@ NGS_JNI_FUNC(jboolean, init)(JNIEnv *env, jobject thisObj, jobjectArray optionsA
     CSLDestroy(nativeOptions);
 
     jclass clazz = env->FindClass("com/nextgis/maplib/API");
-    g_APIClass = static_cast<jclass>(env->NewGlobalRef(clazz));
+    g_APIClass = reinterpret_cast<jclass>(env->NewGlobalRef(clazz));
 
     clazz = env->FindClass("java/lang/String");
-    g_StringClass = static_cast<jclass>(env->NewGlobalRef(clazz));
+    g_StringClass = reinterpret_cast<jclass>(env->NewGlobalRef(clazz));
 
     // register callback function: notify
     g_NotifyMid = env->GetStaticMethodID(g_APIClass, "notifyBridgeFunction", "(Ljava/lang/String;I)V");
@@ -310,7 +310,7 @@ NGS_JNI_FUNC(jboolean, init)(JNIEnv *env, jobject thisObj, jobjectArray optionsA
         return NGS_JNI_FALSE;
     }
 
-    if(!getClassInitMethod(env, "com/nextgis/maplib/TrackInfoInt", "(Ljava/lang/String;JJ)V", g_TrackInfoClass, g_TrackInfoInitMid)) {
+    if(!getClassInitMethod(env, "com/nextgis/maplib/TrackInfoInt", "(Ljava/lang/String;JJJ)V", g_TrackInfoClass, g_TrackInfoInitMid)) {
         return NGS_JNI_FALSE;
     }
 
@@ -784,7 +784,7 @@ NGS_JNI_FUNC(jlong, catalogObjectGet)(JNIEnv *env, jobject /* this */, jstring p
 static jobjectArray catalogObjectQueryToJobjectArray(JNIEnv *env, ngsCatalogObjectInfo *info)
 {
     if(nullptr == info) {
-        return env->NewObjectArray(0, g_CatalogObjectInfoClass, 0);
+        return env->NewObjectArray(0, g_CatalogObjectInfoClass, nullptr);
     }
 
     std::vector<jobject> infoArray;
@@ -799,7 +799,7 @@ static jobjectArray catalogObjectQueryToJobjectArray(JNIEnv *env, ngsCatalogObje
         counter++;
     }
 
-    jobjectArray array = env->NewObjectArray(static_cast<jsize>(infoArray.size()), g_CatalogObjectInfoClass, 0);
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(infoArray.size()), g_CatalogObjectInfoClass, nullptr);
     for(int i = 0; i < infoArray.size(); ++i) {
         env->SetObjectArrayElement(array, i, infoArray[i]);
     }
@@ -899,6 +899,12 @@ NGS_JNI_FUNC(jstring, catalogObjectName)(JNIEnv *env, jobject thisObj, jlong obj
     return env->NewStringUTF(ngsCatalogObjectName(reinterpret_cast<CatalogObjectH>(object)));
 }
 
+NGS_JNI_FUNC(jstring, catalogObjectPath)(JNIEnv *env, jobject thisObj, jlong object)
+{
+    ngsUnused(thisObj);
+    return env->NewStringUTF(ngsCatalogObjectPath(reinterpret_cast<CatalogObjectH>(object)));
+}
+
 NGS_JNI_FUNC(jobject, catalogObjectProperties)(JNIEnv *env, jobject thisObj, jlong object, jstring domain)
 {
     ngsUnused(thisObj);
@@ -960,7 +966,7 @@ NGS_JNI_FUNC(jobjectArray, featureClassFields)(JNIEnv *env, jobject thisObj, jlo
     ngsUnused(thisObj);
     ngsField *fields = ngsFeatureClassFields(reinterpret_cast<CatalogObjectH>(object));
     if(nullptr == fields) {
-        return env->NewObjectArray(0, g_CatalogObjectInfoClass, 0);
+        return env->NewObjectArray(0, g_CatalogObjectInfoClass, nullptr);
     }
 
     std::vector<jobject> fieldArray;
@@ -976,7 +982,7 @@ NGS_JNI_FUNC(jobjectArray, featureClassFields)(JNIEnv *env, jobject thisObj, jlo
         counter++;
     }
 
-    jobjectArray array = env->NewObjectArray(static_cast<jsize>(fieldArray.size()), g_FieldClass, 0);
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(fieldArray.size()), g_FieldClass, nullptr);
     for(int i = 0; i < fieldArray.size(); ++i) {
         env->SetObjectArrayElement(array, i, fieldArray[i]);
     }
@@ -1136,7 +1142,7 @@ NGS_JNI_FUNC(jobjectArray, featureClassGetEditOperations)(JNIEnv *env, jobject t
     }
     ngsFree(out);
 
-    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_EditOperationClass, 0);
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_EditOperationClass, nullptr);
     for(int i = 0; i < obArray.size(); ++i) {
         env->SetObjectArrayElement(array, i, obArray[i]);
     }
@@ -1437,7 +1443,7 @@ NGS_JNI_FUNC(jobject, featureAttachmentsGet)(JNIEnv *env, jobject thisObj, jlong
 
     ngsFree(out);
 
-    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_AttachmentClass, 0);
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_AttachmentClass, nullptr);
     for(int i = 0; i < obArray.size(); ++i) {
         env->SetObjectArrayElement(array, i, obArray[i]);
     }
@@ -1517,7 +1523,7 @@ NGS_JNI_FUNC(jboolean, mapClose)(JNIEnv *env, jobject thisObj, jint mapId)
 NGS_JNI_FUNC(jint, mapReopen)(JNIEnv *env, jobject thisObj, jint mapId, jstring path)
 {
     ngsUnused(thisObj);
-    return static_cast<jint>(ngsMapReopen(mapId, jniString(env, path).c_str()));
+    return static_cast<jint>(ngsMapReopen(static_cast<char>(mapId), jniString(env, path).c_str()));
 }
 
 NGS_JNI_FUNC(jint, mapLayerCount)(JNIEnv *env, jobject thisObj, jint mapId)
@@ -1564,7 +1570,7 @@ NGS_JNI_FUNC(jboolean, mapSetSize)(JNIEnv *env, jobject thisObj, jint mapId, jin
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    return ngsMapSetSize(static_cast<char>(mapId), width, height, YAxisInverted ? 1 : 0) == COD_SUCCESS ?
+    return ngsMapSetSize(static_cast<char>(mapId), width, height, static_cast<char>(YAxisInverted ? 1 : 0)) == COD_SUCCESS ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
@@ -1756,7 +1762,7 @@ NGS_JNI_FUNC(jboolean, mapIconSetAdd)(JNIEnv *env, jobject thisObj, jint mapId, 
 {
     ngsUnused(thisObj);
     return ngsMapIconSetAdd(static_cast<char>(mapId), jniString(env, name).c_str(),
-                            jniString(env, path).c_str(), ownByMap ? 1 : 0) == COD_SUCCESS ?
+                            jniString(env, path).c_str(), static_cast<char>(ownByMap ? 1 : 0)) == COD_SUCCESS ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
@@ -1798,11 +1804,41 @@ NGS_JNI_FUNC(jboolean, layerGetVisible)(JNIEnv *env, jobject thisObj, jlong laye
     return ngsLayerGetVisible(reinterpret_cast<LayerH>(layer)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
+NGS_JNI_FUNC(jfloat, layerGetMaxZoom)(JNIEnv *env, jobject thisObj, jlong layer)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    return ngsLayerGetMaxZoom(reinterpret_cast<LayerH>(layer));
+}
+
+NGS_JNI_FUNC(jfloat, layerGetMinZoom)(JNIEnv *env, jobject thisObj, jlong layer)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    return ngsLayerGetMinZoom(reinterpret_cast<LayerH>(layer));
+}
+
 NGS_JNI_FUNC(jboolean, layerSetVisible)(JNIEnv *env, jobject thisObj, jlong layer, jboolean visible)
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    return ngsLayerSetVisible(reinterpret_cast<LayerH>(layer), visible ? 1 : 0) == COD_SUCCESS ?
+    return ngsLayerSetVisible(reinterpret_cast<LayerH>(layer), static_cast<char>(visible ? 1 : 0)) == COD_SUCCESS ?
+           NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, layerSetMaxZoom)(JNIEnv *env, jobject thisObj, jlong layer, jfloat zoom)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    return ngsLayerSetMaxZoom(reinterpret_cast<LayerH>(layer), zoom) == COD_SUCCESS ?
+           NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, layerSetMinZoom)(JNIEnv *env, jobject thisObj, jlong layer, jfloat zoom)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    return ngsLayerSetMinZoom(reinterpret_cast<LayerH>(layer), zoom) == COD_SUCCESS ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
@@ -1970,7 +2006,7 @@ NGS_JNI_FUNC(jboolean, editOverlayCreateGeometryInLayer)(JNIEnv *env, jobject th
     ngsUnused(env);
     ngsUnused(thisObj);
     return ngsEditOverlayCreateGeometryInLayer(static_cast<char>(mapId),
-                                               reinterpret_cast<LayerH>(layer), empty ? 1 : 0) == COD_SUCCESS ?
+                                               reinterpret_cast<LayerH>(layer), static_cast<char>(empty ? 1 : 0)) == COD_SUCCESS ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
@@ -2091,7 +2127,7 @@ NGS_JNI_FUNC(void, editOverlaySetWalkingMode)(JNIEnv *env, jobject thisObj, jint
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    ngsEditOverlaySetWalkingMode(static_cast<char>(mapId), enable ? 1 : 0);
+    ngsEditOverlaySetWalkingMode(static_cast<char>(mapId), static_cast<char>(enable ? 1 : 0));
 }
 
 NGS_JNI_FUNC(jboolean, editOverlayGetWalkingMode)(JNIEnv *env, jobject thisObj, jint mapId)
@@ -2164,7 +2200,7 @@ NGS_JNI_FUNC(jobjectArray, QMSQuery)(JNIEnv *env, jobject thisObj, jobjectArray 
     }
     ngsFree(result);
 
-    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_QMSItemClass, 0);
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_QMSItemClass, nullptr);
     for(int i = 0; i < obArray.size(); ++i) {
         env->SetObjectArrayElement(array, i, obArray[i]);
     }
@@ -2289,17 +2325,20 @@ NGS_JNI_FUNC(jobjectArray, trackGetList)(JNIEnv *env, jobject thisObj, jlong obj
     int counter = 0;
     ngsTrackInfo *list = ngsTrackGetList(reinterpret_cast<CatalogObjectH>(object));
     std::vector<jobject> obArray;
-    while(list[counter].startTimeStamp != -1) {
-        jvalue args[3];
-        args[0].l = env->NewStringUTF(list[counter].name);
-        args[1].j = list[counter].startTimeStamp;
-        args[2].j = list[counter].stopTimeStamp;
-        obArray.push_back(env->NewObjectA(g_TrackInfoClass, g_TrackInfoInitMid, args));
-        counter++;
+    if(list) {
+        while (list[counter].startTimeStamp != -1) {
+            jvalue args[4];
+            args[0].l = env->NewStringUTF(list[counter].name);
+            args[1].j = list[counter].startTimeStamp;
+            args[2].j = list[counter].stopTimeStamp;
+            args[3].j = list[counter].count;
+            obArray.push_back(env->NewObjectA(g_TrackInfoClass, g_TrackInfoInitMid, args));
+            counter++;
+        }
+        ngsFree(list);
     }
-    ngsFree(list);
 
-    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_TrackInfoClass, 0);
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(obArray.size()), g_TrackInfoClass, nullptr);
     for(int i = 0; i < obArray.size(); ++i) {
         env->SetObjectArrayElement(array, i, obArray[i]);
     }
@@ -2317,6 +2356,7 @@ NGS_JNI_FUNC(jboolean, trackAddPoint)(JNIEnv *env, jobject thisObj, jlong object
 
 NGS_JNI_FUNC(jboolean, trackDeletePoints)(JNIEnv *env, jobject thisObj, jlong object, jlong start, jlong stop)
 {
+    ngsUnused(env);
     ngsUnused(thisObj);
     return ngsTrackDeletePoints(reinterpret_cast<CatalogObjectH>(object), start, stop) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }

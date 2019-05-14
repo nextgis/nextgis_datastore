@@ -77,6 +77,10 @@ static void initGDAL(const char *dataPath, const char *cachePath)
     if(cachePath) {
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
         settings.set("common/cache_path", std::string(cachePath));
+
+        // https://www.sqlite.org/c3ref/temp_directory.html
+        // https://www.sqlite.org/tempfiles.html
+        setenv("SQLITE_TMPDIR", cachePath, 1);
     }
 
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
@@ -170,6 +174,7 @@ const char *ngsGetVersionString(const char *request)
  * - HOME - Root directory for library
  * - APP_NAME - Application name for logs and check function availability
  * - CRYPT_KEY - Key to encrypt/decrypt passwords
+ * - NEXTGIS_TRACKER_API - Tracker API endpoint URL
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsInit(char **options)
@@ -221,6 +226,11 @@ int ngsInit(char **options)
         CPLDebug("ngstore", "CRYPT_KEY set to %s", cryptKey);
     }
 
+    const char *trackerApiEndpoint = CSLFetchNameValue(options, "NEXTGIS_TRACKER_API");
+    if(trackerApiEndpoint) {
+        Settings::instance().set("nextgis/track_api", trackerApiEndpoint);
+        CPLDebug("ngstore", "NEXTGIS_TRACKER_API set to %s", trackerApiEndpoint);
+    }
 #ifdef HAVE_LIBINTL_H
     const char* locale = CSLFetchNameValue(options, "LOCALE");
     //TODO: Do we need std::setlocale(LC_ALL, locale); execution here in library or it will call from programm?
@@ -1449,6 +1459,19 @@ const char *ngsCatalogObjectName(CatalogObjectH object)
         return "";
     }
     return storeCString(static_cast<Object*>(object)->name());
+}
+
+/**
+ * @brief ngsCatalogObjectPath Returns input object handle full name (catalog path)
+ * @param object Object handle
+ * @return Catalog object full name
+ */
+const char *ngsCatalogObjectPath(CatalogObjectH object)
+{
+    if(nullptr == object) {
+        return "";
+    }
+    return storeCString(static_cast<Object*>(object)->fullName());
 }
 
 /**
@@ -3181,6 +3204,32 @@ char ngsLayerGetVisible(LayerH layer)
 }
 
 /**
+ * @brief ngsLayerGetMaxZoom Returns layer maximum available zoom
+ * @param layer Layer handle
+ * @return maximum available zoom level there layer is shown
+ */
+float ngsLayerGetMaxZoom(LayerH layer)
+{
+    if(nullptr == layer) {
+        return errorMessage(_("Layer pointer is null"));
+    }
+    return static_cast<Layer*>(layer)->maxZoom();
+}
+
+/**
+ * @brief ngsLayerGetMinZoom Returns layer minimum available zoom
+ * @param layer Layer handle
+ * @return minimum available zoom level there layer is shown
+ */
+float ngsLayerGetMinZoom(LayerH layer)
+{
+    if(nullptr == layer) {
+        return errorMessage(_("Layer pointer is null"));
+    }
+    return static_cast<Layer*>(layer)->minZoom();
+}
+
+/**
  * @brief ngsLayerSetVisible Sets layer visibility
  * @param layer Layer handle
  * @param visible
@@ -3192,6 +3241,36 @@ int ngsLayerSetVisible(LayerH layer, char visible)
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
     }
     static_cast<Layer*>(layer)->setVisible(visible);
+    return COD_SUCCESS;
+}
+
+/**
+ * @brief ngsLayerSetMaxZoom Sets layer maximum available zoom
+ * @param layer Layer handle
+ * @param zoom
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsLayerSetMaxZoom(LayerH layer, float zoom)
+{
+    if(nullptr == layer) {
+        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
+    }
+    static_cast<Layer*>(layer)->setMaxZoom(zoom);
+    return COD_SUCCESS;
+}
+
+/**
+ * @brief ngsLayerSetMinZoom Sets layer minimum available zoom
+ * @param layer Layer handle
+ * @param zoom
+ * @return ngsCode value - COD_SUCCESS if everything is OK
+ */
+int ngsLayerSetMinZoom(LayerH layer, float zoom)
+{
+    if(nullptr == layer) {
+        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
+    }
+    static_cast<Layer*>(layer)->setMinZoom(zoom);
     return COD_SUCCESS;
 }
 
@@ -4248,10 +4327,10 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
 
     int count = 0;
     for(const auto &listItem : list) {
-        outList[count++] = {storeCString(listItem.name), listItem.startTimeStamp, listItem.stopTimeStamp};
+        outList[count++] = {storeCString(listItem.name), listItem.startTimeStamp, listItem.stopTimeStamp, listItem.count};
     }
 
-    outList[count] = {nullptr, -1, -1};
+    outList[count] = {nullptr, -1, -1, 0};
     return outList;
 
 }

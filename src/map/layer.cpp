@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -30,6 +30,8 @@ namespace ngs {
 constexpr const char *LAYER_NAME_KEY = "name";
 constexpr const char *LAYER_SOURCE_KEY = "src";
 constexpr const char *LAYER_VISIBLE_KEY = "visible";
+constexpr const char *LAYER_MIN_ZOOM_KEY = "min_zoom";
+constexpr const char *LAYER_MAX_ZOOM_KEY = "max_zoom";
 
 //------------------------------------------------------------------------------
 // Layer
@@ -39,6 +41,8 @@ Layer::Layer(Map *map, const std::string &name, Type type) :
     m_name(name),
     m_type(type),
     m_visible(true),
+    m_minZoom(-1.0f),
+    m_maxZoom(256.0f),
     m_map(map)
 {
 }
@@ -48,6 +52,8 @@ bool Layer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)
     ngsUnused(objectContainer);
     m_name = store.GetString(LAYER_NAME_KEY, m_name);
     m_visible = store.GetBool(LAYER_VISIBLE_KEY, m_visible);
+    m_minZoom = static_cast<float>(store.GetDouble(LAYER_MIN_ZOOM_KEY, m_minZoom));
+    m_maxZoom = static_cast<float>(store.GetDouble(LAYER_MAX_ZOOM_KEY, m_maxZoom));
     return true;
 }
 
@@ -58,6 +64,8 @@ CPLJSONObject Layer::save(const ObjectContainer *objectContainer) const
     out.Add(LAYER_NAME_KEY, m_name);
     out.Add(LAYER_TYPE_KEY, static_cast<int>(m_type));
     out.Add(LAYER_VISIBLE_KEY, m_visible);
+    out.Add(LAYER_MIN_ZOOM_KEY, m_minZoom);
+    out.Add(LAYER_MAX_ZOOM_KEY, m_maxZoom);
     return out;
 }
 

@@ -224,6 +224,7 @@ NGS_EXTERNC const char *ngsCatalogObjectOptions(CatalogObjectH object,
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(
         CatalogObjectH object);
 NGS_EXTERNC const char *ngsCatalogObjectName(CatalogObjectH object);
+NGS_EXTERNC const char *ngsCatalogObjectPath(CatalogObjectH object);
 NGS_EXTERNC char **ngsCatalogObjectProperties(CatalogObjectH object,
                                             const char *domain);
 NGS_EXTERNC int ngsCatalogObjectSetProperty(CatalogObjectH object,
@@ -430,6 +431,10 @@ NGS_EXTERNC const char *ngsLayerGetName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetName(LayerH layer, const char *name);
 NGS_EXTERNC char ngsLayerGetVisible(LayerH layer);
 NGS_EXTERNC int ngsLayerSetVisible(LayerH layer, char visible);
+NGS_EXTERNC float ngsLayerGetMaxZoom(LayerH layer);
+NGS_EXTERNC int ngsLayerSetMaxZoom(LayerH layer, float zoom);
+NGS_EXTERNC float ngsLayerGetMinZoom(LayerH layer);
+NGS_EXTERNC int ngsLayerSetMinZoom(LayerH layer, float zoom);
 NGS_EXTERNC CatalogObjectH ngsLayerGetDataSource(LayerH layer);
 NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
@@ -552,6 +557,7 @@ typedef struct _ngsTrackInfo {
     const char *name;
     long startTimeStamp;
     long stopTimeStamp;
+    long count;
 } ngsTrackInfo;
 
 NGS_EXTERNC CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store);

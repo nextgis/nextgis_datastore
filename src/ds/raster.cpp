@@ -298,7 +298,7 @@ bool Raster::destroy()
 
 bool Raster::canDestroy() const
 {
-    return Filter::isFileBased(m_type); // NOTE: Now supported only fila based rasters
+    return Filter::isFileBased(m_type); // NOTE: Now supported only file based rasters
 }
 
 Properties Raster::properties(const std::string &domain) const {

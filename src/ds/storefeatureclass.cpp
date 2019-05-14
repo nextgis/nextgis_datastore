@@ -476,6 +476,9 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
 //------------------------------------------------------------------------------
 // TracksTable
 //------------------------------------------------------------------------------
+
+constexpr char POINT_BUFFER_SIZE = 15;
+
 TracksTable::TracksTable(OGRLayer *layer, ObjectContainer * const parent) :
     FeatureClass(layer, parent, CAT_FC_GPKG, "Tracks"),
     m_lastTrackId(0),
@@ -483,11 +486,16 @@ TracksTable::TracksTable(OGRLayer *layer, ObjectContainer * const parent) :
     m_lastSegmentPtId(0)
 {
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
-    TablePtr result = dataset->executeSQL("SELECT max(track_fid) FROM nga_tracks", "SQLITE");
+    TablePtr result = dataset->executeSQL("SELECT MAX(track_fid) FROM nga_tracks", "SQLite");
     if(result) {
         FeaturePtr resultFeature = result->nextFeature();
         m_lastTrackId = resultFeature->GetFieldAsInteger(0);
     }
+}
+
+TracksTable::~TracksTable()
+{
+    flashBuffer();
 }
 
 static long dateFieldToLong(const FeaturePtr &feature, int field, bool isString = true)
@@ -588,24 +596,42 @@ void TracksTable::sync(int maxPointCount)
         Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
         for(const auto &where : updateWhere) {
             dataset->executeSQL("UPDATE nga_tracks SET synced = 1 WHERE " + where,
-                                "SQLITE");
+                                "SQLite");
+        }
+
+        // Set last sync if we have send something.
+        time_t rawTime = std::time(nullptr);
+        char buffer[64];
+        if(std::strftime(buffer, sizeof(buffer), "%d-%m-%YT%H:%M:%SZ", std::gmtime(&rawTime))) {
+            setProperty("last_sync", buffer, NG_ADDITIONS_KEY);
         }
     }
 }
 
-std::vector<TrackInfo> TracksTable::getTracks() const
+std::vector<TrackInfo> TracksTable::getTracks()
 {
+    flashBuffer();
     std::vector<TrackInfo> out;
+    resetError();
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     TablePtr result = dataset->executeSQL(
-            "SELECT track_name, min(time_stamp), max(time_stamp) FROM nga_tracks GROUP BY track_fid",
-            "SQLITE");
-    FeaturePtr feature;
-    while((feature = result->nextFeature())) {
-        TrackInfo info = {feature->GetFieldAsString(0),
-                          dateFieldToLong(feature, 1),
-                          dateFieldToLong(feature, 2)};
-        out.emplace_back(info);
+            "SELECT track_name, MIN(time_stamp), MAX(time_stamp), COUNT(*) FROM nga_tracks GROUP BY track_fid",
+            "SQLite");
+    if(result) {
+        FeaturePtr feature;
+        while ((feature = result->nextFeature())) {
+            int count = feature->GetFieldAsInteger(3);
+            if(count > 1) {
+                TrackInfo info = {feature->GetFieldAsString(0),
+                                  dateFieldToLong(feature, 1),
+                                  dateFieldToLong(feature, 2),
+                                  feature->GetFieldAsInteger(3)};
+                out.emplace_back(info);
+            }
+        }
+    }
+    else {
+        CPLDebug("ngstore", "%s", getLastError());
     }
     return out;
 }
@@ -638,6 +664,13 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     std::tm *gmtTime = std::gmtime(&gmtTimeStamp);
     feature->SetField("time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
             gmtTime->tm_min, gmtTime->tm_sec);
+
+    time_t rawTime;
+    time(&rawTime);
+    gmtTime = std::gmtime(&rawTime);
+    feature->SetField("time_stamp", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
+                      gmtTime->tm_min, gmtTime->tm_sec);
+
     feature->SetField("sat", satCount);
     feature->SetField("speed", static_cast<double>(speed));
     feature->SetField("course", static_cast<double>(course));
@@ -651,10 +684,39 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     newPt->transformTo(m_spatialReference);
     feature->SetGeometryDirectly(newPt);
 
-    resetError();
+    MutexHolder bufferHolder(m_bufferMutex);
+    mPointBuffer.push_back(feature);
+    if(mPointBuffer.size() < POINT_BUFFER_SIZE) {
+        return true;
+    }
+
+    return flashBuffer();
+}
+
+bool TracksTable::flashBuffer()
+{
     // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_layer->CreateFeature(feature) == OGRERR_NONE;
+
+    resetError();
+
+    if(m_layer->StartTransaction() != OGRERR_NONE) {
+        return false;
+    }
+
+    MutexHolder bufferHolder(m_bufferMutex);
+    for(const auto &bufferedFeature : mPointBuffer) {
+        if (m_layer->CreateFeature(bufferedFeature) != OGRERR_NONE) {
+            m_layer->RollbackTransaction();
+            return false;
+        }
+    }
+
+    if(m_layer->CommitTransaction() == OGRERR_NONE) {
+        mPointBuffer.clear();
+        return true;
+    }
+    return false;
 }
 
 static std::string longToISO(long timeStamp)
@@ -667,10 +729,11 @@ static std::string longToISO(long timeStamp)
 
 void TracksTable::deletePoints(long start, long end)
 {
+    flashBuffer();
     resetError();
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     dataset->executeSQL("DELETE FROM nga_tracks WHERE time_stamp >= '" + longToISO(start) +
-    "' AND time_stamp <= '" + longToISO(end) + "'", "SQLITE");
+    "' AND time_stamp <= '" + longToISO(end) + "'", "SQLite");
 }
 
 ObjectPtr TracksTable::pointer() const
@@ -681,6 +744,40 @@ ObjectPtr TracksTable::pointer() const
     }
 
     return dataset->getTracksTable();
+}
+
+std::string TracksTable::property(const std::string &key,
+                            const std::string &defaultValue,
+                            const std::string &domain) const
+{
+    if(compare(NG_ADDITIONS_KEY, domain) && compare(key, "left_to_sync_points")) {
+        Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
+        TablePtr result = dataset->executeSQL(
+                "SELECT COUNT(*) FROM nga_tracks WHERE synced = 0",
+                "SQLite");
+        int count = 0;
+        if(result) {
+            FeaturePtr feature = result->nextFeature();
+            if(feature) {
+                count = feature->GetFieldAsInteger(0);
+            }
+        }
+        return std::to_string(count);
+    }
+
+    return FeatureClass::property(key, defaultValue, domain);
+}
+
+Properties TracksTable::properties(const std::string &domain) const
+{
+    if(compare(NG_ADDITIONS_KEY, domain)) {
+        Properties out = FeatureClass::properties(domain);
+        out.add("left_to_sync_points", property("left_to_sync_points", "0", NG_ADDITIONS_KEY));
+        return out;
+    }
+    else {
+        return FeatureClass::properties(domain);
+    }
 }
 
 } // namespace ngs

@@ -18,6 +18,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include <util/settings.h>
 #include "api_priv.h"
 #include "ngw.h"
 #include "util/error.h"
@@ -60,7 +61,8 @@ std::string getCurrentUserUrl(const std::string &url)
 
 std::string getTrackerUrl()
 {
-    return "track.nextgis.com/ng-mobile/" + deviceId(false); //std::string("971f1-ffc-0f7073");//
+    std::string trackAPIEndpoint = Settings::instance().getString("nextgis/track_api", "track.nextgis.com");
+    return trackAPIEndpoint + "/ng-mobile/" + deviceId(false);
 }
 
 std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type)

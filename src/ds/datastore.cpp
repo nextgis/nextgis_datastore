@@ -157,6 +157,10 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
     if(!Dataset::open(openFlags, options))
         return false;
 
+    executeSQL("PRAGMA journal_mode=WAL", "SQLite");
+    executeSQL("PRAGMA busy_timeout = 120000", "SQLite"); // 2m timeout
+    executeSQL("VACUUM", "SQLite");
+
     CPLErrorReset();
 
     int version = std::stoi(property(NGS_VERSION_KEY, "0"));
@@ -430,20 +434,20 @@ void DataStore::enableJournal(bool enable)
     if(enable) {
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
-            // executeSQL("PRAGMA synchronous = FULL", "SQLITE");
-            executeSQL("PRAGMA journal_mode = DELETE", "SQLITE");
-            //executeSQL("PRAGMA count_changes=ON", "SQLITE"); // This pragma is deprecated
+            // executeSQL("PRAGMA synchronous = FULL", "SQLite");
+            executeSQL("PRAGMA journal_mode = DELETE", "SQLite");
+            //executeSQL("PRAGMA count_changes=ON", "SQLite"); // This pragma is deprecated
         }
     }
     else {
         CPLAssert(m_disableJournalCounter < 255); // only 255 layers can simultanious load geodata
         m_disableJournalCounter++;
         if(m_disableJournalCounter == 1) {
-            // executeSQL("PRAGMA synchronous = OFF", "SQLITE");
-            executeSQL("PRAGMA journal_mode = OFF", "SQLITE");
-            //executeSQL("PRAGMA count_changes=OFF", "SQLITE"); // This pragma is deprecated
-            // executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLITE");
-            // executeSQL ("PRAGMA cache_size=15000", "SQLITE");
+            // executeSQL("PRAGMA synchronous = OFF", "SQLite");
+            executeSQL("PRAGMA journal_mode = OFF", "SQLite");
+            //executeSQL("PRAGMA count_changes=OFF", "SQLite"); // This pragma is deprecated
+            // executeSQL ("PRAGMA locking_mode=EXCLUSIVE", "SQLite");
+            // executeSQL ("PRAGMA cache_size=15000", "SQLite");
         }
     }
 }
