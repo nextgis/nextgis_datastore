@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -80,8 +80,7 @@ Raster::Raster(std::vector<std::string> siblingFiles,
 Raster::~Raster()
 {
 //    freeLocks(true);
-    if(m_spatialReference)
-        delete m_spatialReference;
+ delete m_spatialReference;
 }
 
 bool Raster::open(unsigned int openFlags, const Options &options)
@@ -298,7 +297,7 @@ bool Raster::destroy()
 
 bool Raster::canDestroy() const
 {
-    return Filter::isFileBased(m_type); // NOTE: Now supported only file based rasters
+    return Filter::isFileBased(m_type); // NOTE: Now supported only file based raster sources
 }
 
 Properties Raster::properties(const std::string &domain) const {
@@ -320,7 +319,7 @@ bool Raster::setProperty(const std::string &name, const std::string &value,
         result = m_DS->SetMetadataItem(name.c_str(), value.c_str(), domain.c_str()) == CE_None;
     }
 
-    if(result && compare(domain, USER_KEY)) {
+    if(result) {
         CPLJSONDocument connectionFile;
         if(!connectionFile.Load(m_path)) {
             return false;
@@ -332,11 +331,11 @@ bool Raster::setProperty(const std::string &name, const std::string &value,
             root.Set(KEY_CACHE_EXPIRES, std::stoi(value));
             needReopen = true;
         }
-        else if(compare("TMS_CACHE_MAX_SIZE", name)) { // Only allow to change cache_expires
+        else if(compare("TMS_CACHE_MAX_SIZE", name)) { // Only allow to change cache_max_size
             root.Set(KEY_CACHE_MAX_SIZE, std::stoi(value));
             needReopen = true;
         }
-        else {
+        else if(compare(domain, USER_KEY)){
             CPLJSONObject user = root.GetObj(USER_KEY);
             if(!user.IsValid()) {
                 user.Set(name, value);
