@@ -227,6 +227,8 @@ NGS_EXTERNC const char *ngsCatalogObjectName(CatalogObjectH object);
 NGS_EXTERNC const char *ngsCatalogObjectPath(CatalogObjectH object);
 NGS_EXTERNC char **ngsCatalogObjectProperties(CatalogObjectH object,
                                             const char *domain);
+NGS_EXTERNC const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name,
+        const char *defaultValue, const char *domain);
 NGS_EXTERNC int ngsCatalogObjectSetProperty(CatalogObjectH object,
                                                 const char *name,
                                                 const char *value,
@@ -561,6 +563,7 @@ typedef struct _ngsTrackInfo {
 } ngsTrackInfo;
 
 NGS_EXTERNC CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store);
+NGS_EXTERNC CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable);
 NGS_EXTERNC char ngsStoreHasTracksTable(CatalogObjectH store);
 NGS_EXTERNC char ngsTrackIsRegistered();
 NGS_EXTERNC void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount);

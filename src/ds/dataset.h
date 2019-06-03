@@ -78,6 +78,9 @@ public:
     virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
                       const Options &options = Options()) = 0;
     virtual void close();
+    bool startTransaction(bool force = false);
+    bool commitTransaction();
+    bool rollbackTransaction();
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
 protected:

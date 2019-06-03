@@ -50,7 +50,7 @@ namespace ngs {
 
 constexpr const char *STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
-constexpr const char *TRACKS_TABLE = "nga_tracks";
+
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -98,7 +98,7 @@ std::string DataStore::normalizeFieldName(const std::string &name) const
 
 void DataStore::fillFeatureClasses() const
 {
-    for(int i = 0; i < m_DS->GetLayerCount(); ++i){
+    for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
             OGRwkbGeometryType geometryType = layer->GetGeomType();
@@ -109,12 +109,10 @@ void DataStore::fillFeatureClasses() const
             const char *layerName = layer->GetName();
             DataStore *parent = const_cast<DataStore*>(this);
             if(geometryType == wkbNone) {
-                m_children.push_back(ObjectPtr(new StoreTable(layer, parent,
-                                                              layerName)));
+                m_children.push_back(ObjectPtr(new StoreTable(layer, parent, layerName)));
             }
             else {
-                m_children.push_back(ObjectPtr(new StoreFeatureClass(layer, parent,
-                                                                     layerName)));
+                m_children.push_back(ObjectPtr(new StoreFeatureClass(layer, parent, layerName)));
             }
         }
     }
@@ -312,7 +310,7 @@ std::string DataStore::property(const std::string &key,
 {
     MutexHolder holder(m_executeSQLMutex);
     const char *out = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
-    return nullptr == out ? defaultValue : out;
+    return nullptr == out ? defaultValue : std::string(out);
 }
 
 Properties DataStore::properties(const std::string &domain) const
@@ -561,11 +559,14 @@ bool DataStore::createTracksTable()
 
     MutexHolder holder(m_executeSQLMutex);
 
+    m_DS->StartTransaction();
+
     // GPX_ELE_AS_25D
-    OGRLayer *layer = m_DS->CreateLayer(TRACKS_TABLE, m_spatialReference, wkbPoint,
+    OGRLayer *layer = m_DS->CreateLayer(TRACKS_POINTS_TABLE, m_spatialReference, wkbPoint,
                                         options);
 
     if(layer == nullptr) {
+        m_DS->RollbackTransaction();
         return errorMessage(CPLGetLastErrorMsg());
     }
 
@@ -574,36 +575,42 @@ bool DataStore::createTracksTable()
     OGRFieldDefn trackFIDField("track_fid", OFTInteger);
     trackFIDField.SetNullable(FALSE);
     if(layer->CreateField(&trackFIDField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn trackSeqIDField("track_seg_id", OFTInteger);
     trackSeqIDField.SetNullable(FALSE);
     if(layer->CreateField(&trackSeqIDField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn trackSeqPtIDField("track_seg_point_id", OFTInteger);
     trackSeqPtIDField.SetNullable(FALSE);
     if(layer->CreateField(&trackSeqPtIDField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn nameField("track_name", OFTString);
     nameField.SetWidth(127);
     if(layer->CreateField(&nameField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn eleField("ele", OFTReal);
     eleField.SetDefault("0.0");
     if(layer->CreateField(&eleField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn timeField("time", OFTDateTime);
     timeField.SetNullable(FALSE);
     if(layer->CreateField(&timeField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
@@ -632,6 +639,7 @@ bool DataStore::createTracksTable()
     OGRFieldDefn descField("desc", OFTString);
     descField.SetDefault(NGS_USERAGENT);
     if(layer->CreateField(&descField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
@@ -639,6 +647,7 @@ bool DataStore::createTracksTable()
     const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
     srcField.SetDefault(appName);
     if(layer->CreateField(&srcField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
@@ -680,12 +689,14 @@ bool DataStore::createTracksTable()
     OGRFieldDefn fixField("fix", OFTString);
     fixField.SetWidth(3);
     if(layer->CreateField(&fixField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn satField("sat", OFTInteger);
     satField.SetDefault("0");
     if(layer->CreateField(&satField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
@@ -704,6 +715,7 @@ bool DataStore::createTracksTable()
     OGRFieldDefn pdopField("pdop", OFTReal);
     pdopField.SetDefault("0.0");
     if(layer->CreateField(&pdopField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
@@ -721,24 +733,68 @@ bool DataStore::createTracksTable()
     OGRFieldDefn courseField("course", OFTReal);
     courseField.SetDefault("0.0");
     if(layer->CreateField(&courseField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn speedField("speed", OFTReal);
     speedField.SetDefault("0.0");
     if(layer->CreateField(&speedField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn timeStampField("time_stamp", OFTDateTime);
     timeStampField.SetDefault("CURRENT_TIMESTAMP");
     if(layer->CreateField(&timeStampField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
         return false;
     }
 
     OGRFieldDefn syncedField("synced", OFTInteger);
     syncedField.SetDefault("0");
-    return layer->CreateField(&syncedField) == OGRERR_NONE;
+    if(layer->CreateField(&syncedField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
+        return false;
+    }
+
+    layer = m_DS->CreateLayer(TRACKS_TABLE, m_spatialReference, wkbMultiLineString);
+    if(layer == nullptr) {
+        m_DS->RollbackTransaction();
+        return errorMessage(CPLGetLastErrorMsg());
+    }
+
+    if(layer->CreateField(&trackFIDField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
+        return false;
+    }
+
+    if(layer->CreateField(&nameField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
+        return false;
+    }
+
+    OGRFieldDefn startTimeField("start_time", OFTDateTime);
+    startTimeField.SetNullable(FALSE);
+    if(layer->CreateField(&startTimeField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
+        return false;
+    }
+
+    OGRFieldDefn stopTimeField("stop_time", OFTDateTime);
+    stopTimeField.SetNullable(FALSE);
+    if(layer->CreateField(&stopTimeField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
+        return false;
+    }
+
+    OGRFieldDefn pointsCountField("points_count", OFTInteger64);
+    if(layer->CreateField(&pointsCountField) != OGRERR_NONE) {
+        m_DS->RollbackTransaction();
+        return false;
+    }
+
+    return m_DS->CommitTransaction() == OGRERR_NONE;
 }
 
 ObjectPtr DataStore::getTracksTable()
@@ -753,8 +809,18 @@ ObjectPtr DataStore::getTracksTable()
         }
     }
 
-    m_tracksTable = ObjectPtr(new TracksTable(m_DS->GetLayerByName(TRACKS_TABLE), this));
+    m_tracksTable = ObjectPtr(new TracksTable(m_DS->GetLayerByName(TRACKS_TABLE),
+            m_DS->GetLayerByName(TRACKS_POINTS_TABLE), this));
     return m_tracksTable;
+}
+
+bool DataStore::destroyTracksTable()
+{
+    OGRLayer *layer = m_DS->GetLayerByName(TRACKS_POINTS_TABLE);
+    if(!layer) {
+        return false;
+    }
+    return destroyTable(m_DS, layer);
 }
 
 } // namespace ngs

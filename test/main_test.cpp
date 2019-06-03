@@ -865,7 +865,8 @@ TEST(DataStoreTest, TestTracksTable) {
     strftime (buffer,80,"%FT%TZ", localtime(&stop));
     std::string stopStr = buffer;
     counter = 0;
-    EXPECT_EQ(ngsFeatureClassSetFilter(tracks, nullptr,
+    CatalogObjectH tracksPoints = ngsTrackGetPointsTable(tracks);
+    EXPECT_EQ(ngsFeatureClassSetFilter(tracksPoints, nullptr,
                                        CPLSPrintf("time_stamp >= '%s' and time_stamp <= '%s'",
                                                   startStr.c_str(), stopStr.c_str())),
               COD_SUCCESS);
@@ -879,7 +880,7 @@ TEST(DataStoreTest, TestTracksTable) {
     options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "ON");
 
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
-    EXPECT_EQ(ngsCatalogObjectCopy(tracks, catalog, options,
+    EXPECT_EQ(ngsCatalogObjectCopy(tracksPoints, catalog, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsListFree(options);
 

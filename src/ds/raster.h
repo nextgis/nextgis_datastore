@@ -86,6 +86,9 @@ public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
     virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
     virtual bool setProperty(const std::string &name, const std::string &value,
                              const std::string &domain) override;
 

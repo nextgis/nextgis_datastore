@@ -308,6 +308,17 @@ Properties Raster::properties(const std::string &domain) const {
     return Properties(m_DS->GetMetadata(domain.c_str()));
 }
 
+std::string Raster::property(const std::string &key,
+                     const std::string &defaultValue,
+                     const std::string &domain) const
+{
+    const char *ret = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
+    if(nullptr == ret) {
+        return defaultValue;
+    }
+    return ret;
+}
+
 bool Raster::setProperty(const std::string &name, const std::string &value,
                          const std::string &domain)
 {

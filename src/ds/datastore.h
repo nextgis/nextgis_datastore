@@ -28,6 +28,8 @@ namespace ngs {
 
 constexpr const char* REMOTE_ID_KEY = "rid";
 constexpr const char* ATTACHMENT_REMOTE_ID_KEY = "arid";
+constexpr const char *TRACKS_POINTS_TABLE = "nga_tracks_pt";
+constexpr const char *TRACKS_TABLE = "nga_tracks";
 
 /**
  * @brief The storage and manipulation class for raster and vector spatial data
@@ -42,6 +44,7 @@ public:
     virtual ~DataStore() override;
     bool hasTracksTable() const;
     ObjectPtr getTracksTable();
+    bool destroyTracksTable();
 
     // static
 public:

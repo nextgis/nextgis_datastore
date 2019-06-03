@@ -915,6 +915,16 @@ NGS_JNI_FUNC(jobject, catalogObjectProperties)(JNIEnv *env, jobject thisObj, jlo
     return ret;
 }
 
+NGS_JNI_FUNC(jstring, catalogObjectGetProperty)(JNIEnv *env, jobject thisObj, jlong object,
+                                                  jstring name, jstring defaultValue, jstring domain)
+{
+    ngsUnused(thisObj);
+    const char *ret = ngsCatalogObjectProperty(reinterpret_cast<CatalogObjectH>(object),
+                                          jniString(env, name).c_str(), jniString(env, defaultValue).c_str(),
+                                          jniString(env, domain).c_str());
+    return env->NewStringUTF(ret);
+}
+
 NGS_JNI_FUNC(jboolean , catalogObjectSetProperty)(JNIEnv *env, jobject thisObj, jlong object,
                                                   jstring name, jstring value, jstring domain)
 {
@@ -2303,6 +2313,13 @@ NGS_JNI_FUNC(jlong, storeGetTracksTable)(JNIEnv *env, jobject thisObj, jlong obj
     ngsUnused(thisObj);
     ngsUnused(env);
     return reinterpret_cast<jlong>(ngsStoreGetTracksTable(reinterpret_cast<CatalogObjectH>(object)));
+}
+
+NGS_JNI_FUNC(jlong, trackGetPointsTable)(JNIEnv *env, jobject thisObj, jlong object)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return reinterpret_cast<jlong>(ngsTrackGetPointsTable(reinterpret_cast<CatalogObjectH>(object)));
 }
 
 NGS_JNI_FUNC(jboolean, trackIsRegistered)(JNIEnv *env, jobject thisObj)

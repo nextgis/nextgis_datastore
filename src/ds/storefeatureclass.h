@@ -138,7 +138,7 @@ typedef struct _TrackInfo {
 class TracksTable : public FeatureClass
 {
 public:
-    TracksTable(OGRLayer *layer, ObjectContainer * const parent = nullptr);
+    TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectContainer * const parent = nullptr);
     virtual ~TracksTable() override;
 
     void sync(int maxPointCount = 100);
@@ -146,6 +146,7 @@ public:
     bool addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed, float course,
             long timeStamp, int satCount, bool newTrack, bool newSegment);
     void deletePoints(long start, long end);
+    ObjectPtr getPointsLayer() const;
 
     // Object interface
 public:
@@ -154,6 +155,7 @@ public:
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
                                  const std::string &domain) const override;
+    virtual bool destroy() override;
 
 private:
     bool flashBuffer();
@@ -164,6 +166,11 @@ private:
     int m_lastSegmentPtId;
     Mutex m_syncMutex, m_bufferMutex;
     std::vector<FeaturePtr> mPointBuffer;
+    FeaturePtr m_currentTrack;
+    long m_lastGmtTimeStamp;
+    bool m_newTrack;
+    GIntBig m_pointCount;
+    FeatureClassPtr m_pointsLayer;
 };
 
 } // namespace ngs

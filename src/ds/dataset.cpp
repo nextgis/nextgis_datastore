@@ -111,6 +111,30 @@ void DatasetBase::close()
     m_DS = nullptr;
 }
 
+bool DatasetBase::startTransaction(bool force)
+{
+    if(!isOpened()) {
+        return false;
+    }
+    return m_DS->StartTransaction(force ? TRUE : FALSE) == OGRERR_NONE;
+}
+
+bool DatasetBase::commitTransaction()
+{
+    if(!isOpened()) {
+        return false;
+    }
+    return m_DS->CommitTransaction() == OGRERR_NONE;
+}
+
+bool DatasetBase::rollbackTransaction()
+{
+    if(!isOpened()) {
+        return false;
+    }
+    return m_DS->RollbackTransaction() == OGRERR_NONE;
+}
+
 std::string DatasetBase::options(const enum ngsCatalogObjectType type,
                                     ngsOptionType optionType) const
 {
@@ -510,10 +534,7 @@ bool Dataset::skipFillFeatureClass(OGRLayer *layer) const
     if(compare(layer->GetName(), METADATA_TABLE_NAME)) {
         return true;
     }
-    if(comparePart(layer->GetName(), NG_PREFIX, NG_PREFIX_LEN)) {
-        return true;
-    }
-    return false;
+    return comparePart(layer->GetName(), NG_PREFIX, NG_PREFIX_LEN);
 }
 
 void Dataset::fillFeatureClasses() const

@@ -1475,7 +1475,7 @@ const char *ngsCatalogObjectPath(CatalogObjectH object)
 }
 
 /**
- * @brief ngsCatalogObjectMetadata Get catalog object metadata.
+ * @brief ngsCatalogObjectProperties Get catalog object metadata.
  * @param object A catalog object the metadata requested.
  * @param domain The metadata in specific domain or NULL.
  * @return The list of key=value items or NULL. The last item of list always NULL.
@@ -1492,6 +1492,29 @@ char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
                 fromCString(domain));
 
     return propeties.asCPLStringList().StealList();
+}
+
+/**
+ * @brief ngsCatalogObjectProperty Get catalog object metadata item.
+ * @param object A catalog object the metadata item requested.
+ * @param name Property name.
+ * @param defaultValue Property default value.
+ * @param domain The metadata in specific domain or NULL.
+ * @return The list of key=value items or NULL. The last item of list always NULL.
+ * User must free returned value via ngsDestroyList.
+ */
+const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name, const char *defaultValue,
+        const char *domain)
+{
+    if(nullptr == object) {
+        outMessage(COD_INVALID, _("The object handle is null"));
+        return defaultValue;
+    }
+
+    std::string property = static_cast<Object*>(object)->property(fromCString(name),
+            fromCString(defaultValue), fromCString(domain));
+
+    return storeCString(property);
 }
 
 /**
@@ -3240,7 +3263,7 @@ int ngsLayerSetVisible(LayerH layer, char visible)
     if(nullptr == layer) {
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
     }
-    static_cast<Layer*>(layer)->setVisible(visible);
+    static_cast<Layer*>(layer)->setVisible(visible == 1);
     return COD_SUCCESS;
 }
 
@@ -4290,6 +4313,21 @@ char ngsTrackIsRegistered()
         return checkReq.GetRoot().GetBool("registered", false) ? API_TRUE : API_FALSE;
     }
     return API_FALSE;
+}
+
+/**
+ * Get internal points table. Don't add or update points in it. Use tracks table instead.
+ * @param tracksTable Tracks table.
+ * @return Points table connected with tracks table.
+ */
+CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable)
+{
+    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    if(!table) {
+        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return nullptr;
+    }
+    return table->getPointsLayer().get();
 }
 
 /**
