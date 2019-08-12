@@ -23,25 +23,66 @@
 namespace ngs {
 
 //------------------------------------------------------------------------------
+// SpatialReferencePtr
+//------------------------------------------------------------------------------
+void OSRRelease( OGRSpatialReference *srs ) {
+    if(srs != nullptr) {
+        srs->Release();
+    }
+}
+
+SpatialReferencePtr::SpatialReferencePtr(OGRSpatialReference *srs) : shared_ptr(srs, OSRRelease)
+{
+}
+
+SpatialReferencePtr::SpatialReferencePtr() : shared_ptr(nullptr, OSRRelease)
+{
+}
+
+SpatialReferencePtr &SpatialReferencePtr::operator=(OGRSpatialReference *srs)
+{
+    reset(srs);
+    return *this;
+}
+
+void SpatialReferencePtr::setFromUserInput(const std::string &input)
+{
+    if(!input.empty()) {
+        OGRSpatialReference *srs = new OGRSpatialReference();
+        srs->SetFromUserInput(input.c_str());
+        reset(srs);
+    }
+}
+
+SpatialReferencePtr SpatialReferencePtr::importFromEPSG(int EPSG)
+{
+    SpatialReferencePtr sr(new OGRSpatialReference());
+    if(sr->importFromEPSG(EPSG) != OGRERR_NONE) {
+        return nullptr;
+    }
+    sr->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    return sr;
+}
+
+//------------------------------------------------------------------------------
 // SpatialDataset
 //------------------------------------------------------------------------------
 
-SpatialDataset::SpatialDataset() : m_spatialReference(nullptr)
+SpatialDataset::SpatialDataset()
 {
 }
 
-OGRSpatialReference *SpatialDataset::spatialReference() const
+SpatialReferencePtr SpatialDataset::spatialReference() const
 {
     return m_spatialReference;
 }
-
 
 //------------------------------------------------------------------------------
 // CoordinateTransformation
 //------------------------------------------------------------------------------
 
 CoordinateTransformation::CoordinateTransformation(
-        OGRSpatialReference* srcSRS, OGRSpatialReference* dstSRS)
+        SpatialReferencePtr srcSRS, SpatialReferencePtr dstSRS)
 {
     if (nullptr != srcSRS && nullptr != dstSRS && !srcSRS->IsSame(dstSRS)) {
         m_oCT = static_cast<OGRCoordinateTransformation*>(

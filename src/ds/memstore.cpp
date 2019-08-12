@@ -133,11 +133,9 @@ void MemoryStore::addLayer(const CPLJSONObject &layer)
         }
 
         int epsg = layer.GetInteger("epsg", 4326);
-        OGRSpatialReference sr;
-        sr.importFromEPSG(epsg);
-
+        SpatialReferencePtr sr = SpatialReferencePtr::importFromEPSG(epsg);
         object = ObjectPtr(createFeatureClass(name, CAT_FC_MEM, &fieldDefinition,
-                                              &sr, geomType, createOptions));
+                                              sr, geomType, createOptions));
     }
     else if(type == CAT_TABLE_MEM) {
         object = ObjectPtr(createTable(name, CAT_TABLE_MEM, &fieldDefinition,
@@ -211,7 +209,7 @@ bool MemoryStore::open(unsigned int openFlags, const Options &options)
 
         m_DS = poDriver->Create(m_path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
         if(m_DS == nullptr) {
-            return errorMessage(CPLGetLastErrorMsg());
+            return errorMessage(_("Failed to create memory store. %s"), CPLGetLastErrorMsg());
         }
         m_DS->MarkAsShared();
 

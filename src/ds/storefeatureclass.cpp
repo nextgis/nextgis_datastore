@@ -477,7 +477,7 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
 // TracksTable
 //------------------------------------------------------------------------------
 
-constexpr char POINT_BUFFER_SIZE = 15;
+constexpr char POINT_BUFFER_SIZE = 30;
 
 TracksTable::TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectContainer * const parent) :
     FeatureClass(linesLayer, parent, CAT_FC_GPKG, "Tracks"),
@@ -486,7 +486,8 @@ TracksTable::TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectCont
     m_lastSegmentPtId(0),
     m_pointsLayer(new FeatureClass(pointsLayer, m_parent, CAT_FC_GPKG, TRACKS_POINTS_TABLE)),
     m_newTrack(false),
-    m_lastGmtTimeStamp(0)
+    m_lastGmtTimeStamp(0),
+    m_pointCount(0)
 {
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     TablePtr result = dataset->executeSQL(std::string("SELECT MAX(track_fid) FROM ") + TRACKS_TABLE, "SQLite");
@@ -649,9 +650,10 @@ void TracksTable::sync(int maxPointCount)
 
 std::vector<TrackInfo> TracksTable::getTracks()
 {
+    std::vector<TrackInfo> out;
+
     flashBuffer();
 
-    std::vector<TrackInfo> out;
     resetError();
     m_layer->ResetReading();
     FeaturePtr feature;
@@ -667,6 +669,11 @@ std::vector<TrackInfo> TracksTable::getTracks()
             out.emplace_back(info);
         }
     }
+
+    if(out.empty()) {
+        warningMessage("List is empty. Tracks count " CPL_FRMT_GIB " but point count in each track is less 2.", featureCount(false));
+    }
+
     return out;
 }
 
@@ -675,7 +682,9 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
 {
     FeaturePtr feature = m_pointsLayer->createFeature();
     if(newTrack) {
-        flashBuffer();
+        if(!flashBuffer()) {
+            return false;
+        }
 
         m_currentTrack = createFeature();
         m_currentTrack->SetField("track_fid", ++m_lastTrackId);
@@ -754,16 +763,16 @@ bool TracksTable::flashBuffer()
     DatasetExecuteSQLLockHolder holder(dataset);
 
     resetError();
-    MutexHolder bufferHolder(m_bufferMutex);
 
     if(!dataset->startTransaction()) {
-        return false;
+        return errorMessage(_("flashBuffer failed at startTransaction. %s"), CPLGetLastErrorMsg());
     }
 
+    MutexHolder bufferHolder(m_bufferMutex);
     for(const auto &bufferedFeature : mPointBuffer) {
         if (!m_pointsLayer->insertFeature(bufferedFeature, false)) {
             dataset->rollbackTransaction();
-            return false;
+            return errorMessage(_("flashBuffer failed at insertFeature to points layer. %s"), CPLGetLastErrorMsg());
         }
     }
 
@@ -785,7 +794,7 @@ bool TracksTable::flashBuffer()
 
         if (!createUpdateResult) {
             dataset->rollbackTransaction();
-            return false;
+            return errorMessage(_("flashBuffer failed at CreateFeature/SetFeature to tracks layer. %s"), CPLGetLastErrorMsg());
         }
     }
 
@@ -793,7 +802,7 @@ bool TracksTable::flashBuffer()
         mPointBuffer.clear();
         return true;
     }
-    return false;
+    return errorMessage(_("flashBuffer failed at commitTransaction. %s"), CPLGetLastErrorMsg());
 }
 
 static std::string longToISO(long timeStamp)
@@ -807,6 +816,7 @@ static std::string longToISO(long timeStamp)
 void TracksTable::deletePoints(long start, long end)
 {
     flashBuffer();
+
     resetError();
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     if(dataset->startTransaction()) {
@@ -845,7 +855,9 @@ void TracksTable::deletePoints(long start, long end)
             sscanf(maxTS.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second);
             feature->SetField("stop_time", year, month, day, hour, minute, second);
 
-            m_layer->SetFeature(feature);
+            if(m_layer->SetFeature(feature) != OGRERR_NONE) {
+                warningMessage(_("Update feature failed"));
+            }
         }
 
         setAttributeFilter("");

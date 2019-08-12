@@ -55,7 +55,6 @@ public:
     virtual bool canDestroy() const override;
 
     // Static
-    static std::string extension(const enum ngsCatalogObjectType type);
     static std::string pathPrefix(const enum ngsCatalogObjectType type);
 
 };

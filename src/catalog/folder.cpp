@@ -30,10 +30,11 @@
 #include "ds/simpledataset.h"
 #include "factories/rasterfactory.h"
 #include "ngstore/catalog/filter.h"
+#include "util/account.h"
 #include "util/notify.h"
 #include "util/error.h"
+#include "archive.h"
 
-#include <util/account.h>
 
 namespace ngs {
 
@@ -376,7 +377,7 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPa
             size_t constPathLen = srcConstPath.length();
             std::string dstConstPath = File::resetExtension(newPath);
             dstConstPath.pop_back();
-            for(auto file : files) {
+            for(const auto &file : files) {
                 newProgress.setStep(step++);
                 std::string newFilePath = dstConstPath + file.substr(constPathLen);
                 if(move) {
@@ -491,7 +492,7 @@ int Folder::paste(ObjectPtr child, bool move, const Options &options,
 {
     std::string fileName = options.asString("DS_NAME", child->name());
     std::string newPath;
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newPath = createUniquePath(m_path, fileName);
     }
     else {
@@ -502,7 +503,10 @@ int Folder::paste(ObjectPtr child, bool move, const Options &options,
         return COD_SUCCESS;
     }
 
-    if(Filter::isFileBased(child->type())) {
+    if(Filter::isLocalDir(child->type())) {
+        return copyDir(child->path(), newPath, progress) ? COD_SUCCESS : COD_COPY_FAILED;
+    }
+    else if(Filter::isFileBased(child->type())) {
         return pasteFileSource(child, move, newPath, progress);
     }
     else if(Filter::isFeatureClass(child->type())) {
@@ -536,6 +540,7 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     case CAT_CONTAINER_NGS:
     case CAT_RASTER_TMS:
     case CAT_CONTAINER_MEM:
+    case CAT_CONTAINER_ARCHIVE_ZIP:
         return true;
     default:
         return false;
@@ -551,7 +556,7 @@ bool Folder::create(const enum ngsCatalogObjectType type,
     }
     bool result = false;
     std::string newName = name;
-    // Add extension if upsent
+    // Add extension if not present
     if(!compare(File::getExtension(name), Filter::extension(type))) {
         newName = name + "." + Filter::extension(type);
     }
@@ -599,6 +604,20 @@ bool Folder::create(const enum ngsCatalogObjectType type,
         result = MemoryStore::create(newPath, options);
         if(result) {
             m_children.push_back(ObjectPtr(new MemoryStore(this, newName, newPath)));
+        }
+        break;
+    case CAT_CONTAINER_ARCHIVE_ZIP:
+        {
+            void *archive = CPLCreateZip(newPath.c_str(), nullptr);
+            if(archive == nullptr) {
+                return errorMessage(_("Failed to create %s."), newName.c_str());
+            }
+
+            if(CPLCloseZip(archive) != CE_None) {
+                return errorMessage(_("Failed to create %s."), newName.c_str());
+            }
+            m_children.push_back(ObjectPtr(new Archive(this, CAT_CONTAINER_ARCHIVE_ZIP, newName, newPath)));
+            result = true;
         }
         break;
     default:

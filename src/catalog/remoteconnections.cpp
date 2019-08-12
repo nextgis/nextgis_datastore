@@ -235,14 +235,15 @@ bool GISServerConnections::create(const enum ngsCatalogObjectType type,
         newName = name + "." + Filter::extension(type);
     }
 
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
 
     std::string newPath = File::formFileName(m_path, newName);
-    if(hasChild(newName)) {
-        if(options.asBool("OVERWRITE")) {
-            if(!File::deleteFile(newPath)) {
+    ObjectPtr deleteObj = getChild(newName);
+    if(deleteObj) {
+        if(options.asBool("OVERWRITE", false)) {
+            if(!deleteObj->destroy()) {
                 return errorMessage(_("Failed to overwrite %s"), newName.c_str());
             }
         }

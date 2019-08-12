@@ -175,13 +175,13 @@ bool DatasetBase::open(const std::string &path, unsigned int openFlags,
 
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
 
-    CPLErrorReset();
+    resetError();
     auto openOptions = options.asCPLStringList();
     m_DS = static_cast<GDALDataset*>(GDALOpenEx(path.c_str(), openFlags, nullptr,
                                                 openOptions, nullptr));
 
     if(m_DS == nullptr) {
-        errorMessage(CPLGetLastErrorMsg());
+        errorMessage(_("Failed to open dataset %s. %s"), path.c_str(), CPLGetLastErrorMsg());
         if(openFlags & GDAL_OF_UPDATE) {
             // Try to open read-only
             openFlags &= static_cast<unsigned int>(~GDAL_OF_UPDATE);
@@ -190,7 +190,7 @@ bool DatasetBase::open(const std::string &path, unsigned int openFlags,
                                                          nullptr, openOptions,
                                                          nullptr));
             if(nullptr == m_DS) {
-                errorMessage(CPLGetLastErrorMsg());
+                errorMessage(_("Failed to open dataset %s. %s"), path.c_str(), CPLGetLastErrorMsg());
                 return false; // Error message comes from GDALOpenEx
             }            
         }
@@ -247,7 +247,7 @@ Dataset::~Dataset()
 FeatureClass *Dataset::createFeatureClass(const std::string &name,
                                           enum ngsCatalogObjectType objectType,
                                           OGRFeatureDefn * const definition,
-                                          OGRSpatialReference* spatialRef,
+                                          SpatialReferencePtr spatialRef,
                                           OGRwkbGeometryType type,
                                           const Options& options,
                                           const Progress& progress)
@@ -257,11 +257,12 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
         return nullptr;
     }
 
+    resetError();
     OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
                                         options.asCPLStringList());
 
     if(layer == nullptr) {
-        errorMessage(CPLGetLastErrorMsg());
+        errorMessage(_("Failed to create layer %s. %s"), name.c_str(), CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -278,7 +279,7 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
 
         dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
-            errorMessage(CPLGetLastErrorMsg());
+            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
             return nullptr;
         }
     }
@@ -590,7 +591,7 @@ GDALDataset *Dataset::createAdditionsDataset()
         GDALDataset *DS = poDriver->Create(ovrPath.c_str(), 0, 0, 0, GDT_Unknown,
                                            options.asCPLStringList());
         if(DS == nullptr) {
-            errorMessage(CPLGetLastErrorMsg());
+            errorMessage(_("Failed to create additional dataset. %s"), CPLGetLastErrorMsg());
             return nullptr;
         }
         m_addsDS = DS;
@@ -951,7 +952,7 @@ TablePtr Dataset::executeSQL(const std::string &statement,
 
     OGRLayer *layer = m_DS->ExecuteSQL(statement.c_str(), spaFilter, dialect.c_str());
     if(nullptr == layer) {
-        errorMessage(CPLGetLastErrorMsg());
+        errorMessage(_("Execute SQL failed. Empty result. %s"), CPLGetLastErrorMsg());
         return TablePtr();
     }
     if(layer->GetGeomType() == wkbNone) {

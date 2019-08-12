@@ -138,6 +138,10 @@ public:
     virtual ~NGWConnection() override;
     virtual bool loadChildren() override;
 
+    // Object interface
+public:
+    virtual bool destroy() override;
+
 private:
     void fillCapabilities();
 

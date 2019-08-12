@@ -36,9 +36,9 @@ class HTTPAuthBasic : public IHTTPAuth {
 
 public:
     explicit HTTPAuthBasic(const std::string &login, const std::string &password);
-    virtual ~HTTPAuthBasic() override = default;
-    virtual const std::string header() override { return "Authorization: Basic " + m_basicAuth; }
-    virtual const Properties properties() const override;
+    virtual ~HTTPAuthBasic() = default;
+    virtual std::string header() override { return "Authorization: Basic " + m_basicAuth; }
+    virtual Properties properties() const override;
 
 private:
     std::string m_basicAuth;
@@ -53,7 +53,7 @@ HTTPAuthBasic::HTTPAuthBasic(const std::string &login, const std::string &passwo
     CPLFree(encodedStr);
 }
 
-const Properties HTTPAuthBasic::properties() const
+Properties HTTPAuthBasic::properties() const
 {
     Properties out;
     out.add("type", "basic");
@@ -71,9 +71,9 @@ public:
                             const std::string &tokenServer, const std::string &accessToken,
                             const std::string &updateToken, int expiresIn,
                             time_t lastCheck);
-    virtual ~HTTPAuthBearer() override = default;
-    virtual const std::string header() override;
-    virtual const Properties properties() const override;
+    virtual ~HTTPAuthBearer() = default;
+    virtual std::string header() override;
+    virtual Properties properties() const override;
 
 private:
     std::string m_url;
@@ -100,7 +100,7 @@ HTTPAuthBearer::HTTPAuthBearer(const std::string &url, const std::string &client
 
 }
 
-const Properties HTTPAuthBearer::properties() const
+Properties HTTPAuthBearer::properties() const
 {
     Properties out;
     out.add("type", "bearer");
@@ -112,7 +112,7 @@ const Properties HTTPAuthBearer::properties() const
     return out;
 }
 
-const std::string HTTPAuthBearer::header()
+std::string HTTPAuthBearer::header()
 {
     // 1. Check if expires if not return current access token
     time_t now = time(nullptr);
@@ -237,7 +237,7 @@ Properties AuthStore::authProperties(const std::string &url)
     return instance().properties(url);
 }
 
-const std::string AuthStore::authHeader(const std::string &url)
+std::string AuthStore::authHeader(const std::string &url)
 {
     return instance().header(url);
 }
@@ -255,12 +255,12 @@ void AuthStore::remove(const std::string &url)
 Properties AuthStore::properties(const std::string &url)
 {
     if(m_auths[url] == nullptr) {
-        return Properties();
+        return {};
     }
     return m_auths[url]->properties();
 }
 
-const std::string AuthStore::header(const std::string &url) const
+std::string AuthStore::header(const std::string &url) const
 {
     for(auto pair : m_auths) {
         if(STARTS_WITH_CI(url.c_str(), pair.first.c_str())) {

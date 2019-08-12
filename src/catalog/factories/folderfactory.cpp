@@ -18,6 +18,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+#include <ngstore/catalog/filter.h>
 #include "folderfactory.h"
 
 // gdal
@@ -68,7 +69,7 @@ void FolderFactory::createObjects(ObjectContainer * const container,
         }
         else if(m_zipSupported) {
             if(compare(File::getExtension(*it),
-                     Archive::extension(CAT_CONTAINER_ARCHIVE_ZIP))) { // Check if this is archive file
+                       Filter::extension(CAT_CONTAINER_ARCHIVE_ZIP))) { // Check if this is archive file
                 CPLString vsiPath = Archive::pathPrefix(CAT_CONTAINER_ARCHIVE_ZIP);
                 vsiPath += path;
                 addChild(container,

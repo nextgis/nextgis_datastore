@@ -57,7 +57,7 @@ public:
                     const enum ngsCatalogObjectType type = CAT_RASTER_ANY,
                     const std::string &name = "",
                     const std::string &path = "");
-    virtual ~Raster() override;
+    virtual ~Raster() = default;
 public:
     enum WorldFileType {
         FIRSTLASTW,

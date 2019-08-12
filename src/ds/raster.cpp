@@ -77,12 +77,6 @@ Raster::Raster(std::vector<std::string> siblingFiles,
 {
 }
 
-Raster::~Raster()
-{
-//    freeLocks(true);
- delete m_spatialReference;
-}
-
 bool Raster::open(unsigned int openFlags, const Options &options)
 {
     if(isOpened()) {
@@ -103,8 +97,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         url = url.replaceAll("&", "&amp;");
         int epsg = root.GetInteger(KEY_EPSG, 3857);
 
-        m_spatialReference = new OGRSpatialReference;
-        m_spatialReference->importFromEPSG(epsg);
+        m_spatialReference = SpatialReferencePtr::importFromEPSG(epsg);
 
         int z_min = root.GetInteger(KEY_Z_MIN, 0);
         int z_max = root.GetInteger(KEY_Z_MAX, 18);
@@ -221,11 +214,8 @@ bool Raster::open(unsigned int openFlags, const Options &options)
     }
     else {
         if(DatasetBase::open(m_path, openFlags, options)) {
-            const char *spatRefStr = m_DS->GetProjectionRef();
-            if(spatRefStr != nullptr) {
-                m_spatialReference = new OGRSpatialReference;
-                m_spatialReference->SetFromUserInput(spatRefStr);
-            }
+            std::string spatRefStr = m_DS->GetProjectionRef();
+            m_spatialReference.setFromUserInput(spatRefStr);
             setExtent();
             return true;
         }
@@ -453,7 +443,7 @@ bool Raster::writeWorldFile(enum WorldFileType type)
 
     double geoTransform[6] = { 0 };
     if(m_DS->GetGeoTransform(geoTransform) != CE_None) {
-        return errorMessage(CPLGetLastErrorMsg());
+        return errorMessage(_("Failed to writeWorldFile. %s"), CPLGetLastErrorMsg());
     }
     return GDALWriteWorldFile(m_path.c_str(), newExt.c_str(), geoTransform) != 0;
 }

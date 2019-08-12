@@ -132,8 +132,11 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
         }
 
         std::string login = options.asString(KEY_LOGIN);
-        if(login.empty()) {
+        std::string password = options.asString(KEY_PASSWORD);
+        bool isGuest = options.asBool(KEY_IS_GUEST, false);
+        if(login.empty() || isGuest) {
             login = "guest";
+            password = "";
         }
         else {
             std::string oldLogin(login);
@@ -142,7 +145,6 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
                 warningMessage("Login was trimmed!");
             }
         }
-        std::string password = options.asString(KEY_PASSWORD);
 
         CPLStringList requestOptions;
         std::string headers = "Accept: */*";
@@ -158,6 +160,10 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
             headers += auth;
         }
         requestOptions.AddNameValue("HEADERS", headers.c_str());
+        requestOptions.AddNameValue("CONNECTTIMEOUT", "30");
+        requestOptions.AddNameValue("TIMEOUT", "65");
+        requestOptions.AddNameValue("MAX_RETRY", "5");
+        requestOptions.AddNameValue("RETRY_DELAY", "5");
 
         CPLJSONDocument checkReq;
         if(!checkReq.LoadUrl(ngw::getCurrentUserUrl(url), requestOptions)) {

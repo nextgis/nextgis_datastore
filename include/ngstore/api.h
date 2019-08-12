@@ -108,6 +108,8 @@ NGS_EXTERNC void ngsAddNotifyFunction(ngsNotifyFunc function, int notifyTypes);
 NGS_EXTERNC void ngsRemoveNotifyFunction(ngsNotifyFunc function);
 NGS_EXTERNC const char *ngsSettingsGetString(const char *key, const char *defaultVal);
 NGS_EXTERNC void ngsSettingsSetString(const char *key, const char *value);
+NGS_EXTERNC int ngsBackup(const char *name, CatalogObjectH dstObjectContainer,
+        CatalogObjectH *objects, ngsProgressFunc callback, void *callbackData);
 
 /*
  * Proxy to GDAL functions
@@ -203,6 +205,8 @@ NGS_EXTERNC char ngsJsonObjectSetBoolForKey(JsonObjectH object,
 
 NGS_EXTERNC const char *ngsCatalogPathFromSystem(const char *path);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char *path);
+NGS_EXTERNC CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name,
+        char fullMatch);
 NGS_EXTERNC ngsCatalogObjectInfo *ngsCatalogObjectQuery(CatalogObjectH object,
                                                         int filter);
 NGS_EXTERNC ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(

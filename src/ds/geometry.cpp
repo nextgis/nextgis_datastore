@@ -467,7 +467,7 @@ void Envelope::move(double deltaX, double deltaY)
     m_maxY += deltaY;
 }
 
-GeometryPtr Envelope::toGeometry(OGRSpatialReference * const spatialRef) const
+GeometryPtr Envelope::toGeometry(SpatialReferencePtr spatialRef) const
 {
     if(!isInit())
         return GeometryPtr();

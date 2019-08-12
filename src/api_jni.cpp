@@ -344,6 +344,33 @@ NGS_JNI_FUNC(void, settingsSetString)(JNIEnv *env, jobject thisObj, jstring key,
     ngsSettingsSetString(jniString(env, key).c_str(), jniString(env, value).c_str());
 }
 
+NGS_JNI_FUNC(jboolean, backup)(JNIEnv *env, jobject thisObj, jstring name, jlong dstObj,
+        jlongArray objects, jint callbackId)
+{
+    ngsUnused(thisObj);
+    int size = env->GetArrayLength(objects);
+    jboolean isCopy;
+    jlong *objectsArray = env->GetLongArrayElements(objects, &isCopy);
+    std::vector<long long> objectsStdArray;
+    for(int i = 0; i < size; ++i) {
+        objectsStdArray.push_back(objectsArray[i]);
+    }
+    objectsStdArray.push_back(0);
+
+    int result;
+    if(callbackId == 0) {
+        result = ngsBackup(jniString(env, name).c_str(), reinterpret_cast<CatalogObjectH>(dstObj),
+                           reinterpret_cast<CatalogObjectH *>(objectsStdArray.data()), nullptr,
+                           nullptr);
+    }
+    else {
+        result = ngsBackup(jniString(env, name).c_str(), reinterpret_cast<CatalogObjectH>(dstObj),
+                           reinterpret_cast<CatalogObjectH *>(objectsStdArray.data()),
+                           progressProxyFunc, reinterpret_cast<void *>(callbackId));
+    }
+    return result == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
 /*
  * Proxy to GDAL functions
  */
@@ -776,9 +803,19 @@ NGS_JNI_FUNC(jstring, catalogPathFromSystem)(JNIEnv *env, jobject thisObj, jstri
     return env->NewStringUTF(ngsCatalogPathFromSystem(jniString(env, path).c_str()));
 }
 
-NGS_JNI_FUNC(jlong, catalogObjectGet)(JNIEnv *env, jobject /* this */, jstring path)
+NGS_JNI_FUNC(jlong, catalogObjectGet)(JNIEnv *env, jobject thisObj, jstring path)
 {
+    ngsUnused(thisObj);
     return reinterpret_cast<jlong>(ngsCatalogObjectGet(jniString(env, path).c_str()));
+}
+
+NGS_JNI_FUNC(jlong, catalogObjectGetByName)(JNIEnv *env, jobject thisObj, jlong parent, jstring name,
+        jboolean fullMatch)
+{
+    ngsUnused(thisObj);
+    return reinterpret_cast<jlong>(ngsCatalogObjectGetByName(
+            reinterpret_cast<CatalogObjectH>(parent), jniString(env, name).c_str(),
+            static_cast<char>(fullMatch ? 1 : 0)));
 }
 
 static jobjectArray catalogObjectQueryToJobjectArray(JNIEnv *env, ngsCatalogObjectInfo *info)
@@ -940,6 +977,15 @@ NGS_JNI_FUNC(void, catalogObjectRefresh)(JNIEnv *env, jobject thisObj, jlong obj
     ngsUnused(env);
     ngsUnused(thisObj);
     ngsCatalogObjectRefresh(reinterpret_cast<CatalogObjectH>(object));
+}
+
+NGS_JNI_FUNC(jboolean, catalogCheckConnection)(JNIEnv *env, jobject thisObj, jint objectType, jobjectArray options)
+{
+    ngsUnused(thisObj);
+    char **nativeOptions = toOptions(env, options);
+    char res = ngsCatalogCheckConnection(static_cast<enum ngsCatalogObjectType>(objectType), nativeOptions);
+    CSLDestroy(nativeOptions);
+    return res == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 /*

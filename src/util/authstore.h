@@ -33,8 +33,8 @@ using Properties = Options;
 class IHTTPAuth {
 public:
     virtual ~IHTTPAuth() = default;
-    virtual const std::string header() = 0;
-    virtual const Properties properties() const = 0;
+    virtual std::string header() = 0;
+    virtual Properties properties() const = 0;
 };
 
 /**
@@ -46,13 +46,13 @@ public:
     static bool authAdd(const std::string &url, const Options &options);
     static void authRemove(const std::string &url);
     static Properties authProperties(const std::string &url);
-    static const std::string authHeader(const std::string &url);
+    static std::string authHeader(const std::string &url);
 
 public:
     void add(const std::string &url, IHTTPAuth *auth);
     void remove(const std::string &url);
     Properties properties(const std::string &url);
-    const std::string header(const std::string &url) const;
+    std::string header(const std::string &url) const;
 
 private:
     AuthStore() = default;

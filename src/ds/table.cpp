@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -167,7 +167,7 @@ bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
         return false;
     }
 
-    CPLErrorReset();
+    resetError();
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
 
     // Lock all Dataset SQL queries here
@@ -186,7 +186,7 @@ bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
         return true;
     }
 
-    return errorMessage(CPLGetLastErrorMsg());
+    return errorMessage(_("Failed to insert feature. %s"), CPLGetLastErrorMsg());
 }
 
 bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
@@ -195,7 +195,7 @@ bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
         return false;
     }
 
-    CPLErrorReset();
+    resetError();
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
 
     // Lock all Dataset SQL queries here
@@ -214,7 +214,7 @@ bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
         return true;
     }
 
-    return errorMessage(CPLGetLastErrorMsg());
+    return errorMessage(_("Failed to update feature. %s"), CPLGetLastErrorMsg());
 }
 
 bool Table::deleteFeature(GIntBig id, bool logEdits)
@@ -229,7 +229,7 @@ bool Table::deleteFeature(GIntBig id, bool logEdits)
         logFeature = logEditFeature(feature, FeaturePtr(), CC_DELETE_FEATURE);
     }
 
-    CPLErrorReset();
+    resetError();
 
     // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
@@ -245,7 +245,7 @@ bool Table::deleteFeature(GIntBig id, bool logEdits)
         return true;
     }
 
-    return errorMessage(CPLGetLastErrorMsg());
+    return errorMessage(_("Failed to delete feature. %s"), CPLGetLastErrorMsg());
 }
 
 bool Table::deleteFeatures(bool logEdits)
@@ -254,7 +254,7 @@ bool Table::deleteFeatures(bool logEdits)
         return false;
     }
 
-    CPLErrorReset();
+    resetError();
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
     if(dataset && dataset->deleteFeatures(name())) {
         if(logEdits) {
@@ -266,6 +266,8 @@ bool Table::deleteFeatures(bool logEdits)
                                     ngsChangeCode::CC_DELETEALL_FEATURES);
         dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
         Folder::rmDir(getAttachmentsPath());
+
+        featureCount(true);
         return true;
     }
 

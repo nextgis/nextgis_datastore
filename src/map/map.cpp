@@ -245,7 +245,7 @@ bool Map::reorderLayers(Layer *beforeLayer, Layer *movedLayer)
 
     if(before != m_layers.end()) {
         m_layers.insert(before, movedLayerPtr);
-     }
+    }
     else {
         m_layers.push_back(movedLayerPtr);
     }

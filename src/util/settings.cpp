@@ -167,8 +167,8 @@ long Settings::getLong(const std::string &path, long defaultVal) const
     return m_root.GetLong(path, defaultVal);
 }
 
-const std::string Settings::getString(const std::string &path,
-                                      const std::string &defaultVal) const
+std::string Settings::getString(const std::string &path,
+                                const std::string &defaultVal) const
 {
     return m_root.GetString(path, defaultVal);
 }
@@ -188,38 +188,29 @@ bool Settings::save()
 
 void Settings::init()
 {
-    CPLSetConfigOption("GDAL_CACHEMAX", getString("common/cachemax",
-                                                  CACHEMAX).c_str());
-
-    CPLSetConfigOption("GDAL_HTTP_USERAGENT", getString("http/useragent",
-                                                        NGS_USERAGENT).c_str());
-    CPLSetConfigOption("CPL_CURL_GZIP", getString("http/use_gzip",
-                                                  HTTP_USE_GZIP).c_str());
-    CPLSetConfigOption("GDAL_HTTP_TIMEOUT", getString("http/timeout",
-                                                      HTTP_TIMEOUT).c_str());
+    CPLSetConfigOption("GDAL_CACHEMAX", getString("common/cachemax", CACHEMAX).c_str());
+    CPLSetConfigOption("GDAL_HTTP_USERAGENT", getString("http/useragent", NGS_USERAGENT).c_str());
+    CPLSetConfigOption("CPL_CURL_GZIP", getString("http/use_gzip", HTTP_USE_GZIP).c_str());
+    CPLSetConfigOption("GDAL_HTTP_TIMEOUT", getString("http/timeout", HTTP_TIMEOUT).c_str());
     CPLSetConfigOption("GDAL_DRIVER_PATH", "disabled");
 
     CPLSetConfigOption("GDAL_HTTP_CONNECTTIMEOUT",
                        getString("http/conn_timeout", HTTP_CONN_TIMEOUT).c_str());
-
     CPLSetConfigOption("GDAL_HTTP_MAX_RETRY",
                        getString("http/max_retry", HTTP_MAX_RETRY).c_str());
-
     CPLSetConfigOption("GDAL_HTTP_RETRY_DELAY",
                        getString("http/retry_delay", HTTP_RETRY_DELAY).c_str());
-
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
                        getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", ".ngmd").c_str());
 
     CPLDebug("ngstore", "ZIP support %s", CPLGetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", ""));
 
-    CPLSetConfigOption("CPL_ZIP_ENCODING",
-                       getString("common/zip_encoding", "CP866").c_str());
-
+    CPLSetConfigOption("CPL_ZIP_ENCODING", getString("common/zip_encoding", "CP866").c_str());
     CPLDebug("ngstore", "HTTP user agent set to: %s", NGS_USERAGENT);
 
     CPLSetConfigOption("GDAL_VALIDATE_CREATION_OPTIONS", "OFF");
     CPLSetConfigOption("GDAL_VALIDATE_OPEN_OPTIONS", "OFF");
+    // https://gdal.org/development/rfc/rfc20_srs_axes.html?highlight=ogrcoordinatetransformation
 }
 
 } // ngs

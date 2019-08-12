@@ -32,6 +32,7 @@
 #include "api_priv.h"
 #include "ngstore/util/constants.h"
 #include "util/buffer.h"
+#include "coordinatetransformation.h"
 
 namespace ngs {
 
@@ -71,7 +72,7 @@ public:
     void move(double deltaX, double deltaY);
     constexpr double width() const { return m_maxX - m_minX; }
     constexpr double height() const { return m_maxY - m_minY; }
-    GeometryPtr toGeometry(OGRSpatialReference * const spatialRef) const;
+    GeometryPtr toGeometry(SpatialReferencePtr spatialRef) const;
     OGREnvelope toOgrEnvelope() const;
 
     constexpr double minX() const { return m_minX; }

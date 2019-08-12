@@ -49,8 +49,7 @@ public:
     double getDouble(const std::string &path, double defaultVal) const;
     int getInteger(const std::string &path, int defaultVal) const;
     long getLong(const std::string &path, long defaultVal) const;
-    const std::string getString(const std::string &path,
-                                 const std::string &defaultVal) const;
+    std::string getString(const std::string &path, const std::string &defaultVal) const;
 
     // settings
     bool save();

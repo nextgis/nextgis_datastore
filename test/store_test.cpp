@@ -79,8 +79,10 @@ TEST(StoreTests, TestCreate) {
 
     OGRSpatialReference wgs;
     wgs.importFromEPSG (4326);
+    .SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     OGRSpatialReference wm;
     wm.importFromEPSG (3857);
+    .SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     EXPECT_EQ (wgs.IsSame (&wm), 0);
 
     ngs::DataStorePtr storage = ngs::DataStore::create("./tmp/ngs.gpkg");

@@ -26,6 +26,7 @@
 
 // gdal
 #include "cpl_json.h"
+#include "ogr_srs_api.h"
 
 #if __APPLE__
     #include "TargetConditionals.h"
@@ -163,14 +164,15 @@ const char *ngsGetVersionString(const char *request)
 /**
  * @brief ngsInit Init library structures
  * @param options Init library options list:
- * - CACHE_DIR - path to cache files directory (mainly for TMS/WMS cache)
- * - SETTINGS_DIR - path to settings directory
- * - GDAL_DATA - path to GDAL data directory (may be skipped on Linux)
+ * - CACHE_DIR - Path to cache files directory (mainly for TMS/WMS cache)
+ * - SETTINGS_DIR - Path to settings directory
+ * - GDAL_DATA - Path to GDAL data directory (may be skipped on Linux)
  * - DEBUG_MODE ["ON", "OFF"] - May be ON or OFF strings to enable/disable debug mode
  * - LOCALE ["en_US.UTF-8", "de_DE", "ja_JP", ...] - Locale for error messages, etc.
  * - NUM_THREADS - Number threads in various functions (a positive number or "ALL_CPUS")
  * - GL_MULTISAMPLE - Enable sampling if applicable
  * - SSL_CERT_FILE - Path to ssl cert file (*.pem)
+ * - PROJ_DATA - Path to libproj data directory (may be skipped on Linux)
  * - HOME - Root directory for library
  * - APP_NAME - Application name for logs and check function availability
  * - CRYPT_KEY - Key to encrypt/decrypt passwords
@@ -234,13 +236,13 @@ int ngsInit(char **options)
 #ifdef HAVE_LIBINTL_H
     const char* locale = CSLFetchNameValue(options, "LOCALE");
     //TODO: Do we need std::setlocale(LC_ALL, locale); execution here in library or it will call from programm?
-#endif
+#endif // HAVE_LIBINTL_H
 
 #ifdef NGS_MOBILE
     if(nullptr == dataPath) {
         return outMessage(COD_NOT_SPECIFIED, _("GDAL_DATA option is required"));
     }
-#endif
+#endif // NGS_MOBILE
 
     if(nullptr != cachePath) {
         if(!Folder::isExists(cachePath)) {
@@ -249,6 +251,14 @@ int ngsInit(char **options)
     }
 
     initGDAL(dataPath, cachePath);
+
+    const char *projData = CSLFetchNameValue(options, "PROJ_DATA");
+    if(projData) {
+        CPLDebug("ngstore", "PROJ_DATA set to %s", projData);
+        char **pathsList = CSLAddString(nullptr, projData);
+        OSRSetPROJSearchPaths(pathsList);
+        CSLDestroy(pathsList);
+    }
 
     Catalog::setInstance(new Catalog());
     MapStore::setInstance(new MapStore());
@@ -334,6 +344,84 @@ const char *ngsSettingsGetString(const char *key, const char *defaultVal)
 void ngsSettingsSetString(const char *key, const char *value)
 {
     Settings::instance().set(fromCString(key), fromCString(value));
+}
+
+/**
+ * ngsBackup create ZIP archive of settings directory and other directories provided in input. It is expected that each directory name is unique.
+ * @param name Backup file name. If extension is not set it will append.
+ * @param dstObjectContainer Directory to create archive.
+ * @param objects List of CatalogObjectH handles. The last element must be 0.
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
+ * @return
+ */
+int ngsBackup(const char *name, CatalogObjectH dstObjectContainer, CatalogObjectH *objects,
+        ngsProgressFunc callback, void *callbackData)
+{
+    if(name == nullptr) {
+        return outMessage(COD_INVALID, _("Backup name must be set."));
+    }
+    if(objects == nullptr) {
+        return outMessage(COD_INVALID, _("Backup paths array cannot be null."));
+    }
+    Object *dstObject = static_cast<Object*>(dstObjectContainer);
+    ObjectContainer *dstCatalogObjectContainer = dynamic_cast<ObjectContainer*>(dstObject);
+    if(!dstCatalogObjectContainer) {
+        return outMessage(COD_INVALID, _("The object handle is null"));
+    }
+
+    if(dstCatalogObjectContainer->type() != CAT_CONTAINER_DIR) {
+        return outMessage(COD_INVALID, _("Path must be a file system directory"));
+    }
+
+    if(!dstCatalogObjectContainer->canCreate(CAT_CONTAINER_ARCHIVE_ZIP)) {
+        return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
+    }
+
+    std::string newName = name;
+    if(!compare(File::getExtension(name), Filter::extension(CAT_CONTAINER_ARCHIVE_ZIP))) {
+        newName += "." + Filter::extension(CAT_CONTAINER_ARCHIVE_ZIP);
+    }
+
+    Options options;
+    options.add("OVERWRITE", "YES");
+    if(!dstCatalogObjectContainer->create(CAT_CONTAINER_ARCHIVE_ZIP, newName, options)) {
+        return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
+    }
+
+    ObjectPtr archive = dstCatalogObjectContainer->getChild(newName);
+    ObjectContainer *archiveCont = dynamic_cast<ObjectContainer*>(archive.get());
+    if(!archiveCont) {
+        return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
+    }
+
+    std::string settingPath = CPLGetConfigOption("NGS_SETTINGS_PATH", "");
+
+    CatalogPtr catalog = Catalog::instance();
+    std::vector<ObjectPtr> objectsArr;
+    objectsArr.push_back(catalog->getObjectBySystemPath(settingPath));
+    int counter = 0;
+    while(objects[counter] != nullptr) {
+        ObjectPtr copyObjectContainer = static_cast<Object*>(objects[counter])->pointer();
+        objectsArr.push_back(copyObjectContainer);
+        counter++;
+    }
+
+    Progress progress(callback, callbackData);
+    progress.setTotalSteps(static_cast<unsigned char>(objectsArr.size()));
+    unsigned char step = 0;
+    progress.setStep(step);
+    for(const auto &objectToCopy : objectsArr) {
+        int code = archiveCont->paste(objectToCopy);
+        if(code != COD_SUCCESS) {
+            return code;
+        }
+        progress.setStep(++step);
+    }
+
+    return COD_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -432,6 +520,10 @@ void ngsFree(void *pointer)
  * - RETRY_DELAY=val, where val is the number of seconds between retry attempts.
  *   Default is 30
  * - MAX_FILE_SIZE=val, where val is a number of bytes
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return structure of type ngsURLRequestResult
  */
 ngsURLRequestResult *ngsURLRequest(enum ngsURLRequestType type, const char *url,
@@ -469,6 +561,10 @@ ngsURLRequestResult *ngsURLRequest(enum ngsURLRequestType type, const char *url,
  * - FORM_VALUE_0=val...FORM_VALUE_N, where val is value of the form item.
  * - FORM_ITEM_COUNT=val, where val is count of form items.
  * Available additional keys see in ngsURLRequest.
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return ngsURLRequestResult structure. The result must be freed by caller via
  * delete
  */
@@ -629,7 +725,7 @@ void ngsJsonDocumentFree(JsonDocumentH document)
  * JSON tokener option. The other options are the same of ngsURLRequest function.
  * @param callback Function executed periodically during load process. If returns
  * false the loading canceled. May be null.
- * @param callbackData The data for callback function execution. May be NULL.
+ * @param callbackData The data for callback function execution. May be null.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url, char **options,
@@ -1135,7 +1231,10 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
         return output;
     }
 
-    container->loadChildren();
+    if(!container->loadChildren()) {
+        outMessage(COD_GET_FAILED, _("Failed to load children."));
+        return nullptr;
+    }
     auto children = container->getChildren();
     if(children.empty()) {
         return nullptr;
@@ -1318,8 +1417,8 @@ const char *ngsCatalogPathFromSystem(const char *path)
  * destination container.
  * @param callback Progress function (template is ngsProgressFunc) executed
  * periodically to report progress and cancel. If returns 1 the execution will
- * continue, 0 - cancelled.
- * @param callbackData Progress function parameter.
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsCatalogObjectCopy(CatalogObjectH srcObject,
@@ -1424,7 +1523,7 @@ const char *ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
 }
 
 /**
- * @brief ngsCatalogObjectGet Gets catalog object handle by path
+ * @brief ngsCatalogObjectGet Get catalog object handle by path
  * @param path Path to the catalog object
  * @return handel or null
  */
@@ -1433,6 +1532,56 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
     CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(fromCString(path));
     return object.get();
+}
+
+/**
+ * @brief ngsCatalogObjectGetByName Get catalog object handle by parent and child name
+ * @param parent Parent handle. Expected parent is ObjectContainer.
+ * @param name Child name.
+ * @param fullMatch If 1 check full match of child name.
+ * @return Child handle or 0.
+ */
+CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name, char fullMatch) {
+    if(name == nullptr) {
+        outMessage(COD_INVALID, _("Name must be set"));
+        return nullptr;
+    }
+    Object *catalogObject = static_cast<Object*>(parent);
+    if(!catalogObject) {
+        outMessage(COD_INVALID, _("Parent handle is null"));
+        return nullptr;
+    }
+
+    ObjectContainer *container = dynamic_cast<ObjectContainer*>(catalogObject);
+    if (container == nullptr) {
+        outMessage(COD_INVALID, _("Parent handle is null"));
+        return nullptr;
+    }
+
+    ObjectPtr child;
+    if(!container->loadChildren()) {
+        outMessage(COD_GET_FAILED, _("Failed to load children"));
+        return nullptr;
+    }
+    auto children = container->getChildren();
+    for(const auto &checkChild : children) {
+        if(fullMatch == 1) {
+            if(compare(name, checkChild->name())) {
+                return checkChild.get();
+            }
+        }
+        else {
+            if(startsWith(checkChild->name(), name)) {
+                child = checkChild;
+            }
+        }
+    }
+
+    if(child) {
+        return child.get();
+    }
+    outMessage(COD_WARNING, _("Child not found"));
+    return nullptr;
 }
 
 /**
@@ -1557,6 +1706,12 @@ void ngsCatalogObjectRefresh(CatalogObjectH object)
     container->refresh();
 }
 
+/**
+ * @brief ngsCatalogCheckConnection Checks if connection is valid
+ * @param type Catalog object type
+ * @param options Options needed to check connection of provided type
+ * @return 1 on success or 0 on fail
+ */
 char ngsCatalogCheckConnection(enum ngsCatalogObjectType type, char **options)
 {
     Options checkOptions(options);
@@ -1749,8 +1904,10 @@ ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object)
  * @brief ngsFeatureClassCreateOverviews Creates Gl optimized vector tiles
  * @param object Catalog object handle. Must be feature class or simple datasource.
  * @param options The options key-value array specific to operation.
- * @param callback The callback function to report or cancel process.
- * @param callbackData The callback function data.
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
@@ -2269,13 +2426,12 @@ ngsExtent ngsGeometryGetEnvelope(GeometryH geometry)
 
 int ngsGeometryTransformTo(GeometryH geometry, int EPSG)
 {
-    OGRSpatialReference to;
-    if(to.importFromEPSG(EPSG) != OGRERR_NONE) {
+    SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(EPSG);
+    if(to == nullptr) {
         return outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
                           EPSG);
     }
-
-    return static_cast<OGRGeometry*>(geometry)->transformTo(&to) == OGRERR_NONE ?
+    return static_cast<OGRGeometry*>(geometry)->transformTo(to.get()) == OGRERR_NONE ?
                 COD_SUCCESS : COD_UPDATE_FAILED;
 }
 
@@ -2309,21 +2465,21 @@ CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG,
         return nullptr;
     }
 
-    OGRSpatialReference from;
-    if(from.importFromEPSG(fromEPSG) != OGRERR_NONE) {
+    SpatialReferencePtr from = SpatialReferencePtr::importFromEPSG(fromEPSG);
+    if(from == nullptr) {
         outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
                      fromEPSG);
         return nullptr;
     }
 
-    OGRSpatialReference to;
-    if(to.importFromEPSG(toEPSG) != OGRERR_NONE) {
+    SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(toEPSG);
+    if(to == nullptr) {
         outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
                      toEPSG);
         return nullptr;
     }
 
-    return OGRCreateCoordinateTransformation(&from, &to);
+    return OGRCreateCoordinateTransformation(from, to);
 }
 
 void ngsCoordinateTransformationFree(CoordinateTransformationH ct)
@@ -2508,8 +2664,10 @@ void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,
  * - MAXX - maximum X coordinate of bounding box
  * - MAXY - maximum Y coordinate of bounding box
  * - ZOOM_LEVELS - comma separated values of zoom levels
- * @param callback Progress function
- * @param callbackData Progress function arguments
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsRasterCacheArea(CatalogObjectH object, char** options,
@@ -2675,8 +2833,10 @@ int ngsMapSetSize(char mapId, int width, int height, char isYAxisInverted)
  * @brief ngsDrawMap Starts drawing map in specified (in ngsInitMap) extent
  * @param mapId Map identifier received from create or open map functions
  * @param state Draw state (NORMAL, PRESERVED, REDRAW)
- * @param callback Progress function
- * @param callbackData Progress function arguments
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return ngsCode value - COD_SUCCESS if everything is OK
  */
 int ngsMapDraw(char mapId, enum ngsDrawState state, ngsProgressFunc callback, void *callbackData)
@@ -3006,22 +3166,22 @@ ngsExtent ngsMapGetExtent(char mapId, int epsg)
             return {env.minX(), env.minY(), env.maxX(), env.maxY()};
         }
 
-        OGRSpatialReference from;
-        if(from.importFromEPSG(fromEPSG) != OGRERR_NONE) {
+        SpatialReferencePtr from = SpatialReferencePtr::importFromEPSG(fromEPSG);
+        if(from == nullptr) {
             outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
                      fromEPSG);
             return {0.0, 0.0, 0.0, 0.0};
         }
 
-        OGRSpatialReference to;
-        if(to.importFromEPSG(epsg) != OGRERR_NONE) {
+        SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(epsg);
+        if(to == nullptr) {
             outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
                          epsg);
             return {0.0, 0.0, 0.0, 0.0};
         }
 
         OGRCoordinateTransformation* ct =
-                OGRCreateCoordinateTransformation(&from, &to);
+                OGRCreateCoordinateTransformation(from, to);
         if(nullptr != ct) {
             double x[4], y[4];
             x[0] = env.minX();
@@ -3934,12 +4094,10 @@ static ngsExtent qmsExtentToStruct(const std::string &extent)
     // Drop SRID part - 10 chars
     std::string wkt = extent.substr(10);
     OGRGeometry *poGeom = nullptr;
-    OGRSpatialReference srsWGS;
-    srsWGS.importFromEPSG(4326);
-    if(OGRGeometryFactory::createFromWkt(wkt.c_str(), &srsWGS, &poGeom) != OGRERR_NONE ) {
-        OGRSpatialReference srsWebMercator;
-        srsWebMercator.importFromEPSG(3857);
-        if(poGeom->transformTo(&srsWebMercator) != OGRERR_NONE) {
+    if(OGRGeometryFactory::createFromWkt(wkt.c_str(), 
+        OGRSpatialReference::GetWGS84SRS(), &poGeom) != OGRERR_NONE ) {
+        SpatialReferencePtr srsWebMercator = SpatialReferencePtr::importFromEPSG(3857);
+        if(poGeom->transformTo(srsWebMercator) != OGRERR_NONE) {
             OGREnvelope env;
             poGeom->getEnvelope(&env);
             out = {env.MinX, env.MinY, env.MaxX, env.MaxY};

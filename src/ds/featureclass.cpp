@@ -149,8 +149,8 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
     DatasetBatchOperationHolder holder(dynamic_cast<Dataset*>(m_parent));
 
-    OGRSpatialReference *srcSRS = srcFClass->spatialReference();
-    OGRSpatialReference *dstSRS = spatialReference();
+    SpatialReferencePtr srcSRS = srcFClass->spatialReference();
+    SpatialReferencePtr dstSRS = spatialReference();
     CoordinateTransformation CT(srcSRS, dstSRS);
     GIntBig featureCount = srcFClass->featureCount();
     OGRwkbGeometryType dstGeomType = geometryType();

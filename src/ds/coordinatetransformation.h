@@ -29,7 +29,18 @@
 
 namespace ngs {
 
-using SpatialReferencePtr = std::shared_ptr<OGRSpatialReference>;
+class SpatialReferencePtr : public std::shared_ptr<OGRSpatialReference>
+{
+public:
+    SpatialReferencePtr(OGRSpatialReference *srs);
+    SpatialReferencePtr();
+    SpatialReferencePtr &operator=(OGRSpatialReference *srs);
+    operator OGRSpatialReference*() const { return get(); }
+    void setFromUserInput(const std::string &input);
+    //static
+public:
+    static SpatialReferencePtr importFromEPSG(int EPSG);
+};
 
 /**
  * @brief The SpatialDataset interface class for datasets with spatial reference.
@@ -38,9 +49,9 @@ class SpatialDataset {
 public:
     SpatialDataset();
     virtual ~SpatialDataset() = default;
-    virtual OGRSpatialReference *spatialReference() const;
+    virtual SpatialReferencePtr spatialReference() const;
 protected:
-    OGRSpatialReference *m_spatialReference;
+    SpatialReferencePtr m_spatialReference;
 };
 
 /**
@@ -49,8 +60,8 @@ protected:
 class CoordinateTransformation
 {
 public:
-    explicit CoordinateTransformation(OGRSpatialReference *srcSRS,
-                                      OGRSpatialReference *dstSRS);
+    explicit CoordinateTransformation(SpatialReferencePtr srcSRS,
+                                      SpatialReferencePtr dstSRS);
     ~CoordinateTransformation();
     bool transform(OGRGeometry *geom);
 protected:

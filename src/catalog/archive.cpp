@@ -74,16 +74,6 @@ bool Archive::destroy()
     return true;
 }
 
-std::string Archive::extension(const enum ngsCatalogObjectType type)
-{
-    switch (type) {
-    case CAT_CONTAINER_ARCHIVE_ZIP:
-        return "zip";
-    default:
-        return "";
-    }
-}
-
 std::string Archive::pathPrefix(const enum ngsCatalogObjectType type)
 {
     switch (type) {

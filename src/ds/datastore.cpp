@@ -59,17 +59,11 @@ constexpr int STORE_EXT_LEN = length(STORE_EXT);
 DataStore::DataStore(ObjectContainer * const parent,
                      const std::string &name,
                      const std::string &path) :
-    Dataset(parent, CAT_CONTAINER_NGS, name, path),
+    Dataset(parent, CAT_CONTAINER_NGS, name, path), 
+    SpatialDataset(),
     m_disableJournalCounter(0)
 {
-    m_spatialReference = new OGRSpatialReference;
-    m_spatialReference->importFromEPSG(DEFAULT_EPSG);
-}
-
-DataStore::~DataStore()
-{
-    m_spatialReference->Release();
-    m_spatialReference = nullptr;
+    m_spatialReference = SpatialReferencePtr::importFromEPSG(DEFAULT_EPSG);
 }
 
 bool DataStore::isNameValid(const std::string &name) const
@@ -120,7 +114,7 @@ void DataStore::fillFeatureClasses() const
 
 bool DataStore::create(const std::string &path)
 {
-    CPLErrorReset();
+    resetError();
     if(path.empty()) {
         return errorMessage(_("The path is empty"));
     }
@@ -132,7 +126,7 @@ bool DataStore::create(const std::string &path)
 
     GDALDataset *DS = poDriver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
     if(DS == nullptr) {
-        return errorMessage(CPLGetLastErrorMsg());
+        return errorMessage(_("Failed to create datastore. %s"), CPLGetLastErrorMsg());
     }
 
     createMetadataTable(DS);
@@ -173,7 +167,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 FeatureClass *DataStore::createFeatureClass(const std::string &name,
                                             enum ngsCatalogObjectType objectType,
                                             OGRFeatureDefn * const definition,
-                                            OGRSpatialReference *spatialRef,
+                                            SpatialReferencePtr spatialRef,
                                             OGRwkbGeometryType type,
                                             const Options &options,
                                             const Progress& progress)
@@ -185,7 +179,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
 
     ngsUnused(objectType);
 
-    CPLErrorReset();
+    resetError();
 
     MutexHolder holder(m_executeSQLMutex);
 
@@ -193,7 +187,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
                                         options.asCPLStringList());
 
     if(layer == nullptr) {
-        errorMessage(CPLGetLastErrorMsg());
+        errorMessage(_("Failed to create feature class. %s"), CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -216,7 +210,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
 
         dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
-            errorMessage(CPLGetLastErrorMsg());
+            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
             return nullptr;
         }
     }
@@ -247,7 +241,7 @@ Table *DataStore::createTable(const std::string &name,
         return nullptr;
     }
 
-    CPLErrorReset();
+    resetError();
 
     ngsUnused(objectType);
 
@@ -257,7 +251,7 @@ Table *DataStore::createTable(const std::string &name,
                                         options.asCPLStringList());
 
     if(layer == nullptr) {
-        errorMessage(CPLGetLastErrorMsg());
+        errorMessage(_("Failed to create table %s. %s"), name.c_str(), CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -280,7 +274,7 @@ Table *DataStore::createTable(const std::string &name,
 
         dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
-            errorMessage(CPLGetLastErrorMsg());
+            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
             return nullptr;
         }
     }
@@ -333,6 +327,15 @@ bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 bool DataStore::create(const enum ngsCatalogObjectType type,
                        const std::string &name, const Options& options)
 {
+    bool overwrite = options.asBool("OVERWRITE", false);
+    if (overwrite) {
+        ObjectPtr deleteObject = getChild(name);
+        if (deleteObject) {
+            if(!deleteObject->destroy()) {
+                return errorMessage(_("Failed overwrite existing object %s"), name.c_str());
+            }
+        }
+    }
     std::string newName = normalizeDatasetName(name);
 
     // Get field definitions

@@ -27,6 +27,7 @@
 #include "cpl_csv.h"
 #include "cpl_string.h"
 #include "gdal.h"
+#include "ogr_srs_api.h"
 
 #ifdef HAVE_CURL_H
 #include "curl/curlver.h"
@@ -44,9 +45,9 @@
 #include "json_c_version.h"
 #endif
 
-#ifdef HAVE_PROJ_API_H
-#include "proj_api.h"
-#endif
+//#ifdef HAVE_PROJ_H
+//#include "proj.h"
+//#endif
 
 #ifdef HAVE_JPEGLIB_H
 #include "jpeglib.h"
@@ -176,10 +177,13 @@ int ngs::getVersion(const std::string &request)
     else if(compare(request, "jsonc"))
         return JSON_C_VERSION_NUM;
 #endif
-#ifdef HAVE_PROJ_API_H
-    else if(compare(request, "proj"))
-        return PJ_VERSION;
-#endif
+    else if(compare(request, "proj")) {
+        int major = 0;
+        int minor = 0;
+        int patch = 0;
+        OSRGetPROJVersion(&major, &minor, &patch);
+        return major * 100 + minor * 10 + patch;
+    }
 #ifdef HAVE_JPEGLIB_H
     else if(compare(request, "jpeg"))
         return JPEG_LIB_VERSION;
@@ -250,16 +254,13 @@ std::string ngs::getVersionString(const std::string &request)
     else if(compare(request, "jsonc"))
         return JSON_C_VERSION;
 #endif
-#ifdef HAVE_PROJ_API_H
     else if(compare(request, "proj")) {
-        int major = PJ_VERSION / 100;
-        int major_full = major * 100;
-        int minor = (PJ_VERSION - major_full) / 10;
-        int minor_full = minor * 10;
-        int rev = PJ_VERSION - (major_full + minor_full);
-        return CPLSPrintf("%d.%d.%d", major, minor, rev);
+        int major = 0;
+        int minor = 0;
+        int patch = 0;
+        OSRGetPROJVersion(&major, &minor, &patch);
+        return CPLSPrintf("%d.%d.%d", major, minor, patch);
     }
-#endif
 #ifdef HAVE_JPEGLIB_H
     else if(compare(request, "jpeg"))
 #if JPEG_LIB_VERSION >= 90

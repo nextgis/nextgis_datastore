@@ -29,6 +29,7 @@
 #include "util/error.h"
 #include "util/notify.h"
 #include "util/stringutil.h"
+#include "file.h"
 
 namespace ngs {
 
@@ -435,6 +436,22 @@ void NGWConnection::fillCapabilities()
             }
         }
     }
+}
+
+bool NGWConnection::destroy()
+{
+    if(!File::deleteFile(m_path)) {
+        return errorMessage(_("Failed to delete %s"), m_name.c_str());
+    }
+
+    std::string name = fullName();
+    if(m_parent) {
+        m_parent->notifyChanges();
+    }
+
+    Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
+
+    return true;
 }
 
 }

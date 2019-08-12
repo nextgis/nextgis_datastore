@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -34,6 +34,9 @@ set_property(CACHE BUILD_TARGET_PLATFORM PROPERTY STRINGS "ANDROID" "IOS" "Deskt
 
 if(BUILD_TARGET_PLATFORM STREQUAL "ANDROID")
     include(android)
+    if(ANDROID_EP_PREFIX)
+      set(EP_PREFIX "${ANDROID_EP_PREFIX}/${ANDROID_ABI}")
+    endif()
 elseif(BUILD_TARGET_PLATFORM STREQUAL "IOS")
     include(ios)
 endif()
@@ -41,9 +44,10 @@ endif()
 project(ngstore)
 
 include(GNUInstallDirs)
-set(INSTALL_BIN_DIR ${CMAKE_INSTALL_FULL_BINDIR} CACHE INTERNAL "Installation directory for executables" FORCE)
-set(INSTALL_LIB_DIR ${CMAKE_INSTALL_FULL_LIBDIR} CACHE INTERNAL "Installation directory for libraries" FORCE)
-set(INSTALL_INC_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR} CACHE INTERNAL "Installation directory for headers" FORCE)
+set(INSTALL_BIN_DIR ${CMAKE_INSTALL_BINDIR} CACHE INTERNAL "Installation directory for executables" FORCE)
+set(INSTALL_LIB_DIR ${CMAKE_INSTALL_LIBDIR} CACHE INTERNAL "Installation directory for libraries" FORCE)
+set(INSTALL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE INTERNAL "Installation directory for headers" FORCE)
+set(INSTALL_DATA_DIR ${CMAKE_INSTALL_DATADIR} CACHE INTERNAL "Installation directory for shared files" FORCE)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_definitions(-D_DEBUG)

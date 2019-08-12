@@ -122,7 +122,7 @@ public:
     virtual FeatureClass *createFeatureClass(const std::string &name,
                                              enum ngsCatalogObjectType objectType,
                                              OGRFeatureDefn * const definition,
-                                             OGRSpatialReference *spatialRef,
+                                             SpatialReferencePtr spatialRef,
                                              OGRwkbGeometryType type,
                                              const Options &options = Options(),
                                              const Progress &progress = Progress());

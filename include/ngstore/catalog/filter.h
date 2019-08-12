@@ -47,6 +47,7 @@ public:
     static bool isContainer(const enum ngsCatalogObjectType type);
     static bool isDatabase(const enum ngsCatalogObjectType type);
     static bool isFileBased(const enum ngsCatalogObjectType type);
+    static bool isLocalDir(const enum ngsCatalogObjectType type);
     static bool isConnection(const enum ngsCatalogObjectType type);
     static GDALDriver *getGDALDriver(const enum ngsCatalogObjectType type);
     static std::string extension(const enum ngsCatalogObjectType type);

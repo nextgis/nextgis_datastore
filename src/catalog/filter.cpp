@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -124,6 +124,11 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
           (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
           (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||
            type == CAT_FC_CSV || type == CAT_FC_MEM || type == CAT_FC_GPX;
+}
+
+bool Filter::isLocalDir(const enum ngsCatalogObjectType type) {
+    return type == CAT_CONTAINER_DIR || type == CAT_CONTAINER_DIR_LINK ||
+           type == CAT_CONTAINER_ARCHIVE || type == CAT_CONTAINER_ARCHIVE;
 }
 
 bool Filter::isConnection(const enum ngsCatalogObjectType type)
@@ -280,6 +285,8 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
             return fromCString(driver->GetMetadataItem(GDAL_DMD_EXTENSION));
         else
             return "";
+    case CAT_CONTAINER_ARCHIVE_ZIP:
+        return "zip";
     default:
         return "";
     }
