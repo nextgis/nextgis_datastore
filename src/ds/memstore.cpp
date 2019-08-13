@@ -91,7 +91,7 @@ void MemoryStore::fillFeatureClasses() const
 {
 }
 
-void MemoryStore::addLayer(const CPLJSONObject &layer)
+ObjectPtr MemoryStore::addLayer(const CPLJSONObject &layer)
 {
     std::string name = layer.GetString("name", "New layer");
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
@@ -126,20 +126,20 @@ void MemoryStore::addLayer(const CPLJSONObject &layer)
     ObjectPtr object;
     if(type == CAT_FC_MEM) {
         OGRwkbGeometryType geomType = static_cast<OGRwkbGeometryType>(
-                    layer.GetInteger("geometry_type", wkbUnknown));
+            layer.GetInteger("geometry_type", wkbUnknown));
         if(wkbUnknown == geomType) {
             errorMessage(_("Unsupported geometry type"));
-            return;
+            return ObjectPtr();
         }
 
         int epsg = layer.GetInteger("epsg", 4326);
         SpatialReferencePtr sr = SpatialReferencePtr::importFromEPSG(epsg);
         object = ObjectPtr(createFeatureClass(name, CAT_FC_MEM, &fieldDefinition,
-                                              sr, geomType, createOptions));
+            sr, geomType, createOptions));
     }
     else if(type == CAT_TABLE_MEM) {
         object = ObjectPtr(createTable(name, CAT_TABLE_MEM, &fieldDefinition,
-                                       createOptions));
+            createOptions));
     }
 
     if(object) {
@@ -150,6 +150,8 @@ void MemoryStore::addLayer(const CPLJSONObject &layer)
         }
         m_children.push_back(object);
     }
+
+    return object;
 }
 
 bool MemoryStore::create(const std::string &path, const Options &options)
@@ -247,7 +249,7 @@ bool MemoryStore::canCreate(const enum ngsCatalogObjectType type) const
     return type == CAT_FC_MEM || type == CAT_TABLE_MEM || type == CAT_RASTER_MEM;
 }
 
-bool MemoryStore::create(const enum ngsCatalogObjectType type,
+ObjectPtr MemoryStore::create(const enum ngsCatalogObjectType type,
                        const std::string &name, const Options& options)
 {
     std::string newName = normalizeDatasetName(name);
@@ -264,7 +266,8 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
     for(int i = 0; i < fieldCount; ++i) {
         std::string fieldName = options.asString(CPLSPrintf("FIELD_%d_NAME", i), "");
         if(fieldName.empty()) {
-            return errorMessage(_("Name for field %d is not defined"), i);
+            errorMessage(_("Name for field %d is not defined"), i);
+            return ObjectPtr();
         }
 
         std::string fieldAlias = options.asString(CPLSPrintf("FIELD_%d_ALIAS", i), "");
@@ -288,12 +291,12 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
 
     layer.Add("fields", fields);
 
-    ObjectPtr object;
     if(type == CAT_FC_MEM) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.asString("GEOMETRY_TYPE", ""));
         if(wkbUnknown == geomType) {
-            return errorMessage(_("Unsupported geometry type"));
+            errorMessage(_("Unsupported geometry type"));
+            return ObjectPtr();
         }
 
         layer.Add("geometry_type", static_cast<int>(geomType));
@@ -324,10 +327,9 @@ bool MemoryStore::create(const enum ngsCatalogObjectType type,
         CPLJSONArray layers = root.GetArray("layers");
         layers.Add(layer);
     }
+    memDescriptionFile.Save(m_path);
 
-    addLayer(layer);
-
-    return memDescriptionFile.Save(m_path);
+    return addLayer(layer);
 }
 
 bool MemoryStore::deleteFeatures(const std::string &name)

@@ -113,13 +113,13 @@ bool ObjectContainer::canCreate(const enum ngsCatalogObjectType type) const
     return false;
 }
 
-bool ObjectContainer::create(const enum ngsCatalogObjectType type,
+ObjectPtr ObjectContainer::create(const enum ngsCatalogObjectType type,
                     const std::string &name, const Options &options)
 {
     ngsUnused(type)
     ngsUnused(name)
     ngsUnused(options)
-    return false;
+    return ObjectPtr();
 }
 
 bool ObjectContainer::canPaste(const enum ngsCatalogObjectType type) const

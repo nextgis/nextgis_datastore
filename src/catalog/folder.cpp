@@ -168,6 +168,16 @@ bool Folder::rmDir(const std::string &path)
     return true;
 }
 
+static const std::string skipExtensions[] = { "ngst-shm", "ngst-wal", "db-wal", "db-shm" };
+static bool skipCopy(const std::string &ext) {
+    for(const std::string &skipExtension : skipExtensions) {
+        if(skipExtension == ext) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool Folder::copyDir(const std::string &from, const std::string &to,
                      const Progress& progress)
 {
@@ -186,6 +196,8 @@ bool Folder::copyDir(const std::string &from, const std::string &to,
         return true;
     }
 
+    CatalogPtr catalog = Catalog::instance();
+
     int count = CSLCount(items);
     bool result = true;
     for(int i = count - 1; i >= 0; --i ) {
@@ -199,7 +211,24 @@ bool Folder::copyDir(const std::string &from, const std::string &to,
             break;
         }
 
+
         std::string pathFrom = File::formFileName(from, items[i]);
+
+        if(skipCopy(File::getExtension(pathFrom))) {
+            continue;
+        }
+
+        ObjectPtr copyObjectContainer = catalog->getObjectBySystemPath(pathFrom);
+        if(copyObjectContainer) {
+            if(Filter::isDatabase(copyObjectContainer->type())) {
+                auto *base = ngsDynamicCast(DatasetBase, copyObjectContainer);
+                if(base) {
+//                    base->close();
+                    base->flushCache();
+                }
+            }
+        }
+
         std::string pathTo = File::formFileName(to, items[i]);
 
         if(isDir(pathFrom)) {
@@ -282,16 +311,6 @@ bool Folder::destroy()
 bool Folder::canDestroy() const
 {
     return !isReadOnly(); // FIXME: Do we need to check parent can write too?
-}
-
-Properties Folder::properties(const std::string &domain) const
-{
-    if(domain.empty()) {
-        Properties out;
-        out.add("system_path", m_path);
-        return out;
-    }
-    return ObjectContainer::properties(domain);
 }
 
 void Folder::refresh()
@@ -547,89 +566,92 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
-bool Folder::create(const enum ngsCatalogObjectType type,
+ObjectPtr Folder::create(const enum ngsCatalogObjectType type,
                     const std::string &name,
                     const Options& options)
 {
     if(!loadChildren()) {
-        return false;
+        return ObjectPtr();
     }
-    bool result = false;
     std::string newName = name;
     // Add extension if not present
     if(!compare(File::getExtension(name), Filter::extension(type))) {
         newName = name + "." + Filter::extension(type);
     }
 
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
 
     std::string newPath = File::formFileName(m_path, newName);
     if(hasChild(newName)) {
-        if(options.asBool("OVERWRITE")) {
+        if(options.asBool("OVERWRITE", false)) {
             if(!File::deleteFile(newPath)) {
-                return errorMessage(_("Failed to overwrite %s"), newName.c_str());
+                errorMessage(_("Failed to overwrite %s"), newName.c_str());
+                return ObjectPtr();
             }
         }
         else {
-            return errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
-                              newName.c_str());
+            errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+                newName.c_str());
+            return ObjectPtr();
         }
     }
 
     std::vector<std::string> siblingFiles;
 
+    ObjectPtr object;
     switch (type) {
     case CAT_CONTAINER_DIR:
-        result = mkDir(newPath);
-        if(result) {
-            m_children.push_back(ObjectPtr(new Folder(this, newName, newPath)));
+        if(mkDir(newPath)) {
+            object = ObjectPtr(new Folder(this, newName, newPath));
+            m_children.push_back(object);
         }
         break;
     case CAT_CONTAINER_NGS:
-        result = DataStore::create(newPath);
-        if(result) {
-            m_children.push_back(ObjectPtr(new DataStore(this, newName, newPath)));
+        if(DataStore::create(newPath)) {
+            object = ObjectPtr(new DataStore(this, newName, newPath));
+            m_children.push_back(object);
         }
         break;
     case CAT_RASTER_TMS:
-        result = RasterFactory::createRemoteConnection(type, newPath, options);
-        if(result) {
-            m_children.push_back(ObjectPtr(new Raster(siblingFiles, this, type,
-                                                      newName, newPath)));
+        if(RasterFactory::createRemoteConnection(type, newPath, options)) {
+            object = ObjectPtr(new Raster(siblingFiles, this, type, newName, newPath));
+            m_children.push_back(object);
         }
         break;
     case CAT_CONTAINER_MEM:
-        result = MemoryStore::create(newPath, options);
-        if(result) {
-            m_children.push_back(ObjectPtr(new MemoryStore(this, newName, newPath)));
+        if(MemoryStore::create(newPath, options)) {
+            object = ObjectPtr(new MemoryStore(this, newName, newPath));
+            m_children.push_back(object);
         }
         break;
     case CAT_CONTAINER_ARCHIVE_ZIP:
         {
             void *archive = CPLCreateZip(newPath.c_str(), nullptr);
             if(archive == nullptr) {
-                return errorMessage(_("Failed to create %s."), newName.c_str());
+                errorMessage(_("Failed to create %s."), newName.c_str());
+                return ObjectPtr();
             }
 
             if(CPLCloseZip(archive) != CE_None) {
-                return errorMessage(_("Failed to create %s."), newName.c_str());
+                errorMessage(_("Failed to create %s."), newName.c_str());
+                return ObjectPtr();
             }
-            m_children.push_back(ObjectPtr(new Archive(this, CAT_CONTAINER_ARCHIVE_ZIP, newName, newPath)));
-            result = true;
+            object = ObjectPtr(new Archive(this, CAT_CONTAINER_ARCHIVE_ZIP, newName, newPath));
+            m_children.push_back(object);
         }
         break;
     default:
         break;
     }
 
-    if(result) {
+    if(object) {
         std::string nameNotify = fullName() + Catalog::separator() + newName;
         Notify::instance().onNotify(nameNotify, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
-    return result;
+    return object;
 }
 
 std::string Folder::createUniquePath(const std::string &path,

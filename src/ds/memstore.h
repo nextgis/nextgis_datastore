@@ -51,9 +51,8 @@ public:
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type,
-                        const std::string &name,
-                        const Options &options) override;
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type,
+        const std::string &name, const Options &options) override;
     virtual bool isReadOnly() const override;
 
     // Dataset
@@ -66,7 +65,7 @@ protected:
     virtual bool isNameValid(const std::string &name) const override;
     virtual std::string normalizeFieldName(const std::string &name) const override;
     virtual void fillFeatureClasses() const override;
-    void addLayer(const CPLJSONObject &layer);
+    ObjectPtr addLayer(const CPLJSONObject &layer);
 
 };
 

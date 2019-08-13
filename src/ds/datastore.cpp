@@ -324,15 +324,17 @@ bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
     return type == CAT_FC_GPKG || type == CAT_TABLE_GPKG;
 }
 
-bool DataStore::create(const enum ngsCatalogObjectType type,
-                       const std::string &name, const Options& options)
+ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
+    const std::string &name, const Options& options)
 {
     bool overwrite = options.asBool("OVERWRITE", false);
     if (overwrite) {
         ObjectPtr deleteObject = getChild(name);
         if (deleteObject) {
             if(!deleteObject->destroy()) {
-                return errorMessage(_("Failed overwrite existing object %s"), name.c_str());
+                errorMessage(_("Failed overwrite existing object %s. Error: %s"), 
+                    name.c_str(), CPLGetLastErrorMsg());
+                return ObjectPtr();
             }
         }
     }
@@ -349,7 +351,8 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
     for(int i = 0; i < fieldCount; ++i) {
         std::string fieldName = options.asString(CPLSPrintf("FIELD_%d_NAME", i), "");
         if(fieldName.empty()) {
-            return errorMessage(_("Name for field %d is not defined"), i);
+            errorMessage(_("Name for field %d is not defined"), i);
+            return ObjectPtr();
         }
 
         std::string fieldAlias = options.asString(CPLSPrintf("FIELD_%d_ALIAS", i), "");
@@ -380,7 +383,8 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.asString("GEOMETRY_TYPE", ""));
         if(wkbUnknown == geomType) {
-            return errorMessage(_("Unsupported geometry type"));
+            errorMessage(_("Unsupported geometry type"));
+            return ObjectPtr();
         }
 
         object = ObjectPtr(createFeatureClass(newName, CAT_FC_GPKG,
@@ -393,34 +397,34 @@ bool DataStore::create(const enum ngsCatalogObjectType type,
                                        options));
     }
 
-    if(!object) {
-        return false;
-    }
+    if(object) {
+        Table *table = ngsDynamicCast(Table, object);
 
-    Table *table = ngsDynamicCast(Table, object);
+        // Store aliases and field original names in properties
+        for(size_t i = 0; i < fields.size(); ++i) {
+            table->setProperty("FIELD_" + std::to_string(i) + "_NAME", 
+                fields[i].name, NG_ADDITIONS_KEY);
+            table->setProperty("FIELD_" + std::to_string(i) + "_ALIAS", 
+                fields[i].alias, NG_ADDITIONS_KEY);
+        }
 
-    // Store aliases and field original names in properties
-    for(size_t i = 0; i < fields.size(); ++i) {
-        table->setProperty("FIELD_" + std::to_string(i) + "_NAME", fields[i].name, NG_ADDITIONS_KEY);
-        table->setProperty("FIELD_" + std::to_string(i) + "_ALIAS", fields[i].alias, NG_ADDITIONS_KEY);
-    }
+        bool saveEditHistory = options.asBool(LOG_EDIT_HISTORY_KEY, false);
+        table->setProperty(LOG_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", 
+            NG_ADDITIONS_KEY);
 
-    bool saveEditHistory = options.asBool(LOG_EDIT_HISTORY_KEY, false);
-    table->setProperty(LOG_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", NG_ADDITIONS_KEY);
+        // Store user defined options in properties
+        for(const auto &it : options) {
+            if(comparePart(it.first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
+                table->setProperty(it.first.substr(USER_PREFIX_KEY_LEN),
+                    it.second, USER_KEY);
+            }
+        }
 
-    // Store user defined options in properties
-    for(const auto &it : options) {
-        if(comparePart(it.first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
-            table->setProperty(it.first.substr(USER_PREFIX_KEY_LEN),
-                               it.second, USER_KEY);
+        if(m_childrenLoaded) {
+            m_children.push_back(object);
         }
     }
-
-    if(m_childrenLoaded) {
-        m_children.push_back(object);
-    }
-
-    return true;
+    return object;
 }
 
 bool DataStore::upgrade(int oldVersion)
@@ -565,8 +569,8 @@ bool DataStore::createTracksTable()
     m_DS->StartTransaction();
 
     // GPX_ELE_AS_25D
-    OGRLayer *layer = m_DS->CreateLayer(TRACKS_POINTS_TABLE, m_spatialReference, wkbPoint,
-                                        options);
+    OGRLayer *layer = m_DS->CreateLayer(TRACKS_POINTS_TABLE, m_spatialReference, 
+        wkbPoint, options);
 
     if(layer == nullptr) {
         m_DS->RollbackTransaction();

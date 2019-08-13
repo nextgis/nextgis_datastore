@@ -81,10 +81,8 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
     }
 
     VSILFILE* fpOld, * fpNew;
-    size_t bytesRead;
-    int ret = 0;
-
-    CPLErrorReset();
+    bool ret = true;
+    resetError();
 
     // Open old and new file
 
@@ -98,8 +96,9 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
     fpNew = VSIFOpenL(dst.c_str(), "wb");
     if(fpNew == nullptr) {
         VSIFCloseL(fpOld);
-        progress.onProgress(COD_COPY_FAILED, 0.0, _("Open output file %s failed"),
-                            dst.c_str());
+        const char *err = CPLGetLastErrorMsg();
+        progress.onProgress(COD_COPY_FAILED, 0.0, _("Open output file %s failed. Error: %s"),
+                            dst.c_str(), err);
         return errorMessage(_("Open output file %s failed"), dst.c_str());
     }
 
@@ -108,24 +107,26 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
 
     // Copy file over till we run out of stuff
     double counter(0);
-    do {
-        bytesRead = VSIFReadL(buffer, 1, BUFFER_SIZE, fpOld);
-        if(bytesRead == 0) {
-            ret = -1;
-        }
-
-        if(ret == 0 && VSIFWriteL(buffer, 1, bytesRead, fpNew) < bytesRead) {
-            ret = -1;
+    while(true) {
+        size_t read = VSIFReadL(buffer, 1, BUFFER_SIZE, fpOld);
+        size_t written = VSIFWriteL(buffer, 1, read, fpNew);
+        if(written != read) {
+            errorMessage("Copying of %s to %s failed", src.c_str(), dst.c_str());
+            ret = false;
+            break;
         }
 
         counter++;
 
         if(!progress.onProgress(COD_IN_PROCESS, counter / totalCount,
                                _("Copying %s to %s"), src.c_str(), dst.c_str())) {
+            ret = false;
             break;
         }
-
-    } while(ret == 0 && bytesRead == BUFFER_SIZE);
+        if(read < BUFFER_SIZE) {
+            break;
+        }
+    }
 
     progress.onProgress(COD_FINISHED, 1.0,
                         _("Copied %s to %s"), src.c_str(), dst.c_str());
@@ -137,7 +138,7 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
 
     CPLFree(buffer);
 
-    return ret == 0;
+    return ret;
 }
 
 bool File::moveFile(const std::string &src, const std::string &dst, const Progress& progress)

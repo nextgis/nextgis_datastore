@@ -367,8 +367,6 @@ bool Table::destroy()
     std::string fullNameStr = fullName();
     std::string name = m_name;
     std::string attPath = getAttachmentsPath();
-    setAttributeFilter();
-    reset();
     if(dataset->destroyTable(this)) {
         dataset->destroyAttachmentsTable(name); // Attachments table maybe not exists
         Folder::rmDir(attPath);

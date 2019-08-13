@@ -89,7 +89,7 @@ public:
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type,
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                         const std::string& name,
                         const Options &options) override;
 

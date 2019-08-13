@@ -205,41 +205,37 @@ NGS_EXTERNC char ngsJsonObjectSetBoolForKey(JsonObjectH object,
 
 NGS_EXTERNC const char *ngsCatalogPathFromSystem(const char *path);
 NGS_EXTERNC CatalogObjectH ngsCatalogObjectGet(const char *path);
-NGS_EXTERNC CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name,
-        char fullMatch);
+NGS_EXTERNC CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, 
+    const char *name, char fullMatch);
 NGS_EXTERNC ngsCatalogObjectInfo *ngsCatalogObjectQuery(CatalogObjectH object,
-                                                        int filter);
+    int filter);
 NGS_EXTERNC ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(
-        CatalogObjectH object, int *filters, int filterCount);
+    CatalogObjectH object, int *filters, int filterCount);
 NGS_EXTERNC int ngsCatalogObjectDelete(CatalogObjectH object);
 NGS_EXTERNC char ngsCatalogObjectCanCreate(CatalogObjectH object,
-                                           enum ngsCatalogObjectType type);
-NGS_EXTERNC int ngsCatalogObjectCreate(CatalogObjectH object, const char *name,
-                                       char **options);
+    enum ngsCatalogObjectType type);
+NGS_EXTERNC CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, 
+    const char *name, char **options);
 NGS_EXTERNC int ngsCatalogObjectCopy(CatalogObjectH srcObject,
-                                     CatalogObjectH dstObjectContainer,
-                                     char **options,
-                                     ngsProgressFunc callback,
-                                     void *callbackData);
+    CatalogObjectH dstObjectContainer, char **options, ngsProgressFunc callback,
+    void *callbackData);
 NGS_EXTERNC int ngsCatalogObjectRename(CatalogObjectH object,
-                                       const char *newName);
+    const char *newName);
 NGS_EXTERNC const char *ngsCatalogObjectOptions(CatalogObjectH object,
-                                                int optionType);
+    int optionType);
 NGS_EXTERNC enum ngsCatalogObjectType ngsCatalogObjectType(
-        CatalogObjectH object);
+    CatalogObjectH object);
 NGS_EXTERNC const char *ngsCatalogObjectName(CatalogObjectH object);
 NGS_EXTERNC const char *ngsCatalogObjectPath(CatalogObjectH object);
 NGS_EXTERNC char **ngsCatalogObjectProperties(CatalogObjectH object,
-                                            const char *domain);
-NGS_EXTERNC const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name,
-        const char *defaultValue, const char *domain);
+    const char *domain);
+NGS_EXTERNC const char *ngsCatalogObjectProperty(CatalogObjectH object, 
+    const char *name, const char *defaultValue, const char *domain);
 NGS_EXTERNC int ngsCatalogObjectSetProperty(CatalogObjectH object,
-                                                const char *name,
-                                                const char *value,
-                                                const char *domain);
+    const char *name, const char *value, const char *domain);
 NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
 NGS_EXTERNC char ngsCatalogCheckConnection(enum ngsCatalogObjectType type,
-                                           char **options);
+    char **options);
 
 /*
  * Feature class

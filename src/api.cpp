@@ -380,19 +380,15 @@ int ngsBackup(const char *name, CatalogObjectH dstObjectContainer, CatalogObject
         return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
     }
 
-    std::string newName = name;
-    if(!compare(File::getExtension(name), Filter::extension(CAT_CONTAINER_ARCHIVE_ZIP))) {
-        newName += "." + Filter::extension(CAT_CONTAINER_ARCHIVE_ZIP);
-    }
-
     Options options;
     options.add("OVERWRITE", "YES");
-    if(!dstCatalogObjectContainer->create(CAT_CONTAINER_ARCHIVE_ZIP, newName, options)) {
+    ObjectPtr archive = dstCatalogObjectContainer->create(
+        CAT_CONTAINER_ARCHIVE_ZIP, name, options);
+    if(!archive) {
         return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
     }
 
-    ObjectPtr archive = dstCatalogObjectContainer->getChild(newName);
-    ObjectContainer *archiveCont = dynamic_cast<ObjectContainer*>(archive.get());
+    ObjectContainer *archiveCont = ngsDynamicCast(ObjectContainer, archive);
     if(!archiveCont) {
         return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
     }
@@ -1357,13 +1353,14 @@ char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType 
  * array after function finishes. The common values are:
  * TYPE (required) - The new object type from enum ngsCatalogObjectType
  * CREATE_UNIQUE [ON, OFF] - If name already exists in container, make it unique
- * @return ngsCode value - COD_SUCCESS if everything is OK
+ * @return Child handle or 0.
  */
-int ngsCatalogObjectCreate(CatalogObjectH object, const char *name, char **options)
+CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, char **options)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        outMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
     }
 
     Options createOptions(options);
@@ -1372,7 +1369,8 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char *name, char **optio
     createOptions.remove("TYPE");
     ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(nullptr == container) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        outMessage(COD_INVALID, _("The object handle is null"));
+        return nullptr;
     }
 
     // If dataset - open it.
@@ -1383,13 +1381,14 @@ int ngsCatalogObjectCreate(CatalogObjectH object, const char *name, char **optio
 
     // Check can create
     if(container->canCreate(type)) {
-        return container->create(type, fromCString(name), createOptions) ?
-                    COD_SUCCESS : COD_CREATE_FAILED;
+        ObjectPtr object = container->create(type, fromCString(name), createOptions);
+        return object.get();
     }
 
-    return outMessage(COD_UNSUPPORTED,
-                      _("Cannot create such object type (%d) in path: %s"),
-                      type, catalogObject->fullName().c_str());
+    outMessage(COD_UNSUPPORTED,
+        _("Cannot create such object type (%d) in path: %s. Error: %s"),
+        type, catalogObject->fullName().c_str(), getLastError());
+    return nullptr;
 }
 
 /**

@@ -36,7 +36,7 @@ public:
     SpatialReferencePtr();
     SpatialReferencePtr &operator=(OGRSpatialReference *srs);
     operator OGRSpatialReference*() const { return get(); }
-    void setFromUserInput(const std::string &input);
+    bool setFromUserInput(const std::string &input);
     //static
 public:
     static SpatialReferencePtr importFromEPSG(int EPSG);

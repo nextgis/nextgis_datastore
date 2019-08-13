@@ -221,15 +221,13 @@ bool GISServerConnections::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
-bool GISServerConnections::create(const enum ngsCatalogObjectType type,
+ObjectPtr GISServerConnections::create(const enum ngsCatalogObjectType type,
                     const std::string &name,
                     const Options& options)
 {
     if(!loadChildren()) {
-        return false;
+        return ObjectPtr();
     }
-    bool result = false;
-
     std::string newName = name;
     if(!compare(File::getExtension(name), Filter::extension(type))) {
         newName = name + "." + Filter::extension(type);
@@ -240,36 +238,38 @@ bool GISServerConnections::create(const enum ngsCatalogObjectType type,
     }
 
     std::string newPath = File::formFileName(m_path, newName);
-    ObjectPtr deleteObj = getChild(newName);
-    if(deleteObj) {
+    ObjectPtr child = getChild(newName);
+    if(child) {
         if(options.asBool("OVERWRITE", false)) {
-            if(!deleteObj->destroy()) {
-                return errorMessage(_("Failed to overwrite %s"), newName.c_str());
+            if(!child->destroy()) {
+                errorMessage(_("Failed to overwrite %s"), newName.c_str());
+                return ObjectPtr();
             }
         }
         else {
-            return errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
-                              newName.c_str());
+            errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+                newName.c_str());
+            return ObjectPtr();
         }
     }
-
+    child = ObjectPtr();
     switch (type) {
     case CAT_CONTAINER_NGW:
-        result = ConnectionFactory::createRemoteConnection(type, newPath, options);
-        if(result) {
-            m_children.push_back(ObjectPtr(new NGWConnection(this, newName, newPath)));
+        if(ConnectionFactory::createRemoteConnection(type, newPath, options)) {
+            child = ObjectPtr(new NGWConnection(this, newName, newPath));
+            m_children.push_back(child);
         }
         break;
     default:
         break;
     }
 
-    if(result) {
+    if(child) {
         std::string nameNotify = fullName() + Catalog::separator() + newName;
         Notify::instance().onNotify(nameNotify, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
-    return result;
+    return child;
 }
 
 //------------------------------------------------------------------------------
@@ -295,16 +295,15 @@ bool DatabaseConnections::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
-bool DatabaseConnections::create(const enum ngsCatalogObjectType type,
-                    const std::string &name,
-                    const Options& options)
+ObjectPtr DatabaseConnections::create(const enum ngsCatalogObjectType type,
+                    const std::string &name, const Options& options)
 {
     ngsUnused(type);
     ngsUnused(name);
     ngsUnused(options);
 
     // TODO:
-    return false;
+    return ObjectPtr();
 }
 
 }

@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -69,14 +69,17 @@ FeatureClass::FeatureClass(OGRLayer *layer, ObjectContainer * const parent,
     m_creatingOvr(false)
 {
     if(nullptr != m_layer) {
-        m_spatialReference = m_layer->GetSpatialRef();
+        OGRSpatialReference *spaRef = m_layer->GetSpatialRef();
+        if(nullptr != spaRef) {
+            m_spatialReference = spaRef->Clone();
+        }
 
         OGRFeatureDefn *defn = m_layer->GetLayerDefn();
         for(int i = 0; i < defn->GetFieldCount(); ++i) {
             OGRFieldDefn *fld = defn->GetFieldDefn(i);
-            m_ignoreFields.push_back(fld->GetNameRef());
+            m_ignoreFields.emplace_back(fld->GetNameRef());
         }
-        m_ignoreFields.push_back("OGR_STYLE");
+        m_ignoreFields.emplace_back("OGR_STYLE");
 
         fillZoomLevels();
 
@@ -93,10 +96,6 @@ FeatureClass::FeatureClass(OGRLayer *layer, ObjectContainer * const parent,
     }
 
     hasTilesTable();
-}
-
-FeatureClass::~FeatureClass()
-{
 }
 
 OGRwkbGeometryType FeatureClass::geometryType() const
@@ -810,10 +809,6 @@ bool FeatureClass::destroy()
         return dataset->destroy();
     }
 
-    if(m_ovrTable) {
-        m_ovrTable->ResetReading();
-    }
-    m_layer->SetSpatialFilter(nullptr);
     std::string name = m_name;
     if(!Table::destroy()) {
         return false;

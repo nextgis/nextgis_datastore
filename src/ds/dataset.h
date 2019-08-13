@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -81,6 +81,7 @@ public:
     bool startTransaction(bool force = false);
     bool commitTransaction();
     bool rollbackTransaction();
+    void flushCache();
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
 protected:

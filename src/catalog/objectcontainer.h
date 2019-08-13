@@ -44,7 +44,7 @@ public:
     virtual bool hasChildren() const;
     virtual bool isReadOnly() const;
     virtual bool canCreate(const enum ngsCatalogObjectType type) const;
-    virtual bool create(const enum ngsCatalogObjectType type,
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                         const std::string &name,
                         const Options &options = Options());
     virtual bool canPaste(const enum ngsCatalogObjectType type) const;

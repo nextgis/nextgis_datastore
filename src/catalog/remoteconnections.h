@@ -46,8 +46,8 @@ public:
     explicit GISServerConnections(ObjectContainer * const parent,
                                   const std::string &path = "");
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type, const std::string &name,
-                        const Options &options) override;
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type, 
+        const std::string &name, const Options &options) override;
 };
 
 class DatabaseConnections : public Connections
@@ -56,8 +56,8 @@ public:
     explicit DatabaseConnections(ObjectContainer * const parent,
                                  const std::string &path = "");
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type, const std::string &name,
-                        const Options &options) override;
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type, 
+        const std::string &name, const Options &options) override;
 };
 
 }

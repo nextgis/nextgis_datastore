@@ -64,6 +64,7 @@ constexpr std::array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTIO
     "VACUUM", "VALUES", "VIEW", "VIRTUAL", "WHEN", "WHERE", "WITH", "WITHOUT"}};
 
 constexpr unsigned short MAX_EQUAL_NAMES = 10000;
+constexpr unsigned short MAX_FEATURES4UNSUPPORTED = 1000;
 
 //------------------------------------------------------------------------------
 // GDALDatasetPtr
@@ -133,6 +134,14 @@ bool DatasetBase::rollbackTransaction()
         return false;
     }
     return m_DS->RollbackTransaction() == OGRERR_NONE;
+}
+
+void DatasetBase::flushCache()
+{
+    if(!isOpened()) {
+        return;
+    }
+    m_DS->FlushCache();
 }
 
 std::string DatasetBase::options(const enum ngsCatalogObjectType type,
@@ -748,7 +757,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 child->name().c_str());
         }
 
-        if(srcTable->featureCount() > 1000) {
+        if(srcTable->featureCount() > MAX_FEATURES4UNSUPPORTED) {
             const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
             if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
                 return outMessage(COD_FUNCTION_NOT_AVAILABLE,
@@ -777,16 +786,16 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
             return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
-                                _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
-                                child->name().c_str());
+                _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
+                child->name().c_str());
         }
 
-        if(srcFClass->featureCount() > 1000) {
+        if(srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
             const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
             if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
                 return outMessage(COD_FUNCTION_NOT_AVAILABLE,
-                                  _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
-                                  move ? _("move") : _("copy"), srcFClass->featureCount());
+                    _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
+                    move ? _("move") : _("copy"), srcFClass->featureCount());
             }
         }
 
@@ -1038,13 +1047,16 @@ bool Dataset::destroyTable(GDALDataset *ds, OGRLayer *layer)
 {
     for(int i = 0; i < ds->GetLayerCount (); ++i) {
         if(ds->GetLayer(i) == layer) {
-            layer->ResetReading();
-            if(ds->DeleteLayer(i) == OGRERR_NONE) {
-                return true;
-            }
+            resetError();
+//            ds->RollbackTransaction();
+//            layer->RollbackTransaction();
+//            layer->SetAttributeFilter(nullptr);
+//            layer->SetSpatialFilter(nullptr);
+//            layer->ResetReading();
+            return ds->DeleteLayer(i) == OGRERR_NONE;
         }
     }
-    return false;
+    return true;
 }
 
 OGRLayer *Dataset::createOverviewsTable(GDALDataset *ds, const std::string &name)
@@ -1141,10 +1153,7 @@ OGRLayer *Dataset::createAttachmentsTable(const std::string &name)
 
 bool Dataset::destroyAttachmentsTable(const std::string &name)
 {
-    if(!m_addsDS)
-        return false;
-
-    OGRLayer *layer = m_addsDS->GetLayerByName(attachmentsTableName(name).c_str());
+    OGRLayer *layer = getAttachmentsTable(name);
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
@@ -1173,9 +1182,7 @@ OGRLayer *Dataset::createEditHistoryTable(const std::string &name)
 
 bool Dataset::destroyEditHistoryTable(const std::string &name)
 {
-    if(!m_addsDS)
-        return false;
-    OGRLayer *layer = m_addsDS->GetLayerByName(historyTableName(name).c_str());
+    OGRLayer *layer = getEditHistoryTable(name);
     if(!layer)
         return false;
     return destroyTable(m_DS, layer);
@@ -1230,7 +1237,8 @@ void Dataset::refresh()
         return;
     }
 
-    std::vector<std::string> deleteNames, addNames;
+    std::vector<std::string> deleteNames;
+    std::vector<std::string> addNames;
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
@@ -1240,7 +1248,7 @@ void Dataset::refresh()
             }
             const char *layerName = layer->GetName();
             CPLDebug("ngstore", "refresh layer %s", layerName);
-            addNames.push_back(layerName);
+            addNames.emplace_back(layerName);
         }
     }
 

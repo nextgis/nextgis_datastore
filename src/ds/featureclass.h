@@ -54,7 +54,7 @@ public:
                           ObjectContainer * const parent = nullptr,
                           const enum ngsCatalogObjectType type = CAT_FC_ANY,
                           const std::string &name = "");
-    virtual ~FeatureClass() override;
+    virtual ~FeatureClass() = default;
 
     OGRwkbGeometryType geometryType() const;
     std::vector<OGRwkbGeometryType> geometryTypes() const;

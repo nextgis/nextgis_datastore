@@ -101,7 +101,11 @@ ObjectContainer *Object::parent() const
 
 Properties Object::properties(const std::string &domain) const
 {
-    ngsUnused(domain);
+    if(domain.empty()) {
+        Properties out;
+        out.add("system_path", m_path);
+        return out;
+    }
     return Properties();
 }
 
@@ -109,10 +113,10 @@ std::string Object::property(const std::string &key,
                              const std::string &defaultValue,
                              const std::string &domain) const
 {
-    ngsUnused(key);
-    ngsUnused(defaultValue);
-    ngsUnused(domain);
-    return "";
+    if(key == "system_path" && domain.empty()) {
+        return m_path;
+    }
+    return defaultValue;
 }
 
 bool Object::setProperty(const std::string &key, const std::string &value,
@@ -121,7 +125,7 @@ bool Object::setProperty(const std::string &key, const std::string &value,
     ngsUnused(key)
     ngsUnused(value)
     ngsUnused(domain)
-            return false;
+    return false;
 }
 
 void Object::deleteProperties(const std::string &domain)

@@ -26,7 +26,7 @@ namespace ngs {
 // SpatialReferencePtr
 //------------------------------------------------------------------------------
 void OSRRelease( OGRSpatialReference *srs ) {
-    if(srs != nullptr) {
+    if(nullptr != srs) {
         srs->Release();
     }
 }
@@ -45,23 +45,26 @@ SpatialReferencePtr &SpatialReferencePtr::operator=(OGRSpatialReference *srs)
     return *this;
 }
 
-void SpatialReferencePtr::setFromUserInput(const std::string &input)
+bool SpatialReferencePtr::setFromUserInput(const std::string &input)
 {
     if(!input.empty()) {
         OGRSpatialReference *srs = new OGRSpatialReference();
-        srs->SetFromUserInput(input.c_str());
-        reset(srs);
+        if(srs->SetFromUserInput(input.c_str()) == OGRERR_NONE) {
+            reset(srs);
+            return true;
+        }
     }
+    return false;
 }
 
 SpatialReferencePtr SpatialReferencePtr::importFromEPSG(int EPSG)
 {
     SpatialReferencePtr sr(new OGRSpatialReference());
-    if(sr->importFromEPSG(EPSG) != OGRERR_NONE) {
-        return nullptr;
+    if(sr->importFromEPSG(EPSG) == OGRERR_NONE) {
+        sr->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+        return sr;        
     }
-    sr->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-    return sr;
+    return nullptr;
 }
 
 //------------------------------------------------------------------------------

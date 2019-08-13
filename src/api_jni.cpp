@@ -879,13 +879,16 @@ NGS_JNI_FUNC(jboolean, catalogObjectDelete)(JNIEnv *env, jobject thisObj, jlong 
     return ngsCatalogObjectDelete(reinterpret_cast<CatalogObjectH>(object)) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
-NGS_JNI_FUNC(jboolean, catalogObjectCreate)(JNIEnv *env, jobject thisObj, jlong object, jstring name, jobjectArray options)
+NGS_JNI_FUNC(jlong, catalogObjectCreate)(JNIEnv *env, jobject thisObj, 
+    jlong object, jstring name, jobjectArray options)
 {
     ngsUnused(thisObj);
     char **nativeOptions = toOptions(env, options);
-    int res = ngsCatalogObjectCreate(reinterpret_cast<CatalogObjectH>(object), jniString(env, name).c_str(), nativeOptions);
+    jlong res = reinterpret_cast<jlong>(ngsCatalogObjectCreate(
+        reinterpret_cast<CatalogObjectH>(object), jniString(env, name).c_str(), 
+        nativeOptions));
     CSLDestroy(nativeOptions);
-    return res == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+    return res;
 }
 
 NGS_JNI_FUNC(jboolean, catalogObjectCopy)(JNIEnv *env, jobject thisObj, jlong srcObject,

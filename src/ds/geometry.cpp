@@ -481,10 +481,7 @@ GeometryPtr Envelope::toGeometry(SpatialReferencePtr spatialRef) const
     OGRPolygon* rgn = new OGRPolygon();
     rgn->addRing(&ring);
     rgn->flattenTo2D();
-    if(nullptr != spatialRef) {
-        spatialRef->Reference();
-        rgn->assignSpatialReference(spatialRef);
-    }
+    rgn->assignSpatialReference(spatialRef);
     return GeometryPtr(static_cast<OGRGeometry*>(rgn));
 }
 

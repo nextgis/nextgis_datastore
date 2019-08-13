@@ -29,8 +29,7 @@ class Folder : public ObjectContainer
 {
 public:
     explicit Folder(ObjectContainer * const parent = nullptr,
-           const std::string &name = "",
-           const std::string &path = "");
+        const std::string &name = "", const std::string &path = "");
     virtual bool loadChildren() override;
 
     // Static functions
@@ -40,51 +39,46 @@ public:
     static bool mkDir(const std::string &path, bool recursive = false);
     static bool rmDir(const std::string &path);
     static bool copyDir(const std::string &from, const std::string &to,
-                        const Progress &progress = Progress());
+        const Progress &progress = Progress());
     static bool moveDir(const std::string &from, const std::string &to,
-                        const Progress &progress = Progress());
+        const Progress &progress = Progress());
     static bool isDir(const std::string &path);
     static bool isSymlink(const std::string &path);
     static bool isHidden(const std::string &path);
     static std::vector<std::string> fillChildrenNames(const std::string &path,
-                                                      char** items);
+        char** items);
     static std::string createUniquePath(const std::string &path,
-                                      const std::string &name,
-                                      bool isFolder = true,
-                                      const std::string &add = "",
-                                      int counter = 0);
+        const std::string &name, bool isFolder = true,
+        const std::string &add = "", int counter = 0);
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual void refresh() override;
     virtual bool isReadOnly() const override;
     virtual int paste(ObjectPtr child, bool move = false,
-                      const Options& options = Options(),
-                      const Progress& progress = Progress()) override;
+        const Options& options = Options(),
+        const Progress& progress = Progress()) override;
     virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
-    virtual bool create(const enum ngsCatalogObjectType type,
-                        const std::string &name,
-                        const Options &options) override;
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type,
+        const std::string &name, const Options &options) override;
 
     // Object interface
 public:
     virtual bool destroy() override;
     virtual bool canDestroy() const override;
-    virtual Properties properties(const std::string &domain) const override;
 
 protected:
     int pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,
-                        const Progress &progress);
+        const Progress &progress);
     int pasteFeatureClass(ObjectPtr child, bool move, const std::string &newPath,
-                          const Options& options, const Progress& progress);
+        const Options& options, const Progress& progress);
 };
 
 class FolderConnection : public Folder
 {
 public:
     explicit FolderConnection(ObjectContainer * const parent = nullptr,
-           const std::string &name = "",
-           const std::string &path = "");
+        const std::string &name = "", const std::string &path = "");
 };
 
 }

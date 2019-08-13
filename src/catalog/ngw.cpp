@@ -144,7 +144,7 @@ bool NGWResourceGroup::destroy()
     return NGWResourceBase::remove();
 }
 
-bool NGWResourceGroup::create(const enum ngsCatalogObjectType type,
+ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
                     const std::string &name, const Options &options)
 {
     std::string newName = name;
@@ -156,13 +156,15 @@ bool NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     if(child) {
         if(options.asBool("OVERWRITE")) {
             if(!child->destroy()) {
-                return errorMessage(_("Failed to overwrite %s\nError: %s"),
-                                    newName.c_str(), getLastError());
+                errorMessage(_("Failed to overwrite %s\nError: %s"),
+                    newName.c_str(), getLastError());
+                return ObjectPtr();
             }
         }
         else {
-            return errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
-                              newName.c_str());
+            errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
+                newName.c_str());
+            return ObjectPtr();
         }
     }
 
@@ -184,28 +186,29 @@ bool NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     std::string resourceId = ngw::createResource(m_url,
         payload.Format(CPLJSONObject::Plain), getGDALHeaders(m_url).StealList());
     if(compare(resourceId, "-1", true)) {
-        return false;
+        return ObjectPtr();
     }
 
+    child = ObjectPtr();
     if(m_childrenLoaded) {
         switch(type) {
         case CAT_CONTAINER_NGWGROUP:
-            m_children.push_back(ObjectPtr(new NGWResourceGroup(this, newName,
-                                                                m_url, resourceId)));
+            child = ObjectPtr(new NGWResourceGroup(this, newName, m_url, resourceId));
+            m_children.push_back(child);
             break;
         case CAT_CONTAINER_NGWTRACKERGROUP:
-            m_children.push_back(ObjectPtr(new NGWTrackersGroup(this, newName,
-                                                                m_url, resourceId)));
+            child = ObjectPtr(new NGWTrackersGroup(this, newName, m_url, resourceId));
+            m_children.push_back(child);
             break;
         default:
-            return false;
+            return ObjectPtr();
         }
     }
 
     std::string newPath = fullName() + Catalog::separator() + newName;
     Notify::instance().onNotify(newPath, ngsChangeCode::CC_CREATE_OBJECT);
 
-    return true;
+    return child;
 }
 
 //------------------------------------------------------------------------------
@@ -231,7 +234,7 @@ bool NGWTrackersGroup::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
-bool NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
+ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
                     const std::string &name, const Options &options)
 {
     std::string newName = name;
@@ -243,13 +246,15 @@ bool NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     if(child) {
         if(options.asBool("OVERWRITE")) {
             if(!child->destroy()) {
-                return errorMessage(_("Failed to overwrite %s\nError: %s"),
-                                    newName.c_str(), getLastError());
+                errorMessage(_("Failed to overwrite %s\nError: %s"),
+                    newName.c_str(), getLastError());
+                return ObjectPtr();
             }
         }
         else {
-            return errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
-                              newName.c_str());
+            errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
+                newName.c_str());
+            return ObjectPtr();
         }
     }
 
@@ -295,24 +300,25 @@ bool NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     std::string resourceId = ngw::createResource(m_url,
         payload.Format(CPLJSONObject::Plain), getGDALHeaders(m_url).StealList());
     if(compare(resourceId, "-1", true)) {
-        return false;
+        return ObjectPtr();
     }
 
     if(m_childrenLoaded) {
         switch(type) {
         case CAT_NGW_TRACKER:
-            m_children.push_back(ObjectPtr(new NGWResource(this, type, newName,
-                                                           m_url, resourceId)));
+            child = ObjectPtr(new NGWResource(this, type, newName,
+                                                           m_url, resourceId));
+            m_children.push_back(child);
             break;
         default:
-            return false;
+            return ObjectPtr();
         }
     }
 
     std::string newPath = fullName() + Catalog::separator() + newName;
     Notify::instance().onNotify(newPath, ngsChangeCode::CC_CREATE_OBJECT);
 
-    return true;
+    return child;
 }
 
 //------------------------------------------------------------------------------
