@@ -4540,7 +4540,7 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
  * @param acc Accuracy.
  * @param speed Speed.
  * @param course Course.
- * @param timeStamp Time stamp (UTC in milliseconds).
+ * @param timeStamp Time stamp (UTC in seconds).
  * @param satCount Satellite count using to get fix.
  * @param newTrack Is this point start new track.
  * @param newSegment Is this point start new segment.
@@ -4563,8 +4563,8 @@ char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double 
  * ngsTrackDeletePoints Delete points from a tracks table.
  *
  * @param tracksTable Table handle.
- * @param start Start timestamp.
- * @param stop End timestamp.
+ * @param start Start timestamp (UTC in seconds).
+ * @param stop End timestamp (UTC in seconds).
  * @return 1 on success, 0 if failed.
  */
 char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop)

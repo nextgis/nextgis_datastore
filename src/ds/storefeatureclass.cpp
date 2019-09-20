@@ -712,7 +712,7 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
     feature->SetField("track_seg_point_id", ++m_lastSegmentPtId);
 
     feature->SetField("track_name", name.c_str());
-    m_lastGmtTimeStamp = timeStamp / 1000;
+    m_lastGmtTimeStamp = timeStamp;
     std::tm *gmtTime = std::gmtime(&m_lastGmtTimeStamp);
     feature->SetField("time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
             gmtTime->tm_min, gmtTime->tm_sec);
@@ -807,7 +807,7 @@ bool TracksTable::flashBuffer()
 
 static std::string longToISO(long timeStamp)
 {
-    long gmtTimeStamp = timeStamp / 1000;
+    long gmtTimeStamp = timeStamp;
     std::tm *gmtTime = std::gmtime(&gmtTimeStamp);
     return CPLSPrintf("%d-%d-%dT%d:%d:%dZ", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
                       gmtTime->tm_min, gmtTime->tm_sec);

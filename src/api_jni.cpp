@@ -2411,9 +2411,9 @@ NGS_JNI_FUNC(jobjectArray, trackGetList)(JNIEnv *env, jobject thisObj, jlong obj
     return array;
 }
 
-NGS_JNI_FUNC(jboolean, trackAddPoint)(JNIEnv *env, jobject thisObj, jlong object, jstring name, jdouble x, jdouble y, jdouble z,
-                                      jfloat acc, jfloat speed, jfloat course, jlong timeStamp, jint satCount,
-                                      jboolean newTrack, jboolean newSegment)
+NGS_JNI_FUNC(jboolean, trackAddPoint)(JNIEnv *env, jobject thisObj, jlong object, jstring name, jdouble x, jdouble y,
+        jdouble z, jfloat acc, jfloat speed, jfloat course, jlong timeStamp, jint satCount, jboolean newTrack,
+        jboolean newSegment)
 {
     ngsUnused(thisObj);
     return ngsTrackAddPoint(reinterpret_cast<CatalogObjectH>(object), jniString(env, name).c_str(), x, y, z, acc,
