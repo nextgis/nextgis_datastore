@@ -474,6 +474,35 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
 }
 
 //------------------------------------------------------------------------------
+// TrackPointsTable
+//------------------------------------------------------------------------------
+TrackPointsTable::TrackPointsTable(OGRLayer *layer, ObjectContainer * const parent) : FeatureClass(layer, parent, CAT_FC_GPKG, TRACKS_POINTS_TABLE)
+{
+
+}
+
+TrackPointsTable::~TrackPointsTable()
+{
+
+}
+
+ObjectPtr TrackPointsTable::pointer() const
+{
+    DataStore *dataset = dynamic_cast<DataStore*>(m_parent);
+    if(dataset == nullptr) {
+        return ObjectPtr();
+    }
+
+    ObjectPtr tracksTable = dataset->getTracksTable();
+    TracksTable *tbl = ngsDynamicCast(TracksTable, tracksTable);
+    if(nullptr == tbl) {
+        return ObjectPtr();
+    }
+
+    return tbl->getPointsLayer();
+}
+
+//------------------------------------------------------------------------------
 // TracksTable
 //------------------------------------------------------------------------------
 
@@ -484,7 +513,7 @@ TracksTable::TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectCont
     m_lastTrackId(0),
     m_lastSegmentId(0),
     m_lastSegmentPtId(0),
-    m_pointsLayer(new FeatureClass(pointsLayer, m_parent, CAT_FC_GPKG, TRACKS_POINTS_TABLE)),
+    m_pointsLayer(new TrackPointsTable(pointsLayer, m_parent)),
     m_newTrack(false),
     m_lastGmtTimeStamp(0),
     m_pointCount(0)
@@ -928,6 +957,7 @@ ObjectPtr TracksTable::getPointsLayer() const
 {
     return m_pointsLayer;
 }
+
 
 } // namespace ngs
 

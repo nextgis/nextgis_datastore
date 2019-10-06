@@ -48,20 +48,41 @@ static CPLStringList getGDALHeaders(const std::string &url)
 }
 
 //------------------------------------------------------------------------------
+// NGWConnectionBase
+//------------------------------------------------------------------------------
+
+std::string NGWConnectionBase::connectionUrl() const
+{
+    return m_url;
+}
+
+bool NGWConnectionBase::isClsSupported(const std::string &cls) const
+{
+    return std::find(m_availableCls.begin(), m_availableCls.end(), cls) != m_availableCls.end();
+}
+
+//------------------------------------------------------------------------------
 // NGWResourceBase
 //------------------------------------------------------------------------------
-NGWResourceBase::NGWResourceBase(const std::string &url,
+NGWResourceBase::NGWResourceBase(NGWConnectionBase *connection,
                                  const std::string &resourceId) :
-    m_url(url),
+    m_connection(connection),
     m_resourceId(resourceId)
 {
 
 }
 
+std::string NGWResourceBase::url() const
+{
+    if(m_connection) {
+        return m_connection->connectionUrl();
+    }
+    return "";
+}
+
 bool NGWResourceBase::remove()
 {
-    return ngw::deleteResource(m_url, m_resourceId,
-                               getGDALHeaders(m_url).StealList());
+    return ngw::deleteResource(url(), m_resourceId, getGDALHeaders(url()).StealList());
 }
 
 //------------------------------------------------------------------------------
@@ -70,10 +91,10 @@ bool NGWResourceBase::remove()
 NGWResource::NGWResource(ObjectContainer * const parent,
                          const enum ngsCatalogObjectType type,
                          const std::string &name,
-                         const std::string &url,
+                         NGWConnectionBase *connection,
                          const std::string &resourceId) :
     Object(parent, type, name, ""),
-    NGWResourceBase(url, resourceId)
+    NGWResourceBase(connection, resourceId)
 {
 }
 
@@ -87,11 +108,11 @@ bool NGWResource::destroy()
 //------------------------------------------------------------------------------
 
 NGWResourceGroup::NGWResourceGroup(ObjectContainer * const parent,
-                         const std::string &name,
-                         const std::string &url,
-                         const std::string &resourceId) :
+        const std::string &name,
+        NGWConnectionBase *connection,
+        const std::string &resourceId) :
     ObjectContainer(parent, CAT_CONTAINER_NGWGROUP, name, ""), // Don't need file system path
-    NGWResourceBase(url, resourceId)
+    NGWResourceBase(connection, resourceId)
 {
 
 }
@@ -121,19 +142,23 @@ void NGWResourceGroup::addResource(const CPLJSONObject &resource)
     std::string id = resource.GetString("resource/id");
 
     if(cls == "resource_group") {
-        addChild(ObjectPtr(new NGWResourceGroup(this, name, m_url, id)));
+        addChild(ObjectPtr(new NGWResourceGroup(this, name, m_connection, id)));
     }
     else if(cls == "trackers_group") {
-        addChild(ObjectPtr(new NGWTrackersGroup(this, name, m_url, id)));
+        addChild(ObjectPtr(new NGWTrackersGroup(this, name, m_connection, id)));
     }
 }
 
 bool NGWResourceGroup::canCreate(const enum ngsCatalogObjectType type) const
 {
+    if(m_connection == nullptr) {
+        return false; // Not expected than connection is null
+    }
     switch (type) {
     case CAT_CONTAINER_NGWGROUP:
+        return m_connection->isClsSupported("resource_group");
     case CAT_CONTAINER_NGWTRACKERGROUP:
-        return true;
+        return m_connection->isClsSupported("trackers_group");
     default:
         return false;
     }
@@ -183,8 +208,8 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     CPLJSONObject parent("parent", resource);
     parent.Add("id", atoi(m_resourceId.c_str()));
 
-    std::string resourceId = ngw::createResource(m_url,
-        payload.Format(CPLJSONObject::Plain), getGDALHeaders(m_url).StealList());
+    std::string resourceId = ngw::createResource(url(),
+        payload.Format(CPLJSONObject::Plain), getGDALHeaders(url()).StealList());
     if(compare(resourceId, "-1", true)) {
         return ObjectPtr();
     }
@@ -193,11 +218,11 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     if(m_childrenLoaded) {
         switch(type) {
         case CAT_CONTAINER_NGWGROUP:
-            child = ObjectPtr(new NGWResourceGroup(this, newName, m_url, resourceId));
+            child = ObjectPtr(new NGWResourceGroup(this, newName, m_connection, resourceId));
             m_children.push_back(child);
             break;
         case CAT_CONTAINER_NGWTRACKERGROUP:
-            child = ObjectPtr(new NGWTrackersGroup(this, newName, m_url, resourceId));
+            child = ObjectPtr(new NGWTrackersGroup(this, newName, m_connection, resourceId));
             m_children.push_back(child);
             break;
         default:
@@ -216,22 +241,20 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
 //------------------------------------------------------------------------------
 
 NGWTrackersGroup::NGWTrackersGroup(ObjectContainer * const parent,
-                         const std::string &name,
-                         const std::string &url,
-                         const std::string &resourceId) :
-    NGWResourceGroup(parent, name, url, resourceId)
+        const std::string &name,
+        NGWConnectionBase *connection,
+        const std::string &resourceId) :
+    NGWResourceGroup(parent, name, connection, resourceId)
 {
     m_type = CAT_CONTAINER_NGWTRACKERGROUP;
 }
 
 bool NGWTrackersGroup::canCreate(const enum ngsCatalogObjectType type) const
 {
-    switch (type) {
-    case CAT_NGW_TRACKER:
-        return true;
-    default:
-        return false;
+    if(type == CAT_NGW_TRACKER && m_connection) {
+        return m_connection->isClsSupported("tracker");
     }
+    return false;
 }
 
 ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
@@ -297,8 +320,8 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
 
     tracker.Add("is_registered", "");
 
-    std::string resourceId = ngw::createResource(m_url,
-        payload.Format(CPLJSONObject::Plain), getGDALHeaders(m_url).StealList());
+    std::string resourceId = ngw::createResource(url(),
+        payload.Format(CPLJSONObject::Plain), getGDALHeaders(url()).StealList());
     if(compare(resourceId, "-1", true)) {
         return ObjectPtr();
     }
@@ -306,8 +329,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     if(m_childrenLoaded) {
         switch(type) {
         case CAT_NGW_TRACKER:
-            child = ObjectPtr(new NGWResource(this, type, newName,
-                                                           m_url, resourceId));
+            child = ObjectPtr(new NGWResource(this, type, newName, m_connection, resourceId));
             m_children.push_back(child);
             break;
         default:
@@ -328,10 +350,11 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
 NGWConnection::NGWConnection(ObjectContainer * const parent,
                          const std::string &name,
                          const std::string &path) :
-    NGWResourceGroup(parent, name, "")
+    NGWResourceGroup(parent, name)
 {
     m_type = CAT_CONTAINER_NGW;
     m_path = path;
+    m_connection = this;
 }
 
 NGWConnection::~NGWConnection()
@@ -366,8 +389,7 @@ bool NGWConnection::loadChildren()
         fillCapabilities();
         if(!m_searchApiUrl.empty()) {
             CPLJSONDocument searchReq;
-            if(searchReq.LoadUrl(m_searchApiUrl + "?serialization=full",
-                                  getGDALHeaders(m_url))) {
+            if(searchReq.LoadUrl(m_searchApiUrl + "?serialization=full", getGDALHeaders(m_url))) {
                 CPLJSONArray root(searchReq.GetRoot());
                 if(root.IsValid()) {
                     m_childrenLoaded = true;
@@ -439,6 +461,17 @@ void NGWConnection::fillCapabilities()
             if(version.IsValid()) {
                 m_versionApiUrl = m_url + version[0].ToString();
                 CPLDebug("ngstore", "Version API URL: %s", m_versionApiUrl.c_str());
+            }
+        }
+    }
+    CPLJSONDocument schemaReq;
+    if(schemaReq.LoadUrl( ngw::getSchemaUrl(m_url), getGDALHeaders(m_url) )) {
+        CPLJSONObject root = schemaReq.GetRoot();
+        if(root.IsValid()) {
+            CPLJSONObject resources = root.GetObj("resources");
+            for(auto &resource : resources.GetChildren()) {
+                std::string type = resource.GetName();
+                m_availableCls.push_back(type);
             }
         }
     }

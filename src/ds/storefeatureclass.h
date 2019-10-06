@@ -135,6 +135,17 @@ typedef struct _TrackInfo {
     long count;
 } TrackInfo;
 
+class TrackPointsTable : public FeatureClass
+{
+public:
+    TrackPointsTable(OGRLayer *layer, ObjectContainer * const parent = nullptr);
+    virtual ~TrackPointsTable() override;
+
+    // Object interface
+public:
+    virtual ObjectPtr pointer() const override;
+};
+
 class TracksTable : public FeatureClass
 {
 public:

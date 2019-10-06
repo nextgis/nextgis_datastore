@@ -54,6 +54,11 @@ std::string getRouteUrl(const std::string &url)
     return url + "/api/component/pyramid/route";
 }
 
+std::string getSchemaUrl(const std::string &url)
+{
+    return url + "resource/schema";
+}
+
 std::string getCurrentUserUrl(const std::string &url)
 {
     return url + "/api/component/auth/current_user";
@@ -173,7 +178,10 @@ std::string createResource(const std::string &url, const std::string &payload,
         }
         else {
             std::string errorMessageStr = root.GetString("message");
-            if(!errorMessageStr.empty()) {
+            if(errorMessageStr.empty()) {
+                errorMessage("%s", _("Create resource failed. No error message from server."));
+            }
+            else {
                 errorMessage("%s", errorMessageStr.c_str());
             }
         }

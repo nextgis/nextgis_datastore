@@ -42,6 +42,7 @@ namespace ngw {
     std::string getChildrenUrl(const std::string &url,
                                const std::string &resourceId);
     std::string getRouteUrl(const std::string &url);
+    std::string getSchemaUrl(const std::string &url);
     std::string getCurrentUserUrl(const std::string &url);
     bool checkVersion(const std::string &version, int major, int minor, int patch);
     std::string createResource(const std::string &url, const std::string &payload,
@@ -55,17 +56,31 @@ namespace ngw {
     bool sendTrackPoints(const std::string &payload);
 }
 
+class NGWConnectionBase
+{
+public:
+    std::string connectionUrl() const;
+    bool isClsSupported(const std::string &cls) const;
+protected:
+    std::string m_url;
+    std::vector<std::string> m_availableCls;
+};
+
 /**
  * @brief The NGWResouceBase class
  */
 class NGWResourceBase
 {
 public:
-    explicit NGWResourceBase(const std::string &url,
+    explicit NGWResourceBase(NGWConnectionBase *connection = nullptr,
                             const std::string &resourceId = "0");
     bool remove();
+
 protected:
-    std::string m_url, m_resourceId;
+    std::string url() const;
+protected:
+    std::string m_resourceId;
+    NGWConnectionBase *m_connection;
 };
 
 /**
@@ -77,7 +92,7 @@ public:
     explicit NGWResource(ObjectContainer * const parent,
                          const enum ngsCatalogObjectType type,
                          const std::string &name,
-                         const std::string &url,
+                         NGWConnectionBase *connection = nullptr,
                          const std::string &resourceId = "0");
     // Object interface
 public:
@@ -92,7 +107,7 @@ class NGWResourceGroup : public ObjectContainer, public NGWResourceBase
 public:
     explicit NGWResourceGroup(ObjectContainer * const parent,
                          const std::string &name,
-                         const std::string &url,
+                         NGWConnectionBase *connection = nullptr,
                          const std::string &resourceId = "0");
     virtual ObjectPtr getResource(const std::string &resourceId) const;
     virtual void addResource(const CPLJSONObject &resource);
@@ -116,7 +131,7 @@ class NGWTrackersGroup : public NGWResourceGroup
 public:
     explicit NGWTrackersGroup(ObjectContainer * const parent,
                          const std::string &name,
-                         const std::string &url,
+                         NGWConnectionBase *connection = nullptr,
                          const std::string &resourceId = "0");
 
     // ObjectContainer interface
@@ -129,7 +144,7 @@ public:
 /**
  * @brief The NGWConnection class
  */
-class NGWConnection : public NGWResourceGroup
+class NGWConnection : public NGWResourceGroup, public NGWConnectionBase
 {
 public:
     explicit NGWConnection(ObjectContainer * const parent,
