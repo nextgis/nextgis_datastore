@@ -649,7 +649,7 @@ void TracksTable::sync(int maxPointCount)
             }
         }
     }
-    m_pointsLayer->setAttributeFilter("");
+    m_pointsLayer->setAttributeFilter();
     OGRCoordinateTransformation::DestroyCT(ct);
 
     if(payload->Size() > 0) {

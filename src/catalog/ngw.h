@@ -62,7 +62,7 @@ public:
     std::string connectionUrl() const;
     bool isClsSupported(const std::string &cls) const;
 protected:
-    std::string m_url;
+    mutable std::string m_url, m_user;
     std::vector<std::string> m_availableCls;
 };
 
@@ -156,9 +156,17 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool setProperty(const std::string &key,
+                             const std::string &value,
+                             const std::string &domain) override;
 
 private:
     void fillCapabilities();
+    void fillProperties() const;
 
 private:
     std::string m_searchApiUrl, m_versionApiUrl;

@@ -56,7 +56,7 @@ std::string getRouteUrl(const std::string &url)
 
 std::string getSchemaUrl(const std::string &url)
 {
-    return url + "resource/schema";
+    return url + "/resource/schema";
 }
 
 std::string getCurrentUserUrl(const std::string &url)

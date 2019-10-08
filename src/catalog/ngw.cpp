@@ -114,7 +114,8 @@ NGWResourceGroup::NGWResourceGroup(ObjectContainer * const parent,
     ObjectContainer(parent, CAT_CONTAINER_NGWGROUP, name, ""), // Don't need file system path
     NGWResourceBase(connection, resourceId)
 {
-
+    // Expected search API is available
+    m_childrenLoaded = true;
 }
 
 ObjectPtr NGWResourceGroup::getResource(const std::string &resourceId) const
@@ -355,6 +356,7 @@ NGWConnection::NGWConnection(ObjectContainer * const parent,
     m_type = CAT_CONTAINER_NGW;
     m_path = path;
     m_connection = this;
+    m_childrenLoaded =false;
 }
 
 NGWConnection::~NGWConnection()
@@ -368,22 +370,7 @@ bool NGWConnection::loadChildren()
         return true;
     }
 
-    CPLJSONDocument connectionFile;
-    if(connectionFile.Load(m_path)) {
-        CPLJSONObject root = connectionFile.GetRoot();
-        m_url = root.GetString(KEY_URL);
-
-        std::string user = root.GetString(KEY_LOGIN);
-        if(!user.empty() && !compare(user, "guest")) {
-            std::string password = decrypt(root.GetString(KEY_PASSWORD));
-
-            Options options;
-            options.add("type", "basic");
-            options.add("login", user);
-            options.add("password", password);
-            AuthStore::authAdd(m_url, options);
-        }
-    }
+    fillProperties();
 
     if(!m_url.empty()) {
         fillCapabilities();
@@ -489,6 +476,125 @@ bool NGWConnection::destroy()
     }
 
     Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
+
+    return true;
+}
+
+void NGWConnection::fillProperties() const
+{
+    if(m_url.empty() || m_user.empty()) {
+        CPLJSONDocument connectionFile;
+        if(connectionFile.Load(m_path)) {
+            CPLJSONObject root = connectionFile.GetRoot();
+            m_url = root.GetString(KEY_URL);
+
+            m_user = root.GetString(KEY_LOGIN);
+            if(!m_user.empty() && !compare(m_user, "guest")) {
+                std::string password = decrypt(root.GetString(KEY_PASSWORD));
+
+                Options options;
+                options.add("type", "basic");
+                options.add("login", m_user);
+                options.add("password", password);
+                AuthStore::authAdd(m_url, options);
+            }
+        }
+    }
+}
+
+Properties NGWConnection::properties(const std::string &domain) const
+{
+    fillProperties();
+    if(domain.empty()) {
+        Properties out;
+        out.add("system_path", m_path);
+        out.add("url", m_url);
+        out.add("login", m_user);
+        out.add("is_guest", compare(m_user, "guest") ? "yes" : "no");
+        return out;
+    }
+    return Properties();
+}
+
+std::string NGWConnection::property(const std::string &key,
+                             const std::string &defaultValue,
+                             const std::string &domain) const
+{
+    fillProperties();
+    if(domain.empty()) {
+        if(key == "url") {
+            return m_url;
+        }
+
+        if(key == "system_path") {
+            return m_path;
+        }
+
+        if(key == "login") {
+            return m_user;
+        }
+
+        if(key == "is_guest") {
+            return compare(m_user, "guest") ? "yes" : "no";
+        }
+    }
+    return defaultValue;
+}
+
+bool NGWConnection::setProperty(const std::string &key, const std::string &value,
+        const std::string &domain)
+{
+    if(!domain.empty()) {
+        return NGWResourceGroup::setProperty(key, value, domain);
+    }
+
+    if(key == "url") {
+        AuthStore::authRemove(m_url);
+        m_url = value;
+    }
+
+    if(key == "login") {
+        AuthStore::authRemove(m_url);
+        m_user = value;
+    }
+
+    if(key == "is_guest") {
+        if(compare(value, "yes")) {
+            if(!compare(m_user, "guest")) {
+                AuthStore::authRemove(m_url);
+                m_user = "guest";
+            }
+        }
+    }
+
+    bool changePassword = false;
+    if(key == "password") {
+        AuthStore::authRemove(m_url);
+        changePassword = true;
+    }
+
+    CPLJSONDocument connectionFile;
+    if(!connectionFile.Load(m_path)) {
+        return false;
+    }
+    CPLJSONObject root = connectionFile.GetRoot();
+    root.Set(KEY_URL, m_url);
+    root.Set(KEY_LOGIN, m_user);
+    if(changePassword) {
+        if(!value.empty()) {
+            root.Set(KEY_PASSWORD, encrypt(value));
+        }
+        else {
+            root.Set(KEY_PASSWORD, value);
+        }
+    }
+
+    root.Set(KEY_IS_GUEST, m_user == "guest");
+    if(!connectionFile.Save(m_path)) {
+        return false;
+    }
+
+    clear();
 
     return true;
 }
