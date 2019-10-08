@@ -306,4 +306,18 @@ ObjectPtr DatabaseConnections::create(const enum ngsCatalogObjectType type,
     return ObjectPtr();
 }
 
+//--------------------------------------------------------------------------------------------------
+// ConnectionBase
+//--------------------------------------------------------------------------------------------------
+
+ConnectionBase::ConnectionBase() : m_opened(false)
+{
+
+}
+
+bool ConnectionBase::isOpened() const
+{
+    return m_opened;
+}
+
 }

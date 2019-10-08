@@ -60,6 +60,17 @@ public:
         const std::string &name, const Options &options) override;
 };
 
+class ConnectionBase
+{
+public:
+    ConnectionBase();
+    virtual ~ConnectionBase() = default;
+    virtual bool isOpened() const;
+    virtual bool open() = 0;
+protected:
+    bool m_opened;
+};
+
 }
 
 #endif // NGSREMOTECONNECTIONS_H

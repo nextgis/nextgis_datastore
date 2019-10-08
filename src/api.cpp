@@ -1342,6 +1342,17 @@ char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType 
         return 0;
     }
 
+    // If dataset - open it.
+    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(container);
+    if(datasetBase && !datasetBase->isOpened()) {
+        datasetBase->open();
+    }
+
+    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(container);
+    if(connectionBase && !connectionBase->isOpened()) {
+        connectionBase->open();
+    }
+
     return container->canCreate(type) ? 1 : 0;
 }
 
@@ -1377,6 +1388,11 @@ CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, c
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(container);
     if(datasetBase && !datasetBase->isOpened()) {
         datasetBase->open();
+    }
+
+    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(container);
+    if(connectionBase && !connectionBase->isOpened()) {
+        connectionBase->open();
     }
 
     // Check can create

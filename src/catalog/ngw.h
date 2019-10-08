@@ -22,6 +22,7 @@
 #define NGSNGWCONNECTION_H
 
 #include "objectcontainer.h"
+#include "remoteconnections.h"
 
 #include "cpl_json.h"
 
@@ -56,7 +57,7 @@ namespace ngw {
     bool sendTrackPoints(const std::string &payload);
 }
 
-class NGWConnectionBase
+class NGWConnectionBase : public ConnectionBase
 {
 public:
     std::string connectionUrl() const;
@@ -121,6 +122,7 @@ public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                         const std::string &name, const Options &options) override;
+    virtual bool canDestroy() const override;
 };
 
 /**
@@ -164,12 +166,15 @@ public:
                              const std::string &value,
                              const std::string &domain) override;
 
+    // ConnectionBase
+    virtual bool open() override;
+
 private:
     void fillCapabilities();
     void fillProperties() const;
 
 private:
-    std::string m_searchApiUrl, m_versionApiUrl;
+    mutable std::string m_searchApiUrl, m_versionApiUrl;
 };
 
 }

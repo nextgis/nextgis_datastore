@@ -165,6 +165,11 @@ bool NGWResourceGroup::canCreate(const enum ngsCatalogObjectType type) const
     }
 }
 
+bool NGWResourceGroup::canDestroy() const
+{
+    return true; // Not check user rights here as server will report error if no access.
+}
+
 bool NGWResourceGroup::destroy()
 {
     return NGWResourceBase::remove();
@@ -428,6 +433,10 @@ bool NGWConnection::loadChildren()
             }
         }
     }
+
+    if(!isOpened()) {
+        m_opened = true;
+    }
     return true;
 }
 
@@ -595,7 +604,18 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
     }
 
     clear();
+    m_opened = false;
 
+    return true;
+}
+
+bool NGWConnection::open()
+{
+    if(isOpened()) {
+        return true;
+    }
+    loadChildren();
+    m_opened = true;
     return true;
 }
 

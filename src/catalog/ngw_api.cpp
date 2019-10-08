@@ -230,8 +230,7 @@ bool deleteResource(const std::string &url, const std::string &resourceId,
 {
     CPLErrorReset();
     httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=DELETE");
-    CPLHTTPResult *httpResult = CPLHTTPFetch(getResourceUrl(url, resourceId).c_str(),
-        httpOptions);
+    CPLHTTPResult *httpResult = CPLHTTPFetch(getResourceUrl(url, resourceId).c_str(), httpOptions);
     bool result = false;
     if(httpResult) {
         result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
