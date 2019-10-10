@@ -198,10 +198,10 @@ TEST(CatalogTests, TestCreate) {
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
 
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
-    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
-              COD_SUCCESS);
-    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "test_dir1", options),
-              COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(catalog, "test_dir1", options),
+              nullptr);
+    EXPECT_NE(ngsCatalogObjectCreate(catalog, "test_dir1", options),
+              nullptr);
     ngsListFree(options);
     options = nullptr;
 
@@ -222,8 +222,8 @@ TEST(CatalogTests, TestCreate) {
     options = ngsListAddNameValue(options, "z_min", "0");
     options = ngsListAddNameValue(options, "z_max", "19");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "osm.wconn", options),
-              COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(catalog, "osm.wconn", options),
+              nullptr);
 
     pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ASSERT_NE(pathInfo, nullptr);
@@ -278,8 +278,8 @@ TEST(CatalogTests, TestAreaDownload) {
     options = ngsListAddNameValue(options, "z_max", "19");
     options = ngsListAddNameValue(options, "cache_expires", "300");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "cache_test.wconn", options),
-              COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(catalog, "cache_test.wconn", options),
+              nullptr);
 
     ngsListFree(options);
     options = nullptr;
@@ -356,8 +356,8 @@ TEST(CatalogTests, TestCreateConnection) {
     options = ngsListAddNameValue(options, "url", "demo.nextgis.com");
     options = ngsListAddNameValue(options, "is_guest", "ON");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(conn, "demo.nextgis.com", options),
-              COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(conn, "demo.nextgis.com", options),
+              nullptr);
 
     ngsListFree(options);
     options = nullptr;
@@ -386,7 +386,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
     options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
-    EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(catalog, "main", options), nullptr);
     ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ngsListFree(options);
     ASSERT_NE(pathInfo, nullptr);
@@ -617,7 +617,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     options = ngsListAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
     options = ngsListAddNameValue(options, "LOG_EDIT_HISTORY", "ON");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(store, "new_layer", options), COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(store, "new_layer", options), nullptr);
     ngsListFree(options);
 
     CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/new_layer"));
@@ -639,12 +639,11 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
     options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "ON");
     options = ngsListAddNameValue(options, "ZOOM_LEVELS", "3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(store, "r_1502560461_99719", options), COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(store, "r_1502560461_99719", options), nullptr);
     ngsListFree(options);
 
     CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/r_1502560461_99719"));
     EXPECT_NE(newFC1, nullptr);
-
 
     ngsUnInit();
 }
@@ -786,7 +785,7 @@ TEST(DataStoreTests, TestCreateFeature) {
 
 static long gpsTime()
 {
-    return time(nullptr) * 1000;
+    return time(nullptr);
 }
 
 TEST(DataStoreTest, TestTracksTable) {
@@ -809,7 +808,7 @@ TEST(DataStoreTest, TestTracksTable) {
         options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
         options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
         CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
-        EXPECT_EQ(ngsCatalogObjectCreate(catalog, "main", options), COD_SUCCESS);
+        EXPECT_NE(ngsCatalogObjectCreate(catalog, "main", options), nullptr);
         ngsListFree(options);
     }
 
@@ -947,7 +946,7 @@ TEST(DataStoreTest, TestCreateMemoryDatasource) {
 
     options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_MEM));
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
-    EXPECT_EQ(ngsCatalogObjectCreate(store, "test_mem", options), COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(store, "test_mem", options), nullptr);
     CatalogObjectH newStore = ngsCatalogObjectGet(CPLString(storePath + "/test_mem.ngmem"));
     EXPECT_NE(newStore, nullptr);
 
@@ -973,7 +972,7 @@ TEST(DataStoreTest, TestCreateMemoryDatasource) {
     options = ngsListAddNameValue(options, "FIELD_3_NAME", "date");
     options = ngsListAddNameValue(options, "FIELD_3_ALIAS", "Это дата");
 
-    EXPECT_EQ(ngsCatalogObjectCreate(newStore, "new_layer", options), COD_SUCCESS);
+    EXPECT_NE(ngsCatalogObjectCreate(newStore, "new_layer", options), nullptr);
     ngsListFree(options);
 
     CatalogObjectH newFC = ngsCatalogObjectGet(CPLString(storePath + "/test_mem.ngmem/new_layer"));
@@ -1116,7 +1115,7 @@ TEST(MiscTests, TestURLRequest) {
     options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     result = ngsURLRequest(URT_GET,
-            "http://dev.nextgis.com/sandbox/api/component/pyramid/pkg_version",
+            "https://sandbox.nextgis.com/api/component/pyramid/pkg_version",
                            options, nullptr, nullptr);
     ngsListFree(options);
 
@@ -1183,7 +1182,7 @@ TEST(MiscTests, TestJSONURLLoad) {
     ASSERT_NE(doc, nullptr);
     counter = 0;
     EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
-            "http://dev.nextgis.com/sandbox/api/component/pyramid/pkg_version",
+            "https://sandbox.nextgis.com/api/component/pyramid/pkg_version",
                                      options, ngsTestProgressFunc, nullptr),
               COD_SUCCESS);
     EXPECT_GE(counter, 1);
@@ -1224,7 +1223,7 @@ TEST(MiscTests, TestBasicAuth) {
     options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
-            "http://dev.nextgis.com/sandbox/api/component/auth/current_user",
+            "https://sandbox.nextgis.com/api/component/auth/current_user",
                                      options, ngsTestProgressFunc, nullptr),
               COD_SUCCESS);
 
@@ -1241,13 +1240,13 @@ TEST(MiscTests, TestBasicAuth) {
     authOptions = ngsListAddNameValue(authOptions, "login", "administrator");
     authOptions = ngsListAddNameValue(authOptions, "password", "demodemo");
 
-    ngsURLAuthAdd("http://dev.nextgis.com/sandbox", authOptions);
+    ngsURLAuthAdd("https://sandbox.nextgis.com", authOptions);
     ngsListFree(authOptions);
 
     doc = ngsJsonDocumentCreate();
 
     EXPECT_EQ(ngsJsonDocumentLoadUrl(doc,
-            "http://dev.nextgis.com/sandbox/api/component/auth/current_user",
+            "https://sandbox.nextgis.com/api/component/auth/current_user",
                                      options, ngsTestProgressFunc, nullptr),
               COD_SUCCESS);
 

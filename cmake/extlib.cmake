@@ -23,7 +23,9 @@
 ################################################################################
 set(REQUIREMENTS JBIG ICONV SQLite3 CURL PROJ EXPAT TIFF GeoTIFF JPEG PNG LibXml2 LibLZMA)
 
-if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
+if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
+    set(EXTERNAL_SHARED ON)
+else()
 
     foreach(REQUIREMENT ${REQUIREMENTS})
         set(WITH_${REQUIREMENT} ON CACHE BOOL "${REQUIREMENT} on" FORCE)
@@ -126,13 +128,10 @@ if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")
     # add_definitions (-DHAVE_ICONV_H)
     add_definitions (-DHAVE_ZLIB_H)
     add_definitions (-DHAVE_OPENSSLV_H)
-
+    set(EXTERNAL_SHARED OFF)  # For mobile build fat library with static dependencies 
 endif()
 
-# Not needed find_anyproject(CGAL REQUIRED SHARED OFF)
-# Not needed find_anyproject(Boost REQUIRED)
-
-find_anyproject(OpenSSL REQUIRED SHARED OFF CMAKE_ARGS
+find_anyproject(OpenSSL REQUIRED SHARED ${EXTERNAL_SHARED} CMAKE_ARGS
     -DOPENSSL_NO_AFALGENG=ON
     -DOPENSSL_NO_ASM=ON # Not working for mobile platform yet
     -DOPENSSL_NO_DYNAMIC_ENGINE=ON
@@ -142,11 +141,11 @@ find_anyproject(OpenSSL REQUIRED SHARED OFF CMAKE_ARGS
 ) # TODO: Disable max alghorithms. Check TLS v1.2 working!
 
 # For fast cut by envelope
-find_anyproject(GEOS REQUIRED SHARED OFF CMAKE_ARGS
+find_anyproject(GEOS REQUIRED SHARED ${EXTERNAL_SHARED} CMAKE_ARGS
     -DGEOS_ENABLE_TESTS=OFF
 )
 
-find_anyproject(GDAL REQUIRED SHARED OFF CMAKE_ARGS
+find_anyproject(GDAL REQUIRED SHARED ${EXTERNAL_SHARED} CMAKE_ARGS
     -DENABLE_MRF=OFF -DENABLE_PLSCENES=OFF -DENABLE_AAIGRID_GRASSASCIIGRID=OFF
     -DENABLE_ADRG_SRP=OFF -DENABLE_AIG=OFF -DENABLE_AIRSAR=OFF -DENABLE_ARG=OFF
     -DENABLE_BLX=OFF -DENABLE_BMP=OFF -DENABLE_BSB=OFF -DENABLE_CALS=OFF

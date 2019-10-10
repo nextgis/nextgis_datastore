@@ -70,12 +70,10 @@ void FolderFactory::createObjects(ObjectContainer * const container,
         else if(m_zipSupported) {
             if(compare(File::getExtension(*it),
                        Filter::extension(CAT_CONTAINER_ARCHIVE_ZIP))) { // Check if this is archive file
-                CPLString vsiPath = Archive::pathPrefix(CAT_CONTAINER_ARCHIVE_ZIP);
-                vsiPath += path;
                 addChild(container,
                          ObjectPtr(new Archive(container,
                                                CAT_CONTAINER_ARCHIVE_ZIP,
-                                               *it, vsiPath)));
+                                               *it, path)));
                 it = names.erase(it);
                 continue;
             }

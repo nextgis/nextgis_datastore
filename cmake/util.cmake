@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -141,6 +141,9 @@ function(get_compiler_version ver)
             set(COMPILER "${COMPILER}-64bit")
         endif()
     endif()
+
+    # Debug
+    # set(COMPILER Clang-9.0)
 
     set(${ver} ${COMPILER} PARENT_SCOPE)
 endfunction()
