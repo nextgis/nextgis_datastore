@@ -47,7 +47,7 @@ function(check_version major minor rev)
 
     # Store version string in file for installer needs
     file(TIMESTAMP ${VERSION_FILE} VERSION_DATETIME "%Y-%m-%d %H:%M:%S" UTC)
-    set(VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_NUMBER})
+    set(VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${REV_VERSION})
     get_cpack_filename(${VERSION} PROJECT_CPACK_FILENAME)
     file(WRITE ${CMAKE_BINARY_DIR}/version.str "${VERSION}\n${VERSION_DATETIME}\n${PROJECT_CPACK_FILENAME}")
 
