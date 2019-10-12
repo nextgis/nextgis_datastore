@@ -28,6 +28,8 @@
 #include "ngstore/api.h"
 #include "util/mutex.h"
 
+#include <cmath>
+
 namespace ngs {
 
 class MapTransform

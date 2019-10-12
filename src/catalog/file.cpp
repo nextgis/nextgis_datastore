@@ -27,6 +27,8 @@
 //gdal
 #include "cpl_conv.h"
 
+#include <stdio.h>
+
 namespace ngs {
 
 constexpr size_t BUFFER_SIZE = 1024 * 8;

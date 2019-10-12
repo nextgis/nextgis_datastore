@@ -35,6 +35,9 @@
 #include "util/error.h"
 #include "archive.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif // _WIN32
 
 namespace ngs {
 

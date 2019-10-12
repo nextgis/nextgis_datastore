@@ -141,7 +141,7 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override { return access(m_path.c_str(), W_OK) == 0; }
+    virtual bool canDestroy() const;
     virtual Properties properties(const std::string &domain) const override;
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
