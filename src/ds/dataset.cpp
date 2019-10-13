@@ -438,7 +438,7 @@ bool Dataset::destroy()
 
 bool Dataset::canDestroy() const
 {
-    return access(m_path.c_str(), W_OK) == 0;
+	return Folder::isReadOnly(m_path);		
 }
 
 Properties Dataset::properties(const std::string &domain) const {

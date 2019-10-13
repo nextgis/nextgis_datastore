@@ -49,7 +49,13 @@ protected:
     unsigned char m_step;
 };
 
-int ngsGDALProgress(double complete, const char *message,  void *progressArg);
+#ifdef _WIN32
+#define WINAPI __stdcall
+#else
+#define WINAPI
+#endif
+
+int WINAPI ngsGDALProgress(double complete, const char *message,  void *progressArg);
 
 }
 

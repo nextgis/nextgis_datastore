@@ -64,26 +64,26 @@ bool MapView::draw(ngsDrawState state, const Progress &progress)
         return true;
     }
 
-    float level = 0.0f;
-    double done = 0.0;
-    for(auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-        LayerPtr layer = *it;
-        IRenderLayer * const renderLayer = ngsDynamicCast(IRenderLayer, layer);
-        done += renderLayer->draw(state, this, level++, progress);
-    }
+    // float level = 0.0f;
+    // double done = 0.0;
+    // for(auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
+        // LayerPtr layer = *it;
+        // IRenderLayer * const renderLayer = ngsDynamicCast(IRenderLayer, layer);
+        // done += renderLayer->draw(state, this, level++, progress);
+    // }
 
-    for (auto it = m_overlays.rbegin(); it != m_overlays.rend(); ++it) {
-        OverlayPtr overlay = *it;
-        IOverlay * const iOverlay = ngsDynamicCast(IOverlay, overlay);
-        iOverlay->draw(state, this, level++, progress);
-    }
+    // for (auto it = m_overlays.rbegin(); it != m_overlays.rend(); ++it) {
+        // OverlayPtr overlay = *it;
+        // IOverlay * const iOverlay = ngsDynamicCast(IOverlay, overlay);
+        // iOverlay->draw(state, this, level++, progress);
+    // }
 
-    size_t size = m_layers.size();
-    if (isEqual(done, size)) {
-        progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
-    } else {
-        progress.onProgress(COD_IN_PROCESS, done / (size), _("Rendering ..."));
-    }
+    // size_t size = m_layers.size();
+    // if (isEqual(done, size)) {
+        // progress.onProgress(COD_FINISHED, 1.0, _("Map render finished."));
+    // } else {
+        // progress.onProgress(COD_IN_PROCESS, done / (size), _("Rendering ..."));
+    // }
 
     return true;
 }

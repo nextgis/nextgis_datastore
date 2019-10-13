@@ -28,7 +28,9 @@
 #include "ngstore/api.h"
 #include "util/mutex.h"
 
-#include <cmath>
+#ifdef _WIN32
+#define M_LN2 0.693147180559945309417
+#endif //_WIN32
 
 namespace ngs {
 

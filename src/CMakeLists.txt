@@ -40,7 +40,10 @@ elseif(IOS)
         include_directories(${OPENGLES2_INCLUDE_DIRS})
         set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
     endif()
-else() # TODO: Windows?
+elseif(MSVC)
+	 # TODO: Windows?
+	 set(OPENGL_FOUND OFF)
+else()
     find_package(OpenGL REQUIRED)
     if(OPENGL_FOUND)
         include_directories(${OPENGL_INCLUDE_DIR})

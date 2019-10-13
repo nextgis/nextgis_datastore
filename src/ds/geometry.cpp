@@ -670,8 +670,7 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiPoint(const GEOSGeom_t *geom,
         CPLError(CE_Failure, CPLE_ObjectNull, "Geometry has no parts");
         return nullptr;
     }
-    GEOSGeom parts[count];
-    unsigned int counter = 0;
+    std::vector<GEOSGeom> parts;
     OGRRawPoint prevGpoint(BIG_VALUE, BIG_VALUE);
     double x, y;
 
@@ -693,16 +692,16 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiPoint(const GEOSGeom_t *geom,
         GEOSCoordSeq_setX_r(m_geosHandle.get(), ncs, 0, gpoint.x);
         GEOSCoordSeq_setY_r(m_geosHandle.get(), ncs, 0, gpoint.y);
 
-        parts[counter++] = GEOSGeom_createPoint_r(m_geosHandle.get(), ncs);
+        parts.push_back(GEOSGeom_createPoint_r(m_geosHandle.get(), ncs));
         prevGpoint = gpoint;
     }
 
-    if(counter == 0) {
+    if(parts.empty()) {
         return nullptr;
     }
 
-    return  GEOSGeom_createCollection_r(m_geosHandle.get(), GEOS_MULTIPOINT,
-                                        parts, counter);
+    return GEOSGeom_createCollection_r(m_geosHandle.get(), GEOS_MULTIPOINT,
+                                        parts.data(), parts.size());
 
 }
 
@@ -780,22 +779,21 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiLine(const GEOSGeom_t *geom,
         CPLError(CE_Failure, CPLE_ObjectNull, "Geometry has no parts");
         return nullptr;
     }
-    GEOSGeom parts[count];
-    unsigned int counter = 0;
+    std::vector<GEOSGeom> parts;
     for(int i = 0; i < count; ++i) {
         const GEOSGeom_t* g = GEOSGetGeometryN_r(m_geosHandle.get(), geom, i);
         GEOSGeom ng = generalizeLine(g, step);
         if(nullptr != ng) {
-            parts[counter++] = ng;
+            parts.push_back(ng);
         }
     }
 
-    if(counter == 0) {
+    if(parts.empty()) {
         return nullptr;
     }
 
     return  GEOSGeom_createCollection_r(m_geosHandle.get(), GEOS_MULTILINESTRING,
-                                        parts, counter);
+                                        parts.data(), parts.size());
 }
 
 GEOSGeom GEOSGeometryWrap::generalizePolygon(const GEOSGeom_t *geom, double step)
@@ -882,22 +880,22 @@ GEOSGeom GEOSGeometryWrap::generalizeMultiPolygon(const GEOSGeom_t *geom,
         CPLError(CE_Failure, CPLE_ObjectNull, "Geometry has no parts");
         return nullptr;
     }
-    GEOSGeom parts[count];
+    std::vector<GEOSGeom> parts;
     unsigned int counter = 0;
     for(int i = 0; i < count; ++i) {
         const GEOSGeom_t *g = GEOSGetGeometryN_r(m_geosHandle.get(), geom, i);
         GEOSGeom ng = generalizePolygon(g, step);
         if(nullptr != ng) {
-            parts[counter++] = ng;
+            parts.push_back(ng);
         }
     }
 
-    if(counter == 0) {
+    if(parts.empty()) {
         return nullptr;
     }
 
     return  GEOSGeom_createCollection_r(m_geosHandle.get(), GEOS_MULTIPOLYGON,
-                                        parts, counter);
+                                        parts.data(), parts.size());
 }
 
 void GEOSGeometryWrap::setCentroid(int type)
@@ -1761,7 +1759,7 @@ bool EditGeometry::addPoint(double x, double y, bool log)
     return false;
 }
 
-bool EditGeometry::addPiece(EditGeometry::PieceType type,
+bool EditGeometry::addPiece(enum class EditGeometry::PieceType type,
                             double x1, double y1,
                             double x2, double y2)
 {
@@ -1774,7 +1772,7 @@ bool EditGeometry::addPiece(EditGeometry::PieceType type,
 }
 
 enum ngsEditDeleteResult EditGeometry::deletePiece(
-        enum EditGeometry::PieceType type)
+        enum class EditGeometry::PieceType type)
 {
     ngsUnused(type);
     return EDT_FAILED;
@@ -1935,7 +1933,7 @@ bool EditLine::addPoint(double x, double y, bool log)
     return true;
 }
 
-ngsEditDeleteResult EditLine::deletePiece(EditGeometry::PieceType type)
+ngsEditDeleteResult EditLine::deletePiece(enum class EditGeometry::PieceType type)
 {
     if(type == PieceType::POINT) {
         if(m_selectedPoint.pointId == NOT_FOUND) {
@@ -2133,7 +2131,7 @@ bool EditPolygon::addPoint(double x, double y, bool log)
     return true;
 }
 
-bool EditPolygon::addPiece(EditGeometry::PieceType type,
+bool EditPolygon::addPiece(enum class EditGeometry::PieceType type,
                            double x1, double y1, double x2, double y2)
 {
     if(type == PieceType::HOLE) {
@@ -2151,7 +2149,7 @@ bool EditPolygon::addPiece(EditGeometry::PieceType type,
     return EditGeometry::addPiece(type, x1, y1, x2, y2);
 }
 
-enum ngsEditDeleteResult EditPolygon::deletePiece(enum EditGeometry::PieceType type)
+enum ngsEditDeleteResult EditPolygon::deletePiece(enum class EditGeometry::PieceType type)
 {
     switch(type) {
     case PieceType::POINT: {
@@ -2463,7 +2461,7 @@ bool EditMultiPoint::addPoint(double x, double y, bool log)
 }
 
 enum ngsEditDeleteResult EditMultiPoint::deletePiece(
-        enum EditGeometry::PieceType type)
+        enum class EditGeometry::PieceType type)
 {
     if(type == PieceType::POINT) {
         if(m_selectedPoint.pointId == NOT_FOUND) {
@@ -2612,7 +2610,7 @@ bool EditMultiLine::addPoint(double x, double y, bool log)
     return true;
 }
 
-bool EditMultiLine::addPiece(EditGeometry::PieceType type,
+bool EditMultiLine::addPiece(enum class EditGeometry::PieceType type,
                              double x1, double y1, double x2, double y2)
 {
     if(type == PieceType::PART) {
@@ -2630,7 +2628,7 @@ bool EditMultiLine::addPiece(EditGeometry::PieceType type,
 }
 
 enum ngsEditDeleteResult EditMultiLine::deletePiece(
-        enum EditGeometry::PieceType type)
+        enum class EditGeometry::PieceType type)
 {
     switch(type) {
     case PieceType::POINT: {
@@ -2868,7 +2866,7 @@ bool EditMultiPolygon::addPoint(double x, double y, bool log)
     return true;
 }
 
-bool EditMultiPolygon::addPiece(EditGeometry::PieceType type,
+bool EditMultiPolygon::addPiece(enum class EditGeometry::PieceType type,
                                 double x1, double y1, double x2, double y2)
 {
     Line newLine;
@@ -2903,7 +2901,7 @@ bool EditMultiPolygon::addPiece(EditGeometry::PieceType type,
 }
 
 enum ngsEditDeleteResult EditMultiPolygon::deletePiece(
-        enum EditGeometry::PieceType type)
+        enum class EditGeometry::PieceType type)
 {
     switch(type) {
     case PieceType::POINT: {

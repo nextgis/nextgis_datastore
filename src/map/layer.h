@@ -54,7 +54,7 @@ public:
 
 public:
     explicit Layer(Map *map, const std::string& name = DEFAULT_LAYER_NAME,
-                   enum Type type = Type::Invalid);
+                   enum class Type type = Type::Invalid);
     virtual ~Layer() = default;
     virtual bool load(const CPLJSONObject &store,
                       ObjectContainer *objectContainer = nullptr);
@@ -71,7 +71,7 @@ public:
     Map *map() const { return m_map; }
 protected:
     std::string m_name;
-    enum Type m_type;
+    enum class Type m_type;
     bool m_visible;
     float m_minZoom, m_maxZoom;
     Map *m_map;
@@ -96,6 +96,14 @@ public:
 protected:
     FeatureIDs m_selectedFIDs;
     FeatureIDs m_hideFIDs;
+};
+
+class IRenderLayer {
+public:
+    virtual bool setStyleName(const std::string &name) = 0;
+    virtual bool setStyle(const CPLJSONObject &style) = 0;
+    virtual CPLJSONObject style() const = 0;
+    virtual std::string styleName() const = 0;
 };
 
 /**

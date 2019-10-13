@@ -92,24 +92,46 @@ protected:
 
 using MapViewPtr = std::shared_ptr<MapView>;
 
+class MapViewStab : public MapView
+{
+public:
+    MapViewStab() : MapView() {}
+    explicit MapViewStab(const std::string &name, const std::string &description,
+            unsigned short epsg, const Envelope &bounds) : MapView(name, description, epsg, bounds) {}
+	virtual void invalidate(const Envelope &bounds) override {}
+	virtual bool setSelectionStyleName(enum ngsStyleType styleType,
+                                       const std::string &name) override { return false; }
+    virtual bool setSelectionStyle(enum ngsStyleType styleType,
+                                   const CPLJSONObject &style) override { return false; }
+    virtual std::string selectionStyleName(enum ngsStyleType styleType) const override { return ""; }
+    virtual CPLJSONObject selectionStyle(enum ngsStyleType styleType) const override { return CPLJSONObject(); }
+protected:
+    virtual void clearBackground() override {}
+    virtual void createOverlays() override {}
+};
+
 /**
  * @brief The IRenderLayer class Interface for renderable map layers
  */
-class IRenderLayer
-{
-public:
-    virtual ~IRenderLayer() = default;
-    virtual double draw(enum ngsDrawState state, MapView *map, float level,
-                        const Progress &progress = Progress()) = 0;
-};
+// class IRenderLayer
+// {
+// public:
+    // virtual ~IRenderLayer() = default;
+    // virtual double draw(enum ngsDrawState state, MapView *map, float level,
+                        // const Progress &progress = Progress()) = 0;
+	// virtual bool setStyleName(const std::string &name) = 0;
+    // virtual bool setStyle(const CPLJSONObject &style) = 0;
+    // virtual CPLJSONObject style() const = 0;
+    // virtual std::string styleName() const = 0;
+// };
 
-class IOverlay
-{
-public:
-    virtual ~IOverlay() = default;
-    virtual double draw(enum ngsDrawState state, MapView *map, float level,
-                        const Progress &progress = Progress()) = 0;
-};
+// class IOverlay
+// {
+// public:
+    // virtual ~IOverlay() = default;
+    // virtual double draw(enum ngsDrawState state, MapView *map, float level,
+                        // const Progress &progress = Progress()) = 0;
+// };
 
 }
 #endif // NGSMAPVIEW_H

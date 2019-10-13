@@ -25,7 +25,6 @@
 #include <iterator>
 
 #include "ds/geometry.h"
-#include "map/gl/layer.h"
 #include "map/mapview.h"
 #include "util/error.h"
 #include "util/settings.h"
@@ -170,8 +169,8 @@ FeaturePtr EditLayerOverlay::save()
     }
 
     if(m_editLayer) { // Show a hidden ids.
-        GlSelectableFeatureLayer *featureLayer =
-                ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
+        ISelectableFeatureLayer *featureLayer =
+                ngsDynamicCast(ISelectableFeatureLayer, m_editLayer);
         if(featureLayer) {
             m_editFeatureId = NOT_FOUND;
             featureLayer->setHideIds(); // Empty hidden ids.
@@ -196,8 +195,8 @@ FeaturePtr EditLayerOverlay::save()
 void EditLayerOverlay::cancel()
 {
     if(m_editLayer) {
-        GlSelectableFeatureLayer *featureLayer =
-                ngsDynamicCast(GlSelectableFeatureLayer, m_editLayer);
+        ISelectableFeatureLayer *featureLayer =
+                ngsDynamicCast(ISelectableFeatureLayer, m_editLayer);
         if(!featureLayer) {
             errorMessage(_("Feature layer is null"));
             return;

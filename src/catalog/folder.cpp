@@ -37,6 +37,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
 #endif // _WIN32
 
 namespace ngs {
@@ -147,7 +148,7 @@ bool Folder::mkDir(const std::string &path, bool recursive)
     }
 #ifdef _WIN32
     if (comparePart(File::getFileName(path), ".", 1)) {
-        SetFileAttributes(path, FILE_ATTRIBUTE_HIDDEN);
+        SetFileAttributes(path.c_str(), FILE_ATTRIBUTE_HIDDEN);
     }
 #endif
     return true;
@@ -288,7 +289,7 @@ bool Folder::isSymlink(const std::string &path)
 bool Folder::isHidden(const std::string &path)
 {
 #ifdef _WIN32
-    DWORD dwAttrs = GetFileAttributes(path);
+    DWORD dwAttrs = GetFileAttributes(path.c_str());
     if (dwAttrs != INVALID_FILE_ATTRIBUTES)
         return dwAttrs & FILE_ATTRIBUTE_HIDDEN;
 #endif
@@ -547,8 +548,16 @@ bool Folder::canPaste(const enum ngsCatalogObjectType type) const
 
 bool Folder::isReadOnly() const
 {
-    //  Is is working on Windows?
-    return access(m_path.c_str(), W_OK) != 0;
+	return isReadOnly(m_path);
+}
+
+bool Folder::isReadOnly(const std::string &path)
+{
+#ifdef _WIN32
+	return _access(path.c_str(), 2) != 0;
+#else
+    return access(path.c_str(), W_OK) != 0;
+#endif // _WIN32
 //    VSIStatBufL sbuf;
 //    return VSIStatL(m_path, &sbuf) == 0 && (sbuf.st_mode & S_IWUSR ||
 //                                            sbuf.st_mode & S_IWGRP ||

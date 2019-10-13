@@ -140,7 +140,10 @@ static time_t timeFromString(const char *str)
     int day(0), month(1), year(1970);
     sscanf(str, "%4d-%2d-%2d", &month, &day, &year);
 
-    struct tm stTm = {0, 0, 0, day, month - 1, year - 1900, 0, 0, 0, 0, nullptr};
+    struct tm stTm = {0};
+	stTm.tm_mday = day;
+	stTm.tm_mon = month - 1;
+	stTm.tm_year = year - 1900;
     return mktime(&stTm);
 }
 

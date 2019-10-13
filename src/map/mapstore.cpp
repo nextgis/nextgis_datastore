@@ -24,9 +24,15 @@
 #include <limits>
 #include <util/error.h>
 
-#include "gl/view.h"
 #include "ngstore/util/constants.h"
 #include "util/notify.h"
+
+#ifdef USE_OPENGL
+#include "gl/view.h"
+	#define NewView GlView
+#else
+	#define NewView MapViewStab
+#endif
 
 namespace ngs {
 
@@ -50,7 +56,7 @@ char MapStore::createMap(const std::string &name, const std::string &description
         // No space for new maps
         return INVALID_MAPID;
     }
-    m_maps.push_back(MapViewPtr(new GlView(name, description, epsg, bounds)));
+    m_maps.push_back(MapViewPtr(new NewView(name, description, epsg, bounds)));
     char mapId = static_cast<char>(m_maps.size() - 1);
     Notify::instance().onNotify(std::to_string(mapId), CC_CREATE_MAP);
     return mapId;
@@ -395,7 +401,7 @@ char MapStore::invalidMapId()
 // static
 MapViewPtr MapStore::initMap()
 {
-    return MapViewPtr(new GlView);
+    return MapViewPtr(new NewView);
 }
 
 void MapStore::setInstance(MapStore *pointer)

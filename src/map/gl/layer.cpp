@@ -37,7 +37,7 @@ constexpr unsigned char MAX_ZOOM = 18;
 constexpr double LOCK_TIME = 5.0;
 
 //------------------------------------------------------------------------------
-// IGlRenderLayer
+// GlRenderLayer
 //------------------------------------------------------------------------------
 
 GlRenderLayer::GlRenderLayer()
@@ -64,6 +64,22 @@ void GlRenderLayer::free(const GlTilePtr &tile)
     }
     m_oldStyles.clear();
     // CPLDebug("ngstore", "GlRenderLayer::free: %ld GlObject in layer", m_tiles.size());
+}
+
+CPLJSONObject GlRenderLayer::style() const
+{
+	if(m_style) {
+		return m_style->save();
+	}
+	return CPLJSONObject();
+}
+
+std::string GlRenderLayer::styleName() const
+{
+	if(m_style) {
+		m_style->name();
+	}
+	return "";
 }
 
 //------------------------------------------------------------------------------

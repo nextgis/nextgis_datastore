@@ -37,7 +37,7 @@ constexpr const char *LAYER_MAX_ZOOM_KEY = "max_zoom";
 // Layer
 //------------------------------------------------------------------------------
 
-Layer::Layer(Map *map, const std::string &name, Type type) :
+Layer::Layer(Map *map, const std::string &name, enum class Type type) :
     m_name(name),
     m_type(type),
     m_visible(true),

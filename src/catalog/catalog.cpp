@@ -237,9 +237,10 @@ bool Catalog::isFileHidden(const std::string &path, const std::string &name) con
         return true;
 
 #ifdef _WIN32
-    DWORD attrs = GetFileAttributes(File::formFileName(path, name));
-    if (attrs != INVALID_FILE_ATTRIBUTES)
+    DWORD attrs = GetFileAttributes(File::formFileName(path, name).c_str());
+    if (attrs != INVALID_FILE_ATTRIBUTES) {
         return attrs & FILE_ATTRIBUTE_HIDDEN;
+	}
 #else
     ngsUnused(path)
 #endif

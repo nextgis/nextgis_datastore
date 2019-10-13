@@ -40,8 +40,6 @@
 #include "ds/simpledataset.h"
 #include "ds/storefeatureclass.h"
 #include "map/mapstore.h"
-#include "map/gl/layer.h"
-#include "map/gl/overlay.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
@@ -81,7 +79,11 @@ static void initGDAL(const char *dataPath, const char *cachePath)
 
         // https://www.sqlite.org/c3ref/temp_directory.html
         // https://www.sqlite.org/tempfiles.html
+#ifdef WIN32
+		_putenv(CPLSPrintf("SQLITE_TMPDIR=%s", cachePath));
+#else		
         setenv("SQLITE_TMPDIR", cachePath, 1);
+#endif
     }
 
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
@@ -3495,18 +3497,13 @@ JsonObjectH ngsLayerGetStyle(LayerH layer)
     }
 
     Layer *layerPtr = static_cast<Layer*>(layer);
-    GlRenderLayer *renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
         outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
         return nullptr;
     }
 
-    if(!renderLayerPtr->style()){
-        outMessage(COD_GET_FAILED, _("Style is not set"));
-        return nullptr;
-    }
-
-    return new CPLJSONObject(renderLayerPtr->style()->save());
+    return new CPLJSONObject(renderLayerPtr->style());
 }
 
 int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
@@ -3516,19 +3513,13 @@ int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
     }
 
     Layer *layerPtr = static_cast<Layer*>(layer);
-    GlRenderLayer *renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
         outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
     }
 
-    if(!renderLayerPtr->style()){
-        outMessage(COD_GET_FAILED, _("Style is not set"));
-    }
-
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(style);
-    renderLayerPtr->style()->load(*gdalJsonObject);
-
-    return COD_SUCCESS;
+    return renderLayerPtr->setStyle(*gdalJsonObject) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 const char *ngsLayerGetStyleName(LayerH layer)
@@ -3539,18 +3530,13 @@ const char *ngsLayerGetStyleName(LayerH layer)
     }
 
     Layer *layerPtr = static_cast<Layer*>(layer);
-    GlRenderLayer *renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
         outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
         return "";
     }
 
-    if(!renderLayerPtr->style()){
-        outMessage(COD_GET_FAILED, _("Style is not set"));
-        return "";
-    }
-
-    return storeCString(renderLayerPtr->style()->name());
+    return storeCString(renderLayerPtr->styleName());
 }
 
 int ngsLayerSetStyleName(LayerH layer, const char *name)
@@ -3560,13 +3546,12 @@ int ngsLayerSetStyleName(LayerH layer, const char *name)
     }
 
     Layer *layerPtr = static_cast<Layer*>(layer);
-    GlRenderLayer *renderLayerPtr = dynamic_cast<GlRenderLayer*>(layerPtr);
+    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
         return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
     }
 
-    renderLayerPtr->setStyle(fromCString(name));
-    return COD_SUCCESS;
+    return renderLayerPtr->setStyleName(fromCString(name)) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
 int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size)
@@ -3575,8 +3560,8 @@ int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size)
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
     }
     Layer *layerPtr = static_cast<Layer*>(layer);
-    GlSelectableFeatureLayer *renderLayerPtr =
-            dynamic_cast<GlSelectableFeatureLayer*>(layerPtr);
+    ISelectableFeatureLayer *renderLayerPtr =
+            dynamic_cast<ISelectableFeatureLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
         return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlFeatureLayer"));
     }
@@ -3595,9 +3580,9 @@ int ngsLayerSetHideIds(LayerH layer, long long *ids, int size)
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
     }
     Layer *layerPtr = static_cast<Layer*>(layer);
-    GlFeatureLayer *renderLayerPtr = dynamic_cast<GlFeatureLayer*>(layerPtr);
+    ISelectableFeatureLayer *renderLayerPtr = dynamic_cast<ISelectableFeatureLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
-        return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlFeatureLayer"));
+        return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be ISelectableFeatureLayer"));
     }
 
     std::set<GIntBig> hideIds;
@@ -3960,7 +3945,7 @@ GeometryH ngsEditOverlayGetGeometry(char mapId)
 int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type,
                            JsonObjectH style)
 {
-    GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    EditLayerOverlay *overlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
         return COD_DELETE_FAILED;
     }
@@ -3971,7 +3956,7 @@ int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type,
 int ngsEditOverlaySetStyleName(char mapId, enum ngsEditStyleType type,
                                const char* name)
 {
-    GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    EditLayerOverlay *overlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
         return COD_DELETE_FAILED;
     }
@@ -3980,7 +3965,7 @@ int ngsEditOverlaySetStyleName(char mapId, enum ngsEditStyleType type,
 
 JsonObjectH ngsEditOverlayGetStyle(char mapId, enum ngsEditStyleType type)
 {
-    GlEditLayerOverlay *overlay = getOverlay<GlEditLayerOverlay>(mapId, MOT_EDIT);
+    EditLayerOverlay *overlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == overlay) {
         return nullptr;
     }
@@ -4001,7 +3986,7 @@ int ngsLocationOverlayUpdate(char mapId, ngsCoordinate location, float direction
 
 int ngsLocationOverlaySetStyle(char mapId, JsonObjectH style)
 {
-    GlLocationOverlay *overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
+    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
         return COD_UPDATE_FAILED;
     }
@@ -4012,7 +3997,7 @@ int ngsLocationOverlaySetStyle(char mapId, JsonObjectH style)
 
 int ngsLocationOverlaySetStyleName(char mapId, const char* name)
 {
-    GlLocationOverlay *overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
+    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
         return COD_UPDATE_FAILED;
     }
@@ -4022,7 +4007,7 @@ int ngsLocationOverlaySetStyleName(char mapId, const char* name)
 
 JsonObjectH ngsLocationOverlayGetStyle(char mapId)
 {
-    GlLocationOverlay *overlay = getOverlay<GlLocationOverlay>(mapId, MOT_LOCATION);
+    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
     if(nullptr == overlay) {
         return nullptr;
     }

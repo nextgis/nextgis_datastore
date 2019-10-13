@@ -742,7 +742,8 @@ bool TracksTable::addPoint(const std::string &name, double x, double y, double z
 
     feature->SetField("track_name", name.c_str());
     m_lastGmtTimeStamp = timeStamp;
-    std::tm *gmtTime = std::gmtime(&m_lastGmtTimeStamp);
+	std::time_t lastGMTTS = m_lastGmtTimeStamp;
+    std::tm *gmtTime = std::gmtime(&lastGMTTS);
     feature->SetField("time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
             gmtTime->tm_min, gmtTime->tm_sec);
 
@@ -807,7 +808,8 @@ bool TracksTable::flashBuffer()
 
     if(m_currentTrack) {
         // Update stop_time in tracks table
-        std::tm *gmtTime = std::gmtime(&m_lastGmtTimeStamp);
+	    std::time_t lastGMTTS = m_lastGmtTimeStamp;
+        std::tm *gmtTime = std::gmtime(&lastGMTTS);
         m_currentTrack->SetField("stop_time", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1,
                                  gmtTime->tm_mday, gmtTime->tm_hour,
                                  gmtTime->tm_min, gmtTime->tm_sec);
@@ -836,7 +838,7 @@ bool TracksTable::flashBuffer()
 
 static std::string longToISO(long timeStamp)
 {
-    long gmtTimeStamp = timeStamp;
+	std::time_t gmtTimeStamp = timeStamp;
     std::tm *gmtTime = std::gmtime(&gmtTimeStamp);
     return CPLSPrintf("%d-%d-%dT%d:%d:%dZ", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
                       gmtTime->tm_min, gmtTime->tm_sec);

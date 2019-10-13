@@ -315,10 +315,10 @@ public:
     virtual ngsPointId touch(const OGRRawPoint &pt, enum ngsMapTouchType type,
                              double tolerance);
     virtual bool addPoint(double x, double y, bool log = true);
-    virtual bool addPiece(enum PieceType type, double x1, double y1,
+    virtual bool addPiece(enum class PieceType type, double x1, double y1,
                           double x2, double y2);
-    virtual enum ngsEditDeleteResult deletePiece(enum PieceType type);
-    virtual enum Type type() const = 0;
+    virtual enum ngsEditDeleteResult deletePiece(enum class PieceType type);
+    virtual enum class Type type() const = 0;
     int selectedPoint() const { return  m_selectedPoint.pointId; }
 
     // static
@@ -353,7 +353,7 @@ protected:
 
     // EditGeometry interface
 public:
-    virtual enum Type type() const override { return Type::POINT; }
+    virtual enum class Type type() const override { return Type::POINT; }
     virtual bool canUndo() const override;
     virtual bool canRedo() const override;
     virtual bool undo() override;
@@ -388,7 +388,7 @@ protected:
 
     // EditGeometry interface
 public:
-    virtual enum Type type() const override { return Type::LINE; }
+    virtual enum class Type type() const override { return Type::LINE; }
     virtual bool canUndo() const override;
     virtual bool canRedo() const override;
     virtual bool undo() override;
@@ -396,7 +396,7 @@ public:
     virtual OGRGeometry *toGDALGeometry() const override;
     virtual bool isValid() const override;
     virtual bool addPoint(double x, double y, bool log = true) override;
-    virtual enum ngsEditDeleteResult deletePiece(enum PieceType type) override;
+    virtual enum ngsEditDeleteResult deletePiece(enum class PieceType type) override;
 
 protected:
     virtual bool isNearestSelected(const OGRRawPoint &pt,
@@ -431,7 +431,7 @@ protected:
     
     // EditGeometry interface
 public:
-    virtual enum Type type() const override { return Type::POLYGON; }
+    virtual enum class Type type() const override { return Type::POLYGON; }
     virtual bool canUndo() const override;
     virtual bool canRedo() const override;
     virtual bool undo() override;
@@ -439,9 +439,9 @@ public:
     virtual OGRGeometry *toGDALGeometry() const override;
     virtual bool isValid() const override;
     virtual bool addPoint(double x, double y, bool log = true) override;
-    virtual bool addPiece(enum PieceType type, double x1, double y1,
+    virtual bool addPiece(enum class PieceType type, double x1, double y1,
                           double x2, double y2) override;
-    virtual enum ngsEditDeleteResult deletePiece(enum PieceType type) override;
+    virtual enum ngsEditDeleteResult deletePiece(enum class PieceType type) override;
 
 protected:
     virtual bool isNearestSelected(const OGRRawPoint &pt,
@@ -474,7 +474,7 @@ protected:
 
     // EditGeometry interface
 public:
-    virtual enum Type type() const override { return Type::MULTIPOINT; }
+    virtual enum class Type type() const override { return Type::MULTIPOINT; }
     virtual bool canUndo() const override;
     virtual bool canRedo() const override;
     virtual bool undo() override;
@@ -482,7 +482,7 @@ public:
     virtual OGRGeometry *toGDALGeometry() const override;
     virtual bool isValid() const override;
     virtual bool addPoint(double x, double y, bool log = true) override;
-    virtual enum ngsEditDeleteResult deletePiece(enum PieceType type) override;
+    virtual enum ngsEditDeleteResult deletePiece(enum class PieceType type) override;
 
 protected:
     virtual bool isNearestSelected(const OGRRawPoint &pt,
@@ -513,7 +513,7 @@ protected:
 
     // EditGeometry interface
 public:
-    virtual enum Type type() const override { return Type::MULTILINE; }
+    virtual enum class Type type() const override { return Type::MULTILINE; }
     virtual bool canUndo() const override;
     virtual bool canRedo() const override;
     virtual bool undo() override;
@@ -521,9 +521,9 @@ public:
     virtual OGRGeometry *toGDALGeometry() const override;
     virtual bool isValid() const override;
     virtual bool addPoint(double x, double y, bool log = true) override;
-    virtual bool addPiece(enum PieceType type, double x1, double y1,
+    virtual bool addPiece(enum class PieceType type, double x1, double y1,
                           double x2, double y2) override;
-    virtual enum ngsEditDeleteResult deletePiece(enum PieceType type) override;
+    virtual enum ngsEditDeleteResult deletePiece(enum class PieceType type) override;
 
 protected:
     virtual bool isNearestSelected(const OGRRawPoint &pt,
@@ -557,7 +557,7 @@ protected:
 
     // EditGeometry interface
 public:
-    virtual enum Type type() const override { return Type::MULTIPOLYGON; }
+    virtual enum class Type type() const override { return Type::MULTIPOLYGON; }
     virtual bool canUndo() const override;
     virtual bool canRedo() const override;
     virtual bool undo() override;
@@ -565,9 +565,9 @@ public:
     virtual OGRGeometry *toGDALGeometry() const override;
     virtual bool isValid() const override;
     virtual bool addPoint(double x, double y, bool log = true) override;
-    virtual bool addPiece(enum PieceType type, double x1, double y1,
+    virtual bool addPiece(enum class PieceType type, double x1, double y1,
                           double x2, double y2) override;
-    virtual enum ngsEditDeleteResult deletePiece(enum PieceType type) override;
+    virtual enum ngsEditDeleteResult deletePiece(enum class PieceType type) override;
 
 protected:
     virtual bool isNearestSelected(const OGRRawPoint &pt,
