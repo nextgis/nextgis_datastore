@@ -1759,7 +1759,7 @@ bool EditGeometry::addPoint(double x, double y, bool log)
     return false;
 }
 
-bool EditGeometry::addPiece(enum class EditGeometry::PieceType type,
+bool EditGeometry::addPiece(enum EditGeometry::PieceType type,
                             double x1, double y1,
                             double x2, double y2)
 {
@@ -1772,7 +1772,7 @@ bool EditGeometry::addPiece(enum class EditGeometry::PieceType type,
 }
 
 enum ngsEditDeleteResult EditGeometry::deletePiece(
-        enum class EditGeometry::PieceType type)
+        enum EditGeometry::PieceType type)
 {
     ngsUnused(type);
     return EDT_FAILED;
@@ -1933,7 +1933,7 @@ bool EditLine::addPoint(double x, double y, bool log)
     return true;
 }
 
-ngsEditDeleteResult EditLine::deletePiece(enum class EditGeometry::PieceType type)
+ngsEditDeleteResult EditLine::deletePiece(enum EditGeometry::PieceType type)
 {
     if(type == PieceType::POINT) {
         if(m_selectedPoint.pointId == NOT_FOUND) {
@@ -2131,7 +2131,7 @@ bool EditPolygon::addPoint(double x, double y, bool log)
     return true;
 }
 
-bool EditPolygon::addPiece(enum class EditGeometry::PieceType type,
+bool EditPolygon::addPiece(enum EditGeometry::PieceType type,
                            double x1, double y1, double x2, double y2)
 {
     if(type == PieceType::HOLE) {
@@ -2149,7 +2149,7 @@ bool EditPolygon::addPiece(enum class EditGeometry::PieceType type,
     return EditGeometry::addPiece(type, x1, y1, x2, y2);
 }
 
-enum ngsEditDeleteResult EditPolygon::deletePiece(enum class EditGeometry::PieceType type)
+enum ngsEditDeleteResult EditPolygon::deletePiece(enum EditGeometry::PieceType type)
 {
     switch(type) {
     case PieceType::POINT: {
@@ -2461,7 +2461,7 @@ bool EditMultiPoint::addPoint(double x, double y, bool log)
 }
 
 enum ngsEditDeleteResult EditMultiPoint::deletePiece(
-        enum class EditGeometry::PieceType type)
+        enum EditGeometry::PieceType type)
 {
     if(type == PieceType::POINT) {
         if(m_selectedPoint.pointId == NOT_FOUND) {
@@ -2610,7 +2610,7 @@ bool EditMultiLine::addPoint(double x, double y, bool log)
     return true;
 }
 
-bool EditMultiLine::addPiece(enum class EditGeometry::PieceType type,
+bool EditMultiLine::addPiece(enum EditGeometry::PieceType type,
                              double x1, double y1, double x2, double y2)
 {
     if(type == PieceType::PART) {
@@ -2628,7 +2628,7 @@ bool EditMultiLine::addPiece(enum class EditGeometry::PieceType type,
 }
 
 enum ngsEditDeleteResult EditMultiLine::deletePiece(
-        enum class EditGeometry::PieceType type)
+        enum EditGeometry::PieceType type)
 {
     switch(type) {
     case PieceType::POINT: {
@@ -2866,7 +2866,7 @@ bool EditMultiPolygon::addPoint(double x, double y, bool log)
     return true;
 }
 
-bool EditMultiPolygon::addPiece(enum class EditGeometry::PieceType type,
+bool EditMultiPolygon::addPiece(enum EditGeometry::PieceType type,
                                 double x1, double y1, double x2, double y2)
 {
     Line newLine;
@@ -2901,7 +2901,7 @@ bool EditMultiPolygon::addPiece(enum class EditGeometry::PieceType type,
 }
 
 enum ngsEditDeleteResult EditMultiPolygon::deletePiece(
-        enum class EditGeometry::PieceType type)
+        enum EditGeometry::PieceType type)
 {
     switch(type) {
     case PieceType::POINT: {

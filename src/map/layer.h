@@ -54,7 +54,7 @@ public:
 
 public:
     explicit Layer(Map *map, const std::string& name = DEFAULT_LAYER_NAME,
-                   enum class Type type = Type::Invalid);
+                   enum Type type = Type::Invalid);
     virtual ~Layer() = default;
     virtual bool load(const CPLJSONObject &store,
                       ObjectContainer *objectContainer = nullptr);
@@ -71,7 +71,7 @@ public:
     Map *map() const { return m_map; }
 protected:
     std::string m_name;
-    enum class Type m_type;
+    enum Type m_type;
     bool m_visible;
     float m_minZoom, m_maxZoom;
     Map *m_map;
