@@ -57,6 +57,7 @@ const static std::map<const char*, const char*> ruMap = { {"а", "a"}, {"б", "b
 
 constexpr unsigned int BLOCK_SIZE = 16;
 constexpr unsigned int KEY_SIZE = 32;
+constexpr const char *defaultKey = "3719f534b06600b2791b9d7203877c5afbe26da8aa5b973bf7bb84828fbbba7e";
 
 bool invalidChar (char c)
 {
@@ -224,7 +225,7 @@ std::string encrypt(const std::string& ptext)
 
     int count = 0;
     GByte *pabyiv = CPLHexToBinary(iv.c_str(), &count);
-    GByte *pabykey = CPLHexToBinary(CPLGetConfigOption("CRYPT_KEY", ""), &count);
+    GByte *pabykey = CPLHexToBinary(CPLGetConfigOption("CRYPT_KEY", defaultKey), &count);
 
     int rc = EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, pabykey,
                                 pabyiv);
@@ -262,7 +263,7 @@ std::string encrypt(const std::string& ptext)
 std::string decrypt(const std::string& ctext)
 {
     std::string rtext;
-    // Load the necessary cipher
+     // Load the necessary cipher
     EVP_add_cipher(EVP_aes_256_cbc());
 
     EVP_CIPHER_CTX_free_ptr ctx(EVP_CIPHER_CTX_new(), ::EVP_CIPHER_CTX_free);
@@ -271,7 +272,9 @@ std::string decrypt(const std::string& ctext)
 
     int count = 0;
     GByte *pabyiv = CPLHexToBinary(iv.c_str(), &count);
-    GByte *pabykey = CPLHexToBinary(CPLGetConfigOption("CRYPT_KEY", ""), &count);
+    const char *ck = CPLGetConfigOption("CRYPT_KEY", defaultKey);
+    count = 0;
+    GByte *pabykey = CPLHexToBinary(ck, &count);
     int rc = EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, pabykey,
                                 pabyiv);
 

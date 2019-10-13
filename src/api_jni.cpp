@@ -891,6 +891,15 @@ NGS_JNI_FUNC(jlong, catalogObjectCreate)(JNIEnv *env, jobject thisObj,
     return res;
 }
 
+NGS_JNI_FUNC(jboolean, catalogObjectCanCreate)(JNIEnv *env, jobject thisObj, jlong parentObject, jint type)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    char result = ngsCatalogObjectCanCreate(reinterpret_cast<CatalogObjectH>(parentObject),
+                                            static_cast<enum ngsCatalogObjectType>(type));
+    return result == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
 NGS_JNI_FUNC(jboolean, catalogObjectCopy)(JNIEnv *env, jobject thisObj, jlong srcObject,
                                           jlong dstObjectContainer, jobjectArray options, jint callbackId)
 {
