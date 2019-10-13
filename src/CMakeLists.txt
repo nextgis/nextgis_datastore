@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -40,7 +40,10 @@ elseif(IOS)
         include_directories(${OPENGLES2_INCLUDE_DIRS})
         set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
     endif()
-else() # TODO: Windows?
+elseif(MSVC)
+	 # TODO: Windows?
+	 set(OPENGL_FOUND OFF)
+else()
     find_package(OpenGL REQUIRED)
     if(OPENGL_FOUND)
         include_directories(${OPENGL_INCLUDE_DIR})
@@ -55,12 +58,15 @@ include_directories(
     ${INCLUDE_DIR}
 )
 
-set(HHEADERS
+set(HHEADERS_PUB
     ${INCLUDE_DIR}/ngstore/api.h
     ${INCLUDE_DIR}/ngstore/version.h
     ${INCLUDE_DIR}/ngstore/common.h
     ${INCLUDE_DIR}/ngstore/codes.h
     ${INCLUDE_DIR}/ngstore/util/constants.h
+)
+
+set(HHEADERS ${HHEADERS_PUB}
     api_priv.h
 )
 
@@ -72,9 +78,7 @@ if(ANDROID)
     set(CSOURCES ${CSOURCES}
         api_jni.cpp
     )
-endif()
 
-if(ANDROID)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all")
 endif()
@@ -144,7 +148,7 @@ if(BUILD_SHARED_LIBS)
     if(MSVC)
         set_target_properties(${LIB_NAME} PROPERTIES
             IMPORT_SUFFIX "_i.lib"
-            SUFFIX "${NGS_MAJOR_VERSION}${NGS_MINOR_VERSION}.dll")
+            SUFFIX "${NGS_MAJOR_VERSION}.dll")
     endif()
 
     if(NOT IOS)
@@ -169,6 +173,21 @@ if(BUILD_SHARED_LIBS)
             C_STANDARD 11
             CLEAN_DIRECT_OUTPUT 1)
     endif()
+elseif(OSX_FRAMEWORK)
+    add_library(${LIB_NAME} SHARED ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
+    set_property(SOURCE ${HHEADERS_PUB}
+        PROPERTY MACOSX_PACKAGE_LOCATION "Headers/ngstore"
+    )
+    set_target_properties(${LIB_NAME} PROPERTIES
+        FRAMEWORK TRUE
+        FRAMEWORK_VERSION "${NGS_MAJOR_VERSION}"
+        VERSION ${VERSION}
+        MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${VERSION}
+        MACOSX_FRAMEWORK_BUNDLE_VERSION ${VERSION}
+        MACOSX_FRAMEWORK_IDENTIFIER com.nextgis.datastore
+        XCODE_ATTRIBUTE_INSTALL_PATH "@rpath"
+        # PUBLIC_HEADER "${HHEADERS_PUB}"
+    )    
 else()
     add_library(${LIB_NAME} STATIC ${CSOURCES} ${HHEADERS} ${OBJ_LIBRARIES})
     set_target_properties(${LIB_NAME} PROPERTIES DEFINE_SYMBOL NGSTOR_STATIC)
@@ -210,11 +229,43 @@ set(LINK_SEARCH_PATHS ${LINK_SEARCH_PATHS} PARENT_SCOPE)
 set(WITHOPT ${WITHOPT} PARENT_SCOPE)
 set(EXPORTS_PATHS ${EXPORTS_PATHS} PARENT_SCOPE)
 
+set(PACKAGE_NAME ${LIB_NAME})
+
 if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
     install(TARGETS ${LIB_NAME}
-        EXPORT ${LIB_NAME}
-        RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT libraries
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR} COMPONENT libraries
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR} COMPONENT libraries
-    )
+        EXPORT ${PACKAGE_UPPER_NAME}Targets
+        RUNTIME DESTINATION ${INSTALL_BIN_DIR}
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+        INCLUDES DESTINATION ${INSTALL_INC_DIR}
+        FRAMEWORK DESTINATION ${INSTALL_LIB_DIR}
+    )    
+endif()
+
+if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
+    install(FILES ${HHEADERS_PUB} DESTINATION "${INSTALL_INC_DIR}"  COMPONENT headers)
+endif()
+
+# Add path to includes to build-tree export
+target_include_directories(${LIB_NAME} INTERFACE
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${PROJECT_CURRENT_BINARY_DIR}/include>
+)
+
+# Add all targets to the build-tree export set
+export(TARGETS ${LIB_NAME}
+    FILE ${PROJECT_BINARY_DIR}/${PACKAGE_UPPER_NAME}Targets.cmake)
+    
+# Create the <Package>Config.cmake file
+configure_file(${PROJECT_SOURCE_DIR}/cmake/PackageConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/${PACKAGE_UPPER_NAME}Config.cmake @ONLY)
+
+if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
+    # Install the <Package>Config.cmake
+    install(FILES
+      ${PROJECT_BINARY_DIR}/${PACKAGE_UPPER_NAME}Config.cmake
+      DESTINATION ${INSTALL_CMAKECONF_DIR} COMPONENT dev)
+
+    # Install the export set for use with the install-tree
+    install(EXPORT ${PACKAGE_UPPER_NAME}Targets DESTINATION ${INSTALL_CMAKECONF_DIR} COMPONENT dev)
 endif()

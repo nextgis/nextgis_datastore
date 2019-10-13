@@ -43,6 +43,9 @@
 #include "factories/simpledatasetfactory.h"
 #include "factories/rasterfactory.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif // _WIN32
 
 namespace ngs {
 
@@ -234,11 +237,12 @@ bool Catalog::isFileHidden(const std::string &path, const std::string &name) con
         return true;
 
 #ifdef _WIN32
-    DWORD attrs = GetFileAttributes(File::formFileName(path, name));
-    if (attrs != INVALID_FILE_ATTRIBUTES)
+    DWORD attrs = GetFileAttributes(File::formFileName(path, name).c_str());
+    if (attrs != INVALID_FILE_ATTRIBUTES) {
         return attrs & FILE_ATTRIBUTE_HIDDEN;
+	}
 #else
-    ngsUnused(path);
+    ngsUnused(path)
 #endif
 
     return false;

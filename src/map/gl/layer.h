@@ -32,7 +32,7 @@ namespace ngs {
 /**
  * @brief The GlRenderLayer class Interface for renderable map layers
  */
-class GlRenderLayer
+class GlRenderLayer : public IRenderLayer
 {
 public:
     GlRenderLayer();
@@ -54,8 +54,9 @@ public:
      */
     virtual bool draw(const GlTilePtr &tile) = 0;
 
-    StylePtr style() const { return m_style; }
-    virtual void setStyle(const std::string &name) = 0;
+#    StylePtr style() const { return m_style; }
+    virtual CPLJSONObject style() const;
+    virtual std::string styleName() const;
 protected:
     std::map<Tile, GlObjectPtr> m_tiles;
     StylePtr m_style;
@@ -116,7 +117,7 @@ public:
 public:
     virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) override;
     virtual bool draw(const GlTilePtr &tile) override;
-    virtual void setStyle(const std::string &name) override;
+    virtual bool setStyle(const std::string &name) override;
 
     // Layer interface
 public:
@@ -193,7 +194,7 @@ public:
 public:
     virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) override;
     virtual bool draw(const GlTilePtr &tile) override;
-    virtual void setStyle(const std::string &name) override;
+    virtual bool setStyle(const std::string &name) override;
 
     // Layer interface
 public:

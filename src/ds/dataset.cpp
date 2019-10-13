@@ -24,6 +24,7 @@
 // stl
 #include <algorithm>
 #include <array>
+#include <stdio.h>
 
 #include "featureclass.h"
 #include "raster.h"
@@ -433,6 +434,11 @@ bool Dataset::destroy()
     Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
 
     return true;
+}
+
+bool Dataset::canDestroy() const
+{
+	return Folder::isReadOnly(m_path);		
 }
 
 Properties Dataset::properties(const std::string &domain) const {

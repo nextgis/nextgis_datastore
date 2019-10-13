@@ -93,6 +93,10 @@ public:
     virtual bool isCrossVisible() const { return m_crossVisible; }
     virtual void setWalkingMode(bool walkingMode) { m_walkingMode = walkingMode; }
     virtual bool isWalkingMode() const { return m_walkingMode; }
+	
+	virtual bool setStyleName(enum ngsEditStyleType type, const std::string &name) = 0;
+    virtual bool setStyle(enum ngsEditStyleType type, const CPLJSONObject &jsonStyle) = 0;
+    virtual CPLJSONObject style(enum ngsEditStyleType type) const = 0;
 
     // Overlay interface
 public:
@@ -122,7 +126,9 @@ public:
     virtual ~LocationOverlay() = default;
     virtual void setLocation(const ngsCoordinate &location, float direction,
                              float accuracy);
-
+    virtual bool setStyleName(const std::string &name) = 0;
+    virtual bool setStyle(const CPLJSONObject &style) = 0;
+    virtual CPLJSONObject style() const = 0;
 protected:
     SimplePoint m_location;
     float m_direction, m_accuracy;

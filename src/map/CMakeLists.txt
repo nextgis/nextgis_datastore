@@ -7,7 +7,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -31,9 +31,21 @@ set(HHEADERS
     mapstore.h
     maptransform.h
     mapview.h
-#    matrix.h
     overlay.h
-#    vector.h
+)
+
+
+set(CSOURCES
+    layer.cpp
+    map.cpp
+    mapstore.cpp
+    maptransform.cpp
+    mapview.cpp
+    overlay.cpp
+)
+
+if(OPENGL_FOUND)
+set(HHEADERS ${HHEADERS}
     gl/view.h
     gl/program.h
     gl/functions.h
@@ -45,14 +57,7 @@ set(HHEADERS
     gl/overlay.h
 )
 
-set(CSOURCES
-    layer.cpp
-    map.cpp
-    mapstore.cpp
-    maptransform.cpp
-    mapview.cpp
-#    matrix.cpp
-    overlay.cpp
+set(CSOURCES ${CSOURCES}
     gl/view.cpp
     gl/program.cpp
     gl/functions.cpp
@@ -63,6 +68,8 @@ set(CSOURCES
     gl/tile.cpp
     gl/overlay.cpp
 )
+add_definitions(-DUSE_OPENGL)
+endif()
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 

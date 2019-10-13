@@ -51,9 +51,9 @@ public:
     explicit GlEditLayerOverlay(MapView *map);
     virtual ~GlEditLayerOverlay() override = default;
 
-    bool setStyleName(enum ngsEditStyleType type, const std::string &name);
-    bool setStyle(enum ngsEditStyleType type, const CPLJSONObject &jsonStyle);
-    CPLJSONObject style(enum ngsEditStyleType type) const;
+    bool setStyleName(enum ngsEditStyleType type, const std::string &name) override;
+    bool setStyle(enum ngsEditStyleType type, const CPLJSONObject &jsonStyle) override;
+    CPLJSONObject style(enum ngsEditStyleType type) const override;
 
     // Overlay interface
 public:
@@ -108,9 +108,9 @@ public:
     explicit GlLocationOverlay(MapView *map);
     virtual ~GlLocationOverlay() override = default;
 
-    bool setStyleName(const std::string &name);
-    bool setStyle(const CPLJSONObject &style);
-    CPLJSONObject style() const { return m_style->save(); }
+    virtual bool setStyleName(const std::string &name) override;
+    virtual bool setStyle(const CPLJSONObject &style) override;
+    virtual CPLJSONObject style() const override { return m_style->save(); }
 
     // GlRenderOverlay interface
 public:

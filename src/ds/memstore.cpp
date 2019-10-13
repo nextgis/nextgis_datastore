@@ -238,7 +238,7 @@ bool MemoryStore::open(unsigned int openFlags, const Options &options)
 
 bool MemoryStore::isReadOnly() const
 {
-    return access(m_path.c_str(), W_OK) != 0;
+    return Folder::isReadOnly(m_path);
 }
 
 bool MemoryStore::canCreate(const enum ngsCatalogObjectType type) const

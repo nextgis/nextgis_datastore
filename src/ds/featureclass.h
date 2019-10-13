@@ -80,7 +80,7 @@ public:
 
     // static
     static std::string geometryTypeName(OGRwkbGeometryType type,
-                enum GeometryReportType reportType = GeometryReportType::SIMPLE);
+                enum class GeometryReportType reportType = GeometryReportType::SIMPLE);
     static OGRwkbGeometryType geometryTypeFromName(const std::string &name);
     static OGRFieldType fieldTypeFromName(const std::string &name);
     static double pixelSize(int zoom, bool precize = false);

@@ -27,6 +27,12 @@
 //gdal
 #include "cpl_conv.h"
 
+#ifdef _WIN32
+#define	S_IWUSR	0000200
+#define	S_IWGRP	0000020
+#define	S_IWOTH	0000002
+#endif //_WIN32
+
 namespace ngs {
 
 constexpr size_t BUFFER_SIZE = 1024 * 8;

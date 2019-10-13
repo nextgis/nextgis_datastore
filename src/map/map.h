@@ -71,7 +71,7 @@ public:
 
 protected:
     virtual LayerPtr createLayer(const std::string &name = DEFAULT_LAYER_NAME,
-                                 enum Layer::Type type = Layer::Type::Invalid);
+                                 enum class Layer::Type type = Layer::Type::Invalid);
     virtual bool openInternal(const CPLJSONObject &root, MapFile * const mapFile);
     virtual bool saveInternal(CPLJSONObject &root, MapFile * const mapFile);
 

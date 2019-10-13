@@ -36,6 +36,7 @@ public:
 public:
     static std::vector<std::string> listFiles(const std::string &path);
     static bool isExists(const std::string &path);
+	static bool isReadOnly(const std::string &path);
     static bool mkDir(const std::string &path, bool recursive = false);
     static bool rmDir(const std::string &path);
     static bool copyDir(const std::string &from, const std::string &to,

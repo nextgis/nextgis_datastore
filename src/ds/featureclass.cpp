@@ -647,7 +647,7 @@ Envelope FeatureClass::extent() const
 }
 
 std::string FeatureClass::geometryTypeName(OGRwkbGeometryType type,
-                                           GeometryReportType reportType)
+                                           enum class GeometryReportType reportType)
 {
     if(reportType == GeometryReportType::FULL)
         return OGRGeometryTypeToName(type);
