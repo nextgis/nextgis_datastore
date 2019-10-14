@@ -82,6 +82,14 @@ std::string GlRenderLayer::styleName() const
 	return "";
 }
 
+bool GlRenderLayer::setStyle(const CPLJSONObject &style)
+{
+    if(m_style) {
+        return m_style->load(style);
+    }
+    return false;
+}
+
 //------------------------------------------------------------------------------
 // GlFeatureLayer
 //------------------------------------------------------------------------------
@@ -171,10 +179,10 @@ bool GlFeatureLayer::draw(const GlTilePtr &tile)
     return true;
 }
 
-void GlFeatureLayer::setStyle(const std::string &name)
+bool GlFeatureLayer::setStyleName(const std::string &name)
 {
     if(compare(name, m_style->name())) {
-        return;
+        return true;
     }
 
     GlView *mapView = dynamic_cast<GlView*>(m_map);
@@ -183,6 +191,7 @@ void GlFeatureLayer::setStyle(const std::string &name)
         m_oldStyles.push_back(m_style);
         m_style = newStyle;
     }
+    return true;
 }
 
 bool GlFeatureLayer::load(const CPLJSONObject &store,
@@ -1309,10 +1318,10 @@ bool GlRasterLayer::draw(const GlTilePtr &tile)
 //    return true; */
 }
 
-void GlRasterLayer::setStyle(const std::string &name)
+bool GlRasterLayer::setStyleName(const std::string &name)
 {
     if(compare(name, m_style->name())) {
-        return;
+        return true;
     }
 
     GlView *mapView = dynamic_cast<GlView*>(m_map);
@@ -1321,6 +1330,7 @@ void GlRasterLayer::setStyle(const std::string &name)
         m_oldStyles.push_back(m_style);
         m_style = newStyle;
     }
+    return true;
 }
 
 bool GlRasterLayer::load(const CPLJSONObject &store, ObjectContainer *objectContainer)

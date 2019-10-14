@@ -54,9 +54,10 @@ public:
      */
     virtual bool draw(const GlTilePtr &tile) = 0;
 
-#    StylePtr style() const { return m_style; }
-    virtual CPLJSONObject style() const;
-    virtual std::string styleName() const;
+//    StylePtr style() const { return m_style; }
+    virtual CPLJSONObject style() const override;
+    virtual std::string styleName() const override;
+    virtual bool setStyle(const CPLJSONObject &style) override;
 protected:
     std::map<Tile, GlObjectPtr> m_tiles;
     StylePtr m_style;
@@ -117,7 +118,7 @@ public:
 public:
     virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) override;
     virtual bool draw(const GlTilePtr &tile) override;
-    virtual bool setStyle(const std::string &name) override;
+    virtual bool setStyleName(const std::string &name) override;
 
     // Layer interface
 public:
@@ -194,7 +195,7 @@ public:
 public:
     virtual bool fill(const GlTilePtr &tile, float z, bool isLastTry) override;
     virtual bool draw(const GlTilePtr &tile) override;
-    virtual bool setStyle(const std::string &name) override;
+    virtual bool setStyleName(const std::string &name) override;
 
     // Layer interface
 public:
