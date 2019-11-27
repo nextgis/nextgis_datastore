@@ -148,6 +148,7 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_NGWGROUP,         /**< NextGIS Web resource group */
     CAT_CONTAINER_NGWTRACKERGROUP,  /**< NextGIS Web trackers group */
     CAT_CONTAINER_DIR_LINK,         /**< Local connection to folder or symlink */
+    CAT_CONTAINER_MAPINFO_STORE,    /**< NextGIS storage based on MapInfo tabs */
     CAT_CONTAINER_ALL = 499,
     CAT_FC_ANY = 500,               /**< Any Feature class */
     CAT_FC_ESRI_SHAPEFILE,

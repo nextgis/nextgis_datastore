@@ -168,6 +168,7 @@ public:
 
     // ConnectionBase
     virtual bool open() override;
+    virtual void close() override;
 
 private:
     void fillCapabilities();

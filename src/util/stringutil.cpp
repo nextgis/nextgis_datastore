@@ -140,6 +140,16 @@ bool startsWith(const std::string &str, const std::string &part, bool caseSenset
     return comparePart(str, part, static_cast<unsigned>(part.size()), caseSensetive);
 }
 
+bool endsWith(const std::string &str, const std::string &part, bool caseSensetive)
+{
+    size_t partLen = part.size();
+    size_t strLen = str.size();
+    if(strLen < partLen) {
+        return false;
+    }
+    std::string strCmp = str.substr(strLen - partLen);
+    return compare(strCmp, part, caseSensetive);
+}
 
 static std::string toHex(unsigned char *value, int size)
 {

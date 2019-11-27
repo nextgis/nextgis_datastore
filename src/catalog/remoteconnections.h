@@ -67,6 +67,7 @@ public:
     virtual ~ConnectionBase() = default;
     virtual bool isOpened() const;
     virtual bool open() = 0;
+    virtual void close() = 0;
 protected:
     bool m_opened;
 };

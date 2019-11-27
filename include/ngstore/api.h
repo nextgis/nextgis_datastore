@@ -236,6 +236,9 @@ NGS_EXTERNC int ngsCatalogObjectSetProperty(CatalogObjectH object,
 NGS_EXTERNC void ngsCatalogObjectRefresh(CatalogObjectH object);
 NGS_EXTERNC char ngsCatalogCheckConnection(enum ngsCatalogObjectType type,
     char **options);
+NGS_EXTERNC char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions);
+NGS_EXTERNC char ngsCatalogObjectIsOpened(CatalogObjectH object);
+NGS_EXTERNC int ngsCatalogObjectClose(CatalogObjectH object);
 
 /*
  * Feature class
@@ -257,11 +260,6 @@ typedef struct _ngsEditOperation {
     long long rid;
     long long arid;
 } ngsEditOperation;
-
-NGS_EXTERNC int ngsDatasetOpen(CatalogObjectH object, unsigned int openFlags,
-                               char **openOptions);
-NGS_EXTERNC char ngsDatasetIsOpened(CatalogObjectH object);
-NGS_EXTERNC int ngsDatasetClose(CatalogObjectH object);
 
 NGS_EXTERNC ngsField *ngsFeatureClassFields(CatalogObjectH object);
 NGS_EXTERNC ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object);

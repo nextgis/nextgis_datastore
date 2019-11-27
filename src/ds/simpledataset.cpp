@@ -45,10 +45,7 @@ std::vector<std::string> SimpleDataset::siblingFiles() const
 
 ObjectPtr SimpleDataset::internalObject() const
 {
-    if(m_children.empty()) {
-        return ObjectPtr();
-    }
-    return m_children[0];
+    return m_children.empty() ? ObjectPtr() : m_children[0];
 }
 
 bool SimpleDataset::hasChildren() const
@@ -74,8 +71,8 @@ enum ngsCatalogObjectType SimpleDataset::subType() const
 bool SimpleDataset::destroy()
 {
     clear();
-    GDALClose(m_DS);
-    m_DS = nullptr;
+    close();
+
     if(!File::deleteFile(m_path)) {
         return false;
     }

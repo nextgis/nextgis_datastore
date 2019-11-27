@@ -51,7 +51,7 @@ inline ngsRGBA ngsHEX2RGBA(const std::string &color) {
 
 #define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
 #define ngsStaticCast(type, shared) static_cast<type*>(shared.get ())
-#define ngsUnused(x) (void)x;
+#define ngsUnused(x) (void)x
 
 // http://stackoverflow.com/a/15012792
 inline bool isEqual(double val1, double val2) {

@@ -66,8 +66,8 @@ bool NGWConnectionBase::isClsSupported(const std::string &cls) const
 //------------------------------------------------------------------------------
 NGWResourceBase::NGWResourceBase(NGWConnectionBase *connection,
                                  const std::string &resourceId) :
-    m_connection(connection),
-    m_resourceId(resourceId)
+    m_resourceId(resourceId),
+    m_connection(connection)
 {
 
 }
@@ -603,8 +603,7 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
         return false;
     }
 
-    clear();
-    m_opened = false;
+    close();
 
     return true;
 }
@@ -617,6 +616,12 @@ bool NGWConnection::open()
     loadChildren();
     m_opened = true;
     return true;
+}
+
+void NGWConnection::close()
+{
+    clear();
+    m_opened = false;
 }
 
 }

@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,31 +18,21 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef NGSDATASTORE_H
-#define NGSDATASTORE_H
+#ifndef MAPINFODATASTORE_H
+#define MAPINFODATASTORE_H
 
 #include "dataset.h"
 
 namespace ngs {
 
-constexpr const char *TRACKS_POINTS_TABLE = "nga_tracks_pt";
-constexpr const char *TRACKS_TABLE = "nga_tracks";
 
-/**
- * @brief The storage and manipulation class for raster and vector spatial data
- * and attachments
- */
-class DataStore : public Dataset, public SpatialDataset
+class MapInfoDataStore : public Dataset, public SpatialDataset
 {
 public:
-    explicit DataStore(ObjectContainer * const parent = nullptr,
+    explicit MapInfoDataStore(ObjectContainer * const parent = nullptr,
               const std::string &name = "",
               const std::string &path = "");
-    virtual ~DataStore() override = default;
-    bool hasTracksTable() const;
-    ObjectPtr getTracksTable();
-    bool destroyTracksTable();
-
+    virtual ~MapInfoDataStore() override = default;
     // static
 public:
     static bool create(const std::string &path);
@@ -52,10 +42,6 @@ public:
 public:
     virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
                       const Options &options = Options()) override;
-    virtual void startBatchOperation() override { enableJournal(false); }
-    virtual void stopBatchOperation() override { enableJournal(true); }
-    virtual bool isBatchOperation() const override;
-
     virtual FeatureClass *createFeatureClass(const std::string &name,
                                              enum ngsCatalogObjectType objectType,
                                              OGRFeatureDefn * const definition,
@@ -68,20 +54,10 @@ public:
                                OGRFeatureDefn * const definition,
                                const Options &options = Options(),
                                const Progress &progress = Progress()) override;
-
     // Dataset interface
 protected:
     virtual OGRLayer *createAttachmentsTable(const std::string &name) override;
     virtual OGRLayer *createEditHistoryTable(const std::string &name) override;
-
-    // Object interface
-public:
-    virtual Properties properties(const std::string &domain = NG_ADDITIONS_KEY) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain = NG_ADDITIONS_KEY) const override;
-    virtual bool setProperty(const std::string &key, const std::string &value,
-                             const std::string &domain = NG_ADDITIONS_KEY) override;
 
     // ObjectContainer interface
 public:
@@ -94,18 +70,12 @@ protected:
     virtual bool isNameValid(const std::string &name) const override;
     virtual std::string normalizeFieldName(const std::string &name) const override;
     virtual void fillFeatureClasses() const override;
-    bool createTracksTable();
+    OGRLayer *createHashTable(GDALDataset *ds, const std::string &name);
 
 protected:
-    void enableJournal(bool enable);
     bool upgrade(int oldVersion);
-
-protected:
-    unsigned char m_disableJournalCounter;
-    ObjectPtr m_tracksTable;
-
 };
 
 } // namespace ngs
 
-#endif // NGSDATASTORE_H
+#endif // MAPINFODATASTORE_H

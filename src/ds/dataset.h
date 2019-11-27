@@ -23,14 +23,13 @@
 
 #include <memory>
 
-#include <util/mutex.h>
-
 #include "api_priv.h"
 #include "featureclass.h"
 #include "geometry.h"
 
 #include "catalog/objectcontainer.h"
 #include "ngstore/codes.h"
+#include "util/mutex.h"
 #include "util/stringutil.h"
 
 namespace ngs {
@@ -51,6 +50,7 @@ constexpr const char *USER_PREFIX_KEY = "USER.";
 constexpr int USER_PREFIX_KEY_LEN = length(USER_PREFIX_KEY);
 constexpr const char *NGS_VERSION_KEY = "version";
 
+constexpr const char *METADATA_TABLE_NAME = "nga_meta";
 
 /**
  * @brief The wrapper class around GDALDataset pointer

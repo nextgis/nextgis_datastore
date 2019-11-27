@@ -43,7 +43,7 @@ public:
     // ObjectContainer interface
 public:
     virtual bool hasChildren() const override;
-    virtual bool canCreate(const enum ngsCatalogObjectType) const override ;
+    virtual bool canCreate(const enum ngsCatalogObjectType) const override;
     virtual bool canPaste(const enum ngsCatalogObjectType) const override;
 
     // Dataset interface

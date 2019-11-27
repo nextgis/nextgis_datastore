@@ -36,7 +36,7 @@ ArchiveFolder::ArchiveFolder(ObjectContainer * const parent,
 
 bool ArchiveFolder::canCreate(const enum ngsCatalogObjectType type) const
 {
-    ngsUnused(type)
+    ngsUnused(type);
     return false;
 }
 

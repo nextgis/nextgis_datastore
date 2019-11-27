@@ -35,11 +35,12 @@
 #include "ngstore/api.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
+
+#include "util.h"
+#include "util/account.h"
 #include "util/error.h"
 #include "util/notify.h"
 #include "util/stringutil.h"
-
-#include <util/account.h>
 
 namespace ngs {
 
@@ -148,28 +149,28 @@ void DatasetBase::flushCache()
 std::string DatasetBase::options(const enum ngsCatalogObjectType type,
                                     ngsOptionType optionType) const
 {
-    GDALDriver *poDriver = Filter::getGDALDriver(type);
+    GDALDriver *driver = Filter::getGDALDriver(type);
     switch (optionType) {
     case OT_CREATE_DATASOURCE:
-        if(nullptr == poDriver)
+        if(nullptr == driver)
             return "";
-        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST));
+        return fromCString(driver->GetMetadataItem(GDAL_DMD_CREATIONOPTIONLIST));
     case OT_CREATE_LAYER:
-        if(nullptr == poDriver)
+        if(nullptr == driver)
             return "";
-        return fromCString(poDriver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST));
+        return fromCString(driver->GetMetadataItem(GDAL_DS_LAYER_CREATIONOPTIONLIST));
     case OT_CREATE_LAYER_FIELD:
-        if(nullptr == poDriver)
+        if(nullptr == driver)
             return "";
-        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES));
+        return fromCString(driver->GetMetadataItem(GDAL_DMD_CREATIONFIELDDATATYPES));
     case OT_CREATE_RASTER:
-        if(nullptr == poDriver)
+        if(nullptr == driver)
             return "";
-        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES));
+        return fromCString(driver->GetMetadataItem(GDAL_DMD_CREATIONDATATYPES));
     case OT_OPEN:
-        if(nullptr == poDriver)
+        if(nullptr == driver)
             return "";
-        return fromCString(poDriver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST));
+        return fromCString(driver->GetMetadataItem(GDAL_DMD_OPENOPTIONLIST));
     case OT_LOAD:
         return "";
     }
@@ -232,10 +233,6 @@ constexpr const char *HISTORY_SUFFIX = "editlog";
 // Overviews
 constexpr const char *OVR_SUFFIX = "overviews";
 
-constexpr const char *METADATA_TABLE_NAME = "nga_meta";
-
-constexpr const char *NG_PREFIX = "nga_";
-constexpr int NG_PREFIX_LEN = length(NG_PREFIX);
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -483,12 +480,17 @@ void Dataset::deleteProperties(const std::string &domain)
 
 bool Dataset::isNameValid(const std::string &name) const
 {
+    if(name.empty()) {
+        return false;
+    }
+
     for(const ObjectPtr &object : m_children) {
         if(compare(object->name(), name)) {
             return false;
         }
     }
-    if(compare(METADATA_TABLE_NAME, name) && Filter::isDatabase(m_type)) {
+
+    if(compare(METADATA_TABLE_NAME, name)) {
         return false;
     }
     return true;
@@ -590,11 +592,11 @@ GDALDataset *Dataset::createAdditionsDataset()
         return m_addsDS;
     }
     else {
-        std::string ovrPath = File::resetExtension(m_path, ADDS_EXT);
-        CPLErrorReset();
-        GDALDriver *poDriver = Filter::getGDALDriver(CAT_CONTAINER_SQLITE);
-        if(poDriver == nullptr) {
-            outMessage(COD_CREATE_FAILED, _("SQLite driver is not present"));
+        std::string dsPath = File::resetExtension(m_path, ADDS_EXT);
+        resetError();
+        GDALDriver *driver = Filter::getGDALDriver(CAT_CONTAINER_SQLITE);
+        if(driver == nullptr) {
+            outMessage(COD_CREATE_FAILED, _("Driver is not present"));
             return nullptr;
         }
 
@@ -603,7 +605,7 @@ GDALDataset *Dataset::createAdditionsDataset()
         options.add("SPATIALITE", "NO");
         options.add("INIT_WITH_EPSG", "NO");
 
-        GDALDataset *DS = poDriver->Create(ovrPath.c_str(), 0, 0, 0, GDT_Unknown,
+        GDALDataset *DS = driver->Create(dsPath.c_str(), 0, 0, 0, GDT_Unknown,
                                            options.asCPLStringList());
         if(DS == nullptr) {
             errorMessage(_("Failed to create additional dataset. %s"), CPLGetLastErrorMsg());
@@ -991,10 +993,10 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
             m_addsDS->Reference();
         }
         else {
-            std::string ovrPath = File::resetExtension(m_path, ADDS_EXT);
-            if(Folder::isExists(ovrPath)) {
+            std::string addsPath = File::resetExtension(m_path, ADDS_EXT);
+            if(Folder::isExists(addsPath)) {
                 m_addsDS = static_cast<GDALDataset*>(
-                            GDALOpenEx(ovrPath.c_str(), openFlags, nullptr,
+                            GDALOpenEx(addsPath.c_str(), openFlags, nullptr,
                                        nullptr, nullptr));
             }
         }
@@ -1011,7 +1013,7 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
 
 OGRLayer *Dataset::createMetadataTable(GDALDataset *ds)
 {
-    CPLErrorReset();
+    resetError();
     if(nullptr == ds) {
         return nullptr;
     }
@@ -1051,14 +1053,9 @@ OGRLayer *Dataset::createMetadataTable(GDALDataset *ds)
 
 bool Dataset::destroyTable(GDALDataset *ds, OGRLayer *layer)
 {
-    for(int i = 0; i < ds->GetLayerCount (); ++i) {
+    for(int i = 0; i < ds->GetLayerCount(); ++i) {
         if(ds->GetLayer(i) == layer) {
             resetError();
-//            ds->RollbackTransaction();
-//            layer->RollbackTransaction();
-//            layer->SetAttributeFilter(nullptr);
-//            layer->SetSpatialFilter(nullptr);
-//            layer->ResetReading();
             return ds->DeleteLayer(i) == OGRERR_NONE;
         }
     }
@@ -1122,7 +1119,7 @@ OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &pa
     }
 
     // Create folder for files
-    if(path.empty()) {
+    if(!path.empty()) {
         std::string attachmentsPath = File::resetExtension(path, ATTACH_SUFFIX);
         if(!Folder::isExists(attachmentsPath)) {
             Folder::mkDir(attachmentsPath);

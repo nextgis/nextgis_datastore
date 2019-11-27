@@ -206,7 +206,7 @@ bool MemoryStore::open(unsigned int openFlags, const Options &options)
         // Create dataset
         GDALDriver *poDriver = Filter::getGDALDriver(CAT_CONTAINER_MEM);
         if(poDriver == nullptr) {
-            return errorMessage(_("Memory driver is not present"));
+            return errorMessage(_("Driver is not present"));
         }
 
         m_DS = poDriver->Create(m_path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);

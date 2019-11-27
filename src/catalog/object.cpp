@@ -85,7 +85,7 @@ bool Object::canDestroy() const
 
 bool Object::rename(const std::string &newName)
 {
-    ngsUnused(newName)
+    ngsUnused(newName);
     return false;
 }
 
@@ -122,9 +122,9 @@ std::string Object::property(const std::string &key,
 bool Object::setProperty(const std::string &key, const std::string &value,
                          const std::string &domain)
 {
-    ngsUnused(key)
-    ngsUnused(value)
-    ngsUnused(domain)
+    ngsUnused(key);
+    ngsUnused(value);
+    ngsUnused(domain);
     return false;
 }
 

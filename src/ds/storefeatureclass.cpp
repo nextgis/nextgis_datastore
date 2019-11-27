@@ -27,6 +27,7 @@
 #include "catalog/ngw.h"
 #include "ngstore/version.h"
 #include "util/error.h"
+#include "util.h"
 
 #ifdef WIN32
 #define timegm _mkgmtime
@@ -52,7 +53,7 @@ FeaturePtr StoreObject::getFeatureByRemoteId(GIntBig rid) const
     Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
     DatasetExecuteSQLLockHolder holder(dataset);
     m_storeIntLayer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                                   REMOTE_ID_KEY, rid));
+                                                   ngw::REMOTE_ID_KEY, rid));
     FeaturePtr out(m_storeIntLayer->GetNextFeature(), table);
     m_storeIntLayer->SetAttributeFilter(nullptr);
     return out;
@@ -81,20 +82,20 @@ bool StoreObject::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
         return false;
     }
 
-    attFeature->SetField(REMOTE_ID_KEY, rid);
+    attFeature->SetField(ngw::REMOTE_ID_KEY, rid);
     return attTable->SetFeature(attFeature) == OGRERR_NONE;
 }
 
 
 void StoreObject::setRemoteId(FeaturePtr feature, GIntBig rid)
 {
-    feature->SetField(REMOTE_ID_KEY, rid);
+    feature->SetField(ngw::REMOTE_ID_KEY, rid);
 }
 
 GIntBig StoreObject::getRemoteId(FeaturePtr feature)
 {
     if(feature)
-        return feature->GetFieldAsInteger64(REMOTE_ID_KEY);
+        return feature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
     return NOT_FOUND;
 }
 
@@ -114,7 +115,7 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
         op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(
                                                       OPERATION_FIELD));
         op.rid = StoreObject::getRemoteId(feature);
-        op.arid = feature->GetFieldAsInteger64(ATTACHMENT_REMOTE_ID_KEY);
+        op.arid = feature->GetFieldAsInteger64(ngw::ATTACHMENT_REMOTE_ID_KEY);
         if(op.arid == NOT_FOUND) {
             op.arid = getAttachmentRemoteId(op.aid);
         }
@@ -158,7 +159,7 @@ void StoreTable::fillFields() const
 {
     Table::fillFields();
     // Hide remote id field from user
-    if(compare(m_fields.back().m_name, REMOTE_ID_KEY)) {
+    if(compare(m_fields.back().m_name, ngw::REMOTE_ID_KEY)) {
         m_fields.pop_back();
     }
 }
@@ -182,7 +183,7 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid) const
         info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
         info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
-        info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
+        info.rid = attFeature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
 
         std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
                                                         std::to_string(fid), "");
@@ -205,7 +206,7 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const std::string &fileName,
         return NOT_FOUND;
     }
     bool move = options.asBool("MOVE", false);
-    GIntBig rid = options.asLong("RID", INIT_RID_COUNTER);
+    GIntBig rid = options.asLong("RID", ngw::INIT_RID_COUNTER);
 
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
@@ -213,7 +214,7 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const std::string &fileName,
     newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
     newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName.c_str());
     newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
-    newAttachment->SetField(REMOTE_ID_KEY, rid);
+    newAttachment->SetField(ngw::REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
         std::string dstTablePath = getAttachmentsPath();
@@ -299,8 +300,8 @@ FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
 {
     FeaturePtr logFeature = Table::logEditFeature(feature, attachFeature, code);
     if(logFeature) {
-        logFeature->SetField(REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
-        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY,
+        logFeature->SetField(ngw::REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
+        logFeature->SetField(ngw::ATTACHMENT_REMOTE_ID_KEY,
                              StoreObject::getRemoteId(attachFeature));
     }
     return logFeature;
@@ -325,7 +326,7 @@ void StoreFeatureClass::fillFields() const
 {
     Table::fillFields();
     // Hide remote id field from user
-    if(compare(m_fields.back().m_name, REMOTE_ID_KEY)) {
+    if(compare(m_fields.back().m_name, ngw::REMOTE_ID_KEY)) {
         m_fields.pop_back();
     }
 }
@@ -350,7 +351,7 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) c
         info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
         info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
-        info.rid = attFeature->GetFieldAsInteger64(REMOTE_ID_KEY);
+        info.rid = attFeature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
 
         std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
                                                         std::to_string(fid), "");
@@ -373,7 +374,7 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const std::string &fileNam
         return NOT_FOUND;
     }
     bool move = options.asBool("MOVE", false);
-    GIntBig rid = options.asLong("RID", INIT_RID_COUNTER);
+    GIntBig rid = options.asLong("RID", ngw::INIT_RID_COUNTER);
 
     FeaturePtr newAttachment = OGRFeature::CreateFeature(
                 m_attTable->GetLayerDefn());
@@ -381,7 +382,7 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const std::string &fileNam
     newAttachment->SetField(ATTACH_FEATURE_ID_FIELD, fid);
     newAttachment->SetField(ATTACH_FILE_NAME_FIELD, fileName.c_str());
     newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
-    newAttachment->SetField(REMOTE_ID_KEY, rid);
+    newAttachment->SetField(ngw::REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
         std::string dstTablePath = getAttachmentsPath();
@@ -466,8 +467,8 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
 {
     FeaturePtr logFeature = Table::logEditFeature(feature, attachFeature, code);
     if(logFeature) {
-        logFeature->SetField(REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
-        logFeature->SetField(ATTACHMENT_REMOTE_ID_KEY,
+        logFeature->SetField(ngw::REMOTE_ID_KEY, StoreObject::getRemoteId(feature));
+        logFeature->SetField(ngw::ATTACHMENT_REMOTE_ID_KEY,
                              StoreObject::getRemoteId(attachFeature));
     }
     return logFeature;
@@ -513,10 +514,10 @@ TracksTable::TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectCont
     m_lastTrackId(0),
     m_lastSegmentId(0),
     m_lastSegmentPtId(0),
-    m_pointsLayer(new TrackPointsTable(pointsLayer, m_parent)),
-    m_newTrack(false),
     m_lastGmtTimeStamp(0),
-    m_pointCount(0)
+    m_newTrack(false),
+    m_pointCount(0),
+    m_pointsLayer(new TrackPointsTable(pointsLayer, m_parent))
 {
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
     TablePtr result = dataset->executeSQL(std::string("SELECT MAX(track_fid) FROM ") + TRACKS_TABLE, "SQLite");

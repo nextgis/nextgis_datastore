@@ -35,6 +35,8 @@ set(HHEADERS
     storefeatureclass.h
     coordinatetransformation.h
     geometry.h
+#    mapinfodatastore.h
+    util.h
 )
 
 set(CSOURCES
@@ -48,6 +50,8 @@ set(CSOURCES
     storefeatureclass.cpp
     coordinatetransformation.cpp
     geometry.cpp
+#    mapinfodatastore.cpp
+    util.cpp
 )
 
 # Triangulation by MapBox

@@ -1338,7 +1338,7 @@ char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType 
         return 0;
     }
 
-    ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
+    ObjectContainer * container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(nullptr == container) {
         warningMessage(_("The object handle is null"));
         return 0;
@@ -1355,7 +1355,7 @@ char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType 
         connectionBase->open();
     }
 
-    return container->canCreate(type) ? 1 : 0;
+    return container->canCreate(type) ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -1838,35 +1838,93 @@ static DatasetBase *getDatasetFromHandle(CatalogObjectH object)
     return ngsDynamicCast(DatasetBase, catalogObjectPointer);
 }
 
-int ngsDatasetOpen(CatalogObjectH object, unsigned int openFlags, char **openOptions)
-{
-    DatasetBase *dataset = getDatasetFromHandle(object);
-    if(!dataset) {
-        return COD_OPEN_FAILED;
-    }
+NGS_EXTERNC char ngsCatalogObjectIsOpened(CatalogObjectH object);
+NGS_EXTERNC int ngsCatalogObjectClose(CatalogObjectH object);
 
-    return dataset->open(openFlags, Options(openOptions)) ? COD_SUCCESS :
-                                                            COD_OPEN_FAILED;
-}
-
-char ngsDatasetIsOpened(CatalogObjectH object)
+/**
+ * @brief ngsCatalogObjectOpen Open connection or database.
+ * @param object Object handle to open.
+ * @param openOptions Key-value list of options specific to object type. For dataset OPEN_FLAGS is integer converted to string. Default value is GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR.
+ * @return 1 on success else 0.
+ */
+char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions)
 {
-    DatasetBase *dataset = getDatasetFromHandle(object);
-    if(!dataset) {
+    Options oo(openOptions);
+
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        warningMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
-    return dataset->isOpened() ? API_TRUE : API_FALSE;
+    // If dataset - open it.
+    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
+    if(datasetBase) {
+        unsigned int openFlags = static_cast<unsigned int>(oo.asInt("OPEN_FLAGS", GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR));
+        return datasetBase->open(openFlags, oo) ? API_TRUE : API_FALSE;
+    }
+
+    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
+    if(connectionBase) {
+        return connectionBase->open() ? API_TRUE : API_FALSE;
+    }
+
+    return API_FALSE;
 }
 
-int ngsDatasetClose(CatalogObjectH object)
+/**
+ * @brief ngsDatasetIsOpened Check if connectio or databes is openned.
+ * @param object Object handle to check.
+ * @return 1 on success else 0.
+ */
+char ngsDatasetIsOpened(CatalogObjectH object)
 {
-    DatasetBase *dataset = getDatasetFromHandle(object);
-    if(!dataset) {
-        return COD_CLOSE_FAILED;
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        warningMessage(_("The object handle is null"));
+        return API_FALSE;
     }
-    dataset->close();
-    return COD_SUCCESS;
+
+    // If dataset - open it.
+    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
+    if(datasetBase) {
+        return datasetBase->isOpened() ? API_TRUE : API_FALSE;
+    }
+
+    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
+    if(connectionBase) {
+        return connectionBase->isOpened() ? API_TRUE : API_FALSE;
+    }
+
+    return API_FALSE;
+}
+
+/**
+ * @brief ngsDatasetClose Close connection or database.
+ * @param object Object handle to close.
+ * @return 1 on success else 0.
+ */
+char ngsDatasetClose(CatalogObjectH object)
+{
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        warningMessage(_("The object handle is null"));
+        return API_FALSE;
+    }
+
+    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
+    if(datasetBase) {
+        datasetBase->close();
+        return API_TRUE;
+    }
+
+    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
+    if(connectionBase) {
+        connectionBase->close();
+        return API_TRUE;
+    }
+
+    return API_FALSE;
 }
 
 /**

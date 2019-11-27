@@ -22,6 +22,7 @@
 
 #include "catalog/mapfile.h"
 #include "ds/datastore.h"
+//#include "ds/mapinfodatastore.h"
 
 namespace ngs {
 
@@ -123,7 +124,8 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
           (type >= CAT_FC_ESRI_SHAPEFILE && type < CAT_FC_POSTGIS) ||
           (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
           (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||
-           type == CAT_FC_CSV || type == CAT_FC_MEM || type == CAT_FC_GPX;
+           type == CAT_FC_CSV || type == CAT_FC_MEM || type == CAT_FC_GPX ||
+           type == CAT_CONTAINER_MAPINFO_STORE;
 }
 
 bool Filter::isLocalDir(const enum ngsCatalogObjectType type) {
@@ -151,6 +153,7 @@ GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
     case CAT_TABLE_LITE:
     case CAT_FC_LITE:
     case CAT_RASTER_LITE:
+    case CAT_CONTAINER_MAPINFO_STORE:
         return GetGDALDriverManager()->GetDriverByName("SQLite");
     case CAT_CONTAINER_GDB:
     case CAT_TABLE_GDB:
@@ -247,6 +250,8 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
         return DataStore::extension();
     case CAT_FILE_NGMAPDOCUMENT:
         return MapFile::extension();
+    case CAT_CONTAINER_MAPINFO_STORE:
+        return "";//MapInfoDataStore::extension();
     case CAT_CONTAINER_MEM:
         return "ngmem";
     case CAT_CONTAINER_KMZ:
@@ -281,10 +286,8 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
     case CAT_TABLE_XLS:
     case CAT_TABLE_XLSX:
     case CAT_CONTAINER_GPKG:
-        if(nullptr != driver)
-            return fromCString(driver->GetMetadataItem(GDAL_DMD_EXTENSION));
-        else
-            return "";
+        return nullptr != driver ?
+                    fromCString(driver->GetMetadataItem(GDAL_DMD_EXTENSION)) : "";
     case CAT_CONTAINER_ARCHIVE_ZIP:
         return "zip";
     default:

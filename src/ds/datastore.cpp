@@ -33,6 +33,7 @@
 #include "storefeatureclass.h"
 
 #include "catalog/catalog.h"
+#include "catalog/file.h"
 #include "catalog/folder.h"
 
 #include "ngstore/catalog/filter.h"
@@ -40,11 +41,11 @@
 #include "ngstore/util/constants.h"
 #include "ngstore/version.h"
 
+#include "util.h"
 #include "util/notify.h"
 #include "util/error.h"
 #include "util/stringutil.h"
 
-#include <catalog/file.h>
 
 namespace ngs {
 
@@ -68,9 +69,6 @@ DataStore::DataStore(ObjectContainer * const parent,
 
 bool DataStore::isNameValid(const std::string &name) const
 {
-    if(name.empty()) {
-        return false;
-    }
     if(comparePart(name, STORE_EXT, STORE_EXT_LEN)) {
         return false;
     }
@@ -79,7 +77,7 @@ bool DataStore::isNameValid(const std::string &name) const
 
 std::string DataStore::normalizeFieldName(const std::string &name) const
 {
-    if(compare(REMOTE_ID_KEY, name)) {
+    if(compare(ngw::REMOTE_ID_KEY, name)) {
         std::string out = name + "_";
         return out;
     }
@@ -119,12 +117,12 @@ bool DataStore::create(const std::string &path)
         return errorMessage(_("The path is empty"));
     }
 
-    GDALDriver *poDriver = Filter::getGDALDriver(CAT_CONTAINER_NGS);
-    if(poDriver == nullptr) {
-        return errorMessage(_("GeoPackage driver is not present"));
+    GDALDriver *driver = Filter::getGDALDriver(CAT_CONTAINER_NGS);
+    if(driver == nullptr) {
+        return errorMessage(_("Driver is not present"));
     }
 
-    GDALDataset *DS = poDriver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
+    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
     if(DS == nullptr) {
         return errorMessage(_("Failed to create datastore. %s"), CPLGetLastErrorMsg());
     }
@@ -146,14 +144,14 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
         return true;
     }
 
-    if(!Dataset::open(openFlags, options))
+    if(!Dataset::open(openFlags, options)) {
         return false;
+    }
 
     executeSQL("PRAGMA journal_mode=WAL", "SQLite");
     executeSQL("PRAGMA busy_timeout = 120000", "SQLite"); // 2m timeout
-    executeSQL("VACUUM", "SQLite");
 
-    CPLErrorReset();
+    resetError();
 
     int version = std::stoi(property(NGS_VERSION_KEY, "0"));
 
@@ -293,7 +291,6 @@ Table *DataStore::createTable(const std::string &name,
 bool DataStore::setProperty(const std::string &key, const std::string &value,
                             const std::string &domain)
 {
-    MutexHolder holder(m_executeSQLMutex);
     return m_DS->SetMetadataItem(key.c_str(), value.c_str(), domain.c_str()) ==
             OGRERR_NONE;
 }
@@ -302,7 +299,6 @@ std::string DataStore::property(const std::string &key,
                                 const std::string &defaultValue,
                                 const std::string &domain) const
 {
-    MutexHolder holder(m_executeSQLMutex);
     const char *out = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
     return nullptr == out ? defaultValue : std::string(out);
 }
@@ -341,42 +337,12 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
     std::string newName = normalizeDatasetName(name);
 
     // Get field definitions
-    OGRFeatureDefn fieldDefinition(newName.c_str());
-    int fieldCount = options.asInt("FIELD_COUNT", 0);
-    struct fieldData {
-        std::string name, alias;
-    };
-    std::vector<fieldData> fields;
-
-    for(int i = 0; i < fieldCount; ++i) {
-        std::string fieldName = options.asString(CPLSPrintf("FIELD_%d_NAME", i), "");
-        if(fieldName.empty()) {
-            errorMessage(_("Name for field %d is not defined"), i);
-            return ObjectPtr();
-        }
-
-        std::string fieldAlias = options.asString(CPLSPrintf("FIELD_%d_ALIAS", i), "");
-        if(fieldAlias.empty()) {
-            fieldAlias = fieldName;
-        }
-        fieldData data = { fieldName, fieldAlias };
-        fields.push_back(data);
-
-        OGRFieldType fieldType = FeatureClass::fieldTypeFromName(
-                    options.asString(CPLSPrintf("FIELD_%d_TYPE", i), ""));
-        OGRFieldDefn field(fieldName.c_str(), fieldType);
-        std::string defaultValue = options.asString(
-                    CPLSPrintf("FIELD_%d_DEFAULT_VAL", i), "");
-        if(!defaultValue.empty()) {
-            field.SetDefault(defaultValue.c_str());
-        }
-        fieldDefinition.AddFieldDefn(&field);
-    }
+    CREATE_FEATURE_DEFN_RESULT featureDefnStruct = createFeatureDefinition(name, options);
 
     // Add remote id field
-    OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
-    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
-    fieldDefinition.AddFieldDefn(&ridField);
+    OGRFieldDefn ridField(ngw::REMOTE_ID_KEY, OFTInteger64);
+    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, ngw::INIT_RID_COUNTER));
+    featureDefnStruct.defn->AddFieldDefn(&ridField);
 
     ObjectPtr object;
     if(type == CAT_FC_GPKG) {
@@ -388,47 +354,27 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
         }
 
         object = ObjectPtr(createFeatureClass(newName, CAT_FC_GPKG,
-                                              &fieldDefinition,
+                                              featureDefnStruct.defn,
                                               m_spatialReference, geomType,
                                               options));
     }
     else if(type == CAT_TABLE_GPKG) {
-        object = ObjectPtr(createTable(newName, CAT_TABLE_GPKG, &fieldDefinition,
+        object = ObjectPtr(createTable(newName, CAT_TABLE_GPKG,
+                                       featureDefnStruct.defn,
                                        options));
     }
 
-    if(object) {
-        Table *table = ngsDynamicCast(Table, object);
+    setMetadata(object, featureDefnStruct.fields, options);
 
-        // Store aliases and field original names in properties
-        for(size_t i = 0; i < fields.size(); ++i) {
-            table->setProperty("FIELD_" + std::to_string(i) + "_NAME", 
-                fields[i].name, NG_ADDITIONS_KEY);
-            table->setProperty("FIELD_" + std::to_string(i) + "_ALIAS", 
-                fields[i].alias, NG_ADDITIONS_KEY);
-        }
-
-        bool saveEditHistory = options.asBool(LOG_EDIT_HISTORY_KEY, false);
-        table->setProperty(LOG_EDIT_HISTORY_KEY, saveEditHistory ? "ON" : "OFF", 
-            NG_ADDITIONS_KEY);
-
-        // Store user defined options in properties
-        for(const auto &it : options) {
-            if(comparePart(it.first, USER_PREFIX_KEY, USER_PREFIX_KEY_LEN)) {
-                table->setProperty(it.first.substr(USER_PREFIX_KEY_LEN),
-                    it.second, USER_KEY);
-            }
-        }
-
-        if(m_childrenLoaded) {
-            m_children.push_back(object);
-        }
+    if(object && m_childrenLoaded) {
+        m_children.push_back(object);
     }
     return object;
 }
 
 bool DataStore::upgrade(int oldVersion)
 {
+    executeSQL("VACUUM", "SQLite");
     ngsUnused(oldVersion);
     // no structure changes for version 1
     return true;
@@ -440,7 +386,7 @@ void DataStore::enableJournal(bool enable)
         m_disableJournalCounter--;
         if(m_disableJournalCounter == 0) {
             // executeSQL("PRAGMA synchronous = FULL", "SQLite");
-            executeSQL("PRAGMA journal_mode = DELETE", "SQLite");
+            executeSQL("PRAGMA journal_mode = WAL", "SQLite");
             //executeSQL("PRAGMA count_changes=ON", "SQLite"); // This pragma is deprecated
         }
     }
@@ -468,38 +414,7 @@ OGRLayer *DataStore::createAttachmentsTable(const std::string &name)
     }
 
     std::string attLayerName(attachmentsTableName(name));
-    OGRLayer *attLayer = m_addsDS->CreateLayer(attLayerName.c_str(), nullptr,
-                                               wkbNone, nullptr);
-    if (nullptr == attLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    // Create folder for files
-    if(!m_path.empty()) {
-        std::string attachmentsPath = File::resetExtension(m_path,
-                                                    attachmentsFolderExtension());
-        if(!Folder::isExists(attachmentsPath)) {
-            Folder::mkDir(attachmentsPath);
-        }
-    }
-
-    // Create table  fields
-    OGRFieldDefn fidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
-    OGRFieldDefn nameField(ATTACH_FILE_NAME_FIELD, OFTString);
-    OGRFieldDefn descField(ATTACH_DESCRIPTION_FIELD, OFTString);
-    OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
-    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
-
-    if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
-       attLayer->CreateField(&nameField) != OGRERR_NONE ||
-       attLayer->CreateField(&descField) != OGRERR_NONE ||
-       attLayer->CreateField(&ridField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    return attLayer;
+    return ngw::createAttachmentsTable(m_addsDS, attLayerName, m_path);
 }
 
 OGRLayer *DataStore::createEditHistoryTable(const std::string &name)
@@ -513,32 +428,7 @@ OGRLayer *DataStore::createEditHistoryTable(const std::string &name)
     }
 
     std::string logLayerName(historyTableName(name));
-    OGRLayer *logLayer = m_addsDS->CreateLayer(logLayerName.c_str(), nullptr,
-                                               wkbNone, nullptr);
-    if (nullptr == logLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    // Create table  fields
-    OGRFieldDefn fidField(FEATURE_ID_FIELD, OFTInteger64);
-    OGRFieldDefn afidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
-    OGRFieldDefn opField(OPERATION_FIELD, OFTInteger64);
-    OGRFieldDefn ridField(REMOTE_ID_KEY, OFTInteger64);
-    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
-    OGRFieldDefn aridField(ATTACHMENT_REMOTE_ID_KEY, OFTInteger64);
-    aridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, INIT_RID_COUNTER));
-
-    if(logLayer->CreateField(&fidField) != OGRERR_NONE ||
-       logLayer->CreateField(&afidField) != OGRERR_NONE ||
-       logLayer->CreateField(&opField) != OGRERR_NONE ||
-       logLayer->CreateField(&ridField) != OGRERR_NONE ||
-       logLayer->CreateField(&aridField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    return logLayer;
+    return ngw::createEditHistoryTable(m_addsDS, logLayerName);
 }
 
 bool DataStore::isBatchOperation() const

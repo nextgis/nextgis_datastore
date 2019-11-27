@@ -109,32 +109,32 @@ bool ObjectContainer::isReadOnly() const
 
 bool ObjectContainer::canCreate(const enum ngsCatalogObjectType type) const
 {
-    ngsUnused(type)
+    ngsUnused(type);
     return false;
 }
 
 ObjectPtr ObjectContainer::create(const enum ngsCatalogObjectType type,
                     const std::string &name, const Options &options)
 {
-    ngsUnused(type)
-    ngsUnused(name)
-    ngsUnused(options)
+    ngsUnused(type);
+    ngsUnused(name);
+    ngsUnused(options);
     return ObjectPtr();
 }
 
 bool ObjectContainer::canPaste(const enum ngsCatalogObjectType type) const
 {
-    ngsUnused(type)
+    ngsUnused(type);
     return false;
 }
 
 int ObjectContainer::paste(ObjectPtr child, bool move, const Options &options,
                            const Progress &progress)
 {
-    ngsUnused(child)
-    ngsUnused(move)
-    ngsUnused(options)
-    ngsUnused(progress)
+    ngsUnused(child);
+    ngsUnused(move);
+    ngsUnused(options);
+    ngsUnused(progress);
     return COD_UNSUPPORTED;
 }
 

@@ -242,7 +242,7 @@ bool Catalog::isFileHidden(const std::string &path, const std::string &name) con
         return attrs & FILE_ATTRIBUTE_HIDDEN;
 	}
 #else
-    ngsUnused(path)
+    ngsUnused(path);
 #endif
 
     return false;
