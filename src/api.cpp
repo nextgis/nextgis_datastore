@@ -1807,39 +1807,13 @@ static Raster *getRasterFromHandle(CatalogObjectH object)
         return nullptr;
     }
 
-    ObjectPtr catalogObjectPointer = catalogObject->pointer();
-    if(!catalogObjectPointer) {
+    if(!(Filter::isRaster(catalogObject->type()))) {
         outMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
-    if(!(Filter::isRaster(catalogObjectPointer->type()))) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
-
-    return ngsDynamicCast(Raster, catalogObjectPointer);
+    return dynamic_cast<Raster*>(catalogObject);
 }
-
-static DatasetBase *getDatasetFromHandle(CatalogObjectH object)
-{
-    Object *catalogObject = static_cast<Object*>(object);
-    if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
-        return nullptr;
-    }
-
-    ObjectPtr catalogObjectPointer = catalogObject->pointer();
-    if(!catalogObjectPointer) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
-
-    return ngsDynamicCast(DatasetBase, catalogObjectPointer);
-}
-
-NGS_EXTERNC char ngsCatalogObjectIsOpened(CatalogObjectH object);
-NGS_EXTERNC int ngsCatalogObjectClose(CatalogObjectH object);
 
 /**
  * @brief ngsCatalogObjectOpen Open connection or database.
@@ -1857,7 +1831,6 @@ char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions)
         return API_FALSE;
     }
 
-    // If dataset - open it.
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
     if(datasetBase) {
         unsigned int openFlags = static_cast<unsigned int>(oo.asInt("OPEN_FLAGS", GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR));
@@ -1873,11 +1846,11 @@ char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions)
 }
 
 /**
- * @brief ngsDatasetIsOpened Check if connectio or databes is openned.
+ * @brief ngsCatalogObjectIsOpened Check if connectio or databes is openned.
  * @param object Object handle to check.
  * @return 1 on success else 0.
  */
-char ngsDatasetIsOpened(CatalogObjectH object)
+char ngsCatalogObjectIsOpened(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
@@ -1900,11 +1873,11 @@ char ngsDatasetIsOpened(CatalogObjectH object)
 }
 
 /**
- * @brief ngsDatasetClose Close connection or database.
+ * @brief ngsCatalogObjectClose Close connection or database.
  * @param object Object handle to close.
  * @return 1 on success else 0.
  */
-char ngsDatasetClose(CatalogObjectH object)
+char ngsCatalogObjectClose(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
@@ -4441,13 +4414,7 @@ static DataStore *getDataStoreFromHandle(CatalogObjectH object)
         return nullptr;
     }
 
-    ObjectPtr catalogObjectPointer = catalogObject->pointer();
-    if(!catalogObjectPointer) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
-
-    return ngsDynamicCast(DataStore, catalogObjectPointer);
+    return dynamic_cast<DataStore*>(catalogObject);
 }
 
 /**
@@ -4502,18 +4469,12 @@ static TracksTable *getTracksTableFromHandle(CatalogObjectH object)
         return nullptr;
     }
 
-    ObjectPtr catalogObjectPointer = catalogObject->pointer();
-    if(!catalogObjectPointer) {
+    if(!Filter::isFeatureClass(catalogObject->type())) {
         outMessage(COD_INVALID, _("Source dataset type is incompatible"));
         return nullptr;
     }
 
-    if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
-
-    return ngsDynamicCast(TracksTable, catalogObjectPointer);
+    return dynamic_cast<TracksTable*>(catalogObject);
 }
 
 /**

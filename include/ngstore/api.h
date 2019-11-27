@@ -238,7 +238,7 @@ NGS_EXTERNC char ngsCatalogCheckConnection(enum ngsCatalogObjectType type,
     char **options);
 NGS_EXTERNC char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions);
 NGS_EXTERNC char ngsCatalogObjectIsOpened(CatalogObjectH object);
-NGS_EXTERNC int ngsCatalogObjectClose(CatalogObjectH object);
+NGS_EXTERNC char ngsCatalogObjectClose(CatalogObjectH object);
 
 /*
  * Feature class

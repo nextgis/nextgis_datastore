@@ -287,8 +287,7 @@ TEST(CatalogTests, TestAreaDownload) {
     // Test metadata
     CPLString osmPath = CPLFormFilename(catalogPath, "cache_test.wconn", nullptr);
     CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
-    EXPECT_EQ(ngsDatasetOpen(osmRaster, GDAL_OF_SHARED|GDAL_OF_READONLY|
-                             GDAL_OF_VERBOSE_ERROR, nullptr), COD_SUCCESS);
+    EXPECT_EQ(ngsCatalogObjectOpen(osmRaster, nullptr), 1);
     char **metadata = ngsCatalogObjectProperties(osmRaster, "");
     if(metadata != nullptr) {
         EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "300"), true);
@@ -356,6 +355,8 @@ TEST(CatalogTests, TestCreateConnection) {
     options = ngsListAddNameValue(options, "url", "demo.nextgis.com");
     options = ngsListAddNameValue(options, "is_guest", "ON");
 
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
+
     EXPECT_NE(ngsCatalogObjectCreate(conn, "demo.nextgis.com", options),
               nullptr);
 
@@ -367,6 +368,15 @@ TEST(CatalogTests, TestCreateConnection) {
     EXPECT_EQ(VSIStatL(path1.c_str(), &sbuf), 0);
 
     ngsUnInit();
+}
+
+static CatalogObjectH createDataStore(const std::string &name, CatalogObjectH catalog) {
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    CatalogObjectH out = ngsCatalogObjectCreate(catalog, name.c_str(), options);
+    ngsListFree(options);
+    return out;
 }
 
 TEST(DataStoreTests, TestCreateDataStore) {
@@ -386,7 +396,8 @@ TEST(DataStoreTests, TestCreateDataStore) {
     options = ngsListAddNameValue(options, "TYPE", CPLSPrintf("%d", CAT_CONTAINER_NGS));
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
-    EXPECT_NE(ngsCatalogObjectCreate(catalog, "main", options), nullptr);
+    CatalogObjectH store = createDataStore("main", catalog);
+    EXPECT_NE(store, nullptr);
     ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(catalog, 0);
     ngsListFree(options);
     ASSERT_NE(pathInfo, nullptr);
@@ -993,7 +1004,11 @@ TEST(DataStoreTests, TestDeleteDataStore) {
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
-    CPLString delPath = ngsFormFileName(catalogPath, "main", "ngst");
+    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath.c_str());
+    CatalogObjectH store = createDataStore("main1", catalog);
+    EXPECT_NE(store, nullptr);
+    ngsCatalogObjectClose(store);
+    CPLString delPath = ngsFormFileName(catalogPath, "main1", "ngst");
     CatalogObjectH delObject = ngsCatalogObjectGet(delPath);
     EXPECT_EQ(ngsCatalogObjectDelete(delObject), COD_SUCCESS);
     ngsUnInit();
