@@ -23,6 +23,8 @@
 
 #include "util/options.h"
 
+#include <vector>
+
 namespace ngs {
 
 using Properties = Options;
