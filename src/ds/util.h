@@ -40,7 +40,7 @@ struct fieldData {
 };
 
 typedef struct _createFeatureDefnResult {
-    OGRFeatureDefn *defn;
+    std::unique_ptr<OGRFeatureDefn> defn;
     std::vector<fieldData> fields;
 } CREATE_FEATURE_DEFN_RESULT;
 
@@ -57,6 +57,7 @@ namespace ngw {
 constexpr const char *REMOTE_ID_KEY = "rid";
 constexpr const char *ATTACHMENT_REMOTE_ID_KEY = "arid";
 constexpr GIntBig INIT_RID_COUNTER = NOT_FOUND; //-1000000;
+constexpr const char *SYNC_KEY = "SYNC";
 
 OGRLayer *createAttachmentsTable(GDALDataset *ds, const std::string &name,
                                  const std::string &filesPath);

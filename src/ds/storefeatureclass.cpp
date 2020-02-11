@@ -100,12 +100,14 @@ GIntBig StoreObject::getRemoteId(FeaturePtr feature)
 }
 
 std::vector<ngsEditOperation> StoreObject::fillEditOperations(
-        OGRLayer *editHistoryTable) const
+        OGRLayer *editHistoryTable, Dataset *dataset) const
 {
     std::vector<ngsEditOperation> out;
     if(nullptr == editHistoryTable) {
         return out;
     }
+
+    DatasetExecuteSQLLockHolder holder(dataset);
     FeaturePtr feature;
     editHistoryTable->ResetReading();
     while((feature = editHistoryTable->GetNextFeature())) {
@@ -143,6 +145,13 @@ GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
         rid = getRemoteId(attFeature);
     }
     return rid;
+}
+
+bool StoreObject::sync(const Options &options)
+{
+    // TODO: Sync with NGW
+    ngsUnused(options);
+    return false;
 }
 
 //------------------------------------------------------------------------------
@@ -193,6 +202,8 @@ std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid) const
 
         out.push_back(info);
     }
+
+    m_attTable->SetAttributeFilter(nullptr);
 
     return out;
 }
@@ -259,40 +270,13 @@ bool StoreTable::setProperty(const std::string &key, const std::string &value,
                                     value.c_str(), domain.c_str()) == OGRERR_NONE;
 }
 
-std::string StoreTable::property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const
+std::vector<ngsEditOperation> StoreTable::editOperations()
 {
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    const char *item = m_layer->GetMetadataItem(key.c_str(), domain.c_str());
-    return item != nullptr ? item : defaultValue;
-}
-
-Properties StoreTable::properties(
-        const std::string &domain) const
-{
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return Properties(m_layer->GetMetadata(domain.c_str()));
-}
-
-void StoreTable::deleteProperties(const std::string &domain)
-{
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    m_layer->SetMetadata(nullptr, domain.c_str());
-}
-
-std::vector<ngsEditOperation> StoreTable::editOperations() const
-{
-    if(nullptr == m_editHistoryTable) {
-        initEditHistoryTable();
-    }
-
-    if(nullptr == m_editHistoryTable) {
+    if(!initEditHistoryTable()) {
         return std::vector<ngsEditOperation>();
     }
 
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return fillEditOperations(m_editHistoryTable);
+    return fillEditOperations(m_editHistoryTable, dynamic_cast<Dataset*>(m_parent));
 }
 
 FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
@@ -314,7 +298,7 @@ FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
 StoreFeatureClass::StoreFeatureClass(OGRLayer *layer,
                                      ObjectContainer * const parent,
                                      const std::string &name) :
-    FeatureClass(layer, parent, CAT_FC_GPKG, name),
+    FeatureClassOverview(layer, parent, CAT_FC_GPKG, name),
     StoreObject(layer)
 {
     if(m_zoomLevels.empty()) {
@@ -361,6 +345,8 @@ std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) c
 
         out.push_back(info);
     }
+
+    m_attTable->SetAttributeFilter(nullptr);
 
     return out;
 }
@@ -428,37 +414,13 @@ bool StoreFeatureClass::setProperty(const std::string &key, const std::string &v
                                     value.c_str(), domain.c_str()) == OGRERR_NONE;
 }
 
-std::string StoreFeatureClass::property(const std::string &key, const std::string &defaultValue,
-                                         const std::string &domain) const
+std::vector<ngsEditOperation> StoreFeatureClass::editOperations()
 {
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    const char *item = m_layer->GetMetadataItem(key.c_str(), domain.c_str());
-    return item != nullptr ? item : defaultValue;
-}
-
-Properties StoreFeatureClass::properties(const std::string &domain) const
-{
-    return Properties(m_layer->GetMetadata(domain.c_str()));
-}
-
-void StoreFeatureClass::deleteProperties(const std::string &domain)
-{
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    m_layer->SetMetadata(nullptr, domain.c_str());
-}
-
-std::vector<ngsEditOperation> StoreFeatureClass::editOperations() const
-{
-    if(nullptr == m_editHistoryTable) {
-        initEditHistoryTable();
-    }
-
-    if(nullptr == m_editHistoryTable) {
+    if(!initEditHistoryTable()) {
         return std::vector<ngsEditOperation>();
     }
 
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return fillEditOperations(m_editHistoryTable);
+    return fillEditOperations(m_editHistoryTable, dynamic_cast<Dataset*>(m_parent));
 }
 
 FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
@@ -477,7 +439,8 @@ FeaturePtr StoreFeatureClass::logEditFeature(FeaturePtr feature,
 //------------------------------------------------------------------------------
 // TrackPointsTable
 //------------------------------------------------------------------------------
-TrackPointsTable::TrackPointsTable(OGRLayer *layer, ObjectContainer * const parent) : FeatureClass(layer, parent, CAT_FC_GPKG, TRACKS_POINTS_TABLE)
+TrackPointsTable::TrackPointsTable(OGRLayer *layer, ObjectContainer * const parent) :
+    FeatureClass(layer, parent, CAT_FC_GPKG, TRACKS_POINTS_TABLE)
 {
 
 }
@@ -520,7 +483,8 @@ TracksTable::TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectCont
     m_pointsLayer(new TrackPointsTable(pointsLayer, m_parent))
 {
     Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
-    TablePtr result = dataset->executeSQL(std::string("SELECT MAX(track_fid) FROM ") + TRACKS_TABLE, "SQLite");
+    TablePtr result = dataset->executeSQL(
+                std::string("SELECT MAX(track_fid) FROM ") + TRACKS_TABLE, "SQLite");
     if(result) {
         FeaturePtr resultFeature = result->nextFeature();
         m_lastTrackId = resultFeature->GetFieldAsInteger(0);
@@ -540,7 +504,8 @@ TracksTable::~TracksTable()
     flashBuffer();
 }
 
-static long dateFieldToLong(const FeaturePtr &feature, int field, bool isString = true)
+static long dateFieldToLong(const FeaturePtr &feature, int field,
+                            bool isString = true)
 {
     int year = 0;
     int month = 0;
@@ -596,7 +561,8 @@ void TracksTable::sync(int maxPointCount)
             accIndex = index;
         }
 
-        if(timeIndex >= 0 && eleIndex >= 0 && satIndex >= 0 && fixIndex >= 0 && speedIndex >= 0 && accIndex >= 0) {
+        if(timeIndex >= 0 && eleIndex >= 0 && satIndex >= 0 && fixIndex >= 0 &&
+                speedIndex >= 0 && accIndex >= 0) {
             break;
         }
 
@@ -665,7 +631,8 @@ void TracksTable::sync(int maxPointCount)
     if(!updateWhere.empty()) {
         Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
         for(const auto &where : updateWhere) {
-            dataset->executeSQL(std::string("UPDATE ") + TRACKS_POINTS_TABLE + " SET synced = 1 WHERE " +
+            dataset->executeSQL(
+                        std::string("UPDATE ") + TRACKS_POINTS_TABLE + " SET synced = 1 WHERE " +
             where, "SQLite");
         }
 
@@ -796,14 +763,16 @@ bool TracksTable::flashBuffer()
     resetError();
 
     if(!dataset->startTransaction()) {
-        return errorMessage(_("flashBuffer failed at startTransaction. %s"), CPLGetLastErrorMsg());
+        return errorMessage(_("flashBuffer failed at startTransaction. %s"),
+                            CPLGetLastErrorMsg());
     }
 
     MutexHolder bufferHolder(m_bufferMutex);
     for(const auto &bufferedFeature : mPointBuffer) {
         if (!m_pointsLayer->insertFeature(bufferedFeature, false)) {
             dataset->rollbackTransaction();
-            return errorMessage(_("flashBuffer failed at insertFeature to points layer. %s"), CPLGetLastErrorMsg());
+            return errorMessage(_("flashBuffer failed at insertFeature to points layer. %s"),
+                                CPLGetLastErrorMsg());
         }
     }
 
@@ -826,7 +795,8 @@ bool TracksTable::flashBuffer()
 
         if (!createUpdateResult) {
             dataset->rollbackTransaction();
-            return errorMessage(_("flashBuffer failed at CreateFeature/SetFeature to tracks layer. %s"), CPLGetLastErrorMsg());
+            return errorMessage(_("flashBuffer failed at CreateFeature/SetFeature to tracks layer. %s"),
+                                CPLGetLastErrorMsg());
         }
     }
 
@@ -834,14 +804,16 @@ bool TracksTable::flashBuffer()
         mPointBuffer.clear();
         return true;
     }
-    return errorMessage(_("flashBuffer failed at commitTransaction. %s"), CPLGetLastErrorMsg());
+    return errorMessage(_("flashBuffer failed at commitTransaction. %s"),
+                        CPLGetLastErrorMsg());
 }
 
 static std::string longToISO(long timeStamp)
 {
 	std::time_t gmtTimeStamp = timeStamp;
     std::tm *gmtTime = std::gmtime(&gmtTimeStamp);
-    return CPLSPrintf("%d-%d-%dT%d:%d:%dZ", gmtTime->tm_year + 1900, gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
+    return CPLSPrintf("%d-%d-%dT%d:%d:%dZ", gmtTime->tm_year + 1900,
+                      gmtTime->tm_mon + 1, gmtTime->tm_mday, gmtTime->tm_hour,
                       gmtTime->tm_min, gmtTime->tm_sec);
 }
 

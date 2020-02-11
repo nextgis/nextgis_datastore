@@ -51,7 +51,7 @@ public:
     virtual ~SpatialDataset() = default;
     virtual SpatialReferencePtr spatialReference() const;
 protected:
-    SpatialReferencePtr m_spatialReference;
+    mutable SpatialReferencePtr m_spatialReference;
 };
 
 /**

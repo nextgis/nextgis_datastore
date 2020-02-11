@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
  * Project:  libngstore
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
@@ -22,12 +22,16 @@
 #define MAPINFODATASTORE_H
 
 #include "dataset.h"
+#include "storefeatureclass.h"
 
 namespace ngs {
 
-
+/**
+ * The MapInfoDataStore class
+ */
 class MapInfoDataStore : public Dataset, public SpatialDataset
 {
+    friend class MapInfoStoreFeatureClass;
 public:
     explicit MapInfoDataStore(ObjectContainer * const parent = nullptr,
               const std::string &name = "",
@@ -38,9 +42,12 @@ public:
     static bool create(const std::string &path);
     static std::string extension();
 
+    // Object interface
+public:
+    virtual bool destroy() override;
     // Dataset interface
 public:
-    virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
+    virtual bool open(unsigned int openFlags = DatasetBase::defaultOpenFlags,
                       const Options &options = Options()) override;
     virtual FeatureClass *createFeatureClass(const std::string &name,
                                              enum ngsCatalogObjectType objectType,
@@ -58,22 +65,117 @@ public:
 protected:
     virtual OGRLayer *createAttachmentsTable(const std::string &name) override;
     virtual OGRLayer *createEditHistoryTable(const std::string &name) override;
-
+    virtual std::string normalizeFieldName(const std::string &name,
+                                           const std::vector<std::string> &nameList,
+                                           int counter = 0) const override;
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                         const std::string& name,
                         const Options &options) override;
-
 protected:
-    virtual bool isNameValid(const std::string &name) const override;
-    virtual std::string normalizeFieldName(const std::string &name) const override;
     virtual void fillFeatureClasses() const override;
-    OGRLayer *createHashTable(GDALDataset *ds, const std::string &name);
 
 protected:
     bool upgrade(int oldVersion);
+    OGRLayer *getHashTable(const std::string &name);
+    OGRLayer *createHashTable(const std::string &name);
+    void clearHashTable(const std::string &name);
+    bool destroyHashTable(const std::string &name);
+};
+
+/**
+ * MapInfoStoreTable class
+ */
+class MapInfoStoreTable : public Table, public StoreObject
+{
+public:
+    MapInfoStoreTable(GDALDataset *DS, OGRLayer *layer,
+                      ObjectContainer * const parent = nullptr,
+                      const std::string &path = "",
+                      const std::string &encoding = "CP1251");
+    virtual ~MapInfoStoreTable() override;
+
+    //Object interface
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool destroy() override;
+
+    // Table interface
+protected:
+    virtual std::string storeName() const override;
+    virtual bool checkSetProperty(const std::string &key,
+                                  const std::string &value,
+                                  const std::string &domain) override;
+
+    // StoreObject
+public:
+    virtual bool sync(const Options &options) override;
+
+protected:
+    void close();
+
+private:
+    GDALDataset *m_TABDS;
+    std::string m_storeName;
+    std::string m_encoding;
+};
+
+/**
+ * MapInfoStoreFeatureClass class
+ */
+class MapInfoStoreFeatureClass : public FeatureClass, public StoreObject
+{
+public:
+    MapInfoStoreFeatureClass(GDALDataset *DS, OGRLayer *layer,
+                             ObjectContainer * const parent = nullptr,
+                             const std::string &path = "",
+                             const std::string &encoding = "CP1251");
+   virtual ~MapInfoStoreFeatureClass() override;
+
+    //Object interface
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool destroy() override;
+
+    // Table interface
+public:
+    virtual bool insertFeature(const FeaturePtr &feature, bool logEdits) override;
+    virtual bool updateFeature(const FeaturePtr &feature, bool logEdits) override;
+    virtual bool deleteFeature(GIntBig id, bool logEdits) override;
+    virtual bool deleteFeatures(bool logEdits) override;
+    virtual std::vector<ngsEditOperation> editOperations() override;
+    // Table interface
+protected:
+    virtual std::string storeName() const override;
+    virtual bool checkSetProperty(const std::string &key,
+                                  const std::string &value,
+                                  const std::string &domain) override;
+
+    // Table interface
+ public:
+    virtual bool onRowsCopied(const Progress &progress,
+                              const Options &options) override;
+
+   // StoreObject
+public:
+   virtual bool sync(const Options &options) override;
+
+protected:
+    void close();
+    int fillHash(const Progress &progress, const Options &options);
+    bool updateHashAndEditLog();
+
+private:
+   GDALDataset *m_TABDS;
+   std::string m_storeName;
+   std::string m_encoding;
+
 };
 
 } // namespace ngs

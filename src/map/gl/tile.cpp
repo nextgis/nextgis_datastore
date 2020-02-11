@@ -20,6 +20,7 @@
  ****************************************************************************/
 #include "tile.h"
 
+#include "ds/featureclassovr.h"
 #include "map/glm/gtc/matrix_transform.hpp"
 
 namespace ngs {

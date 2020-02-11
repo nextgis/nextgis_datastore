@@ -41,7 +41,7 @@
 
 namespace ngs {
 
-const static std::map<const char*, const char*> ruMap = { {"а", "a"}, {"б", "b"},
+const static std::map<std::string, std::string> ruMap = { {"а", "a"}, {"б", "b"},
     {"в", "v"}, {"г", "g"}, {"д", "d"}, {"е", "e"}, {"ё", "ye"}, {"ж", "zh"},
     {"з", "z"}, {"и", "i"}, {"й", "y"}, {"к", "k"}, {"л", "l"}, {"м", "m"},
     {"н", "n"}, {"о", "o"}, {"п", "p"}, {"р", "r"}, {"с", "s"}, {"т", "t"},
@@ -59,40 +59,41 @@ constexpr unsigned int BLOCK_SIZE = 16;
 constexpr unsigned int KEY_SIZE = 32;
 constexpr const char *defaultKey = "3719f534b06600b2791b9d7203877c5afbe26da8aa5b973bf7bb84828fbbba7e";
 
-bool invalidChar (char c)
+bool invalidChar(char c)
 {
-    return !isprint( static_cast<unsigned char>( c ) );
+    return !isprint( static_cast<unsigned char>(c) );
 }
 
 std::string stripUnicode(const std::string &str, const char replaceChar)
 {
-    std::string out = str;
-    std::replace_if(out.begin (), out.end (), invalidChar, replaceChar);
+    std::string out(str);
+    std::replace_if(out.begin(), out.end(), invalidChar, replaceChar);
 
     return out;
 }
 
 std::string normalize(const std::string &str, const std::string &lang)
 {
-    std::string out = str;
-    if(lang.empty())
+    std::string out;
+    if(lang.empty()) {
         return stripUnicode(str);
+    }
 
-    if(EQUALN(lang.c_str(), "ru", 2)) {
-        auto first = str.begin ();
-        char buf[2] = {'\0', '\0'};
-        while (first!=str.end ()) {
-            buf[0] = *first;
-            auto tr = ruMap.find(buf);
-            if(tr != ruMap.end ())
+    if(comparePart(lang, "ru", 2)) {
+        for(size_t i = 0; i < str.length(); ++i) {
+            auto checkStr = str.substr(i, 2);
+            auto tr = ruMap.find(checkStr);
+            if(tr != ruMap.end()) {
                 out += tr->second;
-            else
-                out += *first;
-            ++first;
+                ++i; // step over 2 characters
+            }
+            else {
+                out += str[i];
+            }
         }
     }
     else {
-        return stripUnicode (str);
+        return stripUnicode(str);
     }
     return out;
 }
@@ -338,6 +339,11 @@ std::string deviceId(bool regenerate)
         settings.save();
     }
     return deviceIdStr;
+}
+
+bool toBool(const std::string &val)
+{
+    return compare(val, "ON") || compare(val, "YES") || compare(val, "1");
 }
 
 }

@@ -449,6 +449,19 @@ char **ngsListAddNameValue(char **list, const char *name, const char *value)
 }
 
 /**
+ * @brief ngsListAddNameIntValue Add key=value pair into the list
+ * @param list The list pointer or NULL. If NULL provided the new list will be created
+ * @param name Key name to add
+ * @param value Value to add
+ * @return List with added key=value string. User must free returned
+ * value via ngsDestroyList.
+ */
+char **ngsListAddNameIntValue(char **list, const char *name, int value)
+{
+    return CSLAddNameValue(list, name, CPLSPrintf("%d", value));
+}
+
+/**
  * @brief ngsDestroyList Destroy list created using ngsListAddNameValue
  * @param list The list to destroy.
  */
@@ -1347,7 +1360,7 @@ char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType 
     // If dataset - open it.
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(container);
     if(datasetBase && !datasetBase->isOpened()) {
-        datasetBase->open();
+        datasetBase->open(DatasetBase::defaultOpenFlags);
     }
 
     ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(container);
@@ -1389,7 +1402,7 @@ CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, c
     // If dataset - open it.
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(container);
     if(datasetBase && !datasetBase->isOpened()) {
-        datasetBase->open();
+        datasetBase->open(DatasetBase::defaultOpenFlags);
     }
 
     ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(container);
@@ -1465,7 +1478,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
     // If dataset - let's open it.
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(dstCatalogObjectContainer);
     if(datasetBase && !datasetBase->isOpened()) {
-        datasetBase->open();
+        datasetBase->open(DatasetBase::defaultOpenFlags);
     }
 
     if(dstCatalogObjectContainer->canPaste(srcCatalogObjectPointer->type())) {
@@ -1654,10 +1667,10 @@ char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
         return nullptr;
     }
 
-    Properties propeties = static_cast<Object*>(object)->properties(
+    auto propetiesList = static_cast<Object*>(object)->properties(
                 fromCString(domain));
 
-    return propeties.asCPLStringList().StealList();
+    return propetiesList.asCPLStringList().StealList();
 }
 
 /**
@@ -1669,18 +1682,24 @@ char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
  * @return The list of key=value items or NULL. The last item of list always NULL.
  * User must free returned value via ngsDestroyList.
  */
-const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name, const char *defaultValue,
-        const char *domain)
+const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name,
+                                     const char *defaultValue,
+                                     const char *domain)
 {
     if(nullptr == object) {
         outMessage(COD_INVALID, _("The object handle is null"));
         return defaultValue;
     }
 
-    std::string property = static_cast<Object*>(object)->property(fromCString(name),
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        outMessage(COD_INVALID, _("The object handle is null"));
+        return defaultValue;
+    }
+    auto propertyVal = catalogObject->property(fromCString(name),
             fromCString(defaultValue), fromCString(domain));
 
-    return storeCString(property);
+    return storeCString(propertyVal);
 }
 
 /**
@@ -1961,7 +1980,8 @@ ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object)
 int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
                                    ngsProgressFunc callback, void *callbackData)
 {
-    FeatureClass *featureClass = getFeatureClassFromHandle(object);
+    FeatureClassOverview *featureClass = dynamic_cast<FeatureClassOverview*>(
+                getFeatureClassFromHandle(object));
     if(!featureClass) {
         return COD_INVALID;
     }
@@ -1997,7 +2017,7 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
     }
 
     if(!dataset->isOpened()) {
-        dataset->open();
+        dataset->open(DatasetBase::defaultOpenFlags);
     }
 
     if(enable == 1) {
@@ -4430,10 +4450,8 @@ CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store)
         return nullptr;
     }
 
-    if(!dataStore->isOpened()) {
-        if(!dataStore->open()) {
-            return nullptr;
-        }
+    if(!dataStore->open(DatasetBase::defaultOpenFlags)) {
+        return nullptr;
     }
 
     return dataStore->getTracksTable().get();

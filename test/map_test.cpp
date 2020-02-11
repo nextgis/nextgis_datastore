@@ -34,17 +34,10 @@
 #include "ngstore/util/constants.h"
 
 // TODO: Update/Fix unit test. Add GL offscreen rendering GL test
-static int counter = 0;
 
 constexpr const char* DEFAULT_MAP_NAME = "test map";
 constexpr unsigned short DEFAULT_EPSG = 3857;
 constexpr ngsRGBA DEFAULT_MAP_BK = {210, 245, 255, 255};
-
-int ngsTestProgressFunc(double /*complete*/, const char* /*message*/,
-                        void* /*progressArguments*/) {
-    counter++;
-    return TRUE;
-}
 
 TEST(MapTests, TestCreate) {
     char** options = nullptr;
@@ -134,6 +127,89 @@ TEST(MapTests, TestOpenMap) {
     EXPECT_EQ(iconData.buffer[3], 0);
     ngsUnInit();
 }
+
+/* FIXME: return mapsave test back for mobile platform
+TEST(MapTests, MapSave) {
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+
+    CPLString testPath = ngsGetCurrentDirectory();
+    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
+    CPLString shapePath = catalogPath + "/data/bld.shp";
+    CPLString mapPath = catalogPath + "/tmp/test_map.ngmd";
+
+    char mapId = ngsMapCreate(DEFAULT_MAP_NAME, "", ngs::DEFAULT_EPSG,
+                              ngs::DEFAULT_BOUNDS.minX(),
+                              ngs::DEFAULT_BOUNDS.minY(),
+                              ngs::DEFAULT_BOUNDS.maxX(),
+                              ngs::DEFAULT_BOUNDS.maxY());
+    ASSERT_NE(mapId, -1);
+    EXPECT_EQ(ngsMapLayerCount(mapId), 0);
+
+    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 0", shapePath), 0);
+
+    EXPECT_EQ(ngsMapCreateLayer(mapId, "Layer 1", shapePath), 1);
+
+    EXPECT_EQ(ngsMapLayerCount(mapId), 2);
+
+    EXPECT_EQ(ngsMapSetBackgroundColor(mapId, DEFAULT_MAP_BK), COD_SUCCESS);
+
+    CPLString texPath = testPath + "/data/tex.png";
+    EXPECT_EQ(ngsMapIconSetAdd(mapId, "simple", texPath, true), COD_SUCCESS);
+
+    EXPECT_EQ(ngsMapSave(mapId, mapPath), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
+TEST(MapTests, MapOpen) {
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
+    options = ngsListAddNameValue(options, "SETTINGS_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
+    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    ngsListFree(options);
+
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+    std::string mapPath = catalogPath + "/tmp/test_map.ngmd";
+
+    char mapId = ngsMapOpen(mapPath.c_str());
+    ASSERT_NE(mapId, -1);
+
+    EXPECT_EQ(ngsMapLayerCount(mapId), 2);
+
+    ngsRGBA bk = ngsMapGetBackgroundColor(mapId);
+
+    EXPECT_EQ(bk.R, DEFAULT_MAP_BK.R);
+    EXPECT_EQ(bk.A, DEFAULT_MAP_BK.A);
+
+    LayerH layer0 = ngsMapLayerGet(mapId, 0);
+    LayerH layer1 = ngsMapLayerGet(mapId, 1);
+
+    std::string layer1Name = ngsLayerGetName(layer1);
+
+    EXPECT_EQ(ngsMapLayerReorder(mapId, layer0, layer1), COD_SUCCESS);
+
+    LayerH layerTest = ngsMapLayerGet(mapId, 0);
+    std::string layerTestName = ngsLayerGetName(layerTest);
+    EXPECT_EQ(layer1Name.compare(layerTestName), 0);
+
+    EXPECT_EQ(ngsMapLayerDelete(mapId, layerTest), COD_SUCCESS);
+
+    EXPECT_EQ(ngsMapLayerCount(mapId), 1);
+
+    EXPECT_EQ(ngsMapIconSetExists(mapId, "simple"), 1);
+
+    ngsUnInit();
+}
+*/
 
 /*
 TEST(MapTests, TestInitMap) {
@@ -418,7 +494,7 @@ TEST(MapTests, TestDeleteMap) {
     EXPECT_EQ(storage->destroy(), COD_SUCCESS);
     ngsUninit();
 }
-
+*/
 /*
 TEST(MapTests, TestOverlayStruct) {
     ngs::OverlayPtr overlay;

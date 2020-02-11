@@ -36,9 +36,9 @@ static const std::vector<std::string> shpExtraExts = {
     Dataset::additionsDatasetExtension(), Dataset::attachmentsFolderExtension() };
 static const FORMAT_EXT shpExt = {"shp", shpMainExts, shpExtraExts};
 
-static const std::vector<std::string> tabMainExts = {"dat", "map", "id", "ind" };
+static const std::vector<std::string> tabMainExts = {"dat", "map", "id" };
 static const std::vector<std::string> tabExtraExts = {
-    "cpg", "qix", "osf", Dataset::additionsDatasetExtension(),
+    "cpg", "ind", "qix", "osf", Dataset::additionsDatasetExtension(),
     Dataset::attachmentsFolderExtension() };
 static const FORMAT_EXT tabExt = {"tab", tabMainExts, tabExtraExts};
 

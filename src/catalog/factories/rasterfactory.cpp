@@ -134,7 +134,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
     switch(type) {
     case CAT_RASTER_TMS:
     {
-        std::string url = options.asString(KEY_URL);
+        std::string url = options.asString(URL_KEY);
         if(url.empty()) {
             return errorMessage(_("Missing required option 'url'"));
         }
@@ -168,7 +168,7 @@ bool RasterFactory::createRemoteConnection(const enum ngsCatalogObjectType type,
         CPLJSONDocument connectionFile;
         CPLJSONObject root = connectionFile.GetRoot();
         root.Add(KEY_TYPE, type);
-        root.Add(KEY_URL, url);
+        root.Add(URL_KEY, url);
         root.Add(KEY_Z_MIN, z_min);
         root.Add(KEY_Z_MAX, z_max);
         root.Add(KEY_Y_ORIGIN_TOP, y_origin_top);

@@ -21,6 +21,7 @@
 
 #include "view.h"
 
+#include "ds/featureclassovr.h"
 #include "layer.h"
 #include "style.h"
 #include "map/overlay.h"

@@ -83,7 +83,7 @@ bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType t
     switch(type) {
     case CAT_CONTAINER_NGW:
     {
-        std::string url = options.asString(KEY_URL);
+        std::string url = options.asString(URL_KEY);
         if(url.empty()) {
             return errorMessage(_("Missing required option 'url'"));
         }
@@ -105,7 +105,7 @@ bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType t
         CPLJSONDocument connectionFile;
         CPLJSONObject root = connectionFile.GetRoot();
         root.Add(KEY_TYPE, type);
-        root.Add(KEY_URL, url);
+        root.Add(URL_KEY, url);
         root.Add(KEY_LOGIN, login);
         root.Add(KEY_IS_GUEST, isGuest);
         if(!password.empty()) {
@@ -126,7 +126,7 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
     switch(type) {
     case CAT_CONTAINER_NGW:
     {
-        std::string url = options.asString(KEY_URL);
+        std::string url = options.asString(URL_KEY);
         if(url.empty()) {
             return errorMessage(_("Missing required option 'url'"));
         }

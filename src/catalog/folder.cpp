@@ -25,6 +25,7 @@
 #include "catalog.h"
 #include "file.h"
 #include "ds/datastore.h"
+#include "ds/mapinfodatastore.h"
 #include "ds/memstore.h"
 #include "ds/raster.h"
 #include "ds/simpledataset.h"
@@ -34,6 +35,7 @@
 #include "util/notify.h"
 #include "util/error.h"
 #include "archive.h"
+
 
 #ifdef _WIN32
 #include <windows.h>
@@ -445,7 +447,7 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
     }
 
     // Check function available except GPX.
-    if(dstType != CAT_FC_GPX && srcFClass->featureCount() > 1000) {
+    if(dstType != CAT_FC_GPX && srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
         const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
         if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
             return outMessage(COD_FUNCTION_NOT_AVAILABLE,
@@ -572,6 +574,7 @@ bool Folder::canCreate(const enum ngsCatalogObjectType type) const
     case CAT_RASTER_TMS:
     case CAT_CONTAINER_MEM:
     case CAT_CONTAINER_ARCHIVE_ZIP:
+    case CAT_CONTAINER_MAPINFO_STORE:
         return true;
     default:
         return false;
@@ -587,8 +590,9 @@ ObjectPtr Folder::create(const enum ngsCatalogObjectType type,
     }
     std::string newName = name;
     // Add extension if not present
-    if(!compare(File::getExtension(name), Filter::extension(type))) {
-        newName = name + "." + Filter::extension(type);
+    auto ext = Filter::extension(type);
+    if(!ext.empty() && !compare(File::getExtension(name), ext)) {
+        newName = name + "." + ext;
     }
 
     if(options.asBool("CREATE_UNIQUE", false)) {
@@ -651,6 +655,12 @@ ObjectPtr Folder::create(const enum ngsCatalogObjectType type,
                 return ObjectPtr();
             }
             object = ObjectPtr(new Archive(this, CAT_CONTAINER_ARCHIVE_ZIP, newName, newPath));
+            m_children.push_back(object);
+        }
+        break;
+    case CAT_CONTAINER_MAPINFO_STORE:
+        if(MapInfoDataStore::create(newPath)) {
+            object = ObjectPtr(new MapInfoDataStore(this, newName, newPath));
             m_children.push_back(object);
         }
         break;

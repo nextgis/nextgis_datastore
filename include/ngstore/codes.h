@@ -145,8 +145,6 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_MEM,              /**< For memory layers */
     CAT_CONTAINER_GISCONNECTIONS,   /**< GIS Servers/services connections */
     CAT_CONTAINER_DBCONNECTIONS,    /**< Database servers connections */
-    CAT_CONTAINER_NGWGROUP,         /**< NextGIS Web resource group */
-    CAT_CONTAINER_NGWTRACKERGROUP,  /**< NextGIS Web trackers group */
     CAT_CONTAINER_DIR_LINK,         /**< Local connection to folder or symlink */
     CAT_CONTAINER_MAPINFO_STORE,    /**< NextGIS storage based on MapInfo tabs */
     CAT_CONTAINER_ALL = 499,
@@ -207,7 +205,28 @@ enum ngsCatalogObjectType {
     CAT_QUERY_RESULT,
     CAT_QUERY_RESULT_FC,
     CAT_RASTER_FC_ANY,
-    CAT_NGW_TRACKER             /**< NextGIS Web tracker */
+    CAT_NGW_ANY = 3000,
+    CAT_NGW_GROUP,                  /**< NextGIS Web resource group */
+    CAT_NGW_TRACKERGROUP,           /**< NextGIS Web trackers group */
+    CAT_NGW_POSTGIS_CONNECTION,     /**< NextGIS Web PostGIS connection */
+    CAT_NGW_WMS_CONNECTION,         /**< NextGIS Web WMS connection */
+    CAT_NGW_WMS_SERVICE,            /**< NextGIS Web WMS service */
+    CAT_NGW_WFS_SERVICE,            /**< NextGIS Web WFS service */
+    CAT_NGW_VECTOR_LAYER,           /**< NextGIS Web vector layer */
+    CAT_NGW_POSTGIS_LAYER,          /**< NextGIS Web PostGIS layer */
+    CAT_NGW_RASTER_LAYER,           /**< NextGIS Web raster layer */
+    CAT_NGW_BASEMAP,                /**< NextGIS Web base map */
+    CAT_NGW_QGISRASTER_STYLE,       /**< NextGIS Web QGIS raster style */
+    CAT_NGW_QGISVECTOR_STYLE,       /**< NextGIS Web QGOS vector style */
+    CAT_NGW_MAPSERVER_STYLE,        /**< NextGIS Web MapServer style */
+    CAT_NGW_RASTER_STYLE,           /**< NextGIS Web raster style */
+    CAT_NGW_WMS_LAYER,              /**< NextGIS Web WMS Layer */
+    CAT_NGW_TRACKER,                /**< NextGIS Web tracker */
+    CAT_NGW_WEBMAP,                 /**< NextGIS Web map */
+    CAT_NGW_FORMBUILDER_FORM,       /**< NextGIS Web FormBuilder form */
+    CAT_NGW_LOOKUP_TABLE,           /**< NextGIS Web lookup table */
+    CAT_NGW_FILE_BUCKET,            /**< NextGIS Web File bucket */
+    CAT_NGW_ALL = 3499
 };
 
 /**

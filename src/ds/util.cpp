@@ -31,8 +31,6 @@ CREATE_FEATURE_DEFN_RESULT createFeatureDefinition(const std::string& name,
                                         const Options &options)
 {
     CREATE_FEATURE_DEFN_RESULT out;
-    out.defn = nullptr;
-
     OGRFeatureDefn *fieldDefinition = OGRFeatureDefn::CreateFeatureDefn(name.c_str());
     int fieldCount = options.asInt("FIELD_COUNT", 0);
 
@@ -61,7 +59,7 @@ CREATE_FEATURE_DEFN_RESULT createFeatureDefinition(const std::string& name,
         }
         fieldDefinition->AddFieldDefn(&field);
     }
-    out.defn = fieldDefinition;
+    out.defn = std::unique_ptr<OGRFeatureDefn>(fieldDefinition);
     return out;
 }
 

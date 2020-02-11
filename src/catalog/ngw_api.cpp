@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -73,14 +73,48 @@ std::string getTrackerUrl()
 std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type)
 {
     switch(type) {
-    case CAT_CONTAINER_NGWGROUP:
+    case CAT_NGW_GROUP:
         return "resource_group";
-    case CAT_CONTAINER_NGWTRACKERGROUP:
+    case CAT_NGW_TRACKERGROUP:
         return "trackers_group";
     case CAT_NGW_TRACKER:
         return "tracker";
+    case CAT_NGW_POSTGIS_CONNECTION:
+        return "postgis_connection";
+    case CAT_NGW_VECTOR_LAYER:
+        return "vector_layer";
+    case CAT_NGW_POSTGIS_LAYER:
+        return "postgis_layer";
+    case CAT_NGW_BASEMAP:
+        return "basemap_layer";
+    case CAT_NGW_RASTER_LAYER:
+        return "raster_layer";
+    case CAT_NGW_MAPSERVER_STYLE:
+        return "mapserver_style";
+    case CAT_NGW_QGISRASTER_STYLE:
+        return "qgis_raster_style";
+    case CAT_NGW_QGISVECTOR_STYLE:
+        return "qgis_vector_style";
+    case CAT_NGW_RASTER_STYLE:
+        return "raster_style";
+    case CAT_NGW_WMS_CONNECTION:
+        return "wmsclient_connection";
+    case CAT_NGW_WMS_LAYER:
+        return "wmsclient_layer";
+    case CAT_NGW_WMS_SERVICE:
+        return "wmsserver_service";
+    case CAT_NGW_WFS_SERVICE:
+        return "wfsserver_service";
+    case CAT_NGW_LOOKUP_TABLE:
+        return "lookup_table";
+    case CAT_NGW_WEBMAP:
+        return "webmap";
+    case CAT_NGW_FORMBUILDER_FORM:
+        return "formbuilder_form";
+    case CAT_NGW_FILE_BUCKET:
+        return "file_bucket";
     default:
-        return "";
+        return "resource";
     }
 }
 
@@ -91,19 +125,16 @@ bool checkVersion(const std::string &version, int major, int minor, int patch)
     int currentPatch(0);
 
     CPLStringList versionPartsList(CSLTokenizeString2(version.c_str(), ".", 0));
-    if(versionPartsList.size() > 2)
-    {
+    if(versionPartsList.size() > 2) {
         currentMajor = atoi(versionPartsList[0]);
         currentMinor = atoi(versionPartsList[1]);
         currentPatch = atoi(versionPartsList[2]);
     }
-    else if(versionPartsList.size() > 1)
-    {
+    else if(versionPartsList.size() > 1) {
         currentMajor = atoi(versionPartsList[0]);
         currentMinor = atoi(versionPartsList[1]);
     }
-    else if(versionPartsList.size() > 0)
-    {
+    else if(versionPartsList.size() > 0) {
         currentMajor = atoi(versionPartsList[0]);
     }
 
@@ -159,7 +190,7 @@ bool sendTrackPoints(const std::string &payload)
 std::string createResource(const std::string &url, const std::string &payload,
                            char **httpOptions)
 {
-    CPLErrorReset();
+    resetError();
     std::string payloadInt = "POSTFIELDS=" + payload;
 
     httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=POST");
@@ -189,48 +220,43 @@ std::string createResource(const std::string &url, const std::string &payload,
     return resourceId;
 }
 
-//static bool updateResource(const std::string &url, const std::string &resourceId,
-//    const std::string &payload, char **papszHTTPOptions)
-//{
-//    CPLErrorReset();
-//    std::string payloadInt = "POSTFIELDS=" + payload;
+bool updateResource(const std::string &url, const std::string &resourceId,
+    const std::string &payload, char **httpOptions)
+{
+    CPLErrorReset();
+    std::string payloadInt = "POSTFIELDS=" + payload;
 
-//    papszHTTPOptions = CSLAddString( papszHTTPOptions, "CUSTOMREQUEST=PUT" );
-//    papszHTTPOptions = CSLAddString( papszHTTPOptions, payloadInt.c_str() );
-//    papszHTTPOptions = CSLAddString( papszHTTPOptions,
-//        "HEADERS=Content-Type: application/json\r\nAccept: */*" );
+    httpOptions = CSLAddString( httpOptions, "CUSTOMREQUEST=PUT" );
+    httpOptions = CSLAddString( httpOptions, payloadInt.c_str() );
+    httpOptions = CSLAddString( httpOptions,
+        "HEADERS=Content-Type: application/json\r\nAccept: */*" );
 
-//    CPLDebug("NGW", "UpdateResource request payload: %s", payload.c_str());
+    CPLHTTPResult *httpResult = CPLHTTPFetch(
+                getResourceUrl(url, resourceId).c_str(), httpOptions);
+    CSLDestroy(httpOptions);
+    bool result = false;
+    if(httpResult) {
+        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
 
-//    CPLHTTPResult *psResult = CPLHTTPFetch( getResourceUrl(url, resourceId).c_str(),
-//        papszHTTPOptions );
-//    CSLDestroy( papszHTTPOptions );
-//    bool bResult = false;
-//    if( psResult )
-//    {
-//        bResult = psResult->nStatus == 0 && psResult->pszErrBuf == nullptr;
-
-//        // Get error message.
-//        if( !bResult )
-//        {
-//            reportError(psResult->pabyData, psResult->nDataLen);
-//        }
-//        CPLHTTPDestroyResult(psResult);
-//    }
-//    else
-//    {
-//        CPLError(CE_Failure, CPLE_AppDefined, "Update resource %s failed",
-//            resourceId.c_str());
-//    }
-//    return bResult;
-//}
+        // Get error message.
+        if(!result) {
+            reportError(httpResult->pabyData, httpResult->nDataLen);
+        }
+        CPLHTTPDestroyResult(httpResult);
+    }
+    else {
+        errorMessage(_("Update resource %s failed"), resourceId.c_str());
+    }
+    return result;
+}
 
 bool deleteResource(const std::string &url, const std::string &resourceId,
     char **httpOptions)
 {
     CPLErrorReset();
     httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=DELETE");
-    CPLHTTPResult *httpResult = CPLHTTPFetch(getResourceUrl(url, resourceId).c_str(), httpOptions);
+    CPLHTTPResult *httpResult = CPLHTTPFetch(
+                getResourceUrl(url, resourceId).c_str(), httpOptions);
     bool result = false;
     if(httpResult) {
         result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
@@ -244,16 +270,30 @@ bool deleteResource(const std::string &url, const std::string &resourceId,
     return result;
 }
 
-//static bool renameResource(const std::string &url, const std::string &resourceId,
-//    const std::string &newName, char **papszHTTPOptions)
-//{
-//    CPLJSONObject payload;
-//    CPLJSONObject resource("resource", payload);
-//    resource.Add("display_name", newName);
-//    std::string payloadStr = payload.Format(CPLJSONObject::Plain);
+bool renameResource(const std::string &url, const std::string &resourceId,
+    const std::string &newName, char **httpOptions)
+{
+    CPLErrorReset();
+    CPLJSONObject payload;
+    CPLJSONObject resource("resource", payload);
+    resource.Add("display_name", newName);
+    std::string payloadStr = payload.Format(CPLJSONObject::Plain);
 
-//    return updateResource( url, resourceId, payloadStr, papszHTTPOptions);
-//}
+    return updateResource( url, resourceId, payloadStr, httpOptions);
+}
+
+std::string resmetaSuffix(CPLJSONObject::Type eType)
+{
+    switch( eType ) {
+        case CPLJSONObject::Integer:
+        case CPLJSONObject::Long:
+            return ".d";
+        case CPLJSONObject::Double:
+            return ".f";
+        default:
+            return "";
+    }
+}
 
 //// C++11 allow defaults
 //struct Permissions {

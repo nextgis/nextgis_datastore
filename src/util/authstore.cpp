@@ -36,7 +36,7 @@ class HTTPAuthBasic : public IHTTPAuth {
 
 public:
     explicit HTTPAuthBasic(const std::string &login, const std::string &password);
-    virtual ~HTTPAuthBasic() = default;
+    virtual ~HTTPAuthBasic() override = default;
     virtual std::string header() override { return "Authorization: Basic " + m_basicAuth; }
     virtual Properties properties() const override;
 
@@ -71,7 +71,7 @@ public:
                             const std::string &tokenServer, const std::string &accessToken,
                             const std::string &updateToken, int expiresIn,
                             time_t lastCheck);
-    virtual ~HTTPAuthBearer() = default;
+    virtual ~HTTPAuthBearer() override = default;
     virtual std::string header() override;
     virtual Properties properties() const override;
 
@@ -216,13 +216,73 @@ bool AuthStore::authAdd(const std::string &url, const Options &options)
         IHTTPAuth *auth = new HTTPAuthBearer(url, clientId, tokenServer,
                                              accessToken, updateToken,
                                              expiresIn, lastCheck);
-        instance().add(url, auth);
+        instance().add(url, IHTTPAuthPtr(auth));
         return true;
     }
     else if(options["type"] == "basic")
     {
         IHTTPAuth *auth = new HTTPAuthBasic(options["login"], options["password"]);
-        instance().add(url, auth);
+        instance().add(url, IHTTPAuthPtr(auth));
+        return true;
+    }
+    return false;
+}
+
+
+bool AuthStore::authAdd(const std::vector<std::string> &urls, const Options &options)
+{
+    if(urls.empty()) {
+        return false;
+    }
+    if(options["type"] == "bearer") {
+        int expiresIn = std::stoi(options["expiresIn"]);
+        std::string clientId = options["clientId"];
+        std::string tokenServer = options["tokenServer"];
+        std::string accessToken = options["accessToken"];
+        std::string updateToken = options["updateToken"];
+        time_t lastCheck = 0;
+        if(expiresIn == -1) {
+            std::string postPayload =
+                    CPLSPrintf("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s",
+                               options["code"].c_str(),
+                               options["redirectUri"].c_str(), clientId.c_str());
+
+            CPLStringList requestOptions;
+            requestOptions.AddNameValue("CUSTOMREQUEST", "POST");
+            requestOptions.AddNameValue("POSTFIELDS", postPayload.c_str());
+
+            time_t now = time(nullptr);
+            CPLJSONDocument fetchToken;
+            bool result = fetchToken.LoadUrl(tokenServer, requestOptions);
+            if(!result) {
+                CPLDebug("ngstore", "Failed to get tokens");
+                return false;
+            }
+
+            CPLJSONObject root = fetchToken.GetRoot();
+            accessToken = root.GetString("access_token", accessToken);
+            updateToken = root.GetString("refresh_token", updateToken);
+            expiresIn = root.GetInteger("expires_in", expiresIn);
+            lastCheck = now;
+        }
+
+        IHTTPAuth *auth = new HTTPAuthBearer(urls[0], clientId, tokenServer,
+                                             accessToken, updateToken,
+                                             expiresIn, lastCheck);
+        auto authPtr = IHTTPAuthPtr(auth);
+        for(const auto &url : urls) {
+            instance().add(url, authPtr);
+        }
+        return true;
+    }
+    else if(options["type"] == "basic")
+    {
+        IHTTPAuth *auth = new HTTPAuthBasic(options["login"], options["password"]);
+        auto authPtr = IHTTPAuthPtr(auth);
+        for(const auto &url : urls) {
+            instance().add(url, authPtr);
+        }
+        return true;
     }
     return false;
 }
@@ -242,7 +302,7 @@ std::string AuthStore::authHeader(const std::string &url)
     return instance().header(url);
 }
 
-void AuthStore::add(const std::string &url, IHTTPAuth *auth)
+void AuthStore::add(const std::string &url, IHTTPAuthPtr auth)
 {
     m_auths[url] = auth;
 }

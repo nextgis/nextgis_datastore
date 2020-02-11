@@ -118,6 +118,7 @@ NGS_EXTERNC int ngsBackup(const char *name, CatalogObjectH dstObjectContainer,
 NGS_EXTERNC const char *ngsGetCurrentDirectory();
 NGS_EXTERNC char **ngsListAddNameValue(char **list, const char *name,
                                    const char *value);
+NGS_EXTERNC char **ngsListAddNameIntValue(char **list, const char *name, int value);
 NGS_EXTERNC void ngsListFree(char **list);
 NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension);

@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -107,12 +107,12 @@ void SimpleDataset::fillFeatureClasses() const
             SimpleDataset *parent = const_cast<SimpleDataset*>(this);
             if(geometryType == wkbNone) {
                 m_children.push_back(
-                        ObjectPtr(new Table(layer, parent, m_subType, layerName)));
+                    ObjectPtr(new Table(layer, parent, m_subType, layerName)));
             }
             else {
                 m_children.push_back(
-                            ObjectPtr(new FeatureClass(layer, parent, m_subType,
-                                                       layerName)));
+                    ObjectPtr(new FeatureClass(layer, parent, m_subType,
+                                               layerName)));
             }
             break;
         }

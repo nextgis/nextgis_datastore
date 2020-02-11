@@ -79,12 +79,16 @@ bool MemoryStore::isNameValid(const std::string &name) const
     return Dataset::isNameValid(name);
 }
 
-std::string MemoryStore::normalizeFieldName(const std::string &name) const
+std::string MemoryStore::normalizeFieldName(const std::string &name,
+                                            const std::vector<std::string> &nameList,
+                                            int counter) const
 {
-    if(compare("fid", name) || compare("geom", name)) {
-        return name + "_";
+    if(counter == 0) {
+        if(compare("fid", name) || compare("geom", name)) {
+            return normalizeFieldName(name + "_", nameList, counter);
+        }
     }
-    return Dataset::normalizeFieldName(name);
+    return Dataset::normalizeFieldName(name, nameList, counter);
 }
 
 void MemoryStore::fillFeatureClasses() const
@@ -261,6 +265,7 @@ ObjectPtr MemoryStore::create(const enum ngsCatalogObjectType type,
     CPLJSONArray fields;
 
     // Get field definitions
+
     int fieldCount = options.asInt("FIELD_COUNT", 0);
 
     for(int i = 0; i < fieldCount; ++i) {

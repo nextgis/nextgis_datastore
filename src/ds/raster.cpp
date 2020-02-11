@@ -92,7 +92,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
             return false;
         }
         CPLJSONObject root = connectionFile.GetRoot();
-        CPLString url = root.GetString(KEY_URL, "");
+        CPLString url = root.GetString(URL_KEY, "");
         url = url.replaceAll("{", "${");
         url = url.replaceAll("&", "&amp;");
         int epsg = root.GetInteger(KEY_EPSG, 3857);
@@ -292,7 +292,7 @@ bool Raster::canDestroy() const
 
 Properties Raster::properties(const std::string &domain) const {
     if(nullptr == m_DS) {
-        return Properties();
+        return Object::properties(domain);
     }
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     return Properties(m_DS->GetMetadata(domain.c_str()));
@@ -304,7 +304,7 @@ std::string Raster::property(const std::string &key,
 {
     const char *ret = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
     if(nullptr == ret) {
-        return defaultValue;
+        return Object::property(key, defaultValue, domain);
     }
     return ret;
 }

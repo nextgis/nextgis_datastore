@@ -37,6 +37,8 @@ public:
     virtual Properties properties() const = 0;
 };
 
+using IHTTPAuthPtr = std::shared_ptr<IHTTPAuth>;
+
 /**
  * @brief The AuthStore class. Storage for auth data.
  */
@@ -44,12 +46,13 @@ class AuthStore
 {
 public:
     static bool authAdd(const std::string &url, const Options &options);
+    static bool authAdd(const std::vector<std::string> &urls, const Options &options);
     static void authRemove(const std::string &url);
     static Properties authProperties(const std::string &url);
     static std::string authHeader(const std::string &url);
 
 public:
-    void add(const std::string &url, IHTTPAuth *auth);
+    void add(const std::string &url, IHTTPAuthPtr auth);
     void remove(const std::string &url);
     Properties properties(const std::string &url);
     std::string header(const std::string &url) const;
@@ -64,7 +67,7 @@ private:
     static AuthStore &instance();
 
 private:
-    std::map<std::string, IHTTPAuth*> m_auths;
+    std::map<std::string, IHTTPAuthPtr> m_auths;
 };
 
 } // namespace ngs

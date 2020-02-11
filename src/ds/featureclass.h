@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -32,7 +32,7 @@
 
 namespace ngs {
 
-constexpr double TILE_RESIZE = 1.1;
+constexpr const char* OGR_STYLE_FIELD = "OGR_STYLE";
 
 class FeatureClass;
 using FeatureClassPtr = std::shared_ptr<FeatureClass>;
@@ -54,10 +54,8 @@ public:
                           ObjectContainer * const parent = nullptr,
                           const enum ngsCatalogObjectType type = CAT_FC_ANY,
                           const std::string &name = "");
-    virtual ~FeatureClass() = default;
-
-    OGRwkbGeometryType geometryType() const;
-    std::vector<OGRwkbGeometryType> geometryTypes() const;
+    virtual OGRwkbGeometryType geometryType() const;
+    virtual std::vector<OGRwkbGeometryType> geometryTypes() const;
     std::string geometryColumn() const;
     std::vector<std::string> geometryColumns() const;
     bool setIgnoredFields(const std::vector<std::string> &fields =
@@ -65,77 +63,34 @@ public:
     void setSpatialFilter(const GeometryPtr &geom = GeometryPtr());
     void setSpatialFilter(double minX, double minY, double maxX, double maxY);
 
-    Envelope extent() const;
+    virtual Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
                              const FieldMapPtr fieldMap,
                              OGRwkbGeometryType filterGeomType,
                              const Progress &progress = Progress(),
                              const Options &options = Options());
-    bool hasOverviews() const;
-    bool createOverviews(const Progress &progress = Progress(),
-                         const Options &options = Options());
-    VectorTile getTile(const Tile &tile, const Envelope &tileExtent = Envelope());
-    std::set<unsigned char> zoomLevels() const { return m_zoomLevels; }
-    void addOverviewItem(const Tile &tile, const VectorTileItemArray &items);
 
     // static
     static std::string geometryTypeName(OGRwkbGeometryType type,
                 enum GeometryReportType reportType = GeometryReportType::SIMPLE);
     static OGRwkbGeometryType geometryTypeFromName(const std::string &name);
-    static OGRFieldType fieldTypeFromName(const std::string &name);
-    static double pixelSize(int zoom, bool precize = false);
-    static Envelope extraExtentForZoom(unsigned char zoom, const Envelope &env);
-
-    // Object interface
-public:
-    virtual bool destroy() override;
 
     // Table interface
-public:
-    virtual bool insertFeature(const FeaturePtr &feature, bool logEdits = true) override;
-    virtual bool updateFeature(const FeaturePtr &feature, bool logEdits = true) override;
-    virtual bool deleteFeature(GIntBig id, bool logEdits = true) override;
-    virtual bool deleteFeatures(bool logEdits = true) override;
+protected:
+    virtual void onFeatureInserted(FeaturePtr feature) override;
+    virtual void onFeatureUpdated(FeaturePtr oldFeature,
+                                  FeaturePtr newFeature) override;
 
 protected:
-    VectorTileItemArray tileGeometry(GIntBig fid, GEOSGeometryPtr geom,
-                                     const Envelope &env) const;
-    void fillZoomLevels(const std::string &zoomLevels = "");
     void emptyFields(bool enable = true) const;
-/*
-    void tileLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                  float step, VectorTileItemArray& vitemArray)  const;
-    void tilePolygon(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                     float step, VectorTileItemArray& vitemArray)  const;
-    void tileMultiLine(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                       float step, VectorTileItemArray& vitemArray)  const;
-    void tileMultiPolygon(GIntBig fid, OGRGeometry* geom, OGRGeometry* extent,
-                          float step, VectorTileItemArray& vitemArray)  const;
-                          */
-
-    bool hasTilesTable();
-    FeaturePtr getTileFeature(const Tile &tile);
-    VectorTile getTileInternal(const Tile &tile);
-    bool setTileFeature(FeaturePtr tile);
-    bool createTileFeature(FeaturePtr tile);
-
-    // static
-protected:
-    static bool tilingDataJobThreadFunc(ThreadData *threadData);
+    void init();
 
 protected:
-    OGRLayer *m_ovrTable;
-    std::set<unsigned char> m_zoomLevels;
-    Mutex m_genTileMutex;
     std::vector<std::string> m_ignoreFields;
-    Envelope m_extent;
+    mutable Envelope m_extent;
     bool m_fastSpatialFilter;
-    bool m_creatingOvr;
-
-private:
-    std::map<Tile, VectorTile> m_genTiles;
 };
 
-}
+} // namespace ngs
 
 #endif // NGSFEATUREDATASET_H

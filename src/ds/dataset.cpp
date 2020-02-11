@@ -44,8 +44,9 @@
 
 namespace ngs {
 
-constexpr std::array<char, 22> forbiddenChars = {{':', '@', '#', '%', '^', '&', '*',
-    '!', '$', '(', ')', '+', '-', '?', '=', '/', '\\', '"', '\'', '[', ']', ','}};
+constexpr std::array<char, 23> forbiddenChars = {{':', '@', '#', '%', '^', '&',
+    '*','!', '$', '(', ')', '+', '-', '?', '=', '/', '\\', '"', '\'', '[', ']',
+    ',', ' '}};
 
 constexpr std::array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTION",
     "ADD", "AFTER", "ALL", "ALTER", "ANALYZE", "AND", "AS", "ASC", "ATTACH",
@@ -64,9 +65,6 @@ constexpr std::array<const char*, 124> forbiddenSQLFieldNames {{ "ABORT", "ACTIO
     "ROW", "SAVEPOINT", "SELECT", "SET", "TABLE", "TEMP", "TEMPORARY", "THEN",
     "TO", "TRANSACTION", "TRIGGER", "UNION", "UNIQUE", "UPDATE", "USING",
     "VACUUM", "VALUES", "VIEW", "VIRTUAL", "WHEN", "WHERE", "WITH", "WITHOUT"}};
-
-constexpr unsigned short MAX_EQUAL_NAMES = 10000;
-constexpr unsigned short MAX_FEATURES4UNSUPPORTED = 1000;
 
 //------------------------------------------------------------------------------
 // GDALDatasetPtr
@@ -190,7 +188,6 @@ bool DatasetBase::open(const std::string &path, unsigned int openFlags,
     auto openOptions = options.asCPLStringList();
     m_DS = static_cast<GDALDataset*>(GDALOpenEx(path.c_str(), openFlags, nullptr,
                                                 openOptions, nullptr));
-
     if(m_DS == nullptr) {
         errorMessage(_("Failed to open dataset %s. %s"), path.c_str(), CPLGetLastErrorMsg());
         if(openFlags & GDAL_OF_UPDATE) {
@@ -229,10 +226,6 @@ constexpr const char *ATTACH_SUFFIX = "attachments";
 
 // History
 constexpr const char *HISTORY_SUFFIX = "editlog";
-
-// Overviews
-constexpr const char *OVR_SUFFIX = "overviews";
-
 
 Dataset::Dataset(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
@@ -273,11 +266,12 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
         return nullptr;
     }
 
+    std::vector<std::string> nameList;
     for (int i = 0; i < definition->GetFieldCount(); ++i) {
         OGRFieldDefn *srcField = definition->GetFieldDefn(i);
         OGRFieldDefn dstField(srcField);
 
-        std::string newFieldName = normalizeFieldName(srcField->GetNameRef());
+        std::string newFieldName = normalizeFieldName(srcField->GetNameRef(), nameList);
         if(!compare(newFieldName, srcField->GetNameRef())) {
             progress.onProgress(COD_WARNING, 0.0,
                                 _("Field %s of source table was renamed to %s in destination table"),
@@ -289,14 +283,10 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
             errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
             return nullptr;
         }
+        nameList.push_back(newFieldName);
     }
 
     FeatureClass *out = new FeatureClass(layer, this, objectType, name);
-
-    if(options.asBool("CREATE_OVERVIEWS", false) &&
-            !options.asString("ZOOM_LEVELS", "").empty()) {
-        out->createOverviews(progress, options);
-    }
 
     if(m_parent) {
         m_parent->notifyChanges();
@@ -321,6 +311,13 @@ Table *Dataset::createTable(const std::string &name,
 bool Dataset::setProperty(const std::string &key, const std::string &value,
                           const std::string &domain)
 {
+    if(!open(DatasetBase::defaultOpenFlags)) {
+        return false;
+    }
+
+    if(!isOpened()) {
+        return false;
+    }
     MutexHolder holder(m_executeSQLMutex);
 
     if(!m_addsDS) {
@@ -335,11 +332,20 @@ bool Dataset::setProperty(const std::string &key, const std::string &value,
         return false;
     }
 
-    FeaturePtr feature(OGRFeature::CreateFeature(m_metadata->GetLayerDefn()));
+    // Update or set property
+    auto keyStr = domain + "." + key;
+    m_metadata->SetAttributeFilter(CPLSPrintf("'%s' = \"%s\"", META_KEY, keyStr.c_str()));
+    FeaturePtr feature(m_metadata->GetNextFeature());
+    if(feature) {
+        feature->SetField(META_VALUE, value.c_str());
+        return m_metadata->SetFeature(feature) == OGRERR_NONE;
+    }
 
-    feature->SetField(META_KEY, (domain + "." + key).c_str());
+
+    feature = FeaturePtr(OGRFeature::CreateFeature(m_metadata->GetLayerDefn()));
+    feature->SetField(META_KEY, keyStr.c_str());
     feature->SetField(META_VALUE, value.c_str());
-    return m_metadata->CreateFeature(feature) != OGRERR_NONE;
+    return m_metadata->CreateFeature(feature) == OGRERR_NONE;
 }
 
 std::string Dataset::property(const std::string &key,
@@ -347,7 +353,7 @@ std::string Dataset::property(const std::string &key,
                               const std::string &domain) const
 {
     if(nullptr == m_DS) {
-        return "";
+        return ObjectContainer::property(key, defaultValue, domain);
     }
 
     std::string out = fromCString(m_DS->GetMetadataItem(key.c_str(),
@@ -357,20 +363,25 @@ std::string Dataset::property(const std::string &key,
     }
 
     if(!m_metadata) {
-        return defaultValue;
+        return ObjectContainer::property(key, defaultValue, domain);
     }
 
+    auto keyStr = domain + "." + key;
     MutexHolder holder(m_executeSQLMutex);
 
     m_metadata->SetAttributeFilter(CPLSPrintf("%s LIKE \"%s\"", META_KEY,
-                                              key.c_str()));
+                                              keyStr.c_str()));
     FeaturePtr feature = m_metadata->GetNextFeature();
     if(feature) {
         out = feature->GetFieldAsString(1);
     }
 
     m_metadata->SetAttributeFilter(nullptr);
-    return out;
+    if(!out.empty()) {
+        return out;
+    }
+
+    return ObjectContainer::property(key, defaultValue, domain);
 }
 
 void Dataset::lockExecuteSql(bool lock)
@@ -387,6 +398,9 @@ bool Dataset::destroyTable(Table *table)
 {
     if(destroyTable(m_DS, table->m_layer)) {
         deleteProperties(table->name());
+        destroyAttachmentsTable(table->name()); // Attachments table maybe not exists
+        destroyEditHistoryTable(table->name()); // Log edit table may be not exists
+
         notifyChanges();
         return true;
     }
@@ -401,8 +415,15 @@ bool Dataset::destroy()
     GDALClose(m_addsDS);
     m_addsDS = nullptr;
 
-    if(!File::deleteFile(m_path)) {
-        return false;
+    if(Filter::isLocalDir(m_type)) {
+        if(!Folder::rmDir(m_path)) {
+            return false;
+        }
+    }
+    else {
+        if(!File::deleteFile(m_path)) {
+            return false;
+        }
     }
 
     // Delete additions
@@ -440,13 +461,14 @@ bool Dataset::canDestroy() const
 
 Properties Dataset::properties(const std::string &domain) const {
     if(nullptr == m_DS) {
-        return Properties();
+        return ObjectContainer::properties(domain);
     }
 
     MutexHolder holder(m_executeSQLMutex);
 
     // 1. Get gdal metadata
     Properties out(m_DS->GetMetadata(domain.c_str()));
+    out.append(ObjectContainer::properties(domain));
 
     if(!m_metadata) {
         return out;
@@ -496,7 +518,7 @@ bool Dataset::isNameValid(const std::string &name) const
     return true;
 }
 
-bool forbiddenChar(char c)
+bool Dataset::forbiddenChar(char c)
 {
     return std::find(forbiddenChars.begin(), forbiddenChars.end(), c) !=
             forbiddenChars.end();
@@ -526,25 +548,41 @@ std::string Dataset::normalizeDatasetName(const std::string &name) const
     return outName;
 }
 
-std::string Dataset::normalizeFieldName(const std::string &name) const
+std::string Dataset::normalizeFieldName(const std::string &name,
+                                        const std::vector<std::string> &nameList,
+                                        int counter) const
 {
-    std::string out = normalize(name); // TODO: add lang support, i.e. ru_RU)
+    std::string out;
+    std::string processedName;
+    if(counter == 0) {
+        out = normalize(name, "ru"); // TODO: add lang support, i.e. ru_RU)
 
-    replace_if(out.begin(), out.end(), forbiddenChar, '_');
+        replace_if(out.begin(), out.end(), forbiddenChar, '_');
 
-    if(isdigit(out[0]))
-        out = "Fld_" + out;
-
-    if(Filter::isDatabase(m_type)) {
-        // Check for sql forbidden names
-        std::string testFb = CPLString(out).toupper();
-        if(find(forbiddenSQLFieldNames.begin(), forbiddenSQLFieldNames.end(),
-                testFb) != forbiddenSQLFieldNames.end()) {
-            out += "_";
+        if(isdigit(out[0])) {
+            out = "fld_" + out;
         }
+
+        if(Filter::isDatabase(m_type)) {
+            // Check for sql forbidden names
+            std::string testFb = CPLString(out).toupper();
+            if(find(forbiddenSQLFieldNames.begin(), forbiddenSQLFieldNames.end(),
+                    testFb) != forbiddenSQLFieldNames.end()) {
+                out += "_";
+            }
+        }
+        processedName = out;
+    }
+    else {
+        out = name + "_" + std::to_string(counter);
+        processedName = name;
     }
 
-    return out;
+    auto it = std::find(nameList.begin(), nameList.end(), out);
+    if(it == nameList.end()) {
+        return out;
+    }
+    return normalizeFieldName(processedName, nameList, counter++);
 }
 
 bool Dataset::skipFillFeatureClass(OGRLayer *layer) const
@@ -557,10 +595,13 @@ bool Dataset::skipFillFeatureClass(OGRLayer *layer) const
 
 void Dataset::fillFeatureClasses() const
 {
+    if(nullptr == m_DS) {
+        return;
+    }
+
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
-            OGRwkbGeometryType geometryType = layer->GetGeomType();
             // Hide metadata, overviews, history tables
             if(skipFillFeatureClass(layer)) {
                 continue;
@@ -568,6 +609,7 @@ void Dataset::fillFeatureClasses() const
 
             const char *layerName = layer->GetName();
             Dataset *parent = const_cast<Dataset*>(this);
+            OGRwkbGeometryType geometryType = layer->GetGeomType();
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new Table(layer, parent,
                         CAT_TABLE_ANY, layerName)));
@@ -616,78 +658,6 @@ GDALDataset *Dataset::createAdditionsDataset()
     }
 }
 
-OGRLayer *Dataset::createOverviewsTable(const std::string &name)
-{
-    if(!m_addsDS) {
-        createAdditionsDataset();
-    }
-
-    if(!m_addsDS)
-        return nullptr;
-
-    return createOverviewsTable(m_addsDS, overviewsTableName(name));
-}
-
-bool Dataset::createOverviewsTableIndex(const std::string &name)
-{
-    if(!m_addsDS)
-        return false;
-
-    return createOverviewsTableIndex(m_addsDS, overviewsTableName(name));
-}
-
-bool Dataset::dropOverviewsTableIndex(const std::string &name)
-{
-    if(!m_addsDS)
-        return false;
-
-    return dropOverviewsTableIndex(m_addsDS, overviewsTableName(name));
-}
-
-std::string Dataset::overviewsTableName(const std::string &name) const
-{
-    return NG_PREFIX + name + "_" + OVR_SUFFIX;
-}
-
-bool Dataset::createOverviewsTableIndex(GDALDataset *ds, const std::string &name)
-{
-    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s, %s)",
-                              name.c_str(), name.c_str(), OVR_X_KEY, OVR_Y_KEY,
-                              OVR_ZOOM_KEY), nullptr, nullptr);
-    return true;
-}
-
-bool Dataset::dropOverviewsTableIndex(GDALDataset *ds, const std::string &name)
-{
-    ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name.c_str()),
-                   nullptr, nullptr);
-    return true;
-}
-
-bool Dataset::destroyOverviewsTable(const std::string &name)
-{
-    if(!m_addsDS)
-        return false;
-
-    OGRLayer *layer = m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
-    if(!layer)
-        return false;
-    return destroyTable(m_DS, layer);
-}
-
-bool Dataset::clearOverviewsTable(const std::string &name)
-{
-    return deleteFeatures(overviewsTableName(name));
-}
-
-OGRLayer *Dataset::getOverviewsTable(const std::string &name)
-{
-    if(!m_addsDS)
-        return nullptr;
-
-    return m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
-}
-
 std::string Dataset::options(enum ngsOptionType optionType) const
 {
     switch (optionType) {
@@ -722,20 +692,44 @@ std::string Dataset::options(enum ngsOptionType optionType) const
     return "";
 }
 
-bool Dataset::isReadOnly() const
+bool Dataset::isReadOnly(GDALDataset *DS)
 {
-    if(m_DS == nullptr) {
+    if(DS == nullptr) {
         return true;
     }
-    return m_DS->GetAccess() == GA_ReadOnly;
+
+    // https://github.com/OSGeo/gdal/issues/2162
+#if GDAL_VERSION_NUM >= GDAL_COMPUTE_VERSION(3,1,0)
+    return DS->GetAccess() == GA_ReadOnly;
+#else
+    return false;
+#endif
 }
 
+bool Dataset::isReadOnly() const
+{
+    return isReadOnly(m_DS);
+}
+
+/**
+ * @brief Dataset::paste Copy or move feature class or table to destination catalog object.
+ * @param child Feature class or table to copy or move.
+ * @param move Copy or move.
+ * @param options Key - value list. The available values are:
+ * - STYLE_TO_FIELD - copy OGR Style to field.
+ * @param progress
+ * @return
+ */
 int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                     const Progress &progress)
 {
     std::string newName = options.asString("NEW_NAME",
                                            File::getBaseName(child->name()));
     newName = normalizeDatasetName(newName);
+    if(newName.empty()) {
+        errorMessage(_("Failed to create unique name."));
+        return COD_LOAD_FAILED;
+    }
     if(move) {
         progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Move '%s' to '%s'"), newName.c_str(), m_name.c_str());
@@ -756,7 +750,6 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                           _("Source object is invalid"));
     }
 
-    std::string fullNameStr;
     if(Filter::isTable(child->type())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
@@ -788,7 +781,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         if(result != COD_SUCCESS) {
             return result;
         }
-        fullNameStr = dstTable->fullName();
+        auto fullNameStr = dstTable->fullName();
+        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_CREATE_OBJECT);
     }
     else if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
@@ -807,27 +801,31 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             }
         }
 
-        bool createOvr = options.asBool("CREATE_OVERVIEWS", false) &&
-                !options.asString("ZOOM_LEVELS", "").empty();
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
         OGRFeatureDefn * const srcDefinition = srcFClass->definition();
+
+        bool ogrStyleFieldToStyle = options.asBool("OGR_STYLE_FIELD_TO_STRING", false);
+        if(ogrStyleFieldToStyle) {
+            srcDefinition->DeleteFieldDefn(srcDefinition->GetFieldIndex(OGR_STYLE_FIELD));
+        }
+
         std::vector<OGRwkbGeometryType> geometryTypes =
                 srcFClass->geometryTypes();
-        OGRwkbGeometryType filterFeometryType =
+        OGRwkbGeometryType filterGeometryType =
                 FeatureClass::geometryTypeFromName(
                     options.asString("ACCEPT_GEOMETRY", "ANY"));
         for(OGRwkbGeometryType geometryType : geometryTypes) {
-            if(filterFeometryType != geometryType &&
-                    filterFeometryType != wkbUnknown) {
+            if(filterGeometryType != geometryType &&
+                    filterGeometryType != wkbUnknown) {
                 continue;
             }
             std::string createName = newName;
             OGRwkbGeometryType newGeometryType = geometryType;
-            if(geometryTypes.size () > 1 && filterFeometryType == wkbUnknown) {
+            if(geometryTypes.size () > 1 && filterGeometryType == wkbUnknown) {
                 createName += "_";
                 createName += FeatureClass::geometryTypeName(geometryType,
                                         FeatureClass::GeometryReportType::SIMPLE);
-                if(toMulti && geometryType < wkbMultiPoint) {
+                if(toMulti && OGR_GT_Flatten(geometryType) < wkbMultiPoint) {
                     newGeometryType =
                             static_cast<OGRwkbGeometryType>(geometryType + 3);
                 }
@@ -841,29 +839,29 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             }
             auto dstFields = dstFClass->fields();
             // Create fields map. We expected equal count of fields
-            FieldMapPtr fieldMap(dstFields.size());
-            for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
-                fieldMap[i] = i;
-            }
+            FieldMapPtr fieldMap(srcFClass->fields(), dstFClass->fields());
 
             Progress progressMulti(progress);
-            if(createOvr) {
-                progressMulti.setTotalSteps(2);
-                progressMulti.setStep(0);
-            }
+            progressMulti.setTotalSteps(2);
+            progressMulti.setStep(0);
 
             int result = dstFClass->copyFeatures(srcFClass, fieldMap,
-                                                 filterFeometryType,
+                                                 filterGeometryType,
                                                  progressMulti, options);
             if(result != COD_SUCCESS) {
                 return result;
             }
-            fullNameStr = dstFClass->fullName();
+            auto fullNameStr = dstFClass->fullName();
 
-            if(createOvr) {
-                progressMulti.setStep(1);
-                dstFClass->createOverviews(progressMulti, options);
+            progressMulti.setStep(1);
+            // Execute postprocess after features copied.
+            if(!dstFClass->onRowsCopied(progressMulti, options)) {
+                warningMessage(_("Postprocess features after copy in feature class '%s' failed."),
+                               fullNameStr.c_str());
             }
+
+            Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_CREATE_OBJECT);
+            progressMulti.onProgress(COD_FINISHED, 1.0, "");
         }
     }
     else {
@@ -874,7 +872,6 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
     if(m_childrenLoaded) {
         notifyChanges();
-        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_CREATE_OBJECT);
     }
 
     if(move) {
@@ -888,8 +885,7 @@ bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
     if(!isOpened() || isReadOnly()) {
         return false;
     }
-    return Filter::isFeatureClass(type) || Filter::isTable(type) ||
-            type == CAT_CONTAINER_SIMPLE;
+    return Filter::isFeatureClass(type) || Filter::isTable(type);
 }
 
 bool Dataset::canCreate(const enum ngsCatalogObjectType type) const
@@ -1037,7 +1033,8 @@ OGRLayer *Dataset::createMetadataTable(GDALDataset *ds)
     FeaturePtr feature(OGRFeature::CreateFeature(metadataLayer->GetLayerDefn()));
 
     // write version
-    feature->SetField(META_KEY, NGS_VERSION_KEY);
+    auto keyStr = std::string(NG_ADDITIONS_KEY) + "." + NGS_VERSION_KEY;
+    feature->SetField(META_KEY, keyStr.c_str());
     feature->SetField(META_VALUE, NGS_VERSION_NUM);
     if(metadataLayer->CreateFeature(feature) != OGRERR_NONE) {
         outMessage(COD_WARNING, _("Failed to add version to methadata"));
@@ -1062,30 +1059,6 @@ bool Dataset::destroyTable(GDALDataset *ds, OGRLayer *layer)
     return true;
 }
 
-OGRLayer *Dataset::createOverviewsTable(GDALDataset *ds, const std::string &name)
-{
-    OGRLayer *ovrLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
-    if (nullptr == ovrLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
-    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
-    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
-    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
-
-    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    return ovrLayer;
-}
-
 OGRLayer *Dataset::createEditHistoryTable(GDALDataset *ds, const std::string &name)
 {
     OGRLayer *logLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
@@ -1098,10 +1071,13 @@ OGRLayer *Dataset::createEditHistoryTable(GDALDataset *ds, const std::string &na
     OGRFieldDefn fidField(FEATURE_ID_FIELD, OFTInteger64);
     OGRFieldDefn afidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
     OGRFieldDefn opField(OPERATION_FIELD, OFTInteger64);
+    OGRFieldDefn metaField(META_FIELD, OFTString);
+    metaField.SetWidth(64);
 
     if(logLayer->CreateField(&fidField) != OGRERR_NONE ||
        logLayer->CreateField(&afidField) != OGRERR_NONE ||
-       logLayer->CreateField(&opField) != OGRERR_NONE) {
+       logLayer->CreateField(&opField) != OGRERR_NONE ||
+       logLayer->CreateField(&metaField) != OGRERR_NONE) {
         outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
@@ -1130,10 +1106,14 @@ OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &pa
     OGRFieldDefn fidField(ATTACH_FEATURE_ID_FIELD, OFTInteger64);
     OGRFieldDefn nameField(ATTACH_FILE_NAME_FIELD, OFTString);
     OGRFieldDefn descField(ATTACH_DESCRIPTION_FIELD, OFTString);
+    OGRFieldDefn dataField(ATTACH_DATA_FIELD, OFTBinary);
+
+    // TODO: Add data field
 
     if(attLayer->CreateField(&fidField) != OGRERR_NONE ||
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
-       attLayer->CreateField(&descField) != OGRERR_NONE) {
+       attLayer->CreateField(&descField) != OGRERR_NONE ||
+       attLayer->CreateField(&dataField) != OGRERR_NONE) {
         outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
@@ -1231,6 +1211,13 @@ bool Dataset::deleteFeatures(const std::string &name)
     MutexHolder holder(m_executeSQLMutex);
     ds->ExecuteSQL(CPLSPrintf("DELETE from %s", name.c_str()), nullptr, nullptr);
     return CPLGetLastErrorType() < CE_Failure;
+}
+
+void Dataset::releaseResultSet(Table *table)
+{
+    if(nullptr != m_DS && nullptr != table) {
+        m_DS->ReleaseResultSet(table->m_layer);
+    }
 }
 
 void Dataset::refresh()

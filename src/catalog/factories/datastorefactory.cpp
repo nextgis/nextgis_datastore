@@ -22,6 +22,9 @@
 
 #include "catalog/file.h"
 #include "ds/datastore.h"
+#ifndef NGS_MOBILE
+#include "ds/mapinfodatastore.h"
+#endif // NGS_MOBILE
 #include "ds/memstore.h"
 #include "ngstore/catalog/filter.h"
 
@@ -55,6 +58,13 @@ void DataStoreFactory::createObjects(ObjectContainer * const container,
             addChild(container, ObjectPtr(new MemoryStore(container, *it, path)));
             it = names.erase(it);
         }
+#ifndef NGS_MOBILE
+        else if(compare(ext, MapInfoDataStore::extension())) {
+            std::string path = File::formFileName(container->path(), *it);
+            addChild(container, ObjectPtr(new MapInfoDataStore(container, *it, path)));
+            it = names.erase(it);
+        }
+#endif // NGS_MOBILE
         else if(compare(ext, Dataset::attachmentsFolderExtension())) {
             it = names.erase(it);
         }

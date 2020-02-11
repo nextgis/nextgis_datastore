@@ -220,7 +220,7 @@ CPLJSONObject GlFeatureLayer::save(const ObjectContainer *objectContainer) const
     return out;
 }
 
-void GlFeatureLayer::setFeatureClass(const FeatureClassPtr &featureClass)
+void GlFeatureLayer::setFeatureClass(const FeatureClassOverviewPtr &featureClass)
 {
     FeatureLayer::setFeatureClass(featureClass);
     GlView *mapView = dynamic_cast<GlView*>(m_map);

@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -42,6 +42,9 @@ typedef struct _Field {
     OGRFieldType m_type;
 } Field;
 
+/**
+ * FieldMapPtr class
+ */
 class FieldMapPtr : public std::shared_ptr<int>
 {
 public:
@@ -56,8 +59,18 @@ public:
 
 class Table;
 
+/**
+ * FeaturePtr class
+ */
 class FeaturePtr : public std::shared_ptr<OGRFeature>
 {
+public:
+    enum class DumpOutputType {
+        HASH,
+        HASH_FULL,
+        HASH_STYLE,
+        SIMPLE
+    };
 public:
     FeaturePtr(OGRFeature *feature, Table *table = nullptr);
     FeaturePtr(OGRFeature *feature, const Table *table);
@@ -66,12 +79,16 @@ public:
     operator OGRFeature*() const { return get(); }
     Table *table() const { return m_table; }
     void setTable(Table *table) { m_table = table; }
+    std::string dump(enum DumpOutputType type = DumpOutputType::HASH) const;
 private:
     Table *m_table;
 };
 
 using TablePtr = std::shared_ptr<Table>;
 
+/**
+ * Table class
+ */
 class Table : public Object
 {
     friend class Dataset;
@@ -88,9 +105,9 @@ public:
     } AttachmentInfo;
 public:
     explicit Table(OGRLayer *layer,
-          ObjectContainer * const parent = nullptr,
-          const enum ngsCatalogObjectType type = CAT_TABLE_ANY,
-          const std::string &name = "");
+                   ObjectContainer * const parent = nullptr,
+                   const enum ngsCatalogObjectType type = CAT_TABLE_ANY,
+                   const std::string &name = "");
     virtual ~Table() override;
     FeaturePtr createFeature() const;
     FeaturePtr getFeature(GIntBig id) const;
@@ -105,6 +122,8 @@ public:
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
                          const Progress &progress = Progress());
+    virtual bool onRowsCopied(const Progress &progress,
+                              const Options &options = Options());
     std::string fidColumn() const;
     const std::vector<Field> &fields() const;
     virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
@@ -117,10 +136,11 @@ public:
                                   bool logEdits = true);
     virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const;
 
+    OGRFeatureDefn *definition() const;
 
     // Edit log
     virtual void deleteEditOperation(const ngsEditOperation &op);
-    virtual std::vector<ngsEditOperation> editOperations() const;
+    virtual std::vector<ngsEditOperation> editOperations();
 
     // Object interface
 public:
@@ -134,26 +154,34 @@ public:
                              const std::string &domain) override;
     virtual void deleteProperties(const std::string &domain) override;
 
+    // static
+public:
+    static OGRFieldType fieldTypeFromName(const std::string &name);
+
 protected:
-    OGRFeatureDefn *definition() const;
     bool initAttachmentsTable() const;
     bool initEditHistoryTable() const;
     std::string getAttachmentsPath() const;
+    bool saveEditHistory();
+
     virtual void fillFields() const;
     virtual void logEditOperation(const FeaturePtr &opFeature);
     virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
                                       enum ngsChangeCode code);
-    virtual void checkSetProperty(const std::string &key, const std::string &value,
+    virtual bool checkSetProperty(const std::string &key, const std::string &value,
                                   const std::string &domain);
-    virtual bool saveEditHistory();
     virtual std::string fullPropertyDomain(const std::string &domain) const;
-
+    virtual std::string storeName() const;
+    // Events
+    virtual void onFeatureInserted(FeaturePtr feature);
+    virtual void onFeatureUpdated(FeaturePtr oldFeature, FeaturePtr newFeature);
+    virtual void onFeatureDeleted(FeaturePtr delFeature);
+    virtual void onFeaturesDeleted();
 
 protected:
-    OGRLayer *m_layer;
+    mutable OGRLayer *m_layer;
     mutable OGRLayer *m_attTable;
     mutable OGRLayer *m_editHistoryTable;
-    int m_saveEditHistory;
     mutable std::vector<Field> m_fields;
     Mutex m_featureMutex;
 };

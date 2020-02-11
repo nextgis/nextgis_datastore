@@ -66,7 +66,7 @@ ObjectPtr ObjectContainer::getObject(const std::string &path)
 
     // Search child with name searchName
     for(const ObjectPtr &child : m_children) {
-       if(compare(child->name(), searchName)) {
+        if(compare(child->name(), searchName)) {
             if(pathRight.empty()) {
                 // No more path elements
                 return child;
@@ -163,8 +163,9 @@ std::string ObjectContainer::createUniqueName(const std::string &name,
         CPLString newAdd;
         newAdd.Printf("%s(%d)", add.c_str(), counter);
         resultName = File::getBaseName(name) + newAdd;
-        if(!isContainer) {
-            resultName = resultName + "." + File::getExtension(name);
+        auto ext = File::getExtension(name);
+        if(!isContainer && !ext.empty()) {
+            resultName = resultName + "." + ext;
         }
     }
 

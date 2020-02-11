@@ -22,7 +22,8 @@
 #define NGSTEST_H
 
 #include "gtest/gtest.h"
-//#include "api_priv.h"
+
+#include "ngstore/api.h"
 
 //#define TMS_URL "http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1"
 //#define TMS_NAME "2gis"
@@ -32,5 +33,18 @@
 //#define TMS_MIN_Z 0
 //#define TMS_MAX_Z 18
 //#define TMS_YORIG_TOP false
+
+void initLib();
+void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCode /*operation*/);
+int ngsTestProgressFunc(enum ngsCode /*status*/, double /*complete*/,
+                        const char* /*message*/, void* /*progressArguments*/);
+int ngsGDALProgressFunc(double /*dfComplete*/, const char */*pszMessage*/,
+                        void */*pProgressArg*/);
+void resetCounter();
+int getCounter();
+CatalogObjectH createConnection(const std::string &url);
+CatalogObjectH createGroup(CatalogObjectH parent, const std::string &name);
+CatalogObjectH getLocalFile(const std::string &name);
+CatalogObjectH createMIStore(const std::string &name);
 
 #endif // NGSTEST_H

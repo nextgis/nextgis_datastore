@@ -127,7 +127,7 @@ public:
 
     // FeatureLayer interface
 public:
-    virtual void setFeatureClass(const FeatureClassPtr &featureClass) override;
+    virtual void setFeatureClass(const FeatureClassOverviewPtr &featureClass) override;
 
 protected:
     virtual VectorGlObject *fillPoints(const VectorTile &tile, float z);

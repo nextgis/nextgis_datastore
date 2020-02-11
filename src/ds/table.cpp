@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,8 @@ constexpr const char *FEATURE_SEPARATOR = "#";
 
 //------------------------------------------------------------------------------
 // FieldMapPtr
-//-------------------------------------------------
+//------------------------------------------------------------------------------
+
 FieldMapPtr::FieldMapPtr(const std::vector<Field> &src,
                          const std::vector<Field> &dst) :
     shared_ptr(static_cast<int*>(CPLMalloc(sizeof(int) * src.size())), CPLFree)
@@ -77,6 +78,7 @@ void FieldMapPtr::matchFields(const std::vector<Field> &src,
         }
     }
 }
+
 //------------------------------------------------------------------------------
 // FeaturePtr
 //------------------------------------------------------------------------------
@@ -107,6 +109,57 @@ FeaturePtr &FeaturePtr::operator=(OGRFeature *feature) {
     return *this;
 }
 
+std::string FeaturePtr::dump(FeaturePtr::DumpOutputType type) const
+{
+    std::string out;
+    if(nullptr != get()) {
+        OGRGeometry *geom = get()->GetGeometryRef();
+        char *wkt = nullptr;
+        geom->exportToWkt(&wkt, wkbVariantIso);
+        if(wkt) {
+            out += std::string(wkt);
+        }
+        CPLFree(wkt);
+
+        const char *style = nullptr;
+        int styleFieldId = -1;
+        if(type == DumpOutputType::HASH_STYLE) {
+            styleFieldId = get()->GetFieldIndex("ogr_style");
+        }
+
+        for(int i = 0; i < get()->GetFieldCount(); ++i) {
+            if(i == styleFieldId) {
+                style = get()->GetFieldAsString(i);
+            }
+            else {
+                out += "|" + std::string(get()->GetFieldAsString(i));
+            }
+        }
+        // Skip style and native data in simple hash.
+
+        if(type != DumpOutputType::HASH) {
+            style = get()->GetStyleString();
+            if(type != DumpOutputType::HASH_STYLE) {
+                const char *native = get()->GetNativeData();
+                if(native) {
+                    out += "|" + std::string(native);
+                }
+            }
+        }
+        if(style) {
+             out += "|" + std::string(style);
+        }
+    }
+    switch (type) {
+    case DumpOutputType::SIMPLE:
+        return out;
+    case DumpOutputType::HASH:
+    case DumpOutputType::HASH_FULL:
+    case DumpOutputType::HASH_STYLE:
+        return md5(out);
+    }
+}
+
 //------------------------------------------------------------------------------
 // Table
 //------------------------------------------------------------------------------
@@ -118,8 +171,7 @@ Table::Table(OGRLayer *layer,
     Object(parent, type, name, ""),
     m_layer(layer),
     m_attTable(nullptr),
-    m_editHistoryTable(nullptr),
-    m_saveEditHistory(NOT_FOUND)
+    m_editHistoryTable(nullptr)
 {
 }
 
@@ -128,22 +180,21 @@ Table::~Table()
     if(m_type == CAT_QUERY_RESULT || m_type == CAT_QUERY_RESULT_FC) {
         Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
         if(nullptr != dataset) {
-            GDALDataset * const DS = dataset->getGDALDataset();
-            if(nullptr != DS && nullptr != m_layer) {
-                DS->ReleaseResultSet(m_layer);
-            }
+            dataset->releaseResultSet(this);
         }
     }
 }
 
 FeaturePtr Table::createFeature() const
 {
-    if(nullptr == m_layer)
+    if(nullptr == m_layer) {
         return FeaturePtr();
+    }
 
     OGRFeature *pFeature = OGRFeature::CreateFeature(m_layer->GetLayerDefn());
-    if (nullptr == pFeature)
+    if (nullptr == pFeature) {
         return FeaturePtr();
+    }
 
     return FeaturePtr(pFeature, this);
 }
@@ -173,7 +224,7 @@ bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
     // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dataset);
     if(m_layer->CreateFeature(feature) == OGRERR_NONE) {
-        if(logEdits) {
+        if(logEdits && saveEditHistory()) {
             FeaturePtr opFeature = logEditFeature(feature, FeaturePtr(),
                                                   CC_CREATE_FEATURE);
             logEditOperation(opFeature);
@@ -183,6 +234,7 @@ bool Table::insertFeature(const FeaturePtr &feature, bool logEdits)
                                         std::to_string(feature->GetFID()),
                                         ngsChangeCode::CC_CREATE_FEATURE);
         }
+        onFeatureInserted(feature);
         return true;
     }
 
@@ -200,8 +252,10 @@ bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
 
     // Lock all Dataset SQL queries here
     DatasetExecuteSQLLockHolder holder(dataset);
+    GIntBig id = feature->GetFID();
+    FeaturePtr oldFeature = getFeature(id);
     if(m_layer->SetFeature(feature) == OGRERR_NONE) {
-        if(logEdits) {
+        if(logEdits && saveEditHistory()) {
             FeaturePtr opFeature = logEditFeature(feature, FeaturePtr(),
                                                   CC_CHANGE_FEATURE);
             logEditOperation(opFeature);
@@ -211,6 +265,7 @@ bool Table::updateFeature(const FeaturePtr &feature, bool logEdits)
                                         std::to_string(feature->GetFID()),
                                         ngsChangeCode::CC_CHANGE_FEATURE);
         }
+        onFeatureUpdated(oldFeature, feature);
         return true;
     }
 
@@ -223,6 +278,7 @@ bool Table::deleteFeature(GIntBig id, bool logEdits)
         return false;
     }
 
+    FeaturePtr delFeature = getFeature(id);
     FeaturePtr logFeature;
     if(saveEditHistory() && logEdits) {
         FeaturePtr feature = m_layer->GetFeature(id);
@@ -236,12 +292,13 @@ bool Table::deleteFeature(GIntBig id, bool logEdits)
     if(m_layer->DeleteFeature(id) == OGRERR_NONE) {
         deleteAttachments(id, logEdits);
 
-        if(logEdits) {
+        if(logEdits && saveEditHistory()) {
             logEditOperation(logFeature);
         }
         Notify::instance().onNotify(fullName() + FEATURE_SEPARATOR +
                                     std::to_string(id),
                                     ngsChangeCode::CC_DELETE_FEATURE);
+        onFeatureDeleted(delFeature);
         return true;
     }
 
@@ -256,18 +313,19 @@ bool Table::deleteFeatures(bool logEdits)
 
     resetError();
     Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(dataset && dataset->deleteFeatures(name())) {
-        if(logEdits) {
+    if(dataset && dataset->deleteFeatures(storeName())) {
+        if(logEdits && saveEditHistory()) {
             FeaturePtr logFeature = logEditFeature(FeaturePtr(), FeaturePtr(),
                                                    CC_DELETEALL_FEATURES);
             logEditOperation(logFeature);
         }
         Notify::instance().onNotify(fullName(),
                                     ngsChangeCode::CC_DELETEALL_FEATURES);
-        dataset->destroyAttachmentsTable(name()); // Attachments table maybe not exists
+        dataset->destroyAttachmentsTable(storeName()); // Attachments table maybe not exists
         Folder::rmDir(getAttachmentsPath());
 
         featureCount(true);
+        onFeaturesDeleted();
         return true;
     }
 
@@ -310,7 +368,7 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
 
     progress.onProgress(COD_IN_PROCESS, 0.0,
                        _("Start copy records from '%s' to '%s'"),
-                       srcTable->name().c_str(), m_name.c_str());
+                       srcTable->name().c_str(), name().c_str());
 
     // Lock any SQL query in dataset
     DatasetBatchOperationHolder holder(dynamic_cast<Dataset*>(m_parent));
@@ -345,6 +403,13 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     return COD_SUCCESS;
 }
 
+bool Table::onRowsCopied(const Progress &progress, const Options &options)
+{
+    ngsUnused(progress);
+    ngsUnused(options);
+    return true;
+}
+
 std::string Table::fidColumn() const
 {
     if(nullptr == m_layer) {
@@ -368,11 +433,7 @@ bool Table::destroy()
     std::string name = m_name;
     std::string attPath = getAttachmentsPath();
     if(dataset->destroyTable(this)) {
-        dataset->destroyAttachmentsTable(name); // Attachments table maybe not exists
         Folder::rmDir(attPath);
-
-        dataset->destroyEditHistoryTable(name); // Log edit table may be not exists
-
         Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
         return true;
     }
@@ -413,9 +474,9 @@ bool Table::initAttachmentsTable() const
         return false;
     }
 
-    m_attTable = parentDS->getAttachmentsTable(name());
+    m_attTable = parentDS->getAttachmentsTable(storeName());
     if(nullptr == m_attTable) {
-        m_attTable = parentDS->createAttachmentsTable(name());
+        m_attTable = parentDS->createAttachmentsTable(storeName());
     }
 
     return m_attTable != nullptr;
@@ -432,9 +493,9 @@ bool Table::initEditHistoryTable() const
         return false;
     }
 
-    m_editHistoryTable = parentDS->getEditHistoryTable(name());
+    m_editHistoryTable = parentDS->getEditHistoryTable(storeName());
     if(nullptr == m_editHistoryTable) {
-        m_editHistoryTable = parentDS->createEditHistoryTable(name());
+        m_editHistoryTable = parentDS->createEditHistoryTable(storeName());
     }
 
     return m_editHistoryTable != nullptr;
@@ -444,7 +505,7 @@ std::string Table::getAttachmentsPath() const
 {
     std::string dstRootPath = File::resetExtension(
                 m_parent->path(), Dataset::attachmentsFolderExtension());
-    return File::formFileName(dstRootPath, name(), "");
+    return File::formFileName(dstRootPath, storeName(), "");
 }
 
 void Table::fillFields() const
@@ -528,7 +589,7 @@ GIntBig Table::addAttachment(GIntBig fid, const std::string &fileName,
             }
         }
 
-        if(logEdits) {
+        if(logEdits && saveEditHistory() && nullptr != m_layer) {
             FeaturePtr feature = m_layer->GetFeature(fid);
             FeaturePtr logFeauture = logEditFeature(feature, newAttachment,
                                                     CC_CREATE_ATTACHMENT);
@@ -558,7 +619,7 @@ bool Table::deleteAttachment(GIntBig aid, bool logEdits)
 
         result = File::deleteFile(attPath);
 
-        if(logEdits) {
+        if(logEdits && saveEditHistory() && nullptr != m_layer) {
             FeaturePtr feature = m_layer->GetFeature(fid);
             FeaturePtr logFeauture = logEditFeature(feature, attFeature,
                                                     CC_DELETE_ATTACHMENT);
@@ -585,7 +646,7 @@ bool Table::deleteAttachments(GIntBig fid, bool logEdits)
                                                     std::to_string(fid), "");
     Folder::rmDir(attFeaturePath);
 
-    if(logEdits) {
+    if(logEdits && saveEditHistory() && nullptr != m_layer) {
         FeaturePtr feature = m_layer->GetFeature(fid);
         FeaturePtr logFeauture = logEditFeature(feature, FeaturePtr(),
                                                 CC_DELETEALL_ATTACHMENTS);
@@ -615,7 +676,7 @@ bool Table::updateAttachment(GIntBig aid, const std::string &fileName,
 
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
     if(m_attTable->SetFeature(attFeature) == OGRERR_NONE) {
-        if(logEdits) {
+        if(logEdits && saveEditHistory() && nullptr != m_layer) {
             GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
             FeaturePtr feature = m_layer->GetFeature(fid);
             FeaturePtr logFeauture = logEditFeature(feature, attFeature,
@@ -675,13 +736,13 @@ bool Table::canDestroy() const
     return !dataset->isReadOnly();
 }
 
-void Table::checkSetProperty(const std::string &key, const std::string &value,
+bool Table::checkSetProperty(const std::string &key, const std::string &value,
                              const std::string &domain)
 {
     if(compare(key, LOG_EDIT_HISTORY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        char prevValue = m_saveEditHistory;
-        m_saveEditHistory = compare(value, "ON") ? 1 : 0;
-        if(prevValue != m_saveEditHistory && prevValue == 1) {
+        auto prevValue = saveEditHistory();
+        auto currentValue = toBool(value);
+        if(prevValue != currentValue && prevValue == true) {
             // Clear history table
             Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
             if(nullptr != parentDataset) {
@@ -689,15 +750,12 @@ void Table::checkSetProperty(const std::string &key, const std::string &value,
             }
         }
     }
+    return true;
 }
 
 bool Table::saveEditHistory()
 {
-    if(m_saveEditHistory == NOT_FOUND) {
-        m_saveEditHistory = compare(property(LOG_EDIT_HISTORY_KEY, "OFF",
-                                             NG_ADDITIONS_KEY), "ON") ? 1 : 0;
-    }
-    return m_saveEditHistory == 1;
+    return toBool(property(LOG_EDIT_HISTORY_KEY, "OFF", NG_ADDITIONS_KEY));
 }
 
 std::string Table::fullPropertyDomain(const std::string &domain) const
@@ -705,19 +763,49 @@ std::string Table::fullPropertyDomain(const std::string &domain) const
     return m_name + "." + domain;
 }
 
+std::string Table::storeName() const
+{
+    return name();
+}
+
+void Table::onFeatureInserted(FeaturePtr feature)
+{
+    ngsUnused(feature);
+}
+
+void Table::onFeatureUpdated(FeaturePtr oldFeature, FeaturePtr newFeature)
+{
+    ngsUnused(oldFeature);
+    ngsUnused(newFeature);
+}
+
+void Table::onFeatureDeleted(FeaturePtr delFeature)
+{
+    ngsUnused(delFeature);
+}
+
+void Table::onFeaturesDeleted()
+{
+
+}
+
 bool Table::setProperty(const std::string &key, const std::string &value,
                         const std::string &domain)
 {
-    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == parentDataset) {
+    bool result = false;
+    if(nullptr != m_layer) {
+        result = m_layer->SetMetadataItem(key.c_str(), value.c_str(),
+                                          domain.c_str()) == CE_None;
+    }
+
+    if(!checkSetProperty(key, value, domain)) {
         return false;
     }
 
-    if(nullptr != m_layer) {
-        m_layer->SetMetadataItem(key.c_str(), value.c_str(), domain.c_str());
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return result;
     }
-
-    checkSetProperty(key, value, domain);
 
     return parentDataset->setProperty(key, value, fullPropertyDomain(domain));
 }
@@ -727,11 +815,8 @@ std::string Table::property(const std::string &key,
                             const std::string &domain) const
 {
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == parentDataset) {
-        return defaultValue;
-    }
-
     if(nullptr != m_layer) {
+        DatasetExecuteSQLLockHolder holder(parentDataset);
         std::string internalProperty = fromCString(
                     m_layer->GetMetadataItem(key.c_str(), domain.c_str()));
         if(!internalProperty.empty()) {
@@ -739,6 +824,9 @@ std::string Table::property(const std::string &key,
         }
     }
 
+    if(nullptr == parentDataset) {
+        return Object::property(key, defaultValue, domain);
+    }
     return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
 
 }
@@ -746,32 +834,31 @@ std::string Table::property(const std::string &key,
 Properties Table::properties(const std::string &domain) const
 {
     Properties out;
-    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == parentDataset) {
-        return out;
-    }
-
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr != m_layer) {
+        DatasetExecuteSQLLockHolder holder(parentDataset);
         out = Properties(m_layer->GetMetadata(domain.c_str()));
     }
 
+    if(nullptr == parentDataset) {
+        return out;
+    }
     Properties moreProperties = parentDataset->properties(fullPropertyDomain(domain));
     out.append(moreProperties);
-
     return out;
 }
 
 void Table::deleteProperties(const std::string &domain)
 {
-    Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == parentDataset) {
-        return;
-    }
-
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr != m_layer) {
+        DatasetExecuteSQLLockHolder holder(parentDataset);
         m_layer->SetMetadata(nullptr, domain.c_str());
     }
 
+    if(nullptr == parentDataset) {
+        return;
+    }
     return parentDataset->deleteProperties(fullPropertyDomain(domain));
 }
 
@@ -785,7 +872,12 @@ const std::vector<Field> &Table::fields() const
 
 void Table::logEditOperation(const FeaturePtr &opFeature)
 {
-    if(!opFeature) {
+    if(!opFeature || nullptr == m_editHistoryTable) {
+        return;
+    }
+
+    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
         return;
     }
 
@@ -795,14 +887,9 @@ void Table::logEditOperation(const FeaturePtr &opFeature)
             static_cast<enum ngsChangeCode>(opFeature->GetFieldAsInteger64(
                                                 OPERATION_FIELD));
 
-    Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == parentDataset) {
-        return;
-    }
-
     DatasetExecuteSQLLockHolder holder(parentDataset);
     if(code == CC_DELETEALL_FEATURES) {
-        parentDataset->clearEditHistoryTable(name());
+        parentDataset->clearEditHistoryTable(storeName());
 
         if(m_editHistoryTable->CreateFeature(opFeature) != OGRERR_NONE) {
             CPLDebug("ngstore", "Log operation %d failed", code);
@@ -993,14 +1080,10 @@ void Table::deleteEditOperation(const ngsEditOperation& op)
                            nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> Table::editOperations() const
+std::vector<ngsEditOperation> Table::editOperations()
 {
-    if(nullptr == m_editHistoryTable) {
-        initEditHistoryTable();
-    }
-
     std::vector<ngsEditOperation> out;
-    if(nullptr == m_editHistoryTable) {
+    if(!initEditHistoryTable()) {
         return out;
     }
 
@@ -1020,6 +1103,13 @@ std::vector<ngsEditOperation> Table::editOperations() const
     return out;
 }
 
+/**
+ * @brief Table::logEditFeature Create log edit feature. If both feature and attachFeature are null, no sence to log such operation.
+ * @param feature Changed feature to add to the log. May be null.
+ * @param attachFeature Changed attachment feature to add to the log. May be null.
+ * @param code Operation code.
+ * @return New log edit table feature.
+ */
 FeaturePtr Table::logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
                                       enum ngsChangeCode code)
 {
@@ -1027,11 +1117,7 @@ FeaturePtr Table::logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
         return FeaturePtr();
     }
 
-    if(nullptr == m_editHistoryTable) {
-        initEditHistoryTable();
-    }
-
-    if(nullptr == m_editHistoryTable) {
+    if(!initEditHistoryTable()) {
         return FeaturePtr();
     }
 
@@ -1053,6 +1139,37 @@ FeaturePtr Table::logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
     newOp->SetField(OPERATION_FIELD, code);
 
     return newOp;
+}
+
+OGRFieldType Table::fieldTypeFromName(const std::string &name)
+{
+    if(name.empty())
+        return OFTMaxType;
+    if(compare(name, "INTEGER"))
+        return OFTInteger;
+    if(compare(name, "INTEGER_LIST"))
+        return OFTIntegerList;
+    if(compare(name, "REAL"))
+        return OFTReal;
+    if(compare(name, "REAL_LIST"))
+        return OFTRealList;
+    if(compare(name, "STRING"))
+        return OFTString;
+    if(compare(name, "STRING_LIST"))
+        return OFTStringList;
+    if(compare(name, "BINARY"))
+        return OFTBinary;
+    if(compare(name, "DATE"))
+        return OFTDate;
+    if(compare(name, "TIME"))
+        return OFTTime;
+    if(compare(name, "DATE_TIME"))
+        return OFTDateTime;
+    if(compare(name, "INTEGER64"))
+        return OFTInteger64;
+    if(compare(name, "INTEGER64_LIST"))
+        return OFTInteger64List;
+    return OFTMaxType;
 }
 
 } // namespace ngs

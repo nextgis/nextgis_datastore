@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -40,6 +40,10 @@ if(BUILD_TESTS)
         test.h
     )
 
+    set(CSOURCES
+        test.cpp
+    )
+
     set(TEST_DATA_URL "https://raw.githubusercontent.com/nextgis/testdata/master")
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/download.cmake
@@ -58,6 +62,12 @@ file(DOWNLOAD ${TEST_DATA_URL}/vector/shape/railway-mini.zip ${CMAKE_CURRENT_BIN
 endif()
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/data/tex.png)
 file(DOWNLOAD ${TEST_DATA_URL}/raster/png/tex.png ${CMAKE_CURRENT_BINARY_DIR}/data/tex.png)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/data/bld.tab)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.tab ${CMAKE_CURRENT_BINARY_DIR}/data/bld.tab)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.dat ${CMAKE_CURRENT_BINARY_DIR}/data/bld.dat)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.map ${CMAKE_CURRENT_BINARY_DIR}/data/bld.map)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.id ${CMAKE_CURRENT_BINARY_DIR}/data/bld.id)
 endif()"
     )
 
@@ -68,7 +78,7 @@ endif()"
     )
 
     macro(add_ngs_test name exe_name files)
-        add_executable(${exe_name} ${files} ${HHEADERS})
+        add_executable(${exe_name} ${files} ${CSOURCES} ${HHEADERS})
         target_link_extlibraries(${exe_name})
         set_target_properties(${exe_name} PROPERTIES
             CXX_STANDARD 11
@@ -91,5 +101,6 @@ endif()"
     add_ngs_test(StorageTests store_test store_test.cpp)
     add_ngs_test(GlTests gl_test gl_test.cpp)
     add_ngs_test(MapTests map_test map_test.cpp)
+    add_ngs_test(NGWTests ngw_test ngw_test.cpp)
 
 endif()

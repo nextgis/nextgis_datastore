@@ -21,7 +21,8 @@
 #ifndef NGSSTOREFEATURECLASS_H
 #define NGSSTOREFEATURECLASS_H
 
-#include "featureclass.h"
+#include "featureclassovr.h"
+#include "dataset.h"
 
 namespace ngs {
 
@@ -35,8 +36,9 @@ public:
     virtual ~StoreObject() = default;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
     virtual bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
-    std::vector<ngsEditOperation> fillEditOperations(
-            OGRLayer *editHistoryTable) const;
+    std::vector<ngsEditOperation> fillEditOperations(OGRLayer *editHistoryTable,
+                                                     Dataset *dataset) const;
+    virtual bool sync(const Options &options);
 
     // static
 public:
@@ -70,12 +72,7 @@ public:
                                   bool logEdits = true) override;
     virtual bool setProperty(const std::string &key, const std::string &value,
                              const std::string &domain) override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                               const std::string &domain) const override;
-    virtual Properties properties(const std::string &domain) const override;
-    virtual void deleteProperties(const std::string &domain) override;
-    virtual std::vector<ngsEditOperation> editOperations() const override;
+    virtual std::vector<ngsEditOperation> editOperations() override;
 
     // Table interface
 protected:
@@ -89,7 +86,7 @@ protected:
 /**
  * StoreFeatureClass
  */
-class StoreFeatureClass : public FeatureClass, public StoreObject
+class StoreFeatureClass : public FeatureClassOverview, public StoreObject
 {
 public:
     StoreFeatureClass(OGRLayer *layer, ObjectContainer * const parent = nullptr,
@@ -106,12 +103,7 @@ public:
                                   bool logEdits = true) override;
     virtual bool setProperty(const std::string &key, const std::string &value,
                              const std::string &domain) override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const override;
-    virtual Properties properties(const std::string &domain) const override;
-    virtual void deleteProperties(const std::string &domain) override;
-    virtual std::vector<ngsEditOperation> editOperations() const override;
+    virtual std::vector<ngsEditOperation> editOperations() override;
 
     // Table interface
 protected:

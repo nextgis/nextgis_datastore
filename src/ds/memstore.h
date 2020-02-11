@@ -44,10 +44,12 @@ public:
 
     // Dataset interface
 public:
-    virtual bool open(unsigned int openFlags,
+    virtual bool open(unsigned int openFlags = DatasetBase::defaultOpenFlags,
                       const Options &options = Options()) override;
     virtual bool deleteFeatures(const std::string &name) override;
-
+    virtual std::string normalizeFieldName(const std::string &name,
+                                           const std::vector<std::string> &nameList,
+                                           int counter = 0) const override;
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
@@ -63,7 +65,7 @@ protected:
 
 protected:
     virtual bool isNameValid(const std::string &name) const override;
-    virtual std::string normalizeFieldName(const std::string &name) const override;
+
     virtual void fillFeatureClasses() const override;
     ObjectPtr addLayer(const CPLJSONObject &layer);
 

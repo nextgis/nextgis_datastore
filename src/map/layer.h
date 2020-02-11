@@ -29,7 +29,7 @@
 #include "cpl_json.h"
 
 #include "catalog/objectcontainer.h"
-#include "ds/featureclass.h"
+#include "ds/featureclassovr.h"
 #include "ds/raster.h"
 
 namespace ngs {
@@ -114,7 +114,7 @@ class FeatureLayer : public Layer, public ISelectableFeatureLayer
 public:
     explicit FeatureLayer(Map *map, const std::string& name = DEFAULT_LAYER_NAME);
     virtual ~FeatureLayer() override = default;
-    virtual void setFeatureClass(const FeatureClassPtr &featureClass) {
+    virtual void setFeatureClass(const FeatureClassOverviewPtr &featureClass) {
         m_featureClass = featureClass;
     }
 
@@ -127,7 +127,7 @@ public:
     }
 
 protected:
-    FeatureClassPtr m_featureClass;
+    FeatureClassOverviewPtr m_featureClass;
 };
 
 /**

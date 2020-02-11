@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -25,14 +25,20 @@
 
 #include "api_priv.h"
 #include "catalog.h"
+#include "ds/ngw.h"
+#include "ds/simpledataset.h"
+#include "file.h"
+#include "ngstore/catalog/filter.h"
+#include "util/account.h"
 #include "util/authstore.h"
 #include "util/error.h"
 #include "util/notify.h"
 #include "util/stringutil.h"
-#include "file.h"
+
 
 namespace ngs {
 
+constexpr const char *NGW_METADATA_DOMAIN = "ngw";
 
 static CPLStringList getGDALHeaders(const std::string &url)
 {
@@ -61,15 +67,43 @@ bool NGWConnectionBase::isClsSupported(const std::string &cls) const
     return std::find(m_availableCls.begin(), m_availableCls.end(), cls) != m_availableCls.end();
 }
 
+std::string NGWConnectionBase::userPwd() const
+{
+    if(compare(m_user, "guest")) {
+        return "";
+    }
+    return m_user + ":" + m_password;
+}
+
+SpatialReferencePtr NGWConnectionBase::spatialReference() const
+{
+    SpatialReferencePtr out(new OGRSpatialReference);
+    out->importFromEPSG(3857);
+    return out;
+}
+
 //------------------------------------------------------------------------------
 // NGWResourceBase
 //------------------------------------------------------------------------------
-NGWResourceBase::NGWResourceBase(NGWConnectionBase *connection,
-                                 const std::string &resourceId) :
-    m_resourceId(resourceId),
+NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
+                                 NGWConnectionBase *connection) :
     m_connection(connection)
 {
-
+    if(resource.IsValid()) {
+        m_resourceId = resource.GetString("resource/id");
+        m_creationDate = resource.GetString("resource/creation_date");
+        m_keyName = resource.GetString("resource/keyname");
+        m_description = resource.GetString("resource/description");
+        auto metaItems = resource.GetObj("resource/resmeta/items");
+        auto children = metaItems.GetChildren();
+        for(const auto &child : children) {
+            std::string osSuffix = ngw::resmetaSuffix( child.GetType() );
+            m_resmeta[child.GetName() + osSuffix] = child.ToString();
+        }
+    }
+    else {
+        m_resourceId = "0";
+    }
 }
 
 std::string NGWResourceBase::url() const
@@ -80,21 +114,86 @@ std::string NGWResourceBase::url() const
     return "";
 }
 
+Properties NGWResourceBase::metadata(const std::string &domain) const
+{
+    Properties out;
+    if(domain.empty()) {
+        out.add("url", url() + "/resource/" + m_resourceId);
+        out.add("creation_date", m_creationDate);
+        out.add("keyname", m_keyName);
+        out.add("description", m_description);
+    }
+
+    if(domain == NGW_METADATA_DOMAIN) {
+        for(const auto &resmetaItem : m_resmeta) {
+            out.add(resmetaItem.first, resmetaItem.second);
+        }
+    }
+    return out;
+}
+
+std::string NGWResourceBase::metadataItem(const std::string &key,
+                                          const std::string &defaultValue,
+                                          const std::string &domain) const
+{
+    if(domain.empty()) {
+        if(key == "url") {
+            return url() + "/resource/" + m_resourceId;
+        }
+        else if(key == "id") {
+            return m_resourceId;
+        }
+        else if(key == "creation_date") {
+            return m_creationDate;
+        }
+        else if(key == "keyname") {
+            return m_keyName;
+        }
+        else if(key == "description") {
+            return m_description;
+        }
+    }
+
+    if(domain == NGW_METADATA_DOMAIN) {
+        if(m_resmeta.find(key) != m_resmeta.end()) {
+            return m_resmeta.at(key);
+        }
+    }
+    return defaultValue;
+}
+
+NGWConnectionBase *NGWResourceBase::connection() const
+{
+    return m_connection;
+}
+
+bool NGWResourceBase::isNGWResource(const enum ngsCatalogObjectType type)
+{
+    return type >= CAT_NGW_ANY && type < CAT_NGW_ALL;
+}
+
 bool NGWResourceBase::remove()
 {
-    return ngw::deleteResource(url(), m_resourceId, getGDALHeaders(url()).StealList());
+    return ngw::deleteResource(url(), m_resourceId,
+                               getGDALHeaders(url()).StealList());
+}
+
+bool NGWResourceBase::changeName(const std::string &newName)
+{
+    return ngw::renameResource(url(), m_resourceId, newName,
+                               getGDALHeaders(url()).StealList());
 }
 
 //------------------------------------------------------------------------------
 // NGWResource
 //------------------------------------------------------------------------------
+
 NGWResource::NGWResource(ObjectContainer * const parent,
                          const enum ngsCatalogObjectType type,
-                         const std::string &name,
-                         NGWConnectionBase *connection,
-                         const std::string &resourceId) :
+                         const std::string &name, const CPLJSONObject &resource,
+                         NGWConnectionBase *connection) :
     Object(parent, type, name, ""),
-    NGWResourceBase(connection, resourceId)
+    NGWResourceBase(resource, connection)
 {
 }
 
@@ -103,16 +202,43 @@ bool NGWResource::destroy()
     return NGWResourceBase::remove();
 }
 
+bool NGWResource::canDestroy() const
+{
+    return true; // Not check user rights here as server will report error if no access.
+}
+
+bool NGWResource::rename(const std::string &newName)
+{
+    return NGWResourceBase::changeName(newName);
+}
+
+bool NGWResource::canRename() const
+{
+    return true; // Not check user rights here as server will report error if no access.
+}
+
+Properties NGWResource::properties(const std::string &domain) const
+{
+    return metadata(domain);
+}
+
+std::string NGWResource::property(const std::string &key,
+                                  const std::string &defaultValue,
+                                  const std::string &domain) const
+{
+    return metadataItem(key, defaultValue, domain);
+}
+
 //------------------------------------------------------------------------------
 // NGWResourceGroup
 //------------------------------------------------------------------------------
 
 NGWResourceGroup::NGWResourceGroup(ObjectContainer * const parent,
-        const std::string &name,
-        NGWConnectionBase *connection,
-        const std::string &resourceId) :
-    ObjectContainer(parent, CAT_CONTAINER_NGWGROUP, name, ""), // Don't need file system path
-    NGWResourceBase(connection, resourceId)
+                                   const std::string &name,
+                                   const CPLJSONObject &resource,
+                                   NGWConnectionBase *connection) :
+    ObjectContainer(parent, CAT_NGW_GROUP, name, ""), // Don't need file system path
+    NGWResourceBase(resource, connection)
 {
     // Expected search API is available
     m_childrenLoaded = true;
@@ -140,34 +266,118 @@ void NGWResourceGroup::addResource(const CPLJSONObject &resource)
 {
     std::string cls = resource.GetString("resource/cls");
     std::string name = resource.GetString("resource/display_name");
-    std::string id = resource.GetString("resource/id");
 
     if(cls == "resource_group") {
-        addChild(ObjectPtr(new NGWResourceGroup(this, name, m_connection, id)));
+        addChild(ObjectPtr(new NGWResourceGroup(this, name, resource, m_connection)));
     }
     else if(cls == "trackers_group") {
-        addChild(ObjectPtr(new NGWTrackersGroup(this, name, m_connection, id)));
+        addChild(ObjectPtr(new NGWTrackersGroup(this, name, resource, m_connection)));
+    }
+    else if(cls == "trackers") {
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_TRACKER, name, resource, m_connection)));
+    }
+    else if(cls == "postgis_connection") {
+        // TODO: List DB schemas and tables if client can connect to Postgres server
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_POSTGIS_CONNECTION, name, resource, m_connection)));
+    }
+    else if(cls == "wmsclient_connection") {
+        // TODO: List WMS layers if client can connect to WMS server
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_CONNECTION, name, resource, m_connection)));
+    }
+    else if(cls == "vector_layer") {
+
+        addChild(ObjectPtr(new NGWFeatureClass(this, CAT_NGW_VECTOR_LAYER, name, resource, m_connection)));
+    }
+    else if(cls == "postgis_layer") {
+
+        addChild(ObjectPtr(new NGWFeatureClass(this, CAT_NGW_POSTGIS_LAYER, name, resource, m_connection)));
+    }
+    else if(cls == "raster_style") {
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_RASTER_STYLE, name, resource, m_connection)));
+    }
+    else if(cls == "basemap_layer") {
+        // TODO: Same as raster style
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_BASEMAP, name, resource, m_connection)));
+    }
+    else if(cls == "wmsclient_layer") {
+        // TODO: Same as raster style
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_LAYER, name, resource, m_connection)));
+    }
+    else if(cls == "raster_layer") {
+
+//        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_RASTER_LAYER, name, resource, m_connection)));
+    }
+    else if(cls == "mapserver_style") {
+        // TODO: Upload/download style
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_MAPSERVER_STYLE, name, resource, m_connection)));
+    }
+    else if(cls == "qgis_raster_style") {
+        // TODO: Upload/download style
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_QGISRASTER_STYLE, name, resource, m_connection)));
+    }
+    else if(cls == "qgis_vector_style") {
+        // TODO: Upload/download style
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_QGISVECTOR_STYLE, name, resource, m_connection)));
+    }
+    else if(cls == "formbuilder_form") {
+        // TODO: Upload/download form
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FORMBUILDER_FORM, name, resource, m_connection)));
+    }
+    else if(cls == "lookup_table") {
+        // TODO: Download content for fields mapping. Change content. Sync content
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_LOOKUP_TABLE, name, resource, m_connection)));
+    }
+    else if(cls == "webmap") {
+        // TODO: Add/change/remove groups and map layers/styles
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WEBMAP, name, resource, m_connection)));
+    }
+    else if(cls == "file_bucket") {
+        // TODO: Add/change/remove groups and files
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FILE_BUCKET, name, resource, m_connection)));
+    }
+    else if(cls == "wmsserver_service") {
+        // TODO: Add/change/remove layers
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_SERVICE, name, resource, m_connection)));
+    }
+    else if(cls == "wfsserver_service") {
+        // TODO: Add/change/remove layers
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WFS_SERVICE, name, resource, m_connection)));
     }
 }
 
 bool NGWResourceGroup::canCreate(const enum ngsCatalogObjectType type) const
 {
     if(m_connection == nullptr) {
-        return false; // Not expected than connection is null
+        return false; // Not expected that connection is null
     }
-    switch (type) {
-    case CAT_CONTAINER_NGWGROUP:
-        return m_connection->isClsSupported("resource_group");
-    case CAT_CONTAINER_NGWTRACKERGROUP:
-        return m_connection->isClsSupported("trackers_group");
-    default:
-        return false;
-    }
+    return m_connection->isClsSupported(ngw::objectTypeToNGWClsType(type));
 }
 
 bool NGWResourceGroup::canDestroy() const
 {
     return true; // Not check user rights here as server will report error if no access.
+}
+
+bool NGWResourceGroup::rename(const std::string &newName)
+{
+    return NGWResourceBase::changeName(newName);
+}
+
+bool NGWResourceGroup::canRename() const
+{
+    return true; // Not check user rights here as server will report error if no access.
+}
+
+Properties NGWResourceGroup::properties(const std::string &domain) const
+{
+    return metadata(domain);
+}
+
+std::string NGWResourceGroup::property(const std::string &key,
+                                       const std::string &defaultValue,
+                                       const std::string &domain) const
+{
+    return metadataItem(key, defaultValue, domain);
 }
 
 bool NGWResourceGroup::destroy()
@@ -199,47 +409,258 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
         }
     }
 
-    CPLJSONObject payload;
-    CPLJSONObject resource("resource", payload);
-    resource.Add("cls", ngw::objectTypeToNGWClsType(type));
-    resource.Add("display_name", newName);
-    std::string key = options.asString("KEY");
-    if(!key.empty()) {
-        resource.Add("keyname", key);
-    }
-    std::string desc = options.asString("DESCRIPTION");
-    if(!desc.empty()) {
-        resource.Add("description", desc);
-    }
-    CPLJSONObject parent("parent", resource);
-    parent.Add("id", atoi(m_resourceId.c_str()));
-
-    std::string resourceId = ngw::createResource(url(),
-        payload.Format(CPLJSONObject::Plain), getGDALHeaders(url()).StealList());
-    if(compare(resourceId, "-1", true)) {
-        return ObjectPtr();
-    }
-
     child = ObjectPtr();
-    if(m_childrenLoaded) {
-        switch(type) {
-        case CAT_CONTAINER_NGWGROUP:
-            child = ObjectPtr(new NGWResourceGroup(this, newName, m_connection, resourceId));
-            m_children.push_back(child);
-            break;
-        case CAT_CONTAINER_NGWTRACKERGROUP:
-            child = ObjectPtr(new NGWTrackersGroup(this, newName, m_connection, resourceId));
-            m_children.push_back(child);
-            break;
-        default:
+    if(type == CAT_NGW_VECTOR_LAYER) {
+        Options newOptions(options);
+        newOptions.add("USERPWD", m_connection->userPwd());
+        child = ObjectPtr(NGWFeatureClass::createFeatureClass(this, newName,
+                                                              newOptions));
+    }
+    else {
+        CPLJSONObject payload;
+        CPLJSONObject resource("resource", payload);
+        resource.Add("cls", ngw::objectTypeToNGWClsType(type));
+        resource.Add("display_name", newName);
+        std::string key = options.asString("KEY");
+        if(!key.empty()) {
+            resource.Add("keyname", key);
+        }
+        std::string desc = options.asString("DESCRIPTION");
+        if(!desc.empty()) {
+            resource.Add("description", desc);
+        }
+        CPLJSONObject parent("parent", resource);
+        parent.Add("id", atoi(m_resourceId.c_str()));
+
+        std::string resourceId = ngw::createResource(url(),
+            payload.Format(CPLJSONObject::Plain), getGDALHeaders(url()).StealList());
+        if(compare(resourceId, "-1", true)) {
             return ObjectPtr();
+        }
+
+        resource.Add("id", atoi(resourceId.c_str()));
+
+        if(m_childrenLoaded) {
+            switch(type) {
+            case CAT_NGW_GROUP:
+                child = ObjectPtr(new NGWResourceGroup(this, newName, payload,
+                                                       m_connection));
+                break;
+            case CAT_NGW_TRACKERGROUP:
+                child = ObjectPtr(new NGWTrackersGroup(this, newName, payload,
+                                                       m_connection));
+                break;
+            default:
+                return ObjectPtr();
+            }
         }
     }
 
+    if(child == nullptr) {
+        return child;
+    }
+
+    m_children.push_back(child);
     std::string newPath = fullName() + Catalog::separator() + newName;
     Notify::instance().onNotify(newPath, ngsChangeCode::CC_CREATE_OBJECT);
 
     return child;
+}
+
+bool NGWResourceGroup::canPaste(const enum ngsCatalogObjectType type) const
+{
+    return Filter::isFeatureClass(type);
+}
+
+int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
+                            const Progress &progress)
+{
+    std::string newName = options.asString("NEW_NAME",
+                                           File::getBaseName(child->name()));
+    newName = normalizeDatasetName(newName);
+    if(newName.empty()) {
+        errorMessage(_("Failed to create unique name."));
+        return COD_LOAD_FAILED;
+    }
+    if(move) {
+        progress.onProgress(COD_IN_PROCESS, 0.0,
+                        _("Move '%s' to '%s'"), newName.c_str(), m_name.c_str());
+    }
+    else {
+        progress.onProgress(COD_IN_PROCESS, 0.0,
+                        _("Copy '%s' to '%s'"), newName.c_str(), m_name.c_str ());
+    }
+
+    if(child->type() == CAT_CONTAINER_SIMPLE) {
+        SimpleDataset * const dataset = ngsDynamicCast(SimpleDataset, child);
+        dataset->loadChildren();
+        child = dataset->internalObject();
+    }
+
+    if(!child) {
+        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                          _("Source object is invalid"));
+    }
+
+    if(move && isNGWResource(child->type())) {
+        NGWResourceBase * const base = ngsDynamicCast(NGWResourceBase, child);
+        if(nullptr != base) {
+            // Check move resource inside same NGW
+            if(base->connection()->connectionUrl() ==
+                    connection()->connectionUrl()) {
+                // TODO: add move resources option
+                // Remove child from original container add to this container
+                return COD_SUCCESS;
+            }
+        }
+    }
+
+    if(Filter::isFeatureClass(child->type())) {
+        FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
+        if(!srcFClass) {
+            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
+                child->name().c_str());
+        }
+
+        if(srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
+            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+            if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
+                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                    _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
+                    move ? _("move") : _("copy"), srcFClass->featureCount());
+            }
+        }
+
+        bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
+        OGRFeatureDefn * const srcDefinition = srcFClass->definition();
+        bool ogrStyleField = options.asBool("OGR_STYLE_FIELD", false);
+        if(ogrStyleField) {
+            OGRFieldDefn ogrStyleField(OGR_STYLE_FIELD, OFTString);
+            srcDefinition->AddFieldDefn(&ogrStyleField);
+        }
+        std::vector<OGRwkbGeometryType> geometryTypes =
+                srcFClass->geometryTypes();
+        OGRwkbGeometryType filterGeometryType =
+                    FeatureClass::geometryTypeFromName(
+                        options.asString("ACCEPT_GEOMETRY", "ANY"));
+        Options createOptions(options);
+        auto spatialRef = m_connection->spatialReference();
+        for(OGRwkbGeometryType geometryType : geometryTypes) {
+            if(filterGeometryType != geometryType &&
+                    filterGeometryType != wkbUnknown) {
+                continue;
+            }
+            std::string createName = newName;
+            OGRwkbGeometryType newGeometryType = geometryType;
+            if(geometryTypes.size() > 1 && filterGeometryType == wkbUnknown) {
+                auto key = createOptions.asString("KEY");
+                if(!key.empty()) {
+                    warningMessage(_("The key metadata item set, but %d diffeerent layers will create. Omit key."),
+                                   static_cast<int>(geometryTypes.size()));
+                    createOptions.remove("KEY");
+                }
+
+                createName += "_";
+                createName += FeatureClass::geometryTypeName(geometryType,
+                                      FeatureClass::GeometryReportType::SIMPLE);
+                if(toMulti && OGR_GT_Flatten(geometryType) < wkbMultiPoint) {
+                    newGeometryType = static_cast<OGRwkbGeometryType>(geometryType + 3);
+                }
+            }
+
+            auto userPwd = m_connection->userPwd();
+            if(!userPwd.empty()) {
+                createOptions.add("USERPWD", userPwd);
+            }
+            auto dstFClass = NGWFeatureClass::createFeatureClass(this, createName,
+                srcDefinition, spatialRef, newGeometryType, createOptions);
+            if(nullptr == dstFClass) {
+                return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+            }
+            auto dstFields = dstFClass->fields();
+            // Create fields map. We expected equal count of fields
+            FieldMapPtr fieldMap(dstFields.size());
+            for(int i = 0; i < static_cast<int>(dstFields.size()); ++i) {
+                if(i == static_cast<int>(dstFields.size() - 1) && ogrStyleField) {
+                    // Add OGR Style manualy
+                    fieldMap[i] = -1;
+                }
+                else {
+                    fieldMap[i] = i;
+                }
+            }
+
+            Progress progressMulti(progress);
+            progressMulti.setTotalSteps(2);
+            progressMulti.setStep(0);
+
+            int result = dstFClass->copyFeatures(srcFClass, fieldMap,
+                                                 filterGeometryType,
+                                                 progressMulti, createOptions);
+            if(result != COD_SUCCESS) {
+                return result;
+            }
+
+            progressMulti.setStep(1);
+            auto fullNameStr = dstFClass->fullName();
+            // Execute postprocess after features copied.
+            if(!dstFClass->onRowsCopied(progressMulti, createOptions)) {
+                warningMessage(_("Postprocess features after copy in feature class '%s' failed."),
+                               fullNameStr.c_str());
+            }
+
+            addChild(ObjectPtr(dstFClass));
+            Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_CREATE_OBJECT);
+            progressMulti.onProgress(COD_FINISHED, 1.0, "");
+        }
+    }
+    else {
+        return outMessage(COD_UNSUPPORTED,
+                          _("'%s' has unsuported type"), child->name().c_str());
+    }
+
+    if(move) {
+        return child->destroy() ? COD_SUCCESS : COD_DELETE_FAILED;
+    }
+    return COD_SUCCESS;
+}
+
+std::string NGWResourceGroup::normalizeDatasetName(const std::string &name) const
+{
+    std::string outName;
+    if(name.empty()) {
+        outName = "new_dataset";
+    }
+    else {
+        outName = name;
+    }
+
+    std::string originName = outName;
+    int nameCounter = 0;
+    while(!isNameValid(outName)) {
+        outName = originName + "_" + std::to_string(++nameCounter);
+        if(nameCounter == MAX_EQUAL_NAMES) {
+            return "";
+        }
+    }
+
+    return outName;
+}
+
+bool NGWResourceGroup::isNameValid(const std::string &name) const
+{
+    if(name.empty()) {
+        return false;
+    }
+
+    for(const ObjectPtr &object : m_children) {
+        if(compare(object->name(), name)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 //------------------------------------------------------------------------------
@@ -247,12 +668,24 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
 //------------------------------------------------------------------------------
 
 NGWTrackersGroup::NGWTrackersGroup(ObjectContainer * const parent,
-        const std::string &name,
-        NGWConnectionBase *connection,
-        const std::string &resourceId) :
-    NGWResourceGroup(parent, name, connection, resourceId)
+                                   const std::string &name,
+                                   const CPLJSONObject &resource,
+                                   NGWConnectionBase *connection) :
+    NGWResourceGroup(parent, name, resource, connection)
 {
-    m_type = CAT_CONTAINER_NGWTRACKERGROUP;
+    m_type = CAT_NGW_TRACKERGROUP;
+}
+
+Properties NGWTrackersGroup::properties(const std::string &domain) const
+{
+    return metadata(domain);
+}
+
+std::string NGWTrackersGroup::property(const std::string &key,
+                                       const std::string &defaultValue,
+                                       const std::string &domain) const
+{
+    return metadataItem(key, defaultValue, domain);
 }
 
 bool NGWTrackersGroup::canCreate(const enum ngsCatalogObjectType type) const
@@ -332,10 +765,12 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
         return ObjectPtr();
     }
 
+    resource.Add("id", atoi(resourceId.c_str()));
+
     if(m_childrenLoaded) {
         switch(type) {
         case CAT_NGW_TRACKER:
-            child = ObjectPtr(new NGWResource(this, type, newName, m_connection, resourceId));
+            child = ObjectPtr(new NGWResource(this, type, newName, payload, m_connection));
             m_children.push_back(child);
             break;
         default:
@@ -495,7 +930,7 @@ void NGWConnection::fillProperties() const
         CPLJSONDocument connectionFile;
         if(connectionFile.Load(m_path)) {
             CPLJSONObject root = connectionFile.GetRoot();
-            m_url = root.GetString(KEY_URL);
+            m_url = root.GetString(URL_KEY);
 
             m_user = root.GetString(KEY_LOGIN);
             if(!m_user.empty() && !compare(m_user, "guest")) {
@@ -506,6 +941,8 @@ void NGWConnection::fillProperties() const
                 options.add("login", m_user);
                 options.add("password", password);
                 AuthStore::authAdd(m_url, options);
+
+                m_password = password;
             }
         }
     }
@@ -514,15 +951,14 @@ void NGWConnection::fillProperties() const
 Properties NGWConnection::properties(const std::string &domain) const
 {
     fillProperties();
+    Properties out = ObjectContainer::properties(domain);
     if(domain.empty()) {
-        Properties out;
-        out.add("system_path", m_path);
         out.add("url", m_url);
         out.add("login", m_user);
         out.add("is_guest", compare(m_user, "guest") ? "yes" : "no");
         return out;
     }
-    return Properties();
+    return out;
 }
 
 std::string NGWConnection::property(const std::string &key,
@@ -535,10 +971,6 @@ std::string NGWConnection::property(const std::string &key,
             return m_url;
         }
 
-        if(key == "system_path") {
-            return m_path;
-        }
-
         if(key == "login") {
             return m_user;
         }
@@ -547,7 +979,7 @@ std::string NGWConnection::property(const std::string &key,
             return compare(m_user, "guest") ? "yes" : "no";
         }
     }
-    return defaultValue;
+    return ObjectContainer::property(key, defaultValue, domain);
 }
 
 bool NGWConnection::setProperty(const std::string &key, const std::string &value,
@@ -568,7 +1000,7 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
     }
 
     if(key == "is_guest") {
-        if(compare(value, "yes")) {
+        if(toBool(value)) {
             if(!compare(m_user, "guest")) {
                 AuthStore::authRemove(m_url);
                 m_user = "guest";
@@ -587,7 +1019,7 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
         return false;
     }
     CPLJSONObject root = connectionFile.GetRoot();
-    root.Set(KEY_URL, m_url);
+    root.Set(URL_KEY, m_url);
     root.Set(KEY_LOGIN, m_user);
     if(changePassword) {
         if(!value.empty()) {

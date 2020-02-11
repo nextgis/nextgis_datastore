@@ -26,6 +26,8 @@
 
 namespace ngs {
 
+constexpr unsigned short MAX_FEATURES4UNSUPPORTED = 999;
+
 class Account
 {
 public:

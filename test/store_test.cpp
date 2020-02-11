@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -28,47 +28,318 @@
 
 #include "ds/datastore.h"
 
-static int counter = 0;
+TEST(StoreTests, TestJSONSAXParser) {
+    initLib();
 
-void ngsTestNotifyFunc(const char* /*uri*/, enum ngsChangeCode /*operation*/) {
-    counter++;
-}
-
-int ngsTestProgressFunc(enum ngsCode /*status*/, double /*complete*/,
-                        const char* /*message*/, void* /*progressArguments*/) {
-    counter++;
-    return TRUE;
-}
-
-int ngsGDALProgressFunc(double /*dfComplete*/, const char */*pszMessage*/,
-                        void */*pProgressArg*/) {
-    counter++;
-    return TRUE;
-}
-
-TEST(StoreTests, TestJSONSAXPArser) {
-    char** options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-
-    ngsListFree(options);
-
-    options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameValue(options, "MAX_RETRY", "20");
     options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
     options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
-    counter = 0;
+    resetCounter();
     CPLJSONDocument doc;
-    EXPECT_EQ(doc.LoadUrl("http://demo.nextgis.com/api/component/pyramid/pkg_version",
+    EXPECT_EQ(doc.LoadUrl("https://sandbox.nextgis.com/api/component/pyramid/pkg_version",
                           options, ngsGDALProgressFunc, nullptr), true);
     ngsListFree(options);
 
     CPLJSONObject obj = doc.GetRoot();
     CPLString ngwVersion = obj.GetString("nextgisweb", "0");
     EXPECT_STRNE(ngwVersion, "0");
+
+    ngsUnInit();
+}
+
+
+TEST(MIStoreTests, TestCreate) {
+    initLib();
+
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+    // Create feature class
+    char **options = nullptr;
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_FC_MAPINFO_TAB);
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "DESCRIPTION", "Test Feature Class");
+    options = ngsListAddNameValue(options, "GEOMETRY_TYPE", "LINESTRING");
+    options = ngsListAddNameValue(options, "FIELD_COUNT", "3");
+    options = ngsListAddNameValue(options, "FIELD_0_TYPE", "INTEGER");
+    options = ngsListAddNameValue(options, "FIELD_0_NAME", "id");
+    options = ngsListAddNameValue(options, "FIELD_0_ALIAS", "идентификатор");
+    options = ngsListAddNameValue(options, "FIELD_1_TYPE", "STRING");
+    options = ngsListAddNameValue(options, "FIELD_1_NAME", "desc");
+    options = ngsListAddNameValue(options, "FIELD_1_ALIAS", "описание");
+    options = ngsListAddNameValue(options, "FIELD_2_TYPE", "DATE_TIME");
+    options = ngsListAddNameValue(options, "FIELD_2_NAME", "date");
+    options = ngsListAddNameValue(options, "FIELD_2_ALIAS", "Это дата");
+    options = ngsListAddNameValue(options, "ENCODING", "CP1251");
+    CatalogObjectH miFC = ngsCatalogObjectCreate(mistore, "test_fc", options);
+    ngsListFree(options);
+    options = nullptr;
+    ASSERT_NE(miFC, nullptr);
+
+    // After created, reopen as read only
+    EXPECT_STREQ(ngsCatalogObjectProperty(miFC, "read_only", "ON", "nga"), "OFF");
+    EXPECT_EQ(ngsCatalogObjectSetProperty(miFC, "read_only", "ON", "nga"), COD_SUCCESS);
+    EXPECT_STREQ(ngsCatalogObjectProperty(miFC, "read_only", "OFF", "nga"), "ON");
+
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(mistore, 0);
+    ASSERT_NE(pathInfo, nullptr);
+    std::string mistorePath = ngsCatalogObjectPath(mistore);
+    int count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << mistorePath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 1);
+    ngsFree(pathInfo);
+
+    // Delete
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
+TEST(MIStoreTests, TestLoadDelete) {
+    initLib();
+
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+    // Load tab, shape
+    CatalogObjectH shape = getLocalFile("/data/bld.shp");
+    ASSERT_NE(shape, nullptr);
+
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "NEW_NAME", "shp_bld");
+    options = ngsListAddNameValue(options, "DESCRIPTION", "Длинное русское имя 1");
+
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsListFree(options);
+    options = nullptr;
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "NEW_NAME", "tab_bld");
+    options = ngsListAddNameValue(options, "DESCRIPTION", "Длинное русское имя 2");
+
+    CatalogObjectH tab = getLocalFile("/data/bld.tab");
+    ASSERT_NE(tab, nullptr);
+
+    EXPECT_EQ(ngsCatalogObjectCopy(tab, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+
+    ngsListFree(options);
+    options = nullptr;
+
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(mistore, 0);
+    ASSERT_NE(pathInfo, nullptr);
+    int count = 0;
+    std::string mistorePath = ngsCatalogObjectPath(mistore);
+    CatalogObjectH delObject = nullptr;
+    while(pathInfo[count].name) {
+        delObject = pathInfo[count].object;
+        std::cout << count << ". " << mistorePath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 2);
+    ngsFree(pathInfo);
+
+    // Delete single layer
+    ASSERT_NE(delObject, nullptr);
+    EXPECT_EQ(ngsCatalogObjectDelete(delObject), COD_SUCCESS);
+
+    pathInfo = ngsCatalogObjectQuery(mistore, 0);
+    ASSERT_NE(pathInfo, nullptr);
+    count = 0;
+    while(pathInfo[count].name) {
+        count++;
+    }
+    ngsFree(pathInfo);
+    EXPECT_GE(count, 1);
+
+    // Delete
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
+TEST(MIStoreTests, TestLogEdits) {
+    initLib();
+
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+     // Load shape
+    CatalogObjectH shape = getLocalFile("/data/bld.shp");
+    ASSERT_NE(shape, nullptr);
+
+    char **options = nullptr;
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "NEW_NAME", "shp_bld");
+    options = ngsListAddNameValue(options, "DESCRIPTION", "Длинное русское имя 1");
+    options = ngsListAddNameValue(options, "SYNC", "ON");
+
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsListFree(options);
+    options = nullptr;
+
+    // Edit outside MIStore
+    auto basePath = ngsCatalogObjectProperty(mistore, "system_path", "", "");
+    auto editPath = ngsFormFileName(basePath, "shp_bld", "tab");
+    GDALDataset *DS = static_cast<GDALDataset*>(
+                GDALOpenEx(editPath, GDAL_OF_UPDATE|GDAL_OF_SHARED, nullptr,
+                           nullptr, nullptr));
+    ASSERT_NE(DS, nullptr);
+    OGRLayer *layer = DS->GetLayer(0);
+    ASSERT_NE(layer, nullptr);
+
+    OGRFeatureDefn *featureDefn = layer->GetLayerDefn();
+    OGRFeature *newFeature = OGRFeature::CreateFeature(featureDefn);
+    newFeature->SetField("CLCODE", "1");
+    newFeature->SetField("CLNAME", "2");
+    OGRGeometry* poGeom = nullptr;
+    EXPECT_EQ(OGRGeometryFactory::createFromWkt("POLYGON ((0 0 10,0 1 10,1 1 10,1 0 10,0 0 10))",
+                                      layer->GetSpatialRef(), &poGeom), OGRERR_NONE);
+    EXPECT_EQ(layer->CreateFeature(newFeature), OGRERR_NONE);
+    OGRFeature::DestroyFeature(newFeature);
+
+    newFeature = layer->GetFeature(1);
+    newFeature->SetField("CLCODE", "3");
+    newFeature->SetField("CLNAME", "4");
+    EXPECT_EQ(layer->SetFeature(newFeature), OGRERR_NONE);
+    OGRFeature::DestroyFeature(newFeature);
+
+    EXPECT_EQ(layer->DeleteFeature(2), OGRERR_NONE);
+
+    GDALClose(DS);
+
+    // Check edits
+    CatalogObjectH tab = ngsCatalogObjectGetByName(mistore, "Длинное русское имя 1", 1);
+    ASSERT_NE(tab, nullptr);
+    ngsEditOperation *ops = ngsFeatureClassGetEditOperations(tab);
+    ASSERT_NE(ops, nullptr);
+    int count = 0;
+    while(ops[count].fid != NOT_FOUND) {
+        count++;
+    }
+    ngsFree(ops);
+    EXPECT_GE(count, 2);
+
+    // Delete
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
+
+TEST(MIStoreTests, TestSync) {
+    initLib();
+
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+    // Copy to NGW with sync support
+
+    // Copy from NGW with sync support
+
+    // Delete
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
+TEST(MIStoreTests, TestLoadFromNGW) {
+    initLib();
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    // Create resource group
+    time_t rawTime = std::time(nullptr);
+    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto group = createGroup(connection, groupName);
+    ASSERT_NE(group, nullptr);
+
+    // Paste local MI tab file with ogr style to NGW vector layer
+    resetCounter();
+    char** options = nullptr;
+    // Add descritpion to NGW vector layer
+    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
+    // If source layer has mixed geometries (point + multipoints, lines +
+    // multilines, etc.) create output vector layers with multi geometries.
+    // Otherwise the layer for each type geometry form source layer will create.
+    options = ngsListAddNameValue(options, "FORCE_GEOMETRY_TO_MULTI", "TRUE");
+    // Skip empty geometries. Mandatory for NGW?
+    options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "TRUE");
+    // Check if geometry valid. Non valid geometry will not add to destination
+    // layer.
+    options = ngsListAddNameValue(options, "SKIP_INVALID_GEOMETRY", "TRUE");
+    const char *layerName = "новый слой 4";
+    // Set new layer name. If not set, the source layer name will use.
+    options = ngsListAddNameValue(options, "NEW_NAME", layerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_TO_FIELD", "TRUE");
+
+    // TODO: Add MI thematic maps (theme Legends) from wor file
+//    options = ngsListAddNameValue(options, "WOR_STYLE", "...");
+
+    CatalogObjectH tab = getLocalFile("/data/bld.tab");
+    EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    auto vectorLayer = ngsCatalogObjectGetByName(group, layerName, 1);
+    ASSERT_NE(vectorLayer, nullptr);
+
+    EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
+
+    // Create MI Store
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+    // Paste vector layer to store
+    options = nullptr;
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    // MapInfo has limits to 31 characters for tab file name
+    const char *storeLayerName = "t_bld";
+    // MapInfo has limits to 255 characters for tab description field (no limits,
+    // but in MapINFO GUI will trancate)
+    const char *longStoreLayerName = "Длинное русское имя 1";
+    options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
+    options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
+    // TODO:
+    options = ngsListAddNameValue(options, "SYNC", "ON");
+
+    resetCounter();
+    EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    auto storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
+    ASSERT_NE(storeLayer, nullptr);
+
+    EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
+
+    // Delete resource group
+    EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+    // Delete store
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
 }
 
 /*

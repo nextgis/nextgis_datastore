@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -21,10 +21,12 @@
 #ifndef NGSNGWCONNECTION_H
 #define NGSNGWCONNECTION_H
 
+#include "ds/coordinatetransformation.h"
 #include "objectcontainer.h"
 #include "remoteconnections.h"
 
 #include "cpl_json.h"
+
 
 namespace ngs {
 
@@ -50,20 +52,31 @@ namespace ngw {
                                char **httpOptions);
     bool deleteResource(const std::string &url, const std::string &resourceId,
         char **httpOptions);
+    bool renameResource(const std::string &url, const std::string &resourceId,
+        const std::string &newName, char **httpOptions);
+    bool updateResource(const std::string &url, const std::string &resourceId,
+        const std::string &payload, char **httpOptions);
     std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type);
+    std::string resmetaSuffix(CPLJSONObject::Type eType);
 
     // Tracks
     std::string getTrackerUrl();
     bool sendTrackPoints(const std::string &payload);
-}
+} // namespace ngw
 
+/**
+ * @brief The NGWConnectionBase class
+ */
 class NGWConnectionBase : public ConnectionBase
 {
 public:
     std::string connectionUrl() const;
     bool isClsSupported(const std::string &cls) const;
+    std::string userPwd() const;
+    SpatialReferencePtr spatialReference() const;
 protected:
     mutable std::string m_url, m_user;
+    mutable std::string m_password; // TODO: When move authstore to GDAL remove password storing.
     std::vector<std::string> m_availableCls;
 };
 
@@ -73,15 +86,28 @@ protected:
 class NGWResourceBase
 {
 public:
-    explicit NGWResourceBase(NGWConnectionBase *connection = nullptr,
-                            const std::string &resourceId = "0");
+    explicit NGWResourceBase(const CPLJSONObject &resource = CPLJSONObject(),
+                             NGWConnectionBase *connection = nullptr);
     bool remove();
+    bool changeName(const std::string &newName);
+    NGWConnectionBase *connection() const;
+
+    //static
+public:
+    static bool isNGWResource(const enum ngsCatalogObjectType type);
 
 protected:
     std::string url() const;
+    Properties metadata(const std::string &domain) const;
+    std::string metadataItem(const std::string &key,
+                             const std::string &defaultValue,
+                             const std::string &domain) const;
 protected:
     std::string m_resourceId;
     NGWConnectionBase *m_connection;
+    std::map<std::string, std::string> m_resmeta;
+    std::string m_keyName, m_description;
+    std::string m_creationDate;
 };
 
 /**
@@ -93,11 +119,18 @@ public:
     explicit NGWResource(ObjectContainer * const parent,
                          const enum ngsCatalogObjectType type,
                          const std::string &name,
-                         NGWConnectionBase *connection = nullptr,
-                         const std::string &resourceId = "0");
+                         const CPLJSONObject &resource = CPLJSONObject(),
+                         NGWConnectionBase *connection = nullptr);
     // Object interface
 public:
     virtual bool destroy() override;
+    virtual bool canDestroy() const override;
+    virtual bool rename(const std::string &newName) override;
+    virtual bool canRename() const override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
 };
 
 /**
@@ -107,22 +140,36 @@ class NGWResourceGroup : public ObjectContainer, public NGWResourceBase
 {
 public:
     explicit NGWResourceGroup(ObjectContainer * const parent,
-                         const std::string &name,
-                         NGWConnectionBase *connection = nullptr,
-                         const std::string &resourceId = "0");
+                              const std::string &name,
+                              const CPLJSONObject &resource = CPLJSONObject(),
+                              NGWConnectionBase *connection = nullptr);
     virtual ObjectPtr getResource(const std::string &resourceId) const;
     virtual void addResource(const CPLJSONObject &resource);
 
     // Object interface
 public:
     virtual bool destroy() override;
+    virtual bool canDestroy() const override;
+    virtual bool rename(const std::string &newName) override;
+    virtual bool canRename() const override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
 
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
-                        const std::string &name, const Options &options) override;
-    virtual bool canDestroy() const override;
+                    const std::string &name, const Options &options) override;
+    virtual bool canPaste(const enum ngsCatalogObjectType type) const override;
+    virtual int paste(ObjectPtr child, bool move = false,
+                      const Options &options = Options(),
+                      const Progress &progress = Progress()) override;
+
+private:
+    std::string normalizeDatasetName(const std::string &name) const;
+    bool isNameValid(const std::string &name) const;
 };
 
 /**
@@ -132,15 +179,20 @@ class NGWTrackersGroup : public NGWResourceGroup
 {
 public:
     explicit NGWTrackersGroup(ObjectContainer * const parent,
-                         const std::string &name,
-                         NGWConnectionBase *connection = nullptr,
-                         const std::string &resourceId = "0");
-
+                              const std::string &name,
+                              const CPLJSONObject &resource = CPLJSONObject(),
+                              NGWConnectionBase *connection = nullptr);
+    // Object interface
+public:
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
-                        const std::string &name, const Options &options) override;
+                    const std::string &name, const Options &options) override;
 };
 
 /**

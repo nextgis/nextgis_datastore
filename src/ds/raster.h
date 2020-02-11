@@ -93,7 +93,7 @@ public:
                              const std::string &domain) override;
 
     // DatasetBase interface
-    virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
+    virtual bool open(unsigned int openFlags = DatasetBase::defaultOpenFlags,
                       const Options &options = Options()) override;
     virtual std::string options(ngsOptionType optionType) const override;
 

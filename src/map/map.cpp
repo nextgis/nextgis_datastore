@@ -169,11 +169,13 @@ LayerPtr Map::getLayer(int layerId) const
 
 int Map::createLayer(const std::string &name, const ObjectPtr &object)
 {
+    // FIXME: We have featureclass instead of featureclasovr here
     LayerPtr layer;
     if(object->type() == CAT_CONTAINER_SIMPLE) {
         SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
         simpleDS->loadChildren();
         ObjectPtr internalObject = simpleDS->internalObject();
+        // FIXME: We have FeatureClassPtr not FeatureClassOverviewPOtr here
         if(internalObject) {
             return createLayer(name, internalObject);
         }
@@ -182,7 +184,7 @@ int Map::createLayer(const std::string &name, const ObjectPtr &object)
     if(Filter::isFeatureClass(object->type())) {
         layer = createLayer(name, Layer::Type::Vector);
         FeatureLayer *newFCLayer = ngsStaticCast(FeatureLayer, layer);
-        FeatureClassPtr fc = std::dynamic_pointer_cast<FeatureClass>(object);
+        FeatureClassOverviewPtr fc = std::dynamic_pointer_cast<FeatureClassOverview>(object);
         newFCLayer->setFeatureClass(fc);
     }
     else if(Filter::isRaster(object->type())) {

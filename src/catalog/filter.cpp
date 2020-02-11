@@ -22,7 +22,9 @@
 
 #include "catalog/mapfile.h"
 #include "ds/datastore.h"
-//#include "ds/mapinfodatastore.h"
+#ifndef NGS_MOBILE
+#include "ds/mapinfodatastore.h"
+#endif // NGS_MOBILE
 
 namespace ngs {
 
@@ -80,7 +82,8 @@ bool Filter::canDisplay(ObjectPtr object) const
 bool Filter::isFeatureClass(const enum ngsCatalogObjectType type)
 {
     return (type >= CAT_FC_ANY && type < CAT_FC_ALL) ||
-            type == CAT_CONTAINER_SIMPLE;
+            type == CAT_CONTAINER_SIMPLE || type == CAT_NGW_VECTOR_LAYER ||
+            type == CAT_NGW_POSTGIS_LAYER;
 }
 
 bool Filter::isSimpleDataset(const enum ngsCatalogObjectType type)
@@ -91,17 +94,23 @@ bool Filter::isSimpleDataset(const enum ngsCatalogObjectType type)
             type == CAT_FC_GML ||
             type == CAT_FC_GEOJSON ||
             type == CAT_FC_CSV ||
-            type == CAT_FC_GPX;
+            type == CAT_FC_GPX ||
+            type == CAT_NGW_VECTOR_LAYER ||
+            type == CAT_NGW_POSTGIS_LAYER;
 }
 
 bool Filter::isContainer(const enum ngsCatalogObjectType type)
 {
-    return type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL && type != CAT_CONTAINER_SIMPLE;
+    return ((type >= CAT_CONTAINER_ANY && type < CAT_CONTAINER_ALL) ||
+            type == CAT_NGW_GROUP || type == CAT_NGW_TRACKERGROUP) &&
+            type != CAT_CONTAINER_SIMPLE;
 }
 
 bool Filter::isRaster(const enum ngsCatalogObjectType type)
 {
-    return type >= CAT_RASTER_ANY && type < CAT_RASTER_ALL;
+    return (type >= CAT_RASTER_ANY && type < CAT_RASTER_ALL) ||
+           (type >= CAT_NGW_RASTER_LAYER && type < CAT_NGW_TRACKER) ||
+            type == CAT_NGW_WEBMAP;
 }
 
 bool Filter::isTable(const enum ngsCatalogObjectType type)
@@ -124,13 +133,13 @@ bool Filter::isFileBased(const enum ngsCatalogObjectType type)
           (type >= CAT_FC_ESRI_SHAPEFILE && type < CAT_FC_POSTGIS) ||
           (type >= CAT_FC_GML && type < CAT_FC_MEM) ||
           (type >= CAT_FC_KMLKMZ && type < CAT_FC_GDB) ||
-           type == CAT_FC_CSV || type == CAT_FC_MEM || type == CAT_FC_GPX ||
-           type == CAT_CONTAINER_MAPINFO_STORE;
+           type == CAT_FC_CSV || type == CAT_FC_MEM || type == CAT_FC_GPX;
 }
 
 bool Filter::isLocalDir(const enum ngsCatalogObjectType type) {
     return type == CAT_CONTAINER_DIR || type == CAT_CONTAINER_DIR_LINK ||
-           type == CAT_CONTAINER_ARCHIVE || type == CAT_CONTAINER_ARCHIVE;
+           type == CAT_CONTAINER_ARCHIVE || type == CAT_CONTAINER_ARCHIVE ||
+           type == CAT_CONTAINER_MAPINFO_STORE;
 }
 
 bool Filter::isConnection(const enum ngsCatalogObjectType type)
@@ -229,6 +238,9 @@ GDALDriver *Filter::getGDALDriver(const enum ngsCatalogObjectType type)
         return GetGDALDriverManager()->GetDriverByName("XLS");
     case CAT_TABLE_XLSX:
         return GetGDALDriverManager()->GetDriverByName("XLSX");
+    case CAT_NGW_VECTOR_LAYER:
+    case CAT_NGW_POSTGIS_LAYER:
+        return GetGDALDriverManager()->GetDriverByName("NGW");
     default:
         return nullptr;
     }
@@ -250,8 +262,10 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
         return DataStore::extension();
     case CAT_FILE_NGMAPDOCUMENT:
         return MapFile::extension();
+#ifndef NGS_MOBILE
     case CAT_CONTAINER_MAPINFO_STORE:
-        return "";//MapInfoDataStore::extension();
+        return MapInfoDataStore::extension();
+#endif
     case CAT_CONTAINER_MEM:
         return "ngmem";
     case CAT_CONTAINER_KMZ:

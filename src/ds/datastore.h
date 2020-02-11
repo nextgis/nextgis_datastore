@@ -34,6 +34,7 @@ constexpr const char *TRACKS_TABLE = "nga_tracks";
  */
 class DataStore : public Dataset, public SpatialDataset
 {
+    friend class FeatureClassOverview;
 public:
     explicit DataStore(ObjectContainer * const parent = nullptr,
               const std::string &name = "",
@@ -50,7 +51,7 @@ public:
 
     // Dataset interface
 public:
-    virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
+    virtual bool open(unsigned int openFlags = DatasetBase::defaultOpenFlags,
                       const Options &options = Options()) override;
     virtual void startBatchOperation() override { enableJournal(false); }
     virtual void stopBatchOperation() override { enableJournal(true); }
@@ -76,10 +77,6 @@ protected:
 
     // Object interface
 public:
-    virtual Properties properties(const std::string &domain = NG_ADDITIONS_KEY) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain = NG_ADDITIONS_KEY) const override;
     virtual bool setProperty(const std::string &key, const std::string &value,
                              const std::string &domain = NG_ADDITIONS_KEY) override;
 
@@ -90,11 +87,30 @@ public:
                         const std::string& name,
                         const Options &options) override;
 
+    // static
+protected:
+    static OGRLayer *createOverviewsTable(GDALDataset *ds,
+                                          const std::string &name);
+    static bool createOverviewsTableIndex(GDALDataset *ds,
+                                          const std::string &name);
+    static bool dropOverviewsTableIndex(GDALDataset *ds,
+                                        const std::string &name);
+
 protected:
     virtual bool isNameValid(const std::string &name) const override;
-    virtual std::string normalizeFieldName(const std::string &name) const override;
+    virtual std::string normalizeFieldName(const std::string &name,
+                                           const std::vector<std::string> &nameList,
+                                           int counter = 0) const override;
     virtual void fillFeatureClasses() const override;
     bool createTracksTable();
+
+    virtual OGRLayer *createOverviewsTable(const std::string &name);
+    virtual bool destroyOverviewsTable(const std::string &name);
+    virtual bool clearOverviewsTable(const std::string &name);
+    virtual OGRLayer *getOverviewsTable(const std::string &name);
+    virtual bool createOverviewsTableIndex(const std::string &name);
+    virtual bool dropOverviewsTableIndex(const std::string &name);
+    virtual std::string overviewsTableName(const std::string &name) const;
 
 protected:
     void enableJournal(bool enable);

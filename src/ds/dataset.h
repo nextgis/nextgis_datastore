@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -38,11 +38,14 @@ constexpr const char *OVR_ZOOM_KEY = "z";
 constexpr const char *OVR_X_KEY = "x";
 constexpr const char *OVR_Y_KEY = "y";
 constexpr const char *OVR_TILE_KEY = "tile";
+constexpr const char *DESCRIPTION_KEY = "DESCRIPTION";
 constexpr const char *ATTACH_FEATURE_ID_FIELD = "afid";
 constexpr const char *ATTACH_FILE_NAME_FIELD = "name";
 constexpr const char *ATTACH_DESCRIPTION_FIELD = "descript";
+constexpr const char *ATTACH_DATA_FIELD = "data";
 constexpr const char *FEATURE_ID_FIELD = "ffid";
 constexpr const char *OPERATION_FIELD = "op";
+constexpr const char *META_FIELD = "meta";
 
 constexpr const char *USER_KEY = "user";
 constexpr const char *NG_ADDITIONS_KEY = "nga";
@@ -51,6 +54,7 @@ constexpr int USER_PREFIX_KEY_LEN = length(USER_PREFIX_KEY);
 constexpr const char *NGS_VERSION_KEY = "version";
 
 constexpr const char *METADATA_TABLE_NAME = "nga_meta";
+constexpr const char *READ_ONLY_KEY = "read_only";
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -74,8 +78,7 @@ public:
     DatasetBase();
     virtual ~DatasetBase();
     virtual std::string options(enum ngsOptionType optionType) const = 0;
-    virtual GDALDataset *getGDALDataset() const { return m_DS; }
-    virtual bool open(unsigned int openFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
+    virtual bool open(unsigned int openFlags = defaultOpenFlags,
                       const Options &options = Options()) = 0;
     virtual void close();
     bool startTransaction(bool force = false);
@@ -84,6 +87,9 @@ public:
     void flushCache();
     // is checks
     virtual bool isOpened() const { return m_DS != nullptr; }
+
+public: // static
+    static const unsigned int defaultOpenFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR;
 protected:
     bool open(const std::string &path, unsigned int openFlags,
               const Options &options = Options());
@@ -169,39 +175,28 @@ public:
                            const enum ngsCatalogObjectType type,
                            const std::string &name,
                            const Options &options = Options());
+    static bool isReadOnly(GDALDataset *DS);
+    static bool forbiddenChar(char c);
 
 protected:
     static OGRLayer *createMetadataTable(GDALDataset *ds);
     static bool destroyTable(GDALDataset *ds, OGRLayer *layer);
-    static OGRLayer *createOverviewsTable(GDALDataset *ds,
-                                          const std::string &name);
-    static bool createOverviewsTableIndex(GDALDataset *ds,
-                                          const std::string &name);
-    static bool dropOverviewsTableIndex(GDALDataset *ds,
-                                        const std::string &name);
     static OGRLayer *createAttachmentsTable(GDALDataset *ds,
                                             const std::string &path,
                                             const std::string &name);
     static OGRLayer *createEditHistoryTable(GDALDataset *ds,
                                             const std::string &name);
 
-    //    static bool createEditHistoryTable(GDALDataset* ds, const char* name);
-
 protected:
     virtual bool isNameValid(const std::string &name) const;
     virtual std::string normalizeDatasetName(const std::string &name) const;
-    virtual std::string normalizeFieldName(const std::string &name) const;
+    virtual std::string normalizeFieldName(const std::string &name,
+                                           const std::vector<std::string> &nameList,
+                                           int counter = 0) const;
     virtual void fillFeatureClasses() const;
     virtual bool skipFillFeatureClass(OGRLayer *layer) const;
     virtual bool destroyTable(Table *table);
     virtual GDALDataset *createAdditionsDataset();
-    virtual OGRLayer *createOverviewsTable(const std::string &name);
-    virtual bool destroyOverviewsTable(const std::string &name);
-    virtual bool clearOverviewsTable(const std::string &name);
-    virtual OGRLayer *getOverviewsTable(const std::string &name);
-    virtual bool createOverviewsTableIndex(const std::string &name);
-    virtual bool dropOverviewsTableIndex(const std::string &name);
-    virtual std::string overviewsTableName(const std::string &name) const;
     virtual OGRLayer *createAttachmentsTable(const std::string &name);
     virtual bool destroyAttachmentsTable(const std::string &name);
     virtual OGRLayer *getAttachmentsTable(const std::string &name);
@@ -212,6 +207,7 @@ protected:
     virtual void clearEditHistoryTable(const std::string &name);
     virtual std::string historyTableName(const std::string &name) const;
     virtual bool deleteFeatures(const std::string &name);
+    void releaseResultSet(Table *table);
 
 protected:
     GDALDataset *m_addsDS;

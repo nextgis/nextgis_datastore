@@ -52,6 +52,7 @@ std::string crypt_key();
 std::string encrypt(const std::string& ptext);
 std::string decrypt(const std::string& ctext);
 std::string deviceId(bool regenerate = false);
+bool toBool(const std::string &val);
 
 }
 #endif // NGSSTRINGUTIL_H

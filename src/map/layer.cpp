@@ -97,7 +97,7 @@ bool FeatureLayer::load(const CPLJSONObject &store, ObjectContainer *objectConta
         fcObject = Catalog::fromRelativePath(path, objectContainer);
     }
 
-    m_featureClass = std::dynamic_pointer_cast<FeatureClass>(fcObject);
+    m_featureClass = std::dynamic_pointer_cast<FeatureClassOverview>(fcObject);
     if(m_featureClass) {
         return true;
     }

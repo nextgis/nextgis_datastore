@@ -52,6 +52,8 @@ namespace ngs {
 constexpr const char *STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
 
+// Overviews
+constexpr const char *OVR_SUFFIX = "overviews";
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -75,17 +77,32 @@ bool DataStore::isNameValid(const std::string &name) const
     return Dataset::isNameValid(name);
 }
 
-std::string DataStore::normalizeFieldName(const std::string &name) const
+std::string DataStore::normalizeFieldName(const std::string &name,
+                                          const std::vector<std::string> &nameList,
+                                          int counter) const
 {
-    if(compare(ngw::REMOTE_ID_KEY, name)) {
-        std::string out = name + "_";
-        return out;
+    if(counter == 0) {
+        if(compare(ngw::REMOTE_ID_KEY, name)) {
+            std::string out = name + "_";
+            return normalizeFieldName(out, nameList, counter);
+        }
+        if(compare("fid", name) || compare("geom", name)) {
+            std::string out = name + "_";
+            return normalizeFieldName(out, nameList, counter);
+        }
     }
-    if(compare("fid", name) || compare("geom", name)) {
-        std::string out = name + "_";
-        return out;
+    return Dataset::normalizeFieldName(name, nameList, counter);
+}
+
+static bool isChildExists(const std::string &name,
+                          const std::vector<ObjectPtr> &list)
+{
+    for(const auto &item : list) {
+        if(item->name() == name) {
+            return true;
+        }
     }
-    return Dataset::normalizeFieldName(name);
+    return false;
 }
 
 void DataStore::fillFeatureClasses() const
@@ -99,6 +116,9 @@ void DataStore::fillFeatureClasses() const
             }
 
             const char *layerName = layer->GetName();
+            if(isChildExists(layerName, m_children)) {
+                continue;
+            }
             DataStore *parent = const_cast<DataStore*>(this);
             if(geometryType == wkbNone) {
                 m_children.push_back(ObjectPtr(new StoreTable(layer, parent, layerName)));
@@ -153,7 +173,7 @@ bool DataStore::open(unsigned int openFlags, const Options &options)
 
     resetError();
 
-    int version = std::stoi(property(NGS_VERSION_KEY, "0"));
+    int version = std::stoi(property(NGS_VERSION_KEY, "0", NG_ADDITIONS_KEY));
 
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
         return errorMessage(_("Upgrade storage failed"));
@@ -168,7 +188,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
                                             SpatialReferencePtr spatialRef,
                                             OGRwkbGeometryType type,
                                             const Options &options,
-                                            const Progress& progress)
+                                            const Progress &progress)
 {
     if(nullptr == m_DS) {
         errorMessage(_("Not opened"));
@@ -189,6 +209,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
         return nullptr;
     }
 
+    std::vector<std::string> namesList;
     for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
         OGRFieldDefn *srcField = definition->GetFieldDefn(i);
         OGRFieldDefn dstField(srcField);
@@ -198,7 +219,7 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
             newFieldName = srcField->GetNameRef();
         }
         else {
-            newFieldName = normalizeFieldName(srcField->GetNameRef());
+            newFieldName = normalizeFieldName(srcField->GetNameRef(), namesList);
             if(!compare(newFieldName, srcField->GetNameRef())) {
                 progress.onProgress(COD_WARNING, 0.0,
                                     _("Field %s of source table was renamed to %s in destination tables"),
@@ -211,14 +232,16 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
             errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
             return nullptr;
         }
+        namesList.push_back(newFieldName);
     }
 
     FeatureClass *out = new StoreFeatureClass(layer, this, name);
 
-    if(options.asBool("CREATE_OVERVIEWS", false) &&
-            !options.asString("ZOOM_LEVELS", "").empty()) {
-        out->createOverviews(progress, options);
-    }
+    // TODO: Is it right place?
+//    if(options.asBool("CREATE_OVERVIEWS", false) &&
+//            !options.asString("ZOOM_LEVELS", "").empty()) {
+//        out->createOverviews(progress, options);
+//    }
 
     if(m_parent) {
         m_parent->notifyChanges();
@@ -253,6 +276,7 @@ Table *DataStore::createTable(const std::string &name,
         return nullptr;
     }
 
+    std::vector<std::string> namesList;
     for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
         OGRFieldDefn *srcField = definition->GetFieldDefn(i);
         OGRFieldDefn dstField(srcField);
@@ -262,7 +286,7 @@ Table *DataStore::createTable(const std::string &name,
             newFieldName = srcField->GetNameRef();
         }
         else {
-            newFieldName = normalizeFieldName(srcField->GetNameRef());
+            newFieldName = normalizeFieldName(srcField->GetNameRef(), namesList);
             if(!compare(newFieldName, srcField->GetNameRef())) {
                 progress.onProgress(COD_WARNING, 0.0,
                                     _("Field %s of source table was renamed to %s in destination tables"),
@@ -275,6 +299,7 @@ Table *DataStore::createTable(const std::string &name,
             errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
             return nullptr;
         }
+        namesList.push_back(newFieldName);
     }
 
     Table *out = new StoreTable(layer, this, name);
@@ -293,23 +318,6 @@ bool DataStore::setProperty(const std::string &key, const std::string &value,
 {
     return m_DS->SetMetadataItem(key.c_str(), value.c_str(), domain.c_str()) ==
             OGRERR_NONE;
-}
-
-std::string DataStore::property(const std::string &key,
-                                const std::string &defaultValue,
-                                const std::string &domain) const
-{
-    const char *out = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
-    return nullptr == out ? defaultValue : std::string(out);
-}
-
-Properties DataStore::properties(const std::string &domain) const
-{
-    if(nullptr == m_DS) {
-        return Properties();
-    }
-
-    return Properties(m_DS->GetMetadata(domain.c_str()));
 }
 
 bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
@@ -337,7 +345,8 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
     std::string newName = normalizeDatasetName(name);
 
     // Get field definitions
-    CREATE_FEATURE_DEFN_RESULT featureDefnStruct = createFeatureDefinition(name, options);
+    CREATE_FEATURE_DEFN_RESULT featureDefnStruct =
+            createFeatureDefinition(name, options);
 
     // Add remote id field
     OGRFieldDefn ridField(ngw::REMOTE_ID_KEY, OFTInteger64);
@@ -354,21 +363,18 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
         }
 
         object = ObjectPtr(createFeatureClass(newName, CAT_FC_GPKG,
-                                              featureDefnStruct.defn,
+                                              featureDefnStruct.defn.get(),
                                               m_spatialReference, geomType,
                                               options));
     }
     else if(type == CAT_TABLE_GPKG) {
         object = ObjectPtr(createTable(newName, CAT_TABLE_GPKG,
-                                       featureDefnStruct.defn,
+                                       featureDefnStruct.defn.get(),
                                        options));
     }
 
     setMetadata(object, featureDefnStruct.fields, options);
-
-    if(object && m_childrenLoaded) {
-        m_children.push_back(object);
-    }
+    m_children.push_back(object);
     return object;
 }
 
@@ -719,5 +725,104 @@ bool DataStore::destroyTracksTable()
     }
     return destroyTable(m_DS, layer);
 }
+
+
+OGRLayer *DataStore::createOverviewsTable(const std::string &name)
+{
+    if(!m_addsDS) {
+        createAdditionsDataset();
+    }
+
+    if(!m_addsDS)
+        return nullptr;
+
+    return createOverviewsTable(m_addsDS, overviewsTableName(name));
+}
+
+bool DataStore::createOverviewsTableIndex(const std::string &name)
+{
+    if(!m_addsDS)
+        return false;
+
+    return createOverviewsTableIndex(m_addsDS, overviewsTableName(name));
+}
+
+bool DataStore::dropOverviewsTableIndex(const std::string &name)
+{
+    if(!m_addsDS)
+        return false;
+
+    return dropOverviewsTableIndex(m_addsDS, overviewsTableName(name));
+}
+
+std::string DataStore::overviewsTableName(const std::string &name) const
+{
+    return NG_PREFIX + name + "_" + OVR_SUFFIX;
+}
+
+bool DataStore::createOverviewsTableIndex(GDALDataset *ds, const std::string &name)
+{
+    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s, %s)",
+                              name.c_str(), name.c_str(), OVR_X_KEY, OVR_Y_KEY,
+                              OVR_ZOOM_KEY), nullptr, nullptr);
+    return true;
+}
+
+bool DataStore::dropOverviewsTableIndex(GDALDataset *ds, const std::string &name)
+{
+    ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name.c_str()),
+                   nullptr, nullptr);
+    return true;
+}
+
+bool DataStore::destroyOverviewsTable(const std::string &name)
+{
+    if(!m_addsDS)
+        return false;
+
+    OGRLayer *layer = m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
+    if(!layer)
+        return false;
+    return destroyTable(m_DS, layer);
+}
+
+bool DataStore::clearOverviewsTable(const std::string &name)
+{
+    return deleteFeatures(overviewsTableName(name));
+}
+
+OGRLayer *DataStore::getOverviewsTable(const std::string &name)
+{
+    if(!m_addsDS)
+        return nullptr;
+
+    return m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
+}
+
+
+OGRLayer *DataStore::createOverviewsTable(GDALDataset *ds, const std::string &name)
+{
+    OGRLayer *ovrLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
+    if (nullptr == ovrLayer) {
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
+    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
+    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
+    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
+
+    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
+       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
+       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
+       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
+        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    return ovrLayer;
+}
+
 
 } // namespace ngs
