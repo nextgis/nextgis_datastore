@@ -21,9 +21,12 @@
 
 #include "util.h"
 
+#include "catalog/catalog.h"
 #include "catalog/file.h"
 #include "catalog/folder.h"
+#include "catalog/ngw.h"
 #include "util/error.h"
+#include "util/url.h"
 
 namespace ngs {
 
@@ -94,23 +97,13 @@ void setMetadata(const ObjectPtr &object, std::vector<fieldData> fields,
 
 namespace ngw {
 
-OGRLayer *createAttachmentsTable(GDALDataset *ds, const std::string &name,
-                                 const std::string &filesPath)
+OGRLayer *createAttachmentsTable(GDALDataset *ds, const std::string &name)
 {
     resetError();
     OGRLayer *attLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
         outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
-    }
-
-    // Create folder for files
-    if(!filesPath.empty()) {
-        std::string attachmentsPath =
-                File::resetExtension(filesPath, Dataset::attachmentsFolderExtension());
-        if(!Folder::isExists(attachmentsPath)) {
-            Folder::mkDir(attachmentsPath, true);
-        }
     }
 
     // Create table  fields
@@ -159,6 +152,55 @@ OGRLayer *createEditHistoryTable(GDALDataset *ds, const std::string &name)
     }
 
     return logLayer;
+}
+
+std::string downloadAttachment(StoreObject *storeObject, GIntBig fid, GIntBig aid,
+                               const Progress &progress)
+{
+    if(nullptr == storeObject) {
+        return "";
+    }
+
+    auto table = dynamic_cast<Table*>(storeObject);
+    if(nullptr == table) {
+        return "";
+    }
+
+    resetError();
+    auto connectionPath = table->property(NGW_CONNECTION, "", NG_ADDITIONS_KEY);
+    if(connectionPath.empty()) {
+        warningMessage(_("No remote NextGIS Web connection defined in feature class properties"));
+        return "";
+    }
+    auto catalog = Catalog::instance();
+    auto ngwConnection = catalog->getObject(connectionPath);
+    if(nullptr == ngwConnection) {
+        warningMessage(_("Connection to NextGIS Web '%s' defined in feature class properties is not present."),
+                       connectionPath.c_str());
+        return "";
+    }
+
+    auto conn = ngsDynamicCast(NGWConnection, ngwConnection);
+    if(nullptr == conn) {
+        warningMessage(_("Connection to NextGIS Web '%s' defined in feature class properties is not valid."),
+                       connectionPath.c_str());
+        return "";
+    }
+    conn->fillProperties();
+    auto url = conn->connectionUrl();
+
+    auto resourceId = table->property(NGW_ID, "", NG_ADDITIONS_KEY);
+    auto rid = storeObject->getRemoteId(fid);
+    auto arid = storeObject->getAttachmentRemoteId(aid);
+
+    auto attachmentUrl = ngw::getAttachmentDownloadUrl(url, resourceId,
+                                    std::to_string(rid), std::to_string(arid));
+
+    auto dstPath = table->getAttachmentPath(fid, aid, true);
+    if(http::getFile(url, dstPath, progress)) {
+        return dstPath;
+    }
+    return "";
 }
 
 } // namespace ngw

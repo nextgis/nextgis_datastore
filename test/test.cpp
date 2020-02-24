@@ -153,3 +153,38 @@ CatalogObjectH createMIStore(const std::string &name)
 
     return mistore;
 }
+
+void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
+                   CatalogObjectH group)
+{
+    // Paste MI tab layer with ogr style
+    resetCounter();
+    char** options = nullptr;
+    // Add descritpion to NGW vector layer
+    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
+    // If source layer has mixed geometries (point + multipoints, lines +
+    // multilines, etc.) create output vector layers with multi geometries.
+    // Otherwise the layer for each type geometry form source layer will create.
+    options = ngsListAddNameValue(options, "FORCE_GEOMETRY_TO_MULTI", "TRUE");
+    // Skip empty geometries. Mandatory for NGW?
+    options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "TRUE");
+    // Check if geometry valid. Non valid geometry will not add to destination
+    // layer.
+    options = ngsListAddNameValue(options, "SKIP_INVALID_GEOMETRY", "TRUE");
+    // Set new layer name. If not set, the source layer name will use.
+    options = ngsListAddNameValue(options, "NEW_NAME", layerName.c_str());
+    options = ngsListAddNameValue(options, "OGR_STYLE_STRING_TO_FIELD", "TRUE");
+    // If OVERWRITE is ON, existing layer will delete and new created.
+    // If CREATE_UNIQUE the NEW_NAME or name will append counter, if such layer
+    // already present.
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+
+    // TODO: Add MI thematic maps (theme Legends) from wor file
+    //    options = ngsListAddNameValue(options, "WOR_STYLE", "...");
+
+    CatalogObjectH tab = getLocalFile(miPath);
+    EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+
+    EXPECT_GE(getCounter(), 5);
+}

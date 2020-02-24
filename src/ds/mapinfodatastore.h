@@ -21,7 +21,6 @@
 #ifndef MAPINFODATASTORE_H
 #define MAPINFODATASTORE_H
 
-#include "dataset.h"
 #include "storefeatureclass.h"
 
 namespace ngs {
@@ -29,9 +28,11 @@ namespace ngs {
 /**
  * The MapInfoDataStore class
  */
-class MapInfoDataStore : public Dataset, public SpatialDataset
+class MapInfoDataStore : public Dataset, public SpatialDataset,
+        public StoreObjectContainer
 {
     friend class MapInfoStoreFeatureClass;
+    friend class MapInfoStoreTable;
 public:
     explicit MapInfoDataStore(ObjectContainer * const parent = nullptr,
               const std::string &name = "",
@@ -42,9 +43,6 @@ public:
     static bool create(const std::string &path);
     static std::string extension();
 
-    // Object interface
-public:
-    virtual bool destroy() override;
     // Dataset interface
 public:
     virtual bool open(unsigned int openFlags = DatasetBase::defaultOpenFlags,
@@ -74,6 +72,16 @@ public:
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                         const std::string& name,
                         const Options &options) override;
+
+    // StoreObjectContainer interface
+public:
+    virtual bool sync(const Options &options = Options()) override;
+
+    // Dataset interface
+protected:
+    virtual std::string additionsDatasetPath() const override;
+    virtual std::string attachmentsFolderPath(bool create) const override;
+
 protected:
     virtual void fillFeatureClasses() const override;
 
@@ -83,6 +91,7 @@ protected:
     OGRLayer *createHashTable(const std::string &name);
     void clearHashTable(const std::string &name);
     bool destroyHashTable(const std::string &name);
+    std::string tempPath() const;
 };
 
 /**
@@ -114,6 +123,7 @@ protected:
     // StoreObject
 public:
     virtual bool sync(const Options &options) override;
+    virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
 
 protected:
     void close();
@@ -159,12 +169,15 @@ protected:
 
     // Table interface
  public:
-    virtual bool onRowsCopied(const Progress &progress,
+    virtual void onRowCopied(FeaturePtr srcFeature, FeaturePtr dstFature,
+                             const Options &options = Options()) override;
+    virtual bool onRowsCopied(const TablePtr srcTable, const Progress &progress,
                               const Options &options) override;
 
-   // StoreObject
+   // StoreObject interface
 public:
-   virtual bool sync(const Options &options) override;
+    virtual bool sync(const Options &options) override;
+    virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
 
 protected:
     void close();
@@ -175,7 +188,6 @@ private:
    GDALDataset *m_TABDS;
    std::string m_storeName;
    std::string m_encoding;
-
 };
 
 } // namespace ngs

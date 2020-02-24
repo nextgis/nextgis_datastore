@@ -47,6 +47,7 @@ namespace ngw {
     std::string getRouteUrl(const std::string &url);
     std::string getSchemaUrl(const std::string &url);
     std::string getCurrentUserUrl(const std::string &url);
+    std::string getUploadUrl(const std::string &url);
     bool checkVersion(const std::string &version, int major, int minor, int patch);
     std::string createResource(const std::string &url, const std::string &payload,
                                char **httpOptions);
@@ -59,9 +60,42 @@ namespace ngw {
     std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type);
     std::string resmetaSuffix(CPLJSONObject::Type eType);
 
+    std::string getFeatureUrl(const std::string &url,
+                              const std::string &resourceId,
+                              const std::string &featureId);
+
     // Tracks
     std::string getTrackerUrl();
     bool sendTrackPoints(const std::string &payload);
+
+    // Features
+    bool updateFeature(const std::string &url, const std::string &resourceId,
+                       const std::string &featureId, const std::string &payload,
+                       char **httpOptions);
+
+    // Attachments
+    std::string getAttachmentUrl(const std::string &url,
+                                 const std::string &resourceId,
+                                 const std::string &featureId,
+                                 const std::string &attachmentId);
+    std::string getAttachmentCreateUrl(const std::string &url,
+                                 const std::string &resourceId,
+                                 const std::string &featureId);
+    std::string getAttachmentDownloadUrl(const std::string &url,
+                                         const std::string &resourceId,
+                                         const std::string &featureId,
+                                         const std::string &attachmentId);
+    bool deleteAttachment(const std::string &url,
+                          const std::string &resourceId,
+                          const std::string &featureId,
+                          const std::string &attachmentId, char **httpOptions);
+    bool deleteAttachments(const std::string &url,
+                           const std::string &resourceId,
+                           const std::string &featureId, char **httpOptions);
+
+    GIntBig addAttachment(const std::string &url, const std::string &resourceId,
+                          const std::string &featureId,
+                          const std::string &payload, char **httpOptions);
 } // namespace ngw
 
 /**
@@ -91,10 +125,13 @@ public:
     bool remove();
     bool changeName(const std::string &newName);
     NGWConnectionBase *connection() const;
+    std::string resourceId() const;
+    bool canSync() const;
 
     //static
 public:
     static bool isNGWResource(const enum ngsCatalogObjectType type);
+
 
 protected:
     std::string url() const;
@@ -108,6 +145,7 @@ protected:
     std::map<std::string, std::string> m_resmeta;
     std::string m_keyName, m_description;
     std::string m_creationDate;
+    bool m_canSync;
 };
 
 /**
@@ -205,6 +243,8 @@ public:
                          const std::string &name,
                          const std::string &path);
     virtual ~NGWConnection() override;
+
+    // NGWResourceGroup
     virtual bool loadChildren() override;
 
     // Object interface
@@ -222,9 +262,11 @@ public:
     virtual bool open() override;
     virtual void close() override;
 
+public:
+    void fillProperties() const;
+
 private:
     void fillCapabilities();
-    void fillProperties() const;
 
 private:
     mutable std::string m_searchApiUrl, m_versionApiUrl;

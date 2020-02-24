@@ -74,7 +74,7 @@ ObjectPtr ObjectContainer::getObject(const std::string &path)
             else {
                 ObjectContainer * const container =
                         ngsDynamicCast(ObjectContainer, child);
-                if(nullptr != container && container->loadChildren()) {
+                if(nullptr != container) {
                     return container->getObject(pathRight);
                 }
             }

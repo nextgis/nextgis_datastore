@@ -141,6 +141,26 @@ void Options::add(const std::string &key, const std::string &value)
     m_options[key] = value;
 }
 
+void Options::add(const std::string &key, const char *value)
+{
+    m_options[key] = value;
+}
+
+void Options::add(const std::string &key, long value)
+{
+    m_options[key] = std::to_string(value);
+}
+
+void Options::add(const std::string &key, GIntBig value)
+{
+    m_options[key] = std::to_string(value);
+}
+
+void Options::add(const std::string &key, bool value)
+{
+    m_options[key] = value ? "YES" : "NO";
+}
+
 bool  Options::empty() const
 {
     return m_options.empty();
@@ -164,6 +184,11 @@ void Options::append(const Options &other)
 std::string Options::operator[](std::string key) const
 {
     return m_options.at(key);
+}
+
+bool Options::hasKey(const std::string &key) const
+{
+    return m_options.count(key) > 0;
 }
 
 }

@@ -166,13 +166,14 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
             dstFeature->SetStyleString(feature->GetFieldAsString(OGR_STYLE_FIELD));
         }
 
-        if(!insertFeature(dstFeature)) {
+        if(!insertFeature(dstFeature, false)) {
             if(!progress.onProgress(COD_WARNING, complete,
                                _("Create feature failed. Source feature FID:" CPL_FRMT_GIB),
                                feature->GetFID ())) {
                 return COD_CANCELED;
             }
         }
+        onRowCopied(feature, dstFeature, options);
         counter++;
     }
     progress.onProgress(COD_FINISHED, 1.0, _("Done. Copied %d features"),

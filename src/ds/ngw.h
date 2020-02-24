@@ -27,6 +27,9 @@
 
 namespace ngs {
 
+/**
+ * @brief The NGWFeatureClass class
+ */
 class NGWFeatureClass : public FeatureClass, public NGWResourceBase
 {
 public:
@@ -42,6 +45,7 @@ public:
                              OGRLayer *layer,
                              NGWConnectionBase *connection);
     ~NGWFeatureClass() override;
+
 
     //static
 public:
@@ -84,12 +88,27 @@ public:
 
     // Table interface
 public:
+    virtual std::vector<FeaturePtr::AttachmentInfo> attachments(GIntBig fid) const override;
     virtual bool insertFeature(const FeaturePtr &feature, bool logEdits) override;
     virtual bool updateFeature(const FeaturePtr &feature, bool logEdits) override;
     virtual bool deleteFeature(GIntBig id, bool logEdits) override;
     virtual bool deleteFeatures(bool logEdits) override;
-    virtual bool onRowsCopied(const Progress &progress,
+    virtual bool onRowsCopied(const TablePtr srcTable, const Progress &progress,
                               const Options &options) override;
+    virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
+                                  const std::string &description,
+                                  const std::string &filePath,
+                                  const Options &options, bool logEdits) override;
+    virtual bool deleteAttachment(GIntBig fid, GIntBig aid, bool logEdits) override;
+    virtual bool deleteAttachments(GIntBig fid, bool logEdits) override;
+    virtual bool updateAttachment(GIntBig fid, GIntBig aid,
+                                  const std::string &fileName,
+                                  const std::string &description,
+                                  bool logEdits) override;
+
+    // static
+public:
+    static Options openOptions(const std::string &userpwd, const Options &options = Options());
 
 private:
     void openDS() const;

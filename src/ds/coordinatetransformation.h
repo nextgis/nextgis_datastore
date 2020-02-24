@@ -48,6 +48,7 @@ public:
 class SpatialDataset {
 public:
     SpatialDataset();
+    explicit SpatialDataset(SpatialReferencePtr spatialReference);
     virtual ~SpatialDataset() = default;
     virtual SpatialReferencePtr spatialReference() const;
 protected:

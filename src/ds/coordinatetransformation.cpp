@@ -75,6 +75,11 @@ SpatialDataset::SpatialDataset()
 {
 }
 
+SpatialDataset::SpatialDataset(SpatialReferencePtr spatialReference) :
+    m_spatialReference(spatialReference)
+{
+}
+
 SpatialReferencePtr SpatialDataset::spatialReference() const
 {
     return m_spatialReference;

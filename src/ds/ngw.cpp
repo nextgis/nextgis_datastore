@@ -23,11 +23,15 @@
 #include "util.h"
 #include "util/error.h"
 #include "util/settings.h"
+#include "util/url.h"
 
 #include "ngstore/catalog/filter.h"
 
 namespace ngs {
 
+//------------------------------------------------------------------------------
+// NGWFeatureClass
+//------------------------------------------------------------------------------
 NGWFeatureClass::NGWFeatureClass(ObjectContainer * const parent,
                                  const enum ngsCatalogObjectType type,
                                  const std::string &name,
@@ -170,6 +174,39 @@ void NGWFeatureClass::deleteProperties(const std::string &domain)
     return FeatureClass::deleteProperties(domain);
 }
 
+std::vector<FeaturePtr::AttachmentInfo> NGWFeatureClass::attachments(GIntBig fid) const
+{
+    std::vector<FeaturePtr::AttachmentInfo> out;
+    auto feature = getFeature(fid);
+    if(nullptr == feature) {
+        return out;
+    }
+
+    CPLJSONDocument doc;
+    auto nativeData = fromCString(feature->GetNativeData());
+    if(!doc.LoadMemory(nativeData)) {
+        return out;
+    }
+    auto root = doc.GetRoot();
+    if(!root.IsValid()) {
+        return out;
+    }
+
+    auto featureId = std::to_string(feature->GetFID());
+    CPLJSONArray attachments = root.GetArray("attachment");
+    for(int i = 0; i < attachments.Size(); ++i) {
+        auto attachment = attachments[i];
+        auto arid = attachment.GetLong("id");
+        auto name = attachment.GetString("name");
+        auto descripton = attachment.GetString("description");
+        GIntBig size = attachment.GetLong("size");
+        std::string filePath = ngw::getAttachmentDownloadUrl(url(),
+                    resourceId(), featureId, std::to_string(arid));
+        out.push_back({arid, name, descripton, filePath, size});
+    }
+    return out;
+}
+
 bool NGWFeatureClass::insertFeature(const FeaturePtr &feature, bool logEdits)
 {
     ngsUnused(logEdits);
@@ -204,12 +241,247 @@ bool NGWFeatureClass::deleteFeatures(bool logEdits)
     return false;
 }
 
-bool NGWFeatureClass::onRowsCopied(const Progress &progress, const Options &options)
+bool NGWFeatureClass::onRowsCopied(const TablePtr srcTable,
+                                   const Progress &progress,
+                                   const Options &options)
 {
     if(nullptr != m_layer) {
         m_layer->ResetReading(); // Produces sync all cached features with NGW.
     }
-    return FeatureClass::onRowsCopied(progress, options);
+    return FeatureClass::onRowsCopied(srcTable, progress, options);
+}
+
+GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
+                                       const std::string &description,
+                                       const std::string &filePath,
+                                       const Options &options, bool logEdits)
+{
+    ngsUnused(logEdits);
+    ngsUnused(options);
+
+    auto feature = getFeature(fid);
+    if(nullptr == feature) {
+        return NOT_FOUND;
+    }
+
+    CPLJSONDocument doc;
+    auto nativeData = fromCString(feature->GetNativeData());
+    if(!doc.LoadMemory(nativeData)) {
+        return NOT_FOUND;
+    }
+    auto root = doc.GetRoot();
+    if(!root.IsValid()) {
+        return NOT_FOUND;
+    }
+
+    // upload attachment file to NGW
+    auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url()), filePath);
+    // {"upload_meta": [{"id": "9226e604-cdbe-4719-842b-d180970100c7", "name": "96.qml", "mime_type": "application/octet-stream", "size": 1401}]}
+    auto uploadMetaArray = uploadInfo.GetArray("upload_meta");
+    auto uploadMeta = uploadMetaArray[0];
+    auto size = uploadMeta.GetLong("size");
+    auto id = uploadMeta.GetString("id");
+    auto mime = uploadMeta.GetString("mime_type");
+
+//    "attachment": [
+//        {
+//            "id": 4,
+//            "name": "49.qml",
+//            "size": 12349,
+//            "mime_type": "application/octet-stream",
+//            "description": "qqq",
+//            "is_image": false
+//        },
+//        {
+//            "name": "96.qml",
+//            "size": 1401,
+//            "mime_type": "application/octet-stream",
+//            "file_upload": {
+//                "id": "9226e604-cdbe-4719-842b-d180970100c7",
+//                "size": 1401
+//            }
+//        }
+//    ]
+
+    auto featureId = std::to_string(feature->GetFID());
+
+    CPLJSONObject newAttachment;
+    newAttachment.Set("name", fileName);
+    newAttachment.Set("size", size);
+    newAttachment.Set("description", description);
+    newAttachment.Set("mime_type", mime);
+
+    CPLJSONObject fileUpload("file_upload", newAttachment);
+    fileUpload.Set("id", id);
+    fileUpload.Set("size", size);
+
+    auto aid = ngw::addAttachment(url(), resourceId(), featureId,
+                                  newAttachment.Format(CPLJSONObject::Plain),
+                                  http::getGDALHeaders(url()).StealList());
+    if(aid == NOT_FOUND) {
+        return NOT_FOUND;
+    }
+
+    // Update attachments list
+    CPLJSONArray attachments = root.GetArray("attachment");
+    if(!attachments.IsValid()) {
+        // Attachments may be null instead []
+        root.Delete("attachment");
+        attachments = CPLJSONArray();
+        root.Add("attachment", attachments);
+    }
+    CPLJSONObject attachment;
+    attachment.Set("id", aid);
+    attachment.Set("name", fileName);
+    attachment.Set("size", size);
+    attachment.Set("description", description);
+    attachment.Set("mime_type", mime);
+    attachment.Set("is_image", false);
+
+    attachments.Add(attachment);
+    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+
+    feature->SetNativeData(nativeDataStr.c_str());
+    if(m_layer->SetFeature(feature) != OGRERR_NONE) {
+        return NOT_FOUND;
+    }
+
+    return aid;
+}
+
+bool NGWFeatureClass::deleteAttachment(GIntBig fid, GIntBig aid, bool logEdits)
+{
+    ngsUnused(logEdits);
+//    return ngw::deleteAttachment(url(), resourceId(), std::to_string(fid),
+//                                 std::to_string(aid),
+//                                 http::getGDALHeaders(url()).StealList());
+    auto feature = getFeature(fid);
+    if(nullptr == feature) {
+        return false;
+    }
+
+    CPLJSONDocument doc;
+    auto nativeData = fromCString(feature->GetNativeData());
+    if(!doc.LoadMemory(nativeData)) {
+        return false;
+    }
+    auto root = doc.GetRoot();
+    if(!root.IsValid()) {
+        return false;
+    }
+
+    auto featureId = std::to_string(feature->GetFID());
+    // https://stackoverflow.com/a/28542277
+    CPLJSONArray attachments = root.GetArray("attachment");
+    CPLJSONArray newAttachments;
+    for(int i = 0; i < attachments.Size(); ++i) {
+        auto attachment = attachments[i];
+        auto arid = attachment.GetLong("id");
+        if(arid != aid) {
+            newAttachments.Add(attachment);
+        }
+    }
+
+    root.Delete("attachment");
+    root.Add("attachment", newAttachments);
+
+    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+    feature->SetNativeData(nativeDataStr.c_str());
+    return m_layer->SetFeature(feature) == OGRERR_NONE;
+}
+
+bool NGWFeatureClass::deleteAttachments(GIntBig fid, bool logEdits)
+{
+    ngsUnused(logEdits);
+//    return ngw::deleteAttachments(url(), resourceId(), std::to_string(fid),
+//                                  http::getGDALHeaders(url()).StealList());
+    auto feature = getFeature(fid);
+    if(nullptr == feature) {
+        return false;
+    }
+    CPLJSONDocument doc;
+    auto nativeData = fromCString(feature->GetNativeData());
+    if(!doc.LoadMemory(nativeData)) {
+        return false;
+    }
+    auto root = doc.GetRoot();
+    if(!root.IsValid()) {
+        return false;
+    }
+    CPLJSONArray attachments = root.GetArray("attachment");
+    if(attachments.IsValid()) {
+        // Attachments may be null instead []
+        root.Delete("attachment");
+        attachments = CPLJSONArray();
+        root.Add("attachment", attachments);
+    }
+    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+
+    feature->SetNativeData(nativeDataStr.c_str());
+    return m_layer->SetFeature(feature) == OGRERR_NONE;
+}
+
+bool NGWFeatureClass::updateAttachment(GIntBig fid, GIntBig aid,
+                                       const std::string &fileName,
+                                       const std::string &description,
+                                       bool logEdits)
+{
+    ngsUnused(logEdits);
+    auto feature = getFeature(fid);
+    if(nullptr == feature) {
+        return false;
+    }
+
+    CPLJSONDocument doc;
+    auto nativeData = fromCString(feature->GetNativeData());
+    if(!doc.LoadMemory(nativeData)) {
+        return false;
+    }
+    auto root = doc.GetRoot();
+    if(!root.IsValid()) {
+        return false;
+    }
+
+    auto featureId = std::to_string(feature->GetFID());
+    CPLJSONArray attachments = root.GetArray("attachment");
+    for(int i = 0; i < attachments.Size(); ++i) {
+        auto attachment = attachments[i];
+        auto arid = attachment.GetLong("id");
+        if(arid == aid) {
+            attachment.Set("name", fileName);
+            if(description.empty()) {
+                attachment.SetNull("description");
+            }
+            else {
+                attachment.Set("description", description);
+            }
+            break;
+        }
+    }
+
+    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+    feature->SetNativeData(nativeDataStr.c_str());
+    return m_layer->SetFeature(feature) == OGRERR_NONE;
+}
+
+Options NGWFeatureClass::openOptions(const std::string &userpwd,
+                                     const Options &options)
+{
+    Options out(options);
+    const auto &settings = Settings::instance();
+    if(!userpwd.empty() && !options.hasKey("USERPWD")) {
+        out.add("USERPWD", userpwd);
+    }
+    if(!options.hasKey("PAGE_SIZE")) {
+        out.add("PAGE_SIZE", settings.getString("NGW_PAGE_SIZE", "50"));
+    }
+    if(!options.hasKey("BATCH_SIZE")) {
+        out.add("BATCH_SIZE", settings.getString("NGW_BATCH_SIZE", "100"));
+    }
+    if(!options.hasKey("NATIVE_DATA")) {
+        out.add("NATIVE_DATA", "YES");
+    }
+    return out;
 }
 
 void NGWFeatureClass::openDS() const
@@ -217,15 +489,9 @@ void NGWFeatureClass::openDS() const
     if(m_layer != nullptr) {
         return;
     }
-    std::string userpwd = m_connection->userPwd();
+    std::string userpwd = connection()->userPwd();
     std::string connectionString = "NGW:" + metadataItem("url", "", "");
-    const auto &settings = Settings::instance();
-    CPLStringList options;
-    if(!userpwd.empty()) {
-        options.AddNameValue("USERPWD", userpwd.c_str());
-    }
-    options.AddNameValue("PAGE_SIZE", settings.getString("NGW_PAGE_SIZE", "50").c_str());
-    options.AddNameValue("BATCH_SIZE", settings.getString("NGW_BATCH_SIZE", "100").c_str());
+    CPLStringList options = openOptions(userpwd).asCPLStringList();
     m_DS = static_cast<GDALDataset*>(
                 GDALOpenEx(connectionString.c_str(),
                            DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR,
@@ -237,9 +503,7 @@ void NGWFeatureClass::openDS() const
 
 void NGWFeatureClass::close()
 {
-    if(nullptr != m_layer) {
-        m_layer->SyncToDisk();
-    }
+    syncToDisk();
     if(nullptr != m_DS) {
         GDALClose(m_DS);
         m_DS = nullptr;
@@ -298,18 +562,8 @@ NGWFeatureClass *NGWFeatureClass::createFeatureClass(NGWResourceGroup *resourceG
 
     std::string connectionString = "NGW:" + resourceGroup->property("url", "", "");
 
-    CPLStringList dsOptionsList;
-    auto userpwd = options.asString("USERPWD");
-    if(!userpwd.empty()) {
-        dsOptionsList.AddNameValue("USERPWD", userpwd.c_str());
-    }
-
-    const auto &settings = Settings::instance();
-    dsOptionsList.AddNameValue("PAGE_SIZE",
-                               settings.getString("NGW_PAGE_SIZE", "50").c_str());
-    dsOptionsList.AddNameValue("BATCH_SIZE",
-                               settings.getString("NGW_BATCH_SIZE", "100").c_str());
-
+    auto openOp = openOptions("", options);
+    CPLStringList dsOptionsList = openOp.asCPLStringList();
     GDALDataset *DS = static_cast<GDALDataset*>(
                 GDALOpenEx(connectionString.c_str(),
                            DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR,
@@ -390,6 +644,5 @@ NGWFeatureClass *NGWFeatureClass::createFeatureClass(NGWResourceGroup *resourceG
     return createFeatureClass(resourceGroup, name, featureDefnStruct.defn.get(),
                               spatialRef, geomType, options, progress);
 }
-
 
 } // namespace ngs

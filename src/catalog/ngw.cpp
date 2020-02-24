@@ -34,24 +34,12 @@
 #include "util/error.h"
 #include "util/notify.h"
 #include "util/stringutil.h"
+#include "util/url.h"
 
 
 namespace ngs {
 
 constexpr const char *NGW_METADATA_DOMAIN = "ngw";
-
-static CPLStringList getGDALHeaders(const std::string &url)
-{
-    CPLStringList out;
-    std::string headers = "Accept: */*";
-    std::string auth = AuthStore::authHeader(url);
-    if(!auth.empty()) {
-        headers += "\r\n";
-        headers += auth;
-    }
-    out.AddNameValue("HEADERS", headers.c_str());
-    return out;
-}
 
 //------------------------------------------------------------------------------
 // NGWConnectionBase
@@ -85,6 +73,12 @@ SpatialReferencePtr NGWConnectionBase::spatialReference() const
 //------------------------------------------------------------------------------
 // NGWResourceBase
 //------------------------------------------------------------------------------
+static bool checkCanSync(const CPLJSONObject &resource)
+{
+    auto cls = resource.GetString("resource/cls");
+    return compare(cls, "lookup_table");
+}
+
 NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
                                  NGWConnectionBase *connection) :
     m_connection(connection)
@@ -100,6 +94,8 @@ NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
             std::string osSuffix = ngw::resmetaSuffix( child.GetType() );
             m_resmeta[child.GetName() + osSuffix] = child.ToString();
         }
+
+        m_canSync = checkCanSync(resource);
     }
     else {
         m_resourceId = "0";
@@ -122,6 +118,7 @@ Properties NGWResourceBase::metadata(const std::string &domain) const
         out.add("creation_date", m_creationDate);
         out.add("keyname", m_keyName);
         out.add("description", m_description);
+        out.add("can_sync", m_canSync);
     }
 
     if(domain == NGW_METADATA_DOMAIN) {
@@ -152,6 +149,9 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
         else if(key == "description") {
             return m_description;
         }
+        else if(key == "can_sync") {
+            return m_canSync ? "YES" : "NO";
+        }
     }
 
     if(domain == NGW_METADATA_DOMAIN) {
@@ -160,6 +160,16 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
         }
     }
     return defaultValue;
+}
+
+bool NGWResourceBase::canSync() const
+{
+    return m_canSync;
+}
+
+std::string NGWResourceBase::resourceId() const
+{
+    return m_resourceId;
 }
 
 NGWConnectionBase *NGWResourceBase::connection() const
@@ -175,13 +185,13 @@ bool NGWResourceBase::isNGWResource(const enum ngsCatalogObjectType type)
 bool NGWResourceBase::remove()
 {
     return ngw::deleteResource(url(), m_resourceId,
-                               getGDALHeaders(url()).StealList());
+                               http::getGDALHeaders(url()).StealList());
 }
 
 bool NGWResourceBase::changeName(const std::string &newName)
 {
     return ngw::renameResource(url(), m_resourceId, newName,
-                               getGDALHeaders(url()).StealList());
+                               http::getGDALHeaders(url()).StealList());
 }
 
 //------------------------------------------------------------------------------
@@ -277,7 +287,7 @@ void NGWResourceGroup::addResource(const CPLJSONObject &resource)
         addChild(ObjectPtr(new NGWResource(this, CAT_NGW_TRACKER, name, resource, m_connection)));
     }
     else if(cls == "postgis_connection") {
-        // TODO: List DB schemas and tables if client can connect to Postgres server
+        // TODO: List DB schemes and tables if client can connect to Postgres server
         addChild(ObjectPtr(new NGWResource(this, CAT_NGW_POSTGIS_CONNECTION, name, resource, m_connection)));
     }
     else if(cls == "wmsclient_connection") {
@@ -411,8 +421,8 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
 
     child = ObjectPtr();
     if(type == CAT_NGW_VECTOR_LAYER) {
-        Options newOptions(options);
-        newOptions.add("USERPWD", m_connection->userPwd());
+        Options newOptions =
+                NGWFeatureClass::openOptions(m_connection->userPwd(), options);
         child = ObjectPtr(NGWFeatureClass::createFeatureClass(this, newName,
                                                               newOptions));
     }
@@ -433,7 +443,7 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
         parent.Add("id", atoi(m_resourceId.c_str()));
 
         std::string resourceId = ngw::createResource(url(),
-            payload.Format(CPLJSONObject::Plain), getGDALHeaders(url()).StealList());
+            payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
         if(compare(resourceId, "-1", true)) {
             return ObjectPtr();
         }
@@ -605,7 +615,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             progressMulti.setStep(1);
             auto fullNameStr = dstFClass->fullName();
             // Execute postprocess after features copied.
-            if(!dstFClass->onRowsCopied(progressMulti, createOptions)) {
+            if(!dstFClass->onRowsCopied(srcFClass, progressMulti, createOptions)) {
                 warningMessage(_("Postprocess features after copy in feature class '%s' failed."),
                                fullNameStr.c_str());
             }
@@ -760,7 +770,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     tracker.Add("is_registered", "");
 
     std::string resourceId = ngw::createResource(url(),
-        payload.Format(CPLJSONObject::Plain), getGDALHeaders(url()).StealList());
+        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
     if(compare(resourceId, "-1", true)) {
         return ObjectPtr();
     }
@@ -816,7 +826,7 @@ bool NGWConnection::loadChildren()
         fillCapabilities();
         if(!m_searchApiUrl.empty()) {
             CPLJSONDocument searchReq;
-            if(searchReq.LoadUrl(m_searchApiUrl + "?serialization=full", getGDALHeaders(m_url))) {
+            if(searchReq.LoadUrl(m_searchApiUrl + "?serialization=full", http::getGDALHeaders(m_url))) {
                 CPLJSONArray root(searchReq.GetRoot());
                 if(root.IsValid()) {
                     m_childrenLoaded = true;
@@ -879,7 +889,7 @@ void NGWConnection::fillCapabilities()
 {
     // Check NGW version. Paging available from 3.1
     CPLJSONDocument routeReq;
-    if(routeReq.LoadUrl( ngw::getRouteUrl(m_url), getGDALHeaders(m_url) )) {
+    if(routeReq.LoadUrl( ngw::getRouteUrl(m_url), http::getGDALHeaders(m_url) )) {
         CPLJSONObject root = routeReq.GetRoot();
         if(root.IsValid()) {
             CPLJSONArray search = root.GetArray("resource.search");
@@ -896,7 +906,7 @@ void NGWConnection::fillCapabilities()
         }
     }
     CPLJSONDocument schemaReq;
-    if(schemaReq.LoadUrl( ngw::getSchemaUrl(m_url), getGDALHeaders(m_url) )) {
+    if(schemaReq.LoadUrl( ngw::getSchemaUrl(m_url), http::getGDALHeaders(m_url) )) {
         CPLJSONObject root = schemaReq.GetRoot();
         if(root.IsValid()) {
             CPLJSONObject resources = root.GetObj("resources");

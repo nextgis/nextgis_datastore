@@ -264,10 +264,6 @@ typedef struct _ngsEditOperation {
 
 NGS_EXTERNC ngsField *ngsFeatureClassFields(CatalogObjectH object);
 NGS_EXTERNC ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object);
-NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
-                                               char **options,
-                                               ngsProgressFunc callback,
-                                               void *callbackData);
 NGS_EXTERNC FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassBatchMode(CatalogObjectH object, char enable);
 NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object,
@@ -291,6 +287,12 @@ NGS_EXTERNC int ngsFeatureClassSetSpatialFilter(CatalogObjectH object,
 NGS_EXTERNC int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
                                                   ngsEditOperation operation);
 NGS_EXTERNC ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object);
+NGS_EXTERNC char ngsFeatureClassSyncToDisk(CatalogObjectH object);
+
+NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
+                                               char **options,
+                                               ngsProgressFunc callback,
+                                               void *callbackData);
 
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
@@ -315,12 +317,6 @@ NGS_EXTERNC void ngsFeatureSetFieldString(FeatureH feature, int field,
 NGS_EXTERNC void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int year,
                                             int month, int day, int hour,
                                             int minute, float second, int TZFlag);
-
-NGS_EXTERNC FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(
-        CatalogObjectH object, long long rid);
-NGS_EXTERNC long long ngsStoreFeatureGetRemoteId(FeatureH feature);
-NGS_EXTERNC void ngsStoreFeatureSetRemoteId(FeatureH feature, long long rid);
-
 
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometry(FeatureH feature);
 NGS_EXTERNC GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry);
@@ -347,7 +343,6 @@ typedef struct _ngsFeatureAttachmentInfo {
     const char *description;
     const char *path;
     long long size;
-    long long rid;
 } ngsFeatureAttachmentInfo;
 
 NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature,
@@ -356,18 +351,15 @@ NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature,
                                               const char *path,
                                               char **options,
                                               char logEdits);
-NGS_EXTERNC int ngsFeatureAttachmentDelete(FeatureH feature, long long aid,
+NGS_EXTERNC char ngsFeatureAttachmentDelete(FeatureH feature, long long aid,
                                            char logEdits);
-NGS_EXTERNC int ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits);
+NGS_EXTERNC char ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits);
 NGS_EXTERNC ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature);
-NGS_EXTERNC int ngsFeatureAttachmentUpdate(FeatureH feature,
+NGS_EXTERNC char ngsFeatureAttachmentUpdate(FeatureH feature,
                                            long long aid,
                                            const char *name,
                                            const char *description,
                                            char logEdits);
-NGS_EXTERNC void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature,
-                                                      long long aid,
-                                                      long long rid);
 
 /*
  * Raster
@@ -452,6 +444,7 @@ NGS_EXTERNC int ngsOverlaySetVisible(char mapId, int typeMask, char visible);
 NGS_EXTERNC char ngsOverlayGetVisible(char mapId, enum ngsMapOverlayType type);
 NGS_EXTERNC int ngsOverlaySetOptions(char mapId, enum ngsMapOverlayType type, char **options);
 NGS_EXTERNC char **ngsOverlayGetOptions(char mapId, enum ngsMapOverlayType type);
+
 /* Edit */
 typedef struct _ngsPointId
 {
@@ -572,5 +565,9 @@ NGS_EXTERNC char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackN
                                   char newSegment);
 NGS_EXTERNC char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop);
 
+/*
+ * Store
+ */
+NGS_EXTERNC char ngsStoreObjectSync(CatalogObjectH object);
 
 #endif // NGSAPI_H

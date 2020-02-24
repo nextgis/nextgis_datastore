@@ -109,6 +109,11 @@ FeaturePtr &FeaturePtr::operator=(OGRFeature *feature) {
     return *this;
 }
 
+ngs::FeaturePtr::operator OGRFeature *() const
+{
+     return get();
+}
+
 std::string FeaturePtr::dump(FeaturePtr::DumpOutputType type) const
 {
     std::string out;
@@ -158,6 +163,79 @@ std::string FeaturePtr::dump(FeaturePtr::DumpOutputType type) const
     case DumpOutputType::HASH_STYLE:
         return md5(out);
     }
+}
+
+GIntBig FeaturePtr::addAttachment(const std::string &fileName,
+                                  const std::string &description,
+                                  const std::string &filePath,
+                                  const Options &options, bool logEdits)
+{
+    if(nullptr == m_table) {
+        outMessage(COD_INVALID, _("The feature detached from table"));
+        return NOT_FOUND;
+    }
+    if(m_table->type() == CAT_QUERY_RESULT ||
+       m_table->type() == CAT_QUERY_RESULT_FC) {
+        outMessage(COD_INVALID, _("The feature from table that is result of query"));
+        return NOT_FOUND;
+    }
+
+    return m_table->addAttachment(get()->GetFID(), fileName, description,
+                                  filePath, options, logEdits);
+}
+
+GIntBig FeaturePtr::addAttachment(const FeaturePtr::AttachmentInfo &info,
+                                  const Options &options, bool logEdits)
+{
+    return addAttachment(info.name, info.description, info.path, options, logEdits);
+}
+
+std::vector<FeaturePtr::AttachmentInfo> FeaturePtr::attachments() const
+{
+    if(nullptr == m_table) {
+        outMessage(COD_INVALID, _("The feature detached from table"));
+        return std::vector<FeaturePtr::AttachmentInfo>();
+    }
+    return m_table->attachments(get()->GetFID());
+}
+
+bool FeaturePtr::deleteAttachment(GIntBig aid, bool logEdits)
+{
+    if(nullptr == m_table) {
+        outMessage(COD_INVALID, _("The feature detached from table"));
+        return false;
+    }
+    return m_table->deleteAttachment(get()->GetFID(), aid, logEdits);
+}
+
+bool FeaturePtr::deleteAttachments(bool logEdits)
+{
+    if(nullptr == m_table) {
+        outMessage(COD_INVALID, _("The feature detached from table"));
+        return false;
+    }
+    return m_table->deleteAttachments(get()->GetFID(), logEdits);
+}
+
+bool FeaturePtr::updateAttachment(GIntBig aid, const std::string &fileName,
+                                  const std::string &description, bool logEdits)
+{
+    if(nullptr == m_table) {
+        outMessage(COD_INVALID, _("The feature detached from table"));
+        return false;
+    }
+    return m_table->updateAttachment(get()->GetFID(), aid, fileName, description,
+                                     logEdits);
+}
+
+Table *FeaturePtr::table() const
+{
+    return m_table;
+}
+
+void FeaturePtr::setTable(Table *table)
+{
+    m_table = table;
 }
 
 //------------------------------------------------------------------------------
@@ -360,7 +438,7 @@ FeaturePtr Table::nextFeature() const
 }
 
 int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
-                    const Progress& progress)
+                    const Progress& progress, const Options &options)
 {
     if(!srcTable) {
         return outMessage(COD_COPY_FAILED, _("Source table is invalid"));
@@ -387,13 +465,14 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
         FeaturePtr dstFeature = createFeature();
         dstFeature->SetFieldsFrom(feature, fieldMap.get());
 
-        if(!insertFeature(dstFeature)) {
+        if(!insertFeature(dstFeature, false)) {
             if(!progress.onProgress(COD_WARNING, complete,
                                _("Create feature failed. Source feature FID:" CPL_FRMT_GIB),
                                feature->GetFID ())) {
                return  COD_CANCELED;
             }
         }
+        onRowCopied(feature, dstFeature, options);
         counter++;
     }
 
@@ -403,8 +482,10 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
     return COD_SUCCESS;
 }
 
-bool Table::onRowsCopied(const Progress &progress, const Options &options)
+bool Table::onRowsCopied(const TablePtr srcTable, const Progress &progress,
+                         const Options &options)
 {
+    ngsUnused(srcTable);
     ngsUnused(progress);
     ngsUnused(options);
     return true;
@@ -463,6 +544,14 @@ OGRFeatureDefn *Table::definition() const
     return m_layer->GetLayerDefn();
 }
 
+OGRLayer *Table::attachmentsTable(bool init) const
+{
+    if(init && !initAttachmentsTable()) {
+        return nullptr;
+    }
+    return m_attTable;
+}
+
 bool Table::initAttachmentsTable() const
 {
     if(m_attTable) {
@@ -501,11 +590,27 @@ bool Table::initEditHistoryTable() const
     return m_editHistoryTable != nullptr;
 }
 
-std::string Table::getAttachmentsPath() const
+std::string Table::getAttachmentsPath(bool create) const
 {
-    std::string dstRootPath = File::resetExtension(
-                m_parent->path(), Dataset::attachmentsFolderExtension());
+    auto dataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == dataset) {
+        return "";
+    }
+
+    auto dstRootPath = dataset->attachmentsFolderPath(create);
     return File::formFileName(dstRootPath, storeName(), "");
+}
+
+std::string Table::getAttachmentPath(GIntBig fid, GIntBig aid, bool createPath) const
+{
+    auto attachmentsPath = getAttachmentsPath(createPath);
+    auto dstFeaturePath =
+            File::formFileName(attachmentsPath, std::to_string(fid), "");
+    if(createPath && !Folder::isExists(dstFeaturePath)) {
+        Folder::mkDir(dstFeaturePath, true);
+    }
+
+    return File::formFileName(dstFeaturePath, std::to_string(aid), "");
 }
 
 void Table::fillFields() const
@@ -554,6 +659,9 @@ GIntBig Table::addAttachment(GIntBig fid, const std::string &fileName,
                              const std::string &filePath,
                              const Options &options, bool logEdits)
 {
+    if(fid == NOT_FOUND) {
+        return NOT_FOUND;
+    }
     if(!initAttachmentsTable()) {
         return NOT_FOUND;
     }
@@ -567,20 +675,8 @@ GIntBig Table::addAttachment(GIntBig fid, const std::string &fileName,
     newAttachment->SetField(ATTACH_DESCRIPTION_FIELD, description.c_str());
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
-        std::string dstTablePath = getAttachmentsPath();
-        if(!Folder::isExists(dstTablePath)) {
-            Folder::mkDir(dstTablePath);
-        }
-        std::string dstFeaturePath = File::formFileName(dstTablePath,
-                                                        std::to_string(fid), "");
-        if(!Folder::isExists(dstFeaturePath)) {
-            Folder::mkDir(dstFeaturePath);
-        }
-
-        std::string dstPath = File::formFileName(dstFeaturePath,
-                                                 std::to_string(newAttachment->GetFID()),
-                                                 "");
         if(Folder::isExists(filePath)) {
+            auto dstPath = getAttachmentPath(fid, newAttachment->GetFID(), true);
             if(move) {
                 File::moveFile(filePath, dstPath);
             }
@@ -602,8 +698,9 @@ GIntBig Table::addAttachment(GIntBig fid, const std::string &fileName,
     return NOT_FOUND;
 }
 
-bool Table::deleteAttachment(GIntBig aid, bool logEdits)
+bool Table::deleteAttachment(GIntBig fid, GIntBig aid, bool logEdits)
 {
+    ngsUnused(fid);
     if(!initAttachmentsTable()) {
         return false;
     }
@@ -612,11 +709,7 @@ bool Table::deleteAttachment(GIntBig aid, bool logEdits)
     bool result = m_attTable->DeleteFeature(aid) == OGRERR_NONE;
     if(result) {
         GIntBig fid = attFeature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
-        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
-                                                        std::to_string(fid), "");
-        std::string attPath = File::formFileName(attFeaturePath,
-                                                 std::to_string(aid), "");
-
+        auto attPath = getAttachmentPath(fid, aid, false);
         result = File::deleteFile(attPath);
 
         if(logEdits && saveEditHistory() && nullptr != m_layer) {
@@ -655,9 +748,10 @@ bool Table::deleteAttachments(GIntBig fid, bool logEdits)
     return true;
 }
 
-bool Table::updateAttachment(GIntBig aid, const std::string &fileName,
+bool Table::updateAttachment(GIntBig fid, GIntBig aid, const std::string &fileName,
                              const std::string &description, bool logEdits)
 {
+    ngsUnused(fid);
     if(!initAttachmentsTable()) {
         return false;
     }
@@ -689,38 +783,42 @@ bool Table::updateAttachment(GIntBig aid, const std::string &fileName,
     return false;
 }
 
-std::vector<Table::AttachmentInfo> Table::attachments(GIntBig fid) const
+std::vector<FeaturePtr::AttachmentInfo> Table::attachments(GIntBig fid) const
 {
-    std::vector<AttachmentInfo> out;
+    std::vector<FeaturePtr::AttachmentInfo> out;
 
     if(!initAttachmentsTable()) {
         return out;
     }
 
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                              ATTACH_FEATURE_ID_FIELD, fid));
+    m_attTable->SetAttributeFilter(
+                CPLSPrintf("%s = " CPL_FRMT_GIB, ATTACH_FEATURE_ID_FIELD, fid));
     //m_attTable->ResetReading();
     FeaturePtr attFeature;
     while((attFeature = m_attTable->GetNextFeature())) {
-        AttachmentInfo info;
+        FeaturePtr::AttachmentInfo info;
         info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
         info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
         info.id = attFeature->GetFID();
 
-        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
-                                                        std::to_string(fid), "");
-        info.path = File::formFileName(attFeaturePath, std::to_string(info.id),
-                                       "");
-
-        info.size = File::fileSize(info.path);
+        auto path = getAttachmentPath(fid, info.id, false);
+        if(Folder::isExists(path)) {
+            info.path = path;
+            info.size = File::fileSize(info.path);
+        }
+        else {
+            info.path = "";
+            info.size = 0;
+        }
 
         out.push_back(info);
     }
 
+    m_attTable->SetAttributeFilter(nullptr);
+
     return out;
 }
-
 
 bool Table::canDestroy() const
 {
@@ -770,7 +868,7 @@ std::string Table::storeName() const
 
 void Table::onFeatureInserted(FeaturePtr feature)
 {
-    ngsUnused(feature);
+    feature.setTable(this);
 }
 
 void Table::onFeatureUpdated(FeaturePtr oldFeature, FeaturePtr newFeature)
@@ -787,6 +885,14 @@ void Table::onFeatureDeleted(FeaturePtr delFeature)
 void Table::onFeaturesDeleted()
 {
 
+}
+
+void Table::onRowCopied(FeaturePtr srcFeature, FeaturePtr dstFature,
+                        const Options &options)
+{
+    ngsUnused(srcFeature);
+    ngsUnused(dstFature);
+    ngsUnused(options);
 }
 
 bool Table::setProperty(const std::string &key, const std::string &value,
@@ -1101,6 +1207,15 @@ std::vector<ngsEditOperation> Table::editOperations()
         out.push_back(op);
     }
     return out;
+}
+
+bool Table::syncToDisk()
+{
+    if(nullptr != m_layer) {
+        m_layer->ResetReading();
+        return m_layer->SyncToDisk() == OGRERR_NONE;
+    }
+    return false;
 }
 
 /**

@@ -36,125 +36,6 @@
 namespace ngs {
 
 //------------------------------------------------------------------------------
-// StoreObject
-//------------------------------------------------------------------------------
-
-StoreObject::StoreObject(OGRLayer *layer) : m_storeIntLayer(layer)
-{
-}
-
-FeaturePtr StoreObject::getFeatureByRemoteId(GIntBig rid) const
-{
-    const Table *table = dynamic_cast<const Table*>(this);
-    if(nullptr == table) {
-        return FeaturePtr();
-    }
-
-    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
-    DatasetExecuteSQLLockHolder holder(dataset);
-    m_storeIntLayer->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                                   ngw::REMOTE_ID_KEY, rid));
-    FeaturePtr out(m_storeIntLayer->GetNextFeature(), table);
-    m_storeIntLayer->SetAttributeFilter(nullptr);
-    return out;
-}
-
-bool StoreObject::setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid)
-{
-    Table *table = dynamic_cast<Table*>(this);
-    if(nullptr == table) {
-        return false;
-    }
-
-    if(!table->initAttachmentsTable()) {
-        return false;
-    }
-
-    OGRLayer *attTable = table->m_attTable;
-    if(nullptr == attTable) {
-        return false;
-    }
-
-    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
-    DatasetExecuteSQLLockHolder holder(dataset);
-    FeaturePtr attFeature = attTable->GetFeature(aid);
-    if(!attFeature) {
-        return false;
-    }
-
-    attFeature->SetField(ngw::REMOTE_ID_KEY, rid);
-    return attTable->SetFeature(attFeature) == OGRERR_NONE;
-}
-
-
-void StoreObject::setRemoteId(FeaturePtr feature, GIntBig rid)
-{
-    feature->SetField(ngw::REMOTE_ID_KEY, rid);
-}
-
-GIntBig StoreObject::getRemoteId(FeaturePtr feature)
-{
-    if(feature)
-        return feature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
-    return NOT_FOUND;
-}
-
-std::vector<ngsEditOperation> StoreObject::fillEditOperations(
-        OGRLayer *editHistoryTable, Dataset *dataset) const
-{
-    std::vector<ngsEditOperation> out;
-    if(nullptr == editHistoryTable) {
-        return out;
-    }
-
-    DatasetExecuteSQLLockHolder holder(dataset);
-    FeaturePtr feature;
-    editHistoryTable->ResetReading();
-    while((feature = editHistoryTable->GetNextFeature())) {
-        ngsEditOperation op;
-        op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
-        op.aid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
-        op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(
-                                                      OPERATION_FIELD));
-        op.rid = StoreObject::getRemoteId(feature);
-        op.arid = feature->GetFieldAsInteger64(ngw::ATTACHMENT_REMOTE_ID_KEY);
-        if(op.arid == NOT_FOUND) {
-            op.arid = getAttachmentRemoteId(op.aid);
-        }
-        out.push_back(op);
-    }
-
-    return out;
-}
-
-GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
-{
-    const Table *table = dynamic_cast<const Table*>(this);
-    if(nullptr == table) {
-        return NOT_FOUND;
-    }
-
-    OGRLayer *attTable = table->m_attTable;
-    if(attTable == nullptr) {
-        return NOT_FOUND;
-    }
-
-    FeaturePtr attFeature = attTable->GetFeature(aid);
-    GIntBig rid = NOT_FOUND;
-    if(attFeature) {
-        rid = getRemoteId(attFeature);
-    }
-    return rid;
-}
-
-bool StoreObject::sync(const Options &options)
-{
-    // TODO: Sync with NGW
-    ngsUnused(options);
-    return false;
-}
-
-//------------------------------------------------------------------------------
 // StoreTable
 //------------------------------------------------------------------------------
 StoreTable::StoreTable(OGRLayer *layer, ObjectContainer * const parent,
@@ -171,41 +52,6 @@ void StoreTable::fillFields() const
     if(compare(m_fields.back().m_name, ngw::REMOTE_ID_KEY)) {
         m_fields.pop_back();
     }
-}
-
-std::vector<Table::AttachmentInfo> StoreTable::attachments(GIntBig fid) const
-{
-    std::vector<AttachmentInfo> out;
-
-    if(!initAttachmentsTable()) {
-        return out;
-    }
-
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-
-    m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                              ATTACH_FEATURE_ID_FIELD, fid));
-    //m_attTable->ResetReading();
-    FeaturePtr attFeature;
-    while((attFeature = m_attTable->GetNextFeature())) {
-        AttachmentInfo info;
-        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
-        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
-        info.id = attFeature->GetFID();
-        info.rid = attFeature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
-
-        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
-                                                        std::to_string(fid), "");
-        info.path = File::formFileName(attFeaturePath, std::to_string(info.id),
-                                       "");
-        info.size = File::fileSize(info.path);
-
-        out.push_back(info);
-    }
-
-    m_attTable->SetAttributeFilter(nullptr);
-
-    return out;
 }
 
 GIntBig StoreTable::addAttachment(GIntBig fid, const std::string &fileName,
@@ -228,19 +74,7 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const std::string &fileName,
     newAttachment->SetField(ngw::REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
-        std::string dstTablePath = getAttachmentsPath();
-        if(!Folder::isExists(dstTablePath)) {
-            Folder::mkDir(dstTablePath);
-        }
-        std::string dstFeaturePath = File::formFileName(dstTablePath,
-                                                        std::to_string(fid), "");
-        if(!Folder::isExists(dstFeaturePath)) {
-            Folder::mkDir(dstFeaturePath);
-        }
-
-        std::string dstPath = File::formFileName(dstFeaturePath,
-                                                 std::to_string(newAttachment->GetFID()),
-                                                 "");
+        auto dstPath = getAttachmentPath(fid, newAttachment->GetFID(), true);
         if(Folder::isExists(filePath)) {
             if(move) {
                 File::moveFile(filePath, dstPath);
@@ -298,12 +132,9 @@ FeaturePtr StoreTable::logEditFeature(FeaturePtr feature,
 StoreFeatureClass::StoreFeatureClass(OGRLayer *layer,
                                      ObjectContainer * const parent,
                                      const std::string &name) :
-    FeatureClassOverview(layer, parent, CAT_FC_GPKG, name),
+    FeatureClass(layer, parent, CAT_FC_GPKG, name),
     StoreObject(layer)
 {
-    if(m_zoomLevels.empty()) {
-        fillZoomLevels();
-    }
 }
 
 void StoreFeatureClass::fillFields() const
@@ -313,42 +144,6 @@ void StoreFeatureClass::fillFields() const
     if(compare(m_fields.back().m_name, ngw::REMOTE_ID_KEY)) {
         m_fields.pop_back();
     }
-}
-
-std::vector<Table::AttachmentInfo> StoreFeatureClass::attachments(GIntBig fid) const
-{
-    std::vector<AttachmentInfo> out;
-
-    if(!initAttachmentsTable()) {
-        return out;
-    }
-
-    Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
-    DatasetExecuteSQLLockHolder holder(dataset);
-
-    m_attTable->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB,
-                                              ATTACH_FEATURE_ID_FIELD, fid));
-    //m_attTable->ResetReading();
-    FeaturePtr attFeature;
-    while((attFeature = m_attTable->GetNextFeature())) {
-        AttachmentInfo info;
-        info.name = attFeature->GetFieldAsString(ATTACH_FILE_NAME_FIELD);
-        info.description = attFeature->GetFieldAsString(ATTACH_DESCRIPTION_FIELD);
-        info.id = attFeature->GetFID();
-        info.rid = attFeature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
-
-        std::string attFeaturePath = File::formFileName(getAttachmentsPath(),
-                                                        std::to_string(fid), "");
-        info.path = File::formFileName(attFeaturePath, std::to_string(info.id),
-                                       "");
-        info.size = File::fileSize(info.path);
-
-        out.push_back(info);
-    }
-
-    m_attTable->SetAttributeFilter(nullptr);
-
-    return out;
 }
 
 GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
@@ -371,19 +166,7 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const std::string &fileNam
     newAttachment->SetField(ngw::REMOTE_ID_KEY, rid);
 
     if(m_attTable->CreateFeature(newAttachment) == OGRERR_NONE) {
-        std::string dstTablePath = getAttachmentsPath();
-        if(!Folder::isExists(dstTablePath)) {
-            Folder::mkDir(dstTablePath);
-        }
-        std::string dstFeaturePath = File::formFileName(dstTablePath,
-                                                        std::to_string(fid), "");
-        if(!Folder::isExists(dstFeaturePath)) {
-            Folder::mkDir(dstFeaturePath);
-        }
-
-        std::string dstPath = File::formFileName(dstFeaturePath,
-                                                 std::to_string(newAttachment->GetFID()),
-                                                 "");
+        auto dstPath = getAttachmentPath(fid, newAttachment->GetFID(), true);
         if(Folder::isExists(filePath)) {
             if(move) {
                 File::moveFile(filePath, dstPath);

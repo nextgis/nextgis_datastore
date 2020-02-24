@@ -420,7 +420,7 @@ OGRLayer *DataStore::createAttachmentsTable(const std::string &name)
     }
 
     std::string attLayerName(attachmentsTableName(name));
-    return ngw::createAttachmentsTable(m_addsDS, attLayerName, m_path);
+    return ngw::createAttachmentsTable(m_addsDS, attLayerName);
 }
 
 OGRLayer *DataStore::createEditHistoryTable(const std::string &name)
@@ -772,6 +772,25 @@ bool DataStore::dropOverviewsTableIndex(GDALDataset *ds, const std::string &name
 {
     ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name.c_str()),
                    nullptr, nullptr);
+    return true;
+}
+
+bool DataStore::sync(const Options &options)
+{
+    if(isOpened()) {
+        return false;
+    }
+
+    for(const auto &child : m_children) {
+        auto *storeObject = ngsDynamicCast(StoreObject, child);
+        if(nullptr != storeObject) {
+            auto result = storeObject->sync(options);
+            if(!result) {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 

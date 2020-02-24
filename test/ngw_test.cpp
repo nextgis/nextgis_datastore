@@ -23,8 +23,6 @@
 
 #include "ngstore/api.h"
 
-#include <ctime>
-
 TEST(NGWTests, TestResourceGroup) {
     initLib();
 
@@ -178,40 +176,10 @@ TEST(NGWTests, TestPasteMI) {
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
-    // Paste MI tab layer with ogr style
-    resetCounter();
-    char** options = nullptr;
-    // Add descritpion to NGW vector layer
-    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
-    // If source layer has mixed geometries (point + multipoints, lines +
-    // multilines, etc.) create output vector layers with multi geometries.
-    // Otherwise the layer for each type geometry form source layer will create.
-    options = ngsListAddNameValue(options, "FORCE_GEOMETRY_TO_MULTI", "TRUE");
-    // Skip empty geometries. Mandatory for NGW?
-    options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "TRUE");
-    // Check if geometry valid. Non valid geometry will not add to destination
-    // layer.
-    options = ngsListAddNameValue(options, "SKIP_INVALID_GEOMETRY", "TRUE");
-    const char *layerName = "новый слой 4";
-    // Set new layer name. If not set, the source layer name will use.
-    options = ngsListAddNameValue(options, "NEW_NAME", layerName);
-    options = ngsListAddNameValue(options, "OGR_STYLE_STRING_TO_FIELD", "TRUE");
-    // If OVERWRITE is ON, existing layer will delete and new created.
-    // If CREATE_UNIQUE the NEW_NAME or name will append counter, if such layer
-    // already present.
-    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
-
-    // TODO: Add MI thematic maps (theme Legends) from wor file
-//    options = ngsListAddNameValue(options, "WOR_STYLE", "...");
-
-    CatalogObjectH tab = getLocalFile("/data/bld.tab");
-    EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
-                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
-
-    EXPECT_GE(getCounter(), 5);
+    uploadMIToNGW("/data/bld.tab", "новый слой 4", group);
 
     // Find loaded layer by name
-    auto vectorLayer = ngsCatalogObjectGetByName(group, layerName, 1);
+    auto vectorLayer = ngsCatalogObjectGetByName(group, "новый слой 4", 1);
     ASSERT_NE(vectorLayer, nullptr);
 
     EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
@@ -241,3 +209,76 @@ TEST(NGWTests, TestPasteMI) {
     ngsUnInit();
 }
 
+TEST(NGWTests, TestAttachments) {
+    initLib();
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    // Create resource group
+    time_t rawTime = std::time(nullptr);
+    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto group = createGroup(connection, groupName);
+    ASSERT_NE(group, nullptr);
+
+    uploadMIToNGW("/data/bld.tab", "новый слой 4", group);
+
+    // Find loaded layer by name
+    auto vectorLayer = ngsCatalogObjectGetByName(group, "новый слой 4", 1);
+    ASSERT_NE(vectorLayer, nullptr);
+
+    auto feature = ngsFeatureClassNextFeature(vectorLayer);
+    ASSERT_NE(feature, nullptr);
+
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string testAttachmentPath = ngsFormFileName(
+                testPath.c_str(), "download.cmake", nullptr);
+    long long id = ngsFeatureAttachmentAdd(
+                feature, "test.txt", "test add attachment",
+                testAttachmentPath.c_str(), nullptr, 0);
+    EXPECT_NE(id, -1);
+
+    EXPECT_EQ(ngsFeatureAttachmentUpdate(feature, id, "notest.txt",
+                                      "test update attachment", 0), 1);
+
+    EXPECT_EQ(ngsFeatureClassSyncToDisk(vectorLayer), 1);
+
+    EXPECT_EQ(ngsFeatureAttachmentDelete(feature, id, 0), 1);
+
+    // Delete vector layer
+    EXPECT_EQ(ngsCatalogObjectDelete(vectorLayer), COD_SUCCESS);
+
+    // Delete resource group
+    EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
+TEST(NGWTests, TestCreateStyle) {
+    initLib();
+    // MapServer
+    // QGIS
+    // ?
+    ngsUnInit();
+}
+
+TEST(NGWTests, TestCreateWebMap) {
+    initLib();
+    ngsUnInit();
+}
+
+TEST(NGWTests, TestCreateWebService) {
+    initLib();
+    // WMS
+    // WFS
+    ngsUnInit();
+}
+
+TEST(NGWTests, TestCreateRaster) {
+    initLib();
+    ngsUnInit();
+}

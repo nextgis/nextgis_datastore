@@ -21,36 +21,11 @@
 #ifndef NGSSTOREFEATURECLASS_H
 #define NGSSTOREFEATURECLASS_H
 
+#include "store.h"
 #include "featureclassovr.h"
 #include "dataset.h"
 
 namespace ngs {
-
-/**
- * StoreObject
- */
-class StoreObject
-{
-public:
-    StoreObject(OGRLayer *layer);
-    virtual ~StoreObject() = default;
-    virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
-    virtual bool setFeatureAttachmentRemoteId(GIntBig aid, GIntBig rid);
-    std::vector<ngsEditOperation> fillEditOperations(OGRLayer *editHistoryTable,
-                                                     Dataset *dataset) const;
-    virtual bool sync(const Options &options);
-
-    // static
-public:
-    static void setRemoteId(FeaturePtr feature, GIntBig rid);
-    static GIntBig getRemoteId(FeaturePtr feature);
-
-protected:
-    GIntBig getAttachmentRemoteId(GIntBig aid) const;
-
-protected:
-    OGRLayer *m_storeIntLayer;
-};
 
 /**
  * StoreTable
@@ -64,7 +39,6 @@ public:
 
     // Table interface
 public:
-    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const override;
     virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
                                   const std::string &description,
                                   const std::string &filePath,
@@ -86,7 +60,7 @@ protected:
 /**
  * StoreFeatureClass
  */
-class StoreFeatureClass : public FeatureClassOverview, public StoreObject
+class StoreFeatureClass : public FeatureClass, public StoreObject
 {
 public:
     StoreFeatureClass(OGRLayer *layer, ObjectContainer * const parent = nullptr,
@@ -95,7 +69,6 @@ public:
 
     // Table interface
 public:
-    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const override;
     virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
                                   const std::string &description,
                                   const std::string &filePath,

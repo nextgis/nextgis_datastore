@@ -764,7 +764,7 @@ JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document)
 {
     CPLJSONDocument *doc = static_cast<CPLJSONDocument*>(document);
     if(nullptr == doc) {
-        outMessage(COD_GET_FAILED, _("Layer pointer is null"));
+        errorMessage(_("Layer pointer is null"));
         return nullptr;
     }
     return new CPLJSONObject(doc->GetRoot());
@@ -798,7 +798,7 @@ void ngsJsonObjectFree(JsonObjectH object)
 int ngsJsonObjectType(JsonObjectH object)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return CPLJSONObject::Type::Null;
     }
     return static_cast<CPLJSONObject*>(object)->GetType();
@@ -812,7 +812,7 @@ int ngsJsonObjectType(JsonObjectH object)
 char ngsJsonObjectValid(JsonObjectH object)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return 0;
     }
     return static_cast<CPLJSONObject*>(object)->IsValid() ? API_TRUE : API_FALSE;
@@ -826,7 +826,7 @@ char ngsJsonObjectValid(JsonObjectH object)
 const char *ngsJsonObjectName(JsonObjectH object)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return "";
     }
     return storeCString(static_cast<CPLJSONObject*>(object)->GetName());
@@ -841,7 +841,7 @@ const char *ngsJsonObjectName(JsonObjectH object)
 JsonObjectH *ngsJsonObjectChildren(JsonObjectH object)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
@@ -864,7 +864,7 @@ JsonObjectH *ngsJsonObjectChildren(JsonObjectH object)
 void ngsJsonObjectChildrenListFree(JsonObjectH *list)
 {
     if(nullptr == list) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
     }
     int counter = 0;
     CPLJSONObject *currentJsonObject;
@@ -885,7 +885,7 @@ void ngsJsonObjectChildrenListFree(JsonObjectH *list)
 const char *ngsJsonObjectGetString(JsonObjectH object, const char *defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
 
@@ -902,7 +902,7 @@ const char *ngsJsonObjectGetString(JsonObjectH object, const char *defaultValue)
 double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->ToDouble(defaultValue);
@@ -917,7 +917,7 @@ double ngsJsonObjectGetDouble(JsonObjectH object, double defaultValue)
 int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->ToInteger(defaultValue);
@@ -932,7 +932,7 @@ int ngsJsonObjectGetInteger(JsonObjectH object, int defaultValue)
 long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->ToLong(defaultValue);
@@ -947,7 +947,7 @@ long ngsJsonObjectGetLong(JsonObjectH object, long defaultValue)
 char ngsJsonObjectGetBool(JsonObjectH object, char defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->ToBool(defaultValue) ? API_TRUE : API_FALSE;
@@ -964,7 +964,7 @@ const char *ngsJsonObjectGetStringForKey(JsonObjectH object, const char *name,
                                          const char *defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return storeCString(static_cast<CPLJSONObject*>(object)->GetString(
@@ -982,7 +982,7 @@ double ngsJsonObjectGetDoubleForKey(JsonObjectH object, const char *name,
                                     double defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->GetDouble(fromCString(name),
@@ -1000,7 +1000,7 @@ int ngsJsonObjectGetIntegerForKey(JsonObjectH object, const char *name,
                                   int defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->GetInteger(fromCString(name),
@@ -1018,7 +1018,7 @@ long ngsJsonObjectGetLongForKey(JsonObjectH object, const char *name,
                                 long defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->GetLong(fromCString(name),
@@ -1036,7 +1036,7 @@ char ngsJsonObjectGetBoolForKey(JsonObjectH object, const char *name,
                                char defaultValue)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     return static_cast<CPLJSONObject*>(object)->GetBool(fromCString(name),
@@ -1054,7 +1054,7 @@ char ngsJsonObjectSetStringForKey(JsonObjectH object, const char *name,
                                  const char *value)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return 0;
     }
 
@@ -1074,7 +1074,7 @@ char ngsJsonObjectSetDoubleForKey(JsonObjectH object, const char *name,
                                  double value)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
@@ -1094,7 +1094,7 @@ char ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name,
                                   int value)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
@@ -1113,7 +1113,7 @@ char ngsJsonObjectSetIntegerForKey(JsonObjectH object, const char* name,
 char ngsJsonObjectSetLongForKey(JsonObjectH object, const char *name, long value)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
@@ -1132,7 +1132,7 @@ char ngsJsonObjectSetLongForKey(JsonObjectH object, const char *name, long value
 char ngsJsonObjectSetBoolForKey(JsonObjectH object, const char *name, char value)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
@@ -1150,7 +1150,7 @@ char ngsJsonObjectSetBoolForKey(JsonObjectH object, const char *name, char value
 JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char *name)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     return new CPLJSONArray(static_cast<CPLJSONObject*>(object)->GetArray(name));
@@ -1165,7 +1165,7 @@ JsonObjectH ngsJsonObjectGetArray(JsonObjectH object, const char *name)
 JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char *name)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     return new CPLJSONObject(
@@ -1180,7 +1180,7 @@ JsonObjectH ngsJsonObjectGetObject(JsonObjectH object, const char *name)
 int ngsJsonArraySize(JsonObjectH object)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return 0;
     }
     return static_cast<CPLJSONArray*>(object)->Size();
@@ -1195,7 +1195,7 @@ int ngsJsonArraySize(JsonObjectH object)
 JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
 {
     if(nullptr == object) {
-        outMessage(COD_GET_FAILED, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     return new CPLJSONObject(static_cast<CPLJSONArray*>(object)->operator[](index));
@@ -1218,7 +1218,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
@@ -1243,7 +1243,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
     }
 
     if(!container->loadChildren()) {
-        outMessage(COD_GET_FAILED, _("Failed to load children."));
+        errorMessage(_("Failed to load children."));
         return nullptr;
     }
     auto children = container->getChildren();
@@ -1385,7 +1385,7 @@ CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, c
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
@@ -1395,7 +1395,7 @@ CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, c
     createOptions.remove("TYPE");
     ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(nullptr == container) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
@@ -1416,8 +1416,7 @@ CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, c
         return object.get();
     }
 
-    outMessage(COD_UNSUPPORTED,
-        _("Cannot create such object type (%d) in path: %s. Error: %s"),
+    errorMessage(_("Cannot create such object type (%d) in path: %s. Error: %s"),
         type, catalogObject->fullName().c_str(), getLastError());
     return nullptr;
 }
@@ -1530,21 +1529,19 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
 const char *ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
 {
     if(!object) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return "";
     }
     Object *catalogObject = static_cast<Object*>(object);
     if(!Filter::isDatabase(catalogObject->type())) {
-        outMessage(COD_INVALID,
-                    _("The input object not a dataset. The type is %d. Options query not supported"),
+        errorMessage(_("The input object not a dataset. The type is %d. Options query not supported"),
                     catalogObject->type());
         return "";
     }
 
     Dataset * const dataset = dynamic_cast<Dataset*>(catalogObject);
     if(nullptr == dataset) {
-        outMessage(COD_INVALID,
-                    _("The input object not a dataset. Options query not supported"));
+        errorMessage(_("The input object not a dataset. Options query not supported"));
         return "";
     }
     enum ngsOptionType enumOptionType = static_cast<enum ngsOptionType>(optionType);
@@ -1573,24 +1570,24 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
  */
 CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name, char fullMatch) {
     if(name == nullptr) {
-        outMessage(COD_INVALID, _("Name must be set"));
+        errorMessage(_("Name must be set"));
         return nullptr;
     }
     Object *catalogObject = static_cast<Object*>(parent);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("Parent handle is null"));
+        errorMessage(_("Parent handle is null"));
         return nullptr;
     }
 
     ObjectContainer *container = dynamic_cast<ObjectContainer*>(catalogObject);
     if (container == nullptr) {
-        outMessage(COD_INVALID, _("Parent handle is null"));
+        errorMessage(_("Parent handle is null"));
         return nullptr;
     }
 
     ObjectPtr child;
     if(!container->loadChildren()) {
-        outMessage(COD_GET_FAILED, _("Failed to load children"));
+        errorMessage(_("Failed to load children"));
         return nullptr;
     }
     auto children = container->getChildren();
@@ -1610,7 +1607,7 @@ CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name
     if(child) {
         return child.get();
     }
-    outMessage(COD_WARNING, _("Child not found"));
+    errorMessage(_("Child not found"));
     return nullptr;
 }
 
@@ -1663,7 +1660,7 @@ const char *ngsCatalogObjectPath(CatalogObjectH object)
 char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
 {
     if(nullptr == object) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
@@ -1687,13 +1684,13 @@ const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name,
                                      const char *domain)
 {
     if(nullptr == object) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
 
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return defaultValue;
     }
     auto propertyVal = catalogObject->property(fromCString(name),
@@ -1730,13 +1727,13 @@ void ngsCatalogObjectRefresh(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
 
     ObjectContainer *container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(!container) {
-        outMessage(COD_INVALID, _("The object is not container"));
+        errorMessage(_("The object is not container"));
         return;
     }
     container->refresh();
@@ -1762,13 +1759,13 @@ static FeatureClass *getFeatureClassFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
     if(!catalogObjectPointer) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1781,7 +1778,7 @@ static FeatureClass *getFeatureClassFromHandle(CatalogObjectH object)
 
 
     if(!Filter::isFeatureClass(catalogObjectPointer->type())) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1792,13 +1789,13 @@ static Table *getTableFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
     ObjectPtr catalogObjectPointer = catalogObject->pointer();
     if(!catalogObjectPointer) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1811,7 +1808,7 @@ static Table *getTableFromHandle(CatalogObjectH object)
 
     if(!(Filter::isTable(catalogObjectPointer->type()) ||
          Filter::isFeatureClass(catalogObjectPointer->type()))) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1822,12 +1819,12 @@ static Raster *getRasterFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
     if(!(Filter::isRaster(catalogObject->type()))) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -1997,7 +1994,7 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
 
@@ -2005,13 +2002,13 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
     if(!dataset) {
         Table *table = getTableFromHandle(object);
         if(!table) {
-            outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+            errorMessage(_("Source dataset type is incompatible"));
             return;
         }
 
         dataset = dynamic_cast<Dataset*>(table->parent());
         if(!dataset) {
-            outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+            errorMessage(_("Source dataset type is incompatible"));
             return;
         }
     }
@@ -2256,6 +2253,20 @@ ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object)
     return out;
 }
 
+/**
+ * @brief ngsFeatureClassSyncToDisk Flush pending changes to disk.
+ * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @return 1 on success else 0.
+ */
+char ngsFeatureClassSyncToDisk(CatalogObjectH object)
+{
+    Table *table = getTableFromHandle(object);
+    if(nullptr == table) {
+        return API_FALSE;
+    }
+    return table->syncToDisk() ? API_TRUE : API_FALSE;
+}
+
 void ngsFeatureFree(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
@@ -2267,7 +2278,7 @@ int ngsFeatureFieldCount(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return 0;
     }
     return (*featurePtrPointer)->GetFieldCount();
@@ -2277,7 +2288,7 @@ char ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return API_FALSE;
     }
     return (*featurePtrPointer)->IsFieldSetAndNotNull(fieldIndex) ? API_TRUE : API_FALSE;
@@ -2288,7 +2299,7 @@ long long ngsFeatureGetId(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return NOT_FOUND;
     }
     return (*featurePtrPointer)->GetFID();
@@ -2298,7 +2309,7 @@ GeometryH ngsFeatureGetGeometry(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     return (*featurePtrPointer)->GetGeometryRef()->clone();
@@ -2308,7 +2319,7 @@ int ngsFeatureGetFieldAsInteger(FeatureH feature, int field)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return 0;
     }
     return (*featurePtrPointer)->GetFieldAsInteger(field);
@@ -2319,7 +2330,7 @@ double ngsFeatureGetFieldAsDouble(FeatureH feature, int field)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return 0.0;
     }
     return (*featurePtrPointer)->GetFieldAsDouble(field);
@@ -2329,7 +2340,7 @@ const char *ngsFeatureGetFieldAsString(FeatureH feature, int field)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return "";
     }
     return storeCString((*featurePtrPointer)->GetFieldAsString(field));
@@ -2351,7 +2362,7 @@ void ngsFeatureSetGeometry(FeatureH feature, GeometryH geometry)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
 
@@ -2364,7 +2375,7 @@ void ngsFeatureSetFieldInteger(FeatureH feature, int field, int value)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
     (*featurePtrPointer)->SetField(field, value);
@@ -2374,7 +2385,7 @@ void ngsFeatureSetFieldDouble(FeatureH feature, int field, double value)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
     (*featurePtrPointer)->SetField(field, value);
@@ -2384,7 +2395,7 @@ void ngsFeatureSetFieldString(FeatureH feature, int field, const char* value)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
     (*featurePtrPointer)->SetField(field, value);
@@ -2396,59 +2407,18 @@ void ngsFeatureSetFieldDateTime(FeatureH feature, int field, int year, int month
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return;
     }
     (*featurePtrPointer)->SetField(field, year, month, day, hour, minute, second,
                                    TZFlag);
 }
 
-//------------------------------------------------------------------------------
-// StoreFeature
-//------------------------------------------------------------------------------
-
-long long ngsStoreFeatureGetRemoteId(FeatureH feature)
-{
-    FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
-        return NOT_FOUND;
-    }
-    return StoreTable::getRemoteId(*featurePtrPointer);
-}
-
-
-void ngsStoreFeatureSetRemoteId(FeatureH feature, long long rid)
-{
-    FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
-        return;
-    }
-    StoreTable::setRemoteId(*featurePtrPointer, rid);
-}
-
-FeatureH ngsStoreFeatureClassGetFeatureByRemoteId(CatalogObjectH object,
-                                                  long long rid)
-{
-    StoreFeatureClass *featureClass = dynamic_cast<StoreFeatureClass*>(
-                getFeatureClassFromHandle(object));
-    if(!featureClass) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
-        return nullptr;
-    }
-    FeaturePtr remoteIdFeature = featureClass->getFeatureByRemoteId(rid);
-    if(remoteIdFeature) {
-        return new FeaturePtr(remoteIdFeature);
-    }
-    return nullptr;
-}
-
 GeometryH ngsFeatureCreateGeometry(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     OGRGeomFieldDefn *defn = (*featurePtrPointer)->GetGeomFieldDefnRef(0);
@@ -2457,9 +2427,9 @@ GeometryH ngsFeatureCreateGeometry(FeatureH feature)
 
 GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry)
 {
-    CPLJSONObject *jsonGeometry = static_cast<CPLJSONObject*>(geometry);
+    auto jsonGeometry = static_cast<CPLJSONObject*>(geometry);
     if(!jsonGeometry) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
@@ -2473,7 +2443,7 @@ GeometryH ngsFeatureCreateGeometryFromJson(JsonObjectH geometry)
  */
 void ngsGeometryFree(GeometryH geometry)
 {
-    OGRGeometry *geom = static_cast<OGRGeometry*>(geometry);
+    auto geom = static_cast<OGRGeometry*>(geometry);
     if(geom) {
         OGRGeometryFactory::destroyGeometry(geom);
     }
@@ -2529,21 +2499,19 @@ CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG,
                                                             int toEPSG)
 {
     if(fromEPSG == toEPSG) {
-        outMessage(COD_INVALID, _("From/To EPSG codes are equal"));
+        errorMessage(_("From/To EPSG codes are equal"));
         return nullptr;
     }
 
     SpatialReferencePtr from = SpatialReferencePtr::importFromEPSG(fromEPSG);
     if(from == nullptr) {
-        outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
-                     fromEPSG);
+        errorMessage(_("Unsupported from EPSG with code %d"), fromEPSG);
         return nullptr;
     }
 
     SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(toEPSG);
     if(to == nullptr) {
-        outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
-                     toEPSG);
+        errorMessage(_("Unsupported from EPSG with code %d"), toEPSG);
         return nullptr;
     }
 
@@ -2561,7 +2529,7 @@ ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
 {
     OGRCoordinateTransformation *pct = static_cast<OGRCoordinateTransformation*>(ct);
     if(!pct) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return {0.0, 0.0, 0.0};
     }
 
@@ -2575,62 +2543,49 @@ long long ngsFeatureAttachmentAdd(FeatureH feature, const char *name,
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
-        return NOT_FOUND;
-    }
-    Table *table = featurePtrPointer->table();
-    if(!table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
+        errorMessage(_("The object handle is null"));
         return NOT_FOUND;
     }
 
-    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
-        outMessage(COD_INVALID, _("The feature from table that is result of query"));
-        return NOT_FOUND;
-    }
-
-    GIntBig fid = (*featurePtrPointer)->GetFID();
-    return table->addAttachment(fid, fromCString(name), fromCString(description),
-                                fromCString(path), Options(options),
-                                logEdits == 1);
+    return featurePtrPointer->addAttachment(fromCString(name),
+                                            fromCString(description),
+                                            fromCString(path), Options(options),
+                                            logEdits == 1);
 }
 
-int ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits)
+/**
+ * @brief ngsFeatureAttachmentDeleteAll Delete all attachments from feature.
+ * @param feature Feature to delete attachments from
+ * @param logEditsA dd operaton to edit log or not.
+ * @return 1 on success or 0.
+ */
+char ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
     }
 
-    Table *table = featurePtrPointer->table();
-    if(!table) {
-        return outMessage(COD_INVALID, _("The feature detached from table"));
-    }
-
-    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
-        return outMessage(COD_INVALID, _("The feature from table that is result of query"));
-    }
-
-    return table->deleteAttachments(logEdits == 1);
+    return featurePtrPointer->deleteAttachments(logEdits == 1) ? API_TRUE : API_FALSE;
 }
 
-int ngsFeatureAttachmentDelete(FeatureH feature, long long aid, char logEdits)
+/**
+ * @brief ngsFeatureAttachmentDelete Delete attachment from feature.
+ * @param feature Feature to delete attachment from.
+ * @param aid Attachment identifier.
+ * @param logEdits Add operaton to edit log or not.
+ * @return 1 on success or 0.
+ */
+char ngsFeatureAttachmentDelete(FeatureH feature, long long aid, char logEdits)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
     }
 
-    Table *table = featurePtrPointer->table();
-    if(!table) {
-        return outMessage(COD_INVALID, _("The feature detached from table"));
-    }
-
-    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
-        return outMessage(COD_INVALID, _("The feature from table that is result of query"));
-    }
-
-    return table->deleteAttachment(aid, logEdits == 1);
+    return featurePtrPointer->deleteAttachment(aid, logEdits == 1) ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -2642,81 +2597,51 @@ ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
-        return nullptr;
-    }
-
-    Table *table = featurePtrPointer->table();
-    if(!table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
-        return nullptr;
-    }
-
-    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
-        outMessage(COD_INVALID, _("The feature from table that is result of query"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
     clearCStrings();
 
-    GIntBig fid = (*featurePtrPointer)->GetFID();
-    std::vector<Table::AttachmentInfo> info = table->attachments(fid);
+    std::vector<FeaturePtr::AttachmentInfo> info = featurePtrPointer->attachments();
     ngsFeatureAttachmentInfo *out = static_cast<ngsFeatureAttachmentInfo*>(
                 CPLMalloc((info.size() + 1) * sizeof(ngsFeatureAttachmentInfo)));
     int counter = 0;
-    for(const Table::AttachmentInfo &infoItem : info) {
+    for(const auto &infoItem : info) {
         ngsFeatureAttachmentInfo outInfo = {infoItem.id,
                                             storeCString(infoItem.name),
                                             storeCString(infoItem.description),
                                             storeCString(infoItem.path),
-                                            infoItem.size, infoItem.rid};
+                                            infoItem.size};
 
         out[counter++] = outInfo;
     }
 
-    out[info.size()] = {-1, nullptr, nullptr, nullptr, 0, -1};
+    out[info.size()] = {-1, nullptr, nullptr, nullptr, 0};
     return out;
 }
 
-int ngsFeatureAttachmentUpdate(FeatureH feature, long long aid,
+/**
+ * @brief ngsFeatureAttachmentUpdate Update attachment information. To change attachment file you need to delete it and upload new one.
+ * @param feature  Feature to update attachment.
+ * @param aid Attachment identifier.
+ * @param name New file name with extension
+ * @param description New file description.
+ * @param logEdits Add operaton to edit log or not.
+ * @return 1 on success or 0.
+ */
+char ngsFeatureAttachmentUpdate(FeatureH feature, long long aid,
                                const char *name, const char *description,
                                char logEdits)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
     }
 
-    Table *table = featurePtrPointer->table();
-    if(!table) {
-        return outMessage(COD_INVALID, _("The feature detached from table"));
-    }
-
-    if(table->type() == CAT_QUERY_RESULT || table->type() == CAT_QUERY_RESULT_FC) {
-        return outMessage(COD_INVALID, _("The feature from table that is result of query"));
-    }
-
-    return table->updateAttachment(aid, fromCString(name), fromCString(description),
-                                   logEdits == 1) ? COD_SUCCESS : COD_UPDATE_FAILED;
-}
-
-void ngsStoreFeatureSetAttachmentRemoteId(FeatureH feature, long long aid,
-                                          long long rid)
-{
-    FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
-    if(!featurePtrPointer) {
-        outMessage(COD_INVALID, _("The object handle is null"));
-        return;
-    }
-
-    StoreFeatureClass *table = dynamic_cast<StoreFeatureClass*>(
-                featurePtrPointer->table());
-    if(!table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
-        return;
-    }
-
-    table->setFeatureAttachmentRemoteId(aid, rid);
+    return featurePtrPointer->updateAttachment(aid, fromCString(name),
+        fromCString(description), logEdits == 1) ? API_TRUE : API_FALSE;
 }
 
 //------------------------------------------------------------------------------
@@ -2937,7 +2862,7 @@ ngsRGBA ngsMapGetBackgroundColor(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return {0,0,0,0};
     }
     return mapStore->getMapBackgroundColor(mapId);
@@ -2984,7 +2909,7 @@ ngsCoordinate ngsMapGetCenter(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return {0, 0, 0};
     }
     return mapStore->getMapCenter(mapId);
@@ -3001,7 +2926,7 @@ ngsCoordinate ngsMapGetCoordinate(char mapId, double x, double y)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return {0, 0, 0};
     }
     return mapStore->getMapCoordinate(mapId, x, y);
@@ -3031,7 +2956,7 @@ double ngsMapGetScale(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return 1.0;
     }
     return mapStore->getMapScale(mapId);
@@ -3048,14 +2973,14 @@ int ngsMapCreateLayer(char mapId, const char *name, const char *path)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_CREATE_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return NOT_FOUND;
     }
 
     CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(path);
     if(!object) {
-        outMessage(COD_INVALID, _("Source dataset '%s' not found"), path);
+        errorMessage(_("Source dataset '%s' not found"), path);
         return NOT_FOUND;
     }
 
@@ -3107,7 +3032,7 @@ double ngsMapGetRotate(char mapId, ngsDirection dir)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return 0.0;
     }
     return mapStore->getMapRotate(mapId, dir);
@@ -3124,7 +3049,7 @@ ngsCoordinate ngsMapGetDistance(char mapId, double w, double h)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return {0.0, 0.0, 0.0};
     }
     return mapStore->getMapDistance(mapId, w, h);
@@ -3139,7 +3064,7 @@ int ngsMapLayerCount(char mapId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return 0;
     }
     return static_cast<int>(mapStore->getLayerCount(mapId));
@@ -3155,7 +3080,7 @@ LayerH ngsMapLayerGet(char mapId, int layerId)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return nullptr;
     }
     return mapStore->getLayer(mapId, layerId).get();
@@ -3221,7 +3146,7 @@ ngsExtent ngsMapGetExtent(char mapId, int epsg)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return {0.0, 0.0, 0.0, 0.0};
     }
 
@@ -3236,15 +3161,13 @@ ngsExtent ngsMapGetExtent(char mapId, int epsg)
 
         SpatialReferencePtr from = SpatialReferencePtr::importFromEPSG(fromEPSG);
         if(from == nullptr) {
-            outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
-                     fromEPSG);
+            errorMessage(_("Unsupported from EPSG with code %d"), fromEPSG);
             return {0.0, 0.0, 0.0, 0.0};
         }
 
         SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(epsg);
         if(to == nullptr) {
-            outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
-                         epsg);
+            errorMessage(_("Unsupported from EPSG with code %d"), epsg);
             return {0.0, 0.0, 0.0, 0.0};
         }
 
@@ -3307,12 +3230,12 @@ JsonObjectH ngsMapGetSelectionStyle(char mapId, enum ngsStyleType styleType)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return nullptr;
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        outMessage(COD_GET_FAILED, _("MapView pointer is null"));
+        errorMessage(_("MapView pointer is null"));
         return nullptr;
     }
 
@@ -3340,12 +3263,12 @@ const char *ngsMapGetSelectionStyleName(char mapId, ngsStyleType styleType)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED,  _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return "";
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        outMessage(COD_GET_FAILED,  _("Failed to get mapview"));
+        errorMessage(_("Failed to get mapview"));
         return "";
     }
 
@@ -3420,7 +3343,7 @@ char ngsMapIconSetExists(char mapId, const char *name)
 const char *ngsLayerGetName(LayerH layer)
 {
     if(nullptr == layer) {
-        outMessage(COD_GET_FAILED, _("Layer pointer is null"));
+        errorMessage(_("Layer pointer is null"));
         return "";
     }
     return storeCString(static_cast<Layer*>(layer)->name());
@@ -3533,7 +3456,7 @@ int ngsLayerSetMinZoom(LayerH layer, float zoom)
 CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 {
     if(nullptr == layer) {
-        outMessage(COD_SET_FAILED, _("Layer pointer is null"));
+        errorMessage(_("Layer pointer is null"));
         return nullptr;
     }
 
@@ -3543,14 +3466,14 @@ CatalogObjectH ngsLayerGetDataSource(LayerH layer)
 JsonObjectH ngsLayerGetStyle(LayerH layer)
 {
     if(nullptr == layer) {
-        outMessage(COD_SET_FAILED, _("Layer pointer is null"));
+        errorMessage(_("Layer pointer is null"));
         return nullptr;
     }
 
     Layer *layerPtr = static_cast<Layer*>(layer);
     IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
-        outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+        errorMessage(_("Layer type is unsupported. Mast be GlRenderLayer"));
         return nullptr;
     }
 
@@ -3566,7 +3489,7 @@ int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
     Layer *layerPtr = static_cast<Layer*>(layer);
     IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
-        outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+        errorMessage(_("Layer type is unsupported. Mast be GlRenderLayer"));
     }
 
     CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(style);
@@ -3576,14 +3499,14 @@ int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
 const char *ngsLayerGetStyleName(LayerH layer)
 {
     if(nullptr == layer) {
-        outMessage(COD_SET_FAILED, _("Layer pointer is null"));
+        errorMessage(_("Layer pointer is null"));
         return "";
     }
 
     Layer *layerPtr = static_cast<Layer*>(layer);
     IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
     if(nullptr == renderLayerPtr) {
-        outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
+        errorMessage(_("Layer type is unsupported. Mast be GlRenderLayer"));
         return "";
     }
 
@@ -3653,12 +3576,12 @@ static OverlayPtr getOverlayPtr(char mapId, enum ngsMapOverlayType type)
 {
     MapStore * const mapStore = MapStore::instance();
     if(nullptr == mapStore) {
-        outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
+        errorMessage(_("MapStore is not initialized"));
         return nullptr;
     }
     MapViewPtr mapView = mapStore->getMap(mapId);
     if(!mapView) {
-        outMessage(COD_GET_FAILED, _("MapView pointer is null"));
+        errorMessage(_("MapView pointer is null"));
         return nullptr;
     }
     return mapView->getOverlay(type);
@@ -3669,7 +3592,7 @@ static T *getOverlay(char mapId, enum ngsMapOverlayType type)
 {
     OverlayPtr overlay = getOverlayPtr(mapId, type);
     if(!overlay) {
-        outMessage(COD_GET_FAILED, _("Overlay pointer is null"));
+        errorMessage(_("Overlay pointer is null"));
         return nullptr;
     }
     return ngsDynamicCast(T, overlay);
@@ -4430,7 +4353,7 @@ static DataStore *getDataStoreFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
@@ -4446,7 +4369,7 @@ CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store)
 {
     DataStore *dataStore = getDataStoreFromHandle(store);
     if(!dataStore) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -4466,7 +4389,7 @@ char ngsStoreHasTracksTable(CatalogObjectH store)
 {
     DataStore *dataStore = getDataStoreFromHandle(store);
     if(!dataStore) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return API_FALSE;
     }
 
@@ -4483,12 +4406,12 @@ static TracksTable *getTracksTableFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        outMessage(COD_INVALID, _("The object handle is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
     if(!Filter::isFeatureClass(catalogObject->type())) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -4519,7 +4442,7 @@ CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable)
 {
     TracksTable *table = getTracksTableFromHandle(tracksTable);
     if(!table) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
     return table->getPointsLayer().get();
@@ -4534,7 +4457,7 @@ void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount)
 {
     TracksTable *table = getTracksTableFromHandle(tracksTable);
     if(!table) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return;
     }
     table->sync(maxPointCount);
@@ -4549,7 +4472,7 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
 {
     TracksTable *table = getTracksTableFromHandle(tracksTable);
     if(!table) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
     }
 
@@ -4589,7 +4512,7 @@ char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double 
 {
     TracksTable *table = getTracksTableFromHandle(tracksTable);
     if(!table) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return API_FALSE;
     }
 
@@ -4609,10 +4532,30 @@ char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop)
 {
     TracksTable *table = getTracksTableFromHandle(tracksTable);
     if(!table) {
-        outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        errorMessage(_("Source dataset type is incompatible"));
         return API_FALSE;
     }
 
     table->deletePoints(start, stop);
     return EQUAL(getLastError(), "") ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsStoreObjectSync Sync local and remote changes.
+ * @param object Store object to sync with remote.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsStoreObjectSync(CatalogObjectH object)
+{
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
+    }
+
+    auto storeObjectContainer = dynamic_cast<StoreObjectContainer*>(catalogObject);
+    if(nullptr == storeObjectContainer) {
+        return API_FALSE;
+    }
+    return storeObjectContainer->sync() ? API_TRUE : API_FALSE;
 }

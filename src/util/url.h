@@ -26,12 +26,30 @@
 #include "options.h"
 #include "progress.h"
 
+// gdal
 #include "cpl_json.h"
+#include "cpl_http.h"
+
+// std
+#include <memory>
 
 namespace ngs {
 
 namespace http {
 
+/**
+ * @brief The HTTPResultPtr class
+ */
+class HTTPResultPtr : public std::shared_ptr<CPLHTTPResult>
+{
+public:
+    HTTPResultPtr(CPLHTTPResult *result);
+    HTTPResultPtr();
+    HTTPResultPtr &operator=(CPLHTTPResult *result);
+    operator CPLHTTPResult*() const;
+};
+
+//------------------------------------------------------------------------------
 ngsURLRequestResult *fetch(const std::string &url, const Progress &progress,
                            const Options &options);
 bool getFile(const std::string &url, const std::string &path,
@@ -41,6 +59,10 @@ CPLJSONObject fetchJson(const std::string &url,
                         const Progress &progress = Progress(),
                         const Options &options = Options());
 CPLStringList addAuthHeaders(const std::string &url, CPLStringList &options);
+CPLStringList getGDALHeaders(const std::string &url);
+CPLJSONObject uploadFile(const std::string &url, const std::string &filePath,
+                         const Progress &progress = Progress(),
+                         const Options &options = Options());
 }
 
 }

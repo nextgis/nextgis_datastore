@@ -21,10 +21,12 @@
 #ifndef NGSGEOMETRY_H
 #define NGSGEOMETRY_H
 
+// gdal
 #include "cpl_json.h"
 #include "ogrsf_frmts.h"
 #include "ogr_geometry.h"
 
+// std
 #include <array>
 #include <memory>
 #include <set>
@@ -45,7 +47,7 @@ public:
     GeometryPtr(OGRGeometry *geom);
     GeometryPtr();
     GeometryPtr &operator=(OGRGeometry *geom);
-    operator OGRGeometry*() const { return get(); }
+    operator OGRGeometry*() const;
 };
 
 class Envelope

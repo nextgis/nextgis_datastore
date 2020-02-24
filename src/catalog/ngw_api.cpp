@@ -18,13 +18,13 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include <util/settings.h>
+
 #include "api_priv.h"
 #include "ngw.h"
 #include "util/error.h"
 #include "util/stringutil.h"
-
-#include "cpl_http.h"
+#include "util/settings.h"
+#include "util/url.h"
 
 namespace ngs {
 
@@ -68,6 +68,11 @@ std::string getTrackerUrl()
 {
     std::string trackAPIEndpoint = Settings::instance().getString("nextgis/track_api", "track.nextgis.com");
     return trackAPIEndpoint + "/ng-mobile/" + deviceId(false);
+}
+
+std::string getUploadUrl(const std::string &url)
+{
+    return url + "/api/component/file_upload/upload";
 }
 
 std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type)
@@ -170,7 +175,7 @@ bool sendTrackPoints(const std::string &payload)
 
     std::string url = ngw::getTrackerUrl() + "/packet";
 
-    CPLHTTPResult *result = CPLHTTPFetch(url.c_str(), httpOptions);
+    http::HTTPResultPtr result = CPLHTTPFetch(url.c_str(), httpOptions);
     CSLDestroy(httpOptions);
 
     bool outResult = false;
@@ -181,7 +186,6 @@ bool sendTrackPoints(const std::string &payload)
         if(!outResult) {
             reportError(result->pabyData, result->nDataLen);
         }
-        CPLHTTPDestroyResult(result);
     }
 
     return outResult;
@@ -231,7 +235,7 @@ bool updateResource(const std::string &url, const std::string &resourceId,
     httpOptions = CSLAddString( httpOptions,
         "HEADERS=Content-Type: application/json\r\nAccept: */*" );
 
-    CPLHTTPResult *httpResult = CPLHTTPFetch(
+    http::HTTPResultPtr httpResult = CPLHTTPFetch(
                 getResourceUrl(url, resourceId).c_str(), httpOptions);
     CSLDestroy(httpOptions);
     bool result = false;
@@ -242,7 +246,6 @@ bool updateResource(const std::string &url, const std::string &resourceId,
         if(!result) {
             reportError(httpResult->pabyData, httpResult->nDataLen);
         }
-        CPLHTTPDestroyResult(httpResult);
     }
     else {
         errorMessage(_("Update resource %s failed"), resourceId.c_str());
@@ -255,8 +258,9 @@ bool deleteResource(const std::string &url, const std::string &resourceId,
 {
     CPLErrorReset();
     httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=DELETE");
-    CPLHTTPResult *httpResult = CPLHTTPFetch(
+    http::HTTPResultPtr httpResult = CPLHTTPFetch(
                 getResourceUrl(url, resourceId).c_str(), httpOptions);
+    CSLDestroy(httpOptions);
     bool result = false;
     if(httpResult) {
         result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
@@ -264,10 +268,70 @@ bool deleteResource(const std::string &url, const std::string &resourceId,
         if(!result) {
             reportError(httpResult->pabyData, httpResult->nDataLen);
         }
-        CPLHTTPDestroyResult(httpResult);
     }
-    CSLDestroy(httpOptions);
     return result;
+}
+
+
+bool deleteAttachment(const std::string &url, const std::string &resourceId,
+                      const std::string &featureId,
+                      const std::string &attachmentId,
+                      char **httpOptions)
+{
+    CPLErrorReset();
+    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=DELETE");
+    http::HTTPResultPtr httpResult =
+            CPLHTTPFetch(getAttachmentUrl(url, resourceId, featureId,
+                                          attachmentId).c_str(), httpOptions);
+    CSLDestroy(httpOptions);
+    bool result = false;
+    if(httpResult) {
+        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
+        // Get error message.
+        if(!result) {
+            reportError(httpResult->pabyData, httpResult->nDataLen);
+        }
+    }
+    return result;
+}
+
+
+bool updateFeature(const std::string &url, const std::string &resourceId,
+                        const std::string &featureId, const std::string &payload,
+                        char **httpOptions)
+{
+    auto featureUrl = getFeatureUrl(url, resourceId, featureId);
+    CPLErrorReset();
+    std::string payloadInt = "POSTFIELDS=" + payload;
+
+    httpOptions = CSLAddString( httpOptions, "CUSTOMREQUEST=PUT" );
+    httpOptions = CSLAddString( httpOptions, payloadInt.c_str() );
+    httpOptions = CSLAddString( httpOptions,
+        "HEADERS=Content-Type: application/json\r\nAccept: */*" );
+
+    http::HTTPResultPtr httpResult = CPLHTTPFetch(featureUrl.c_str(), httpOptions);
+    CSLDestroy(httpOptions);
+    bool result = false;
+    if(httpResult) {
+        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
+
+        // Get error message.
+        if(!result) {
+            reportError(httpResult->pabyData, httpResult->nDataLen);
+        }
+    }
+    else {
+        errorMessage(_("Update feature %s in feature class %s failed"),
+                     featureId.c_str(), resourceId.c_str());
+    }
+    return result;
+}
+
+bool deleteAttachments(const std::string &url, const std::string &resourceId,
+                       const std::string &featureId, char **httpOptions)
+{
+    return updateFeature(url, resourceId, featureId,
+                         "{\"extensions\":{\"attachment\":[]}}", httpOptions);
 }
 
 bool renameResource(const std::string &url, const std::string &resourceId,
@@ -293,6 +357,74 @@ std::string resmetaSuffix(CPLJSONObject::Type eType)
         default:
             return "";
     }
+}
+
+std::string getFeatureUrl(const std::string &url,
+                          const std::string &resourceId,
+                          const std::string &featureId)
+{
+    return getResourceUrl(url, resourceId) + "/feature/" + featureId;
+}
+
+std::string getAttachmentUrl(const std::string &url,
+                                  const std::string &resourceId,
+                                  const std::string &featureId,
+                                  const std::string &attachmentId)
+{
+    return getAttachmentCreateUrl(url, resourceId, featureId) + attachmentId;
+}
+
+std::string getAttachmentCreateUrl(const std::string &url,
+                                   const std::string &resourceId,
+                                   const std::string &featureId)
+ {
+     return getFeatureUrl(url, resourceId, featureId) + "/attachment/";
+ }
+
+
+std::string getAttachmentDownloadUrl(const std::string &url,
+                                     const std::string &resourceId,
+                                     const std::string &featureId,
+                                     const std::string &attachmentId)
+{
+    return getAttachmentUrl(url, resourceId, featureId, attachmentId) + "/download";
+}
+
+GIntBig addAttachment(const std::string &url,
+                          const std::string &resourceId,
+                          const std::string &featureId,
+                          const std::string &payload,
+                          char **httpOptions)
+{
+    resetError();
+    std::string payloadInt = "POSTFIELDS=" + payload;
+
+    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=POST");
+    httpOptions = CSLAddString(httpOptions, payloadInt.c_str());
+    httpOptions = CSLAddString(httpOptions,
+        "HEADERS=Content-Type: application/json\r\nAccept: */*");
+
+    CPLJSONDocument createReq;
+    bool bResult = createReq.LoadUrl(
+                getAttachmentCreateUrl(url, resourceId, featureId), httpOptions);
+    CSLDestroy(httpOptions);
+    GIntBig attachmentId(-1);
+    CPLJSONObject root = createReq.GetRoot();
+    if(root.IsValid()) {
+        if(bResult) {
+            attachmentId = root.GetLong("id", -1);
+        }
+        else {
+            std::string errorMessageStr = root.GetString("message");
+            if(errorMessageStr.empty()) {
+                errorMessage("%s", _("Create attachment failed. No error message from server."));
+            }
+            else {
+                errorMessage("%s", errorMessageStr.c_str());
+            }
+        }
+    }
+    return attachmentId;
 }
 
 //// C++11 allow defaults
@@ -353,19 +485,6 @@ std::string resmetaSuffix(CPLJSONObject::Type eType)
 //    }
 
 //    return out;
-//}
-
-//static std::string getResmetaSuffix(CPLJSONObject::Type type)
-//{
-//    switch( type ) {
-//        case CPLJSONObject::Integer:
-//        case CPLJSONObject::Long:
-//            return ".d";
-//        case CPLJSONObject::Double:
-//            return ".f";
-//        default:
-//            return "";
-//    }
 //}
 
 //static void fillResmeta(CPLJSONObject &root, char **papszMetadata)

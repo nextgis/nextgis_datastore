@@ -64,7 +64,8 @@ FeatureClassOverview::FeatureClassOverview(OGRLayer *layer,
     hasTilesTable();
 }
 
-bool FeatureClassOverview::onRowsCopied(const Progress &progress,
+bool FeatureClassOverview::onRowsCopied(const TablePtr srcTable,
+                                        const Progress &progress,
                                         const Options &options)
 {
     bool createOvr = options.asBool("CREATE_OVERVIEWS", false) &&
@@ -72,7 +73,7 @@ bool FeatureClassOverview::onRowsCopied(const Progress &progress,
     if(createOvr) {
         return createOverviews(progress, options);
     }
-    return true;
+    return FeatureClass::onRowsCopied(srcTable, progress, options);
 }
 
 bool FeatureClassOverview::hasOverviews() const

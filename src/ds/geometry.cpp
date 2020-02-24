@@ -56,6 +56,11 @@ GeometryPtr &GeometryPtr::operator=(OGRGeometry *geom)
     return *this;
 }
 
+ngs::GeometryPtr::operator OGRGeometry *() const
+{
+     return get();
+}
+
 //------------------------------------------------------------------------------
 // VectorTileItem
 //------------------------------------------------------------------------------

@@ -46,6 +46,10 @@ public:
     CPLStringList asCPLStringList() const;
 
     void add(const std::string &key, const std::string &value);
+    void add(const std::string &key, const char *value);
+    void add(const std::string &key, long value);
+    void add(const std::string &key, GIntBig value);
+    void add(const std::string &key, bool value);
     void remove(const std::string &key);
     bool empty() const;
     std::map< std::string, std::string >::const_iterator begin() const;
@@ -53,6 +57,8 @@ public:
 
     void append(const Options &other);
     std::string operator[](std::string key) const;
+
+    bool hasKey(const std::string &key) const;
 
 protected:
     std::map<std::string, std::string> m_options;

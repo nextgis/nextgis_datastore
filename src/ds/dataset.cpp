@@ -280,7 +280,8 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
 
         dstField.SetName(newFieldName.c_str());
         if (layer->CreateField(&dstField) != OGRERR_NONE) {
-            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(), CPLGetLastErrorMsg());
+            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(),
+                         CPLGetLastErrorMsg());
             return nullptr;
         }
         nameList.push_back(newFieldName);
@@ -320,9 +321,7 @@ bool Dataset::setProperty(const std::string &key, const std::string &value,
     }
     MutexHolder holder(m_executeSQLMutex);
 
-    if(!m_addsDS) {
-        createAdditionsDataset();
-    }    
+    createAdditionsDataset();
 
     if(!m_metadata) {
         m_metadata = createMetadataTable(m_addsDS);
@@ -428,12 +427,12 @@ bool Dataset::destroy()
 
     // Delete additions
     if(!Filter::isDatabase(type())) {
-        std::string ovrPath = File::resetExtension(m_path, ADDS_EXT);
-        if(Folder::isExists(ovrPath)) {
-            File::deleteFile(ovrPath);
+        std::string additionsDSPath = additionsDatasetPath();
+        if(Folder::isExists(additionsDSPath)) {
+            File::deleteFile(additionsDSPath);
         }
     }
-    std::string attachmentsPath = File::resetExtension(m_path, ATTACH_SUFFIX);
+    std::string attachmentsPath = attachmentsFolderPath();
     if(Folder::isExists(attachmentsPath)) {
         Folder::rmDir(attachmentsPath);
     }
@@ -522,6 +521,30 @@ bool Dataset::forbiddenChar(char c)
 {
     return std::find(forbiddenChars.begin(), forbiddenChars.end(), c) !=
             forbiddenChars.end();
+}
+
+GDALDataset *Dataset::createAdditionsDatasetInt(const std::string &path,
+                                                enum ngsCatalogObjectType type)
+{
+    resetError();
+    GDALDriver *driver = Filter::getGDALDriver(type);
+    if(driver == nullptr) {
+        outMessage(COD_CREATE_FAILED, _("Driver is not present"));
+        return nullptr;
+    }
+
+    Options options;
+    options.add("METADATA", "NO");
+    options.add("SPATIALITE", "NO");
+    options.add("INIT_WITH_EPSG", "NO");
+
+    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown,
+                                       options.asCPLStringList());
+    if(DS == nullptr) {
+        errorMessage(_("Failed to create additional dataset on path %s. %s"),
+                     path.c_str(), CPLGetLastErrorMsg());
+    }
+    return DS;
 }
 
 std::string Dataset::normalizeDatasetName(const std::string &name) const
@@ -631,31 +654,26 @@ GDALDataset *Dataset::createAdditionsDataset()
     if(Filter::isDatabase(type())) {
         m_addsDS = m_DS;
         m_addsDS->Reference();
-        return m_addsDS;
     }
     else {
-        std::string dsPath = File::resetExtension(m_path, ADDS_EXT);
-        resetError();
-        GDALDriver *driver = Filter::getGDALDriver(CAT_CONTAINER_SQLITE);
-        if(driver == nullptr) {
-            outMessage(COD_CREATE_FAILED, _("Driver is not present"));
-            return nullptr;
-        }
-
-        Options options;
-        options.add("METADATA", "NO");
-        options.add("SPATIALITE", "NO");
-        options.add("INIT_WITH_EPSG", "NO");
-
-        GDALDataset *DS = driver->Create(dsPath.c_str(), 0, 0, 0, GDT_Unknown,
-                                           options.asCPLStringList());
-        if(DS == nullptr) {
-            errorMessage(_("Failed to create additional dataset. %s"), CPLGetLastErrorMsg());
-            return nullptr;
-        }
-        m_addsDS = DS;
-        return m_addsDS;
+        m_addsDS = createAdditionsDatasetInt(additionsDatasetPath(),
+                                             CAT_CONTAINER_SQLITE);
     }
+    return m_addsDS;
+}
+
+std::string Dataset::additionsDatasetPath() const
+{
+    return File::resetExtension(m_path, additionsDatasetExtension());
+}
+
+std::string Dataset::attachmentsFolderPath(bool create) const
+{
+    auto attachmentsPath = File::resetExtension(m_path, ATTACH_SUFFIX);
+    if(create && !Folder::isExists(attachmentsPath)) {
+        Folder::mkDir(attachmentsPath, true);
+    }
+    return attachmentsPath;
 }
 
 std::string Dataset::options(enum ngsOptionType optionType) const
@@ -716,7 +734,14 @@ bool Dataset::isReadOnly() const
  * @param child Feature class or table to copy or move.
  * @param move Copy or move.
  * @param options Key - value list. The available values are:
- * - STYLE_TO_FIELD - copy OGR Style to field.
+ * - NEW_NAME - new table/featureClass name. If not present, the original Object name will use.
+ * - CREATE_UNIQUE - if name of new object already present, the counter suffix will append.
+ * - OGR_STYLE_FIELD_TO_STRING - copy OGR Style to field named 'OGR_STYLE'.
+ * - FORCE_GEOMETRY_TO_MULTI - if feature class has mixed geometry types (i.e. polygons and multypolygons) the non multi types will force to multi.
+ * - SKIP_EMPTY_GEOMETRY - if geometry is empty, skip to add feature to destination table/featureClass.
+ * - SKIP_INVALID_GEOMETRY - if true, check validity of source geometry. Features with invalid geometries will skip.
+ * - DESCRIPTION - If supported by Object the description will add.
+ * - ACCEPT_GEOMETRY - limit accepted geometry type. Defaults to ALL: no limits.
  * @param progress
  * @return
  */
@@ -775,14 +800,27 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
 
+        Progress progressMulti(progress);
+        progressMulti.setTotalSteps(2);
+        progressMulti.setStep(0);
+
         // Create fields map. We expected equal count of fields
         FieldMapPtr fieldMap(srcTable->fields(), dstTable->fields());
-        int result = dstTable->copyRows(srcTable, fieldMap, progress);
+        int result = dstTable->copyRows(srcTable, fieldMap, progressMulti);
         if(result != COD_SUCCESS) {
             return result;
         }
+
         auto fullNameStr = dstTable->fullName();
+        progressMulti.setStep(1);
+        // Execute postprocess after features copied.
+        if(!dstTable->onRowsCopied(srcTable, progressMulti, options)) {
+            warningMessage(_("Postprocess features after copy in feature class '%s' failed."),
+                           fullNameStr.c_str());
+        }
+
         Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_CREATE_OBJECT);
+        progressMulti.onProgress(COD_FINISHED, 1.0, "");
     }
     else if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
@@ -855,7 +893,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
             progressMulti.setStep(1);
             // Execute postprocess after features copied.
-            if(!dstFClass->onRowsCopied(progressMulti, options)) {
+            if(!dstFClass->onRowsCopied(srcFClass, progressMulti, options)) {
                 warningMessage(_("Postprocess features after copy in feature class '%s' failed."),
                                fullNameStr.c_str());
             }
@@ -989,7 +1027,7 @@ bool Dataset::open(unsigned int openFlags, const Options &options)
             m_addsDS->Reference();
         }
         else {
-            std::string addsPath = File::resetExtension(m_path, ADDS_EXT);
+            std::string addsPath = additionsDatasetPath();
             if(Folder::isExists(addsPath)) {
                 m_addsDS = static_cast<GDALDataset*>(
                             GDALOpenEx(addsPath.c_str(), openFlags, nullptr,
@@ -1085,21 +1123,12 @@ OGRLayer *Dataset::createEditHistoryTable(GDALDataset *ds, const std::string &na
     return logLayer;
 }
 
-OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &path,
-                                        const std::string &name)
+OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &name)
 {
     OGRLayer *attLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
         outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
-    }
-
-    // Create folder for files
-    if(!path.empty()) {
-        std::string attachmentsPath = File::resetExtension(path, ATTACH_SUFFIX);
-        if(!Folder::isExists(attachmentsPath)) {
-            Folder::mkDir(attachmentsPath);
-        }
     }
 
     // Create table  fields
@@ -1123,15 +1152,13 @@ OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &pa
 
 OGRLayer *Dataset::createAttachmentsTable(const std::string &name)
 {
-    if(!m_addsDS) {
-        createAdditionsDataset();
-    }
+    createAdditionsDataset();
 
     if(!m_addsDS) {
         return nullptr;
     }
 
-    return createAttachmentsTable(m_addsDS, m_path, attachmentsTableName(name));
+    return createAttachmentsTable(m_addsDS, attachmentsTableName(name));
 }
 
 bool Dataset::destroyAttachmentsTable(const std::string &name)
@@ -1152,9 +1179,7 @@ OGRLayer *Dataset::getAttachmentsTable(const std::string &name)
 
 OGRLayer *Dataset::createEditHistoryTable(const std::string &name)
 {
-    if(!m_addsDS) {
-        createAdditionsDataset();
-    }
+    createAdditionsDataset();
 
     if(!m_addsDS) {
         return nullptr;

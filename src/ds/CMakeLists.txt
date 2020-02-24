@@ -38,6 +38,7 @@ set(HHEADERS
     util.h
     ngw.h
     featureclassovr.h
+    store.h
 )
 
 set(CSOURCES
@@ -54,6 +55,7 @@ set(CSOURCES
     util.cpp
     ngw.cpp
     featureclassovr.cpp
+    store.cpp
 )
 
 if(DESKTOP)

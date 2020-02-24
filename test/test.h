@@ -46,5 +46,6 @@ CatalogObjectH createConnection(const std::string &url);
 CatalogObjectH createGroup(CatalogObjectH parent, const std::string &name);
 CatalogObjectH getLocalFile(const std::string &name);
 CatalogObjectH createMIStore(const std::string &name);
-
+void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
+                   CatalogObjectH group);
 #endif // NGSTEST_H

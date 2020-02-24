@@ -27,9 +27,9 @@
 #include "catalog/object.h"
 #include "ngstore/codes.h"
 
-#include <util/mutex.h>
-#include <util/options.h>
-#include <util/progress.h>
+#include "util/mutex.h"
+#include "util/options.h"
+#include "util/progress.h"
 
 namespace ngs {
 
@@ -71,16 +71,43 @@ public:
         HASH_STYLE,
         SIMPLE
     };
+
+    /**
+     * Attachment info struct
+     */
+    typedef struct _attachmentInfo {
+        GIntBig id;
+        std::string name;
+        std::string description;
+        std::string path;
+        GIntBig size;
+    } AttachmentInfo;
 public:
     FeaturePtr(OGRFeature *feature, Table *table = nullptr);
     FeaturePtr(OGRFeature *feature, const Table *table);
     FeaturePtr();
+    virtual ~FeaturePtr() = default;
     FeaturePtr &operator=(OGRFeature *feature);
-    operator OGRFeature*() const { return get(); }
-    Table *table() const { return m_table; }
-    void setTable(Table *table) { m_table = table; }
+    operator OGRFeature*() const;
     std::string dump(enum DumpOutputType type = DumpOutputType::HASH) const;
-private:
+    GIntBig addAttachment(const std::string &fileName,
+                          const std::string &description,
+                          const std::string &filePath,
+                          const Options &options = Options(),
+                          bool logEdits = true);
+    GIntBig addAttachment(const AttachmentInfo &info,
+                          const Options &options = Options(),
+                          bool logEdits = true);
+    std::vector<FeaturePtr::AttachmentInfo> attachments() const;
+    bool deleteAttachment(GIntBig aid, bool logEdits = true);
+    bool deleteAttachments(bool logEdits = true);
+    bool updateAttachment(GIntBig aid, const std::string &fileName,
+                          const std::string &description, bool logEdits = true);
+
+    Table *table() const;
+    void setTable(Table *table);
+
+protected:
     Table *m_table;
 };
 
@@ -91,26 +118,17 @@ using TablePtr = std::shared_ptr<Table>;
  */
 class Table : public Object
 {
+    friend class FeaturePtr;
     friend class Dataset;
     friend class Folder;
-    friend class StoreObject;
-public:
-    typedef struct _attachmentInfo {
-        GIntBig id;
-        std::string name;
-        std::string description;
-        std::string path;
-        GIntBig size;
-        GIntBig rid;
-    } AttachmentInfo;
 public:
     explicit Table(OGRLayer *layer,
                    ObjectContainer * const parent = nullptr,
                    const enum ngsCatalogObjectType type = CAT_TABLE_ANY,
                    const std::string &name = "");
     virtual ~Table() override;
-    FeaturePtr createFeature() const;
-    FeaturePtr getFeature(GIntBig id) const;
+    virtual FeaturePtr createFeature() const;
+    virtual FeaturePtr getFeature(GIntBig id) const;
     virtual bool insertFeature(const FeaturePtr &feature, bool logEdits = true);
     virtual bool updateFeature(const FeaturePtr &feature, bool logEdits = true);
     virtual bool deleteFeature(GIntBig id, bool logEdits = true);
@@ -118,29 +136,39 @@ public:
     GIntBig featureCount(bool force = false) const;
     void reset() const;
     void setAttributeFilter(const std::string &filter = "");
-    FeaturePtr nextFeature() const;
+    virtual FeaturePtr nextFeature() const;
     virtual int copyRows(const TablePtr srcTable,
                          const FieldMapPtr fieldMap,
-                         const Progress &progress = Progress());
-    virtual bool onRowsCopied(const Progress &progress,
-                              const Options &options = Options());
+                         const Progress &progress = Progress(),
+                         const Options &options = Options());
+
     std::string fidColumn() const;
     const std::vector<Field> &fields() const;
     virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
-                          const std::string &description, const std::string &filePath,
-                          const Options &options = Options(), bool logEdits = true);
-    virtual bool deleteAttachment(GIntBig aid, bool logEdits = true);
+                                  const std::string &description,
+                                  const std::string &filePath,
+                                  const Options &options = Options(),
+                                  bool logEdits = true);
+    virtual bool deleteAttachment(GIntBig fid, GIntBig aid, bool logEdits = true);
     virtual bool deleteAttachments(GIntBig fid, bool logEdits = true);
-    virtual bool updateAttachment(GIntBig aid, const std::string &fileName,
+    virtual bool updateAttachment(GIntBig fid, GIntBig aid,
+                                  const std::string &fileName,
                                   const std::string &description,
                                   bool logEdits = true);
-    virtual std::vector<AttachmentInfo> attachments(GIntBig fid) const;
+    virtual std::vector<FeaturePtr::AttachmentInfo> attachments(
+            GIntBig fid) const;
+
+    std::string getAttachmentPath(GIntBig fid, GIntBig aid,
+                                  bool createPath = false) const;
 
     OGRFeatureDefn *definition() const;
+    OGRLayer *attachmentsTable(bool init = false) const;
 
     // Edit log
     virtual void deleteEditOperation(const ngsEditOperation &op);
     virtual std::vector<ngsEditOperation> editOperations();
+
+    virtual bool syncToDisk();
 
     // Object interface
 public:
@@ -161,7 +189,7 @@ public:
 protected:
     bool initAttachmentsTable() const;
     bool initEditHistoryTable() const;
-    std::string getAttachmentsPath() const;
+    std::string getAttachmentsPath(bool create = false) const;
     bool saveEditHistory();
 
     virtual void fillFields() const;
@@ -177,6 +205,10 @@ protected:
     virtual void onFeatureUpdated(FeaturePtr oldFeature, FeaturePtr newFeature);
     virtual void onFeatureDeleted(FeaturePtr delFeature);
     virtual void onFeaturesDeleted();
+    virtual void onRowCopied(FeaturePtr srcFeature, FeaturePtr dstFature,
+                             const Options &options = Options());
+    virtual bool onRowsCopied(const TablePtr srcTable, const Progress &progress,
+                              const Options &options = Options());
 
 protected:
     mutable OGRLayer *m_layer;

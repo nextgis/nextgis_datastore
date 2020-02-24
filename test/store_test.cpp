@@ -27,7 +27,7 @@
 
 
 #include "ds/datastore.h"
-
+/*
 TEST(StoreTests, TestJSONSAXParser) {
     initLib();
 
@@ -180,7 +180,7 @@ TEST(MIStoreTests, TestLogEdits) {
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     options = ngsListAddNameValue(options, "NEW_NAME", "shp_bld");
     options = ngsListAddNameValue(options, "DESCRIPTION", "Длинное русское имя 1");
-    options = ngsListAddNameValue(options, "SYNC", "ON");
+    options = ngsListAddNameValue(options, "LOG_EDIT_HISTORY", "ON");
 
     EXPECT_EQ(ngsCatalogObjectCopy(shape, mistore, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
@@ -234,24 +234,7 @@ TEST(MIStoreTests, TestLogEdits) {
 
     ngsUnInit();
 }
-
-
-TEST(MIStoreTests, TestSync) {
-    initLib();
-
-    CatalogObjectH mistore = createMIStore("test_mistore");
-    ASSERT_NE(mistore, nullptr);
-
-    // Copy to NGW with sync support
-
-    // Copy from NGW with sync support
-
-    // Delete
-    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
-
-    ngsUnInit();
-}
-
+*/
 TEST(MIStoreTests, TestLoadFromNGW) {
     initLib();
 
@@ -299,6 +282,18 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
 
+    // Add attachment to first feature
+    auto feature = ngsFeatureClassNextFeature(vectorLayer);
+    ASSERT_NE(feature, nullptr);
+
+    std::string testPath = ngsGetCurrentDirectory();
+    std::string testAttachmentPath = ngsFormFileName(
+                testPath.c_str(), "download.cmake", nullptr);
+    long long aid = ngsFeatureAttachmentAdd(
+                feature, "test.txt", "test add attachment",
+                testAttachmentPath.c_str(), nullptr, 0);
+    EXPECT_NE(aid, -1);
+
     // Create MI Store
     CatalogObjectH mistore = createMIStore("test_mistore");
     ASSERT_NE(mistore, nullptr);
@@ -315,8 +310,10 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
     options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
     options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
-    // TODO:
-    options = ngsListAddNameValue(options, "SYNC", "ON");
+    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
+    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
+    // Max attachment size for download. Defaults 0 (no download).
+    options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
 
     resetCounter();
     EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
@@ -329,6 +326,9 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     ASSERT_NE(storeLayer, nullptr);
 
     EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
+
+    // TODO: Modify storeLayer
+    EXPECT_EQ(ngsStoreObjectSync(mistore), 1);
 
     // Delete resource group
     EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);

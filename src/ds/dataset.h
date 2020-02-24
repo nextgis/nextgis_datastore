@@ -179,10 +179,11 @@ public:
     static bool forbiddenChar(char c);
 
 protected:
+    static GDALDataset *createAdditionsDatasetInt(const std::string &path,
+                                                  enum ngsCatalogObjectType type);
     static OGRLayer *createMetadataTable(GDALDataset *ds);
     static bool destroyTable(GDALDataset *ds, OGRLayer *layer);
     static OGRLayer *createAttachmentsTable(GDALDataset *ds,
-                                            const std::string &path,
                                             const std::string &name);
     static OGRLayer *createEditHistoryTable(GDALDataset *ds,
                                             const std::string &name);
@@ -196,18 +197,24 @@ protected:
     virtual void fillFeatureClasses() const;
     virtual bool skipFillFeatureClass(OGRLayer *layer) const;
     virtual bool destroyTable(Table *table);
+    virtual bool deleteFeatures(const std::string &name);
+    void releaseResultSet(Table *table);
+
     virtual GDALDataset *createAdditionsDataset();
+    virtual std::string additionsDatasetPath() const;
+
+    /// Attachments
+    virtual std::string attachmentsFolderPath(bool create = false) const;
     virtual OGRLayer *createAttachmentsTable(const std::string &name);
     virtual bool destroyAttachmentsTable(const std::string &name);
     virtual OGRLayer *getAttachmentsTable(const std::string &name);
     virtual std::string attachmentsTableName(const std::string &name) const;
+    /// History
     virtual OGRLayer *createEditHistoryTable(const std::string &name);
     virtual bool destroyEditHistoryTable(const std::string &name);
     virtual OGRLayer *getEditHistoryTable(const std::string &name);
     virtual void clearEditHistoryTable(const std::string &name);
     virtual std::string historyTableName(const std::string &name) const;
-    virtual bool deleteFeatures(const std::string &name);
-    void releaseResultSet(Table *table);
 
 protected:
     GDALDataset *m_addsDS;

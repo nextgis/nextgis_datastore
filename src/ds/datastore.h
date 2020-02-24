@@ -21,7 +21,7 @@
 #ifndef NGSDATASTORE_H
 #define NGSDATASTORE_H
 
-#include "dataset.h"
+#include "store.h"
 
 namespace ngs {
 
@@ -32,7 +32,8 @@ constexpr const char *TRACKS_TABLE = "nga_tracks";
  * @brief The storage and manipulation class for raster and vector spatial data
  * and attachments
  */
-class DataStore : public Dataset, public SpatialDataset
+class DataStore : public Dataset, public SpatialDataset,
+        public StoreObjectContainer
 {
     friend class FeatureClassOverview;
 public:
@@ -95,6 +96,9 @@ protected:
                                           const std::string &name);
     static bool dropOverviewsTableIndex(GDALDataset *ds,
                                         const std::string &name);
+    // StoreObjectContainer interface
+public:
+    virtual bool sync(const Options &options = Options()) override;
 
 protected:
     virtual bool isNameValid(const std::string &name) const override;

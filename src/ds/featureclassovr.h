@@ -38,8 +38,9 @@ public:
                           const enum ngsCatalogObjectType type = CAT_FC_ANY,
                           const std::string &name = "");
     virtual ~FeatureClassOverview() override = default;
-    virtual bool onRowsCopied(const Progress &progress = Progress(),
-                                  const Options &options = Options()) override;
+    virtual bool onRowsCopied(const TablePtr srcTable,
+                              const Progress &progress = Progress(),
+                              const Options &options = Options()) override;
     bool hasOverviews() const;
     bool createOverviews(const Progress &progress = Progress(),
                          const Options &options = Options());

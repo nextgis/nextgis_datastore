@@ -218,24 +218,13 @@ TEST(CatalogTests, TestCreate) {
 }
 
 TEST(CatalogTests, TestAreaDownload) {
-    char **options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    options = ngsListAddNameValue(options, "CACHE_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp/cache",
-                                              nullptr));
-
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-    ngsListFree(options);
-    options = nullptr;
-
+    initLib();
     CPLString path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
     CPLString catalogPath = ngsCatalogPathFromSystem(path);
     ASSERT_STRNE(catalogPath, "");
     CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
 
+    char **options = nullptr;
     options = ngsListAddNameIntValue(options, "TYPE", CAT_RASTER_TMS);
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     options = ngsListAddNameValue(options, "url", "http://bing.com/maps/default.aspx?cp={x}~{y}&lvl={z}&style=r");
@@ -384,9 +373,8 @@ TEST(DataStoreTests, TestOpenDataStore) {
 }
 
 TEST(DataStoreTests, TestLoadDataStore) {
-    resetCounter();
-
     initLib();
+    resetCounter();
 
     std::string testPath = ngsGetCurrentDirectory();
     std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
@@ -407,9 +395,8 @@ TEST(DataStoreTests, TestLoadDataStore) {
 }
 
 TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
-    resetCounter();
-
     initLib();
+    resetCounter();
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -433,9 +420,8 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
 }
 
 TEST(DataStoreTests, TestLoadAndDelete) {
-    resetCounter();
-
     initLib();
+    resetCounter();
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -456,6 +442,8 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/delete_me"));
     EXPECT_NE(newFC1, nullptr);
 
+    // TODO: Move overview to map
+    /*
     resetCounter();
     options = nullptr;
     options = ngsListAddNameValue(options, "FORCE", "ON");
@@ -464,6 +452,7 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     EXPECT_EQ(ngsFeatureClassCreateOverviews(newFC1, options, ngsTestProgressFunc, nullptr), COD_SUCCESS);
     EXPECT_GE(getCounter(), 1);
     ngsListFree(options);
+    */
 
     EXPECT_GE(ngsFeatureClassCount(newFC1), 1);
 
@@ -482,9 +471,8 @@ TEST(DataStoreTests, TestLoadAndDelete) {
 }
 
 TEST(DataStoreTests, TestCopyFCToGeoJSON) {
-    resetCounter();
-
     initLib();
+    resetCounter();
 
     CPLString testPath = ngsGetCurrentDirectory();
     CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
@@ -568,14 +556,7 @@ TEST(DataStoreTests, TestCreateFeatureClass) {
 }
 
 TEST(DataStoreTests, TestCreateFeature) {
-    char **options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-
-    ngsListFree(options);
+    initLib();
 
     std::string testPath = ngsGetCurrentDirectory();
     std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
@@ -599,9 +580,6 @@ TEST(DataStoreTests, TestCreateFeature) {
 
     FeatureH newFeature = ngsFeatureClassCreateFeature(featureClass);
     ASSERT_NE(newFeature, nullptr);
-
-    ngsStoreFeatureSetRemoteId(newFeature, 100000);
-
     GeometryH geom = ngsFeatureCreateGeometry(newFeature);
     ASSERT_NE(geom, nullptr);
 
@@ -615,31 +593,20 @@ TEST(DataStoreTests, TestCreateFeature) {
     EXPECT_EQ(ngsFeatureClassInsertFeature(featureClass, newFeature, 1), COD_SUCCESS);
     ngsFeatureClassBatchMode(featureClass, 0);
 
+    auto fid = ngsFeatureGetId(newFeature);
+    EXPECT_NE(fid, -1);
+
     ngsFeatureFree(newFeature);
 
     EXPECT_EQ(ngsFeatureClassCount(featureClass), 1);
-    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 100000);
+    newFeature = ngsFeatureClassGetFeature(featureClass, fid);
     ASSERT_NE(newFeature, nullptr);
 
     EXPECT_EQ(ngsFeatureIsFieldSet(newFeature, 2), 0);
     EXPECT_EQ(ngsFeatureGetFieldAsInteger(newFeature, 0), 500);
-    ngsStoreFeatureSetRemoteId(newFeature, 25000);
     ngsFeatureSetFieldDouble(newFeature, 2, 555.777);
 
     EXPECT_EQ(ngsFeatureClassUpdateFeature(featureClass, newFeature, 1), COD_SUCCESS);
-    ngsFeatureFree(newFeature);
-
-    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 25000);
-    ASSERT_NE(newFeature, nullptr);
-    ngsFeatureFree(newFeature);
-
-    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass, 100000);
-    EXPECT_EQ(newFeature, nullptr);
-    ngsFeatureFree(newFeature);
-
-    newFeature = ngsStoreFeatureClassGetFeatureByRemoteId(featureClass,
-                                                                   25000);
-    ASSERT_NE(newFeature, nullptr);
 
     std::string testAttachmentPath = CPLFormFilename(testPath.c_str(),
                                                      "download.cmake", nullptr);
@@ -666,20 +633,21 @@ TEST(DataStoreTests, TestCreateFeature) {
                      " | description: " << list[counter].description <<
                      "\n     path: " << list[counter].path << " | size: " <<
                      list[counter].size <<
-                     "\n id: " << list[counter].id <<
-                     " rid: " << list[counter].rid << "\n";
+                     "\n id: " << list[counter].id << "\n";
         counter++;
     }
     ASSERT_GE(counter, 1);
-
-    ngsStoreFeatureSetAttachmentRemoteId(newFeature, list[0].id, 777);
     ngsFree(list);
 
     list = ngsFeatureAttachmentsGet(newFeature);
 
     ngsFeatureFree(newFeature);
     ASSERT_NE(list, nullptr);
-    EXPECT_EQ(list[0].rid, 777);
+    counter = 0;
+    while (list[counter].id != -1) {
+        counter++;
+    }
+    ASSERT_GE(counter, 1);
     ngsFree(list);
 
     ngsEditOperation *ops = ngsFeatureClassGetEditOperations(featureClass);
