@@ -67,12 +67,7 @@ bool Archive::destroy()
         return false;
     }
 
-    if(m_parent)
-        m_parent->notifyChanges();
-
-    Notify::instance().onNotify(fullName(), ngsChangeCode::CC_DELETE_OBJECT);
-
-    return true;
+    return ArchiveFolder::destroy();
 }
 
 std::string Archive::pathPrefix(const enum ngsCatalogObjectType type)

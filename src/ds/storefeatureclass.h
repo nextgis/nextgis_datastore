@@ -115,7 +115,7 @@ public:
     TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectContainer * const parent = nullptr);
     virtual ~TracksTable() override;
 
-    void sync(int maxPointCount = 100);
+    virtual bool sync() override;
     std::vector<TrackInfo> getTracks();
     bool addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed, float course,
             long timeStamp, int satCount, bool newTrack, bool newSegment);

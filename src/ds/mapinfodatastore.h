@@ -37,7 +37,6 @@ public:
     explicit MapInfoDataStore(ObjectContainer * const parent = nullptr,
               const std::string &name = "",
               const std::string &path = "");
-    virtual ~MapInfoDataStore() override = default;
     // static
 public:
     static bool create(const std::string &path);
@@ -70,12 +69,12 @@ protected:
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
-                        const std::string& name,
-                        const Options &options) override;
+                             const std::string& name,
+                             const Options &options) override;
 
     // StoreObjectContainer interface
 public:
-    virtual bool sync(const Options &options = Options()) override;
+    virtual bool sync() override;
 
     // Dataset interface
 protected:
@@ -100,7 +99,7 @@ protected:
 class MapInfoStoreTable : public Table, public StoreObject
 {
 public:
-    MapInfoStoreTable(GDALDataset *DS, OGRLayer *layer,
+    MapInfoStoreTable(GDALDatasetPtr DS, OGRLayer *layer,
                       ObjectContainer * const parent = nullptr,
                       const std::string &path = "",
                       const std::string &encoding = "CP1251");
@@ -122,14 +121,14 @@ protected:
 
     // StoreObject
 public:
-    virtual bool sync(const Options &options) override;
+    virtual bool sync() override;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
 
 protected:
     void close();
 
 private:
-    GDALDataset *m_TABDS;
+    GDALDatasetPtr m_TABDS;
     std::string m_storeName;
     std::string m_encoding;
 };
@@ -140,11 +139,10 @@ private:
 class MapInfoStoreFeatureClass : public FeatureClass, public StoreObject
 {
 public:
-    MapInfoStoreFeatureClass(GDALDataset *DS, OGRLayer *layer,
+    MapInfoStoreFeatureClass(GDALDatasetPtr DS, OGRLayer *layer,
                              ObjectContainer * const parent = nullptr,
                              const std::string &path = "",
                              const std::string &encoding = "CP1251");
-   virtual ~MapInfoStoreFeatureClass() override;
 
     //Object interface
     virtual Properties properties(const std::string &domain) const override;
@@ -176,7 +174,7 @@ protected:
 
    // StoreObject interface
 public:
-    virtual bool sync(const Options &options) override;
+    virtual bool sync() override;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
 
 protected:
@@ -185,7 +183,7 @@ protected:
     bool updateHashAndEditLog();
 
 private:
-   GDALDataset *m_TABDS;
+   GDALDatasetPtr m_TABDS;
    std::string m_storeName;
    std::string m_encoding;
 };

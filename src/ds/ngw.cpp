@@ -19,15 +19,329 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "dataset.h"
+#include "catalog/ngw.h"
 #include "ngw.h"
 #include "util.h"
 #include "util/error.h"
+#include "util/notify.h"
 #include "util/settings.h"
 #include "util/url.h"
 
 #include "ngstore/catalog/filter.h"
 
+
 namespace ngs {
+
+
+static std::string normalizeFieldNameInt(const std::string &name,
+                                      const std::vector<std::string> &nameList,
+                                      int counter = 0)
+{
+    std::string out;
+    std::string processedName;
+    if(counter == 0) {
+        if(compare("id", name)) {
+            return normalizeFieldNameInt(name + "_", nameList, counter);
+        }
+        out = normalize(name, "ru");
+        replace_if(out.begin(), out.end(), Dataset::forbiddenChar, '_');
+
+        processedName = out;
+    }
+    else {
+        out = name + "_" + std::to_string(counter);
+        processedName = name;
+    }
+
+    auto it = std::find(nameList.begin(), nameList.end(), out);
+    if(it == nameList.end()) {
+        return out;
+    }
+    return normalizeFieldNameInt(processedName, nameList, counter++);
+}
+
+static Options openOptions(const std::string &userpwd, const Options &options)
+{
+   Options out(options);
+   const auto &settings = Settings::instance();
+   if(!userpwd.empty() && !options.hasKey("USERPWD")) {
+       out.add("USERPWD", userpwd);
+   }
+   if(!options.hasKey("PAGE_SIZE")) {
+       out.add("PAGE_SIZE", settings.getString("NGW_PAGE_SIZE", "50"));
+   }
+   if(!options.hasKey("BATCH_SIZE")) {
+       out.add("BATCH_SIZE", settings.getString("NGW_BATCH_SIZE", "100"));
+   }
+   if(!options.hasKey("NATIVE_DATA")) {
+       out.add("NATIVE_DATA", "YES");
+   }
+   return out;
+}
+
+//------------------------------------------------------------------------------
+// NGWLayerDataset
+//------------------------------------------------------------------------------
+NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
+                                 const enum ngsCatalogObjectType type,
+                                 const std::string &name,
+                                 const CPLJSONObject &resource,
+                                 NGWConnectionBase *connection) :
+    SingleLayerDataset(type, parent, name),
+    NGWResourceBase(resource, connection)
+{
+    m_geometryType = FeatureClass::geometryTypeFromName(
+                resource.GetString("vector_layer/geometry_type"));
+}
+
+NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
+                                 const enum ngsCatalogObjectType type,
+                                 const std::string &name,
+                                 GDALDatasetPtr DS,
+                                 OGRLayer *layer,
+                                 NGWConnectionBase *connection) :
+    SingleLayerDataset(type, parent, name),
+    NGWResourceBase(CPLJSONObject(), connection)
+{
+    m_DS = DS;
+    m_FC = ObjectPtr(new NGWFeatureClass(this, type, name, layer));
+    m_resourceId = fromCString(layer->GetMetadataItem("id"));
+    m_description = fromCString(layer->GetMetadataItem("description"));
+    m_keyName = fromCString(layer->GetMetadataItem("keyname"));
+    m_creationDate = fromCString(layer->GetMetadataItem("creation_date"));
+    m_geometryType = layer->GetGeomType();
+}
+
+
+void NGWLayerDataset::addResource(const CPLJSONObject &resource)
+{
+    std::string cls = resource.GetString("resource/cls");
+    std::string name = resource.GetString("resource/display_name");
+
+    if(cls == "mapserver_style") {
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_MAPSERVER_STYLE, name,
+                                        resource, m_connection)));
+    }
+    else if(cls == "qgis_vector_style") {
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_QGISVECTOR_STYLE, name,
+                                        resource, m_connection)));
+    }
+    else if(cls == "formbuilder_form") {
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FORMBUILDER_FORM, name,
+                                           resource, m_connection)));
+    }
+}
+
+ObjectPtr NGWLayerDataset::internalObject()
+{
+    if(!isOpened()) {
+        open(DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR, Options());
+    }
+    return m_FC;
+}
+
+
+bool NGWLayerDataset::canCreate(const enum ngsCatalogObjectType type) const
+{
+    if(m_connection == nullptr) {
+        return false;
+    }
+
+    if(type == CAT_NGW_QGISVECTOR_STYLE || type == CAT_NGW_MAPSERVER_STYLE ||
+        type == CAT_NGW_FORMBUILDER_FORM) {
+        return m_connection->isClsSupported(ngw::objectTypeToNGWClsType(type));
+    }
+
+    return false;
+}
+
+ObjectPtr NGWLayerDataset::create(const enum ngsCatalogObjectType type,
+                                  const std::string &name, const Options &options)
+{
+    loadChildren();
+
+    std::string newName = name;
+    if(options.asBool("CREATE_UNIQUE")) {
+        newName = createUniqueName(newName, false);
+    }
+
+
+    ObjectPtr child = getChild(newName);
+    if(child) {
+        if(options.asBool("OVERWRITE")) {
+            if(!child->destroy()) {
+                errorMessage(_("Failed to overwrite %s\nError: %s"),
+                    newName.c_str(), getLastError());
+                return ObjectPtr();
+            }
+        }
+        else {
+            errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
+                newName.c_str());
+            return ObjectPtr();
+        }
+    }
+
+    auto style = NGWStyle::createStyle(this, type, name, options);
+    return onChildCreated(style);
+}
+
+bool NGWLayerDataset::open(unsigned int openFlags, const Options &options)
+{
+    if(isOpened()) {
+        return true;
+    }
+
+    std::string userpwd = connection()->userPwd();
+    std::string connectionString = "NGW:" + metadataItem("url", "", "");
+    auto newOptions = openOptions(userpwd, options);
+    bool result = DatasetBase::open(connectionString, openFlags, newOptions);
+
+    if(nullptr != m_DS) {
+        auto layer = m_DS->GetLayer(0);
+        m_FC = ObjectPtr(new NGWFeatureClass(this, subType(), m_name, layer));
+    }
+
+    return result;
+}
+
+void NGWLayerDataset::close()
+{
+    sync();
+    SingleLayerDataset::close();
+}
+
+
+bool NGWLayerDataset::destroy()
+{
+    if(!NGWResourceBase::remove()) {
+        return false;
+    }
+
+    return Object::destroy();
+}
+
+bool NGWLayerDataset::canDestroy() const
+{
+    return true; // Not check user rights here as server will report error if no access.
+}
+
+bool NGWLayerDataset::rename(const std::string &newName)
+{
+    return NGWResourceBase::changeName(newName);
+}
+
+bool NGWLayerDataset::canRename() const
+{
+    return true; // Not check user rights here as server will report error if no access.
+}
+
+
+NGWLayerDataset *NGWLayerDataset::createFeatureClass(NGWResourceGroup *resourceGroup,
+                                                     const std::string &name,
+                                                     OGRFeatureDefn * const definition,
+                                                     SpatialReferencePtr spatialRef,
+                                                     OGRwkbGeometryType type,
+                                                     const Options &options,
+                                                     const Progress &progress)
+{
+    resetError();
+
+    if((type < wkbPoint || type > wkbMultiPolygon) &&
+       (type < wkbPoint25D || type > wkbMultiPolygon25D)) {
+        errorMessage(_("Unsupported geometry type"));
+        return nullptr;
+    }
+
+    GDALDriver *driver = Filter::getGDALDriver(CAT_NGW_VECTOR_LAYER);
+    if(nullptr == driver) {
+        errorMessage(_("Driver not available. %s"), CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    std::string connectionString = "NGW:" + resourceGroup->property("url", "", "");
+
+    auto openOp = openOptions("", options);
+    CPLStringList dsOptionsList = openOp.asCPLStringList();
+    GDALDatasetPtr DS = static_cast<GDALDataset*>(
+                GDALOpenEx(connectionString.c_str(),
+                           DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR,
+                           nullptr, dsOptionsList, nullptr));
+
+    if(nullptr == DS) {
+        errorMessage(_("Create of %s file failed. %s"), CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    CPLStringList lyrOptionsList;
+    auto key = options.asString("KEY");
+    if(!key.empty()) {
+        lyrOptionsList.AddNameValue("KEY", key.c_str());
+    }
+    auto desc = options.asString(DESCRIPTION_KEY);
+    if(!desc.empty()) {
+        lyrOptionsList.AddNameValue(DESCRIPTION_KEY, desc.c_str());
+    }
+
+    OGRLayer *layer = DS->CreateLayer(name.c_str(), spatialRef, type,
+                                      lyrOptionsList);
+    if(layer == nullptr) {
+        errorMessage(_("Failed to create table %s. %s"), name.c_str(),
+                     CPLGetLastErrorMsg());
+        return nullptr;
+    }
+
+    std::vector<std::string> nameList;
+    for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
+        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
+        OGRFieldDefn dstField(srcField);
+
+        std::string newFieldName = normalizeFieldNameInt(srcField->GetNameRef(),
+                                                      nameList);
+        if(!compare(newFieldName, srcField->GetNameRef())) {
+            progress.onProgress(COD_WARNING, 0.0,
+                _("Field %s of source table was renamed to %s in destination tables"),
+                                srcField->GetNameRef(), newFieldName.c_str());
+        }
+
+        dstField.SetName(newFieldName.c_str());
+        if (layer->CreateField(&dstField) != OGRERR_NONE) {
+            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(),
+                         CPLGetLastErrorMsg());
+            return nullptr;
+        }
+
+        // Add alias to metadata if exists
+        const char *aliasKeyName = CPLSPrintf("FIELD_%d_ALIAS", i);
+        auto alias = options.asString(aliasKeyName);
+        if(!alias.empty()) {
+            layer->SetMetadataItem(aliasKeyName, alias.c_str());
+        }
+
+        nameList.push_back(newFieldName);
+    }
+
+    // To get resource ID
+    layer->SyncToDisk();
+    return new NGWLayerDataset(resourceGroup, CAT_NGW_VECTOR_LAYER,
+                                name, DS, layer, resourceGroup->connection());
+}
+
+NGWLayerDataset *NGWLayerDataset::createFeatureClass(NGWResourceGroup *resourceGroup,
+                                                     const std::string &name,
+                                                     const Options &options,
+                                                     const Progress &progress)
+{
+    // Get field definitions
+    CREATE_FEATURE_DEFN_RESULT featureDefnStruct =
+            createFeatureDefinition(name, options);
+    auto geomTypeStr = options.asString("GEOMETRY_TYPE", "");
+    OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(geomTypeStr);
+    auto spatialRef = resourceGroup->connection()->spatialReference();
+
+    return createFeatureClass(resourceGroup, name, featureDefnStruct.defn.get(),
+                              spatialRef, geomType, options, progress);
+}
 
 //------------------------------------------------------------------------------
 // NGWFeatureClass
@@ -35,100 +349,18 @@ namespace ngs {
 NGWFeatureClass::NGWFeatureClass(ObjectContainer * const parent,
                                  const enum ngsCatalogObjectType type,
                                  const std::string &name,
-                                 const CPLJSONObject &resource,
-                                 NGWConnectionBase *connection) :
-    FeatureClass(nullptr, parent, type, name),
-    NGWResourceBase(resource, connection),
-    m_DS(nullptr)
+                                 OGRLayer *layer) :
+    FeatureClass(layer, parent, type, name)
 {
-    // Fill data from json
-    m_geometryType = geometryTypeFromName(
-                resource.GetString("vector_layer/geometry_type"));
-    m_fastSpatialFilter = true;
-
-    auto fields = resource.GetArray("feature_layer/fields");
-    for(int i = 0; i < fields.Size(); ++i) {
-        auto field = fields[i];
-        m_ignoreFields.emplace_back(field.GetString("keyname"));
-    }
-    m_ignoreFields.emplace_back("OGR_STYLE");
-
-    // TODO: Create GDALDataset/OGRLayer from json string (resource.Format)
-}
-
-NGWFeatureClass::NGWFeatureClass(ObjectContainer * const parent,
-                                 const enum ngsCatalogObjectType type,
-                                 const std::string &name,
-                                 GDALDataset *DS,
-                                 OGRLayer *layer,
-                                 NGWConnectionBase *connection) :
-    FeatureClass(layer, parent, type, name),
-    NGWResourceBase(CPLJSONObject(), connection),
-    m_DS(DS)
-{
-    m_resourceId = fromCString(layer->GetMetadataItem("id"));
-    m_description = fromCString(layer->GetMetadataItem("description"));
-    m_keyName = fromCString(layer->GetMetadataItem("keyname"));
-    m_creationDate = fromCString(layer->GetMetadataItem("creation_date"));
-}
-
-NGWFeatureClass::~NGWFeatureClass()
-{
-    close();
-}
-
-OGRwkbGeometryType NGWFeatureClass::geometryType() const
-{
-    return m_geometryType;
-}
-
-std::vector<OGRwkbGeometryType> NGWFeatureClass::geometryTypes() const
-{
-    // NGW layer has only one geometry column
-    std::vector<OGRwkbGeometryType> out;
-    out.push_back(m_geometryType);
-    return out;
-}
-
-Envelope NGWFeatureClass::extent() const
-{
-    if(m_extent.isInit()) {
-        return m_extent;
-    }
-
-    openDS();
-
-    if(nullptr != m_layer) {
-        OGREnvelope env;
-        if(m_layer->GetExtent(&env, FALSE) == OGRERR_NONE ||
-            m_layer->GetExtent(&env, TRUE) == OGRERR_NONE) {
-            m_extent = env;
-        }
-    }
-
-    return m_extent;
-}
-
-SpatialReferencePtr NGWFeatureClass::spatialReference() const
-{
-    if(m_spatialReference) {
-        return m_spatialReference;
-    }
-
-    openDS();
-
-    if(nullptr != m_layer) {
-        OGRSpatialReference *spaRef = m_layer->GetSpatialRef();
-        if(nullptr != spaRef) {
-            m_spatialReference = spaRef->Clone();
-        }
-    }
-    return m_spatialReference;
 }
 
 bool NGWFeatureClass::destroy()
 {
-    return NGWResourceBase::remove();
+    if(nullptr == m_parent) {
+        return false;
+    }
+
+    return m_parent->destroy();
 }
 
 bool NGWFeatureClass::canDestroy() const
@@ -138,40 +370,20 @@ bool NGWFeatureClass::canDestroy() const
 
 bool NGWFeatureClass::rename(const std::string &newName)
 {
-    return NGWResourceBase::changeName(newName);
+    if(nullptr == m_parent) {
+        return false;
+    }
+
+    if(m_parent->rename(newName)) {
+        m_name = newName;
+        return true;
+    }
+    return false;
 }
 
 bool NGWFeatureClass::canRename() const
 {
     return true; // Not check user rights here as server will report error if no access.
-}
-
-Properties NGWFeatureClass::properties(const std::string &domain) const
-{
-    openDS();
-    return FeatureClass::properties(domain);
-}
-
-std::string NGWFeatureClass::property(const std::string &key,
-                                      const std::string &defaultValue,
-                                      const std::string &domain) const
-{
-    openDS();
-    return FeatureClass::property(key, defaultValue, domain);
-}
-
-bool NGWFeatureClass::setProperty(const std::string &key,
-                                  const std::string &value,
-                                  const std::string &domain)
-{
-    openDS();
-    return FeatureClass::setProperty(key, value, domain);
-}
-
-void NGWFeatureClass::deleteProperties(const std::string &domain)
-{
-    openDS();
-    return FeatureClass::deleteProperties(domain);
 }
 
 std::vector<FeaturePtr::AttachmentInfo> NGWFeatureClass::attachments(GIntBig fid) const
@@ -193,6 +405,12 @@ std::vector<FeaturePtr::AttachmentInfo> NGWFeatureClass::attachments(GIntBig fid
     }
 
     auto featureId = std::to_string(feature->GetFID());
+    auto resourceBase = dynamic_cast<NGWResourceBase*>(m_parent);
+    if(nullptr == resourceBase) {
+        return out;
+    }
+    auto url = resourceBase->url();
+    auto resourceId = resourceBase->resourceId();
     CPLJSONArray attachments = root.GetArray("attachment");
     for(int i = 0; i < attachments.Size(); ++i) {
         auto attachment = attachments[i];
@@ -200,45 +418,11 @@ std::vector<FeaturePtr::AttachmentInfo> NGWFeatureClass::attachments(GIntBig fid
         auto name = attachment.GetString("name");
         auto descripton = attachment.GetString("description");
         GIntBig size = attachment.GetLong("size");
-        std::string filePath = ngw::getAttachmentDownloadUrl(url(),
-                    resourceId(), featureId, std::to_string(arid));
+        std::string filePath = ngw::getAttachmentDownloadUrl(url, resourceId,
+                                                featureId, std::to_string(arid));
         out.push_back({arid, name, descripton, filePath, size});
     }
     return out;
-}
-
-bool NGWFeatureClass::insertFeature(const FeaturePtr &feature, bool logEdits)
-{
-    ngsUnused(logEdits);
-    openDS();
-    return FeatureClass::insertFeature(feature, false);
-}
-
-bool NGWFeatureClass::updateFeature(const FeaturePtr &feature, bool logEdits)
-{
-    ngsUnused(logEdits);
-    openDS();
-    return FeatureClass::updateFeature(feature, false);
-}
-
-bool NGWFeatureClass::deleteFeature(GIntBig id, bool logEdits)
-{
-    ngsUnused(logEdits);
-    openDS();
-    return FeatureClass::deleteFeature(id, false);
-}
-
-bool NGWFeatureClass::deleteFeatures(bool logEdits)
-{
-    ngsUnused(logEdits);
-    openDS();
-    if(nullptr != m_DS && nullptr != m_layer) {
-        resetError();
-        m_DS->ExecuteSQL(CPLSPrintf("DELETE FROM %s;", m_layer->GetName()),
-                         nullptr, nullptr);
-        return CPLGetLastErrorType() == 0;
-    }
-    return false;
 }
 
 bool NGWFeatureClass::onRowsCopied(const TablePtr srcTable,
@@ -275,7 +459,13 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     }
 
     // upload attachment file to NGW
-    auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url()), filePath);
+    auto resourceBase = dynamic_cast<NGWResourceBase*>(m_parent);
+    if(nullptr == resourceBase) {
+        return NOT_FOUND;
+    }
+    auto url = resourceBase->url();
+    auto resourceId = resourceBase->resourceId();
+    auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url), filePath);
     // {"upload_meta": [{"id": "9226e604-cdbe-4719-842b-d180970100c7", "name": "96.qml", "mime_type": "application/octet-stream", "size": 1401}]}
     auto uploadMetaArray = uploadInfo.GetArray("upload_meta");
     auto uploadMeta = uploadMetaArray[0];
@@ -315,9 +505,9 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     fileUpload.Set("id", id);
     fileUpload.Set("size", size);
 
-    auto aid = ngw::addAttachment(url(), resourceId(), featureId,
+    auto aid = ngw::addAttachment(url, resourceId, featureId,
                                   newAttachment.Format(CPLJSONObject::Plain),
-                                  http::getGDALHeaders(url()).StealList());
+                                  http::getGDALHeaders(url).StealList());
     if(aid == NOT_FOUND) {
         return NOT_FOUND;
     }
@@ -462,187 +652,6 @@ bool NGWFeatureClass::updateAttachment(GIntBig fid, GIntBig aid,
     auto nativeDataStr = root.Format(CPLJSONObject::Plain);
     feature->SetNativeData(nativeDataStr.c_str());
     return m_layer->SetFeature(feature) == OGRERR_NONE;
-}
-
-Options NGWFeatureClass::openOptions(const std::string &userpwd,
-                                     const Options &options)
-{
-    Options out(options);
-    const auto &settings = Settings::instance();
-    if(!userpwd.empty() && !options.hasKey("USERPWD")) {
-        out.add("USERPWD", userpwd);
-    }
-    if(!options.hasKey("PAGE_SIZE")) {
-        out.add("PAGE_SIZE", settings.getString("NGW_PAGE_SIZE", "50"));
-    }
-    if(!options.hasKey("BATCH_SIZE")) {
-        out.add("BATCH_SIZE", settings.getString("NGW_BATCH_SIZE", "100"));
-    }
-    if(!options.hasKey("NATIVE_DATA")) {
-        out.add("NATIVE_DATA", "YES");
-    }
-    return out;
-}
-
-void NGWFeatureClass::openDS() const
-{
-    if(m_layer != nullptr) {
-        return;
-    }
-    std::string userpwd = connection()->userPwd();
-    std::string connectionString = "NGW:" + metadataItem("url", "", "");
-    CPLStringList options = openOptions(userpwd).asCPLStringList();
-    m_DS = static_cast<GDALDataset*>(
-                GDALOpenEx(connectionString.c_str(),
-                           DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR,
-                           nullptr, options, nullptr));
-    if(nullptr != m_DS) {
-        m_layer = m_DS->GetLayer(0);
-    }
-}
-
-void NGWFeatureClass::close()
-{
-    syncToDisk();
-    if(nullptr != m_DS) {
-        GDALClose(m_DS);
-        m_DS = nullptr;
-    }
-}
-
-static std::string normalizeFieldName(const std::string &name,
-                                      const std::vector<std::string> &nameList,
-                                      int counter = 0)
-{
-    std::string out;
-    std::string processedName;
-    if(counter == 0) {
-        if(compare("id", name)) {
-            return normalizeFieldName(name + "_", nameList, counter);
-        }
-        out = normalize(name, "ru");
-        replace_if(out.begin(), out.end(), Dataset::forbiddenChar, '_');
-
-        processedName = out;
-    }
-    else {
-        out = name + "_" + std::to_string(counter);
-        processedName = name;
-    }
-
-    auto it = std::find(nameList.begin(), nameList.end(), out);
-    if(it == nameList.end()) {
-        return out;
-    }
-    return normalizeFieldName(processedName, nameList, counter++);
-}
-
-
-NGWFeatureClass *NGWFeatureClass::createFeatureClass(NGWResourceGroup *resourceGroup,
-                                                     const std::string &name,
-                                                     OGRFeatureDefn * const definition,
-                                                     SpatialReferencePtr spatialRef,
-                                                     OGRwkbGeometryType type,
-                                                     const Options &options,
-                                                     const Progress &progress)
-{
-    resetError();
-
-    if((type < wkbPoint || type > wkbMultiPolygon) &&
-       (type < wkbPoint25D || type > wkbMultiPolygon25D)) {
-        errorMessage(_("Unsupported geometry type"));
-        return nullptr;
-    }
-
-    GDALDriver *driver = Filter::getGDALDriver(CAT_NGW_VECTOR_LAYER);
-    if(nullptr == driver) {
-        errorMessage(_("Driver not available. %s"), CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    std::string connectionString = "NGW:" + resourceGroup->property("url", "", "");
-
-    auto openOp = openOptions("", options);
-    CPLStringList dsOptionsList = openOp.asCPLStringList();
-    GDALDataset *DS = static_cast<GDALDataset*>(
-                GDALOpenEx(connectionString.c_str(),
-                           DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR,
-                           nullptr, dsOptionsList, nullptr));
-
-    if(nullptr == DS) {
-        errorMessage(_("Create of %s file failed. %s"), CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    CPLStringList lyrOptionsList;
-    auto key = options.asString("KEY");
-    if(!key.empty()) {
-        lyrOptionsList.AddNameValue("KEY", key.c_str());
-    }
-    auto desc = options.asString(DESCRIPTION_KEY);
-    if(!desc.empty()) {
-        lyrOptionsList.AddNameValue(DESCRIPTION_KEY, desc.c_str());
-    }
-
-    OGRLayer *layer = DS->CreateLayer(name.c_str(), spatialRef, type,
-                                      lyrOptionsList);
-    if(layer == nullptr) {
-        errorMessage(_("Failed to create table %s. %s"), name.c_str(),
-                     CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    std::vector<std::string> nameList;
-    for (int i = 0; i < definition->GetFieldCount(); ++i) { // Don't check remote id field
-        OGRFieldDefn *srcField = definition->GetFieldDefn(i);
-        OGRFieldDefn dstField(srcField);
-
-        std::string newFieldName = normalizeFieldName(srcField->GetNameRef(),
-                                                      nameList);
-        if(!compare(newFieldName, srcField->GetNameRef())) {
-            progress.onProgress(COD_WARNING, 0.0,
-                _("Field %s of source table was renamed to %s in destination tables"),
-                                srcField->GetNameRef(), newFieldName.c_str());
-        }
-
-        dstField.SetName(newFieldName.c_str());
-        if (layer->CreateField(&dstField) != OGRERR_NONE) {
-            errorMessage(_("Failed to create field %s. %s"), newFieldName.c_str(),
-                         CPLGetLastErrorMsg());
-            return nullptr;
-        }
-
-        // Add alias to metadata if exists
-        const char *aliasKeyName = CPLSPrintf("FIELD_%d_ALIAS", i);
-        auto alias = options.asString(aliasKeyName);
-        if(!alias.empty()) {
-            layer->SetMetadataItem(aliasKeyName, alias.c_str());
-        }
-
-        nameList.push_back(newFieldName);
-    }
-
-    // To get resource ID
-    layer->SyncToDisk();
-    NGWFeatureClass *out = new NGWFeatureClass(resourceGroup, CAT_NGW_VECTOR_LAYER,
-                                    name, DS, layer, resourceGroup->connection());
-    return out;
-}
-
-NGWFeatureClass *NGWFeatureClass::createFeatureClass(NGWResourceGroup *resourceGroup,
-                                                     const std::string &name,
-                                                     const Options &options,
-                                                     const Progress &progress)
-{
-    // Get field definitions
-    CREATE_FEATURE_DEFN_RESULT featureDefnStruct =
-            createFeatureDefinition(name, options);
-    auto geomTypeStr = options.asString("GEOMETRY_TYPE", "");
-    OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(geomTypeStr);
-    auto spatialRef = resourceGroup->connection()->spatialReference();
-
-    return createFeatureClass(resourceGroup, name, featureDefnStruct.defn.get(),
-                              spatialRef, geomType, options, progress);
 }
 
 } // namespace ngs

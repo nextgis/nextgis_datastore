@@ -142,14 +142,13 @@ bool DataStore::create(const std::string &path)
         return errorMessage(_("Driver is not present"));
     }
 
-    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
+    GDALDatasetPtr DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
     if(DS == nullptr) {
         return errorMessage(_("Failed to create datastore. %s"), CPLGetLastErrorMsg());
     }
 
     createMetadataTable(DS);
 
-    GDALClose(DS);
     return true;
 }
 
@@ -235,21 +234,13 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
         namesList.push_back(newFieldName);
     }
 
-    FeatureClass *out = new StoreFeatureClass(layer, this, name);
+    return new StoreFeatureClass(layer, this, name);
 
     // TODO: Is it right place?
 //    if(options.asBool("CREATE_OVERVIEWS", false) &&
 //            !options.asString("ZOOM_LEVELS", "").empty()) {
 //        out->createOverviews(progress, options);
 //    }
-
-    if(m_parent) {
-        m_parent->notifyChanges();
-    }
-
-    Notify::instance().onNotify(out->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
-
-    return out;
 }
 
 Table *DataStore::createTable(const std::string &name,
@@ -302,15 +293,7 @@ Table *DataStore::createTable(const std::string &name,
         namesList.push_back(newFieldName);
     }
 
-    Table *out = new StoreTable(layer, this, name);
-
-    if(m_parent) {
-        m_parent->notifyChanges();
-    }
-
-    Notify::instance().onNotify(out->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
-
-    return out;
+    return new StoreTable(layer, this, name);
 }
 
 bool DataStore::setProperty(const std::string &key, const std::string &value,
@@ -353,7 +336,7 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
     ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, ngw::INIT_RID_COUNTER));
     featureDefnStruct.defn->AddFieldDefn(&ridField);
 
-    ObjectPtr object;
+    Object *object = nullptr;
     if(type == CAT_FC_GPKG) {
         OGRwkbGeometryType geomType = FeatureClass::geometryTypeFromName(
                     options.asString("GEOMETRY_TYPE", ""));
@@ -362,20 +345,19 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
 
-        object = ObjectPtr(createFeatureClass(newName, CAT_FC_GPKG,
+        object = createFeatureClass(newName, CAT_FC_GPKG,
                                               featureDefnStruct.defn.get(),
                                               m_spatialReference, geomType,
-                                              options));
+                                              options);
     }
     else if(type == CAT_TABLE_GPKG) {
-        object = ObjectPtr(createTable(newName, CAT_TABLE_GPKG,
-                                       featureDefnStruct.defn.get(),
-                                       options));
+        object = createTable(newName, CAT_TABLE_GPKG, featureDefnStruct.defn.get(),
+                             options);
     }
 
-    setMetadata(object, featureDefnStruct.fields, options);
-    m_children.push_back(object);
-    return object;
+    ObjectPtr objectPtr = onChildCreated(object);
+    setMetadata(objectPtr, featureDefnStruct.fields, options);
+    return objectPtr;
 }
 
 bool DataStore::upgrade(int oldVersion)
@@ -723,7 +705,11 @@ bool DataStore::destroyTracksTable()
     if(!layer) {
         return false;
     }
-    return destroyTable(m_DS, layer);
+    if(destroyTable(m_DS, layer)) {
+        m_tracksTable = nullptr;
+        return true;
+    }
+    return false;
 }
 
 
@@ -775,16 +761,15 @@ bool DataStore::dropOverviewsTableIndex(GDALDataset *ds, const std::string &name
     return true;
 }
 
-bool DataStore::sync(const Options &options)
+bool DataStore::sync()
 {
     if(isOpened()) {
         return false;
     }
 
     for(const auto &child : m_children) {
-        auto *storeObject = ngsDynamicCast(StoreObject, child);
-        if(nullptr != storeObject) {
-            auto result = storeObject->sync(options);
+        if(nullptr != child) {
+            auto result = child->sync();
             if(!result) {
                 return false;
             }

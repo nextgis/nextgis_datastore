@@ -147,13 +147,6 @@ GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
     return rid;
 }
 
-bool StoreObject::sync(const Options &options)
-{
-    // TODO: Sync with NGW
-    ngsUnused(options);
-    return false;
-}
-
 std::string StoreObject::downloadAttachment(GIntBig fid, GIntBig aid,
                                             const Progress &progress)
 {

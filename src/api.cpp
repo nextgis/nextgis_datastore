@@ -1324,7 +1324,7 @@ ngsCatalogObjectInfo *ngsCatalogObjectQueryMultiFilter(CatalogObjectH object,
  */
 int ngsCatalogObjectDelete(CatalogObjectH object)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(nullptr == catalogObject) {
         return outMessage(COD_INVALID, _("The object handle is null"));
     }
@@ -1383,7 +1383,7 @@ char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType 
  */
 CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, char **options)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         errorMessage(_("The object handle is null"));
         return nullptr;
@@ -1393,14 +1393,14 @@ CatalogObjectH ngsCatalogObjectCreate(CatalogObjectH object, const char *name, c
     enum ngsCatalogObjectType type = static_cast<enum ngsCatalogObjectType>(
                 createOptions.asInt("TYPE", CAT_UNKNOWN));
     createOptions.remove("TYPE");
-    ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
+    auto container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(nullptr == container) {
         errorMessage(_("The object handle is null"));
         return nullptr;
     }
 
     // If dataset - open it.
-    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(container);
+    auto datasetBase = dynamic_cast<DatasetBase*>(container);
     if(datasetBase && !datasetBase->isOpened()) {
         datasetBase->open(DatasetBase::defaultOpenFlags);
     }
@@ -1568,18 +1568,19 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
  * @param fullMatch If 1 check full match of child name.
  * @return Child handle or 0.
  */
-CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name, char fullMatch) {
+CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name,
+                                         char fullMatch) {
     if(name == nullptr) {
         errorMessage(_("Name must be set"));
         return nullptr;
     }
-    Object *catalogObject = static_cast<Object*>(parent);
+    auto catalogObject = static_cast<Object*>(parent);
     if(!catalogObject) {
         errorMessage(_("Parent handle is null"));
         return nullptr;
     }
 
-    ObjectContainer *container = dynamic_cast<ObjectContainer*>(catalogObject);
+    auto container = dynamic_cast<ObjectContainer*>(catalogObject);
     if (container == nullptr) {
         errorMessage(_("Parent handle is null"));
         return nullptr;
@@ -1770,10 +1771,8 @@ static FeatureClass *getFeatureClassFromHandle(CatalogObjectH object)
     }
 
     if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
-        if(dataset->loadChildren()) {
-            catalogObjectPointer = dataset->internalObject();
-        }
+        auto dataset = dynamic_cast<SingleLayerDataset*>(catalogObject);
+        catalogObjectPointer = dataset->internalObject();
     }
 
 
@@ -1800,10 +1799,8 @@ static Table *getTableFromHandle(CatalogObjectH object)
     }
 
     if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const dataset = dynamic_cast<SimpleDataset*>(catalogObject);
-        if(dataset->loadChildren()) {
-            catalogObjectPointer = dataset->internalObject();
-        }
+        auto dataset = dynamic_cast<SingleLayerDataset*>(catalogObject);
+        catalogObjectPointer = dataset->internalObject();
     }
 
     if(!(Filter::isTable(catalogObjectPointer->type()) ||
@@ -1914,6 +1911,22 @@ char ngsCatalogObjectClose(CatalogObjectH object)
     }
 
     return API_FALSE;
+}
+
+/**
+ * @brief ngsCatalogObjectSync Flush pending changes to disk and/or sync local and remote changes.
+ * @param object Handle to catalog object.
+ * @return 1 on success else 0.
+ */
+char ngsCatalogObjectSync(CatalogObjectH object)
+{
+    Object *catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
+    }
+
+    return catalogObject->sync() ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -2251,20 +2264,6 @@ ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object)
     }
     out[counter] = {NOT_FOUND, NOT_FOUND, CC_NOP, NOT_FOUND, NOT_FOUND};
     return out;
-}
-
-/**
- * @brief ngsFeatureClassSyncToDisk Flush pending changes to disk.
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
- * @return 1 on success else 0.
- */
-char ngsFeatureClassSyncToDisk(CatalogObjectH object)
-{
-    Table *table = getTableFromHandle(object);
-    if(nullptr == table) {
-        return API_FALSE;
-    }
-    return table->syncToDisk() ? API_TRUE : API_FALSE;
 }
 
 void ngsFeatureFree(FeatureH feature)
@@ -4449,21 +4448,6 @@ CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable)
 }
 
 /**
- * @brief ngsTrackSync Send track points to NextGIS tracking service.
- * @param tracksTable Table where fetch points to send.
- * @param maxPointCount Maximum points at one send request.
- */
-void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount)
-{
-    TracksTable *table = getTracksTableFromHandle(tracksTable);
-    if(!table) {
-        errorMessage(_("Source dataset type is incompatible"));
-        return;
-    }
-    table->sync(maxPointCount);
-}
-
-/**
  * @brief ngsTrackGetList Get tracks list.
  * @param tracksTable Table where tracks points stored.
  * @return List or NULL. User must free list using ngsFree method.
@@ -4540,22 +4524,120 @@ char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop)
     return EQUAL(getLastError(), "") ? API_TRUE : API_FALSE;
 }
 
-/**
- * @brief ngsStoreObjectSync Sync local and remote changes.
- * @param object Store object to sync with remote.
- * @return 1 on success, 0 if failed.
- */
-char ngsStoreObjectSync(CatalogObjectH object)
+template<typename T>
+static T *getObjectFromHandle(CatalogObjectH object)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         errorMessage(_("The object handle is null"));
+        return nullptr;
+    }
+
+    return dynamic_cast<T*>(catalogObject);
+}
+
+/**
+ * @brief ngsNGWServiceDeleteLayer Delete layer from NGW service,
+ * @param object Catalog object of type NGWService.
+ * @param keyName Key name to delete layer.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWServiceDeleteLayer(CatalogObjectH object, const char *keyName)
+{
+    NGWService *service = getObjectFromHandle<NGWService>(object);
+    if(nullptr == service) {
+        errorMessage(_("Cannot cast to NGWService from input object"));
+        return API_FALSE;
+    }
+    return service->deleteLayer(fromCString(keyName)) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsNGWServiceAddLayer Add new layer to NGW WMS or WFS service.
+ * @param object Catalog object of type NGWService.
+ * @param keyName Key name for new layer. Mast be unique.
+ * @param displayName New layer name.
+ * @param ngwObject For WMS servoce the ngwObject mast be Style, for WFS - vector or PostGIS layer.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWServiceAddLayer(CatalogObjectH object, const char *keyName,
+                           const char *displayName, CatalogObjectH ngwObject)
+{
+    NGWService *service = getObjectFromHandle<NGWService>(object);
+    if(nullptr == service) {
+        errorMessage(_("Cannot cast to NGWService from input object"));
+        return API_FALSE;
+    }
+    auto resourceBase = getObjectFromHandle<NGWResourceBase>(ngwObject);
+    if(nullptr == resourceBase) {
+        errorMessage(_("Cannot cast to NGWResourceBase from input ngwObject"));
         return API_FALSE;
     }
 
-    auto storeObjectContainer = dynamic_cast<StoreObjectContainer*>(catalogObject);
-    if(nullptr == storeObjectContainer) {
+    return service->addLayer(fromCString(keyName), fromCString(displayName),
+                             resourceBase) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsNGWServiceChangeLayer
+ * @param object Catalog object of type NGWService.
+ * @param originalKeyName Original key name
+ * @param newKeyName New key name
+ * @param newDisplayName New name for layer
+ * @param ngwObject For WMS servoce the ngwObject mast be Style, for WFS - vector or PostGIS layer.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWServiceChangeLayer(CatalogObjectH object, const char *originalKeyName,
+                              const char *newKeyName, const char *newDisplayName,
+                              CatalogObjectH ngwObject)
+{
+    NGWService *service = getObjectFromHandle<NGWService>(object);
+    if(nullptr == service) {
+        errorMessage(_("Cannot cast to NGWService from input object"));
         return API_FALSE;
     }
-    return storeObjectContainer->sync() ? API_TRUE : API_FALSE;
+    NGWResourceBase *resourceBase = getObjectFromHandle<NGWResourceBase>(ngwObject);
+    if(nullptr == resourceBase) {
+        errorMessage(_("Cannot cast to NGWResourceBase from input ngwObject"));
+        return API_FALSE;
+    }
+
+    return service->changeLayer(fromCString(originalKeyName),
+                                fromCString(newKeyName),
+                                fromCString(newDisplayName),
+                                resourceBase) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsNGWServiceList List of service layers.
+ * @param object Catalog object of type NGWService.
+ * @return List of ngsNGWServiceLayerInfo items or nullptr. The last element of list always nullptr.
+ * The list must be freed using ngsFree function.
+ */
+ngsNGWServiceLayerInfo *ngsNGWServiceList(CatalogObjectH object)
+{
+    NGWService *service = getObjectFromHandle<NGWService>(object);
+    if(nullptr == service) {
+        errorMessage(_("Cannot cast to NGWService from input object"));
+        return nullptr;
+    }
+
+    auto layers = service->layers();
+    if(layers.empty()) {
+        return nullptr;
+    }
+    size_t outputSize = layers.size();
+    ngsNGWServiceLayerInfo *output =
+            static_cast<ngsNGWServiceLayerInfo*>(
+                CPLMalloc(sizeof(ngsNGWServiceLayerInfo) * (outputSize + 1)));
+    clearCStrings();
+
+    for(size_t i = 0; i < outputSize; ++i) {
+        const auto &layer = layers[i];
+        output[i] = {storeCString(layer->m_key), storeCString(layer->m_name),
+                    layer->m_resourceId};
+    }
+
+    output[outputSize] = {nullptr, nullptr, -1};
+    return output;
 }

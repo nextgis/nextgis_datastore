@@ -25,6 +25,8 @@
 #include "catalog.h"
 #include "util/stringutil.h"
 
+#include <util/notify.h>
+
 namespace ngs {
 
 ObjectContainer::ObjectContainer(ObjectContainer * const parent,
@@ -141,7 +143,7 @@ int ObjectContainer::paste(ObjectPtr child, bool move, const Options &options,
 ObjectPtr ObjectContainer::getChild(const std::string &name) const
 {
     for(const ObjectPtr &child : m_children) {
-        if(compare(child->name(),name)) {
+        if(compare(child->name(), name)) {
             return child;
         }
     }
@@ -163,9 +165,11 @@ std::string ObjectContainer::createUniqueName(const std::string &name,
         CPLString newAdd;
         newAdd.Printf("%s(%d)", add.c_str(), counter);
         resultName = File::getBaseName(name) + newAdd;
-        auto ext = File::getExtension(name);
-        if(!isContainer && !ext.empty()) {
-            resultName = resultName + "." + ext;
+        if(!isContainer) {
+            auto ext = File::getExtension(name);
+            if(!ext.empty()) {
+                resultName = resultName + "." + ext;
+            }
         }
     }
 
@@ -184,6 +188,44 @@ bool ObjectContainer::hasChild(const std::string &name) const
         }
     }
     return false;
+}
+
+void ObjectContainer::onChildDeleted(Object *child)
+{
+    if(nullptr == child) {
+        return;
+    }
+    auto it = m_children.begin();
+    while(it != m_children.end()) {
+        if(it->get() == child) {
+            auto name = child->fullName();
+            m_children.erase(it);
+            Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
+            return;
+        }
+        ++it;
+    }
+}
+
+ObjectPtr ObjectContainer::onChildCreated(Object *child)
+{
+    if(nullptr == child) {
+        return ObjectPtr();
+    }
+
+    auto it = m_children.begin();
+    while(it != m_children.end()) {
+        if(it->get() == child) {
+            // Child already present
+            return *it;
+        }
+        ++it;
+    }
+    auto childPtr = ObjectPtr(child);
+    addChild(childPtr);
+    Notify::instance().onNotify(child->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
+
+    return childPtr;
 }
 
 void ObjectContainer::removeDuplicates(std::vector<std::string> &deleteNames,
@@ -224,9 +266,6 @@ void ObjectContainer::addChild(ObjectPtr object)
     m_children.push_back(object);
 }
 
-void ObjectContainer::notifyChanges()
-{
-    refresh();
-}
+
 
 }

@@ -62,10 +62,10 @@ constexpr const char *READ_ONLY_KEY = "read_only";
 class GDALDatasetPtr : public std::shared_ptr<GDALDataset>
 {
 public:
-    explicit GDALDatasetPtr(GDALDataset *ds);
+    GDALDatasetPtr(GDALDataset *DS);
     GDALDatasetPtr();
-    explicit GDALDatasetPtr(const GDALDatasetPtr &ds);
-    GDALDatasetPtr &operator=(GDALDataset *ds);
+    GDALDatasetPtr(const GDALDatasetPtr &DS);
+    GDALDatasetPtr &operator=(GDALDataset *DS);
     operator GDALDataset*() const;
 };
 
@@ -86,10 +86,12 @@ public:
     bool rollbackTransaction();
     void flushCache();
     // is checks
-    virtual bool isOpened() const { return m_DS != nullptr; }
+    virtual bool isOpened() const;
 
 public: // static
     static const unsigned int defaultOpenFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR;
+    static bool isReadOnly(GDALDataset *DS);
+
 protected:
     bool open(const std::string &path, unsigned int openFlags,
               const Options &options = Options());
@@ -97,7 +99,7 @@ protected:
                            enum ngsOptionType optionType) const;
 
 protected:
-    GDALDataset *m_DS;
+    mutable GDALDatasetPtr m_DS;
 };
 
 /**
@@ -115,7 +117,7 @@ public:
             const enum ngsCatalogObjectType type = CAT_CONTAINER_ANY,
             const std::string &name = "",
             const std::string &path = "");
-    virtual ~Dataset() override;
+    virtual ~Dataset() override = default;
     virtual std::string options(enum ngsOptionType optionType) const override;
 
     TablePtr executeSQL(const std::string &statement,
@@ -175,7 +177,6 @@ public:
                            const enum ngsCatalogObjectType type,
                            const std::string &name,
                            const Options &options = Options());
-    static bool isReadOnly(GDALDataset *DS);
     static bool forbiddenChar(char c);
 
 protected:
@@ -200,7 +201,7 @@ protected:
     virtual bool deleteFeatures(const std::string &name);
     void releaseResultSet(Table *table);
 
-    virtual GDALDataset *createAdditionsDataset();
+    virtual GDALDatasetPtr createAdditionsDataset();
     virtual std::string additionsDatasetPath() const;
 
     /// Attachments
@@ -217,7 +218,7 @@ protected:
     virtual std::string historyTableName(const std::string &name) const;
 
 protected:
-    GDALDataset *m_addsDS;
+    GDALDatasetPtr m_addsDS;
     OGRLayer *m_metadata;
     Mutex m_executeSQLMutex;
 };

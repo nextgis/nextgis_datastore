@@ -64,7 +64,8 @@ public:
 
     // events
 public:
-    virtual void notifyChanges();
+    virtual void onChildDeleted(Object *child);
+    virtual ObjectPtr onChildCreated(Object *child);
 
 protected:
     /**

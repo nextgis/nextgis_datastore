@@ -309,7 +309,7 @@ static long dateFieldToLong(const FeaturePtr &feature, int field,
     return timegm(&timeInfo);
 }
 
-void TracksTable::sync(int maxPointCount)
+bool TracksTable::sync()
 {
     MutexHolder holder(m_syncMutex); // Don't allow simultaneous syncing
     m_pointsLayer->setAttributeFilter("synced = 0");
@@ -360,6 +360,9 @@ void TracksTable::sync(int maxPointCount)
     std::vector<std::string> updateWhere;
     GIntBig first = std::numeric_limits<GIntBig>::max();
     GIntBig last = 0;
+
+    int maxPointCount = atoi(property("TRACKER_MAX_POINT_COUNT", "100",
+                                      NG_ADDITIONS_KEY).c_str());
 
     while((feature = m_pointsLayer->nextFeature())) {
         OGRGeometry *geom = feature->GetGeometryRef();
@@ -426,6 +429,7 @@ void TracksTable::sync(int maxPointCount)
             setProperty("last_sync", buffer, NG_ADDITIONS_KEY);
         }
     }
+    return true;
 }
 
 std::vector<TrackInfo> TracksTable::getTracks()

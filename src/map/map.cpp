@@ -172,10 +172,9 @@ int Map::createLayer(const std::string &name, const ObjectPtr &object)
     // FIXME: We have featureclass instead of featureclasovr here
     LayerPtr layer;
     if(object->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const simpleDS = ngsDynamicCast(SimpleDataset, object);
-        simpleDS->loadChildren();
+        auto simpleDS = ngsDynamicCast(SingleLayerDataset, object);
         ObjectPtr internalObject = simpleDS->internalObject();
-        // FIXME: We have FeatureClassPtr not FeatureClassOverviewPOtr here
+        // FIXME: We have FeatureClassPtr not FeatureClassOverviewPtr here
         if(internalObject) {
             return createLayer(name, internalObject);
         }

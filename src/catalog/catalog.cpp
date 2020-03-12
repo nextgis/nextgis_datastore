@@ -120,8 +120,8 @@ bool Catalog::loadChildren()
     m_factories.push_back(ObjectFactoryUPtr(new FolderFactory()));
 
     // 2. Load root objects
-    std::string connectionsPath = File::formFileName(settingsPath, CONNECTIONS_DIR);
-    Catalog *parent = const_cast<Catalog*>(this);
+    auto connectionsPath = File::formFileName(settingsPath, CONNECTIONS_DIR);
+    auto parent = const_cast<Catalog*>(this);
     m_children.push_back(ObjectPtr(new LocalConnections(parent, connectionsPath)));
     m_children.push_back(ObjectPtr(new GISServerConnections(parent, connectionsPath)));
     m_children.push_back(ObjectPtr(new DatabaseConnections(parent, connectionsPath)));

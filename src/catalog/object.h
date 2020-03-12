@@ -67,6 +67,7 @@ public:
                              const std::string &value,
                              const std::string &domain);
     virtual void deleteProperties(const std::string &domain);
+    virtual bool sync();
 
 protected:
     void setName(const std::string &value);

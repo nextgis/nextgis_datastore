@@ -66,10 +66,6 @@ bool MapFile::save(MapViewPtr mapView)
 
     bool result = m_mapView->save(this);
 
-    if(nullptr != m_parent) {
-        m_parent->notifyChanges();
-    }
-
     if(change) {
         Notify::instance().onNotify(m_path, ngsChangeCode::CC_CHANGE_OBJECT);
     }

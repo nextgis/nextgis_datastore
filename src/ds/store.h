@@ -32,7 +32,6 @@ class StoreObjectContainer
 {
 public:
     virtual ~StoreObjectContainer() = default;
-    virtual bool sync(const Options &options = Options()) = 0;
 };
 
 /**
@@ -46,7 +45,6 @@ public:
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
     std::vector<ngsEditOperation> fillEditOperations(OGRLayer *editHistoryTable,
                                                      Dataset *dataset) const;
-    virtual bool sync(const Options &options);
     virtual std::string downloadAttachment(GIntBig fid, GIntBig aid,
                                            const Progress &progress = Progress());
     virtual bool setAttachmentRemoteId(GIntBig aid, GIntBig rid);

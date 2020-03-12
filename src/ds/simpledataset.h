@@ -25,7 +25,27 @@
 
 namespace ngs {
 
-class SimpleDataset : public Dataset
+/**
+ * @brief The SingleLayerDataset class Dataset with only one layer. ESRI Shapefile, MapInfo tab, etc.
+ */
+class SingleLayerDataset : public Dataset
+{
+public:
+    explicit SingleLayerDataset(enum ngsCatalogObjectType subType,
+                           ObjectContainer * const parent = nullptr,
+                           const std::string &name = "",
+                           const std::string &path = "");
+    virtual ObjectPtr internalObject();
+    enum ngsCatalogObjectType subType() const;
+
+private:
+    enum ngsCatalogObjectType m_subType;
+};
+
+/**
+ * @brief The SimpleDataset class Local file dataset with only one layer. ESRI Shapefile, MapInfo tab, etc.
+ */
+class SimpleDataset : public SingleLayerDataset
 {
 public:
     explicit SimpleDataset(enum ngsCatalogObjectType subType,
@@ -33,7 +53,6 @@ public:
                            ObjectContainer * const parent = nullptr,
                            const std::string &name = "",
                            const std::string &path = "");
-    ObjectPtr internalObject() const;
     std::vector<std::string> siblingFiles() const;
 
     // Object interface
@@ -47,17 +66,13 @@ public:
     virtual bool canPaste(const enum ngsCatalogObjectType) const override;
 
     // Dataset interface
-    enum ngsCatalogObjectType subType() const;
-
-    // Dataset interface
 protected:
-    virtual GDALDataset *createAdditionsDataset() override;
+    virtual GDALDatasetPtr createAdditionsDataset() override;
 
 protected:
     virtual void fillFeatureClasses() const override;
 
 private:
-    enum ngsCatalogObjectType m_subType;
     std::vector<std::string> m_siblingFiles;
 
 };

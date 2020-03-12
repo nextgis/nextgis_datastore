@@ -26,13 +26,39 @@
 
 namespace ngs {
 
+//------------------------------------------------------------------------------
+// SingleLayerDataset
+//------------------------------------------------------------------------------
+SingleLayerDataset::SingleLayerDataset(enum ngsCatalogObjectType subType,
+                                       ObjectContainer * const parent,
+                                       const std::string &name,
+                                       const std::string &path) :
+    Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
+    m_subType(subType)
+{
+
+}
+
+ObjectPtr SingleLayerDataset::internalObject()
+{
+    loadChildren();
+    return m_children.empty() ? ObjectPtr() : m_children[0];
+}
+
+enum ngsCatalogObjectType SingleLayerDataset::subType() const
+{
+    return m_subType;
+}
+
+//------------------------------------------------------------------------------
+// SimpleDataset
+//------------------------------------------------------------------------------
 SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
                              std::vector<std::string> siblingFiles,
                              ObjectContainer * const parent,
                              const std::string &name,
                              const std::string &path) :
-    Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
-    m_subType(subType),
+    SingleLayerDataset(subType, parent, name, path),
     m_siblingFiles(siblingFiles)
 {
 
@@ -41,11 +67,6 @@ SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
 std::vector<std::string> SimpleDataset::siblingFiles() const
 {
     return m_siblingFiles;
-}
-
-ObjectPtr SimpleDataset::internalObject() const
-{
-    return m_children.empty() ? ObjectPtr() : m_children[0];
 }
 
 bool SimpleDataset::hasChildren() const
@@ -63,10 +84,6 @@ bool SimpleDataset::canPaste(const enum ngsCatalogObjectType) const
     return false;
 }
 
-enum ngsCatalogObjectType SimpleDataset::subType() const
-{
-    return m_subType;
-}
 
 bool SimpleDataset::destroy()
 {
@@ -80,20 +97,18 @@ bool SimpleDataset::destroy()
     for(const auto &siblingFile : m_siblingFiles) {
         std::string path = File::formFileName(m_parent->path(), siblingFile);
         if(Folder::isDir(path)) {
-            Folder::rmDir(path);
+            if(!Folder::rmDir(path)) {
+                return false;
+            }
         }
         else {
-            File::deleteFile(path);
+            if(!File::deleteFile(path)) {
+                return false;
+            }
         }
     }
 
-    if(m_parent) {
-        m_parent->notifyChanges();
-    }
-
-    Notify::instance().onNotify(fullName(), ngsChangeCode::CC_DELETE_OBJECT);
-
-    return true;
+    return ObjectContainer::destroy();
 }
 
 void SimpleDataset::fillFeatureClasses() const
@@ -104,24 +119,23 @@ void SimpleDataset::fillFeatureClasses() const
             OGRwkbGeometryType geometryType = layer->GetGeomType();
             std::string layerName = layer->GetName();
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
-            SimpleDataset *parent = const_cast<SimpleDataset*>(this);
+            auto parent = const_cast<SimpleDataset*>(this);
             if(geometryType == wkbNone) {
                 m_children.push_back(
-                    ObjectPtr(new Table(layer, parent, m_subType, layerName)));
+                    ObjectPtr(new Table(layer, parent, subType(), layerName)));
             }
             else {
                 m_children.push_back(
-                    ObjectPtr(new FeatureClass(layer, parent, m_subType,
-                                               layerName)));
+                    ObjectPtr(new FeatureClass(layer, parent, subType(), layerName)));
             }
             break;
         }
     }
 }
 
-GDALDataset *SimpleDataset::createAdditionsDataset()
+GDALDatasetPtr SimpleDataset::createAdditionsDataset()
 {
-    GDALDataset *out = Dataset::createAdditionsDataset();
+    GDALDatasetPtr out = Dataset::createAdditionsDataset();
     if(out) {
         m_siblingFiles.push_back(
              File::resetExtension(m_path, Dataset::additionsDatasetExtension()));

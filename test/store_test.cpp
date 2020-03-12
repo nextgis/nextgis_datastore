@@ -27,7 +27,7 @@
 
 
 #include "ds/datastore.h"
-/*
+
 TEST(StoreTests, TestJSONSAXParser) {
     initLib();
 
@@ -234,7 +234,7 @@ TEST(MIStoreTests, TestLogEdits) {
 
     ngsUnInit();
 }
-*/
+
 TEST(MIStoreTests, TestLoadFromNGW) {
     initLib();
 
@@ -250,7 +250,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     // Paste local MI tab file with ogr style to NGW vector layer
     resetCounter();
-    char** options = nullptr;
+    char **options = nullptr;
     // Add descritpion to NGW vector layer
     options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
     // If source layer has mixed geometries (point + multipoints, lines +
@@ -294,6 +294,12 @@ TEST(MIStoreTests, TestLoadFromNGW) {
                 testAttachmentPath.c_str(), nullptr, 0);
     EXPECT_NE(aid, -1);
 
+    // Add MapServer style
+    auto style = createStyle(vectorLayer, "новый стиль mapserver",
+                             "test Mapserver style", CAT_NGW_MAPSERVER_STYLE,
+                             "<map><layer><styleitem>OGR_STYLE</styleitem><class><name>default</name></class></layer></map>");
+    ASSERT_NE(style, nullptr);
+
     // Create MI Store
     CatalogObjectH mistore = createMIStore("test_mistore");
     ASSERT_NE(mistore, nullptr);
@@ -328,7 +334,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
 
     // TODO: Modify storeLayer
-    EXPECT_EQ(ngsStoreObjectSync(mistore), 1);
+    EXPECT_EQ(ngsCatalogObjectSync(mistore), 1);
 
     // Delete resource group
     EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);

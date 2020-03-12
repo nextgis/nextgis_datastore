@@ -44,6 +44,10 @@ void resetCounter();
 int getCounter();
 CatalogObjectH createConnection(const std::string &url);
 CatalogObjectH createGroup(CatalogObjectH parent, const std::string &name);
+CatalogObjectH createStyle(CatalogObjectH parent, const std::string &name,
+                           const std::string &description,
+                           enum ngsCatalogObjectType type,
+                           const std::string &styleStr);
 CatalogObjectH getLocalFile(const std::string &name);
 CatalogObjectH createMIStore(const std::string &name);
 void uploadMIToNGW(const std::string &miPath, const std::string &layerName,

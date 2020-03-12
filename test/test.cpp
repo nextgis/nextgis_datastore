@@ -61,6 +61,9 @@ void initLib()
     options = ngsListAddNameValue(options, "SETTINGS_DIR",
                               ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
                                               nullptr));
+    options = ngsListAddNameValue(options, "CACHE_DIR",
+                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
+                                              nullptr));
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
     ngsListFree(options);
@@ -74,7 +77,7 @@ CatalogObjectH createConnection(const std::string &url)
         return nullptr;
     }
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     options = ngsListAddNameValue(options, "login", "guest");
@@ -97,7 +100,7 @@ CatalogObjectH createGroup(CatalogObjectH parent, const std::string &name)
         return nullptr;
     }
 
-    char** options = nullptr;
+    char **options = nullptr;
     options = ngsListAddNameIntValue(options, "TYPE", CAT_NGW_GROUP);
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
 
@@ -159,7 +162,7 @@ void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
 {
     // Paste MI tab layer with ogr style
     resetCounter();
-    char** options = nullptr;
+    char **options = nullptr;
     // Add descritpion to NGW vector layer
     options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
     // If source layer has mixed geometries (point + multipoints, lines +
@@ -187,4 +190,18 @@ void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
 
     EXPECT_GE(getCounter(), 5);
+}
+
+CatalogObjectH createStyle(CatalogObjectH parent, const std::string &name,
+                           const std::string &description,
+                           enum ngsCatalogObjectType type,
+                           const std::string &styleStr)
+{
+    char **options = nullptr;
+    options = ngsListAddNameIntValue(options, "TYPE", type);
+    options = ngsListAddNameValue(options, "DESCRIPTION", description.c_str());
+    options = ngsListAddNameValue(options, "STYLE_STRING", styleStr.c_str());
+    auto style = ngsCatalogObjectCreate(parent, name.c_str(), options);
+    ngsListFree(options);
+    return style;
 }

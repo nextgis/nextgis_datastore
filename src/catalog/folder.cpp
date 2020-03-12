@@ -304,14 +304,7 @@ bool Folder::destroy()
         return false;
     }
 
-    std::string name = fullName();
-    if(m_parent) {
-        m_parent->notifyChanges();
-    }
-
-    Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
-
-    return true;
+    return ObjectContainer::destroy();
 }
 
 bool Folder::canDestroy() const

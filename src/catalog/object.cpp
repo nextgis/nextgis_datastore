@@ -75,7 +75,10 @@ ObjectPtr Object::pointer() const
 
 bool Object::destroy()
 {
-    return false;
+    if(m_parent) {
+        m_parent->onChildDeleted(this);
+    }
+    return true;
 }
 
 bool Object::canDestroy() const
@@ -131,6 +134,15 @@ bool Object::setProperty(const std::string &key, const std::string &value,
 void Object::deleteProperties(const std::string &domain)
 {
     ngsUnused(domain);
+}
+
+/**
+ * @brief Object::sync. Sync changes to disk or remote server.
+ * @return true on success.
+ */
+bool Object::sync()
+{
+    return true;
 }
 
 void Object::setName(const std::string &value)

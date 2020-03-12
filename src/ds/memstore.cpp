@@ -127,7 +127,7 @@ ObjectPtr MemoryStore::addLayer(const CPLJSONObject &layer)
         createOptions.add(child.GetName(), child.GetString(""));
     }
 
-    ObjectPtr object;
+    Object *object = nullptr;
     if(type == CAT_FC_MEM) {
         OGRwkbGeometryType geomType = static_cast<OGRwkbGeometryType>(
             layer.GetInteger("geometry_type", wkbUnknown));
@@ -138,12 +138,11 @@ ObjectPtr MemoryStore::addLayer(const CPLJSONObject &layer)
 
         int epsg = layer.GetInteger("epsg", 4326);
         SpatialReferencePtr sr = SpatialReferencePtr::importFromEPSG(epsg);
-        object = ObjectPtr(createFeatureClass(name, CAT_FC_MEM, &fieldDefinition,
-            sr, geomType, createOptions));
+        object = createFeatureClass(name, CAT_FC_MEM, &fieldDefinition,
+            sr, geomType, createOptions);
     }
     else if(type == CAT_TABLE_MEM) {
-        object = ObjectPtr(createTable(name, CAT_TABLE_MEM, &fieldDefinition,
-            createOptions));
+        object = createTable(name, CAT_TABLE_MEM, &fieldDefinition, createOptions);
     }
 
     if(object) {
@@ -152,10 +151,9 @@ ObjectPtr MemoryStore::addLayer(const CPLJSONObject &layer)
         for(const CPLJSONObject &child : children) {
             object->setProperty(child.GetName(), child.ToString(""), USER_KEY);
         }
-        m_children.push_back(object);
     }
 
-    return object;
+    return onChildCreated(object);
 }
 
 bool MemoryStore::create(const std::string &path, const Options &options)
@@ -194,7 +192,7 @@ bool MemoryStore::open(unsigned int openFlags, const Options &options)
         return true;
     }
 
-    CPLErrorReset();
+    resetError();
 
     CPLJSONDocument memDescriptionFile;
     if(memDescriptionFile.Load(m_path)) {
@@ -233,7 +231,6 @@ bool MemoryStore::open(unsigned int openFlags, const Options &options)
         }
 
         m_addsDS = m_DS;
-        m_addsDS->Reference();
 
         m_childrenLoaded = true;
     }

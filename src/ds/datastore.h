@@ -98,7 +98,7 @@ protected:
                                         const std::string &name);
     // StoreObjectContainer interface
 public:
-    virtual bool sync(const Options &options = Options()) override;
+    virtual bool sync() override;
 
 protected:
     virtual bool isNameValid(const std::string &name) const override;

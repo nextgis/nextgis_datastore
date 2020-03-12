@@ -22,54 +22,29 @@
 #define NGSNGWDS_H
 
 #include "catalog/ngw.h"
-#include "catalog/objectcontainer.h"
 #include "featureclass.h"
+#include "simpledataset.h"
 
 namespace ngs {
 
 /**
- * @brief The NGWFeatureClass class
+ * @brief The NGWSinglLayerDataset class
  */
-class NGWFeatureClass : public FeatureClass, public NGWResourceBase
+class NGWLayerDataset : public SingleLayerDataset, public NGWResourceBase
 {
 public:
-    explicit NGWFeatureClass(ObjectContainer * const parent,
+    explicit NGWLayerDataset(ObjectContainer * const parent,
                              const enum ngsCatalogObjectType type,
                              const std::string &name,
                              const CPLJSONObject &resource,
                              NGWConnectionBase *connection);
-    explicit NGWFeatureClass(ObjectContainer * const parent,
+    explicit NGWLayerDataset(ObjectContainer * const parent,
                              const enum ngsCatalogObjectType type,
                              const std::string &name,
-                             GDALDataset *DS,
+                             GDALDatasetPtr DS,
                              OGRLayer *layer,
                              NGWConnectionBase *connection);
-    ~NGWFeatureClass() override;
-
-
-    //static
-public:
-    static NGWFeatureClass *createFeatureClass(NGWResourceGroup *resourceGroup,
-                                               const std::string &name,
-                                               const Options &options,
-                                               const Progress &progress = Progress());
-    static NGWFeatureClass *createFeatureClass(NGWResourceGroup *resourceGroup,
-                                               const std::string &name,
-                                               OGRFeatureDefn * const definition,
-                                               SpatialReferencePtr spatialRef,
-                                               OGRwkbGeometryType type,
-                                               const Options &options,
-                                               const Progress &progress = Progress());
-
-    // FeatureClass interface
-public:
-    virtual OGRwkbGeometryType geometryType() const override;
-    virtual std::vector<OGRwkbGeometryType> geometryTypes() const override;
-    virtual Envelope extent() const override;
-
-    // SpatialDataset interface
-public:
-    virtual SpatialReferencePtr spatialReference() const override;
+    virtual void addResource(const CPLJSONObject &resource);
 
     // Object interface
 public:
@@ -77,22 +52,63 @@ public:
     virtual bool canDestroy() const override;
     virtual bool rename(const std::string &newName) override;
     virtual bool canRename() const override;
-    virtual Properties properties(const std::string &domain) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const override;
-    virtual bool setProperty(const std::string &key,
-                             const std::string &value,
-                             const std::string &domain) override;
-    virtual void deleteProperties(const std::string &domain) override;
+
+    // SingleLayerDataset interface
+public:
+    virtual ObjectPtr internalObject() override;
+
+    // ObjectContainer interface
+public:
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type,
+                             const std::string &name, const Options &options) override;
+
+    // DatasetBase interface
+public:
+    virtual bool open(unsigned int openFlags, const Options &options) override;
+    virtual void close() override;
+
+    //static
+public:
+    static NGWLayerDataset *createFeatureClass(NGWResourceGroup *resourceGroup,
+                                               const std::string &name,
+                                               const Options &options,
+                                               const Progress &progress = Progress());
+    static NGWLayerDataset *createFeatureClass(NGWResourceGroup *resourceGroup,
+                                               const std::string &name,
+                                               OGRFeatureDefn * const definition,
+                                               SpatialReferencePtr spatialRef,
+                                               OGRwkbGeometryType type,
+                                               const Options &options,
+                                               const Progress &progress = Progress());
+
+private:
+    ObjectPtr m_FC;
+    OGRwkbGeometryType m_geometryType;
+};
+
+/**
+ * @brief The NGWFeatureClass class
+ */
+class NGWFeatureClass : public FeatureClass
+{
+    friend class NGWResourceGroup;
+public:
+    explicit NGWFeatureClass(ObjectContainer * const parent,
+                             const enum ngsCatalogObjectType type,
+                             const std::string &name,
+                             OGRLayer *layer);
+
+    // Object interface
+public:
+    virtual bool destroy() override;
+    virtual bool canDestroy() const override;
+    virtual bool rename(const std::string &newName) override;
+    virtual bool canRename() const override;
 
     // Table interface
 public:
     virtual std::vector<FeaturePtr::AttachmentInfo> attachments(GIntBig fid) const override;
-    virtual bool insertFeature(const FeaturePtr &feature, bool logEdits) override;
-    virtual bool updateFeature(const FeaturePtr &feature, bool logEdits) override;
-    virtual bool deleteFeature(GIntBig id, bool logEdits) override;
-    virtual bool deleteFeatures(bool logEdits) override;
     virtual bool onRowsCopied(const TablePtr srcTable, const Progress &progress,
                               const Options &options) override;
     virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
@@ -105,18 +121,6 @@ public:
                                   const std::string &fileName,
                                   const std::string &description,
                                   bool logEdits) override;
-
-    // static
-public:
-    static Options openOptions(const std::string &userpwd, const Options &options = Options());
-
-private:
-    void openDS() const;
-    void close();
-
-private:
-    OGRwkbGeometryType m_geometryType;
-    mutable GDALDataset *m_DS;
 };
 
 } // namespace ngs

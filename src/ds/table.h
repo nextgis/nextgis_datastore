@@ -86,7 +86,6 @@ public:
     FeaturePtr(OGRFeature *feature, Table *table = nullptr);
     FeaturePtr(OGRFeature *feature, const Table *table);
     FeaturePtr();
-    virtual ~FeaturePtr() = default;
     FeaturePtr &operator=(OGRFeature *feature);
     operator OGRFeature*() const;
     std::string dump(enum DumpOutputType type = DumpOutputType::HASH) const;
@@ -168,7 +167,7 @@ public:
     virtual void deleteEditOperation(const ngsEditOperation &op);
     virtual std::vector<ngsEditOperation> editOperations();
 
-    virtual bool syncToDisk();
+    virtual bool sync() override;
 
     // Object interface
 public:

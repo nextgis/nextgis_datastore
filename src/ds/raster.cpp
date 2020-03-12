@@ -271,13 +271,9 @@ bool Raster::destroy()
 {
     if(Filter::isFileBased(m_type)) {
         if(File::deleteFile(m_path)) {
-            Folder::rmDir(fromCString(m_DS->GetMetadataItem("CACHE_PATH")));
-            std::string name = fullName();
-            if(m_parent) {
-                m_parent->notifyChanges();
+            if(Folder::rmDir(fromCString(m_DS->GetMetadataItem("CACHE_PATH")))) {
+                return Object::destroy();
             }
-            Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
-            return  true;
         }
     }
 

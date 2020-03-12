@@ -336,7 +336,7 @@ ImageData MapView::iconSet(const std::string &name) const
 
 ImageData MapView::iconSetData(const std::string &path) const
 {
-    GDALDataset *dataset = static_cast<GDALDataset*>(GDALOpen(path.c_str(),
+    GDALDatasetPtr dataset = static_cast<GDALDataset*>(GDALOpen(path.c_str(),
                                                               GA_ReadOnly));
     if(nullptr == dataset) {
         return {nullptr, 0, 0};

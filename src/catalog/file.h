@@ -49,6 +49,7 @@ public:
                            const Progress &progress = Progress());
     static bool writeFile(const std::string &file, const void* buffer,
                           size_t size);
+    static std::string readFile(const std::string &file);
     static std::string formFileName(const std::string &path,
                                     const std::string &name,
                                     const std::string &ext = "");

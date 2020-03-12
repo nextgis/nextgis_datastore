@@ -53,7 +53,7 @@ static bool deleteTab(const std::string &path) {
         return false;
     }
     // Try extensions list
-    for(const auto& ext : tabExts) {
+    for(const auto &ext : tabExts) {
         auto delPath = File::resetExtension(path, ext);
         if(Folder::isExists(delPath)) {
             File::deleteFile(delPath);
@@ -116,7 +116,7 @@ static FeaturePtr getFeatureByRemoteIdInt(const Table *table, OGRLayer *storeTab
         return FeaturePtr();
     }
 
-    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
+    auto dataset = dynamic_cast<Dataset*>(table->parent());
     DatasetExecuteSQLLockHolder holder(dataset);
     auto attFilterStr = CPLSPrintf("%s = " CPL_FRMT_GIB, ngw::REMOTE_ID_KEY, rid);
     if(storeTable->SetAttributeFilter(attFilterStr) != OGRERR_NONE) {
@@ -136,7 +136,7 @@ static FeaturePtr getFeatureByRemoteIdInt(const Table *table, OGRLayer *storeTab
 //------------------------------------------------------------------------------
 // MapInfoStoreTable
 //------------------------------------------------------------------------------
-MapInfoStoreTable::MapInfoStoreTable(GDALDataset *DS,
+MapInfoStoreTable::MapInfoStoreTable(GDALDatasetPtr DS,
                                      OGRLayer *layer,
                                      ObjectContainer * const parent,
                                      const std::string &path,
@@ -200,7 +200,11 @@ std::string MapInfoStoreTable::property(const std::string &key,
 bool MapInfoStoreTable::destroy()
 {
     close();
-    return deleteTab(m_path);
+    if(!deleteTab(m_path)) {
+        return false;
+    }
+
+    return Object::destroy();
 }
 
 std::string MapInfoStoreTable::storeName() const
@@ -232,7 +236,7 @@ bool MapInfoStoreTable::checkSetProperty(const std::string &key,
     return Table::checkSetProperty(key, value, domain);
 }
 
-bool MapInfoStoreTable::sync(const Options &options)
+bool MapInfoStoreTable::sync()
 {
     auto isSyncStr = property(ngw::SYNC_KEY, "OFF", NG_ADDITIONS_KEY);
     if(!toBool(isSyncStr)) {
@@ -250,7 +254,6 @@ FeaturePtr MapInfoStoreTable::getFeatureByRemoteId(GIntBig rid) const
 
 void MapInfoStoreTable::close()
 {
-    GDALClose(m_TABDS);
     m_TABDS = nullptr;
     m_layer = nullptr;
 }
@@ -258,7 +261,7 @@ void MapInfoStoreTable::close()
 //------------------------------------------------------------------------------
 // MapInfoStoreFeatureClass
 //------------------------------------------------------------------------------
-MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDataset *DS,
+MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDatasetPtr DS,
                                                    OGRLayer *layer,
                                                    ObjectContainer * const parent,
                                                    const std::string &path,
@@ -283,16 +286,11 @@ MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDataset *DS,
     }
 }
 
-MapInfoStoreFeatureClass::~MapInfoStoreFeatureClass()
-{
-    close();
-}
-
 Properties MapInfoStoreFeatureClass::properties(const std::string &domain) const
 {
     auto out = FeatureClass::properties(domain);
     if(m_TABDS) {
-        out.add(READ_ONLY_KEY, Dataset::isReadOnly(m_TABDS));
+        out.add(READ_ONLY_KEY, DatasetBase::isReadOnly(m_TABDS));
         if(m_layer) {
             out.add(DESCRIPTION_KEY, m_layer->GetMetadataItem(DESCRIPTION_KEY));
         }
@@ -306,7 +304,7 @@ std::string MapInfoStoreFeatureClass::property(const std::string &key,
 {
     if(compare(key, READ_ONLY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
         if(m_TABDS) {
-            return Dataset::isReadOnly(m_TABDS) ? "ON" : "OFF";
+            return DatasetBase::isReadOnly(m_TABDS) ? "ON" : "OFF";
         }
     }
     else if(m_layer && compare(key, DESCRIPTION_KEY) &&
@@ -319,7 +317,12 @@ std::string MapInfoStoreFeatureClass::property(const std::string &key,
 bool MapInfoStoreFeatureClass::destroy()
 {
     close();
-    return deleteTab(m_path);
+
+    if(!deleteTab(m_path)) {
+        return false;
+    }
+
+    return Object::destroy();
 }
 
 std::string MapInfoStoreFeatureClass::storeName() const
@@ -465,6 +468,7 @@ bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
                                             const Progress &progress,
                                             const Options &options)
 {
+    m_TABDS->FlushCache();
     auto sync = options.asString(ngw::SYNC_KEY, ngw::SYNC_DISABLE);
     if(!compare(sync, ngw::SYNC_DISABLE)) {
         if(!setProperty(LOG_EDIT_HISTORY_KEY, "ON", NG_ADDITIONS_KEY)) {
@@ -477,7 +481,7 @@ bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
         }
         else {
             // Write source table to properties
-            if(!resource->canSync()) {
+            if(!resource->isSyncable()) {
                 warningMessage(_("Cannot sync resource %s"), srcTable->name().c_str());
             }
             else {
@@ -510,7 +514,7 @@ bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
     return FeatureClass::onRowsCopied(srcTable, progress, options);
 }
 
-bool MapInfoStoreFeatureClass::sync(const Options &options)
+bool MapInfoStoreFeatureClass::sync()
 {
     auto isSyncStr = property(ngw::SYNC_KEY, "OFF", NG_ADDITIONS_KEY);
     if(!toBool(isSyncStr)) {
@@ -527,7 +531,6 @@ FeaturePtr MapInfoStoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
 
 void MapInfoStoreFeatureClass::close()
 {
-    GDALClose(m_TABDS);
     m_TABDS = nullptr;
     m_layer = nullptr;
 }
@@ -689,7 +692,7 @@ bool MapInfoDataStore::create(const std::string &path)
     }
 
     std::string dsPath = File::formFileName(newPath, STORE_META_DB);
-    GDALDataset *DS = Dataset::createAdditionsDatasetInt(dsPath,
+    GDALDatasetPtr DS = Dataset::createAdditionsDatasetInt(dsPath,
                                                          CAT_CONTAINER_MAPINFO_STORE);
 
     if(DS == nullptr) {
@@ -698,7 +701,6 @@ bool MapInfoDataStore::create(const std::string &path)
 
     createMetadataTable(DS);
 
-    GDALClose(DS);
     return true;
 }
 
@@ -717,8 +719,6 @@ bool MapInfoDataStore::open(unsigned int openFlags, const Options &options)
     bool result = DatasetBase::open(dsPath, openFlags|GDAL_OF_VECTOR, options);
     if(result) {
         m_addsDS = m_DS;
-        m_addsDS->Reference();
-
         m_metadata = m_addsDS->GetLayerByName(METADATA_TABLE_NAME);
     }
     else {
@@ -727,7 +727,7 @@ bool MapInfoDataStore::open(unsigned int openFlags, const Options &options)
 
     resetError();
 
-    int version = std::stoi(property(NGS_VERSION_KEY, "0", NG_ADDITIONS_KEY));
+    int version = atoi(property(NGS_VERSION_KEY, "0", NG_ADDITIONS_KEY).c_str());
     if(version < NGS_VERSION_NUM && !upgrade(version)) {
         return errorMessage(_("Upgrade storage failed"));
     }
@@ -851,7 +851,7 @@ ObjectPtr MapInfoDataStore::create(const enum ngsCatalogObjectType type,
     return object;
 }
 
-bool MapInfoDataStore::sync(const Options &options)
+bool MapInfoDataStore::sync()
 {
     if(!isOpened()) {
         if(!open()) {
@@ -860,9 +860,8 @@ bool MapInfoDataStore::sync(const Options &options)
     }
 
     for(const auto &child : m_children) {
-        auto *storeObject = ngsDynamicCast(StoreObject, child);
-        if(nullptr != storeObject) {
-            auto result = storeObject->sync(options);
+        if(nullptr != child) {
+            auto result = child->sync();
             if(!result) {
                 return false;
             }
@@ -925,7 +924,7 @@ void MapInfoDataStore::fillFeatureClasses() const
             if(isChildExists(path, m_children)) {
                 continue;
             }
-            GDALDataset *DS = static_cast<GDALDataset*>(
+            GDALDatasetPtr DS = static_cast<GDALDataset*>(
                         GDALOpenEx(path.c_str(),
                                    GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR,
                                    nullptr, nullptr, nullptr));
@@ -975,8 +974,8 @@ Table *MapInfoDataStore::createTable(const std::string& name,
                                OGRFeatureDefn * const definition,
                                const Options &options, const Progress &progress)
 {
-    resetError();
     ngsUnused(objectType);
+    resetError();
 
     GDALDriver *driver = Filter::getGDALDriver(CAT_TABLE_MAPINFO_TAB);
     if(nullptr == driver) {
@@ -993,7 +992,7 @@ Table *MapInfoDataStore::createTable(const std::string& name,
         optionsList.AddNameValue("ENCODING", encoding.c_str());
     }
     auto path = File::formFileName(m_path, name, "tab");
-    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, optionsList);
+    GDALDatasetPtr DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, optionsList);
     if(nullptr == DS) {
         errorMessage(_("Create of %s file failed. %s"), CPLGetLastErrorMsg());
         return nullptr;
@@ -1036,12 +1035,6 @@ Table *MapInfoDataStore::createTable(const std::string& name,
         out->setProperty(DESCRIPTION_KEY, description, NG_ADDITIONS_KEY);
     }
 
-    if(m_parent) {
-        m_parent->notifyChanges();
-    }
-
-    Notify::instance().onNotify(out->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
-
     return out;
 }
 
@@ -1069,8 +1062,8 @@ FeatureClass *MapInfoDataStore::createFeatureClass(const std::string &name,
         optionsList.AddNameValue("ENCODING", encoding.c_str());
     }
     auto path = File::formFileName(m_path, name, "tab");
-    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, optionsList);
-    if(nullptr == DS) {
+    GDALDatasetPtr DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, optionsList);
+    if(!DS) {
         errorMessage(_("Create of %s file failed. %s"), CPLGetLastErrorMsg());
         return nullptr;
     }
@@ -1115,13 +1108,6 @@ FeatureClass *MapInfoDataStore::createFeatureClass(const std::string &name,
     out->setProperty("GEOMETRY_TYPE", FeatureClass::geometryTypeName(type,
                         FeatureClass::GeometryReportType::OGC),
                      NG_ADDITIONS_KEY);
-
-    if(m_parent) {
-        m_parent->notifyChanges();
-    }
-
-    Notify::instance().onNotify(out->fullName(), ngsChangeCode::CC_CREATE_OBJECT);
-
     return out;
 }
 

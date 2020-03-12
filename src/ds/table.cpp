@@ -510,13 +510,11 @@ bool Table::destroy()
         return dataset->destroy();
     }
 
-    std::string fullNameStr = fullName();
     std::string name = m_name;
     std::string attPath = getAttachmentsPath();
     if(dataset->destroyTable(this)) {
         Folder::rmDir(attPath);
-        Notify::instance().onNotify(fullNameStr, ngsChangeCode::CC_DELETE_OBJECT);
-        return true;
+        return Object::destroy();
     }
     return false;
 }
@@ -1004,7 +1002,7 @@ void Table::logEditOperation(const FeaturePtr &opFeature)
         return;
     }
 
-    GDALDataset *addsDS = parentDataset->m_addsDS;
+    auto addsDS = parentDataset->m_addsDS;
     if(code == CC_DELETEALL_ATTACHMENTS) {
         if(fid == NOT_FOUND) {
             return;
@@ -1177,7 +1175,7 @@ void Table::deleteEditOperation(const ngsEditOperation& op)
 
     DatasetExecuteSQLLockHolder holder(parentDataset);
 
-    GDALDataset *addsDS = parentDataset->m_addsDS;
+    auto addsDS = parentDataset->m_addsDS;
     addsDS->ExecuteSQL(CPLSPrintf("DELETE FROM %s WHERE %s = " CPL_FRMT_GIB " AND %s = " CPL_FRMT_GIB /*" AND %s = %d"*/,
                                   parentDataset->historyTableName(m_name).c_str(),
                                   FEATURE_ID_FIELD, op.fid,
@@ -1209,7 +1207,7 @@ std::vector<ngsEditOperation> Table::editOperations()
     return out;
 }
 
-bool Table::syncToDisk()
+bool Table::sync()
 {
     if(nullptr != m_layer) {
         m_layer->ResetReading();

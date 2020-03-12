@@ -86,7 +86,7 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
         }
     }
 
-    VSILFILE* fpOld, * fpNew;
+    VSILFILE *fpOld, *fpNew;
     bool ret = true;
     resetError();
 
@@ -109,7 +109,7 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
     }
 
     // Prepare buffer
-    GByte* buffer = static_cast<GByte*>(CPLMalloc(BUFFER_SIZE));
+    GByte *buffer = static_cast<GByte*>(CPLMalloc(BUFFER_SIZE));
 
     // Copy file over till we run out of stuff
     double counter(0);
@@ -192,9 +192,9 @@ bool File::renameFile(const std::string &src, const std::string &dst, const Prog
     return true;
 }
 
-bool File::writeFile(const std::string &file, const void* buffer, size_t size)
+bool File::writeFile(const std::string &file, const void *buffer, size_t size)
 {
-    VSILFILE* fpNew;
+    VSILFILE *fpNew;
     CPLErrorReset();
 
     // Open old and new file
@@ -209,6 +209,37 @@ bool File::writeFile(const std::string &file, const void* buffer, size_t size)
     VSIFCloseL(fpNew);
 
     return result;
+}
+
+std::string File::readFile(const std::string &file)
+{
+    std::string out;
+    VSILFILE *fpOld;
+    resetError();
+
+    // Open old and new file
+
+    fpOld = VSIFOpenL(file.c_str(), "rb");
+    if(fpOld == nullptr) {
+        errorMessage(_("Open input file %s failed"), file.c_str());
+        return out;
+    }
+
+    // Prepare buffer
+    char *buffer = static_cast<char *>(CPLMalloc(BUFFER_SIZE));
+    while(true) {
+        size_t read = VSIFReadL(buffer, 1, BUFFER_SIZE, fpOld);
+        out += std::string(buffer, read);
+        if(read < BUFFER_SIZE) {
+            break;
+        }
+    }
+
+    // Cleanup
+    VSIFCloseL(fpOld);
+    CPLFree(buffer);
+
+    return out;
 }
 
 std::string File::formFileName(const std::string &path,
@@ -251,16 +282,11 @@ std::string File::getPath(const std::string &path)
 
 bool File::destroy()
 {
-    if(!File::deleteFile(m_path))
+    if(!File::deleteFile(m_path)) {
         return false;
+    }
 
-    std::string name = fullName();
-    if(m_parent)
-        m_parent->notifyChanges();
-
-    Notify::instance().onNotify(name, ngsChangeCode::CC_DELETE_OBJECT);
-
-    return true;
+    return Object::destroy();
 }
 
 bool File::canDestroy() const

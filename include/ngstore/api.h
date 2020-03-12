@@ -26,6 +26,7 @@
 #include "ngstore/common.h"
 #include "ngstore/codes.h"
 
+/* Color in RGBA notation */
 typedef struct _ngsRGBA {
     unsigned char R;
     unsigned char G;
@@ -240,6 +241,7 @@ NGS_EXTERNC char ngsCatalogCheckConnection(enum ngsCatalogObjectType type,
 NGS_EXTERNC char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions);
 NGS_EXTERNC char ngsCatalogObjectIsOpened(CatalogObjectH object);
 NGS_EXTERNC char ngsCatalogObjectClose(CatalogObjectH object);
+NGS_EXTERNC char ngsCatalogObjectSync(CatalogObjectH object);
 
 /*
  * Feature class
@@ -287,7 +289,6 @@ NGS_EXTERNC int ngsFeatureClassSetSpatialFilter(CatalogObjectH object,
 NGS_EXTERNC int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
                                                   ngsEditOperation operation);
 NGS_EXTERNC ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object);
-NGS_EXTERNC char ngsFeatureClassSyncToDisk(CatalogObjectH object);
 
 NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
                                                char **options,
@@ -558,7 +559,6 @@ NGS_EXTERNC CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store);
 NGS_EXTERNC CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable);
 NGS_EXTERNC char ngsStoreHasTracksTable(CatalogObjectH store);
 NGS_EXTERNC char ngsTrackIsRegistered();
-NGS_EXTERNC void ngsTrackSync(CatalogObjectH tracksTable, int maxPointCount);
 NGS_EXTERNC ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable);
 NGS_EXTERNC char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double x, double y, double z,
                                   float acc, float speed, float course, long timeStamp, int satCount, char newTrack,
@@ -566,8 +566,28 @@ NGS_EXTERNC char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackN
 NGS_EXTERNC char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop);
 
 /*
- * Store
+ * NGW
  */
-NGS_EXTERNC char ngsStoreObjectSync(CatalogObjectH object);
+
+typedef struct _ngsNGWServiceLayerInfo {
+    const char *keyName;
+    const char *displayName;
+    int resourceId;
+} ngsNGWServiceLayerInfo;
+
+NGS_EXTERNC ngsNGWServiceLayerInfo *ngsNGWServiceList(CatalogObjectH object);
+NGS_EXTERNC char ngsNGWServiceDeleteLayer(CatalogObjectH object,
+                                          const char *keyName);
+NGS_EXTERNC char ngsNGWServiceAddLayer(CatalogObjectH object,
+                                       const char *keyName,
+                                       const char *displayName,
+                                       CatalogObjectH ngwObject);
+NGS_EXTERNC char ngsNGWServiceChangeLayer(CatalogObjectH object,
+                                          const char *originalKeyName,
+                                          const char *newKeyName,
+                                          const char *newDisplayName,
+                                          CatalogObjectH ngwObject);
+// ngsNGWServiceGet/SetLayerOptions(CatalogObjectH object, const char *keyName, char **key-value list);
+// or use standard ngsCatalogObjectProperty/ngsCatalogObjectSetProperty
 
 #endif // NGSAPI_H

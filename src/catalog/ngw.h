@@ -122,11 +122,13 @@ class NGWResourceBase
 public:
     explicit NGWResourceBase(const CPLJSONObject &resource = CPLJSONObject(),
                              NGWConnectionBase *connection = nullptr);
+    virtual ~NGWResourceBase() = default;
     bool remove();
     bool changeName(const std::string &newName);
     NGWConnectionBase *connection() const;
     std::string resourceId() const;
-    bool canSync() const;
+    std::string url() const;
+    bool isSyncable() const;
 
     //static
 public:
@@ -134,7 +136,6 @@ public:
 
 
 protected:
-    std::string url() const;
     Properties metadata(const std::string &domain) const;
     std::string metadataItem(const std::string &key,
                              const std::string &defaultValue,
@@ -145,7 +146,7 @@ protected:
     std::map<std::string, std::string> m_resmeta;
     std::string m_keyName, m_description;
     std::string m_creationDate;
-    bool m_canSync;
+    bool m_isSyncable;
 };
 
 /**
@@ -159,6 +160,9 @@ public:
                          const std::string &name,
                          const CPLJSONObject &resource = CPLJSONObject(),
                          NGWConnectionBase *connection = nullptr);
+    virtual ~NGWResource() override;
+    virtual CPLJSONObject asJson() const;
+
     // Object interface
 public:
     virtual bool destroy() override;
@@ -169,6 +173,10 @@ public:
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
                                  const std::string &domain) const override;
+    virtual bool sync() override;
+
+protected:
+    bool m_hasPendingChanges;
 };
 
 /**
@@ -220,12 +228,7 @@ public:
                               const std::string &name,
                               const CPLJSONObject &resource = CPLJSONObject(),
                               NGWConnectionBase *connection = nullptr);
-    // Object interface
-public:
-    virtual Properties properties(const std::string &domain) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const override;
+
     // ObjectContainer interface
 public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
@@ -270,6 +273,121 @@ private:
 
 private:
     mutable std::string m_searchApiUrl, m_versionApiUrl;
+};
+
+/**
+ * @brief The NGWServiceLayer class
+ */
+class NGWServiceLayer
+{
+public:
+    explicit NGWServiceLayer(const std::string &key, const std::string &name,
+                             NGWResourceBase *resource);
+    explicit NGWServiceLayer(const std::string &key, const std::string &name,
+                             int resourceId);
+    virtual ~NGWServiceLayer() = default;
+
+    // Simple class, no need getter/setter
+    std::string m_key;
+    std::string m_name;
+    int m_resourceId;
+};
+
+using NGWServiceLayerPtr = std::shared_ptr<NGWServiceLayer>;
+
+/**
+ * @brief The NGWWFSServiceLayer class
+ */
+class NGWWFSServiceLayer : public NGWServiceLayer
+{
+public:
+    explicit NGWWFSServiceLayer(const std::string &key, const std::string &name,
+                                NGWResourceBase *resource, int maxfeatures = 1000);
+
+    explicit NGWWFSServiceLayer(const std::string &key, const std::string &name,
+                                int resourceId, int maxfeatures = 1000);
+    int m_maxfeatures;
+};
+
+/**
+ * @brief The NGWWMSServiceLayer class
+ */
+class NGWWMSServiceLayer : public NGWServiceLayer
+{
+public:
+    explicit NGWWMSServiceLayer(const std::string &key, const std::string &name,
+                                NGWResourceBase *resource,
+                                const std::string &minScaleDenom = "",
+                                const std::string &maxScaleDenom = "");
+    explicit NGWWMSServiceLayer(const std::string &key, const std::string &name,
+                                int resourceId,
+                                const std::string &minScaleDenom = "",
+                                const std::string &maxScaleDenom = "");
+    std::string m_minScaleDenom;
+    std::string m_maxScaleDenom;
+};
+
+/**
+ * @brief The NGWService class. Base class for WMS and WFS services
+ */
+class NGWService : public NGWResource
+{
+public:
+    explicit NGWService(ObjectContainer * const parent,
+                        const enum ngsCatalogObjectType type,
+                        const std::string &name,
+                        const CPLJSONObject &resource = CPLJSONObject(),
+                        NGWConnectionBase *connection = nullptr);
+
+    std::vector<NGWServiceLayerPtr> layers() const;
+    bool addLayer(const std::string &key, const std::string &name,
+                  NGWResourceBase *resource);
+    bool changeLayer(const std::string &oldKey, const std::string &key,
+                     const std::string &name, NGWResourceBase *resource);
+    bool deleteLayer(const std::string &key);
+
+    // NGWResource interface
+public:
+    virtual CPLJSONObject asJson() const override;
+
+private:
+    std::vector<NGWServiceLayerPtr> m_layers;
+};
+
+/**
+ * @brief The NGWStyle class
+ */
+class NGWStyle : public NGWResource
+{
+public:
+    explicit NGWStyle(ObjectContainer * const parent,
+                      const enum ngsCatalogObjectType type,
+                      const std::string &name,
+                      const CPLJSONObject &resource = CPLJSONObject(),
+                      NGWConnectionBase *connection = nullptr);
+public:
+    static NGWStyle *createStyle(NGWResourceBase *parent,
+                                 const enum ngsCatalogObjectType type,
+                                 const std::string &name,
+                                 const Options &options);
+
+    // Object interface
+public:
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool setProperty(const std::string &key,
+                             const std::string &value,
+                             const std::string &domain) override;
+
+    // NGWResource interface
+public:
+    virtual CPLJSONObject asJson() const override;
+
+private:
+    std::string m_style, m_stylePath;
+
 };
 
 }
