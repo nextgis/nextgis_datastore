@@ -98,7 +98,7 @@ NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
     m_connection(connection)
 {
     if(resource.IsValid()) {
-        m_resourceId = resource.GetString("resource/id");
+        m_resourceId = resource.GetString("resource/id", "0");
         m_creationDate = resource.GetString("resource/creation_date");
         m_keyName = resource.GetString("resource/keyname");
         m_description = resource.GetString("resource/description");

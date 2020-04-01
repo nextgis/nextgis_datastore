@@ -23,6 +23,31 @@
 
 #include "ngstore/api.h"
 
+TEST(NGWTests, TestReadConnection) {
+    initLib();
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    // Read contents
+    auto pathInfo = ngsCatalogObjectQuery(connection, 0);
+    ASSERT_NE(pathInfo, nullptr);
+    std::string mistorePath = ngsCatalogObjectPath(connection);
+    int count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << mistorePath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 1);
+    ngsFree(pathInfo);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
 TEST(NGWTests, TestResourceGroup) {
     initLib();
 
@@ -449,3 +474,4 @@ TEST(NGWTests, TestCreateLookupTable) {
     // delete
     ngsUnInit();
 }
+
