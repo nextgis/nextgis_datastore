@@ -35,9 +35,9 @@ namespace ngs {
 constexpr const char *SETTINGS_FILE = "settings";
 constexpr const char *SETTINGS_FILE_EXT = "json";
 
-constexpr const char *HTTP_TIMEOUT = "20";
+constexpr const char *HTTP_TIMEOUT = "190";
 constexpr const char *HTTP_CONN_TIMEOUT = "10";
-constexpr const char *HTTP_MAX_RETRY = "3";
+constexpr const char *HTTP_MAX_RETRY = "2";
 constexpr const char *HTTP_RETRY_DELAY = "5";
 constexpr const char *HTTP_USE_GZIP = "YES";
 

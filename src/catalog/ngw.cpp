@@ -46,13 +46,15 @@ static void addResourceInt(ObjectPtr parent, CPLJSONObject resource)
     auto group = ngsDynamicCast(NGWResourceGroup, parent);
     if(group) {
         group->addResource(resource);
+        return;
     }
-    else {
-        auto layer = ngsDynamicCast(NGWLayerDataset, parent);
-        if(layer) {
-            layer->addResource(resource);
-        }
+
+    auto layer = ngsDynamicCast(NGWLayerDataset, parent);
+    if(layer) {
+        layer->addResource(resource);
+        return;
     }
+    // TODO: Add raster layer
 }
 
 //------------------------------------------------------------------------------
@@ -349,13 +351,23 @@ ObjectPtr NGWResourceGroup::getResource(const std::string &resourceId) const
     }
 
     for(const ObjectPtr &child : m_children) {
-        NGWResourceGroup *group = ngsDynamicCast(NGWResourceGroup, child);
+        auto group = ngsDynamicCast(NGWResourceGroup, child);
         if(group != nullptr) {
             ObjectPtr resource = group->getResource(resourceId);
             if(resource) {
                 return resource;
             }
         }
+
+        auto layer = ngsDynamicCast(NGWLayerDataset, child);
+        if(layer != nullptr) {
+            ObjectPtr resource = layer->getResource(resourceId);
+            if(resource) {
+                return resource;
+            }
+        }
+
+        // TODO: Add raster layer
     }
     return ObjectPtr();
 }
@@ -909,7 +921,7 @@ bool NGWConnection::loadChildren()
                 CPLJSONArray root(searchReq.GetRoot());
                 if(root.IsValid()) {
                     m_childrenLoaded = true;
-                    std::map<std::string, CPLJSONObject> noParentResources;
+                    std::vector<std::pair<std::string, CPLJSONObject>> noParentResources;
                     for(int i = 0; i < root.Size(); ++i) {
                         CPLJSONObject resource = root[i];
                         std::string resourceId =
@@ -920,25 +932,24 @@ bool NGWConnection::loadChildren()
                                 addResourceInt(parent, resource);
                             }
                             else {
-                                noParentResources[resourceId] = resource;
+                                noParentResources.push_back(std::make_pair(resourceId, resource));
                             }
                         }
                     }
 
-                    int counter = static_cast<int>(noParentResources.size() * 1.3);
+                    int counter = 15;
                     while(!noParentResources.empty()) {
+                        CPLDebug("--", "counter %d, size: %ld", counter, noParentResources.size());
                         auto it = noParentResources.begin();
-                        ObjectPtr parent;
                         while(it != noParentResources.end()) {
+                            ObjectPtr parent;
                             if((parent = getResource(it->first))) {
-                                break;
+                                addResourceInt(parent, it->second);
+                                it = noParentResources.erase(it);
                             }
-                            ++it;
-                        }
-
-                        if(parent) {
-                            addResourceInt(parent, it->second);
-                            noParentResources.erase(it);
+                            else {
+                                ++it;
+                            }
                         }
 
                         // Protect from infinity loop.
@@ -1574,7 +1585,7 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
 
     resource.Add("id", atoi(resourceId.c_str()));
 
-    return  new NGWStyle(dynamic_cast<ObjectContainer*>(parent), type, name,
+    return new NGWStyle(dynamic_cast<ObjectContainer*>(parent), type, name,
                          payload, connection);
 }
 

@@ -104,7 +104,7 @@ NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
     NGWResourceBase(CPLJSONObject(), connection)
 {
     m_DS = DS;
-    m_children.push_back(ObjectPtr(new NGWFeatureClass(this, type, name, layer)));
+    m_FC = ObjectPtr(new NGWFeatureClass(this, type, name, layer));
     m_resourceId = fromCString(layer->GetMetadataItem("id"));
     m_description = fromCString(layer->GetMetadataItem("description"));
     m_keyName = fromCString(layer->GetMetadataItem("keyname"));
@@ -132,12 +132,21 @@ void NGWLayerDataset::addResource(const CPLJSONObject &resource)
     }
 }
 
+ObjectPtr NGWLayerDataset::getResource(const std::string &resourceId) const
+{
+    if(m_resourceId == resourceId) {
+        return pointer();
+    }
+
+    return ObjectPtr();
+}
+
 ObjectPtr NGWLayerDataset::internalObject()
 {
     if(!isOpened()) {
         open(DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR, Options());
     }
-    return m_children.empty() ? ObjectPtr() : m_children[0];
+    return m_FC;
 }
 
 
@@ -199,8 +208,8 @@ bool NGWLayerDataset::open(unsigned int openFlags, const Options &options)
 
     if(nullptr != m_DS) {
         auto layer = m_DS->GetLayer(0);
-        m_children.push_back(ObjectPtr(
-                            new NGWFeatureClass(this, subType(), m_name, layer)));
+        m_FC = (ObjectPtr(new NGWFeatureClass(this, subType(), m_name, layer)));
+        m_geometryType = layer->GetGeomType();
     }
 
     return result;

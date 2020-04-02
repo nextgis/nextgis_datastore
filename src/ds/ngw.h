@@ -45,6 +45,7 @@ public:
                              OGRLayer *layer,
                              NGWConnectionBase *connection);
     virtual void addResource(const CPLJSONObject &resource);
+    virtual ObjectPtr getResource(const std::string &resourceId) const;
 
     // Object interface
 public:
@@ -82,6 +83,8 @@ public:
                                                const Options &options,
                                                const Progress &progress = Progress());
 
+private:
+    ObjectPtr m_FC;
 };
 
 /**
