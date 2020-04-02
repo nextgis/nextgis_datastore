@@ -1233,7 +1233,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
     clearCStrings();
 
     if(container->type() == CAT_CONTAINER_SIMPLE) {
-        SimpleDataset * const simpleDS = dynamic_cast<SimpleDataset*>(container);
+        SingleLayerDataset * const simpleDS = dynamic_cast<SingleLayerDataset*>(container);
         output = static_cast<ngsCatalogObjectInfo*>(
                                 CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
         output[0] = {storeCString(catalogObject->name()),
@@ -1253,9 +1253,9 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
 
     for(const auto &child : children) {
         if(objectFilter.canDisplay(child)) {
-            SimpleDataset *simpleDS = nullptr;
+            SingleLayerDataset *simpleDS = nullptr;
             if(child->type() == CAT_CONTAINER_SIMPLE) {
-                simpleDS = ngsDynamicCast(SimpleDataset, child);
+                simpleDS = ngsDynamicCast(SingleLayerDataset, child);
             }
 
             outputSize++;
@@ -2040,7 +2040,7 @@ void ngsFeatureClassBatchMode(CatalogObjectH object, char enable)
 
 /**
  * @brief ngsFeatureClassCreateFeature Creates new feature
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @return Feature handle or NULL
  */
 FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
@@ -2059,7 +2059,7 @@ FeatureH ngsFeatureClassCreateFeature(CatalogObjectH object)
 
 /**
  * @brief ngsFeatureClassInsertFeature Inserts feature/row into the table
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @param feature Feature to insert
  * @param logEdits If log edit operation enabled this key can manage to log or
  * not this edit operation
@@ -2080,7 +2080,7 @@ int ngsFeatureClassInsertFeature(CatalogObjectH object, FeatureH feature,
 
 /**
  * @brief ngsFeatureClassUpdateFeature Update feature/row
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @param feature Feature to update
  * @param logEdits If log edit operation enabled this key can manage to log or
  * not this edit operation
@@ -2101,7 +2101,7 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature,
 
 /**
  * @brief ngsFeatureClassDeleteFeature Delete feature/row from the table
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @param id Feature identifier to delete
  * @param logEdits If log edit operation enabled this key can manage to log or
  * not this edit operation
@@ -2120,7 +2120,7 @@ int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id,
 
 /**
  * @brief ngsFeatureClassDeleteFeatures Delete all features/rows from the table
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @param logEdits If log edit operation enabled this key can manage to log or
  * not this edit operation
  * @return COD_SUCCESS if everything is OK
@@ -2136,7 +2136,7 @@ int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits)
 
 /**
  * @brief ngsFeatureClassCount Returns feature/row count
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @return Feature/Row count
  */
 long long ngsFeatureClassCount(CatalogObjectH object)
@@ -2150,7 +2150,7 @@ long long ngsFeatureClassCount(CatalogObjectH object)
 
 /**
  * @brief ngsFeatureClassResetReading Move read cursor to the begin
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  */
 void ngsFeatureClassResetReading(CatalogObjectH object)
 {
@@ -2163,7 +2163,7 @@ void ngsFeatureClassResetReading(CatalogObjectH object)
 
 /**
  * @brief ngsFeatureClassNextFeature Returns next feature/row
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @return Feature handle
  */
 FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
@@ -2182,7 +2182,7 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
 
 /**
  * @brief ngsFeatureClassGetFeature Returns feature by identifier
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @param id Feature identifier
  * @return Feature handle
  */
@@ -2201,7 +2201,7 @@ FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
 
 /**
  * @brief ngsFeatureClassSetFilter Set filter to returns features/rows
- * @param object Handle to Table, FeatureClass or SimpleDataset catalog object
+ * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @param geometryFilter Geometry handle to filter data
  * @param attributeFilter Attribute filter (the where clause)
  * @return COD_SUCCESS if everything is OK

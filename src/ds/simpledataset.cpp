@@ -34,6 +34,7 @@ SingleLayerDataset::SingleLayerDataset(enum ngsCatalogObjectType subType,
                                        const std::string &name,
                                        const std::string &path) :
     Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
+    m_geometryType(wkbUnknown),
     m_subType(subType)
 {
 
@@ -48,6 +49,33 @@ ObjectPtr SingleLayerDataset::internalObject()
 enum ngsCatalogObjectType SingleLayerDataset::subType() const
 {
     return m_subType;
+}
+
+Properties SingleLayerDataset::properties(const std::string &domain) const
+{
+    auto out = Dataset::properties(domain);
+    if(domain.empty()) {
+        out.add("geometry_type",
+                FeatureClass::geometryTypeName(m_geometryType, FeatureClass::GeometryReportType::OGC));
+        out.add("sub_type", std::to_string(m_subType));
+    }
+    return out;
+}
+
+std::string SingleLayerDataset::property(const std::string &key,
+                                         const std::string &defaultValue,
+                                         const std::string &domain) const
+{
+    if(domain.empty()) {
+        if(key == "geometry_type") {
+            return FeatureClass::geometryTypeName(m_geometryType,
+                                                  FeatureClass::GeometryReportType::OGC);
+        }
+        else if(key == "sub_type") {
+            return std::to_string(m_subType);
+        }
+    }
+    return Dataset::property(key, defaultValue, domain);
 }
 
 //------------------------------------------------------------------------------
@@ -116,11 +144,11 @@ void SimpleDataset::fillFeatureClasses() const
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer *layer = m_DS->GetLayer(i);
         if(nullptr != layer) {
-            OGRwkbGeometryType geometryType = layer->GetGeomType();
+            m_geometryType = layer->GetGeomType();
             std::string layerName = layer->GetName();
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
             auto parent = const_cast<SimpleDataset*>(this);
-            if(geometryType == wkbNone) {
+            if(m_geometryType == wkbNone) {
                 m_children.push_back(
                     ObjectPtr(new Table(layer, parent, subType(), layerName)));
             }

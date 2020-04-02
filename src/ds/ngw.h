@@ -82,9 +82,6 @@ public:
                                                const Options &options,
                                                const Progress &progress = Progress());
 
-private:
-    ObjectPtr m_FC;
-    OGRwkbGeometryType m_geometryType;
 };
 
 /**

@@ -38,6 +38,14 @@ public:
     virtual ObjectPtr internalObject();
     enum ngsCatalogObjectType subType() const;
 
+    // Object interface
+public:
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+protected:
+    mutable OGRwkbGeometryType m_geometryType;
 private:
     enum ngsCatalogObjectType m_subType;
 };

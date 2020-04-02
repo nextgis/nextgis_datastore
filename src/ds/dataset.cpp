@@ -1292,7 +1292,7 @@ bool Dataset::loadChildren()
     }
 
     if(!isOpened()) {
-        if(!open()) {
+        if(!open(DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR, Options())) {
             return false;
         }
     }
