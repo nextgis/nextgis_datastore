@@ -476,29 +476,32 @@ bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
         }
         auto resource = ngsDynamicCast(NGWResourceBase, srcTable);
         if(nullptr == resource) {
-            warningMessage(_("Not NextGIS Web resource."));
-            return true;
+            resource = dynamic_cast<NGWResourceBase*>(srcTable->parent());
+            if(nullptr == resource) {
+                warningMessage(_("Not NextGIS Web resource."));
+                return true;
+            }
+        }
+
+
+        // Write source table to properties
+        if(!resource->isSyncable()) {
+            warningMessage(_("Cannot sync resource %s"), srcTable->name().c_str());
         }
         else {
-            // Write source table to properties
-            if(!resource->isSyncable()) {
-                warningMessage(_("Cannot sync resource %s"), srcTable->name().c_str());
-            }
-            else {
-                NGWConnection *connection =
-                        dynamic_cast<NGWConnection*>(resource->connection());
-                if(nullptr != connection) {
-                    std::string syncResourceId = resource->resourceId();
-                    std::string connPath = connection->fullName();
-                    std::string syncAttachments = options.asString(ngw::SYNC_ATT_KEY,
-                                                                   ngw::SYNC_DISABLE);
+            NGWConnection *connection =
+                    dynamic_cast<NGWConnection*>(resource->connection());
+            if(nullptr != connection) {
+                std::string syncResourceId = resource->resourceId();
+                std::string connPath = connection->fullName();
+                std::string syncAttachments = options.asString(ngw::SYNC_ATT_KEY,
+                                                               ngw::SYNC_DISABLE);
 
-                    setProperty(ngw::NGW_ID, syncResourceId, NG_ADDITIONS_KEY);
-                    setProperty(ngw::NGW_CONNECTION, connPath, NG_ADDITIONS_KEY);
-                    setProperty(ngw::SYNC_KEY, sync, NG_ADDITIONS_KEY);
-                    setProperty(ngw::SYNC_ATT_KEY, syncAttachments,
-                                         NG_ADDITIONS_KEY);
-                }
+                setProperty(ngw::NGW_ID, syncResourceId, NG_ADDITIONS_KEY);
+                setProperty(ngw::NGW_CONNECTION, connPath, NG_ADDITIONS_KEY);
+                setProperty(ngw::SYNC_KEY, sync, NG_ADDITIONS_KEY);
+                setProperty(ngw::SYNC_ATT_KEY, syncAttachments,
+                                     NG_ADDITIONS_KEY);
             }
         }
 
@@ -998,7 +1001,7 @@ Table *MapInfoDataStore::createTable(const std::string& name,
         return nullptr;
     }
 
-    OGRLayer *layer = DS->CreateLayer(name.c_str(), nullptr, wkbNone, optionsList);
+    auto layer = DS->CreateLayer(name.c_str(), nullptr, wkbNone, optionsList);
     if(layer == nullptr) {
         errorMessage(_("Failed to create table %s. %s"), name.c_str(), CPLGetLastErrorMsg());
         return nullptr;
@@ -1068,7 +1071,7 @@ FeatureClass *MapInfoDataStore::createFeatureClass(const std::string &name,
         return nullptr;
     }
 
-    OGRLayer *layer = DS->CreateLayer(name.c_str(), spatialRef, type, optionsList);
+    auto layer = DS->CreateLayer(name.c_str(), spatialRef, type, optionsList);
     if(layer == nullptr) {
         errorMessage(_("Failed to create table %s. %s"), name.c_str(), CPLGetLastErrorMsg());
         return nullptr;

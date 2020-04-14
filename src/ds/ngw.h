@@ -84,7 +84,32 @@ public:
                                                const Progress &progress = Progress());
 
 private:
-    ObjectPtr m_FC;
+    ObjectPtr m_fc;
+};
+
+/**
+ * @brief The NGWRasterDataset class
+ */
+class NGWRasterDataset : public NGWResourceGroup
+{
+public:
+    explicit NGWRasterDataset(ObjectContainer * const parent,
+                              const std::string &name,
+                              const CPLJSONObject &resource = CPLJSONObject(),
+                              NGWConnectionBase *connection = nullptr);
+
+    // ObjectContainer interface
+public:
+    virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
+    virtual ObjectPtr create(const enum ngsCatalogObjectType type,
+                    const std::string &name, const Options &options) override;
+
+    // NGWResourceGroup interface
+    virtual void addResource(const CPLJSONObject &resource) override;
+
+
+private:
+    int m_xSize, m_ySize, m_bandCount;
 };
 
 /**

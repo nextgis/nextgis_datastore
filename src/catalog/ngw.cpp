@@ -73,7 +73,7 @@ bool NGWConnectionBase::isClsSupported(const std::string &cls) const
 
 std::string NGWConnectionBase::userPwd() const
 {
-    if(compare(m_user, "guest")) {
+    if(m_isGuest || compare(m_user, "guest")) {
         return "";
     }
     return m_user + ":" + m_password;
@@ -131,6 +131,7 @@ Properties NGWResourceBase::metadata(const std::string &domain) const
     Properties out;
     if(domain.empty()) {
         out.add("url", url() + "/resource/" + m_resourceId);
+        out.add("id", m_resourceId);
         out.add("creation_date", m_creationDate);
         out.add("keyname", m_keyName);
         out.add("description", m_description);
@@ -181,6 +182,42 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
 bool NGWResourceBase::isSyncable() const
 {
     return m_isSyncable;
+}
+
+CPLJSONObject NGWResourceBase::asJson() const
+{
+    CPLJSONObject payload;
+    CPLJSONObject resource("resource", payload);
+    if(!m_keyName.empty()) {
+        resource.Add("keyname", m_keyName);
+    }
+    if(!m_description.empty()) {
+        resource.Add("description", m_description);
+    }
+
+    if(!m_resmeta.empty()) {
+        CPLJSONObject resMeta("resmeta", payload);
+        CPLJSONObject resMetaItems("items", resMeta);
+        for( const auto &remetaItem : m_resmeta ) {
+            auto itemName = remetaItem.first;
+            auto itemValue = remetaItem.second;
+            auto suffixPos = itemName.size() - 2;
+            auto suffix = itemName.substr(suffixPos);
+            if( suffix == ".d") {
+                resMetaItems.Add( itemName.substr(0, suffixPos),
+                                  CPLAtoGIntBig( itemValue.c_str() ) );
+                continue;
+            }
+            if( suffix == ".f") {
+                resMetaItems.Add( itemName.substr(0, suffixPos),
+                                  CPLAtofM(itemValue.c_str() ) );
+                continue;
+            }
+            resMetaItems.Add( itemName, itemValue );
+        }
+    }
+
+    return payload;
 }
 
 std::string NGWResourceBase::resourceId() const
@@ -285,37 +322,9 @@ bool NGWResource::sync()
 
 CPLJSONObject NGWResource::asJson() const
 {
-    CPLJSONObject payload;
-    CPLJSONObject resource("resource", payload);
+    CPLJSONObject payload = NGWResourceBase::asJson();
+    CPLJSONObject resource = payload.GetObj("resource");
     resource.Add("display_name", m_name);
-    if(!m_keyName.empty()) {
-        resource.Add("keyname", m_keyName);
-    }
-    if(!m_description.empty()) {
-        resource.Add("description", m_description);
-    }
-
-    if(!m_resmeta.empty()) {
-        CPLJSONObject resMeta("resmeta", payload);
-        CPLJSONObject resMetaItems("items", resMeta);
-        for( const auto &remetaItem : m_resmeta ) {
-            auto itemName = remetaItem.first;
-            auto itemValue = remetaItem.second;
-            auto suffixPos = itemName.size() - 2;
-            auto suffix = itemName.substr(suffixPos);
-            if( suffix == ".d") {
-                resMetaItems.Add( itemName.substr(0, suffixPos),
-                                  CPLAtoGIntBig( itemValue.c_str() ) );
-                continue;
-            }
-            if( suffix == ".f") {
-                resMetaItems.Add( itemName.substr(0, suffixPos),
-                                  CPLAtofM(itemValue.c_str() ) );
-                continue;
-            }
-            resMetaItems.Add( itemName, itemValue );
-        }
-    }
 
     auto ngwParentResource = dynamic_cast<NGWResourceBase*>(m_parent);
     if(ngwParentResource) {
@@ -367,7 +376,19 @@ ObjectPtr NGWResourceGroup::getResource(const std::string &resourceId) const
             }
         }
 
-        // TODO: Add raster layer
+        auto raster = ngsDynamicCast(NGWRasterDataset, child);
+        if(raster != nullptr) {
+            ObjectPtr resource = raster->getResource(resourceId);
+            if(resource) {
+                return resource;
+            }
+        }
+
+        auto resource = ngsDynamicCast(NGWResourceBase, child);
+        if(resource && resource->resourceId() == resourceId) {
+            return child;
+        }
+
     }
     return ObjectPtr();
 }
@@ -581,12 +602,13 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
 
 bool NGWResourceGroup::canPaste(const enum ngsCatalogObjectType type) const
 {
-    return Filter::isFeatureClass(type);
+    return Filter::isFeatureClass(type) || Filter::isRaster(type);
 }
 
 int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
                             const Progress &progress)
 {
+    resetError();
     std::string newName = options.asString("NEW_NAME",
                                            File::getBaseName(child->name()));
     newName = normalizeDatasetName(newName);
@@ -729,6 +751,110 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
             onChildCreated(dstDS);
             progressMulti.onProgress(COD_FINISHED, 1.0, "");
+        }
+    }
+    else if(Filter::isRaster(child->type())) {
+        RasterPtr srcRaster = std::dynamic_pointer_cast<Raster>(child);
+        if(!srcRaster) {
+            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                _("Source object '%s' report type RASTER, but it is not a raster"),
+                child->name().c_str());
+        }
+
+        // Check available paste rasters
+        if(srcRaster->width() > MAX_RASTERSIZE4UNSUPPORTED ||
+                srcRaster->height() > MAX_RASTERSIZE4UNSUPPORTED) {
+            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+            if(!Account::instance().isFunctionAvailable(appName, "paste_raster")) {
+                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                    _("Cannot %s raster on your plan, or account is not authorized"),
+                    move ? _("move") : _("copy"));
+            }
+        }
+
+        std::string rasterPath = child->path();
+
+        Progress progressMulti(progress);
+        progressMulti.setTotalSteps(2);
+        progressMulti.setStep(0);
+
+        // Check if source GDALDataset is tiff.
+        if(srcRaster->type() != CAT_RASTER_TIFF ) {
+            Settings &settings = Settings::instance();
+            auto tmpPath = settings.getString("common/cache_path", "");
+            if(tmpPath.empty()) {
+                return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                                  _("Cache path option must be present"));
+            }
+            auto tmpName = random(10) + "." + Filter::extension(CAT_RASTER_TIFF);
+            rasterPath = File::formFileName(tmpPath, tmpName);
+
+            auto catalog = Catalog::instance();
+            auto tempFolder = catalog->getObjectBySystemPath(tmpPath);
+            auto tempObjectContainer = ngsDynamicCast(ObjectContainer, tempFolder);
+            if(nullptr == tempObjectContainer) {
+                return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                                  _("Cannot %s raster. Temp path not defined."),
+                                  move ? _("move") : _("copy"));
+            }
+
+            Options options;
+            options.add("TYPE", static_cast<long>(CAT_RASTER_TIFF));
+            options.add("COMPRESS", "LZW");
+            options.add("NUM_THREADS", static_cast<long>(getNumberThreads()));
+            options.add("NEW_NAME", tmpName);
+
+            int result = tempObjectContainer->paste(child, false, options,
+                                                    progressMulti);
+            if(result != COD_SUCCESS) {
+                return result;
+            }
+        }
+
+        progressMulti.setStep(1);
+
+        auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url()), rasterPath,
+                                           progressMulti);
+        auto uploadMetaArray = uploadInfo.GetArray("upload_meta");
+
+        if(!compare(child->path(), rasterPath)) {
+            File::deleteFile(rasterPath);
+        }
+        if(uploadMetaArray.Size() == 0) {
+            return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+        }
+
+        CPLJSONObject payload;
+        CPLJSONObject resource("resource", payload);
+        resource.Add("cls", ngw::objectTypeToNGWClsType(CAT_NGW_RASTER_LAYER));
+        resource.Add("display_name", newName);
+        std::string key = options.asString("KEY");
+        if(!key.empty()) {
+            resource.Add("keyname", key);
+        }
+        std::string desc = options.asString("DESCRIPTION");
+        if(!desc.empty()) {
+            resource.Add("description", desc);
+        }
+        CPLJSONObject parent("parent", resource);
+        parent.Add("id", atoi(m_resourceId.c_str()));
+
+        CPLJSONObject raster("raster_layer", payload);
+        raster.Add("source", uploadMetaArray[0]);
+        CPLJSONObject srs("srs", raster);
+        srs.Add( "id", 3857 );
+
+
+        std::string resourceId = ngw::createResource(url(),
+            payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
+        if(compare(resourceId, "-1", true)) {
+            return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+        }
+
+        resource.Add("id", atoi(resourceId.c_str()));
+
+        if(m_childrenLoaded) {
+            onChildCreated(new NGWRasterDataset(this, newName, payload, m_connection));
         }
     }
     else {
@@ -1020,6 +1146,11 @@ void NGWConnection::fillProperties() const
             m_url = root.GetString(URL_KEY);
 
             m_user = root.GetString(KEY_LOGIN);
+            m_isGuest = root.GetBool(KEY_IS_GUEST);
+            if(m_isGuest) {
+                return;
+            }
+
             if(!m_user.empty() && !compare(m_user, "guest")) {
                 std::string password = decrypt(root.GetString(KEY_PASSWORD));
 
@@ -1042,7 +1173,7 @@ Properties NGWConnection::properties(const std::string &domain) const
     if(domain.empty()) {
         out.add("url", m_url);
         out.add("login", m_user);
-        out.add("is_guest", compare(m_user, "guest") ? "yes" : "no");
+        out.add("is_guest", m_isGuest || compare(m_user, "guest") ? "yes" : "no");
         return out;
     }
     return out;
@@ -1063,7 +1194,7 @@ std::string NGWConnection::property(const std::string &key,
         }
 
         if(key == "is_guest") {
-            return compare(m_user, "guest") ? "yes" : "no";
+            return m_isGuest || compare(m_user, "guest") ? "yes" : "no";
         }
     }
     return ObjectContainer::property(key, defaultValue, domain);
@@ -1077,47 +1208,41 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
     }
 
     if(key == "url") {
-        AuthStore::authRemove(m_url);
         m_url = value;
     }
 
     if(key == "login") {
-        AuthStore::authRemove(m_url);
         m_user = value;
     }
 
     if(key == "is_guest") {
-        if(toBool(value)) {
-            if(!compare(m_user, "guest")) {
-                AuthStore::authRemove(m_url);
-                m_user = "guest";
-            }
-        }
+        m_isGuest = toBool(value);
     }
 
-    bool changePassword = false;
     if(key == "password") {
-        AuthStore::authRemove(m_url);
-        changePassword = true;
+        m_password = value;
     }
+    AuthStore::authRemove(m_url);
 
     CPLJSONDocument connectionFile;
     if(!connectionFile.Load(m_path)) {
         return false;
     }
+
+    if(m_user == "guest") {
+        m_isGuest = true;
+    }
     CPLJSONObject root = connectionFile.GetRoot();
     root.Set(URL_KEY, m_url);
     root.Set(KEY_LOGIN, m_user);
-    if(changePassword) {
-        if(!value.empty()) {
-            root.Set(KEY_PASSWORD, encrypt(value));
-        }
-        else {
-            root.Set(KEY_PASSWORD, value);
-        }
+    if(!m_password.empty()) {
+        root.Set(KEY_PASSWORD, encrypt(m_password));
+    }
+    else {
+        root.Set(KEY_PASSWORD, m_password);
     }
 
-    root.Set(KEY_IS_GUEST, m_user == "guest");
+    root.Set(KEY_IS_GUEST, m_isGuest);
     if(!connectionFile.Save(m_path)) {
         return false;
     }
@@ -1141,6 +1266,10 @@ void NGWConnection::close()
 {
     clear();
     m_opened = false;
+    m_url.clear();
+    m_user.clear();
+    m_password.clear();
+    m_isGuest = true;
 }
 
 //------------------------------------------------------------------------------
@@ -1470,11 +1599,14 @@ NGWStyle::NGWStyle(ObjectContainer * const parent,
                    const std::string &name,
                    const CPLJSONObject &resource,
                    NGWConnectionBase *connection) :
-    NGWResource(parent, type, name, resource, connection)
+    Raster(std::vector<std::string>(), parent, type, name, ""),
+    NGWResourceBase(resource, connection)
 {
     if(type == CAT_NGW_MAPSERVER_STYLE) {
         m_style = resource.GetString("mapserver_style/xml");
     }
+
+    m_path = "NGW:" + url() + "/resource/" + m_resourceId;
 }
 
 NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
@@ -1511,6 +1643,7 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
     tileCache.Add("track_changes", options.asBool("CACHE_TRACK_CHANGES", false));
 
     if(type == CAT_NGW_QGISVECTOR_STYLE || type == CAT_NGW_QGISRASTER_STYLE) {
+        std::string deletePath;
         if(stylePath.empty()) {
             if(styleStr.empty()) {
                 errorMessage(_("STYLE_PATH or STYLE_STRING options must be present"));
@@ -1528,18 +1661,26 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
             if(!File::writeFile(stylePath, styleStr.data(), styleStr.size())) {
                 return nullptr;
             }
+            deletePath = stylePath;
         }
         // Upload file
         auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url), stylePath);
+        if(!deletePath.empty()) {
+            File::deleteFile(deletePath);
+        }
         // {"upload_meta": [{"id": "9226e604-cdbe-4719-842b-d180970100c7", "name": "96.qml", "mime_type": "application/octet-stream", "size": 1401}]}
         auto uploadMetaArray = uploadInfo.GetArray("upload_meta");
+        if(uploadMetaArray.Size() == 0) {
+            errorMessage(_("Failed upload style"));
+            return nullptr;
+        }
         auto uploadMeta = uploadMetaArray[0];
         auto size = uploadMeta.GetLong("size");
         auto id = uploadMeta.GetString("id");
         auto mime = uploadMeta.GetString("mime_type");
         auto uploadName = uploadMeta.GetString("name");
 
-        CPLJSONObject style("qgis_vector_style", payload);
+        CPLJSONObject style(ngw::objectTypeToNGWClsType(type), payload);
         CPLJSONObject upload("file_upload", style);
         upload.Add("id", id);
         upload.Add("name", uploadName);
@@ -1586,12 +1727,26 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
     resource.Add("id", atoi(resourceId.c_str()));
 
     return new NGWStyle(dynamic_cast<ObjectContainer*>(parent), type, name,
-                         payload, connection);
+                        payload, connection);
+}
+
+bool NGWStyle::destroy()
+{
+    if(!NGWResourceBase::remove()) {
+        return false;
+    }
+
+    return Object::destroy();
+}
+
+bool NGWStyle::canDestroy() const
+{
+    return true;
 }
 
 Properties NGWStyle::properties(const std::string &domain) const
 {
-    auto out = NGWResource::properties(domain);
+    auto out = Raster::properties(domain);
     if(domain.empty()) {
         out.add("style", m_style);
         out.add("style_path", m_stylePath);
@@ -1604,7 +1759,7 @@ std::string NGWStyle::property(const std::string &key,
                                const std::string &domain) const
 {
     if(!domain.empty()) {
-        return NGWResource::property(key, defaultValue, domain);
+        return Raster::property(key, defaultValue, domain);
     }
 
     if(key == "style") {
@@ -1615,14 +1770,14 @@ std::string NGWStyle::property(const std::string &key,
         return m_stylePath;
     }
 
-    return NGWResource::property(key, defaultValue, domain);
+    return Raster::property(key, defaultValue, domain);
 }
 
 bool NGWStyle::setProperty(const std::string &key, const std::string &value,
                            const std::string &domain)
 {
     if(!domain.empty()) {
-        return NGWResource::setProperty(key, value, domain);
+        return Raster::setProperty(key, value, domain);
     }
 
     if(key == "style") {
@@ -1645,12 +1800,21 @@ bool NGWStyle::setProperty(const std::string &key, const std::string &value,
         return sync();
     }
 
+    if(m_DS != nullptr) {
+        return m_DS->SetMetadataItem(key.c_str(), value.c_str(),
+                                       domain.c_str()) == CE_None;
+    }
+
     return false;
 }
 
 CPLJSONObject NGWStyle::asJson() const
 {
-    auto payload = NGWResource::asJson();
+    auto payload = NGWResourceBase::asJson();
+
+    CPLJSONObject resource = payload.GetObj("resource");
+    resource.Add("display_name", m_name);
+
     if(m_type == CAT_NGW_MAPSERVER_STYLE) {
         CPLJSONObject style("mapserver_style", payload);
         style.Add("xml", m_style);
@@ -1659,6 +1823,9 @@ CPLJSONObject NGWStyle::asJson() const
             m_type == CAT_NGW_QGISVECTOR_STYLE) {
         auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url()), m_stylePath);
         auto uploadMetaArray = uploadInfo.GetArray("upload_meta");
+        if(uploadMetaArray.Size() == 0) {
+            return payload;
+        }
         auto uploadMeta = uploadMetaArray[0];
         auto size = uploadMeta.GetLong("size");
         auto id = uploadMeta.GetString("id");

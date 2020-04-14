@@ -27,6 +27,7 @@
 namespace ngs {
 
 constexpr unsigned short MAX_FEATURES4UNSUPPORTED = 999;
+constexpr unsigned short MAX_RASTERSIZE4UNSUPPORTED = 999;
 
 class Account
 {

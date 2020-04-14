@@ -78,7 +78,7 @@ bool Account::isFunctionAvailable(const std::string &app, const std::string &fun
 {
     ngsUnused(app);
     ngsUnused(func);
-    return isUserSupported();
+    return isUserAuthorized(); // isUserSupported();
 }
 
 bool Account::updateUserInfo()

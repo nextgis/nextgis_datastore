@@ -83,14 +83,17 @@ bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType t
     switch(type) {
     case CAT_CONTAINER_NGW:
     {
+        resetError();
         std::string url = options.asString(URL_KEY);
         if(url.empty()) {
             return errorMessage(_("Missing required option 'url'"));
         }
 
+        bool isGuest = options.asBool(KEY_IS_GUEST);
         std::string login = options.asString(KEY_LOGIN);
         if(login.empty()) {
             login = "guest";
+            isGuest = true;
         }
         else {
             std::string oldLogin(login);
@@ -100,7 +103,6 @@ bool ConnectionFactory::createRemoteConnection(const enum ngsCatalogObjectType t
             }
         }
         std::string password = options.asString(KEY_PASSWORD);
-        bool isGuest = options.asBool(KEY_IS_GUEST);
 
         CPLJSONDocument connectionFile;
         CPLJSONObject root = connectionFile.GetRoot();

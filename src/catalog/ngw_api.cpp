@@ -75,6 +75,23 @@ std::string getUploadUrl(const std::string &url)
     return url + "/api/component/file_upload/upload";
 }
 
+std::string getTMSUrl(const std::string &url,
+                      const std::vector<std::string> &resourceIds)
+{
+    auto out = url + "/api/component/render/tile?z=${z}&amp;x=${x}&amp;y=${y}&amp;resource=";
+    bool isFirst = true;
+    for(const auto &id : resourceIds) {
+        if(isFirst) {
+            isFirst = false;
+        }
+        else {
+            out += ",";
+        }
+        out += id;
+    }
+    return out;
+}
+
 std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type)
 {
     switch(type) {

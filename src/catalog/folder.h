@@ -73,6 +73,8 @@ protected:
         const Progress &progress);
     int pasteFeatureClass(ObjectPtr child, bool move, const std::string &newPath,
         const Options& options, const Progress& progress);
+    int pasteRaster(ObjectPtr child, bool move, const std::string &newPath,
+        const Options& options, const Progress& progress);
 };
 
 class FolderConnection : public Folder

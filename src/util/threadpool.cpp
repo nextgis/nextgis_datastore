@@ -35,6 +35,21 @@ ThreadData::ThreadData(bool own) :
 
 }
 
+bool ThreadData::isOwn() const
+{
+    return m_own;
+}
+
+void ThreadData::increaseTries()
+{
+    m_tries++;
+}
+
+unsigned char ThreadData::tries() const
+{
+    return m_tries;
+}
+
 //------------------------------------------------------------------------------
 // ThreadPool
 //------------------------------------------------------------------------------

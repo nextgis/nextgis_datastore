@@ -138,7 +138,7 @@ void SimpleDatasetFactory::addChildInternal(ObjectContainer * const container,
                                     std::vector<std::string> &names)
 {
     ObjectFactory::addChild(container,
-                            ObjectPtr(new SimpleDataset(subType, siblingFiles,
+                            ObjectPtr(new FileSingleLayerDataset(subType, siblingFiles,
                                                         container, name, path)));
     eraseNames(name, siblingFiles, names);
 }

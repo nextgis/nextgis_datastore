@@ -75,6 +75,7 @@ static void initGDAL(const char *dataPath, const char *cachePath)
 
     if(cachePath) {
         CPLSetConfigOption("GDAL_DEFAULT_WMS_CACHE_PATH", cachePath);
+        CPLSetConfigOption("CPL_TMPDIR", cachePath);
         settings.set("common/cache_path", std::string(cachePath));
 
         // https://www.sqlite.org/c3ref/temp_directory.html
@@ -1205,6 +1206,18 @@ JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
 //------------------------------------------------------------------------------
 // Catalog
 //------------------------------------------------------------------------------
+static ObjectPtr checkIfSimple(const ObjectPtr &object)
+{
+    SingleDataset *simpleDS = nullptr;
+    if(object->type() == CAT_CONTAINER_SIMPLE) {
+        simpleDS = ngsDynamicCast(SingleDataset, object);
+    }
+
+    if(simpleDS) {
+        return simpleDS->internalObject();
+    }
+    return object;
+}
 
 /**
  * @brief catalogObjectQuery Request the contents of some catalog container object.
@@ -1216,60 +1229,50 @@ JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
 static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
                                                 const Filter &objectFilter)
 {
-    Object *catalogObject = static_cast<Object*>(object);
-    if(!catalogObject) {
+    auto catalogObject = static_cast<Object*>(object);
+    if(nullptr == catalogObject) {
         errorMessage(_("The object handle is null"));
         return nullptr;
     }
-    ObjectPtr catalogObjectPointer = catalogObject->pointer();
 
-    ngsCatalogObjectInfo *output = nullptr;
-    size_t outputSize = 0;
-    ObjectContainer * const container = dynamic_cast<ObjectContainer*>(catalogObject);
-    if(!container || !objectFilter.canDisplay(catalogObjectPointer)) {
+    ObjectContainer *container = nullptr;
+    // Check if this is simple
+    auto parent = catalogObject->parent();
+    if(parent && parent->type() == CAT_CONTAINER_SIMPLE &&
+            Filter::isSimpleDataset(catalogObject->type())) {
+        container = dynamic_cast<ObjectContainer*>(parent);
+    }
+    else {
+        container = dynamic_cast<ObjectContainer*>(catalogObject);
+    }
+
+    if(nullptr == container) {
         return nullptr;
     }
 
     clearCStrings();
 
-    if(container->type() == CAT_CONTAINER_SIMPLE) {
-        SingleLayerDataset * const simpleDS = dynamic_cast<SingleLayerDataset*>(container);
-        output = static_cast<ngsCatalogObjectInfo*>(
-                                CPLMalloc(sizeof(ngsCatalogObjectInfo) * 2));
-        output[0] = {storeCString(catalogObject->name()),
-                     simpleDS->subType(), catalogObject};
-        output[1] = {nullptr, -1, nullptr};
-        return output;
-    }
-
     if(!container->loadChildren()) {
         errorMessage(_("Failed to load children."));
         return nullptr;
     }
+
     auto children = container->getChildren();
     if(children.empty()) {
         return nullptr;
     }
 
+    ngsCatalogObjectInfo *output = nullptr;
+    size_t outputSize = 0;
     for(const auto &child : children) {
         if(objectFilter.canDisplay(child)) {
-            SingleLayerDataset *simpleDS = nullptr;
-            if(child->type() == CAT_CONTAINER_SIMPLE) {
-                simpleDS = ngsDynamicCast(SingleLayerDataset, child);
-            }
-
             outputSize++;
             output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
 
-            const char *name = storeCString(child->name());
-            if(simpleDS) {
-                output[outputSize - 1] = {name, simpleDS->subType(),
-                                          child.get()};
-            }
-            else {
-                output[outputSize - 1] = {name, child->type(), child.get()};
-            }
+            auto newChild = checkIfSimple(child);
+            const char *name = storeCString(newChild->name());
+            output[outputSize - 1] = {name, newChild->type(), newChild.get()};
         }
     }
     if(outputSize > 0) {
@@ -1558,7 +1561,7 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
 {
     CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(fromCString(path));
-    return object.get();
+    return checkIfSimple(object).get();
 }
 
 /**
@@ -1606,7 +1609,7 @@ CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name
     }
 
     if(child) {
-        return child.get();
+        return checkIfSimple(child).get();
     }
     errorMessage(_("Child not found"));
     return nullptr;
@@ -1684,12 +1687,7 @@ const char *ngsCatalogObjectProperty(CatalogObjectH object, const char *name,
                                      const char *defaultValue,
                                      const char *domain)
 {
-    if(nullptr == object) {
-        errorMessage(_("The object handle is null"));
-        return defaultValue;
-    }
-
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         errorMessage(_("The object handle is null"));
         return defaultValue;
@@ -1770,8 +1768,13 @@ static FeatureClass *getFeatureClassFromHandle(CatalogObjectH object)
         return nullptr;
     }
 
+    // Unexpected but may be
     if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
         auto dataset = dynamic_cast<SingleLayerDataset*>(catalogObject);
+        if(nullptr == dataset) {
+            errorMessage(_("Source dataset type is incompatible"));
+            return nullptr;
+        }
         catalogObjectPointer = dataset->internalObject();
     }
 
@@ -1798,8 +1801,13 @@ static Table *getTableFromHandle(CatalogObjectH object)
         return nullptr;
     }
 
+    // Unexpected but may be
     if(catalogObjectPointer->type() == CAT_CONTAINER_SIMPLE) {
         auto dataset = dynamic_cast<SingleLayerDataset*>(catalogObject);
+        if(nullptr == dataset) {
+            errorMessage(_("Source dataset type is incompatible"));
+            return nullptr;
+        }
         catalogObjectPointer = dataset->internalObject();
     }
 
@@ -2673,7 +2681,7 @@ int ngsRasterCacheArea(CatalogObjectH object, char** options,
     Options createOptions(options);
     Progress createProgress(callback, callbackData);
 
-    return raster->cacheArea(createProgress, createOptions) ?
+    return raster->cacheArea(createOptions, createProgress) ?
                 COD_SUCCESS : COD_CREATE_FAILED;
 }
 

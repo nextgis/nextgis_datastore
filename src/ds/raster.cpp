@@ -43,6 +43,7 @@ class DownloadData : public ThreadData {
 public:
     DownloadData(const std::string &basePath, const std::string &url, int expires,
                  const Tile &tile, const Options &options, bool own);
+    virtual ~DownloadData() override;
     Tile m_tile;
     std::string m_basePath, m_url;
     int m_expires;
@@ -58,6 +59,10 @@ DownloadData::DownloadData(const std::string &basePath, const std::string &url,
     m_url(url),
     m_expires(expires),
     m_options(options)
+{
+}
+
+DownloadData::~DownloadData()
 {
 }
 
@@ -298,7 +303,7 @@ std::string Raster::property(const std::string &key,
                      const std::string &defaultValue,
                      const std::string &domain) const
 {
-    const char *ret = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
+    auto ret = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
     if(nullptr == ret) {
         return Object::property(key, defaultValue, domain);
     }
@@ -313,7 +318,8 @@ bool Raster::setProperty(const std::string &name, const std::string &value,
         open();
     }
     if(m_DS != nullptr) {
-        result = m_DS->SetMetadataItem(name.c_str(), value.c_str(), domain.c_str()) == CE_None;
+        result = m_DS->SetMetadataItem(name.c_str(), value.c_str(),
+                                       domain.c_str()) == CE_None;
     }
 
     if(result) {
@@ -444,6 +450,11 @@ bool Raster::writeWorldFile(enum WorldFileType type)
     return GDALWriteWorldFile(m_path.c_str(), newExt.c_str(), geoTransform) != 0;
 }
 
+const Envelope &Raster::extent() const
+{
+     return m_extent;
+}
+
 bool Raster::geoTransform(double *transform) const
 {
     if(!isOpened()) {
@@ -507,7 +518,7 @@ static CPLLock *hLock = nullptr;
 
 bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
 {
-    DownloadData* data = dynamic_cast<DownloadData*>(threadData);
+    auto data = dynamic_cast<DownloadData*>(threadData);
     if(nullptr == data) {
         return true;
     }
@@ -522,7 +533,7 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
     std::string path = File::formFileName(data->m_basePath, dirPath, "");
 
     if(!Folder::isExists(path)) {
-        CPLLockHolderD(&hLock, LOCK_RECURSIVE_MUTEX);
+        CPLLockHolderD(&hLock, LOCK_RECURSIVE_MUTEX)
 
         if(!Folder::mkDir(path, true)) {
             return false;
@@ -552,7 +563,7 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
     return out;
 }
 
-bool Raster::cacheArea(const Progress &progress, const Options &options)
+bool Raster::cacheArea(const Options &options, const Progress &progress)
 {
     if(!isOpened()) {
         outMessage(COD_UNSUPPORTED, "Raster must be opened.");
@@ -637,6 +648,56 @@ bool Raster::cacheArea(const Progress &progress, const Options &options)
 
     CPLDebug("ngstore", "finish cache area");
     return true;
+}
+
+bool Raster::createCopy(const std::string &outPath,
+                        const Options &options, const Progress &progress)
+{
+    resetError();
+    enum ngsCatalogObjectType dstType = static_cast<enum ngsCatalogObjectType>(
+                options.asInt("TYPE", 0));
+    std::string newPath(outPath);
+    if(!endsWith(newPath, Filter::extension(dstType))) {
+        newPath += Filter::extension(dstType);
+    }
+    auto driver = Filter::getGDALDriver(dstType);
+    Options newOptions(options);
+    bool strict = options.asBool("STRICT", false);
+    newOptions.remove("STRICT");
+    newOptions.remove("CREATE_UNIQUE");
+    newOptions.remove("NEW_NAME");
+    newOptions.remove("OVERWRITE");
+
+    Progress progressIn(progress);
+    auto outDS = driver->CreateCopy(outPath.c_str(),
+        m_DS, strict, newOptions.asCPLStringList(), ngsGDALProgress, &progressIn);
+    bool result = outDS != nullptr;
+    GDALClose(outDS);
+    return result;
+}
+
+bool Raster::moveTo(const std::string &dstPath, const Progress &progress)
+{
+    close();
+    Progress multiProgress(progress);
+    multiProgress.setTotalSteps(static_cast<unsigned char>(m_siblingFiles.size() + 1));
+    unsigned char counter = 0;
+    multiProgress.setStep(counter++);
+    auto dstDir = File::getPath(dstPath);
+    auto dstName = File::getBaseName(dstPath);
+
+    auto dstFullPath = File::formFileName(dstDir, dstName, File::getExtension(m_path));
+    bool result = File::moveFile(m_path, dstFullPath, multiProgress);
+    if(!result) {
+        return result;
+    }
+    // TODO: Need check for case there sibling file name not equal raster filw name
+    for(const auto &file : m_siblingFiles) {
+        multiProgress.setStep(counter++);
+        dstFullPath = File::formFileName(dstDir, dstName, File::getExtension(file));
+        File::moveFile(file, dstFullPath, multiProgress);
+    }
+    return result;
 }
 
 

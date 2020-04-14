@@ -26,12 +26,12 @@
 namespace ngs {
 
 /**
- * @brief The SingleLayerDataset class Dataset with only one layer. ESRI Shapefile, MapInfo tab, etc.
+ * @brief The SingleDataset class Dataset with only one GDAL Dataset. GeoTIff, ESRI Shapefile, MapInfo tab, etc.
  */
-class SingleLayerDataset : public Dataset
+class SingleDataset : public Dataset
 {
 public:
-    explicit SingleLayerDataset(enum ngsCatalogObjectType subType,
+    explicit SingleDataset(enum ngsCatalogObjectType subType,
                            ObjectContainer * const parent = nullptr,
                            const std::string &name = "",
                            const std::string &path = "");
@@ -44,23 +44,42 @@ public:
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
                                  const std::string &domain) const override;
-protected:
-    mutable OGRwkbGeometryType m_geometryType;
 private:
     enum ngsCatalogObjectType m_subType;
 };
 
 /**
- * @brief The SimpleDataset class Local file dataset with only one layer. ESRI Shapefile, MapInfo tab, etc.
+ * @brief The SingleLayerDataset class Dataset with only one layer. ESRI Shapefile, MapInfo tab, etc.
  */
-class SimpleDataset : public SingleLayerDataset
+class SingleLayerDataset : public SingleDataset
 {
 public:
-    explicit SimpleDataset(enum ngsCatalogObjectType subType,
-                           std::vector<std::string> siblingFiles,
+    explicit SingleLayerDataset(enum ngsCatalogObjectType subType,
                            ObjectContainer * const parent = nullptr,
                            const std::string &name = "",
                            const std::string &path = "");
+
+    // Object interface
+public:
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+protected:
+    mutable OGRwkbGeometryType m_geometryType;
+};
+
+/**
+ * @brief The SimpleDataset class Local file dataset with only one layer. ESRI Shapefile, MapInfo tab, etc.
+ */
+class FileSingleLayerDataset : public SingleLayerDataset
+{
+public:
+    explicit FileSingleLayerDataset(enum ngsCatalogObjectType subType,
+                                   std::vector<std::string> siblingFiles,
+                                   ObjectContainer * const parent = nullptr,
+                                   const std::string &name = "",
+                                   const std::string &path = "");
     std::vector<std::string> siblingFiles() const;
 
     // Object interface

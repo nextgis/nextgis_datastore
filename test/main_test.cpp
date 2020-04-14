@@ -760,7 +760,7 @@ TEST(DataStoreTest, TestTracksTable) {
     // Export to GPX
     options = ngsListAddNameIntValue(options, "TYPE", CAT_FC_GPX);
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
-    options = ngsListAddNameValue(options, "DS_NAME", "test_tracks");
+    options = ngsListAddNameValue(options, "NEW_NAME", "test_tracks");
     options = ngsListAddNameValue(options, "LAYER_NAME", "track_points");
     options = ngsListAddNameValue(options, "GPX_USE_EXTENSIONS", "ON");
     options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "ON");

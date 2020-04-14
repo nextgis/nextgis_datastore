@@ -47,9 +47,11 @@ CatalogObjectH createGroup(CatalogObjectH parent, const std::string &name);
 CatalogObjectH createStyle(CatalogObjectH parent, const std::string &name,
                            const std::string &description,
                            enum ngsCatalogObjectType type,
-                           const std::string &styleStr);
+                           const std::string &styleData, bool isPath = false);
 CatalogObjectH getLocalFile(const std::string &name);
 CatalogObjectH createMIStore(const std::string &name);
 void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
+                   CatalogObjectH group);
+void uploadRasterToNGW(const std::string &rasterPath, const std::string &rasterName,
                    CatalogObjectH group);
 #endif // NGSTEST_H

@@ -33,10 +33,19 @@ TEST(NGWTests, TestReadConnection) {
     // Read contents
     auto pathInfo = ngsCatalogObjectQuery(connection, 0);
     ASSERT_NE(pathInfo, nullptr);
-    std::string mistorePath = ngsCatalogObjectPath(connection);
+    std::string connPath = ngsCatalogObjectPath(connection);
     int count = 0;
     while(pathInfo[count].name) {
-        std::cout << count << ". " << mistorePath << "/" <<  pathInfo[count].name << '\n';
+        const char *id = ngsCatalogObjectProperty(pathInfo[count].object, "id", "", "");
+        EXPECT_STRNE(id, "");
+        std::cout << count << ". " << connPath << "/" <<  pathInfo[count].name << " [" << id << "]" <<'\n';
+//        char **ppid = ngsCatalogObjectProperties(pathInfo[count].object, "");
+//        if(nullptr != ppid) {
+//            int cc = 0;
+//            while(ppid[cc]) {
+//                std::cout << "  " << ppid[cc++] << '\n';
+//            }
+//        }
         count++;
     }
     EXPECT_GE(count, 1);
@@ -462,8 +471,41 @@ TEST(NGWTests, TestCreateWebService) {
 
 TEST(NGWTests, TestCreateRaster) {
     initLib();
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    // Create resource group
+    time_t rawTime = std::time(nullptr);
+    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto group = createGroup(connection, groupName);
+    ASSERT_NE(group, nullptr);
+
     // Upload raster
+    uploadRasterToNGW("/data/rgbsmall.tif", "новый растровый слой 1", group);
+
+    // Find loaded layer by name
+    auto rasterLayer = ngsCatalogObjectGetByName(group, "новый растровый слой 1", 1);
+    ASSERT_NE(rasterLayer, nullptr);
+
     // Set style native + qgis
+    auto style = createStyle(rasterLayer, "новый растровый стиль",
+                             "test native style", CAT_NGW_RASTER_STYLE, "");
+    ASSERT_NE(style, nullptr);
+
+    std::string testPath = ngsGetCurrentDirectory();
+    style = createStyle(rasterLayer, "новый стиль qgis",
+                        "test qgis style", CAT_NGW_QGISRASTER_STYLE,
+                        testPath + "/data/rgbsmall.qml", true);
+    ASSERT_NE(style, nullptr);
+
+    // Delete resource group
+    EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
     ngsUnInit();
 }
 
@@ -474,4 +516,28 @@ TEST(NGWTests, TestCreateLookupTable) {
     // delete
     ngsUnInit();
 }
+
+TEST(NGWTests, TestConnection) {
+    initLib();
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "guest");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "yes");
+
+    // change
+    EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "login", "test", ""), COD_SUCCESS);
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "yes");
+
+    EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "is_guest", "OFF", ""), COD_SUCCESS);
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "no");
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+    ngsUnInit();
+}
+
 

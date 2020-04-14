@@ -22,6 +22,7 @@
 #define NGSNGWCONNECTION_H
 
 #include "ds/coordinatetransformation.h"
+#include "ds/raster.h"
 #include "objectcontainer.h"
 #include "remoteconnections.h"
 
@@ -48,6 +49,8 @@ namespace ngw {
     std::string getSchemaUrl(const std::string &url);
     std::string getCurrentUserUrl(const std::string &url);
     std::string getUploadUrl(const std::string &url);
+    std::string getTMSUrl(const std::string &url,
+                          const std::vector<std::string> &resourceIds);
     bool checkVersion(const std::string &version, int major, int minor, int patch);
     std::string createResource(const std::string &url, const std::string &payload,
                                char **httpOptions);
@@ -111,6 +114,7 @@ public:
 protected:
     mutable std::string m_url, m_user;
     mutable std::string m_password; // TODO: When move authstore to GDAL remove password storing.
+    mutable bool m_isGuest = true;
     std::vector<std::string> m_availableCls;
 };
 
@@ -129,6 +133,7 @@ public:
     std::string resourceId() const;
     std::string url() const;
     bool isSyncable() const;
+    virtual CPLJSONObject asJson() const;
 
     //static
 public:
@@ -161,7 +166,7 @@ public:
                          const CPLJSONObject &resource = CPLJSONObject(),
                          NGWConnectionBase *connection = nullptr);
     virtual ~NGWResource() override;
-    virtual CPLJSONObject asJson() const;
+    virtual CPLJSONObject asJson() const override;
 
     // Object interface
 public:
@@ -357,7 +362,7 @@ private:
 /**
  * @brief The NGWStyle class
  */
-class NGWStyle : public NGWResource
+class NGWStyle : public Raster, public NGWResourceBase
 {
 public:
     explicit NGWStyle(ObjectContainer * const parent,
@@ -373,6 +378,8 @@ public:
 
     // Object interface
 public:
+    virtual bool destroy() override;
+    virtual bool canDestroy() const override;
     virtual Properties properties(const std::string &domain) const override;
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
@@ -381,7 +388,7 @@ public:
                              const std::string &value,
                              const std::string &domain) override;
 
-    // NGWResource interface
+    // NGWResourceBase interface
 public:
     virtual CPLJSONObject asJson() const override;
 

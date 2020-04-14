@@ -104,7 +104,7 @@ NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
     NGWResourceBase(CPLJSONObject(), connection)
 {
     m_DS = DS;
-    m_FC = ObjectPtr(new NGWFeatureClass(this, type, name, layer));
+    m_fc = ObjectPtr(new NGWFeatureClass(this, type, name, layer));
     m_resourceId = fromCString(layer->GetMetadataItem("id"));
     m_description = fromCString(layer->GetMetadataItem("description"));
     m_keyName = fromCString(layer->GetMetadataItem("keyname"));
@@ -138,6 +138,13 @@ ObjectPtr NGWLayerDataset::getResource(const std::string &resourceId) const
         return pointer();
     }
 
+    for(const ObjectPtr &child : m_children) {
+        auto resource = ngsDynamicCast(NGWResourceBase, child);
+        if(resource && resource->resourceId() == resourceId) {
+            return child;
+        }
+    }
+
     return ObjectPtr();
 }
 
@@ -146,7 +153,7 @@ ObjectPtr NGWLayerDataset::internalObject()
     if(!isOpened()) {
         open(DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR, Options());
     }
-    return m_FC;
+    return m_fc;
 }
 
 
@@ -208,7 +215,7 @@ bool NGWLayerDataset::open(unsigned int openFlags, const Options &options)
 
     if(nullptr != m_DS) {
         auto layer = m_DS->GetLayer(0);
-        m_FC = (ObjectPtr(new NGWFeatureClass(this, subType(), m_name, layer)));
+        m_fc = (ObjectPtr(new NGWFeatureClass(this, subType(), m_name, layer)));
         m_geometryType = layer->GetGeomType();
     }
 
@@ -351,6 +358,81 @@ NGWLayerDataset *NGWLayerDataset::createFeatureClass(NGWResourceGroup *resourceG
 
     return createFeatureClass(resourceGroup, name, featureDefnStruct.defn.get(),
                               spatialRef, geomType, options, progress);
+}
+
+//------------------------------------------------------------------------------
+// NGWRasterDataset
+//------------------------------------------------------------------------------
+
+NGWRasterDataset::NGWRasterDataset(ObjectContainer * const parent,
+                                   const std::string &name,
+                                   const CPLJSONObject &resource,
+                                   NGWConnectionBase *connection) :
+    NGWResourceGroup(parent, name, resource, connection)
+{
+    m_type = CAT_NGW_RASTER_LAYER;
+    m_xSize = resource.GetInteger("raster_layer/xsize");
+    m_ySize = resource.GetInteger("raster_layer/ysize");
+    m_bandCount = resource.GetInteger("raster_layer/band_count");
+}
+
+void NGWRasterDataset::addResource(const CPLJSONObject &resource)
+{
+    std::string cls = resource.GetString("resource/cls");
+    std::string name = resource.GetString("resource/display_name");
+
+    if(cls == "raster_style") {
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_RASTER_STYLE, name,
+                                        resource, m_connection)));
+    }
+    else if(cls == "qgis_raster_style") {
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_QGISRASTER_STYLE, name,
+                                        resource, m_connection)));
+    }
+}
+
+bool NGWRasterDataset::canCreate(const enum ngsCatalogObjectType type) const
+{
+    if(m_connection == nullptr) {
+        return false;
+    }
+
+    if(type == CAT_NGW_RASTER_STYLE || type == CAT_NGW_QGISRASTER_STYLE) {
+        return m_connection->isClsSupported(ngw::objectTypeToNGWClsType(type));
+    }
+
+    return false;
+}
+
+
+ObjectPtr NGWRasterDataset::create(const enum ngsCatalogObjectType type,
+                                   const std::string &name, const Options &options)
+{
+    loadChildren();
+
+    std::string newName = name;
+    if(options.asBool("CREATE_UNIQUE")) {
+        newName = createUniqueName(newName, false);
+    }
+
+    ObjectPtr child = getChild(newName);
+    if(child) {
+        if(options.asBool("OVERWRITE")) {
+            if(!child->destroy()) {
+                errorMessage(_("Failed to overwrite %s\nError: %s"),
+                    newName.c_str(), getLastError());
+                return ObjectPtr();
+            }
+        }
+        else {
+            errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
+                newName.c_str());
+            return ObjectPtr();
+        }
+    }
+
+    auto style = NGWStyle::createStyle(this, type, name, options);
+    return onChildCreated(style);
 }
 
 //------------------------------------------------------------------------------

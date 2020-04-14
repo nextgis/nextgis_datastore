@@ -38,9 +38,9 @@ class ThreadData
 public:
     explicit ThreadData(bool own);
     virtual ~ThreadData() = default;
-    bool isOwn() const { return m_own; }
-    void increaseTries() { m_tries++; }
-    unsigned char tries() const { return m_tries; }
+    bool isOwn() const;
+    void increaseTries();
+    unsigned char tries() const;
 
 protected:
     bool m_own;

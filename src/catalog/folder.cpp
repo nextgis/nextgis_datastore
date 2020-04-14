@@ -366,7 +366,7 @@ void Folder::refresh()
 int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPath,
                             const Progress &progress)
 {
-    File *fileObject = ngsDynamicCast(File, child);
+    auto fileObject = ngsDynamicCast(File, child);
     int result = move ? COD_MOVE_FAILED : COD_COPY_FAILED;
     if(nullptr != fileObject) {
         if(move) {
@@ -377,7 +377,7 @@ int Folder::pasteFileSource(ObjectPtr child, bool move, const std::string &newPa
         }
     }
     else {
-        SimpleDataset *sdts = ngsDynamicCast(SimpleDataset, child);
+        auto sdts = ngsDynamicCast(FileSingleLayerDataset, child);
         if(nullptr != sdts) {
             // Get file list and copy file one by one
             std::vector<std::string> files = sdts->siblingFiles();
@@ -426,13 +426,13 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
     enum ngsCatalogObjectType dstType = static_cast<enum ngsCatalogObjectType>(
                 options.asInt("TYPE", 0));
 
-    GDALDriver *driver = Filter::getGDALDriver(dstType);
+    auto driver = Filter::getGDALDriver(dstType);
     if(nullptr == driver || !Filter::isFileBased(dstType)) {
         return outMessage(COD_UNSUPPORTED,
                           _("Destination type %d is not supported"), dstType);
     }
 
-    FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
+    auto srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
     if(!srcFClass) {
         return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                           _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
@@ -505,10 +505,74 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
     return COD_SUCCESS;
 }
 
+int Folder::pasteRaster(ObjectPtr child, bool move, const std::string &newPath,
+                        const Options &options, const Progress &progress)
+{
+    auto srcRaster = std::dynamic_pointer_cast<Raster>(child);
+    if(!srcRaster) {
+        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                          _("Source object '%s' report type RASTER, but it is not a raster"),
+                          child->name().c_str());
+    }
+
+    enum ngsCatalogObjectType dstType = static_cast<enum ngsCatalogObjectType>(
+                options.asInt("TYPE", 0));
+    if(dstType == CAT_UNKNOWN) {
+        if(Filter::isFileBased(child->type())) {
+            if(move) {
+                bool result = srcRaster->moveTo(newPath, progress);
+                if(!result) {
+                    return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+                }
+
+                refresh();
+                return COD_SUCCESS;
+            }
+            dstType = child->type();
+        }
+        else {
+            dstType = CAT_RASTER_TIFF;
+        }
+    }
+
+    auto driver = Filter::getGDALDriver(dstType);
+    if(nullptr == driver || !Filter::isFileBased(dstType)) {
+        return outMessage(COD_UNSUPPORTED,
+                          _("Destination type %d is not supported"), dstType);
+    }
+
+    // Check available paste rasters
+    if(srcRaster->width() > MAX_RASTERSIZE4UNSUPPORTED ||
+            srcRaster->height() > MAX_RASTERSIZE4UNSUPPORTED) {
+        const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
+        if(!Account::instance().isFunctionAvailable(appName, "paste_raster")) {
+            return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                _("Cannot %s raster on your plan, or account is not authorized"),
+                move ? _("move") : _("copy"));
+        }
+    }
+
+    bool result = srcRaster->createCopy(newPath, options, progress);
+    if(!result) {
+        return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+    }
+
+    if(move) {
+        result = child->destroy();
+    }
+
+    if(!result) {
+        return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+    }
+
+    refresh();
+    return COD_SUCCESS;
+}
+
 int Folder::paste(ObjectPtr child, bool move, const Options &options,
                   const Progress &progress)
 {
-    std::string fileName = options.asString("DS_NAME", child->name());
+    std::string fileName = options.asString("NEW_NAME", child->name());
     std::string newPath;
     if(options.asBool("CREATE_UNIQUE", false)) {
         newPath = createUniquePath(m_path, fileName);
@@ -522,13 +586,27 @@ int Folder::paste(ObjectPtr child, bool move, const Options &options,
     }
 
     if(Filter::isLocalDir(child->type())) {
-        return copyDir(child->path(), newPath, progress) ? COD_SUCCESS : COD_COPY_FAILED;
+        bool result = false;
+        if(move) {
+            result = moveDir(child->path(), newPath, progress);
+        }
+        else {
+            result = copyDir(child->path(), newPath, progress);
+        }
+        if(!result) {
+            return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+        }
+        refresh();
+        return COD_SUCCESS;
+    }
+    else if(options.asInt("TYPE", 0) != 0 && Filter::isRaster(child->type())) { // If changing type - proceed
+        return pasteRaster(child, move, newPath, options, progress);
+    }
+    else if(options.asInt("TYPE", 0) != 0 && Filter::isFeatureClass(child->type())) { // If changing type - proceed
+        return pasteFeatureClass(child, move, newPath, options, progress);
     }
     else if(Filter::isFileBased(child->type())) {
         return pasteFileSource(child, move, newPath, progress);
-    }
-    else if(Filter::isFeatureClass(child->type())) {
-        return pasteFeatureClass(child, move, newPath, options, progress);
     }
 
     return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
@@ -536,9 +614,11 @@ int Folder::paste(ObjectPtr child, bool move, const Options &options,
 
 bool Folder::canPaste(const enum ngsCatalogObjectType type) const
 {
-    if(isReadOnly())
+    if(isReadOnly()) {
         return false;
-    return Filter::isFileBased(type) || Filter::isFeatureClass(type);
+    }
+    return Filter::isRaster(type) || Filter::isFileBased(type) ||
+            Filter::isFeatureClass(type);
 }
 
 bool Folder::isReadOnly() const
@@ -612,7 +692,7 @@ ObjectPtr Folder::create(const enum ngsCatalogObjectType type,
     ObjectPtr object;
     switch (type) {
     case CAT_CONTAINER_DIR:
-        if(mkDir(newPath)) {
+        if(mkDir(newPath, options.asBool("RECURSIVE", false))) {
             object = ObjectPtr(new Folder(this, newName, newPath));
             m_children.push_back(object);
         }

@@ -918,6 +918,10 @@ std::string Table::property(const std::string &key,
                             const std::string &defaultValue,
                             const std::string &domain) const
 {
+    auto out = Object::property(key, defaultValue, domain);
+    if(out != defaultValue) {
+        return out;
+    }
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr != m_layer) {
         DatasetExecuteSQLLockHolder holder(parentDataset);
@@ -928,20 +932,19 @@ std::string Table::property(const std::string &key,
         }
     }
 
-    if(nullptr == parentDataset) {
-        return Object::property(key, defaultValue, domain);
+    if(nullptr != parentDataset) {
+        return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
     }
-    return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
-
+    return defaultValue;
 }
 
 Properties Table::properties(const std::string &domain) const
 {
-    Properties out;
+    Properties out = Object::properties(domain);
     Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr != m_layer) {
         DatasetExecuteSQLLockHolder holder(parentDataset);
-        out = Properties(m_layer->GetMetadata(domain.c_str()));
+        out.append(Properties(m_layer->GetMetadata(domain.c_str())));
     }
 
     if(nullptr == parentDataset) {

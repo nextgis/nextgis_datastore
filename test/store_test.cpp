@@ -242,6 +242,13 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     auto connection = createConnection("sandbox.nextgis.com");
     ASSERT_NE(connection, nullptr);
 
+    // NOTE: To use this test the madcity layer must exists.
+//    std::string connPath = ngsCatalogObjectPath(connection);
+//    std::string testP = connPath + "/examples/madison/madcity";
+//    auto testVl = ngsCatalogObjectGet(testP.c_str());
+//    auto testId = ngsCatalogObjectProperty(testVl, "id", "", "");
+//    EXPECT_STRNE(testId, "");
+
     // Create resource group
     time_t rawTime = std::time(nullptr);
     auto groupName = "ngstest_group_" + std::to_string(rawTime);
@@ -279,6 +286,8 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     // Find loaded layer by name
     auto vectorLayer = ngsCatalogObjectGetByName(group, layerName, 1);
     ASSERT_NE(vectorLayer, nullptr);
+
+    EXPECT_STRNE(ngsCatalogObjectProperty(vectorLayer, "id", "", ""), "");
 
     EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
 
@@ -332,6 +341,9 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     ASSERT_NE(storeLayer, nullptr);
 
     EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
+    auto systemPath = ngsCatalogObjectProperty(storeLayer, "system_path", "", "");
+    EXPECT_STRNE(systemPath, "");
+
 
     // TODO: Modify storeLayer
     EXPECT_EQ(ngsCatalogObjectSync(mistore), 1);

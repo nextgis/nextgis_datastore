@@ -57,7 +57,7 @@ public:
                     const enum ngsCatalogObjectType type = CAT_RASTER_ANY,
                     const std::string &name = "",
                     const std::string &path = "");
-    virtual ~Raster() = default;
+    virtual ~Raster() override = default;
 public:
     enum WorldFileType {
         FIRSTLASTW,
@@ -67,7 +67,7 @@ public:
     };
 
     bool writeWorldFile(enum WorldFileType type);
-    const Envelope &extent() const { return m_extent; }
+    const Envelope &extent() const;
     bool geoTransform(double *transform) const;
     int width() const;
     int height() const;
@@ -80,7 +80,10 @@ public:
                    int bufXSize, int bufYSize, GDALDataType dataType,
                    int bandCount, int *bandList, bool read = true,
                    bool skipLastBand = false);
-    bool cacheArea(const Progress &progress, const Options &options);
+    bool cacheArea(const Options &options, const Progress &progress);
+    bool createCopy(const std::string &outPath, const Options &options,
+                    const Progress &progress);
+    bool moveTo(const std::string &dstPath, const Progress &progress);
 
     // Object interface
     virtual bool destroy() override;

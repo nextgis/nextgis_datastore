@@ -195,13 +195,39 @@ void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
 CatalogObjectH createStyle(CatalogObjectH parent, const std::string &name,
                            const std::string &description,
                            enum ngsCatalogObjectType type,
-                           const std::string &styleStr)
+                           const std::string &styleData, bool isPath)
 {
     char **options = nullptr;
     options = ngsListAddNameIntValue(options, "TYPE", type);
     options = ngsListAddNameValue(options, "DESCRIPTION", description.c_str());
-    options = ngsListAddNameValue(options, "STYLE_STRING", styleStr.c_str());
+    if(!styleData.empty()) {
+        if(isPath) {
+            options = ngsListAddNameValue(options, "STYLE_PATH", styleData.c_str());
+        }
+        else {
+            options = ngsListAddNameValue(options, "STYLE_STRING", styleData.c_str());
+        }
+    }
     auto style = ngsCatalogObjectCreate(parent, name.c_str(), options);
     ngsListFree(options);
     return style;
+}
+
+void uploadRasterToNGW(const std::string &rasterPath, const std::string &rasterName,
+                   CatalogObjectH group)
+{
+    // Paste MI tab layer with ogr style
+    resetCounter();
+    char **options = nullptr;
+    // Add descritpion to NGW vector layer
+    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
+    // Set new layer name. If not set, the source layer name will use.
+    options = ngsListAddNameValue(options, "NEW_NAME", rasterName.c_str());
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+
+    CatalogObjectH raster = getLocalFile(rasterPath);
+    EXPECT_EQ(ngsCatalogObjectCopy(raster, group, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+
+    EXPECT_GE(getCounter(), 1);
 }

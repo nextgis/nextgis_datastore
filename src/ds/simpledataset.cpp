@@ -26,6 +26,54 @@
 
 namespace ngs {
 
+
+//------------------------------------------------------------------------------
+// SingleDataset
+//------------------------------------------------------------------------------
+SingleDataset::SingleDataset(enum ngsCatalogObjectType subType,
+                             ObjectContainer * const parent,
+                             const std::string &name,
+                             const std::string &path) :
+    Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
+    m_subType(subType)
+{
+}
+
+ObjectPtr SingleDataset::internalObject()
+{
+    loadChildren();
+    return m_children.empty() ? ObjectPtr() : m_children[0];
+}
+
+
+enum ngsCatalogObjectType SingleDataset::subType() const
+{
+    return m_subType;
+}
+
+
+Properties SingleDataset::properties(const std::string &domain) const
+{
+    auto out = Dataset::properties(domain);
+    if(domain.empty()) {
+        out.add("sub_type", std::to_string(m_subType));
+    }
+    return out;
+}
+
+std::string SingleDataset::property(const std::string &key,
+                                         const std::string &defaultValue,
+                                         const std::string &domain) const
+{
+    if(domain.empty()) {
+        if(key == "sub_type") {
+            return std::to_string(m_subType);
+        }
+    }
+    return Dataset::property(key, defaultValue, domain);
+}
+
+
 //------------------------------------------------------------------------------
 // SingleLayerDataset
 //------------------------------------------------------------------------------
@@ -33,31 +81,19 @@ SingleLayerDataset::SingleLayerDataset(enum ngsCatalogObjectType subType,
                                        ObjectContainer * const parent,
                                        const std::string &name,
                                        const std::string &path) :
-    Dataset(parent, CAT_CONTAINER_SIMPLE, name, path),
-    m_geometryType(wkbUnknown),
-    m_subType(subType)
+    SingleDataset(subType, parent, name, path),
+    m_geometryType(wkbUnknown)
 {
 
-}
-
-ObjectPtr SingleLayerDataset::internalObject()
-{
-    loadChildren();
-    return m_children.empty() ? ObjectPtr() : m_children[0];
-}
-
-enum ngsCatalogObjectType SingleLayerDataset::subType() const
-{
-    return m_subType;
 }
 
 Properties SingleLayerDataset::properties(const std::string &domain) const
 {
-    auto out = Dataset::properties(domain);
+    auto out = SingleDataset::properties(domain);
     if(domain.empty()) {
         out.add("geometry_type",
-                FeatureClass::geometryTypeName(m_geometryType, FeatureClass::GeometryReportType::OGC));
-        out.add("sub_type", std::to_string(m_subType));
+                FeatureClass::geometryTypeName(m_geometryType,
+                                               FeatureClass::GeometryReportType::OGC));
     }
     return out;
 }
@@ -71,17 +107,14 @@ std::string SingleLayerDataset::property(const std::string &key,
             return FeatureClass::geometryTypeName(m_geometryType,
                                                   FeatureClass::GeometryReportType::OGC);
         }
-        else if(key == "sub_type") {
-            return std::to_string(m_subType);
-        }
     }
-    return Dataset::property(key, defaultValue, domain);
+    return SingleDataset::property(key, defaultValue, domain);
 }
 
 //------------------------------------------------------------------------------
 // SimpleDataset
 //------------------------------------------------------------------------------
-SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
+FileSingleLayerDataset::FileSingleLayerDataset(enum ngsCatalogObjectType subType,
                              std::vector<std::string> siblingFiles,
                              ObjectContainer * const parent,
                              const std::string &name,
@@ -92,28 +125,28 @@ SimpleDataset::SimpleDataset(enum ngsCatalogObjectType subType,
 
 }
 
-std::vector<std::string> SimpleDataset::siblingFiles() const
+std::vector<std::string> FileSingleLayerDataset::siblingFiles() const
 {
     return m_siblingFiles;
 }
 
-bool SimpleDataset::hasChildren() const
+bool FileSingleLayerDataset::hasChildren() const
 {
     return false; // Don't show only one child
 }
 
-bool SimpleDataset::canCreate(const enum ngsCatalogObjectType) const
+bool FileSingleLayerDataset::canCreate(const enum ngsCatalogObjectType) const
 {
     return false;
 }
 
-bool SimpleDataset::canPaste(const enum ngsCatalogObjectType) const
+bool FileSingleLayerDataset::canPaste(const enum ngsCatalogObjectType) const
 {
     return false;
 }
 
 
-bool SimpleDataset::destroy()
+bool FileSingleLayerDataset::destroy()
 {
     clear();
     close();
@@ -139,7 +172,7 @@ bool SimpleDataset::destroy()
     return ObjectContainer::destroy();
 }
 
-void SimpleDataset::fillFeatureClasses() const
+void FileSingleLayerDataset::fillFeatureClasses() const
 {
     for(int i = 0; i < m_DS->GetLayerCount(); ++i) {
         OGRLayer *layer = m_DS->GetLayer(i);
@@ -147,7 +180,7 @@ void SimpleDataset::fillFeatureClasses() const
             m_geometryType = layer->GetGeomType();
             std::string layerName = layer->GetName();
             // layer->GetLayerDefn()->GetGeomFieldCount() == 0
-            auto parent = const_cast<SimpleDataset*>(this);
+            auto parent = const_cast<FileSingleLayerDataset*>(this);
             if(m_geometryType == wkbNone) {
                 m_children.push_back(
                     ObjectPtr(new Table(layer, parent, subType(), layerName)));
@@ -161,7 +194,7 @@ void SimpleDataset::fillFeatureClasses() const
     }
 }
 
-GDALDatasetPtr SimpleDataset::createAdditionsDataset()
+GDALDatasetPtr FileSingleLayerDataset::createAdditionsDataset()
 {
     GDALDatasetPtr out = Dataset::createAdditionsDataset();
     if(out) {
