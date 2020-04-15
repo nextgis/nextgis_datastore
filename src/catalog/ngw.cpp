@@ -1168,9 +1168,9 @@ void NGWConnection::fillProperties() const
 
 Properties NGWConnection::properties(const std::string &domain) const
 {
-    fillProperties();
     Properties out = ObjectContainer::properties(domain);
     if(domain.empty()) {
+        fillProperties();
         out.add("url", m_url);
         out.add("login", m_user);
         out.add("is_guest", m_isGuest || compare(m_user, "guest") ? "yes" : "no");
@@ -1183,8 +1183,8 @@ std::string NGWConnection::property(const std::string &key,
                              const std::string &defaultValue,
                              const std::string &domain) const
 {
-    fillProperties();
     if(domain.empty()) {
+        fillProperties();
         if(key == "url") {
             return m_url;
         }
@@ -1206,6 +1206,8 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
     if(!domain.empty()) {
         return NGWResourceGroup::setProperty(key, value, domain);
     }
+
+    fillProperties();
 
     if(key == "url") {
         m_url = value;

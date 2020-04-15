@@ -525,15 +525,24 @@ TEST(NGWTests, TestConnection) {
 
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "guest");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "yes");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
 
     // change
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "login", "test", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "yes");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
 
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "is_guest", "OFF", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "no");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
+
+    EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "url", "http://box.nextgis.com", ""), COD_SUCCESS);
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "no");
+    auto urlProp = ngsCatalogObjectProperty(connection, "url", "", "");
+    EXPECT_STREQ(urlProp, "http://box.nextgis.com");
 
     // Delete connection
     EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
