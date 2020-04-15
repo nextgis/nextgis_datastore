@@ -253,6 +253,24 @@ bool NGWLayerDataset::canRename() const
     return true; // Not check user rights here as server will report error if no access.
 }
 
+Properties NGWLayerDataset::properties(const std::string &domain) const
+{
+    auto out = metadata(domain);
+    out.append(SingleLayerDataset::properties(domain));
+    return out;
+}
+
+std::string NGWLayerDataset::property(const std::string &key,
+                                      const std::string &defaultValue,
+                                      const std::string &domain) const
+{
+    auto out = metadataItem(key, defaultValue, domain);
+    if(out == defaultValue) {
+        return SingleLayerDataset::property(key, defaultValue, domain);
+    }
+    return out;
+}
+
 
 NGWLayerDataset *NGWLayerDataset::createFeatureClass(NGWResourceGroup *resourceGroup,
                                                      const std::string &name,

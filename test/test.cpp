@@ -70,7 +70,7 @@ void initLib()
 }
 
 
-CatalogObjectH createConnection(const std::string &url)
+CatalogObjectH createConnection(const std::string &url, const std::string &protocol)
 {
     auto conn = ngsCatalogObjectGet("ngc://GIS Server connections");
     if(conn == nullptr) {
@@ -81,7 +81,7 @@ CatalogObjectH createConnection(const std::string &url)
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     options = ngsListAddNameValue(options, "login", "guest");
-    options = ngsListAddNameValue(options, "url", ("https://" + url).c_str());
+    options = ngsListAddNameValue(options, "url", (protocol + url).c_str());
     options = ngsListAddNameValue(options, "is_guest", "ON");
 
     if(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options) != 1) {

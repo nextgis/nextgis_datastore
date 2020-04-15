@@ -361,6 +361,71 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 }
 
 /*
+TEST(MIStoreTests, TestLoadFromNGW2) {
+    initLib();
+
+    // Create connection
+    auto connection = createConnection("mikhail.nextgis.com", "http://");
+    ASSERT_NE(connection, nullptr);
+
+    std::string connPath = ngsCatalogObjectPath(connection);
+    std::string testP = connPath + "/Красногорск/Линии связи";
+    auto vectorLayer = ngsCatalogObjectGet(testP.c_str());
+    auto testId = ngsCatalogObjectProperty(vectorLayer, "id", "", "");
+    EXPECT_STRNE(testId, "");
+
+    char **options = nullptr;
+
+    // Create MI Store
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+    // Paste vector layer to store
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    // MapInfo has limits to 31 characters for tab file name
+    const char *storeLayerName = testId;
+    // MapInfo has limits to 255 characters for tab description field (no limits,
+    // but in MapINFO GUI will trancate)
+    const char *longStoreLayerName = "Длинное русское имя 1";
+    options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
+    options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
+    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
+    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
+    // Max attachment size for download. Defaults 0 (no download).
+    options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
+
+
+
+    resetCounter();
+    EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    auto storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
+    ASSERT_NE(storeLayer, nullptr);
+
+    EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
+    auto systemPath = ngsCatalogObjectProperty(storeLayer, "system_path", "", "");
+    EXPECT_STRNE(systemPath, "");
+
+
+    // TODO: Modify storeLayer
+    EXPECT_EQ(ngsCatalogObjectSync(mistore), 1);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+    // Delete store
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
+}
+*/
+/*
 TEST(StoreTests, TestCreate) {
     EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
     const char* epsgPath = CPLFindFile ("gdal", "gcs.csv");

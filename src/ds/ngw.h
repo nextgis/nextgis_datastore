@@ -53,6 +53,10 @@ public:
     virtual bool canDestroy() const override;
     virtual bool rename(const std::string &newName) override;
     virtual bool canRename() const override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
 
     // SingleLayerDataset interface
 public:

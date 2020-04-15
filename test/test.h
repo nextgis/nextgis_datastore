@@ -42,7 +42,7 @@ int ngsGDALProgressFunc(double /*dfComplete*/, const char */*pszMessage*/,
                         void */*pProgressArg*/);
 void resetCounter();
 int getCounter();
-CatalogObjectH createConnection(const std::string &url);
+CatalogObjectH createConnection(const std::string &url, const std::string &protocol = "https://");
 CatalogObjectH createGroup(CatalogObjectH parent, const std::string &name);
 CatalogObjectH createStyle(CatalogObjectH parent, const std::string &name,
                            const std::string &description,

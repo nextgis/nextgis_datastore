@@ -1206,17 +1206,19 @@ JsonObjectH ngsJsonArrayItem(JsonObjectH object, int index)
 //------------------------------------------------------------------------------
 // Catalog
 //------------------------------------------------------------------------------
-static ObjectPtr checkIfSimple(const ObjectPtr &object)
+static ngsCatalogObjectInfo checkIfSimple(const ObjectPtr &object)
 {
     SingleDataset *simpleDS = nullptr;
     if(object->type() == CAT_CONTAINER_SIMPLE) {
         simpleDS = ngsDynamicCast(SingleDataset, object);
     }
 
+    const char *name = storeCString(object->name());
+    int type = object->type();
     if(simpleDS) {
-        return simpleDS->internalObject();
+        type = simpleDS->subType();
     }
-    return object;
+    return {name, type, object.get()};
 }
 
 /**
@@ -1235,17 +1237,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
         return nullptr;
     }
 
-    ObjectContainer *container = nullptr;
-    // Check if this is simple
-    auto parent = catalogObject->parent();
-    if(parent && parent->type() == CAT_CONTAINER_SIMPLE &&
-            Filter::isSimpleDataset(catalogObject->type())) {
-        container = dynamic_cast<ObjectContainer*>(parent);
-    }
-    else {
-        container = dynamic_cast<ObjectContainer*>(catalogObject);
-    }
-
+    auto container = dynamic_cast<ObjectContainer*>(catalogObject);
     if(nullptr == container) {
         return nullptr;
     }
@@ -1270,9 +1262,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
             output = static_cast<ngsCatalogObjectInfo*>(CPLRealloc(output,
                                 sizeof(ngsCatalogObjectInfo) * (outputSize + 1)));
 
-            auto newChild = checkIfSimple(child);
-            const char *name = storeCString(newChild->name());
-            output[outputSize - 1] = {name, newChild->type(), newChild.get()};
+            output[outputSize - 1] = checkIfSimple(child);
         }
     }
     if(outputSize > 0) {
@@ -1293,7 +1283,6 @@ ngsCatalogObjectInfo *ngsCatalogObjectQuery(CatalogObjectH object, int filter)
 {
     // Create filter class from filter value.
     Filter objectFilter(static_cast<enum ngsCatalogObjectType>(filter));
-
     return catalogObjectQuery(object, objectFilter);
 }
 
@@ -1561,7 +1550,7 @@ CatalogObjectH ngsCatalogObjectGet(const char *path)
 {
     CatalogPtr catalog = Catalog::instance();
     ObjectPtr object = catalog->getObject(fromCString(path));
-    return checkIfSimple(object).get();
+    return object.get();
 }
 
 /**
@@ -1609,7 +1598,7 @@ CatalogObjectH ngsCatalogObjectGetByName(CatalogObjectH parent, const char *name
     }
 
     if(child) {
-        return checkIfSimple(child).get();
+        return child.get();
     }
     errorMessage(_("Child not found"));
     return nullptr;
