@@ -546,6 +546,52 @@ TEST(NGWTests, TestConnection) {
 
     // Delete connection
     EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+
+    char **options = nullptr;
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
+    options = ngsListAddNameValue(options, "login", "guest");
+    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "is_guest", "ON");
+
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
+    ngsListFree(options);
+    options = nullptr;
+
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
+    options = ngsListAddNameValue(options, "login", "qqq");
+    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "is_guest", "ON");
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
+    ngsListFree(options);
+    options = nullptr;
+
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
+    options = ngsListAddNameValue(options, "login", "guest");
+    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "is_guest", "OFF");
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
+    ngsListFree(options);
+    options = nullptr;
+
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
+    options = ngsListAddNameValue(options, "login", "administrator");
+    options = ngsListAddNameValue(options, "password", "demodemo1");
+    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "is_guest", "OFF");
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 0);
+    ngsListFree(options);
+    options = nullptr;
+
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
+    options = ngsListAddNameValue(options, "login", "administrator");
+    options = ngsListAddNameValue(options, "password", "demodemo");
+    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "is_guest", "OFF");
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
+    ngsListFree(options);
+    options = nullptr;
+
     ngsUnInit();
 }
 

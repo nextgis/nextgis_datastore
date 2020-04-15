@@ -154,9 +154,11 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
         authOptions.add(KEY_TYPE, "basic");
         authOptions.add(KEY_LOGIN, login);
         authOptions.add(KEY_PASSWORD, password);
-        AuthStore::authAdd(url, authOptions);
-        std::string auth = AuthStore::authHeader(url);
-        AuthStore::authRemove(url);
+        // Fake url just for auth headers
+        std::string tmpUrl = "http://" + random(5) + ".info";
+        AuthStore::authAdd(tmpUrl, authOptions);
+        std::string auth = AuthStore::authHeader(tmpUrl);
+        AuthStore::authRemove(tmpUrl);
         if(!auth.empty()) {
             headers += "\r\n";
             headers += auth;
@@ -177,7 +179,8 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
             return errorMessage(_("Response is invalid"));
         }
 
-        if(root.GetString("keyname") == login) {
+        auto currentLogin = root.GetString("keyname");
+        if(currentLogin == login) {
             return true;
         }
 

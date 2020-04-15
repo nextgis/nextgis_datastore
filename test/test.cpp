@@ -85,6 +85,7 @@ CatalogObjectH createConnection(const std::string &url, const std::string &proto
     options = ngsListAddNameValue(options, "is_guest", "ON");
 
     if(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options) != 1) {
+        ngsListFree(options);
         return nullptr;
     }
 

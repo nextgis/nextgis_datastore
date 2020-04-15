@@ -1139,7 +1139,7 @@ bool NGWConnection::destroy()
 
 void NGWConnection::fillProperties() const
 {
-    if(m_url.empty() || m_user.empty()) {
+    if(!m_opened || m_url.empty() || m_user.empty()) {
         CPLJSONDocument connectionFile;
         if(connectionFile.Load(m_path)) {
             CPLJSONObject root = connectionFile.GetRoot();
