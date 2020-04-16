@@ -141,13 +141,13 @@ int Connections::paste(ObjectPtr child, bool move, const Options& options,
                   const Progress& progress)
 {
     std::string newName = child->name();
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(child->name(), false);
     }
 
     std::string newPath = File::formFileName(m_path, newName);
     if(hasChild(newName)) {
-        if(options.asBool("OVERWRITE")) {
+        if(options.asBool("OVERWRITE", false)) {
             if(!File::deleteFile(newPath)) {
                 return outMessage(COD_DELETE_FAILED, _("Failed to overwrite %s"),
                                   newName.c_str());
@@ -253,6 +253,7 @@ ObjectPtr GISServerConnections::create(const enum ngsCatalogObjectType type,
         }
     }
     child = ObjectPtr();
+
     switch (type) {
     case CAT_CONTAINER_NGW:
         if(ConnectionFactory::createRemoteConnection(type, newPath, options)) {

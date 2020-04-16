@@ -177,14 +177,13 @@ ObjectPtr NGWLayerDataset::create(const enum ngsCatalogObjectType type,
     loadChildren();
 
     std::string newName = name;
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
 
-
     ObjectPtr child = getChild(newName);
     if(child) {
-        if(options.asBool("OVERWRITE")) {
+        if(options.asBool("OVERWRITE", false)) {
             if(!child->destroy()) {
                 errorMessage(_("Failed to overwrite %s\nError: %s"),
                     newName.c_str(), getLastError());
@@ -197,6 +196,7 @@ ObjectPtr NGWLayerDataset::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
+    child = ObjectPtr();
 
     auto style = NGWStyle::createStyle(this, type, name, options);
     return onChildCreated(style);
@@ -429,13 +429,13 @@ ObjectPtr NGWRasterDataset::create(const enum ngsCatalogObjectType type,
     loadChildren();
 
     std::string newName = name;
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
 
     ObjectPtr child = getChild(newName);
     if(child) {
-        if(options.asBool("OVERWRITE")) {
+        if(options.asBool("OVERWRITE", false)) {
             if(!child->destroy()) {
                 errorMessage(_("Failed to overwrite %s\nError: %s"),
                     newName.c_str(), getLastError());
@@ -448,6 +448,7 @@ ObjectPtr NGWRasterDataset::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
+    child = ObjectPtr();
 
     auto style = NGWStyle::createStyle(this, type, name, options);
     return onChildCreated(style);

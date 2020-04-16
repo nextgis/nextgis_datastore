@@ -168,6 +168,7 @@ public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual void refresh() override;
     virtual bool loadChildren() override;
+    virtual ObjectPtr getChild(const std::string &name) const override;
 
     // static
 public:

@@ -709,6 +709,21 @@ bool Dataset::isReadOnly() const
     return DatasetBase::isReadOnly(m_DS);
 }
 
+
+ObjectPtr Dataset::getChild(const std::string &name) const
+{
+    for(const ObjectPtr &child : m_children) {
+        if(compare(child->name(), name)) {
+            return child;
+        }
+        auto table = ngsDynamicCast(Table, child);
+        if(table && compare(table->storeName(), name)) {
+            return child;
+        }
+    }
+    return ObjectPtr();
+}
+
 /**
  * @brief Dataset::paste Copy or move feature class or table to destination catalog object.
  * @param child Feature class or table to copy or move.
@@ -732,11 +747,33 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
     std::string newName = options.asString("NEW_NAME",
                                            File::getBaseName(child->name()));
+    if(options.asBool("CREATE_UNIQUE", false)) {
+        newName = createUniqueName(newName, false);
+    }
     newName = normalizeDatasetName(newName);
+
     if(newName.empty()) {
         errorMessage(_("Failed to create unique name."));
         return COD_LOAD_FAILED;
     }
+
+    ObjectPtr existsChild = getChild(newName);
+    if(existsChild) {
+        if(options.asBool("OVERWRITE", false)) {
+            if(!child->destroy()) {
+                errorMessage(_("Failed to overwrite %s\nError: %s"),
+                    newName.c_str(), getLastError());
+                return COD_DELETE_FAILED;
+            }
+        }
+        else {
+            errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
+                newName.c_str());
+            return COD_FUNCTION_NOT_AVAILABLE;
+        }
+    }
+    existsChild = ObjectPtr();
+
     if(move) {
         progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Move '%s' to '%s'"), newName.c_str(), m_name.c_str());
@@ -745,6 +782,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Copy '%s' to '%s'"), newName.c_str(), m_name.c_str ());
     }
+
 
     if(child->type() == CAT_CONTAINER_SIMPLE) {
         auto dataset = ngsDynamicCast(SingleLayerDataset, child);
@@ -931,17 +969,17 @@ Dataset *Dataset::create(ObjectContainer * const parent,
         return nullptr;
     }
 
-    Dataset *out;
     std::string path = File::formFileName(parent->path(), name,
                                           Filter::extension(type));
-    if(options.asBool("OVERWRITE")) {
-        auto ovr = parent->getChild(File::formFileName("", name,
-                                                       Filter::extension(type)));
+    if(options.asBool("OVERWRITE", false)) {
+        auto ovr = parent->getChild(
+                    File::formFileName("", name, Filter::extension(type)));
         if(ovr && !ovr->destroy()) {
             return nullptr;
         }
     }
 
+    Dataset *out;
     if(Filter::isSimpleDataset(type)) {
         out = new Dataset(parent, CAT_CONTAINER_SIMPLE, name, path);
     }

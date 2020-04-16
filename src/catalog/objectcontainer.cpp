@@ -182,12 +182,8 @@ std::string ObjectContainer::createUniqueName(const std::string &name,
 
 bool ObjectContainer::hasChild(const std::string &name) const
 {
-    for(const auto &child : m_children) {
-        if(compare(child->name(), name, true)) {
-            return true;
-        }
-    }
-    return false;
+    auto child = getChild(name);
+    return child != nullptr;
 }
 
 void ObjectContainer::onChildDeleted(Object *child)

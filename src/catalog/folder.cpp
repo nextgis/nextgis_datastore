@@ -581,6 +581,21 @@ int Folder::paste(ObjectPtr child, bool move, const Options &options,
         newPath = File::formFileName(m_path, fileName);
     }
 
+    auto newName = File::getFileName(newPath);
+    if(hasChild(newName)) {
+        if(options.asBool("OVERWRITE", false)) {
+            if(!File::deleteFile(newPath)) {
+                errorMessage(_("Failed to overwrite %s"), newName.c_str());
+                return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+            }
+        }
+        else {
+            errorMessage(_("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+                newName.c_str());
+            return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
+        }
+    }
+
     if(compare(child->path(), newPath)) {
         return COD_SUCCESS;
     }

@@ -316,7 +316,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     // Paste vector layer to store
     options = nullptr;
     options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
-    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
     // MapInfo has limits to 31 characters for tab file name
     const char *storeLayerName = "t_bld";
     // MapInfo has limits to 255 characters for tab description field (no limits,
@@ -334,6 +334,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
+    options = nullptr;
     EXPECT_GE(getCounter(), 5);
 
     // Find loaded layer by name
@@ -344,6 +345,27 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     auto systemPath = ngsCatalogObjectProperty(storeLayer, "system_path", "", "");
     EXPECT_STRNE(systemPath, "");
 
+    // Test overwrite
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
+    options = ngsListAddNameValue(options, "OVERWRITE", "ON");
+    options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
+    options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
+    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
+    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
+    // Max attachment size for download. Defaults 0 (no download).
+    options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
+
+    resetCounter();
+    EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
+    ASSERT_NE(storeLayer, nullptr);
 
     // TODO: Modify storeLayer
     EXPECT_EQ(ngsCatalogObjectSync(mistore), 1);

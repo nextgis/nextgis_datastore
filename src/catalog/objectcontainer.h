@@ -54,7 +54,7 @@ public:
                       const Progress &progress = Progress());
 
     std::vector<ObjectPtr> getChildren() const;
-    ObjectPtr getChild(const std::string &name) const;
+    virtual ObjectPtr getChild(const std::string &name) const;
     virtual bool loadChildren();
     virtual std::string createUniqueName(const std::string &name,
                                          bool isContainer = true,

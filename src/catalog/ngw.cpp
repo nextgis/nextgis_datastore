@@ -530,13 +530,13 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     loadChildren();
 
     std::string newName = name;
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
 
     ObjectPtr childPtr = getChild(newName);
     if(childPtr) {
-        if(options.asBool("OVERWRITE")) {
+        if(options.asBool("OVERWRITE", false)) {
             if(!childPtr->destroy()) {
                 errorMessage(_("Failed to overwrite %s\nError: %s"),
                     newName.c_str(), getLastError());
@@ -549,8 +549,8 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-
     childPtr = ObjectPtr();
+
     Object *child = nullptr;
     if(type == CAT_NGW_VECTOR_LAYER) {
         child = NGWLayerDataset::createFeatureClass(this, newName, options);
@@ -932,13 +932,13 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     loadChildren();
 
     std::string newName = name;
-    if(options.asBool("CREATE_UNIQUE")) {
+    if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
 
     ObjectPtr child = getChild(newName);
     if(child) {
-        if(options.asBool("OVERWRITE")) {
+        if(options.asBool("OVERWRITE", false)) {
             if(!child->destroy()) {
                 errorMessage(_("Failed to overwrite %s\nError: %s"),
                     newName.c_str(), getLastError());
@@ -951,6 +951,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
+    child = ObjectPtr();
 
     CPLJSONObject payload;
     CPLJSONObject resource("resource", payload);

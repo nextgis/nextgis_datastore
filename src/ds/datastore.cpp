@@ -314,18 +314,28 @@ bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
     const std::string &name, const Options& options)
 {
-    bool overwrite = options.asBool("OVERWRITE", false);
-    if (overwrite) {
-        ObjectPtr deleteObject = getChild(name);
-        if (deleteObject) {
-            if(!deleteObject->destroy()) {
-                errorMessage(_("Failed overwrite existing object %s. Error: %s"), 
-                    name.c_str(), CPLGetLastErrorMsg());
+    std::string newName = name;
+    if(options.asBool("CREATE_UNIQUE")) {
+        newName = createUniqueName(newName, false);
+    }
+    newName = normalizeDatasetName(name);
+
+    ObjectPtr child = getChild(newName);
+    if(child) {
+        if(options.asBool("OVERWRITE", false)) {
+            if(!child->destroy()) {
+                errorMessage(_("Failed to overwrite %s\nError: %s"),
+                    newName.c_str(), getLastError());
                 return ObjectPtr();
             }
         }
+        else {
+            errorMessage(_("Resource %s already exists. Add overwrite option or create_unique option to create resource here"),
+                newName.c_str());
+            return ObjectPtr();
+        }
     }
-    std::string newName = normalizeDatasetName(name);
+    child = ObjectPtr();
 
     // Get field definitions
     CREATE_FEATURE_DEFN_RESULT featureDefnStruct =
