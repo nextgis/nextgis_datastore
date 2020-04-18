@@ -78,9 +78,9 @@ TEST(MIStoreTests, TestCreate) {
     ASSERT_NE(miFC, nullptr);
 
     // After created, reopen as read only
-    EXPECT_STREQ(ngsCatalogObjectProperty(miFC, "read_only", "ON", "nga"), "OFF");
-    EXPECT_EQ(ngsCatalogObjectSetProperty(miFC, "read_only", "ON", "nga"), COD_SUCCESS);
-    EXPECT_STREQ(ngsCatalogObjectProperty(miFC, "read_only", "OFF", "nga"), "ON");
+    EXPECT_STREQ(ngsCatalogObjectProperty(miFC, "STATE", "read-only", "nga"), "read-write");
+    EXPECT_EQ(ngsCatalogObjectSetProperty(miFC, "STATE", "read-only", "nga"), COD_SUCCESS);
+    EXPECT_STREQ(ngsCatalogObjectProperty(miFC, "STATE", "close", "nga"), "read-only");
 
     ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(mistore, 0);
     ASSERT_NE(pathInfo, nullptr);

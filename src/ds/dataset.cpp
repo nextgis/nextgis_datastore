@@ -393,9 +393,7 @@ bool Dataset::destroyTable(Table *table)
 
 bool Dataset::destroy()
 {
-    clear();
-    m_DS = nullptr;
-    m_addsDS = nullptr;
+    close();
 
     if(Filter::isLocalDir(m_type)) {
         if(!Folder::rmDir(m_path)) {
@@ -690,15 +688,15 @@ std::string Dataset::options(enum ngsOptionType optionType) const
     return "";
 }
 
-bool DatasetBase::isReadOnly(GDALDataset *DS)
+bool DatasetBase::isReadOnly(GDALDataset *ds)
 {
-    if(DS == nullptr) {
+    if(ds == nullptr) {
         return true;
     }
 
     // https://github.com/OSGeo/gdal/issues/2162
 #if GDAL_VERSION_NUM >= GDAL_COMPUTE_VERSION(3,1,0)
-    return DS->GetAccess() == GA_ReadOnly;
+    return ds->GetAccess() == GA_ReadOnly;
 #else
     return false;
 #endif
@@ -722,6 +720,14 @@ ObjectPtr Dataset::getChild(const std::string &name) const
         }
     }
     return ObjectPtr();
+}
+
+void Dataset::close()
+{
+    clear();
+    DatasetBase::close();
+    m_addsDS = nullptr;
+    m_metadata = nullptr;
 }
 
 /**
@@ -1344,7 +1350,7 @@ bool Dataset::loadChildren()
     if(nullptr != subdatasetList) {
         int i = 0;
         size_t strLen = 0;
-        const char* testStr = nullptr;
+        const char *testStr = nullptr;
         char rasterPath[255];
         while((testStr = subdatasetList[i++]) != nullptr) {
             strLen = CPLStrnlen(testStr, 255);
@@ -1352,7 +1358,7 @@ bool Dataset::loadChildren()
                 CPLStrlcpy(rasterPath, testStr, strLen - 4);
                 CPLStringList pathPortions(CSLTokenizeString2( rasterPath, ":", 0 ));
                 const char *rasterName = pathPortions[pathPortions.size() - 1];
-                Dataset *parent = const_cast<Dataset *>(this);
+                Dataset *parent = const_cast<Dataset*>(this);
                 m_children.push_back(ObjectPtr(new Raster(siblingFiles, parent,
                     CAT_RASTER_ANY, rasterName, rasterPath)));
             }

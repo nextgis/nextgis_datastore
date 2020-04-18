@@ -1835,19 +1835,20 @@ char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions)
 {
     Options oo(openOptions);
 
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         warningMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
-    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
+    auto datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
     if(datasetBase) {
-        unsigned int openFlags = static_cast<unsigned int>(oo.asInt("OPEN_FLAGS", GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR));
+        unsigned int openFlags = static_cast<unsigned int>(oo.asInt("OPEN_FLAGS",
+                            GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR));
         return datasetBase->open(openFlags, oo) ? API_TRUE : API_FALSE;
     }
 
-    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
+    auto connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
     if(connectionBase) {
         return connectionBase->open() ? API_TRUE : API_FALSE;
     }
@@ -1889,21 +1890,27 @@ char ngsCatalogObjectIsOpened(CatalogObjectH object)
  */
 char ngsCatalogObjectClose(CatalogObjectH object)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         warningMessage(_("The object handle is null"));
         return API_FALSE;
     }
 
-    DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
+    auto datasetBase = dynamic_cast<DatasetBase*>(catalogObject);
     if(datasetBase) {
         datasetBase->close();
         return API_TRUE;
     }
 
-    ConnectionBase *connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
+    auto connectionBase = dynamic_cast<ConnectionBase*>(catalogObject);
     if(connectionBase) {
         connectionBase->close();
+        return API_TRUE;
+    }
+
+    auto storeObject = dynamic_cast<StoreObject*>(catalogObject);
+    if(storeObject) {
+        storeObject->close();
         return API_TRUE;
     }
 
@@ -2247,7 +2254,7 @@ int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
 
 ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object)
 {
-    Table *table = getTableFromHandle(object);
+    auto table = getTableFromHandle(object);
     if(nullptr == table) {
         return nullptr;
     }

@@ -35,12 +35,12 @@ StoreObject::StoreObject(OGRLayer *layer) : m_storeIntLayer(layer)
 
 FeaturePtr StoreObject::getFeatureByRemoteId(GIntBig rid) const
 {
-    const Table *table = dynamic_cast<const Table*>(this);
+    auto table = dynamic_cast<const Table*>(this);
     if(nullptr == table) {
         return FeaturePtr();
     }
 
-    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
+    auto dataset = dynamic_cast<Dataset*>(table->parent());
     DatasetExecuteSQLLockHolder holder(dataset);
     auto attFilterStr = CPLSPrintf("%s = " CPL_FRMT_GIB, ngw::REMOTE_ID_KEY, rid);
     if(m_storeIntLayer->SetAttributeFilter(attFilterStr) != OGRERR_NONE) {
@@ -54,17 +54,17 @@ FeaturePtr StoreObject::getFeatureByRemoteId(GIntBig rid) const
 
 bool StoreObject::setAttachmentRemoteId(GIntBig aid, GIntBig rid)
 {
-    Table *table = dynamic_cast<Table*>(this);
+    auto table = dynamic_cast<Table*>(this);
     if(nullptr == table) {
         return false;
     }
 
-    auto *attTable = table->attachmentsTable(true);
+    auto attTable = table->attachmentsTable(true);
     if(nullptr == attTable) {
         return false;
     }
 
-    Dataset *dataset = dynamic_cast<Dataset*>(table->parent());
+    auto dataset = dynamic_cast<Dataset*>(table->parent());
     DatasetExecuteSQLLockHolder holder(dataset);
     FeaturePtr attFeature = attTable->GetFeature(aid);
     if(!attFeature) {
@@ -98,6 +98,10 @@ GIntBig StoreObject::getRemoteId(GIntBig fid) const
     return feature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
 }
 
+void StoreObject::close()
+{
+    m_storeIntLayer = nullptr;
+}
 
 std::vector<ngsEditOperation> StoreObject::fillEditOperations(
         OGRLayer *editHistoryTable, Dataset *dataset) const
@@ -129,17 +133,17 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
 
 GIntBig StoreObject::getAttachmentRemoteId(GIntBig aid) const
 {
-    const Table *table = dynamic_cast<const Table*>(this);
+    auto table = dynamic_cast<const Table*>(this);
     if(nullptr == table) {
         return NOT_FOUND;
     }
 
-    auto *attTable = table->attachmentsTable();
+    auto attTable = table->attachmentsTable();
     if(attTable == nullptr) {
         return NOT_FOUND;
     }
 
-    FeaturePtr attFeature = attTable->GetFeature(aid);
+    auto attFeature = attTable->GetFeature(aid);
     GIntBig rid = NOT_FOUND;
     if(attFeature) {
         rid = getRemoteId(attFeature);

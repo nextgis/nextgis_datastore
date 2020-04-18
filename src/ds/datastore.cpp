@@ -296,6 +296,13 @@ Table *DataStore::createTable(const std::string &name,
     return new StoreTable(layer, this, name);
 }
 
+void DataStore::close()
+{
+    Dataset::close();
+    m_disableJournalCounter = 0;
+    m_tracksTable = nullptr;
+}
+
 bool DataStore::setProperty(const std::string &key, const std::string &value,
                             const std::string &domain)
 {

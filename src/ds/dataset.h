@@ -54,7 +54,7 @@ constexpr int USER_PREFIX_KEY_LEN = length(USER_PREFIX_KEY);
 constexpr const char *NGS_VERSION_KEY = "version";
 
 constexpr const char *METADATA_TABLE_NAME = "nga_meta";
-constexpr const char *READ_ONLY_KEY = "read_only";
+constexpr const char *STATE_KEY = "state";
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -90,7 +90,7 @@ public:
 
 public: // static
     static const unsigned int defaultOpenFlags = GDAL_OF_SHARED|GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR;
-    static bool isReadOnly(GDALDataset *DS);
+    static bool isReadOnly(GDALDataset *ds);
 
 protected:
     bool open(const std::string &path, unsigned int openFlags,
@@ -169,6 +169,11 @@ public:
     virtual void refresh() override;
     virtual bool loadChildren() override;
     virtual ObjectPtr getChild(const std::string &name) const override;
+
+
+    // DatasetBase interface
+public:
+    virtual void close() override;
 
     // static
 public:

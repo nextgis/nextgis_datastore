@@ -225,9 +225,9 @@ bool NGWLayerDataset::open(unsigned int openFlags, const Options &options)
 void NGWLayerDataset::close()
 {
     sync();
-    SingleLayerDataset::close();
+    DatasetBase::close();
+    m_fc = nullptr;
 }
-
 
 bool NGWLayerDataset::destroy()
 {

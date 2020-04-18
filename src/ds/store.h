@@ -50,6 +50,7 @@ public:
     virtual bool setAttachmentRemoteId(GIntBig aid, GIntBig rid);
     GIntBig getAttachmentRemoteId(GIntBig aid) const;
     GIntBig getRemoteId(GIntBig fid) const;
+    virtual void close();
 
     // static
 public:

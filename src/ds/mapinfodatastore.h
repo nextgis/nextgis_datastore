@@ -71,6 +71,9 @@ public:
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                              const std::string& name,
                              const Options &options) override;
+    virtual int paste(ObjectPtr child, bool move = false,
+                      const Options &options = Options(),
+                      const Progress &progress = Progress()) override;
 
     // StoreObjectContainer interface
 public:
@@ -123,9 +126,7 @@ protected:
 public:
     virtual bool sync() override;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
-
-protected:
-    void close();
+    virtual void close() override;
 
 private:
     GDALDatasetPtr m_TABDS;
@@ -176,9 +177,9 @@ protected:
 public:
     virtual bool sync() override;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
+    virtual void close() override;
 
 protected:
-    void close();
     int fillHash(const Progress &progress, const Options &options);
     bool updateHashAndEditLog();
 

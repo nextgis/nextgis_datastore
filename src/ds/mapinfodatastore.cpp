@@ -44,6 +44,9 @@ constexpr const char *STORE_EXT = "ngmi"; // NextGIS MapInfo Store
 constexpr const char *STORE_META_DB = "sys.db";
 constexpr const char *HASH_SUFFIX = "hash";
 constexpr const char *HASH_FIELD = "hash";
+constexpr const char *STATE_CLOSE = "close";
+constexpr const char *STATE_RO = "read-only";
+constexpr const char *STATE_RW = "read-write";
 
 // -----------------------------------------------------------------------------
 static const std::vector<std::string> tabExts = {"dat", "map", "id", "ind",
@@ -173,7 +176,7 @@ Properties MapInfoStoreTable::properties(const std::string &domain) const
 {
     auto out = Table::properties(domain);
     if(m_TABDS) {
-        out.add(READ_ONLY_KEY, m_TABDS->GetAccess() == GA_ReadOnly);
+        out.add(STATE_KEY, m_TABDS->GetAccess() == GA_ReadOnly);
         if(m_layer) {
             out.add(DESCRIPTION_KEY, m_layer->GetMetadataItem(DESCRIPTION_KEY));
         }
@@ -185,7 +188,7 @@ std::string MapInfoStoreTable::property(const std::string &key,
                                         const std::string &defaultValue,
                                         const std::string &domain) const
 {
-    if(compare(key, READ_ONLY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
+    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
         if(m_TABDS) {
             return m_TABDS->GetAccess() == GA_ReadOnly ? "ON" : "OFF";
         }
@@ -216,7 +219,7 @@ bool MapInfoStoreTable::checkSetProperty(const std::string &key,
                                          const std::string &value,
                                          const std::string &domain)
 {
-    if(compare(key, READ_ONLY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
+    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
         bool readOnly = toBool(value);
         close();
         m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
@@ -286,11 +289,21 @@ MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDatasetPtr DS,
     }
 }
 
+static std::string getState(GDALDatasetPtr ds) {
+    if(ds == nullptr) {
+        return STATE_CLOSE;
+    }
+    if(DatasetBase::isReadOnly(ds)) {
+        return STATE_RO;
+    }
+    return STATE_RW;
+}
+
 Properties MapInfoStoreFeatureClass::properties(const std::string &domain) const
 {
     auto out = FeatureClass::properties(domain);
     if(m_TABDS) {
-        out.add(READ_ONLY_KEY, DatasetBase::isReadOnly(m_TABDS));
+        out.add(STATE_KEY, getState(m_TABDS));
         if(m_layer) {
             out.add(DESCRIPTION_KEY, m_layer->GetMetadataItem(DESCRIPTION_KEY));
         }
@@ -302,10 +315,8 @@ std::string MapInfoStoreFeatureClass::property(const std::string &key,
                                                const std::string &defaultValue,
                                                const std::string &domain) const
 {
-    if(compare(key, READ_ONLY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        if(m_TABDS) {
-            return DatasetBase::isReadOnly(m_TABDS) ? "ON" : "OFF";
-        }
+    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
+        return getState(m_TABDS);
     }
     else if(m_layer && compare(key, DESCRIPTION_KEY) &&
             compare(domain, NG_ADDITIONS_KEY)) {
@@ -334,18 +345,41 @@ bool MapInfoStoreFeatureClass::checkSetProperty(const std::string &key,
                                                 const std::string &value,
                                                 const std::string &domain)
 {
-    if(compare(key, READ_ONLY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        bool readOnly = toBool(value);
+    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
+
+        if(compare(value, STATE_CLOSE)) {
+            // Already closed
+            if(m_TABDS == nullptr) {
+                return true;
+            }
+            close();
+            return true;
+        }
+
+        unsigned oo = 0;
+        if(compare(value, STATE_RO)) {
+            if(DatasetBase::isReadOnly(m_TABDS)) {
+                return true;
+            }
+            oo = GDAL_OF_READONLY;
+        }
+
+        if(compare(value, STATE_RW)) {
+            if(!DatasetBase::isReadOnly(m_TABDS.get())) {
+                return true;
+            }
+            oo = GDAL_OF_UPDATE;
+        }
+
         close();
         m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
-                GDAL_OF_SHARED|readOnly ? GDAL_OF_READONLY : GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
-                                               nullptr, nullptr, nullptr));
+            GDAL_OF_SHARED|GDAL_OF_VERBOSE_ERROR|oo, nullptr, nullptr, nullptr));
         if(!m_TABDS) {
             return false;
         }
         m_layer = m_TABDS->GetLayer(0);
-        return m_layer != nullptr && FeatureClass::checkSetProperty(key, value,
-                                                                    domain);
+        return m_layer != nullptr &&
+                FeatureClass::checkSetProperty(key, value, domain);
     }
     else if(m_layer && compare(key, DESCRIPTION_KEY) &&
             compare(domain, NG_ADDITIONS_KEY)) {
@@ -519,10 +553,57 @@ bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
 
 bool MapInfoStoreFeatureClass::sync()
 {
+    /*
     auto isSyncStr = property(ngw::SYNC_KEY, "OFF", NG_ADDITIONS_KEY);
     if(!toBool(isSyncStr)) {
         return true; // No sync
+    }*/
+
+    // TODO: Get edits from server
+
+    // Change state to open
+    auto status = getState(m_TABDS);
+    if(DatasetBase::isReadOnly(m_TABDS)) {
+        close();
     }
+
+    if(nullptr == m_TABDS) {
+        m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
+            GDAL_OF_INTERNAL|GDAL_OF_VERBOSE_ERROR|GDAL_OF_UPDATE, nullptr,
+            nullptr, nullptr));
+        if(nullptr == m_TABDS) {
+            return true;
+        }
+        m_layer = m_TABDS->GetLayer(0);
+    }
+
+    // Get local changes
+    auto editOperationsList = editOperations();
+
+    // Update local changes base on server changes (use server or client priority option)
+
+    // Apply server changes
+
+    for(int i = 0; i < 10; ++i) {
+        CPLSleep(1.1);
+    }
+
+    // Get local changes
+    std::vector<FeaturePtr> localChanges;
+    reset();
+    FeaturePtr feature;
+    while((feature = nextFeature())) {
+        localChanges.emplace_back(feature);
+    }
+
+    checkSetProperty(STATE_KEY, status, NG_ADDITIONS_KEY);
+
+    // Send local changes to server (may be close layer here and get changes to FeaturePtr array)
+
+    // Attachments sync
+
+    // Save last sync time
+
     return true;
 }
 
@@ -864,6 +945,16 @@ ObjectPtr MapInfoDataStore::create(const enum ngsCatalogObjectType type,
     m_children.push_back(object);
 
     return object;
+}
+
+int MapInfoDataStore::paste(ObjectPtr child, bool move, const Options &options,
+                            const Progress &progress)
+{
+    Options newOptions(options);
+    if(options.hasKey("NEW_NAME") && !options.hasKey(DESCRIPTION_KEY)) {
+        newOptions.add(DESCRIPTION_KEY, child->name());
+    }
+    return Dataset::paste(child, move, newOptions, progress);
 }
 
 bool MapInfoDataStore::sync()

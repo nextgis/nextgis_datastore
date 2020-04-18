@@ -70,6 +70,7 @@ public:
                                OGRFeatureDefn * const definition,
                                const Options &options = Options(),
                                const Progress &progress = Progress()) override;
+    virtual void close() override;
 
     // Dataset interface
 protected:
