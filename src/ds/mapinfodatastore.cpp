@@ -1046,15 +1046,22 @@ void MapInfoDataStore::fillFeatureClasses() const
             else {
                 geometryType = FeatureClass::geometryTypeFromName(geomTypeNameStr);
             }
+
+            ObjectPtr object;
             if(geometryType == wkbNone) {
-                m_children.push_back(
-                            ObjectPtr(new MapInfoStoreTable(
-                            DS, layer, parent, path, encoding)));
+                auto tab = new MapInfoStoreTable(
+                            DS, layer, parent, path, encoding);
+                tab->close();
+                object = ObjectPtr(tab);
             }
             else {
-                m_children.push_back(
-                            ObjectPtr(new MapInfoStoreFeatureClass(
-                            DS, layer, parent, path, encoding)));
+                auto tab = new MapInfoStoreFeatureClass(
+                            DS, layer, parent, path, encoding);
+                tab->close();
+                object = ObjectPtr(tab);
+            }
+            if(object) {
+                m_children.emplace_back(object);
             }
         }
     }
