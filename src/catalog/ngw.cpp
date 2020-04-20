@@ -549,7 +549,7 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    childPtr = ObjectPtr();
+    childPtr = nullptr;
 
     Object *child = nullptr;
     if(type == CAT_NGW_VECTOR_LAYER) {
@@ -951,7 +951,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    child = ObjectPtr();
+    child = nullptr;
 
     CPLJSONObject payload;
     CPLJSONObject resource("resource", payload);

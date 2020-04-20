@@ -48,7 +48,6 @@ TEST(StoreTests, TestJSONSAXParser) {
     ngsUnInit();
 }
 
-
 TEST(MIStoreTests, TestCreate) {
     initLib();
 
@@ -92,6 +91,18 @@ TEST(MIStoreTests, TestCreate) {
     }
     EXPECT_GE(count, 1);
     ngsFree(pathInfo);
+
+    EXPECT_EQ(ngsCatalogObjectClose(mistore), 1);
+    pathInfo = ngsCatalogObjectQuery(mistore, 0);
+    ASSERT_NE(pathInfo, nullptr);
+    count = 0;
+    while(pathInfo[count].name) {
+        std::cout << count << ". " << mistorePath << "/" <<  pathInfo[count].name << '\n';
+        count++;
+    }
+    EXPECT_GE(count, 1);
+    ngsFree(pathInfo);
+
 
     // Delete
     EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
@@ -381,6 +392,151 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     ngsUnInit();
 }
+
+TEST(MIStoreTests, TestDoubleLoadFromNGW) {
+    initLib();
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    // Create resource group
+    time_t rawTime = std::time(nullptr);
+    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto group = createGroup(connection, groupName);
+    ASSERT_NE(group, nullptr);
+
+    // Paste local MI tab file with ogr style to NGW vector layer
+    resetCounter();
+    char **options = nullptr;
+    // Add descritpion to NGW vector layer
+    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
+    options = ngsListAddNameValue(options, "FORCE_GEOMETRY_TO_MULTI", "TRUE");
+    options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "TRUE");
+    options = ngsListAddNameValue(options, "SKIP_INVALID_GEOMETRY", "TRUE");
+    const char *layerName = "новый слой 4";
+    options = ngsListAddNameValue(options, "NEW_NAME", layerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_TO_FIELD", "TRUE");
+
+    CatalogObjectH tab = getLocalFile("/data/bld.tab");
+    EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    auto vectorLayer = ngsCatalogObjectGetByName(group, layerName, 1);
+    ASSERT_NE(vectorLayer, nullptr);
+
+    EXPECT_STRNE(ngsCatalogObjectProperty(vectorLayer, "id", "", ""), "");
+
+    EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
+
+    // Create MI Store
+    CatalogObjectH mistore = createMIStore("test_mistore");
+    ASSERT_NE(mistore, nullptr);
+
+    // Paste vector layer to store
+    options = nullptr;
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
+    const char *storeLayerName = "t_bld";
+    const char *longStoreLayerName = "Длинное русское имя 1";
+    options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
+    options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
+    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
+    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
+    options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
+
+    resetCounter();
+    EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    options = nullptr;
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    auto storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
+    ASSERT_NE(storeLayer, nullptr);
+
+    EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
+    auto systemPath = ngsCatalogObjectProperty(storeLayer, "system_path", "", "");
+    EXPECT_STRNE(systemPath, "");
+
+    auto storePath = ngsCatalogObjectPath(mistore);
+    EXPECT_STRNE(storePath, "");
+
+    auto vectorLayerPath = ngsCatalogObjectPath(vectorLayer);
+    EXPECT_STRNE(vectorLayerPath, "");
+
+    auto groupPath = ngsCatalogObjectPath(group);
+    EXPECT_STRNE(groupPath, "");
+
+    auto connectionPath = ngsCatalogObjectPath(connection);
+    EXPECT_STRNE(connectionPath, "");
+
+    // Close everything
+    ngsUnInit();
+    initLib();
+
+    mistore = ngsCatalogObjectGet(storePath);
+    ASSERT_NE(mistore, nullptr);
+
+    connection = ngsCatalogObjectGet(connectionPath);
+    ASSERT_NE(connection, nullptr);
+
+    EXPECT_EQ(ngsCatalogObjectOpen(connection, nullptr), 1);
+
+    group = ngsCatalogObjectGet(groupPath);
+    ASSERT_NE(group, nullptr);
+
+    vectorLayer = ngsCatalogObjectGet(vectorLayerPath);
+    ASSERT_NE(vectorLayer, nullptr);
+
+    storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
+    ASSERT_NE(storeLayer, nullptr);
+
+    EXPECT_EQ(ngsCatalogObjectDelete(storeLayer), COD_SUCCESS);
+
+    // Paste vector layer to store
+    options = nullptr;
+    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
+    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
+    options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
+    options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
+    options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
+    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
+    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
+    options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
+
+    resetCounter();
+    EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    options = nullptr;
+    EXPECT_GE(getCounter(), 5);
+
+    // Find loaded layer by name
+    storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
+    ASSERT_NE(storeLayer, nullptr);
+
+    EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
+    systemPath = ngsCatalogObjectProperty(storeLayer, "system_path", "", "");
+    EXPECT_STRNE(systemPath, "");
+
+    // Delete resource group
+    EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+    // Delete store
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
 
 /*
 TEST(MIStoreTests, TestLoadFromNGW2) {

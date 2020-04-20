@@ -231,7 +231,8 @@ enum ngsCatalogObjectType {
     CAT_NGW_FORMBUILDER_FORM,       /**< NextGIS Web FormBuilder form */
     CAT_NGW_LOOKUP_TABLE,           /**< NextGIS Web lookup table */
     CAT_NGW_FILE_BUCKET,            /**< NextGIS Web File bucket */
-    CAT_NGW_ALL = 3499
+    CAT_NGW_ALL = 3499,
+    CAT_MAX
 };
 
 /**

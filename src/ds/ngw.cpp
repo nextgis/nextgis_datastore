@@ -196,7 +196,7 @@ ObjectPtr NGWLayerDataset::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    child = ObjectPtr();
+    child = nullptr;
 
     auto style = NGWStyle::createStyle(this, type, name, options);
     return onChildCreated(style);
@@ -448,7 +448,7 @@ ObjectPtr NGWRasterDataset::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    child = ObjectPtr();
+    child = nullptr;
 
     auto style = NGWStyle::createStyle(this, type, name, options);
     return onChildCreated(style);

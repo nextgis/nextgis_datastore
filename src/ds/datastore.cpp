@@ -342,7 +342,7 @@ ObjectPtr DataStore::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    child = ObjectPtr();
+    child = nullptr;
 
     // Get field definitions
     CREATE_FEATURE_DEFN_RESULT featureDefnStruct =

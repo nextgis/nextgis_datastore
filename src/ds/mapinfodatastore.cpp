@@ -135,6 +135,26 @@ static FeaturePtr getFeatureByRemoteIdInt(const Table *table, OGRLayer *storeTab
     return table->getFeature(fid);
 }
 
+static std::string getState(GDALDataset *ds) {
+    if(ds == nullptr) {
+        return STATE_CLOSE;
+    }
+    if(DatasetBase::isReadOnly(ds)) {
+        return STATE_RO;
+    }
+    return STATE_RW;
+}
+
+static FeaturePtr getFeatureByLocalIdInt(OGRLayer *lyr, GIntBig fid)
+{
+    if(nullptr == lyr) {
+        return FeaturePtr();
+    }
+    lyr->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, FEATURE_ID_FIELD, fid));
+    FeaturePtr out(lyr->GetNextFeature());
+    lyr->SetAttributeFilter(nullptr);
+    return out;
+}
 
 //------------------------------------------------------------------------------
 // MapInfoStoreTable
@@ -220,16 +240,40 @@ bool MapInfoStoreTable::checkSetProperty(const std::string &key,
                                          const std::string &domain)
 {
     if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        bool readOnly = toBool(value);
+
+        if(compare(value, STATE_CLOSE)) {
+            // Already closed
+            if(m_TABDS == nullptr) {
+                return true;
+            }
+            close();
+            return true;
+        }
+
+        unsigned oo = 0;
+        if(compare(value, STATE_RO)) {
+            if(DatasetBase::isReadOnly(m_TABDS)) {
+                return true;
+            }
+            oo = GDAL_OF_READONLY;
+        }
+
+        if(compare(value, STATE_RW)) {
+            if(!DatasetBase::isReadOnly(m_TABDS.get())) {
+                return true;
+            }
+            oo = GDAL_OF_UPDATE;
+        }
+
         close();
         m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
-                GDAL_OF_SHARED|readOnly ? GDAL_OF_READONLY : GDAL_OF_UPDATE|GDAL_OF_VERBOSE_ERROR,
-                                               nullptr, nullptr, nullptr));
+            GDAL_OF_SHARED|GDAL_OF_VERBOSE_ERROR|oo, nullptr, nullptr, nullptr));
         if(!m_TABDS) {
             return false;
         }
         m_layer = m_TABDS->GetLayer(0);
-        return m_layer != nullptr && Table::checkSetProperty(key, value, domain);
+        return m_layer != nullptr &&
+                Table::checkSetProperty(key, value, domain);
     }
     else if(m_layer && compare(key, DESCRIPTION_KEY) &&
             compare(domain, NG_ADDITIONS_KEY)) {
@@ -241,11 +285,6 @@ bool MapInfoStoreTable::checkSetProperty(const std::string &key,
 
 bool MapInfoStoreTable::sync()
 {
-    auto isSyncStr = property(ngw::SYNC_KEY, "OFF", NG_ADDITIONS_KEY);
-    if(!toBool(isSyncStr)) {
-        return true; // No sync
-    }
-
     return true;
 }
 
@@ -287,16 +326,6 @@ MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDatasetPtr DS,
     if(nullptr == store) {
         m_storeIntLayer = store->getHashTable(storeName());
     }
-}
-
-static std::string getState(GDALDatasetPtr ds) {
-    if(ds == nullptr) {
-        return STATE_CLOSE;
-    }
-    if(DatasetBase::isReadOnly(ds)) {
-        return STATE_RO;
-    }
-    return STATE_RW;
 }
 
 Properties MapInfoStoreFeatureClass::properties(const std::string &domain) const
@@ -435,17 +464,6 @@ bool MapInfoStoreFeatureClass::insertFeature(const FeaturePtr &feature,
     return FeatureClass::insertFeature(feature, logEdits);
 }
 
-static FeaturePtr getFeatureByLocalId(OGRLayer *lyr, GIntBig fid)
-{
-    if(nullptr == lyr) {
-        return FeaturePtr();
-    }
-    lyr->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, FEATURE_ID_FIELD, fid));
-    FeaturePtr out(lyr->GetNextFeature());
-    lyr->SetAttributeFilter(nullptr);
-    return out;
-}
-
 bool MapInfoStoreFeatureClass::updateFeature(const FeaturePtr &feature,
                                              bool logEdits)
 {
@@ -453,7 +471,7 @@ bool MapInfoStoreFeatureClass::updateFeature(const FeaturePtr &feature,
     if(nullptr != parentDS) {
         resetError();
         auto hashTable = parentDS->getHashTable(storeName());
-        auto hashFeature = getFeatureByLocalId(hashTable, feature->GetFID());
+        auto hashFeature = getFeatureByLocalIdInt(hashTable, feature->GetFID());
         if(hashFeature) {
             hashFeature->SetField(
                 HASH_FIELD, feature.dump(FeaturePtr::DumpOutputType::HASH_STYLE).c_str());
@@ -472,7 +490,7 @@ bool MapInfoStoreFeatureClass::deleteFeature(GIntBig id, bool logEdits)
     if(nullptr != parentDS) {
         resetError();
         auto hashTable = parentDS->getHashTable(storeName());
-        auto feature = getFeatureByLocalId(hashTable, id);
+        auto feature = getFeatureByLocalIdInt(hashTable, id);
         if(feature) {
             if(hashTable->DeleteFeature(feature->GetFID()) != OGRERR_NONE) {
                 return errorMessage("Delete feature failed. Error: %s",
@@ -502,7 +520,9 @@ bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
                                             const Progress &progress,
                                             const Options &options)
 {
-    m_TABDS->FlushCache();
+    if(m_TABDS) {
+        m_TABDS->FlushCache();
+    }
     auto sync = options.asString(ngw::SYNC_KEY, ngw::SYNC_DISABLE);
     if(!compare(sync, ngw::SYNC_DISABLE)) {
         if(!setProperty(LOG_EDIT_HISTORY_KEY, "ON", NG_ADDITIONS_KEY)) {
@@ -563,9 +583,7 @@ bool MapInfoStoreFeatureClass::sync()
 
     // Change state to open
     auto status = getState(m_TABDS);
-    if(DatasetBase::isReadOnly(m_TABDS)) {
-        close();
-    }
+    close();
 
     if(nullptr == m_TABDS) {
         m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
@@ -623,7 +641,7 @@ int MapInfoStoreFeatureClass::fillHash(const Progress &progress,
                                         const Options &options)
 {
     ngsUnused(options);
-    MapInfoDataStore *parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
+    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
     if(nullptr == parentDS) {
         progress.onProgress(COD_CREATE_FAILED, 0.0,
                             _("Unsupported feature class"));
@@ -672,7 +690,7 @@ int MapInfoStoreFeatureClass::fillHash(const Progress &progress,
 
 bool MapInfoStoreFeatureClass::updateHashAndEditLog()
 {
-    MapInfoDataStore *parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
+    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
     if(nullptr == parentDS) {
         return false; // Should never happen.
     }
@@ -907,7 +925,7 @@ ObjectPtr MapInfoDataStore::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    child = ObjectPtr();
+    child = nullptr;
 
     // Get field definitions
     CREATE_FEATURE_DEFN_RESULT featureDefnStruct =
@@ -1021,7 +1039,7 @@ OGRLayer *MapInfoDataStore::createEditHistoryTable(const std::string &name)
 
 void MapInfoDataStore::fillFeatureClasses() const
 {
-    MapInfoDataStore *parent = const_cast<MapInfoDataStore*>(this);
+    auto parent = const_cast<MapInfoDataStore*>(this);
     auto filesList = Folder::listFiles(m_path);
     auto encoding = property("ENCODING", "CP1251", NG_ADDITIONS_KEY);
     for(const auto &fileItem : filesList) {
@@ -1035,6 +1053,9 @@ void MapInfoDataStore::fillFeatureClasses() const
                                    GDAL_OF_SHARED|GDAL_OF_READONLY|GDAL_OF_VERBOSE_ERROR,
                                    nullptr, nullptr, nullptr));
             OGRLayer *layer = DS->GetLayer(0);
+            if(nullptr == layer) {
+                continue;
+            }
 
             auto geomTypeNameStr = property("GEOMETRY_TYPE", "", fileItem + "." +
                                             NG_ADDITIONS_KEY);
@@ -1140,7 +1161,7 @@ Table *MapInfoDataStore::createTable(const std::string& name,
         nameList.push_back(newFieldName);
     }
 
-    Table *out = new MapInfoStoreTable(DS, layer, this, path, encoding);
+    auto out = new MapInfoStoreTable(DS, layer, this, path, encoding);
 
     // Set description
     auto description = options.asString(DESCRIPTION_KEY);

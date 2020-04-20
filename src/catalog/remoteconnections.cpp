@@ -252,7 +252,7 @@ ObjectPtr GISServerConnections::create(const enum ngsCatalogObjectType type,
             return ObjectPtr();
         }
     }
-    child = ObjectPtr();
+    child = nullptr;
 
     switch (type) {
     case CAT_CONTAINER_NGW:

@@ -1281,6 +1281,9 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
  */
 ngsCatalogObjectInfo *ngsCatalogObjectQuery(CatalogObjectH object, int filter)
 {
+    if(filter < CAT_UNKNOWN || filter >= CAT_MAX) {
+        return nullptr;
+    }
     // Create filter class from filter value.
     Filter objectFilter(static_cast<enum ngsCatalogObjectType>(filter));
     return catalogObjectQuery(object, objectFilter);
@@ -1337,7 +1340,7 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
  */
 char ngsCatalogObjectCanCreate(CatalogObjectH object, enum ngsCatalogObjectType type)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         warningMessage(_("The object handle is null"));
         return 0;
@@ -1520,11 +1523,11 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
  */
 const char *ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
 {
-    if(!object) {
+    auto catalogObject = static_cast<Object*>(object);
+    if(!catalogObject) {
         errorMessage(_("The object handle is null"));
         return "";
     }
-    Object *catalogObject = static_cast<Object*>(object);
     if(!Filter::isDatabase(catalogObject->type())) {
         errorMessage(_("The input object not a dataset. The type is %d. Options query not supported"),
                     catalogObject->type());
@@ -1536,7 +1539,7 @@ const char *ngsCatalogObjectOptions(CatalogObjectH object, int optionType)
         errorMessage(_("The input object not a dataset. Options query not supported"));
         return "";
     }
-    enum ngsOptionType enumOptionType = static_cast<enum ngsOptionType>(optionType);
+    auto enumOptionType = static_cast<enum ngsOptionType>(optionType);
 
     return storeCString(dataset->options(enumOptionType));
 }
@@ -1924,7 +1927,7 @@ char ngsCatalogObjectClose(CatalogObjectH object)
  */
 char ngsCatalogObjectSync(CatalogObjectH object)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         errorMessage(_("The object handle is null"));
         return API_FALSE;

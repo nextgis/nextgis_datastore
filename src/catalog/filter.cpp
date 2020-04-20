@@ -32,7 +32,7 @@ namespace ngs {
 // Filter
 //-----------------------------------------------------------------------------
 
-Filter::Filter(const enum ngsCatalogObjectType type) : m_type(type)
+Filter::Filter(enum ngsCatalogObjectType type) : m_type(type)
 {
 }
 

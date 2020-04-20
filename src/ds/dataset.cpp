@@ -778,7 +778,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             return COD_FUNCTION_NOT_AVAILABLE;
         }
     }
-    existsChild = ObjectPtr();
+    existsChild = nullptr;
 
     if(move) {
         progress.onProgress(COD_IN_PROCESS, 0.0,
