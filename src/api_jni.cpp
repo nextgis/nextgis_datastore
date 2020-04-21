@@ -1005,12 +1005,11 @@ NGS_JNI_FUNC(jboolean, catalogCheckConnection)(JNIEnv *env, jobject thisObj, jin
  */
 
 NGS_JNI_FUNC(jboolean, datasetOpen)(JNIEnv *env, jobject thisObj, jlong object,
-                                    jint openFlags, jobjectArray openOptions)
+                                    jobjectArray openOptions)
 {
     ngsUnused(thisObj);
-    char** openOptionsNative = toOptions(env, openOptions);
-    int result = ngsDatasetOpen(reinterpret_cast<CatalogObjectH>(object),
-                                static_cast<unsigned int>(openFlags), openOptionsNative);
+    char **openOptionsNative = toOptions(env, openOptions);
+    int result = ngsCatalogObjectOpen(reinterpret_cast<CatalogObjectH>(object), openOptionsNative);
     CSLDestroy(openOptionsNative);
     return result == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
@@ -1019,14 +1018,14 @@ NGS_JNI_FUNC(jboolean, datasetIsOpened)(JNIEnv *env, jobject thisObj, jlong obje
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    return ngsDatasetIsOpened(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+    return ngsCatalogObjectIsOpened(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jboolean, datasetClose)(JNIEnv *env, jobject thisObj, jlong object)
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    return ngsDatasetClose(reinterpret_cast<CatalogObjectH>(object)) == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+    return ngsCatalogObjectClose(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jobjectArray, featureClassFields)(JNIEnv *env, jobject thisObj, jlong object)
@@ -1332,28 +1331,6 @@ NGS_JNI_FUNC(void, featureSetFieldDateTime)(JNIEnv *env, jobject thisObj, jlong 
     ngsFeatureSetFieldDateTime(reinterpret_cast<FeatureH>(feature), field, year, month, day, hour, minute, second, 100); // 100 is UTC
 }
 
-NGS_JNI_FUNC(jlong, storeFeatureClassGetFeatureByRemoteId)(JNIEnv *env, jobject thisObj, jlong object, jlong rid)
-{
-    ngsUnused(env);
-    ngsUnused(thisObj);
-    return reinterpret_cast<jlong>(ngsStoreFeatureClassGetFeatureByRemoteId(
-            reinterpret_cast<CatalogObjectH>(object), rid));
-}
-
-NGS_JNI_FUNC(jlong, storeFeatureGetRemoteId)(JNIEnv *env, jobject thisObj, jlong feature)
-{
-    ngsUnused(env);
-    ngsUnused(thisObj);
-    return ngsStoreFeatureGetRemoteId(reinterpret_cast<FeatureH>(feature));
-}
-
-NGS_JNI_FUNC(void, storeFeatureSetRemoteId)(JNIEnv *env, jobject thisObj, jlong feature, jlong rid)
-{
-    ngsUnused(env);
-    ngsUnused(thisObj);
-    ngsStoreFeatureSetRemoteId(reinterpret_cast<FeatureH>(feature), rid);
-}
-
 NGS_JNI_FUNC(jlong, featureCreateGeometry)(JNIEnv *env, jobject thisObj, jlong feature)
 {
     ngsUnused(env);
@@ -1477,7 +1454,7 @@ NGS_JNI_FUNC(jboolean, featureAttachmentDelete)(JNIEnv *env, jobject thisObj,
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    return ngsFeatureAttachmentDelete(reinterpret_cast<FeatureH>(feature), aid, logEdits) == COD_SUCCESS ?
+    return ngsFeatureAttachmentDelete(reinterpret_cast<FeatureH>(feature), aid, logEdits) == 1 ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
@@ -1486,7 +1463,7 @@ NGS_JNI_FUNC(jboolean, featureAttachmentDeleteAll)(JNIEnv *env, jobject thisObj,
 {
     ngsUnused(env);
     ngsUnused(thisObj);
-    return ngsFeatureAttachmentDeleteAll(reinterpret_cast<FeatureH>(feature), logEdits) == COD_SUCCESS ?
+    return ngsFeatureAttachmentDeleteAll(reinterpret_cast<FeatureH>(feature), logEdits) == 1 ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
@@ -1497,14 +1474,13 @@ NGS_JNI_FUNC(jobject, featureAttachmentsGet)(JNIEnv *env, jobject thisObj, jlong
     int counter = 0;
     std::vector<jobject> obArray;
     while(out[counter].id != -1) {
-        jvalue args[7];
+        jvalue args[6];
         args[0].j = feature;
         args[1].j = out->id;
         args[2].l = env->NewStringUTF(out->name);
         args[3].l = env->NewStringUTF(out->description);
         args[4].l = env->NewStringUTF(out->path);
         args[5].j = out->size;
-        args[6].j = out->rid;
         obArray.push_back(env->NewObjectA(g_EditOperationClass, g_EditOperationInitMid, args));
         counter++;
     }
@@ -1525,16 +1501,8 @@ NGS_JNI_FUNC(jboolean, featureAttachmentUpdate)(JNIEnv *env, jobject thisObj, jl
     ngsUnused(thisObj);
     return ngsFeatureAttachmentUpdate(reinterpret_cast<FeatureH>(feature),
                                       aid, jniString(env, name).c_str(),
-                                      jniString(env, description).c_str(), logEdits) == COD_SUCCESS ?
+                                      jniString(env, description).c_str(), logEdits) == 1 ?
            NGS_JNI_TRUE : NGS_JNI_FALSE;
-}
-
-NGS_JNI_FUNC(void, storeFeatureSetAttachmentRemoteId)(JNIEnv *env, jobject thisObj,
-                                                      jlong feature, jlong aid, jlong rid)
-{
-    ngsUnused(env);
-    ngsUnused(thisObj);
-    ngsStoreFeatureSetAttachmentRemoteId(reinterpret_cast<FeatureH>(feature), aid, rid);
 }
 
 /*
@@ -2387,11 +2355,11 @@ NGS_JNI_FUNC(jboolean, trackIsRegistered)(JNIEnv *env, jobject thisObj)
     return ngsTrackIsRegistered() == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
-NGS_JNI_FUNC(void, trackSync)(JNIEnv *env, jobject thisObj, jlong object, jint maxPointCount)
+NGS_JNI_FUNC(jboolean, catalogObjectSync)(JNIEnv *env, jobject thisObj, jlong object)
 {
     ngsUnused(thisObj);
     ngsUnused(env);
-    ngsTrackSync(reinterpret_cast<CatalogObjectH>(object), maxPointCount);
+    return ngsCatalogObjectSync(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
 NGS_JNI_FUNC(jobjectArray, trackGetList)(JNIEnv *env, jobject thisObj, jlong object)
