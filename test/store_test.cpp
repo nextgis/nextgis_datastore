@@ -38,7 +38,7 @@ TEST(StoreTests, TestJSONSAXParser) {
     resetCounter();
     CPLJSONDocument doc;
     EXPECT_EQ(doc.LoadUrl("https://sandbox.nextgis.com/api/component/pyramid/pkg_version",
-                          options, ngsGDALProgressFunc, nullptr), true);
+                          options, nullptr, nullptr), true);
     ngsListFree(options);
 
     CPLJSONObject obj = doc.GetRoot();

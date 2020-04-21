@@ -590,4 +590,595 @@ NGS_EXTERNC char ngsNGWServiceChangeLayer(CatalogObjectH object,
 // ngsNGWServiceGet/SetLayerOptions(CatalogObjectH object, const char *keyName, char **key-value list);
 // or use standard ngsCatalogObjectProperty/ngsCatalogObjectSetProperty
 
+typedef struct _ngsNGWWebmapItemInfo {
+    char itemType;
+    const char *displayName;
+} ngsNGWWebmapItemInfo;
+
+typedef struct _ngsNGWWebmapLayerInfo : _ngsNGWWebmapItemInfo {
+    const char *adapter;
+    bool enabled;
+    int style;
+    int orderPosition;
+    const char *maxScaleDenom;
+    const char *minScaleDenom;
+    char transparency; // 0 - 100
+} ngsNGWWebmapLayerInfo;
+
+typedef struct _ngsNGWWebmapGroupInfo : _ngsNGWWebmapItemInfo {
+    bool expanded;
+    ngsNGWWebmapLayerInfo **children;
+} ngsNGWWebmapGroupInfo;
+
+typedef struct _ngsNGWWebmapBasemapInfo {
+    int opacity;
+    bool enabled;
+    int position;
+    const char *displayName;
+    int resourceId;
+} ngsNGWWebmapBasemapInfo;
+/*
+"opacity": null,
+"enabled": true,
+"position": 0,
+"display_name": "Спутник",
+"resource_id": 3914
+
+"webmap": {
+  "extent_left": 35.521,
+  "extent_right": 35.735,
+  "extent_bottom": 35.059,
+  "extent_top": 35.279,
+  "draw_order_enabled": false,
+  "editable": false,
+  "annotation_enabled": false,
+  "annotation_default": false,
+  "bookmark_resource": null,
+  "root_item": {
+    "item_type": "root",
+    "children": [
+      {
+        "group_expanded": true,
+        "display_name": "МАТЕМАТИЧЕСКАЯ ОСНОВА",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 163,
+            "draw_order_position": 2,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "МАТЕМАТИЧЕСКАЯ ОСНОВА_lin_layer1",
+            "layer_style_id": 164,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": true,
+        "display_name": "НАЗВАНИЯ И ПОДПИСИ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 166,
+            "draw_order_position": 3,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАЗВАНИЯ И ПОДПИСИ_dot_layer17",
+            "layer_style_id": 167,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 168,
+            "draw_order_position": 4,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАЗВАНИЯ И ПОДПИСИ_lin_layer17",
+            "layer_style_id": 169,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": true,
+        "display_name": "ГРАНИЦЫ И ОГРАЖДЕНИЯ",
+        "children": [
+          {
+            "layer_adapter": "tile",
+            "layer_enabled": true,
+            "style_parent_id": 171,
+            "draw_order_position": 5,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГРАНИЦЫ И ОГРАЖДЕНИЯ_lin_layer14",
+            "layer_style_id": 172,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "РЕЛЬЕФ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 174,
+            "draw_order_position": 6,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РЕЛЬЕФ СУШИ_dot_layer5",
+            "layer_style_id": 175,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 176,
+            "draw_order_position": 7,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_dot_layer8",
+            "layer_style_id": 177,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 178,
+            "draw_order_position": 8,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_lin_layer8",
+            "layer_style_id": 179,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 180,
+            "draw_order_position": 9,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РЕЛЬЕФ СУШИ_lin_layer5",
+            "layer_style_id": 181,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 182,
+            "draw_order_position": 10,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РЕЛЬЕФ СУШИ_sqr_layer5",
+            "layer_style_id": 183,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ДОРОЖНАЯ СЕТЬ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 185,
+            "draw_order_position": 11,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ДОРОЖНАЯ СЕТЬ_lin_layer10",
+            "layer_style_id": 186,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 187,
+            "draw_order_position": 12,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ДОРОЖНЫЕ СООРУЖЕНИЯ_lin_layer11",
+            "layer_style_id": 188,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 189,
+            "draw_order_position": 13,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЫПИ,ВЫЕМКИ,ЭСТАКАДЫ_lin_layer16",
+            "layer_style_id": 190,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 192,
+            "draw_order_position": 14,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_dot_layer21",
+            "layer_style_id": 193,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 194,
+            "draw_order_position": 15,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_lin_layer21",
+            "layer_style_id": 195,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 196,
+            "draw_order_position": 16,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_sqr_layer21",
+            "layer_style_id": 197,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "layer_adapter": "image",
+        "layer_enabled": true,
+        "style_parent_id": 198,
+        "draw_order_position": 17,
+        "layer_max_scale_denom": null,
+        "item_type": "layer",
+        "layer_min_scale_denom": null,
+        "display_name": "КАМЫШОВЫЕ,МАНГРОВЫЕ ЗАРОСЛИ_sqr_layer18",
+        "layer_style_id": 199,
+        "layer_transparency": null
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ГИДРОГРАФИЯ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 201,
+            "draw_order_position": 18,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОТЕХНИЧЕСКИЕ СООРУЖЕНИЯ_dot_layer9",
+            "layer_style_id": 202,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 203,
+            "draw_order_position": 19,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОТЕХНИЧЕСКИЕ СООРУЖЕНИЯ_lin_layer9",
+            "layer_style_id": 204,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 205,
+            "draw_order_position": 20,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ_lin_layer7",
+            "layer_style_id": 206,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 207,
+            "draw_order_position": 21,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ_sqr_layer7",
+            "layer_style_id": 208,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБ'ЕКТ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 210,
+            "draw_order_position": 22,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_dot_layer13",
+            "layer_style_id": 211,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 212,
+            "draw_order_position": 23,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_lin_layer13",
+            "layer_style_id": 213,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 214,
+            "draw_order_position": 1,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_sqr_layer13",
+            "layer_style_id": 215,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 217,
+            "draw_order_position": 24,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (СТРОЕНИЯ)_lin_layer20",
+            "layer_style_id": 218,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 219,
+            "draw_order_position": 25,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (КВАРТАЛЫ)_lin_layer12",
+            "layer_style_id": 220,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 221,
+            "draw_order_position": 26,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (КВАРТАЛЫ)_sqr_layer12",
+            "layer_style_id": 222,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 223,
+            "draw_order_position": 27,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (СТРОЕНИЯ)_sqr_layer20",
+            "layer_style_id": 224,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 225,
+            "draw_order_position": 28,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": 5000.0,
+            "display_name": "КВАРТАЛЫ (НЕОДНОРОДНЫЕ)_sqr_layer19",
+            "layer_style_id": 226,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 227,
+            "draw_order_position": 29,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ_sqr_layer2",
+            "layer_style_id": 228,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ГРУНТЫ И ЛАВОВЫЕ ПОКРОВЫ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 230,
+            "draw_order_position": 30,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГРУНТЫ И ЛАВОВЫЕ ПОКРОВЫ_sqr_layer4",
+            "layer_style_id": 231,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "РАСТИТЕЛЬНОСТЬ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 233,
+            "draw_order_position": 31,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ_dot_layer6",
+            "layer_style_id": 234,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 235,
+            "draw_order_position": 32,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ_lin_layer6",
+            "layer_style_id": 236,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 237,
+            "draw_order_position": 33,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ_sqr_layer6",
+            "layer_style_id": 238,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 239,
+            "draw_order_position": 34,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ (ЗАЛИВКА),ТАКЫР_sqr_layer3",
+            "layer_style_id": 240,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "layer_adapter": "image",
+        "layer_enabled": true,
+        "style_parent_id": 241,
+        "draw_order_position": 35,
+        "layer_max_scale_denom": null,
+        "item_type": "layer",
+        "layer_min_scale_denom": null,
+        "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_sqr_layer8",
+        "layer_style_id": 242,
+        "layer_transparency": null
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ПЛАНОВО-ВЫСОТНАЯ ОСНОВА",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 244,
+            "draw_order_position": 36,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПЛАНОВО-ВЫСОТНАЯ ОСНОВА_dot_layer15",
+            "layer_style_id": 245,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ОБЪЕКТЫ ДЛЯ КАРТОИЗДАНИЯ",
+        "children": [],
+        "item_type": "group"
+      }
+    ]
+  }
+},
+"basemap_webmap": {
+"basemaps": [
+      {
+        "opacity": null,
+        "enabled": true,
+        "position": 0,
+        "display_name": "Спутник",
+        "resource_id": 3914
+      },
+      {
+        "opacity": null,
+        "enabled": true,
+        "position": 1,
+        "display_name": "OpenStreetMap.de",
+        "resource_id": 3913
+      }
+    ]
+},
+*/
 #endif // NGSAPI_H

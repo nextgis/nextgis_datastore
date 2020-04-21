@@ -54,6 +54,22 @@
 #define NGS_EXTERNC NGS_EXTERN
 #endif
 
+
+#if __APPLE__
+    #include "TargetConditionals.h"
+    #if TARGET_OS_IPHONE
+        #define PLATFORM_IOS
+    #elif TARGET_OS_MAC
+        #define PLATFORM_DESKTOP
+    #else
+        #define PLATFORM_DESKTOP
+    #endif
+#elif __ANDROID__
+    #define PLATFORM_ANDROID
+#else
+    #define PLATFORM_DESKTOP
+#endif
+
 // TODO: Add gettext support
 // 1. CMake add generate translation macros
 // 2. Load translation catalog files code

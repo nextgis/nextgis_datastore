@@ -25,7 +25,9 @@
 #include "catalog.h"
 #include "file.h"
 #include "ds/datastore.h"
+#ifdef PLATFORM_DESKTOP
 #include "ds/mapinfodatastore.h"
+#endif //PLATFORM_DESKTOP
 #include "ds/memstore.h"
 #include "ds/raster.h"
 #include "ds/simpledataset.h"
@@ -746,12 +748,14 @@ ObjectPtr Folder::create(const enum ngsCatalogObjectType type,
             m_children.push_back(object);
         }
         break;
+#ifdef PLATFORM_DESKTOP
     case CAT_CONTAINER_MAPINFO_STORE:
         if(MapInfoDataStore::create(newPath)) {
             object = ObjectPtr(new MapInfoDataStore(this, newName, newPath));
             m_children.push_back(object);
         }
         break;
+#endif //PLATFORM_DESKTOP
     default:
         break;
     }
