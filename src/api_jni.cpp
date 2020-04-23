@@ -991,6 +991,30 @@ NGS_JNI_FUNC(void, catalogObjectRefresh)(JNIEnv *env, jobject thisObj, jlong obj
     ngsCatalogObjectRefresh(reinterpret_cast<CatalogObjectH>(object));
 }
 
+NGS_JNI_FUNC(jboolean, catalogObjectOpen)(JNIEnv *env, jobject thisObj, jlong object,
+                                          jobjectArray openOptions)
+{
+    ngsUnused(thisObj);
+    char **openOptionsNative = toOptions(env, openOptions);
+    int result = ngsCatalogObjectOpen(reinterpret_cast<CatalogObjectH>(object), openOptionsNative);
+    CSLDestroy(openOptionsNative);
+    return result == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, catalogObjectIsOpened)(JNIEnv *env, jobject thisObj, jlong object)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    return ngsCatalogObjectIsOpened(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jboolean, catalogObjectClose)(JNIEnv *env, jobject thisObj, jlong object)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    return ngsCatalogObjectClose(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
 NGS_JNI_FUNC(jboolean, catalogCheckConnection)(JNIEnv *env, jobject thisObj, jint objectType, jobjectArray options)
 {
     ngsUnused(thisObj);
@@ -1003,30 +1027,6 @@ NGS_JNI_FUNC(jboolean, catalogCheckConnection)(JNIEnv *env, jobject thisObj, jin
 /*
  * Feature class
  */
-
-NGS_JNI_FUNC(jboolean, datasetOpen)(JNIEnv *env, jobject thisObj, jlong object,
-                                    jobjectArray openOptions)
-{
-    ngsUnused(thisObj);
-    char **openOptionsNative = toOptions(env, openOptions);
-    int result = ngsCatalogObjectOpen(reinterpret_cast<CatalogObjectH>(object), openOptionsNative);
-    CSLDestroy(openOptionsNative);
-    return result == COD_SUCCESS ? NGS_JNI_TRUE : NGS_JNI_FALSE;
-}
-
-NGS_JNI_FUNC(jboolean, datasetIsOpened)(JNIEnv *env, jobject thisObj, jlong object)
-{
-    ngsUnused(env);
-    ngsUnused(thisObj);
-    return ngsCatalogObjectIsOpened(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
-}
-
-NGS_JNI_FUNC(jboolean, datasetClose)(JNIEnv *env, jobject thisObj, jlong object)
-{
-    ngsUnused(env);
-    ngsUnused(thisObj);
-    return ngsCatalogObjectClose(reinterpret_cast<CatalogObjectH>(object)) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
-}
 
 NGS_JNI_FUNC(jobjectArray, featureClassFields)(JNIEnv *env, jobject thisObj, jlong object)
 {
