@@ -22,17 +22,17 @@
 #include "test.h"
 
 #include "ngstore/codes.h"
-#include "catalog/folder.h"
 #include "util/settings.h"
 
 // gdal
 #include "cpl_vsi.h"
 
-constexpr const char *SETTINGS_FILE = "./tmp/settings.json";
-
 TEST(SettingsTests, WriteTest) {
+    auto tmpPath = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", "");
     // just try to create directory
-    ngs::Folder::mkDir("./tmp");
+    VSIMkdir(tmpPath, 0755);
+
+    auto settingsFile = ngsFormFileName(tmpPath, "settings.json", "");
 
     CPLJSONDocument doc;
     CPLJSONObject root = doc.GetRoot();
@@ -43,12 +43,15 @@ TEST(SettingsTests, WriteTest) {
     root.Delete("four_level/second_level/third_level/forth_level");
     root.Add("three_level/second_level/third_level1", false);
     root.Set("three_level/second_level/third_level1", true);
-    EXPECT_EQ(doc.Save(SETTINGS_FILE), true);
+    EXPECT_EQ(doc.Save(settingsFile), true);
 }
 
 TEST(SettingsTests, ReadTest) {
+    auto tmpPath = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", "");
+    auto settingsFile = ngsFormFileName(tmpPath, "settings.json", "");
+
     CPLJSONDocument doc;
-    ASSERT_EQ(doc.Load(SETTINGS_FILE), true);
+    ASSERT_EQ(doc.Load(settingsFile), true);
     CPLJSONObject root = doc.GetRoot();
     EXPECT_EQ(root.GetBool("one_level", false), true);
     EXPECT_EQ(root.GetBool("two_level/second_level", true), false);
@@ -57,24 +60,16 @@ TEST(SettingsTests, ReadTest) {
     EXPECT_EQ(root.GetBool("three_level/second_level/third_level1", false), true);
 
     // delete settings file
-    VSIUnlink(SETTINGS_FILE);
+    VSIUnlink(settingsFile);
 }
 
 
 TEST(SettingsTests, Settings) {
-    char **options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
+    initLib();
 
-    ngsListFree(options);
-
-    ngs::Settings &settings = ngs::Settings::instance();
-    EXPECT_EQ(settings.getBool("catalog/show_hidden", false), false);
-    settings.set("catalog/show_hidden", true);
-    EXPECT_EQ(settings.getBool("catalog/show_hidden", false), true);
+    EXPECT_STREQ(ngsSettingsGetString("catalog/show_hidden", "OFF"), "OFF");
+    ngsSettingsSetString("catalog/show_hidden", "ON");
+    EXPECT_STREQ(ngsSettingsGetString("catalog/show_hidden", "OFF"), "ON");
 
     ngsUnInit();
 }

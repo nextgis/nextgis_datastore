@@ -58,12 +58,9 @@ void initLib()
 {
     char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    options = ngsListAddNameValue(options, "CACHE_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
+    const char *path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
+    options = ngsListAddNameValue(options, "SETTINGS_DIR", path);
+    options = ngsListAddNameValue(options, "CACHE_DIR", path);
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
     ngsListFree(options);

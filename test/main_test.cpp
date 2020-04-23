@@ -733,13 +733,13 @@ TEST(DataStoreTest, TestTracksTable) {
 
     int counter = 0;
     ngsTrackInfo *info = ngsTrackGetList(tracks);
-    long start(0), stop(0);
+    time_t start(0), stop(0);
     while(info[counter].name != nullptr) {
         std::cout << counter << ". " << info[counter].name << ", "
                   << info[counter].startTimeStamp << " -- "
                   << info[counter].stopTimeStamp << "\n";
-        start = info[counter].startTimeStamp;
-        stop = info[counter].stopTimeStamp;
+        start = static_cast<time_t>(info[counter].startTimeStamp);
+        stop = static_cast<time_t>(info[counter].stopTimeStamp);
         counter++;
     }
     ngsFree(info);
