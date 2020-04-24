@@ -263,7 +263,7 @@ TEST(NGWTests, TestAttachments) {
 
     std::string testPath = ngsGetCurrentDirectory();
     std::string testAttachmentPath = ngsFormFileName(
-                testPath.c_str(), "download.cmake", nullptr);
+                testPath.c_str(), "download.cmake", nullptr, 0);
     long long id = ngsFeatureAttachmentAdd(
                 feature, "test.txt", "test add attachment",
                 testAttachmentPath.c_str(), nullptr, 0);

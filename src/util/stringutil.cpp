@@ -152,6 +152,17 @@ bool endsWith(const std::string &str, const std::string &part, bool caseSensetiv
     return compare(strCmp, part, caseSensetive);
 }
 
+std::string replace(const std::string &str, const std::string &from, const std::string &to)
+{
+	auto outString(str);
+	size_t start_pos = 0;
+	while ((start_pos = outString.find(from, start_pos)) != std::string::npos) {
+		outString.replace(start_pos, from.length(), to);
+		start_pos += to.length();
+	}
+	return outString;
+}
+
 static std::string toHex(unsigned char *value, int size)
 {
     std::ostringstream out;

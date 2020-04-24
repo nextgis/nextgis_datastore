@@ -44,6 +44,7 @@ bool startsWith(const std::string &str, const std::string &part,
                 bool caseSensetive = false);
 bool endsWith(const std::string &str, const std::string &part,
               bool caseSensetive = false);
+std::string replace(const std::string &str, const std::string &replaceFrom, const std::string &replaceTo);
 std::string md5(const std::string &val);
 std::string fromCString(const char *str);
 std::string random(int size);

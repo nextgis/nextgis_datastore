@@ -122,7 +122,7 @@ NGS_EXTERNC char **ngsListAddNameValue(char **list, const char *name,
 NGS_EXTERNC char **ngsListAddNameIntValue(char **list, const char *name, int value);
 NGS_EXTERNC void ngsListFree(char **list);
 NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
-                                        const char *extension);
+                                        const char *extension, char catalog);
 NGS_EXTERNC void ngsFree(void *pointer);
 
 /*

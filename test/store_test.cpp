@@ -200,7 +200,7 @@ TEST(MIStoreTests, TestLogEdits) {
 
     // Edit outside MIStore
     auto basePath = ngsCatalogObjectProperty(mistore, "system_path", "", "");
-    auto editPath = ngsFormFileName(basePath, "shp_bld", "tab");
+    auto editPath = ngsFormFileName(basePath, "shp_bld", "tab", 0);
     GDALDataset *DS = static_cast<GDALDataset*>(
                 GDALOpenEx(editPath, GDAL_OF_UPDATE|GDAL_OF_SHARED, nullptr,
                            nullptr, nullptr));
@@ -308,7 +308,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     std::string testPath = ngsGetCurrentDirectory();
     std::string testAttachmentPath = ngsFormFileName(
-                testPath.c_str(), "download.cmake", nullptr);
+                testPath.c_str(), "download.cmake", nullptr, 0);
     long long aid = ngsFeatureAttachmentAdd(
                 feature, "test.txt", "test add attachment",
                 testAttachmentPath.c_str(), nullptr, 0);

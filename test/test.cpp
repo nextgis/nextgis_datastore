@@ -58,9 +58,11 @@ void initLib()
 {
     char **options = nullptr;
     options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    const char *path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr);
+    const char *path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr, 0);
     options = ngsListAddNameValue(options, "SETTINGS_DIR", path);
     options = ngsListAddNameValue(options, "CACHE_DIR", path);
+	options = ngsListAddNameValue(options, "PROJ_DATA", "C:\\NextGIS\\share\\proj");
+	options = ngsListAddNameValue(options, "SSL_CERT_FILE", "C:\\NextGIS\\share\\ssl\\certs\\cert.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
     ngsListFree(options);
@@ -119,7 +121,7 @@ CatalogObjectH getLocalFile(const std::string &name)
 CatalogObjectH createMIStore(const std::string &name)
 {
     std::string testPath = ngsGetCurrentDirectory();
-    std::string tmpPath = ngsFormFileName(testPath.c_str(), "tmp", nullptr);
+    std::string tmpPath = ngsFormFileName(testPath.c_str(), "tmp", nullptr, 0);
     std::string tmpCatalogPath = ngsCatalogPathFromSystem(tmpPath.c_str());
 
     if(tmpCatalogPath.empty()) {

@@ -246,13 +246,7 @@ ObjectPtr LocalConnections::getObjectBySystemPath(const std::string &path) const
             if(nullptr != container) {
                 std::string endPath = path.substr(testPath.size());
 #ifdef _WIN32
-                std::string from("\\");
-
-                size_t start_pos;
-                while((start_pos = endPath.find(from, start_pos)) != std::string::npos) {
-                    endPath.replace(start_pos, from.length(), sep);
-                    start_pos += sep.length();
-                }
+				endPath = replace(endPath, "\\", sep);
 #endif
                 if(comparePart(endPath, sep, static_cast<unsigned>(sep.size()))) {
                     endPath = endPath.substr(sep.size());

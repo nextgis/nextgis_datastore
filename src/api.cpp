@@ -479,9 +479,15 @@ void ngsListFree(char **list)
  * @return The new path string
  */
 const char *ngsFormFileName(const char *path, const char *name,
-                            const char *extension)
+                            const char *extension, char catalog)
 {
-    return CPLFormFilename(path, name, extension);
+	std::string out = CPLFormFilename(path, name, extension);
+#ifdef _WIN32
+	if (1 == catalog) {
+		out = replace(out, "\\", Catalog::separator());
+	}
+#endif
+    return storeCString(out);
 }
 
 /**

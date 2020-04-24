@@ -28,11 +28,11 @@
 #include "cpl_vsi.h"
 
 TEST(SettingsTests, WriteTest) {
-    auto tmpPath = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", "");
+    auto tmpPath = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", "", 0);
     // just try to create directory
     VSIMkdir(tmpPath, 0755);
 
-    auto settingsFile = ngsFormFileName(tmpPath, "settings.json", "");
+    auto settingsFile = ngsFormFileName(tmpPath, "settings.json", "", 0);
 
     CPLJSONDocument doc;
     CPLJSONObject root = doc.GetRoot();
@@ -47,8 +47,8 @@ TEST(SettingsTests, WriteTest) {
 }
 
 TEST(SettingsTests, ReadTest) {
-    auto tmpPath = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", "");
-    auto settingsFile = ngsFormFileName(tmpPath, "settings.json", "");
+    auto tmpPath = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", "", 0);
+    auto settingsFile = ngsFormFileName(tmpPath, "settings.json", "", 0);
 
     CPLJSONDocument doc;
     ASSERT_EQ(doc.Load(settingsFile), true);
