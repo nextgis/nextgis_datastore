@@ -19,6 +19,7 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 #include "coordinatetransformation.h"
+#include "util/error.h"
 
 namespace ngs {
 
@@ -60,10 +61,12 @@ bool SpatialReferencePtr::setFromUserInput(const std::string &input)
 SpatialReferencePtr SpatialReferencePtr::importFromEPSG(int EPSG)
 {
     SpatialReferencePtr sr(new OGRSpatialReference());
+    resetError();
     if(sr->importFromEPSG(EPSG) == OGRERR_NONE) {
         sr->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
         return sr;        
     }
+    errorMessage(CPLGetLastErrorMsg());
     return nullptr;
 }
 

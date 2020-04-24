@@ -2517,7 +2517,7 @@ CoordinateTransformationH ngsCoordinateTransformationCreate(int fromEPSG,
 
     SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(toEPSG);
     if(to == nullptr) {
-        errorMessage(_("Unsupported from EPSG with code %d"), toEPSG);
+        errorMessage(_("Unsupported to EPSG with code %d"), toEPSG);
         return nullptr;
     }
 
