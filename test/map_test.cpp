@@ -40,15 +40,7 @@ constexpr unsigned short DEFAULT_EPSG = 3857;
 constexpr ngsRGBA DEFAULT_MAP_BK = {210, 245, 255, 255};
 
 TEST(MapTests, TestCreate) {
-    char** options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-
-    ngsListFree(options);
-
+    initLib();
 
     ngs::MapStore mapStore;
     char mapId = mapStore.createMap(DEFAULT_MAP_NAME, "unit test",
@@ -89,14 +81,7 @@ TEST(MapTests, TestCreate) {
 }
 
 TEST(MapTests, TestOpenMap) {
-    char** options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-
-    ngsListFree(options);
+    initLib();
 
     ngs::MapStore mapStore;
     ngs::CatalogPtr catalog = ngs::Catalog::instance();

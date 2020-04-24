@@ -61,8 +61,6 @@ void initLib()
     const char *path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr, 0);
     options = ngsListAddNameValue(options, "SETTINGS_DIR", path);
     options = ngsListAddNameValue(options, "CACHE_DIR", path);
-	options = ngsListAddNameValue(options, "PROJ_DATA", "C:\\NextGIS\\share\\proj");
-	options = ngsListAddNameValue(options, "SSL_CERT_FILE", "C:\\NextGIS\\share\\ssl\\certs\\cert.pem");
     EXPECT_EQ(ngsInit(options), COD_SUCCESS);
 
     ngsListFree(options);
