@@ -370,7 +370,7 @@ std::string toLower(const std::string &str)
 {
     std::string out(str);
     std::transform(out.begin(), out.end(), out.begin(),
-        [](unsigned char c){ return std::tolower(c); });
+        [](unsigned char c){ return tolower(c); });
     return out;
 }
 

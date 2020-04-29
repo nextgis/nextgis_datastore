@@ -75,9 +75,9 @@ typedef struct _ngsURLRequestResult {
 
 typedef unsigned int ngsGeometryType;
 
-#ifndef SIZE
-typedef long long SIZE;
-#endif // SIZE
+#ifndef POINTER_SIZE
+typedef long long POINTER_SIZE;
+#endif // POINTER_SIZE
 
 /**
  * @brief Prototype of function, which executed periodically during some long
@@ -126,7 +126,7 @@ NGS_EXTERNC char **ngsListAddNameIntValue(char **list, const char *name, int val
 NGS_EXTERNC void ngsListFree(char **list);
 NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension, char catalog);
-NGS_EXTERNC void* ngsMalloc(SIZE size);
+NGS_EXTERNC void* ngsMalloc(POINTER_SIZE size);
 NGS_EXTERNC void ngsFree(void *pointer);
 
 /*
@@ -261,11 +261,11 @@ typedef struct _ngsField {
 } ngsField;
 
 typedef struct _ngsEditOperation {
-    SIZE fid;
-    SIZE aid;
+    POINTER_SIZE fid;
+    POINTER_SIZE aid;
     enum ngsChangeCode code;
-    SIZE rid;
-    SIZE arid;
+    POINTER_SIZE rid;
+    POINTER_SIZE arid;
 } ngsEditOperation;
 
 NGS_EXTERNC ngsField *ngsFeatureClassFields(CatalogObjectH object);
@@ -276,13 +276,13 @@ NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object,
                                              FeatureH feature, char logEdits);
 NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object,
                                              FeatureH feature, char logEdits);
-NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, SIZE id,
+NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, POINTER_SIZE id,
                                              char logEdits);
 NGS_EXTERNC int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits);
-NGS_EXTERNC SIZE ngsFeatureClassCount(CatalogObjectH object);
+NGS_EXTERNC POINTER_SIZE ngsFeatureClassCount(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);
-NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, SIZE id);
+NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, POINTER_SIZE id);
 NGS_EXTERNC int ngsFeatureClassSetFilter(CatalogObjectH object,
                                          GeometryH geometryFilter,
                                          const char *attributeFilter);
@@ -301,7 +301,7 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
 NGS_EXTERNC char ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex);
-NGS_EXTERNC SIZE ngsFeatureGetId(FeatureH feature);
+NGS_EXTERNC POINTER_SIZE ngsFeatureGetId(FeatureH feature);
 NGS_EXTERNC GeometryH ngsFeatureGetGeometry(FeatureH feature);
 NGS_EXTERNC int ngsFeatureGetFieldAsInteger(FeatureH feature, int field);
 NGS_EXTERNC double ngsFeatureGetFieldAsDouble(FeatureH feature, int field);
@@ -342,25 +342,25 @@ NGS_EXTERNC ngsCoordinate ngsCoordinateTransformationDo(
         CoordinateTransformationH ct, ngsCoordinate coordinates);
 
 typedef struct _ngsFeatureAttachmentInfo {
-    SIZE id;
+    POINTER_SIZE id;
     const char *name;
     const char *description;
     const char *path;
-    SIZE size;
+    POINTER_SIZE size;
 } ngsFeatureAttachmentInfo;
 
-NGS_EXTERNC SIZE ngsFeatureAttachmentAdd(FeatureH feature,
+NGS_EXTERNC POINTER_SIZE ngsFeatureAttachmentAdd(FeatureH feature,
                                          const char *name,
                                          const char *description,
                                          const char *path,
                                          char **options,
                                          char logEdits);
-NGS_EXTERNC char ngsFeatureAttachmentDelete(FeatureH feature, SIZE aid,
+NGS_EXTERNC char ngsFeatureAttachmentDelete(FeatureH feature, POINTER_SIZE aid,
                                            char logEdits);
 NGS_EXTERNC char ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits);
 NGS_EXTERNC ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature);
 NGS_EXTERNC char ngsFeatureAttachmentUpdate(FeatureH feature,
-                                           SIZE aid,
+                                           POINTER_SIZE aid,
                                            const char *name,
                                            const char *description,
                                            char logEdits);
@@ -437,8 +437,8 @@ NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
 NGS_EXTERNC const char *ngsLayerGetStyleName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char *name);
-NGS_EXTERNC int ngsLayerSetSelectionIds(LayerH layer, SIZE *ids, int size);
-NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, SIZE *ids, int size);
+NGS_EXTERNC int ngsLayerSetSelectionIds(LayerH layer, POINTER_SIZE *ids, int size);
+NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, POINTER_SIZE *ids, int size);
 
 /*
  * Overlay functions
@@ -465,7 +465,7 @@ NGS_EXTERNC FeatureH ngsEditOverlaySave(char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(char mapId);
 NGS_EXTERNC int ngsEditOverlayCreateGeometryInLayer(char mapId, LayerH layer, char empty);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(char mapId, ngsGeometryType type);
-NGS_EXTERNC int ngsEditOverlayEditGeometry(char mapId, LayerH layer, SIZE feateureId);
+NGS_EXTERNC int ngsEditOverlayEditGeometry(char mapId, LayerH layer, POINTER_SIZE feateureId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(char mapId);
 NGS_EXTERNC int ngsEditOverlayAddPoint(char mapId);
 NGS_EXTERNC int ngsEditOverlayAddVertex(char mapId, ngsCoordinate coordinates);
