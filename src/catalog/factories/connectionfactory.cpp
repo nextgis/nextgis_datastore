@@ -150,18 +150,20 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
 
         CPLStringList requestOptions;
         std::string headers = "Accept: */*";
-        Options authOptions;
-        authOptions.add(KEY_TYPE, "basic");
-        authOptions.add(KEY_LOGIN, login);
-        authOptions.add(KEY_PASSWORD, password);
-        // Fake url just for auth headers
-        std::string tmpUrl = "http://" + random(5) + ".info";
-        AuthStore::authAdd(tmpUrl, authOptions);
-        std::string auth = AuthStore::authHeader(tmpUrl);
-        AuthStore::authRemove(tmpUrl);
-        if(!auth.empty()) {
-            headers += "\r\n";
-            headers += auth;
+        if(!isGuest || password.empty()) {
+            Options authOptions;
+            authOptions.add(KEY_TYPE, "basic");
+            authOptions.add(KEY_LOGIN, login);
+            authOptions.add(KEY_PASSWORD, password);
+            // Fake url just for auth headers
+            std::string tmpUrl = "http://" + random(5) + ".info";
+            AuthStore::authAdd(tmpUrl, authOptions);
+            std::string auth = AuthStore::authHeader(tmpUrl);
+            AuthStore::authRemove(tmpUrl);
+            if(!auth.empty()) {
+                headers += "\r\n";
+                headers += auth;
+            }
         }
         requestOptions.AddNameValue("HEADERS", headers.c_str());
         requestOptions.AddNameValue("CONNECTTIMEOUT", "30");

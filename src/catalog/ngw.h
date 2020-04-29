@@ -397,6 +397,186 @@ private:
 
 };
 
+/**
+ * @brief The NGWBaseMap class
+ */
+class NGWBaseMap : public Raster, public NGWResourceBase
+{
+public:
+    explicit NGWBaseMap(ObjectContainer * const parent,
+                       const std::string &name,
+                       const CPLJSONObject &resource = CPLJSONObject(),
+                       NGWConnectionBase *connection = nullptr);
+public:
+    static NGWBaseMap *create(NGWResourceBase *parent, const std::string &name,
+                              const Options &options);
+    // Object interface
+public:
+    virtual bool destroy() override;
+    virtual bool canDestroy() const override;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool setProperty(const std::string &key,
+                             const std::string &value,
+                             const std::string &domain) override;
+
+    // NGWResourceBase interface
+public:
+    virtual CPLJSONObject asJson() const override;
+
+    // DatasetBase interface
+public:
+    virtual bool open(unsigned int openFlags, const Options &options) override;
+
+private:
+    std::string m_url, m_qms;
+};
+
+/**
+ * @brief The NGWWebMapItem class
+ */
+class NGWWebMapItem
+{
+public:
+    enum class ItemType {
+        UNKNOWN,
+        ROOT,
+        GROUP,
+        LAYER
+    };
+    NGWWebMapItem(NGWConnectionBase *connection);
+    virtual ~NGWWebMapItem() = default;
+
+public:
+    virtual CPLJSONObject asJson() const = 0;
+    virtual bool fill(const CPLJSONObject &item) = 0;
+    virtual NGWWebMapItem *clone() = 0;
+
+public:
+
+    enum ItemType m_type;
+    std::string m_displayName;
+    intptr_t m_id;
+    NGWConnectionBase *m_connection;
+};
+
+using NGWWebMapItemPtr = std::shared_ptr<NGWWebMapItem>;
+
+/**
+ * @brief The NGWWebMapLayer class
+ */
+class NGWWebMapLayer : public NGWWebMapItem
+{
+public:
+    NGWWebMapLayer(NGWConnectionBase *connection);
+    virtual CPLJSONObject asJson() const override;
+    virtual bool fill(const CPLJSONObject &item) override;
+    virtual NGWWebMapItem *clone() override;
+public:
+    std::string m_adapter;
+    bool m_enabled;
+    ObjectPtr m_resource;
+    int m_orderPosition;
+    std::string m_maxScaleDenom;
+    std::string m_minScaleDenom;
+    char m_transparency; // 0 - 100
+};
+
+/**
+ * @brief The NGWWebMapGroup class
+ */
+class NGWWebMapGroup : public NGWWebMapItem
+{
+public:
+    NGWWebMapGroup(NGWConnectionBase *connection);
+    virtual ~NGWWebMapGroup() = default;
+    void clear();
+    virtual CPLJSONObject asJson() const override;
+    virtual bool fill(const CPLJSONObject &item) override;
+    virtual NGWWebMapItem *clone() override;
+    bool deleteItem(intptr_t id);
+    intptr_t insetItem(intptr_t pos, NGWWebMapItem *item);
+
+protected:
+
+public:
+    bool m_expanded;
+    std::vector<NGWWebMapItemPtr> m_children;
+};
+
+/**
+ * @brief The NGWWebMapRoot class
+ */
+class NGWWebMapRoot : public NGWWebMapGroup
+{
+public:
+    NGWWebMapRoot(NGWConnectionBase *connection);
+};
+
+using NGWWebMapRootPtr = std::shared_ptr<NGWWebMapRoot>;
+
+/**
+ * @brief The NGWWebMap class
+ */
+class NGWWebMap : public NGWResource
+{
+public:
+    typedef struct _BaseMap {
+        int opacity;
+        bool enabled;
+        std::string displayName;
+        ObjectPtr resource;
+    } BaseMap;
+
+public:
+    explicit NGWWebMap(ObjectContainer * const parent,
+                       const std::string &name,
+                       const CPLJSONObject &resource = CPLJSONObject(),
+                       NGWConnectionBase *connection = nullptr);
+    NGWWebMapRootPtr layerTree() const;
+    bool deleteItem(intptr_t id);
+    intptr_t insetItem(intptr_t pos, NGWWebMapItem *item);
+
+    std::vector<BaseMap> baseMaps() const;
+    bool addBaseMap(const BaseMap &basemap);
+    bool insertBaseMap(int index, const BaseMap &basemap);
+    bool deleteBaseMap(int index);
+
+    // NGWResource interface
+public:
+    virtual CPLJSONObject asJson() const override;
+
+    // Object interface
+public:
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
+    virtual bool setProperty(const std::string &key,
+                             const std::string &value,
+                             const std::string &domain) override;
+    // static
+public:
+    static NGWWebMap *create(NGWResourceBase *parent, const std::string &name,
+                             const Options &options);
+
+private:
+    void fillBasemaps(const CPLJSONArray &basemaps);
+    void fill(const CPLJSONObject &layers);
+
+private:
+    Envelope m_extent;
+    bool m_drawOrderEnabled;
+    bool m_editable;
+    bool m_annotationEnabled;
+    bool m_annotationDefault;
+    long m_bookmarkResourceId;
+    std::vector<BaseMap> m_baseMaps;
+    NGWWebMapRootPtr m_layerTree;
+};
+
 }
 
 #endif // NGSNGWCONNECTION_H

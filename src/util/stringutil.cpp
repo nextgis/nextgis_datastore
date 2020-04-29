@@ -152,13 +152,14 @@ bool endsWith(const std::string &str, const std::string &part, bool caseSensetiv
     return compare(strCmp, part, caseSensetive);
 }
 
-std::string replace(const std::string &str, const std::string &from, const std::string &to)
+std::string replace(const std::string &str, const std::string &from,
+                    const std::string to)
 {
 	auto outString(str);
 	size_t start_pos = 0;
-	while ((start_pos = outString.find(from, start_pos)) != std::string::npos) {
-		outString.replace(start_pos, from.length(), to);
-		start_pos += to.length();
+    while ((start_pos = outString.find(from, start_pos)) != std::string::npos) {
+        outString.replace(start_pos, from.length(), to);
+        start_pos += to.length();
 	}
 	return outString;
 }
@@ -355,6 +356,22 @@ std::string deviceId(bool regenerate)
 bool toBool(const std::string &val)
 {
     return compare(val, "ON") || compare(val, "YES") || compare(val, "1");
+}
+
+std::string fromBool(bool val)
+{
+    if(val) {
+        return "YES";
+    }
+    return "NO";
+}
+
+std::string toLower(const std::string &str)
+{
+    std::string out(str);
+    std::transform(out.begin(), out.end(), out.begin(),
+        [](unsigned char c){ return std::tolower(c); });
+    return out;
 }
 
 }

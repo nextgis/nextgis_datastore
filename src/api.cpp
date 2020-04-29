@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -39,6 +39,7 @@
 #include "catalog/factories/connectionfactory.h"
 #include "ds/simpledataset.h"
 #include "ds/storefeatureclass.h"
+#include "ds/util.h"
 #include "map/mapstore.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
@@ -486,8 +487,20 @@ const char *ngsFormFileName(const char *path, const char *name,
 	if (1 == catalog) {
 		out = replace(out, "\\", Catalog::separator());
 	}
+#else
+    ngsUnused(catalog);
 #endif
     return storeCString(out);
+}
+
+/**
+ * @brief ngsMalloc Allocate memory.
+ * @param size Allocate memory size.
+ * @return Pointer to allocated memory.
+ */
+void *ngsMalloc(SIZE size)
+{
+    return CPLMalloc(static_cast<size_t>(size));
 }
 
 /**
@@ -769,9 +782,9 @@ int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url, char **optio
  */
 JsonObjectH ngsJsonDocumentRoot(JsonDocumentH document)
 {
-    CPLJSONDocument *doc = static_cast<CPLJSONDocument*>(document);
+    auto doc = static_cast<CPLJSONDocument*>(document);
     if(nullptr == doc) {
-        errorMessage(_("Layer pointer is null"));
+        errorMessage(_("The object handle is null"));
         return nullptr;
     }
     return new CPLJSONObject(doc->GetRoot());
@@ -1251,7 +1264,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
     clearCStrings();
 
     if(!container->loadChildren()) {
-        errorMessage(_("Failed to load children."));
+        errorMessage(_("Failed to load children"));
         return nullptr;
     }
 
@@ -1272,7 +1285,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
         }
     }
     if(outputSize > 0) {
-        output[outputSize] = {nullptr, -1, nullptr};
+        output[outputSize] = {nullptr, NOT_FOUND, nullptr};
     }
     return output;
 }
@@ -2120,7 +2133,7 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature,
  * not this edit operation
  * @return COD_SUCCESS if everything is OK
  */
-int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id,
+int ngsFeatureClassDeleteFeature(CatalogObjectH object, SIZE id,
                                  char logEdits)
 {
     Table *table = getTableFromHandle(object);
@@ -2152,7 +2165,7 @@ int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits)
  * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @return Feature/Row count
  */
-long long ngsFeatureClassCount(CatalogObjectH object)
+SIZE ngsFeatureClassCount(CatalogObjectH object)
 {
     Table *table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -2199,7 +2212,7 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
  * @param id Feature identifier
  * @return Feature handle
  */
-FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, long long id)
+FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, SIZE id)
 {
     Table *table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -2307,7 +2320,7 @@ char ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex)
 
 }
 
-long long ngsFeatureGetId(FeatureH feature)
+SIZE ngsFeatureGetId(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -2549,7 +2562,7 @@ ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
     return coordinates;
 }
 
-long long ngsFeatureAttachmentAdd(FeatureH feature, const char *name,
+SIZE ngsFeatureAttachmentAdd(FeatureH feature, const char *name,
                                   const char *description, const char *path,
                                   char **options, char logEdits)
 {
@@ -2589,7 +2602,7 @@ char ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits)
  * @param logEdits Add operaton to edit log or not.
  * @return 1 on success or 0.
  */
-char ngsFeatureAttachmentDelete(FeatureH feature, long long aid, char logEdits)
+char ngsFeatureAttachmentDelete(FeatureH feature, SIZE aid, char logEdits)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -2629,7 +2642,7 @@ ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature)
         out[counter++] = outInfo;
     }
 
-    out[info.size()] = {-1, nullptr, nullptr, nullptr, 0};
+    out[info.size()] = {NOT_FOUND, nullptr, nullptr, nullptr, 0};
     return out;
 }
 
@@ -2642,7 +2655,7 @@ ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature)
  * @param logEdits Add operaton to edit log or not.
  * @return 1 on success or 0.
  */
-char ngsFeatureAttachmentUpdate(FeatureH feature, long long aid,
+char ngsFeatureAttachmentUpdate(FeatureH feature, SIZE aid,
                                const char *name, const char *description,
                                char logEdits)
 {
@@ -3540,7 +3553,7 @@ int ngsLayerSetStyleName(LayerH layer, const char *name)
     return renderLayerPtr->setStyleName(fromCString(name)) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size)
+int ngsLayerSetSelectionIds(LayerH layer, SIZE *ids, int size)
 {
     if(nullptr == layer) {
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
@@ -3560,7 +3573,7 @@ int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size)
     return COD_SUCCESS;
 }
 
-int ngsLayerSetHideIds(LayerH layer, long long *ids, int size)
+int ngsLayerSetHideIds(LayerH layer, SIZE *ids, int size)
 {
     if(nullptr == layer) {
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
@@ -3778,7 +3791,7 @@ int ngsEditOverlayCreateGeometry(char mapId, ngsGeometryType type)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayEditGeometry(char mapId, LayerH layer, long long featureId)
+int ngsEditOverlayEditGeometry(char mapId, LayerH layer, SIZE featureId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
@@ -4026,72 +4039,6 @@ JsonObjectH ngsLocationOverlayGetStyle(char mapId)
 //    return gMapStore->getDisplayLength (mapId, w, h);
 //}
 
-constexpr const char *qmsAPIURL = "https://qms.nextgis.com/api/v1/";
-
-static enum ngsCode qmsStatusToCode(const std::string &status)
-{
-    if(status.empty()) {
-        return COD_REQUEST_FAILED;
-    }
-
-    if(EQUAL(status.c_str(), "works")) {
-        return COD_SUCCESS;
-    }
-
-    if(EQUAL(status.c_str(), "problematic")) {
-        return COD_WARNING;
-    }
-
-    return COD_REQUEST_FAILED;
-}
-
-static enum ngsCatalogObjectType qmsTypeToCode(const std::string &type)
-{
-    if(type.empty()) {
-        return CAT_UNKNOWN;
-    }
-
-    if(EQUAL(type.c_str(), "tms")) {
-        return CAT_RASTER_TMS;
-    }
-
-    if(EQUAL(type.c_str(), "wms")) {
-        return CAT_CONTAINER_WMS;
-    }
-
-    if(EQUAL(type.c_str(), "wfs")) {
-        return CAT_CONTAINER_WFS;
-    }
-
-    if(EQUAL(type.c_str(), "geojson")) {
-        return CAT_FC_GEOJSON;
-    }
-
-    return CAT_UNKNOWN;
-}
-
-static ngsExtent qmsExtentToStruct(const std::string &extent)
-{
-    ngsExtent out = {DEFAULT_BOUNDS.minX(), DEFAULT_BOUNDS.minY(),
-                     DEFAULT_BOUNDS.maxX(), DEFAULT_BOUNDS.maxY()};
-    if(extent.empty() || extent.size() < 11) {
-        return out;
-    }
-    // Drop SRID part - 10 chars
-    std::string wkt = extent.substr(10);
-    OGRGeometry *poGeom = nullptr;
-    if(OGRGeometryFactory::createFromWkt(wkt.c_str(), 
-        OGRSpatialReference::GetWGS84SRS(), &poGeom) != OGRERR_NONE ) {
-        SpatialReferencePtr srsWebMercator = SpatialReferencePtr::importFromEPSG(3857);
-        if(poGeom->transformTo(srsWebMercator) != OGRERR_NONE) {
-            OGREnvelope env;
-            poGeom->getEnvelope(&env);
-            out = {env.MinX, env.MinY, env.MaxX, env.MaxY};
-        }
-    }
-    return out;
-}
-
 /**
  * @brief ngsQMSQuery Query QuickMapServices for specific geoservices
  * @param options key-value list. All keys are optional. Available keys are:
@@ -4110,124 +4057,30 @@ static ngsExtent qmsExtentToStruct(const std::string &extent)
 ngsQMSItem *ngsQMSQuery(char **options)
 {
     Options opt(options);
-    std::string url(qmsAPIURL);
-    url.append("geoservices/");
-    bool firstParam = true;
-
-    std::string val = opt.asString("type");
-    if(!val.empty()) {
-        url.append("?type=" + val);
-        firstParam = false;
-    }
-
-    val = opt.asString("epsg");
-    if(!val.empty()) {
-        if(firstParam) {
-            url.append("?epsg=" + val);
-            firstParam = false;
-        }
-        else {
-            url.append("&epsg=" + val);
-        }
-    }
-
-    val = opt.asString("cumulative_status");
-    if(!val.empty()) {
-        if(firstParam) {
-            url.append("?cumulative_status=" + val);
-            firstParam = false;
-        }
-        else {
-            url.append("&cumulative_status=" + val);
-        }
-    }
-
-    val = opt.asString("search");
-    if(!val.empty()) {
-        if(firstParam) {
-            url.append("?search=" + val);
-            firstParam = false;
-        }
-        else {
-            url.append("&search=" + val);
-        }
-    }
-
-    val = opt.asString("intersects_extent");
-    if(!val.empty()) {
-        if(firstParam) {
-            url.append("?intersects_extent=" + val);
-            firstParam = false;
-        }
-        else {
-            url.append("&intersects_extent=" + val);
-        }
-    }
-
-    val = opt.asString("ordering");
-    if(!val.empty()) {
-        if(firstParam) {
-            url.append("?ordering=" + val);
-            firstParam = false;
-        }
-        else {
-            url.append("&ordering=" + val);
-        }
-    }
-
-    val = opt.asString("limit", "20");
-    if(firstParam) {
-        url.append("?limit=" + val);
-        firstParam = false;
-    }
-    else {
-        url.append("&limit=" + val);
-    }
-
-    val = opt.asString("offset", "0");
-    if(firstParam) {
-        url.append("?offset=" + val);
-    }
-    else {
-        url.append("&offset=" + val);
-    }
 
     ngsExtent ext = {0.0, 0.0, 0.0, 0.0};
     ngsQMSItem *out = nullptr;
-    CPLJSONObject root = http::fetchJson(url);
-    if(root.IsValid()) {
-        clearCStrings();
-        int count = root.GetInteger("count");
-        CPLJSONArray services = root.GetArray("results");
-        size_t size = static_cast<size_t>(services.Size() + 1);
-        out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem) * size));
-        for(int i = 0; i < services.Size(); ++i) {
-            CPLJSONObject service = services[i];
-            int iconId = service.GetInteger("icon", -1);
-            std::string iconUrl;
-            if(iconId != -1) {
-                iconUrl = storeCString(std::string(qmsAPIURL) + "icons/" +
-                                       std::to_string(iconId) + "/content");
-            }
-
-            out[i] = { service.GetInteger("id"),
-                       storeCString(service.GetString("name")),
-                       storeCString(service.GetString("desc")),
-                       qmsTypeToCode(service.GetString("type")),
-                       storeCString(iconUrl),
-                       qmsStatusToCode(service.GetString("status")),
-                       qmsExtentToStruct(service.GetString("extent")),
-                       count
-                     };
-
-        }
-
-        out[services.Size()] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED,
-                ext, -1};
+    auto items = qms::QMSQuery(opt);
+    if(items.empty()) {
+        out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem)));
+        out[0] = {NOT_FOUND, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED, ext};
     }
     else {
-        out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem)));
-        out[0] = {-1, "", "", CAT_UNKNOWN, "", COD_REQUEST_FAILED, ext, -1};
+        clearCStrings();
+        size_t size = items.size() + 1;
+        out = static_cast<ngsQMSItem*>(CPLMalloc(sizeof(ngsQMSItem) * size));
+        for(size_t i = 0; i < items.size(); ++i) {
+            ext = {items[i].extent.minX(), items[i].extent.minY(),
+                   items[i].extent.maxX(), items[i].extent.maxY()};
+            out[i] = { items[i].id,
+                       storeCString(items[i].name),
+                       storeCString(items[i].desc),
+                       items[i].type,
+                       storeCString(items[i].iconUrl),
+                       items[i].status,
+                       ext
+                     };
+        }
     }
 
     return out;
@@ -4240,29 +4093,25 @@ ngsQMSItem *ngsQMSQuery(char **options)
  */
 ngsQMSItemProperties ngsQMSQueryProperties(int itemId)
 {
-    ngsQMSItemProperties out = {-1, COD_REQUEST_FAILED, "", "", "", CAT_UNKNOWN,
-                                -1, -1, -1, "", {0.0, 0.0, 0.0, 0.0}, 0};
-    CPLJSONObject root = http::fetchJson(std::string(qmsAPIURL) + "geoservices/" +
-                                         std::to_string(itemId));
-    if(root.IsValid()) {
+    ngsQMSItemProperties out = {NOT_FOUND, COD_REQUEST_FAILED, "", "", "", CAT_UNKNOWN,
+                                NOT_FOUND, NOT_FOUND, NOT_FOUND, "", {0.0, 0.0, 0.0, 0.0}, 0};
+    auto item = qms::QMSQueryProperties(itemId);
+    if(item.id != NOT_FOUND) {
         clearCStrings();
 
-        out.id = itemId;
-        out.status = qmsStatusToCode(root.GetString("cumulative_status", "failed"));
-        out.url = storeCString(root.GetString("url"));
-        out.name = storeCString(root.GetString("name"));
-        out.desc = storeCString(root.GetString("desc"));
-        out.type = qmsTypeToCode(root.GetString("type"));
-        out.EPSG = root.GetInteger("epsg", 3857);
-        out.z_min = root.GetInteger("z_min", 0);
-        out.z_max = root.GetInteger("z_max", 20);
-        int iconId = root.GetInteger("icon", -1);
-        if(iconId != -1) {
-            out.iconUrl = storeCString(std::string(qmsAPIURL) + "icons/" +
-                                       std::to_string(iconId) + "/content");
-        }
-        out.y_origin_top = root.GetBool("y_origin_top");
-        out.extent = qmsExtentToStruct(root.GetString("extent"));
+        out.id = item.id;
+        out.status = item.status;
+        out.url = storeCString(item.url);
+        out.name = storeCString(item.name);
+        out.desc = storeCString(item.desc);
+        out.type = item.type;
+        out.EPSG = item.epsg;
+        out.z_min = item.z_min;
+        out.z_max = item.z_max;
+        out.iconUrl = storeCString(item.iconUrl);
+        out.y_origin_top = item.y_origin_top;
+        out.extent = {item.extent.minX(), item.extent.minY(),
+                      item.extent.maxX(), item.extent.maxY()};
     }
 
     return out;
@@ -4363,7 +4212,7 @@ char ngsAccountUpdateSupportInfo()
 
 static DataStore *getDataStoreFromHandle(CatalogObjectH object)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         errorMessage(_("The object handle is null"));
         return nullptr;
@@ -4379,7 +4228,7 @@ static DataStore *getDataStoreFromHandle(CatalogObjectH object)
  */
 CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store)
 {
-    DataStore *dataStore = getDataStoreFromHandle(store);
+    auto dataStore = getDataStoreFromHandle(store);
     if(!dataStore) {
         errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
@@ -4399,7 +4248,7 @@ CatalogObjectH ngsStoreGetTracksTable(CatalogObjectH store)
  */
 char ngsStoreHasTracksTable(CatalogObjectH store)
 {
-    DataStore *dataStore = getDataStoreFromHandle(store);
+    auto dataStore = getDataStoreFromHandle(store);
     if(!dataStore) {
         errorMessage(_("Source dataset type is incompatible"));
         return API_FALSE;
@@ -4416,7 +4265,7 @@ char ngsStoreHasTracksTable(CatalogObjectH store)
 
 static TracksTable *getTracksTableFromHandle(CatalogObjectH object)
 {
-    Object *catalogObject = static_cast<Object*>(object);
+    auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
         errorMessage(_("The object handle is null"));
         return nullptr;
@@ -4452,7 +4301,7 @@ char ngsTrackIsRegistered()
  */
 CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable)
 {
-    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    auto table = getTracksTableFromHandle(tracksTable);
     if(!table) {
         errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
@@ -4467,7 +4316,7 @@ CatalogObjectH ngsTrackGetPointsTable(CatalogObjectH tracksTable)
  */
 ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
 {
-    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    auto table = getTracksTableFromHandle(tracksTable);
     if(!table) {
         errorMessage(_("Source dataset type is incompatible"));
         return nullptr;
@@ -4483,7 +4332,7 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
         outList[count++] = {storeCString(listItem.name), listItem.startTimeStamp, listItem.stopTimeStamp, listItem.count};
     }
 
-    outList[count] = {nullptr, -1, -1, 0};
+    outList[count] = {nullptr, NOT_FOUND, NOT_FOUND, 0};
     return outList;
 
 }
@@ -4507,7 +4356,7 @@ ngsTrackInfo *ngsTrackGetList(CatalogObjectH tracksTable)
 char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double x, double y, double z,
         float acc, float speed, float course, long timeStamp, int satCount, char newTrack, char newSegment)
 {
-    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    auto table = getTracksTableFromHandle(tracksTable);
     if(!table) {
         errorMessage(_("Source dataset type is incompatible"));
         return API_FALSE;
@@ -4527,7 +4376,7 @@ char ngsTrackAddPoint(CatalogObjectH tracksTable, const char *trackName, double 
  */
 char ngsTrackDeletePoints(CatalogObjectH tracksTable, long start, long stop)
 {
-    TracksTable *table = getTracksTableFromHandle(tracksTable);
+    auto table = getTracksTableFromHandle(tracksTable);
     if(!table) {
         errorMessage(_("Source dataset type is incompatible"));
         return API_FALSE;
@@ -4557,9 +4406,9 @@ static T *getObjectFromHandle(CatalogObjectH object)
  */
 char ngsNGWServiceDeleteLayer(CatalogObjectH object, const char *keyName)
 {
-    NGWService *service = getObjectFromHandle<NGWService>(object);
+    auto service = getObjectFromHandle<NGWService>(object);
     if(nullptr == service) {
-        errorMessage(_("Cannot cast to NGWService from input object"));
+        errorMessage(_("Cannot cast to %s from input object"), "NGWService");
         return API_FALSE;
     }
     return service->deleteLayer(fromCString(keyName)) ? API_TRUE : API_FALSE;
@@ -4576,14 +4425,14 @@ char ngsNGWServiceDeleteLayer(CatalogObjectH object, const char *keyName)
 char ngsNGWServiceAddLayer(CatalogObjectH object, const char *keyName,
                            const char *displayName, CatalogObjectH ngwObject)
 {
-    NGWService *service = getObjectFromHandle<NGWService>(object);
+    auto service = getObjectFromHandle<NGWService>(object);
     if(nullptr == service) {
-        errorMessage(_("Cannot cast to NGWService from input object"));
+        errorMessage(_("Cannot cast to %s from input object"), "NGWService");
         return API_FALSE;
     }
     auto resourceBase = getObjectFromHandle<NGWResourceBase>(ngwObject);
     if(nullptr == resourceBase) {
-        errorMessage(_("Cannot cast to NGWResourceBase from input ngwObject"));
+        errorMessage(_("Cannot cast to %s from input ngwObject"), "NGWResourceBase");
         return API_FALSE;
     }
 
@@ -4604,14 +4453,14 @@ char ngsNGWServiceChangeLayer(CatalogObjectH object, const char *originalKeyName
                               const char *newKeyName, const char *newDisplayName,
                               CatalogObjectH ngwObject)
 {
-    NGWService *service = getObjectFromHandle<NGWService>(object);
+    auto service = getObjectFromHandle<NGWService>(object);
     if(nullptr == service) {
-        errorMessage(_("Cannot cast to NGWService from input object"));
+        errorMessage(_("Cannot cast to %s from input object"), "NGWService");
         return API_FALSE;
     }
     NGWResourceBase *resourceBase = getObjectFromHandle<NGWResourceBase>(ngwObject);
     if(nullptr == resourceBase) {
-        errorMessage(_("Cannot cast to NGWResourceBase from input ngwObject"));
+        errorMessage(_("Cannot cast to %s from input ngwObject"), "NGWResourceBase");
         return API_FALSE;
     }
 
@@ -4629,9 +4478,9 @@ char ngsNGWServiceChangeLayer(CatalogObjectH object, const char *originalKeyName
  */
 ngsNGWServiceLayerInfo *ngsNGWServiceList(CatalogObjectH object)
 {
-    NGWService *service = getObjectFromHandle<NGWService>(object);
+    auto service = getObjectFromHandle<NGWService>(object);
     if(nullptr == service) {
-        errorMessage(_("Cannot cast to NGWService from input object"));
+        errorMessage(_("Cannot cast to %s from input object"), "NGWService");
         return nullptr;
     }
 
@@ -4651,6 +4500,300 @@ ngsNGWServiceLayerInfo *ngsNGWServiceList(CatalogObjectH object)
                     layer->m_resourceId};
     }
 
-    output[outputSize] = {nullptr, nullptr, -1};
+    output[outputSize] = {nullptr, nullptr, NOT_FOUND};
     return output;
 }
+
+/**
+ * @brief ngsNGWWebMapDeleteBaseMap Delete base map information from web map.
+ * @param object Catalog object of type NGWWebMap.
+ * @param index Base map index to delete.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWWebMapDeleteBaseMap(CatalogObjectH object, int index)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return API_FALSE;
+    }
+    return webMap->deleteBaseMap(index) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsNGWWebMapAddBaseMap Add base map to web map
+ * @param object Catalog object of type NGWWebMap.
+ * @param baseMap Base map information as struct.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWWebMapAddBaseMap(CatalogObjectH object, ngsNGWWebmapBasemapInfo baseMap)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return API_FALSE;
+    }
+
+    auto catalogObject = static_cast<Object*>(baseMap.baseMap);
+    if(!catalogObject) {
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
+    }
+
+    NGWWebMap::BaseMap in = {baseMap.opacity, baseMap.enabled == 1 ? true : false,
+                             baseMap.displayName, catalogObject->pointer()};
+
+    return webMap->addBaseMap(in) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsNGWWebMapInsertBaseMap Inset base map to web map
+ * @param object Catalog object of type NGWWebMap.
+ * @param baseMap Base map information as struct.
+ * @param index Index to insert base map.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWWebMapInsertBaseMap(CatalogObjectH object,
+                               ngsNGWWebmapBasemapInfo baseMap, int index)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return API_FALSE;
+    }
+
+    auto catalogObject = static_cast<Object*>(baseMap.baseMap);
+    if(!catalogObject) {
+        errorMessage(_("The object handle is null"));
+        return API_FALSE;
+    }
+
+    NGWWebMap::BaseMap in = {baseMap.opacity, baseMap.enabled == 1 ? true : false,
+                             baseMap.displayName, catalogObject->pointer()};
+
+    return webMap->insertBaseMap(index, in) ? API_TRUE : API_FALSE;
+}
+
+/**
+ * @brief ngsNGWWebMapBaseMapList Base maps list of web map.
+ * @param object Catalog object of type NGWWebMap.
+ * @return List of ngsNGWWebmapBasemapInfo items or nullptr. The last element of list always nullptr.
+ * The list must be freed using ngsFree function.
+ */
+ngsNGWWebmapBasemapInfo *ngsNGWWebMapBaseMapList(CatalogObjectH object)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return nullptr;
+    }
+
+    auto baseMaps = webMap->baseMaps();
+    if(baseMaps.empty()) {
+        return nullptr;
+    }
+    size_t outputSize = baseMaps.size();
+    ngsNGWWebmapBasemapInfo *output =
+            static_cast<ngsNGWWebmapBasemapInfo*>(
+                CPLMalloc(sizeof(ngsNGWWebmapBasemapInfo) * (outputSize + 1)));
+    clearCStrings();
+
+    for(size_t i = 0; i < outputSize; ++i) {
+        const auto &baseMap = baseMaps[i];
+        output[i] = {baseMap.opacity, baseMap.enabled ? API_TRUE : API_FALSE,
+                     storeCString(baseMap.displayName), baseMap.resource.get()};
+    }
+
+    output[outputSize] = {NOT_FOUND, false, nullptr, nullptr};
+    return output;
+}
+
+/**
+ * @brief ngsNGWWebMapDeleteItem Delete webmap item (group or layer)
+ * @param object Catalog object of type NGWWebMap.
+ * @param id Item identifier.
+ * @return 1 on success, 0 if failed.
+ */
+char ngsNGWWebMapDeleteItem(CatalogObjectH object, long id)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return API_FALSE;
+    }
+    return webMap->deleteItem(id) ? API_TRUE : API_FALSE;
+}
+
+static ngsNGWWebmapLayerInfo *toWebMapLayerInfo(NGWWebMapLayer *layer)
+{
+    auto out = new ngsNGWWebmapLayerInfo;
+    out->layer = layer->m_resource.get();
+    out->adapter = storeCString(layer->m_adapter);
+    out->enabled = layer->m_enabled ? 1 : 0;
+    out->itemInfo.itemType = WMT_LAYER;
+    out->itemInfo.displayName = storeCString(layer->m_displayName);
+    out->transparency = layer->m_transparency;
+    out->maxScaleDenom = storeCString(layer->m_maxScaleDenom);
+    out->minScaleDenom = storeCString(layer->m_minScaleDenom);
+    out->orderPosition = layer->m_orderPosition;
+    return out;
+}
+
+static ngsNGWWebmapGroupInfo *toWebMapGroupInfo(NGWWebMapGroup *group)
+{
+    auto out = new ngsNGWWebmapGroupInfo;
+    out->expanded = group->m_expanded ? 1 : 0;
+    out->itemInfo.displayName = storeCString(group->m_displayName);
+    out->itemInfo.itemType = group->m_type == NGWWebMapItem::ItemType::ROOT ? WMT_ROOT : WMT_GROUP;
+
+    size_t outputSize = group->m_children.size();
+    out->children = static_cast<ngsNGWWebmapItemInfo**>(
+                CPLMalloc(sizeof(ngsNGWWebmapItemInfo*) * (outputSize + 1)));
+
+    for(size_t i = 0; i < outputSize; ++i) {
+        const auto &child = group->m_children[i];
+        if(child->m_type == NGWWebMapItem::ItemType::LAYER) {
+            auto childLayer = dynamic_cast<NGWWebMapLayer*>(child.get());
+            out->children[i] = reinterpret_cast<ngsNGWWebmapItemInfo*>(toWebMapLayerInfo(childLayer));
+        }
+        else {
+            auto childGroup = dynamic_cast<NGWWebMapGroup*>(child.get());
+            out->children[i] = reinterpret_cast<ngsNGWWebmapItemInfo*>(toWebMapGroupInfo(childGroup));
+        }
+    }
+
+    out->children[outputSize] = new ngsNGWWebmapItemInfo({WMT_UNKNOWN, nullptr});
+    return out;
+}
+
+/**
+ * @brief ngsNGWWebMapLayerTree
+ * @param object Catalog object of type NGWWebMap.
+ * @return Pointer to ngsNGWWebmapGroupInfo structure, Pointer must be freed using ngsNGWWebmapGroupInfoFree
+ */
+ngsNGWWebmapGroupInfo *ngsNGWWebMapLayerTree(CatalogObjectH object)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return nullptr;
+    }
+    clearCStrings();
+    auto tree = webMap->layerTree();
+    return toWebMapGroupInfo(tree.get());
+}
+
+static NGWWebMapLayer *fromWebMapLayerInfo(ngsNGWWebmapLayerInfo *layer,
+                                           NGWWebMap *webMap)
+{
+    auto webMapLayer = new NGWWebMapLayer(webMap->connection());
+    webMapLayer->m_adapter = fromCString(layer->adapter);
+    webMapLayer->m_enabled = layer->enabled == 1;
+    auto object = getObjectFromHandle<Object>(layer->layer);
+    if(nullptr != object) {
+        webMapLayer->m_resource = object->pointer();
+    }
+    webMapLayer->m_transparency = layer->transparency;
+    webMapLayer->m_maxScaleDenom = fromCString(layer->maxScaleDenom);
+    webMapLayer->m_minScaleDenom = fromCString(layer->minScaleDenom);
+    webMapLayer->m_orderPosition = layer->orderPosition;
+    webMapLayer->m_displayName = fromCString(layer->itemInfo.displayName);
+    return webMapLayer;
+}
+
+static NGWWebMapGroup *fromWebMapGroupInfo(ngsNGWWebmapGroupInfo *group,
+                                           NGWWebMap *webMap)
+{
+    if(nullptr == group) {
+        return nullptr;
+    }
+    auto webMapGroup = new NGWWebMapGroup(webMap->connection());
+    webMapGroup->m_expanded = group->expanded == 1;
+    webMapGroup->m_displayName = fromCString(group->itemInfo.displayName);
+    if(group->children) {
+        int i = 0;
+        ngsNGWWebmapItemInfo *child = nullptr;
+        while((child = group->children[i++])->itemType != WMT_UNKNOWN) {
+            if(child->itemType == WMT_LAYER) {
+                webMapGroup->m_children.emplace_back(
+                    fromWebMapLayerInfo(
+                        reinterpret_cast<ngsNGWWebmapLayerInfo*>(child), webMap));
+            }
+            else if(child->itemType == WMT_GROUP) {
+                webMapGroup->m_children.emplace_back(
+                    fromWebMapGroupInfo(
+                        reinterpret_cast<ngsNGWWebmapGroupInfo*>(child), webMap));
+            }
+            else {
+                break;
+            }
+        }
+    }
+    return webMapGroup;
+}
+
+static NGWWebMapItemPtr fromWebMapItemInfo(ngsNGWWebmapItemInfo *item,
+                                           NGWWebMap *webMap)
+{
+    if(nullptr == item || item->itemType == WMT_UNKNOWN) {
+        return NGWWebMapItemPtr();
+    }
+
+    if(item->itemType == WMT_LAYER) {
+        auto webMapItem = reinterpret_cast<ngsNGWWebmapLayerInfo*>(item);
+        return NGWWebMapItemPtr(fromWebMapLayerInfo(webMapItem, webMap));
+    }
+
+    auto webMapItem = reinterpret_cast<ngsNGWWebmapGroupInfo*>(item);
+    return NGWWebMapItemPtr(fromWebMapGroupInfo(webMapItem, webMap));
+}
+/**
+ * @brief ngsNGWWebMapInsertItem Insert new item to web map
+ * @param object Catalog object of type NGWWebMap.
+ * @param pos Item identifier to insert new item. If identifier points to group, new item will add to the end of children list. If identifier points to layer, new item will add before this item. If identifier is equal -1, new item will add to the end of root children list.
+ * @param item New item to insert.
+ * @return New item identifier or -1 if failed.
+ */
+long ngsNGWWebMapInsertItem(CatalogObjectH object, long pos,
+                            ngsNGWWebmapItemInfo *item)
+{
+    auto webMap = getObjectFromHandle<NGWWebMap>(object);
+    if(nullptr == webMap) {
+        errorMessage(_("Cannot cast to %s from input object"), "NGWWebMap");
+        return NOT_FOUND;
+    }
+    return webMap->insetItem(pos, fromWebMapItemInfo(item, webMap).get());
+}
+
+/**
+ * @brief ngsNGWWebmapItemInfoFree Free memory used by ngsNGWWebmapItemInfo structure
+ * @param item ngsNGWWebmapItemInfo pointer
+ */
+void ngsNGWWebmapItemInfoFree(ngsNGWWebmapItemInfo *item)
+{
+    if(item->itemType == WMT_LAYER) {
+        delete item;
+    }
+    auto group = reinterpret_cast<ngsNGWWebmapGroupInfo*>(item);
+    ngsNGWWebmapGroupInfoFree(group);
+}
+
+/**
+ * @brief ngsNGWWebmapGroupInfoFree Free memory used by ngsNGWWebmapGroupInfo structure
+ * @param group ngsNGWWebmapGroupInfo pointer
+ */
+void ngsNGWWebmapGroupInfoFree(ngsNGWWebmapGroupInfo *group)
+{
+    if(group->children) {
+        int i = 0;
+        ngsNGWWebmapItemInfo *child = nullptr;
+        while((child = group->children[i++])->itemType != WMT_UNKNOWN) {
+            if(child->itemType == WMT_GROUP) {
+                auto childGroup = reinterpret_cast<ngsNGWWebmapGroupInfo*>(child);
+                ngsNGWWebmapGroupInfoFree(childGroup);
+            }
+        }
+        ngsFree(group->children);
+    }
+}
+

@@ -27,7 +27,7 @@
 
 namespace ngs {
 
-constexpr const char *URL_KEY = "url";
+constexpr const char *URL_KEY = "URL";
 constexpr unsigned short MAX_EQUAL_NAMES = 100;
 
 class ObjectContainer : public Object

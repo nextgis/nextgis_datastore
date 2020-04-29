@@ -44,7 +44,8 @@ bool startsWith(const std::string &str, const std::string &part,
                 bool caseSensetive = false);
 bool endsWith(const std::string &str, const std::string &part,
               bool caseSensetive = false);
-std::string replace(const std::string &str, const std::string &replaceFrom, const std::string &replaceTo);
+std::string replace(const std::string &str, const std::string &from,
+                    const std::string to);
 std::string md5(const std::string &val);
 std::string fromCString(const char *str);
 std::string random(int size);
@@ -54,6 +55,8 @@ std::string encrypt(const std::string& ptext);
 std::string decrypt(const std::string& ctext);
 std::string deviceId(bool regenerate = false);
 bool toBool(const std::string &val);
+std::string fromBool(bool val);
+std::string toLower(const std::string &str);
 
 }
 #endif // NGSSTRINGUTIL_H

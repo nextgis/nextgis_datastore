@@ -2,9 +2,8 @@
  * Project:  libngstore
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
- * Author: NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -76,6 +75,10 @@ typedef struct _ngsURLRequestResult {
 
 typedef unsigned int ngsGeometryType;
 
+#ifndef SIZE
+typedef long long SIZE;
+#endif // SIZE
+
 /**
  * @brief Prototype of function, which executed periodically during some long
  * process.
@@ -123,6 +126,7 @@ NGS_EXTERNC char **ngsListAddNameIntValue(char **list, const char *name, int val
 NGS_EXTERNC void ngsListFree(char **list);
 NGS_EXTERNC const char *ngsFormFileName(const char *path, const char *name,
                                         const char *extension, char catalog);
+NGS_EXTERNC void* ngsMalloc(SIZE size);
 NGS_EXTERNC void ngsFree(void *pointer);
 
 /*
@@ -257,11 +261,11 @@ typedef struct _ngsField {
 } ngsField;
 
 typedef struct _ngsEditOperation {
-    long long fid;
-    long long aid;
+    SIZE fid;
+    SIZE aid;
     enum ngsChangeCode code;
-    long long rid;
-    long long arid;
+    SIZE rid;
+    SIZE arid;
 } ngsEditOperation;
 
 NGS_EXTERNC ngsField *ngsFeatureClassFields(CatalogObjectH object);
@@ -272,14 +276,13 @@ NGS_EXTERNC int ngsFeatureClassInsertFeature(CatalogObjectH object,
                                              FeatureH feature, char logEdits);
 NGS_EXTERNC int ngsFeatureClassUpdateFeature(CatalogObjectH object,
                                              FeatureH feature, char logEdits);
-NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, long long id,
+NGS_EXTERNC int ngsFeatureClassDeleteFeature(CatalogObjectH object, SIZE id,
                                              char logEdits);
 NGS_EXTERNC int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits);
-NGS_EXTERNC long long ngsFeatureClassCount(CatalogObjectH object);
+NGS_EXTERNC SIZE ngsFeatureClassCount(CatalogObjectH object);
 NGS_EXTERNC void ngsFeatureClassResetReading(CatalogObjectH object);
 NGS_EXTERNC FeatureH ngsFeatureClassNextFeature(CatalogObjectH object);
-NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object,
-                                               long long id);
+NGS_EXTERNC FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, SIZE id);
 NGS_EXTERNC int ngsFeatureClassSetFilter(CatalogObjectH object,
                                          GeometryH geometryFilter,
                                          const char *attributeFilter);
@@ -298,7 +301,7 @@ NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
 NGS_EXTERNC char ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex);
-NGS_EXTERNC long long ngsFeatureGetId(FeatureH feature);
+NGS_EXTERNC SIZE ngsFeatureGetId(FeatureH feature);
 NGS_EXTERNC GeometryH ngsFeatureGetGeometry(FeatureH feature);
 NGS_EXTERNC int ngsFeatureGetFieldAsInteger(FeatureH feature, int field);
 NGS_EXTERNC double ngsFeatureGetFieldAsDouble(FeatureH feature, int field);
@@ -339,25 +342,25 @@ NGS_EXTERNC ngsCoordinate ngsCoordinateTransformationDo(
         CoordinateTransformationH ct, ngsCoordinate coordinates);
 
 typedef struct _ngsFeatureAttachmentInfo {
-    long long id;
+    SIZE id;
     const char *name;
     const char *description;
     const char *path;
-    long long size;
+    SIZE size;
 } ngsFeatureAttachmentInfo;
 
-NGS_EXTERNC long long ngsFeatureAttachmentAdd(FeatureH feature,
-                                              const char *name,
-                                              const char *description,
-                                              const char *path,
-                                              char **options,
-                                              char logEdits);
-NGS_EXTERNC char ngsFeatureAttachmentDelete(FeatureH feature, long long aid,
+NGS_EXTERNC SIZE ngsFeatureAttachmentAdd(FeatureH feature,
+                                         const char *name,
+                                         const char *description,
+                                         const char *path,
+                                         char **options,
+                                         char logEdits);
+NGS_EXTERNC char ngsFeatureAttachmentDelete(FeatureH feature, SIZE aid,
                                            char logEdits);
 NGS_EXTERNC char ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits);
 NGS_EXTERNC ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature);
 NGS_EXTERNC char ngsFeatureAttachmentUpdate(FeatureH feature,
-                                           long long aid,
+                                           SIZE aid,
                                            const char *name,
                                            const char *description,
                                            char logEdits);
@@ -434,8 +437,8 @@ NGS_EXTERNC JsonObjectH ngsLayerGetStyle(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyle(LayerH layer, JsonObjectH style);
 NGS_EXTERNC const char *ngsLayerGetStyleName(LayerH layer);
 NGS_EXTERNC int ngsLayerSetStyleName(LayerH layer, const char *name);
-NGS_EXTERNC int ngsLayerSetSelectionIds(LayerH layer, long long *ids, int size);
-NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, long long *ids, int size);
+NGS_EXTERNC int ngsLayerSetSelectionIds(LayerH layer, SIZE *ids, int size);
+NGS_EXTERNC int ngsLayerSetHideIds(LayerH layer, SIZE *ids, int size);
 
 /*
  * Overlay functions
@@ -462,7 +465,7 @@ NGS_EXTERNC FeatureH ngsEditOverlaySave(char mapId);
 NGS_EXTERNC int ngsEditOverlayCancel(char mapId);
 NGS_EXTERNC int ngsEditOverlayCreateGeometryInLayer(char mapId, LayerH layer, char empty);
 NGS_EXTERNC int ngsEditOverlayCreateGeometry(char mapId, ngsGeometryType type);
-NGS_EXTERNC int ngsEditOverlayEditGeometry(char mapId, LayerH layer, long long feateureId);
+NGS_EXTERNC int ngsEditOverlayEditGeometry(char mapId, LayerH layer, SIZE feateureId);
 NGS_EXTERNC int ngsEditOverlayDeleteGeometry(char mapId);
 NGS_EXTERNC int ngsEditOverlayAddPoint(char mapId);
 NGS_EXTERNC int ngsEditOverlayAddVertex(char mapId, ngsCoordinate coordinates);
@@ -505,7 +508,6 @@ typedef struct _ngsQMSItem
     const char *iconUrl;
     enum ngsCode status; /**< May be COD_SUCCESS, COD_WARNING, COD_REQUEST_FAILED */
     ngsExtent extent;
-    int total;
 } ngsQMSItem;
 
 NGS_EXTERNC ngsQMSItem *ngsQMSQuery(char **options);
@@ -591,594 +593,47 @@ NGS_EXTERNC char ngsNGWServiceChangeLayer(CatalogObjectH object,
 // or use standard ngsCatalogObjectProperty/ngsCatalogObjectSetProperty
 
 typedef struct _ngsNGWWebmapItemInfo {
-    char itemType;
+    enum ngsWebMapItemType itemType;
     const char *displayName;
 } ngsNGWWebmapItemInfo;
 
-typedef struct _ngsNGWWebmapLayerInfo : _ngsNGWWebmapItemInfo {
+typedef struct _ngsNGWWebmapLayerInfo {
+    ngsNGWWebmapItemInfo itemInfo;
     const char *adapter;
-    bool enabled;
-    int style;
+    char enabled;
     int orderPosition;
     const char *maxScaleDenom;
     const char *minScaleDenom;
     char transparency; // 0 - 100
+    CatalogObjectH layer;
 } ngsNGWWebmapLayerInfo;
 
-typedef struct _ngsNGWWebmapGroupInfo : _ngsNGWWebmapItemInfo {
-    bool expanded;
-    ngsNGWWebmapLayerInfo **children;
+typedef struct _ngsNGWWebmapGroupInfo {
+    ngsNGWWebmapItemInfo itemInfo;
+    char expanded;
+    ngsNGWWebmapItemInfo **children;
 } ngsNGWWebmapGroupInfo;
 
 typedef struct _ngsNGWWebmapBasemapInfo {
     int opacity;
-    bool enabled;
-    int position;
+    char enabled;
     const char *displayName;
-    int resourceId;
+    CatalogObjectH baseMap;
 } ngsNGWWebmapBasemapInfo;
-/*
-"opacity": null,
-"enabled": true,
-"position": 0,
-"display_name": "Спутник",
-"resource_id": 3914
 
-"webmap": {
-  "extent_left": 35.521,
-  "extent_right": 35.735,
-  "extent_bottom": 35.059,
-  "extent_top": 35.279,
-  "draw_order_enabled": false,
-  "editable": false,
-  "annotation_enabled": false,
-  "annotation_default": false,
-  "bookmark_resource": null,
-  "root_item": {
-    "item_type": "root",
-    "children": [
-      {
-        "group_expanded": true,
-        "display_name": "МАТЕМАТИЧЕСКАЯ ОСНОВА",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 163,
-            "draw_order_position": 2,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "МАТЕМАТИЧЕСКАЯ ОСНОВА_lin_layer1",
-            "layer_style_id": 164,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": true,
-        "display_name": "НАЗВАНИЯ И ПОДПИСИ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 166,
-            "draw_order_position": 3,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАЗВАНИЯ И ПОДПИСИ_dot_layer17",
-            "layer_style_id": 167,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 168,
-            "draw_order_position": 4,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАЗВАНИЯ И ПОДПИСИ_lin_layer17",
-            "layer_style_id": 169,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": true,
-        "display_name": "ГРАНИЦЫ И ОГРАЖДЕНИЯ",
-        "children": [
-          {
-            "layer_adapter": "tile",
-            "layer_enabled": true,
-            "style_parent_id": 171,
-            "draw_order_position": 5,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГРАНИЦЫ И ОГРАЖДЕНИЯ_lin_layer14",
-            "layer_style_id": 172,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "РЕЛЬЕФ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 174,
-            "draw_order_position": 6,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РЕЛЬЕФ СУШИ_dot_layer5",
-            "layer_style_id": 175,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 176,
-            "draw_order_position": 7,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_dot_layer8",
-            "layer_style_id": 177,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 178,
-            "draw_order_position": 8,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_lin_layer8",
-            "layer_style_id": 179,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 180,
-            "draw_order_position": 9,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РЕЛЬЕФ СУШИ_lin_layer5",
-            "layer_style_id": 181,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 182,
-            "draw_order_position": 10,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РЕЛЬЕФ СУШИ_sqr_layer5",
-            "layer_style_id": 183,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ДОРОЖНАЯ СЕТЬ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 185,
-            "draw_order_position": 11,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ДОРОЖНАЯ СЕТЬ_lin_layer10",
-            "layer_style_id": 186,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 187,
-            "draw_order_position": 12,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ДОРОЖНЫЕ СООРУЖЕНИЯ_lin_layer11",
-            "layer_style_id": 188,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 189,
-            "draw_order_position": 13,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАСЫПИ,ВЫЕМКИ,ЭСТАКАДЫ_lin_layer16",
-            "layer_style_id": 190,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 192,
-            "draw_order_position": 14,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_dot_layer21",
-            "layer_style_id": 193,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 194,
-            "draw_order_position": 15,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_lin_layer21",
-            "layer_style_id": 195,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 196,
-            "draw_order_position": 16,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_sqr_layer21",
-            "layer_style_id": 197,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "layer_adapter": "image",
-        "layer_enabled": true,
-        "style_parent_id": 198,
-        "draw_order_position": 17,
-        "layer_max_scale_denom": null,
-        "item_type": "layer",
-        "layer_min_scale_denom": null,
-        "display_name": "КАМЫШОВЫЕ,МАНГРОВЫЕ ЗАРОСЛИ_sqr_layer18",
-        "layer_style_id": 199,
-        "layer_transparency": null
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ГИДРОГРАФИЯ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 201,
-            "draw_order_position": 18,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГИДРОТЕХНИЧЕСКИЕ СООРУЖЕНИЯ_dot_layer9",
-            "layer_style_id": 202,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 203,
-            "draw_order_position": 19,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГИДРОТЕХНИЧЕСКИЕ СООРУЖЕНИЯ_lin_layer9",
-            "layer_style_id": 204,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 205,
-            "draw_order_position": 20,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГИДРОГРАФИЯ_lin_layer7",
-            "layer_style_id": 206,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 207,
-            "draw_order_position": 21,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГИДРОГРАФИЯ_sqr_layer7",
-            "layer_style_id": 208,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБ'ЕКТ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 210,
-            "draw_order_position": 22,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_dot_layer13",
-            "layer_style_id": 211,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 212,
-            "draw_order_position": 23,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_lin_layer13",
-            "layer_style_id": 213,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 214,
-            "draw_order_position": 1,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_sqr_layer13",
-            "layer_style_id": 215,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 217,
-            "draw_order_position": 24,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (СТРОЕНИЯ)_lin_layer20",
-            "layer_style_id": 218,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 219,
-            "draw_order_position": 25,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (КВАРТАЛЫ)_lin_layer12",
-            "layer_style_id": 220,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 221,
-            "draw_order_position": 26,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (КВАРТАЛЫ)_sqr_layer12",
-            "layer_style_id": 222,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 223,
-            "draw_order_position": 27,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (СТРОЕНИЯ)_sqr_layer20",
-            "layer_style_id": 224,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 225,
-            "draw_order_position": 28,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": 5000.0,
-            "display_name": "КВАРТАЛЫ (НЕОДНОРОДНЫЕ)_sqr_layer19",
-            "layer_style_id": 226,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 227,
-            "draw_order_position": 29,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ_sqr_layer2",
-            "layer_style_id": 228,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ГРУНТЫ И ЛАВОВЫЕ ПОКРОВЫ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 230,
-            "draw_order_position": 30,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ГРУНТЫ И ЛАВОВЫЕ ПОКРОВЫ_sqr_layer4",
-            "layer_style_id": 231,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "РАСТИТЕЛЬНОСТЬ",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 233,
-            "draw_order_position": 31,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РАСТИТЕЛЬНОСТЬ_dot_layer6",
-            "layer_style_id": 234,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 235,
-            "draw_order_position": 32,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РАСТИТЕЛЬНОСТЬ_lin_layer6",
-            "layer_style_id": 236,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 237,
-            "draw_order_position": 33,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РАСТИТЕЛЬНОСТЬ_sqr_layer6",
-            "layer_style_id": 238,
-            "layer_transparency": null
-          },
-          {
-            "layer_adapter": "image",
-            "layer_enabled": true,
-            "style_parent_id": 239,
-            "draw_order_position": 34,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "РАСТИТЕЛЬНОСТЬ (ЗАЛИВКА),ТАКЫР_sqr_layer3",
-            "layer_style_id": 240,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "layer_adapter": "image",
-        "layer_enabled": true,
-        "style_parent_id": 241,
-        "draw_order_position": 35,
-        "layer_max_scale_denom": null,
-        "item_type": "layer",
-        "layer_min_scale_denom": null,
-        "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_sqr_layer8",
-        "layer_style_id": 242,
-        "layer_transparency": null
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ПЛАНОВО-ВЫСОТНАЯ ОСНОВА",
-        "children": [
-          {
-            "layer_adapter": "image",
-            "layer_enabled": false,
-            "style_parent_id": 244,
-            "draw_order_position": 36,
-            "layer_max_scale_denom": null,
-            "item_type": "layer",
-            "layer_min_scale_denom": null,
-            "display_name": "ПЛАНОВО-ВЫСОТНАЯ ОСНОВА_dot_layer15",
-            "layer_style_id": 245,
-            "layer_transparency": null
-          }
-        ],
-        "item_type": "group"
-      },
-      {
-        "group_expanded": false,
-        "display_name": "ОБЪЕКТЫ ДЛЯ КАРТОИЗДАНИЯ",
-        "children": [],
-        "item_type": "group"
-      }
-    ]
-  }
-},
-"basemap_webmap": {
-"basemaps": [
-      {
-        "opacity": null,
-        "enabled": true,
-        "position": 0,
-        "display_name": "Спутник",
-        "resource_id": 3914
-      },
-      {
-        "opacity": null,
-        "enabled": true,
-        "position": 1,
-        "display_name": "OpenStreetMap.de",
-        "resource_id": 3913
-      }
-    ]
-},
-*/
+NGS_EXTERNC char ngsNGWWebMapDeleteBaseMap(CatalogObjectH object, int index);
+NGS_EXTERNC char ngsNGWWebMapAddBaseMap(CatalogObjectH object,
+                                        ngsNGWWebmapBasemapInfo baseMap);
+NGS_EXTERNC char ngsNGWWebMapInsertBaseMap(CatalogObjectH object,
+                                           ngsNGWWebmapBasemapInfo baseMap,
+                                           int index);
+NGS_EXTERNC ngsNGWWebmapBasemapInfo *ngsNGWWebMapBaseMapList(CatalogObjectH object);
+
+NGS_EXTERNC ngsNGWWebmapGroupInfo *ngsNGWWebMapLayerTree(CatalogObjectH object);
+NGS_EXTERNC char ngsNGWWebMapDeleteItem(CatalogObjectH object, long id);
+NGS_EXTERNC long ngsNGWWebMapInsertItem(CatalogObjectH object, long pos,
+                                        ngsNGWWebmapItemInfo *item);
+NGS_EXTERNC void ngsNGWWebmapItemInfoFree(ngsNGWWebmapItemInfo *item);
+NGS_EXTERNC void ngsNGWWebmapGroupInfoFree(ngsNGWWebmapGroupInfo *group);
+
 #endif // NGSAPI_H

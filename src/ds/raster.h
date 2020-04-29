@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -39,6 +39,9 @@ constexpr const char *KEY_CACHE_MAX_SIZE = "cache_max_size";
 
 constexpr const int defaultCacheExpires = 7 * 24 * 60 * 60; // 7 days
 constexpr const int defaultCacheMaxSize = 32 * 1024 * 1024; // 32 Mb
+
+constexpr unsigned short DEFAULT_MAX_ZOOM = 18;
+constexpr unsigned short DEFAULT_BAND_COUNT = 4;
 
 typedef struct _imageData {
     unsigned char *buffer;

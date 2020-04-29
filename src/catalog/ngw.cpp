@@ -26,6 +26,7 @@
 #include "api_priv.h"
 #include "catalog.h"
 #include "ds/ngw.h"
+#include "ds/util.h"
 #include "file.h"
 #include "ngstore/catalog/filter.h"
 #include "util/account.h"
@@ -54,7 +55,42 @@ static void addResourceInt(ObjectPtr parent, CPLJSONObject resource)
         layer->addResource(resource);
         return;
     }
-    // TODO: Add raster layer
+
+    auto raster = ngsDynamicCast(NGWRasterDataset, parent);
+    if(raster) {
+        raster->addResource(resource);
+        return;
+    }
+}
+
+static CPLJSONObject createResourcePayload(NGWResourceBase *parent,
+                                    const enum ngsCatalogObjectType type,
+                                    const std::string &name,
+                                    const Options &options)
+{
+    CPLJSONObject payload;
+    CPLJSONObject resource("resource", payload);
+    resource.Add("cls", ngw::objectTypeToNGWClsType(type));
+    resource.Add("display_name", name);
+    std::string key = options.asString("KEY");
+    if(!key.empty()) {
+        resource.Add("keyname", key);
+    }
+    std::string desc = options.asString("DESCRIPTION");
+    if(!desc.empty()) {
+        resource.Add("description", desc);
+    }
+    CPLJSONObject parentResource("parent", resource);
+    parentResource.Add("id", atoi(parent->resourceId().c_str()));
+
+    return payload;
+}
+
+static bool checkIsSyncable(const CPLJSONObject &resource)
+{
+    // TODO: Add vector layer support
+    auto cls = resource.GetString("resource/cls");
+    return compare(cls, "lookup_table");
 }
 
 //------------------------------------------------------------------------------
@@ -89,14 +125,10 @@ SpatialReferencePtr NGWConnectionBase::spatialReference() const
 //------------------------------------------------------------------------------
 // NGWResourceBase
 //------------------------------------------------------------------------------
-static bool checkIsSyncable(const CPLJSONObject &resource)
-{
-    auto cls = resource.GetString("resource/cls");
-    return compare(cls, "lookup_table");
-}
 
 NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
                                  NGWConnectionBase *connection) :
+    m_resourceId("0"),
     m_connection(connection)
 {
     if(resource.IsValid()) {
@@ -112,9 +144,6 @@ NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
         }
 
         m_isSyncable = checkIsSyncable(resource);
-    }
-    else {
-        m_resourceId = "0";
     }
 }
 
@@ -151,23 +180,23 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
                                           const std::string &domain) const
 {
     if(domain.empty()) {
-        if(key == "url") {
+        if(compare(key, "url")) {
             return url() + "/resource/" + m_resourceId;
         }
-        else if(key == "id") {
+        else if(compare(key, "id")) {
             return m_resourceId;
         }
-        else if(key == "creation_date") {
+        else if(compare(key, "creation_date")) {
             return m_creationDate;
         }
-        else if(key == "keyname") {
+        else if(compare(key, "keyname")) {
             return m_keyName;
         }
-        else if(key == "description") {
+        else if(compare(key, "description")) {
             return m_description;
         }
-        else if(key == "is_syncable") {
-            return m_isSyncable ? "YES" : "NO";
+        else if(compare(key, "is_syncable")) {
+            return fromBool(m_isSyncable);
         }
     }
 
@@ -322,7 +351,7 @@ bool NGWResource::sync()
 
 CPLJSONObject NGWResource::asJson() const
 {
-    CPLJSONObject payload = NGWResourceBase::asJson();
+    auto payload = NGWResourceBase::asJson();
     CPLJSONObject resource = payload.GetObj("resource");
     resource.Add("display_name", m_name);
 
@@ -427,16 +456,14 @@ void NGWResourceGroup::addResource(const CPLJSONObject &resource)
         addChild(ObjectPtr(new NGWResource(this, CAT_NGW_RASTER_STYLE, name, resource, m_connection)));
     }
     else if(cls == "basemap_layer") {
-        // TODO: Same as raster style
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_BASEMAP, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWBaseMap(this, name, resource, m_connection)));
     }
     else if(cls == "wmsclient_layer") {
         // TODO: Same as raster style
         addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_LAYER, name, resource, m_connection)));
     }
     else if(cls == "raster_layer") {
-
-//        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_RASTER_LAYER, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWRasterDataset(this, name, resource, m_connection)));
     }
     else if(cls == "mapserver_style") {
         addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_MAPSERVER_STYLE, name, resource, m_connection)));
@@ -456,8 +483,7 @@ void NGWResourceGroup::addResource(const CPLJSONObject &resource)
         addChild(ObjectPtr(new NGWResource(this, CAT_NGW_LOOKUP_TABLE, name, resource, m_connection)));
     }
     else if(cls == "webmap") {
-        // TODO: Add/change/remove groups and map layers/styles
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WEBMAP, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWWebMap(this, name, resource, m_connection)));
     }
     else if(cls == "file_bucket") {
         // TODO: Add/change/remove groups and files
@@ -555,29 +581,21 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     if(type == CAT_NGW_VECTOR_LAYER) {
         child = NGWLayerDataset::createFeatureClass(this, newName, options);
     }
-    else {
-        CPLJSONObject payload;
-        CPLJSONObject resource("resource", payload);
-        resource.Add("cls", ngw::objectTypeToNGWClsType(type));
-        resource.Add("display_name", newName);
-        std::string key = options.asString("KEY");
-        if(!key.empty()) {
-            resource.Add("keyname", key);
-        }
-        std::string desc = options.asString("DESCRIPTION");
-        if(!desc.empty()) {
-            resource.Add("description", desc);
-        }
-        CPLJSONObject parent("parent", resource);
-        parent.Add("id", atoi(m_resourceId.c_str()));
-
+    else if(type == CAT_NGW_BASEMAP) {
+        child = NGWBaseMap::create(this, newName, options);
+    }
+    else if(type == CAT_NGW_WEBMAP) {
+        child = NGWWebMap::create(this, newName, options);
+    }
+    else {        
+        CPLJSONObject payload = createResourcePayload(this, type, name, options);
         std::string resourceId = ngw::createResource(url(),
             payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
         if(compare(resourceId, "-1", true)) {
             return ObjectPtr();
         }
 
-        resource.Add("id", atoi(resourceId.c_str()));
+        payload.Add("resource/id", atoi(resourceId.c_str()));
 
         if(m_childrenLoaded) {
             switch(type) {
@@ -586,6 +604,9 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
                 break;
             case CAT_NGW_TRACKERGROUP:
                 child = new NGWTrackersGroup(this, newName, payload, m_connection);
+                break;
+            case CAT_NGW_WEBMAP:
+                child = new NGWWebMap(this, newName, payload, m_connection);
                 break;
             case CAT_NGW_WFS_SERVICE:
             case CAT_NGW_WMS_SERVICE:
@@ -936,7 +957,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
         newName = createUniqueName(newName, false);
     }
 
-    ObjectPtr child = getChild(newName);
+    auto child = getChild(newName);
     if(child) {
         if(options.asBool("OVERWRITE", false)) {
             if(!child->destroy()) {
@@ -1174,7 +1195,7 @@ Properties NGWConnection::properties(const std::string &domain) const
         fillProperties();
         out.add("url", m_url);
         out.add("login", m_user);
-        out.add("is_guest", m_isGuest || compare(m_user, "guest") ? "yes" : "no");
+        out.add("is_guest", fromBool(m_isGuest || compare(m_user, "guest")));
         return out;
     }
     return out;
@@ -1186,16 +1207,16 @@ std::string NGWConnection::property(const std::string &key,
 {
     if(domain.empty()) {
         fillProperties();
-        if(key == "url") {
+        if(compare(key, "url")) {
             return m_url;
         }
 
-        if(key == "login") {
+        if(compare(key, "login")) {
             return m_user;
         }
 
-        if(key == "is_guest") {
-            return m_isGuest || compare(m_user, "guest") ? "yes" : "no";
+        if(compare(key, "is_guest")) {
+            return fromBool(m_isGuest || compare(m_user, "guest"));
         }
     }
     return ObjectContainer::property(key, defaultValue, domain);
@@ -1210,19 +1231,19 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
 
     fillProperties();
 
-    if(key == "url") {
+    if(compare(key, "url")) {
         m_url = value;
     }
 
-    if(key == "login") {
+    if(compare(key, "login")) {
         m_user = value;
     }
 
-    if(key == "is_guest") {
+    if(compare(key, "is_guest")) {
         m_isGuest = toBool(value);
     }
 
-    if(key == "password") {
+    if(compare(key, "password")) {
         m_password = value;
     }
     AuthStore::authRemove(m_url);
@@ -1232,10 +1253,10 @@ bool NGWConnection::setProperty(const std::string &key, const std::string &value
         return false;
     }
 
-    if(m_user == "guest") {
+    if(compare(m_user, "guest")) {
         m_isGuest = true;
     }
-    CPLJSONObject root = connectionFile.GetRoot();
+    auto root = connectionFile.GetRoot();
     root.Set(URL_KEY, m_url);
     root.Set(KEY_LOGIN, m_user);
     if(!m_password.empty()) {
@@ -1605,11 +1626,14 @@ NGWStyle::NGWStyle(ObjectContainer * const parent,
     Raster(std::vector<std::string>(), parent, type, name, ""),
     NGWResourceBase(resource, connection)
 {
-    if(type == CAT_NGW_MAPSERVER_STYLE) {
+    if(type == CAT_NGW_MAPSERVER_STYLE && resource.IsValid()) {
         m_style = resource.GetString("mapserver_style/xml");
     }
 
     m_path = "NGW:" + url() + "/resource/" + m_resourceId;
+
+    // TODO: Add addNotifyReceiver to get if layer was deleted
+    // Add deleteNotifyReceiver on destruct
 }
 
 NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
@@ -1623,20 +1647,7 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
     auto stylePath = options.asString("STYLE_PATH");
     auto styleStr = options.asString("STYLE_STRING");
 
-    CPLJSONObject payload;
-    CPLJSONObject resource("resource", payload);
-    resource.Add("cls", ngw::objectTypeToNGWClsType(type));
-    resource.Add("display_name", name);
-    std::string key = options.asString("KEY");
-    if(!key.empty()) {
-        resource.Add("keyname", key);
-    }
-    std::string desc = options.asString("DESCRIPTION");
-    if(!desc.empty()) {
-        resource.Add("description", desc);
-    }
-    CPLJSONObject parentResource("parent", resource);
-    parentResource.Add("id", atoi(parent->resourceId().c_str()));
+    CPLJSONObject payload = createResourcePayload(parent, type, name, options);
 
     CPLJSONObject tileCache("tile_cache", payload);
     tileCache.Add("enabled", options.asBool("CACHE_ENABLED", false));
@@ -1727,8 +1738,7 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
         return nullptr;
     }
 
-    resource.Add("id", atoi(resourceId.c_str()));
-
+    payload.Add("resource/id", atoi(resourceId.c_str()));
     return new NGWStyle(dynamic_cast<ObjectContainer*>(parent), type, name,
                         payload, connection);
 }
@@ -1765,11 +1775,11 @@ std::string NGWStyle::property(const std::string &key,
         return Raster::property(key, defaultValue, domain);
     }
 
-    if(key == "style") {
+    if(compare(key, "style")) {
         return m_style;
     }
 
-    if(key == "style_path") {
+    if(compare(key, "style_path")) {
         return m_stylePath;
     }
 
@@ -1783,7 +1793,7 @@ bool NGWStyle::setProperty(const std::string &key, const std::string &value,
         return Raster::setProperty(key, value, domain);
     }
 
-    if(key == "style") {
+    if(compare(key, "style")) {
         if(m_type == CAT_NGW_MAPSERVER_STYLE) {
             m_style = value;
         }
@@ -1793,7 +1803,7 @@ bool NGWStyle::setProperty(const std::string &key, const std::string &value,
         return sync();
     }
 
-    if(key == "style_path") {
+    if(compare(key, "style_path")) {
         if(m_type == CAT_NGW_MAPSERVER_STYLE) {
             m_style = File::readFile(value);
         }
@@ -1845,4 +1855,1339 @@ CPLJSONObject NGWStyle::asJson() const
     return payload;
 }
 
+//------------------------------------------------------------------------------
+// NGWWebmap
+//------------------------------------------------------------------------------
+NGWWebMap::NGWWebMap(ObjectContainer * const parent, const std::string &name,
+                     const CPLJSONObject &resource,
+                     NGWConnectionBase *connection) :
+    NGWResource(parent, CAT_NGW_WEBMAP, name, resource, connection),
+    m_drawOrderEnabled(false),
+    m_editable(false),
+    m_annotationEnabled(false),
+    m_annotationDefault(false),
+    m_bookmarkResourceId(NOT_FOUND),
+    m_layerTree(new NGWWebMapRoot(connection))
+{
+    if(resource.IsValid()) {
+        auto left = resource.GetDouble("webmap/extent_left", 0.0);
+        auto right = resource.GetDouble("webmap/extent_right", 0.0);
+        auto bottom = resource.GetDouble("webmap/extent_bottom", 0.0);
+        auto top = resource.GetDouble("webmap/extent_top", 0.0);
+        m_extent = Envelope(left, bottom, right, top);
+
+        m_drawOrderEnabled = resource.GetBool("webmap/draw_order_enabled", false);
+        m_editable = resource.GetBool("webmap/editable", false);
+        m_annotationEnabled = resource.GetBool("webmap/annotation_enabled", false);
+        m_annotationDefault = resource.GetBool("webmap/annotation_default", false);
+        m_bookmarkResourceId = resource.GetLong("webmap/bookmark_resource/id", -1);
+
+        fill(resource.GetObj("webmap/root_item"));
+        fillBasemaps(resource.GetArray("basemap_webmap/basemaps"));
+    }
+
+    // TODO: Add addNotifyReceiver to get if basemap or webmap layer was deleted
+    // Add deleteNotifyReceiver on destruct
 }
+
+
+Properties NGWWebMap::properties(const std::string &domain) const
+{
+    auto out = NGWResource::properties(domain);
+    if(domain.empty()) {
+        out.add("draw_order_enabled", fromBool(m_drawOrderEnabled));
+        out.add("editable", fromBool(m_editable));
+        out.add("annotation_enabled", fromBool(m_annotationEnabled));
+        out.add("annotation_default", fromBool(m_annotationDefault));
+    }
+    return out;
+}
+
+std::string NGWWebMap::property(const std::string &key,
+                               const std::string &defaultValue,
+                               const std::string &domain) const
+{
+    if(!domain.empty()) {
+        return NGWResource::property(key, defaultValue, domain);
+    }
+
+    if(compare(key, "draw_order_enabled")) {
+        return fromBool(m_drawOrderEnabled);
+    }
+
+    if(compare(key, "editable")) {
+        return fromBool(m_editable);
+    }
+
+    if(compare(key, "annotation_enabled")) {
+        return fromBool(m_annotationEnabled);
+    }
+
+    if(compare(key, "annotation_default")) {
+        return fromBool(m_annotationDefault);
+    }
+
+    return NGWResource::property(key, defaultValue, domain);
+}
+
+bool NGWWebMap::setProperty(const std::string &key, const std::string &value,
+                           const std::string &domain)
+{
+    if(NGWResource::setProperty(key, value, domain)) {
+        return true;
+    }
+
+    if(compare(key, "draw_order_enabled")) {
+        m_drawOrderEnabled = toBool(value);
+        return true;
+    }
+
+    if(compare(key, "editable")) {
+        m_editable = toBool(value);
+        return true;
+    }
+
+    if(compare(key, "annotation_enabled")) {
+        m_annotationEnabled = toBool(value);
+        return true;
+    }
+
+    if(compare(key, "annotation_default")) {
+        m_annotationDefault = toBool(value);
+        return true;
+    }
+
+    return false;
+}
+
+
+/*
+"webmap": {
+  "extent_left": 35.521,
+  "extent_right": 35.735,
+  "extent_bottom": 35.059,
+  "extent_top": 35.279,
+  "draw_order_enabled": false,
+  "editable": false,
+  "annotation_enabled": false,
+  "annotation_default": false,
+  "bookmark_resource": null,
+  "root_item": {
+    "item_type": "root",
+    "children": [
+      {
+        "group_expanded": true,
+        "display_name": "МАТЕМАТИЧЕСКАЯ ОСНОВА",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 163,
+            "draw_order_position": 2,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "МАТЕМАТИЧЕСКАЯ ОСНОВА_lin_layer1",
+            "layer_style_id": 164,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": true,
+        "display_name": "НАЗВАНИЯ И ПОДПИСИ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 166,
+            "draw_order_position": 3,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАЗВАНИЯ И ПОДПИСИ_dot_layer17",
+            "layer_style_id": 167,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 168,
+            "draw_order_position": 4,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАЗВАНИЯ И ПОДПИСИ_lin_layer17",
+            "layer_style_id": 169,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": true,
+        "display_name": "ГРАНИЦЫ И ОГРАЖДЕНИЯ",
+        "children": [
+          {
+            "layer_adapter": "tile",
+            "layer_enabled": true,
+            "style_parent_id": 171,
+            "draw_order_position": 5,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГРАНИЦЫ И ОГРАЖДЕНИЯ_lin_layer14",
+            "layer_style_id": 172,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "РЕЛЬЕФ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 174,
+            "draw_order_position": 6,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РЕЛЬЕФ СУШИ_dot_layer5",
+            "layer_style_id": 175,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 176,
+            "draw_order_position": 7,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_dot_layer8",
+            "layer_style_id": 177,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 178,
+            "draw_order_position": 8,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_lin_layer8",
+            "layer_style_id": 179,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 180,
+            "draw_order_position": 9,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РЕЛЬЕФ СУШИ_lin_layer5",
+            "layer_style_id": 181,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 182,
+            "draw_order_position": 10,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РЕЛЬЕФ СУШИ_sqr_layer5",
+            "layer_style_id": 183,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ДОРОЖНАЯ СЕТЬ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 185,
+            "draw_order_position": 11,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ДОРОЖНАЯ СЕТЬ_lin_layer10",
+            "layer_style_id": 186,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 187,
+            "draw_order_position": 12,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ДОРОЖНЫЕ СООРУЖЕНИЯ_lin_layer11",
+            "layer_style_id": 188,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 189,
+            "draw_order_position": 13,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЫПИ,ВЫЕМКИ,ЭСТАКАДЫ_lin_layer16",
+            "layer_style_id": 190,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 192,
+            "draw_order_position": 14,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_dot_layer21",
+            "layer_style_id": 193,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 194,
+            "draw_order_position": 15,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_lin_layer21",
+            "layer_style_id": 195,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 196,
+            "draw_order_position": 16,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ЗАПОЛНЯЮЩИЕ ЗНАКИ_sqr_layer21",
+            "layer_style_id": 197,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "layer_adapter": "image",
+        "layer_enabled": true,
+        "style_parent_id": 198,
+        "draw_order_position": 17,
+        "layer_max_scale_denom": null,
+        "item_type": "layer",
+        "layer_min_scale_denom": null,
+        "display_name": "КАМЫШОВЫЕ,МАНГРОВЫЕ ЗАРОСЛИ_sqr_layer18",
+        "layer_style_id": 199,
+        "layer_transparency": null
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ГИДРОГРАФИЯ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 201,
+            "draw_order_position": 18,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОТЕХНИЧЕСКИЕ СООРУЖЕНИЯ_dot_layer9",
+            "layer_style_id": 202,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 203,
+            "draw_order_position": 19,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОТЕХНИЧЕСКИЕ СООРУЖЕНИЯ_lin_layer9",
+            "layer_style_id": 204,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 205,
+            "draw_order_position": 20,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ_lin_layer7",
+            "layer_style_id": 206,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 207,
+            "draw_order_position": 21,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГИДРОГРАФИЯ_sqr_layer7",
+            "layer_style_id": 208,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБ'ЕКТ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 210,
+            "draw_order_position": 22,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_dot_layer13",
+            "layer_style_id": 211,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 212,
+            "draw_order_position": 23,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_lin_layer13",
+            "layer_style_id": 213,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 214,
+            "draw_order_position": 1,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПРОМЫШЛЕН.И СОЦИАЛЬНЫЕ ОБЕКТ_sqr_layer13",
+            "layer_style_id": 215,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 217,
+            "draw_order_position": 24,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (СТРОЕНИЯ)_lin_layer20",
+            "layer_style_id": 218,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 219,
+            "draw_order_position": 25,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (КВАРТАЛЫ)_lin_layer12",
+            "layer_style_id": 220,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 221,
+            "draw_order_position": 26,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (КВАРТАЛЫ)_sqr_layer12",
+            "layer_style_id": 222,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 223,
+            "draw_order_position": 27,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ (СТРОЕНИЯ)_sqr_layer20",
+            "layer_style_id": 224,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 225,
+            "draw_order_position": 28,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": 5000.0,
+            "display_name": "КВАРТАЛЫ (НЕОДНОРОДНЫЕ)_sqr_layer19",
+            "layer_style_id": 226,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 227,
+            "draw_order_position": 29,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "НАСЕЛЕННЫЕ ПУНКТЫ_sqr_layer2",
+            "layer_style_id": 228,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ГРУНТЫ И ЛАВОВЫЕ ПОКРОВЫ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 230,
+            "draw_order_position": 30,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ГРУНТЫ И ЛАВОВЫЕ ПОКРОВЫ_sqr_layer4",
+            "layer_style_id": 231,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "РАСТИТЕЛЬНОСТЬ",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 233,
+            "draw_order_position": 31,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ_dot_layer6",
+            "layer_style_id": 234,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 235,
+            "draw_order_position": 32,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ_lin_layer6",
+            "layer_style_id": 236,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 237,
+            "draw_order_position": 33,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ_sqr_layer6",
+            "layer_style_id": 238,
+            "layer_transparency": null
+          },
+          {
+            "layer_adapter": "image",
+            "layer_enabled": true,
+            "style_parent_id": 239,
+            "draw_order_position": 34,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "РАСТИТЕЛЬНОСТЬ (ЗАЛИВКА),ТАКЫР_sqr_layer3",
+            "layer_style_id": 240,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "layer_adapter": "image",
+        "layer_enabled": true,
+        "style_parent_id": 241,
+        "draw_order_position": 35,
+        "layer_max_scale_denom": null,
+        "item_type": "layer",
+        "layer_min_scale_denom": null,
+        "display_name": "ГИДРОГРАФИЯ (РЕЛЬЕФ)_sqr_layer8",
+        "layer_style_id": 242,
+        "layer_transparency": null
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ПЛАНОВО-ВЫСОТНАЯ ОСНОВА",
+        "children": [
+          {
+            "layer_adapter": "image",
+            "layer_enabled": false,
+            "style_parent_id": 244,
+            "draw_order_position": 36,
+            "layer_max_scale_denom": null,
+            "item_type": "layer",
+            "layer_min_scale_denom": null,
+            "display_name": "ПЛАНОВО-ВЫСОТНАЯ ОСНОВА_dot_layer15",
+            "layer_style_id": 245,
+            "layer_transparency": null
+          }
+        ],
+        "item_type": "group"
+      },
+      {
+        "group_expanded": false,
+        "display_name": "ОБЪЕКТЫ ДЛЯ КАРТОИЗДАНИЯ",
+        "children": [],
+        "item_type": "group"
+      }
+    ]
+  }
+},
+"basemap_webmap": {
+"basemaps": [
+      {
+        "opacity": null,
+        "enabled": true,
+        "position": 0,
+        "display_name": "Спутник",
+        "resource_id": 3914
+      },
+      {
+        "opacity": null,
+        "enabled": true,
+        "position": 1,
+        "display_name": "OpenStreetMap.de",
+        "resource_id": 3913
+      }
+    ]
+},
+*/
+
+NGWWebMap *NGWWebMap::create(NGWResourceBase *parent, const std::string &name,
+                             const Options &options)
+{
+    resetError();
+    auto connection = parent->connection();
+    auto url = connection->connectionUrl();
+
+    CPLJSONObject payload = createResourcePayload(parent, CAT_NGW_WEBMAP, name, options);
+
+    CPLJSONObject webmap("webmap", payload);
+    webmap.Add("extent_left", -180.0);
+    webmap.Add("extent_right", 180.0);
+    webmap.Add("extent_bottom", -90.0);
+    webmap.Add("extent_top", 90.0);
+    webmap.Add("draw_order_enabled", false);
+    webmap.Add("editable", false);
+    webmap.Add("annotation_enabled", false);
+    webmap.Add("annotation_default", false);
+
+    CPLJSONObject rootItem("root_item", webmap);
+    rootItem.Add("item_type", "root");
+    rootItem.Add("children", CPLJSONArray());
+
+    std::string resourceId = ngw::createResource(url,
+        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url).StealList());
+    if(compare(resourceId, "-1", true)) {
+        return nullptr;
+    }
+
+    payload.Add("resource/id", atoi(resourceId.c_str()));
+    return new NGWWebMap(dynamic_cast<ObjectContainer*>(parent), name,
+                         payload, connection);
+}
+
+void NGWWebMap::fillBasemaps(const CPLJSONArray &basemaps)
+{
+    if(!basemaps.IsValid()) {
+        return;
+    }
+
+    auto ngwConn = dynamic_cast<NGWConnection*>(m_connection);
+    if(ngwConn) {
+        return;
+    }
+    std::map<int, BaseMap> bm;
+    for(int i = 0; i < basemaps.Size(); ++i) {
+        auto basemap = basemaps[i];
+        BaseMap item;
+        item.opacity = basemap.GetInteger("opacity");
+        item.enabled = basemap.GetBool("enabled");
+        int pos = basemap.GetInteger("position");
+        item.displayName = basemap.GetString("display_name");
+
+        auto baseMapResource = ngwConn->getResource(basemap.GetString("resource_id"));
+
+        item.resource = baseMapResource;
+        bm[pos] = item;
+    }
+    m_baseMaps.clear();
+    for(const auto &item : bm) {
+        m_baseMaps.emplace_back(item.second);
+    }
+}
+
+void NGWWebMap::fill(const CPLJSONObject &layers)
+{
+    m_layerTree->clear();
+    m_layerTree->fill(layers);
+}
+
+NGWWebMapRootPtr NGWWebMap::layerTree() const
+{
+    return m_layerTree;
+}
+
+bool NGWWebMap::deleteItem(intptr_t id)
+{
+    return m_layerTree->deleteItem(id);
+}
+
+intptr_t NGWWebMap::insetItem(intptr_t pos, NGWWebMapItem *item)
+{
+    return m_layerTree->insetItem(pos, item);
+}
+
+static bool isBaseMapValid(const NGWWebMap::BaseMap &basemap)
+{
+    return basemap.resource && basemap.resource->type() == CAT_NGW_BASEMAP;
+}
+
+std::vector<NGWWebMap::BaseMap> NGWWebMap::baseMaps() const
+{
+    return m_baseMaps;
+}
+
+bool NGWWebMap::addBaseMap(const NGWWebMap::BaseMap &basemap)
+{
+    if(!isBaseMapValid(basemap)) {
+        return false;
+    }
+    m_baseMaps.emplace_back(basemap);
+    return true;
+}
+
+bool NGWWebMap::insertBaseMap(int index, const NGWWebMap::BaseMap &basemap)
+{
+    if(!isBaseMapValid(basemap)) {
+        return false;
+    }
+    m_baseMaps.insert(m_baseMaps.begin() + index, basemap);
+    return true;
+}
+
+bool NGWWebMap::deleteBaseMap(int index)
+{
+    m_baseMaps.erase(m_baseMaps.begin() + index);
+    return true;
+}
+
+CPLJSONObject NGWWebMap::asJson() const
+{
+    auto payload = NGWResourceBase::asJson();
+
+    auto resource = payload.GetObj("resource");
+    resource.Add("display_name", m_name);
+
+    CPLJSONObject webmap("webmap", payload);
+    webmap.Add("extent_left", m_extent.minX());
+    webmap.Add("extent_right", m_extent.maxX());
+    webmap.Add("extent_bottom", m_extent.minY());
+    webmap.Add("extent_top", m_extent.maxY());
+    webmap.Add("draw_order_enabled", m_drawOrderEnabled);
+    webmap.Add("editable", m_editable);
+    webmap.Add("annotation_enabled", m_annotationEnabled);
+    webmap.Add("annotation_default", m_annotationDefault);
+
+    if(m_bookmarkResourceId == NOT_FOUND) {
+        webmap.SetNull("bookmark_resource");
+    }
+    else {
+        CPLJSONObject bookmarkResource("bookmark_resource", webmap);
+        bookmarkResource.Add("id", static_cast<GInt64>(m_bookmarkResourceId));
+    }
+
+    webmap.Add("root_item", m_layerTree->asJson());
+
+    CPLJSONArray baseMaps;
+    int pos = 0;
+    for(const auto &item : m_baseMaps) {
+        CPLJSONObject baseMap;
+        baseMap.Add("opacity", item.opacity);
+        baseMap.Add("enabled", item.enabled);
+        baseMap.Add("position", pos++);
+        baseMap.Add("display_name", item.displayName);
+
+        auto ngwResource = ngsDynamicCast(NGWResourceBase, item.resource);
+        if(ngwResource) {
+            baseMap.Add("resource_id", atoi(ngwResource->resourceId().c_str()));
+        }
+        baseMaps.Add(baseMap);
+    }
+
+    CPLJSONObject basemapWebmap("basemap_webmap", payload);
+    basemapWebmap.Add("basemaps", baseMaps);
+
+    return payload;
+}
+
+//------------------------------------------------------------------------------
+// NGWBaseMap
+//------------------------------------------------------------------------------
+static std::string getUrl(const std::string &qms)
+{
+    CPLJSONDocument doc;
+    if(doc.LoadMemory(qms)) {
+        auto root = doc.GetRoot();
+        if(root.IsValid()) {
+            return  root.GetString("url");
+        }
+    }
+    return "";
+}
+
+NGWBaseMap::NGWBaseMap(ObjectContainer * const parent, const std::string &name,
+                       const CPLJSONObject &resource,
+                       NGWConnectionBase *connection) :
+       Raster(std::vector<std::string>(), parent, CAT_NGW_BASEMAP, name, ""),
+       NGWResourceBase(resource, connection)
+{
+    if(resource.IsValid()) {
+        m_url = resource.GetString("basemap_layer/url");
+        m_qms = resource.GetString("basemap_layer/qms");
+    }
+}
+
+NGWBaseMap *NGWBaseMap::create(NGWResourceBase *parent,
+                                      const std::string &name,
+                                      const Options &options)
+{
+    resetError();
+    auto connection = parent->connection();
+    auto url = connection->connectionUrl();
+
+    auto bmUrl = options.asString(URL_KEY);
+    std::string qmsStr;
+    if(bmUrl.empty()) {
+        auto bmQmsId = options.asInt("QMS_ID");
+        auto qmsJson = qms::QMSItemProperties(bmQmsId);
+        qmsStr = qmsJson.Format(CPLJSONObject::Plain);
+        bmUrl = getUrl(qmsStr);
+    }
+
+    CPLJSONObject payload = createResourcePayload(parent, CAT_NGW_BASEMAP, name, options);
+
+    CPLJSONObject basemap("basemap_layer", payload);
+    basemap.Add("url", bmUrl);
+    if(!qmsStr.empty()) {
+        basemap.Add("qms", qmsStr);
+    }
+
+    std::string resourceId = ngw::createResource(url,
+        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url).StealList());
+    if(compare(resourceId, "-1", true)) {
+        return nullptr;
+    }
+
+    payload.Add("resource/id", atoi(resourceId.c_str()));
+    return new NGWBaseMap(dynamic_cast<ObjectContainer*>(parent), name,
+                          payload, connection);
+}
+
+bool NGWBaseMap::destroy()
+{
+    if(!NGWResourceBase::remove()) {
+        return false;
+    }
+
+    return Object::destroy();
+}
+
+bool NGWBaseMap::canDestroy() const
+{
+    return true;
+}
+
+Properties NGWBaseMap::properties(const std::string &domain) const
+{
+    auto out = Raster::properties(domain);
+    if(domain.empty()) {
+        out.add("url", m_url);
+        out.add("qms", m_qms);
+    }
+    return out;
+}
+
+std::string NGWBaseMap::property(const std::string &key,
+                               const std::string &defaultValue,
+                               const std::string &domain) const
+{
+    if(!domain.empty()) {
+        return Raster::property(key, defaultValue, domain);
+    }
+
+    if(compare(key, "url")) {
+        return m_url;
+    }
+
+    if(compare(key, "qms")) {
+        return m_qms;
+    }
+
+    return Raster::property(key, defaultValue, domain);
+}
+
+bool NGWBaseMap::setProperty(const std::string &key, const std::string &value,
+                           const std::string &domain)
+{
+    if(!domain.empty()) {
+        return Raster::setProperty(key, value, domain);
+    }
+
+    if(compare(key, "url")) {
+        m_url = value;
+        m_qms.clear();
+        return sync();
+    }
+
+    if(compare(key, "qms")) {
+        m_qms = value;
+        m_url = getUrl(m_qms);
+        return sync();
+    }
+
+    if(compare(key, "qms_id")) {
+        auto qmsJson = qms::QMSItemProperties(atoi(value.c_str()));
+        m_qms = qmsJson.Format(CPLJSONObject::Plain);
+        m_url = getUrl(m_qms);
+        return sync();
+    }
+
+    if(m_DS != nullptr) {
+        return m_DS->SetMetadataItem(key.c_str(), value.c_str(),
+                                       domain.c_str()) == CE_None;
+    }
+
+    return false;
+}
+
+CPLJSONObject NGWBaseMap::asJson() const
+{
+    auto payload = NGWResourceBase::asJson();
+    auto resource = payload.GetObj("resource");
+    resource.Add("display_name", m_name);
+
+    CPLJSONObject basemap("basemap_layer", payload);
+    basemap.Add("url", m_url);
+    if(m_qms.empty()) {
+        basemap.SetNull("qms");
+    }
+    else {
+        basemap.Add("qms", m_qms);
+    }
+    return payload;
+}
+
+bool NGWBaseMap::open(unsigned int openFlags, const Options &options)
+{
+    if(isOpened()) {
+        return true;
+    }
+
+    m_openFlags = openFlags;
+    m_openOptions = options;
+
+    CPLString url(m_url);
+    url = url.replaceAll("{", "${");
+    url = url.replaceAll("&", "&amp;");
+    int epsg = DEFAULT_EPSG;
+    int z_min = 0;
+    int z_max = DEFAULT_MAX_ZOOM;
+    bool y_origin_top = true;
+    unsigned short bandCount = DEFAULT_BAND_COUNT;
+
+    if(!m_qms.empty()) {
+        CPLJSONDocument doc;
+        if(doc.LoadMemory(m_qms)) {
+            auto root = doc.GetRoot();
+            if(root.IsValid()) {
+                epsg = root.GetInteger("epsg", epsg);
+                z_min = root.GetInteger("z_min", z_min);
+                z_max = root.GetInteger("z_max", z_max);
+                y_origin_top = root.GetInteger("y_origin_top", y_origin_top);
+            }
+        }
+    }
+
+    m_spatialReference = SpatialReferencePtr::importFromEPSG(epsg);
+
+    Envelope extent = DEFAULT_BOUNDS;
+    m_extent =  DEFAULT_BOUNDS;
+    int cacheExpires = defaultCacheExpires;
+    int cacheMaxSize = defaultCacheMaxSize;
+
+    const Settings &settings = Settings::instance();
+    int timeout = settings.getInteger("http/timeout", 5);
+
+    const char *connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
+        "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
+        "<UpperLeftX>%f</UpperLeftX><UpperLeftY>%f</UpperLeftY>"
+        "<LowerRightX>%f</LowerRightX><LowerRightY>%f</LowerRightY>"
+        "<TileLevel>%d</TileLevel><TileCountX>1</TileCountX>"
+        "<TileCountY>1</TileCountY><YOrigin>%s</YOrigin></DataWindow>"
+        "<Projection>EPSG:%d</Projection><BlockSizeX>256</BlockSizeX>"
+        "<BlockSizeY>256</BlockSizeY><BandsCount>%d</BandsCount>"
+        "<Cache><Type>file</Type><Expires>%d</Expires><MaxSize>%d</MaxSize>"
+        "</Cache><MaxConnections>1</MaxConnections><Timeout>%d</Timeout><AdviseRead>false</AdviseRead>"
+        "<ZeroBlockHttpCodes>204,404</ZeroBlockHttpCodes></GDAL_WMS>",
+        url.c_str(), extent.minX(), extent.maxY(), extent.maxX(), extent.minY(), z_max,
+        y_origin_top ? "top" : "bottom", epsg, bandCount, cacheExpires, cacheMaxSize, timeout);
+
+    bool result = DatasetBase::open(connStr, openFlags, options);
+    if(result) {
+        // Set NG_ADDITIONS metadata
+        m_DS->SetMetadataItem("TMS_URL", url.c_str(), "");
+        m_DS->SetMetadataItem("TMS_CACHE_EXPIRES", CPLSPrintf("%d", cacheExpires), "");
+        m_DS->SetMetadataItem("TMS_CACHE_MAX_SIZE", CPLSPrintf("%d", cacheMaxSize), "");
+        m_DS->SetMetadataItem("TMS_Y_ORIGIN_TOP", y_origin_top ? "top" : "bottom", "");
+        m_DS->SetMetadataItem("TMS_Z_MIN", CPLSPrintf("%d", z_min), "");
+        m_DS->SetMetadataItem("TMS_Z_MAX", CPLSPrintf("%d", z_max), "");
+        m_DS->SetMetadataItem("TMS_X_MIN", CPLSPrintf("%f", extent.minX()), "");
+        m_DS->SetMetadataItem("TMS_X_MAX", CPLSPrintf("%f", extent.maxX()), "");
+        m_DS->SetMetadataItem("TMS_Y_MIN", CPLSPrintf("%f", extent.minY()), "");
+        m_DS->SetMetadataItem("TMS_Y_MAX", CPLSPrintf("%f", extent.maxY()), "");
+
+        m_DS->SetMetadataItem("TMS_LIMIT_X_MIN", CPLSPrintf("%f", m_extent.minX()), "");
+        m_DS->SetMetadataItem("TMS_LIMIT_X_MAX", CPLSPrintf("%f", m_extent.maxX()), "");
+        m_DS->SetMetadataItem("TMS_LIMIT_Y_MIN", CPLSPrintf("%f", m_extent.minY()), "");
+        m_DS->SetMetadataItem("TMS_LIMIT_Y_MAX", CPLSPrintf("%f", m_extent.maxY()), "");
+
+        // Set USER metadata
+        for(const auto &resmetaItem : m_resmeta) {
+            m_DS->SetMetadataItem(resmetaItem.first.c_str(),
+                                  resmetaItem.second.c_str(), USER_KEY);
+        }
+
+        // Set pixel limits from m_extent
+        double geoTransform[6] = { 0.0 };
+        double invGeoTransform[6] = { 0.0 };
+        bool noTransform = false;
+        if(m_DS->GetGeoTransform(geoTransform) == CE_None) {
+            noTransform = GDALInvGeoTransform(geoTransform, invGeoTransform) == 0;
+        }
+
+        if(noTransform) {
+            double minX, minY, maxX, maxY;
+            GDALApplyGeoTransform(invGeoTransform, m_extent.minX(),
+                                  m_extent.minY(), &minX, &maxY);
+
+            GDALApplyGeoTransform(invGeoTransform, m_extent.maxX(),
+                                  m_extent.maxY(), &maxX, &minY);
+            m_pixelExtent = Envelope(minX, minY, maxX, maxY);
+        }
+        else {
+            m_pixelExtent = Envelope(0.0, 0.0,
+                std::numeric_limits<double>::max(),
+                std::numeric_limits<double>::max());
+        }
+    }
+    return result;
+}
+
+//------------------------------------------------------------------------------
+// NGWWebMapItem
+//------------------------------------------------------------------------------
+
+NGWWebMapItem::NGWWebMapItem(NGWConnectionBase *connection) :
+    m_id(reinterpret_cast<intptr_t>(this)),
+    m_connection(connection)
+{
+
+}
+
+//------------------------------------------------------------------------------
+// NGWWebMapGroup
+//------------------------------------------------------------------------------
+NGWWebMapGroup::NGWWebMapGroup(NGWConnectionBase *connection) :
+    NGWWebMapItem(connection)
+{
+    m_type = NGWWebMapItem::ItemType::GROUP;
+}
+
+void NGWWebMapGroup::clear()
+{
+    m_children.clear();
+}
+
+CPLJSONObject NGWWebMapGroup::asJson() const
+{
+    CPLJSONObject out;
+    if(m_type == NGWWebMapItem::ItemType::ROOT) {
+        out.Add("item_type", "root");
+    }
+    else if(m_type == NGWWebMapItem::ItemType::GROUP) {
+        out.Add("item_type", "group");
+        out.Add("display_name", m_displayName);
+        out.Add("group_expanded", m_expanded);
+    }
+    else {
+        return out;
+    }
+
+    CPLJSONArray children;
+    for(const auto &child : m_children) {
+        children.Add(child->asJson());
+    }
+
+    out.Add("children", children);
+    return out;
+}
+
+NGWWebMapItem *NGWWebMapGroup::clone()
+{
+    auto out = new NGWWebMapGroup(m_connection);
+    out->m_expanded = m_expanded;
+    out->m_id = m_id;
+    out->m_type = m_type;
+    out->m_displayName = m_displayName;
+    for(const auto &child : m_children) {
+        out->m_children.emplace_back(child->clone());
+    }
+    return out;
+}
+
+bool NGWWebMapGroup::fill(const CPLJSONObject &item)
+{
+    auto itemType = item.GetString("item_type");
+    if(compare(itemType, "root")) {
+        m_type = NGWWebMapItem::ItemType::ROOT;
+    }
+    else if(compare(itemType, "group")) {
+        m_type = NGWWebMapItem::ItemType::GROUP;
+        m_expanded = item.GetBool("group_expanded", false);
+        m_displayName = item.GetString("display_name");
+    }
+    else {
+        return false;
+    }
+
+    auto children = item.GetArray("children");
+    if(children.IsValid()) {
+        for(int i = 0; i < children.Size(); ++i) {
+            auto child = children[i];
+            auto childType = child.GetString("item_type");
+            NGWWebMapItem *newItem = nullptr;
+            if(compare(childType, "group")) {
+                newItem = new NGWWebMapGroup(m_connection);
+            }
+            else if(compare(childType, "layer")) {
+                newItem = new NGWWebMapLayer(m_connection);
+            }
+
+            if(newItem) {
+                if(newItem->fill(child)) {
+                    m_children.emplace_back(newItem);
+                }
+                else {
+                    delete newItem;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool NGWWebMapGroup::deleteItem(intptr_t id)
+{
+    auto it = m_children.begin();
+    while(it != m_children.end()) {
+        auto item = (*it);
+        if(item->m_id == id) {
+            m_children.erase(it);
+            return true;
+        }
+        if(item->m_type == NGWWebMapItem::ItemType::ROOT ||
+           item->m_type == NGWWebMapItem::ItemType::GROUP) {
+           auto group = ngsDynamicCast(NGWWebMapGroup, item);
+           if(group && group->deleteItem(id)) {
+               return true;
+           }
+        }
+        ++it;
+    }
+    return false;
+}
+
+intptr_t NGWWebMapGroup::insetItem(intptr_t pos, NGWWebMapItem *item)
+{
+    if(nullptr == item) {
+        return NOT_FOUND;
+    }
+
+    if(pos == NOT_FOUND) {
+        auto newItem = NGWWebMapItemPtr(item->clone());
+        m_children.emplace_back(newItem);
+        return newItem->m_id;
+    }
+
+    auto it = m_children.begin();
+    while(it != m_children.end()) {
+        auto currentItem = (*it);
+        if(currentItem->m_id == pos) {
+            auto newItem = NGWWebMapItemPtr(item->clone());
+            if(currentItem->m_type == NGWWebMapItem::ItemType::LAYER) {
+                m_children.insert(it, newItem);
+            }
+            else {
+                auto group = ngsDynamicCast(NGWWebMapGroup, currentItem);
+                group->m_children.emplace_back(newItem);
+            }
+            return newItem->m_id;
+        }
+
+        if(item->m_type == NGWWebMapItem::ItemType::ROOT ||
+           item->m_type == NGWWebMapItem::ItemType::GROUP) {
+           auto group = ngsDynamicCast(NGWWebMapGroup, currentItem);
+           if(group) {
+               auto newId = group->insetItem(pos, item);
+               if(newId != NOT_FOUND) {
+                   return newId;
+               }
+           }
+        }
+        ++it;
+    }
+    return NOT_FOUND;
+}
+
+//------------------------------------------------------------------------------
+// NGWWebMapLayer
+//------------------------------------------------------------------------------
+NGWWebMapLayer::NGWWebMapLayer(NGWConnectionBase *connection) :
+    NGWWebMapItem(connection)
+{
+    m_type = NGWWebMapItem::ItemType::LAYER;
+}
+
+CPLJSONObject NGWWebMapLayer::asJson() const
+{
+    CPLJSONObject out;
+    out.Set("layer_adapter", m_adapter);
+    out.Set("layer_enabled", m_enabled);
+    out.Set("draw_order_position", m_orderPosition);
+    if(m_maxScaleDenom.empty()) {
+        out.SetNull("layer_max_scale_denom");
+    }
+    else {
+        out.Set("layer_max_scale_denom", m_maxScaleDenom);
+    }
+    if(m_minScaleDenom.empty()) {
+        out.SetNull("layer_min_scale_denom");
+    }
+    else {
+        out.Set("layer_min_scale_denom", m_maxScaleDenom);
+    }
+    out.Set("item_type", "layer");
+    out.Set("display_name", m_displayName);
+    auto resource = ngsDynamicCast(NGWResourceBase, m_resource);
+    if(resource) {
+        out.Set("layer_style_id", atoi(resource->resourceId().c_str()));
+    }
+    out.Set("layer_transparency", m_transparency);
+    return out;
+}
+
+bool NGWWebMapLayer::fill(const CPLJSONObject &item)
+{
+    m_adapter = item.GetString("layer_adapter", "image");
+    m_enabled = item.GetBool("layer_enabled", false);
+    m_orderPosition = item.GetInteger("draw_order_position", 0);
+    m_maxScaleDenom = item.GetString("layer_max_scale_denom");
+    m_minScaleDenom = item.GetString("layer_min_scale_denom");
+    m_displayName = item.GetString("display_name");
+
+    auto conn = dynamic_cast<NGWResourceGroup*>(m_connection);
+    if(conn) {
+        auto resource = conn->getResource(item.GetString("layer_style_id"));
+        m_resource = resource;
+    }
+
+    m_transparency = item.GetInteger("layer_transparency");
+    return true;
+}
+
+NGWWebMapItem *NGWWebMapLayer::clone()
+{
+    return new NGWWebMapLayer(*this);
+}
+
+//------------------------------------------------------------------------------
+// NGWWebMapRoot
+//------------------------------------------------------------------------------
+NGWWebMapRoot::NGWWebMapRoot(NGWConnectionBase *connection) :
+    NGWWebMapGroup(connection)
+{
+    m_type = NGWWebMapItem::ItemType::ROOT;
+    m_expanded = true;
+}
+
+
+
+} // namespace ngs

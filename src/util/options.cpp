@@ -44,7 +44,7 @@ Options::Options(char **options)
                 }
                 key += option[j];
             }
-            m_options[key] = value;
+            add(key, value);
             i++;
         }
     }
@@ -53,7 +53,8 @@ Options::Options(char **options)
 std::string Options::asString(const std::string &key,
                               const std::string &defaultOption) const
 {
-    auto it = m_options.find(key);
+    auto newKey = toLower(key);
+    auto it = m_options.find(newKey);
     if(it == m_options.end())
         return defaultOption;
     return it->second;
@@ -61,7 +62,8 @@ std::string Options::asString(const std::string &key,
 
 bool Options::asBool(const std::string &key, bool defaultOption) const
 {
-    auto it = m_options.find(key);
+    auto newKey = toLower(key);
+    auto it = m_options.find(newKey);
     if(it == m_options.end())
         return defaultOption;
 
@@ -80,7 +82,8 @@ bool Options::asBool(const std::string &key, bool defaultOption) const
 
 int Options::asInt(const std::string &key, int defaultOption) const
 {
-    auto it = m_options.find(key);
+    auto newKey = toLower(key);
+    auto it = m_options.find(newKey);
     if(it == m_options.end())
         return defaultOption;
     return std::stoi(it->second);
@@ -88,7 +91,8 @@ int Options::asInt(const std::string &key, int defaultOption) const
 
 long Options::asLong(const std::string &key, long defaultOption) const
 {
-    auto it = m_options.find(key);
+    auto newKey = toLower(key);
+    auto it = m_options.find(newKey);
     if(it == m_options.end())
         return defaultOption;
     return std::stol(it->second);
@@ -96,7 +100,8 @@ long Options::asLong(const std::string &key, long defaultOption) const
 
 double Options::asDouble(const std::string &key, double defaultOption) const
 {
-    auto it = m_options.find(key);
+    auto newKey = toLower(key);
+    auto it = m_options.find(newKey);
     if(it == m_options.end())
         return defaultOption;
     return CPLAtofM(it->second.c_str());
@@ -113,7 +118,8 @@ CPLStringList Options::asCPLStringList() const
 
 void Options::remove(const std::string &key)
 {
-    auto it = m_options.find(key);
+    auto newKey = toLower(key);
+    auto it = m_options.find(newKey);
     if(it != m_options.end())
         m_options.erase(it);
 }
@@ -138,27 +144,32 @@ unsigned char getNumberThreads()
 
 void Options::add(const std::string &key, const std::string &value)
 {
-    m_options[key] = value;
+    auto newKey = toLower(key);
+    m_options[newKey] = value;
 }
 
 void Options::add(const std::string &key, const char *value)
 {
-    m_options[key] = value;
+    auto newKey = toLower(key);
+    m_options[newKey] = value;
 }
 
 void Options::add(const std::string &key, long value)
 {
-    m_options[key] = std::to_string(value);
+    auto newKey = toLower(key);
+    m_options[newKey] = std::to_string(value);
 }
 
 void Options::add(const std::string &key, GIntBig value)
 {
-    m_options[key] = std::to_string(value);
+    auto newKey = toLower(key);
+    m_options[newKey] = std::to_string(value);
 }
 
 void Options::add(const std::string &key, bool value)
 {
-    m_options[key] = value ? "YES" : "NO";
+    auto newKey = toLower(key);
+    m_options[newKey] = fromBool(value);
 }
 
 bool  Options::empty() const
@@ -183,12 +194,14 @@ void Options::append(const Options &other)
 
 std::string Options::operator[](std::string key) const
 {
-    return m_options.at(key);
+    auto newKey = toLower(key);
+    return m_options.at(newKey);
 }
 
 bool Options::hasKey(const std::string &key) const
 {
-    return m_options.count(key) > 0;
+    auto newKey = toLower(key);
+    return m_options.count(newKey) > 0;
 }
 
 }

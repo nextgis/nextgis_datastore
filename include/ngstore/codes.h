@@ -4,7 +4,7 @@
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  * Author:  NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -211,9 +211,7 @@ enum ngsCatalogObjectType {
     CAT_NGW_POSTGIS_CONNECTION,     /**< NextGIS Web PostGIS connection */
     CAT_NGW_WMS_CONNECTION,         /**< NextGIS Web WMS connection */
     CAT_NGW_WMS_SERVICE,            /**< NextGIS Web WMS service */
-    CAT_NGW_WMS_SERVICE_LAYER,      /**< NextGIS Web WMS service layer */
     CAT_NGW_WFS_SERVICE,            /**< NextGIS Web WFS service */
-    CAT_NGW_WFS_SERVICE_LAYER,      /**< NextGIS Web WFS service layer */
     CAT_NGW_VECTOR_LAYER,           /**< NextGIS Web vector layer */
     CAT_NGW_POSTGIS_LAYER,          /**< NextGIS Web PostGIS layer */
     CAT_NGW_RASTER_LAYER,           /**< NextGIS Web raster layer */
@@ -225,9 +223,6 @@ enum ngsCatalogObjectType {
     CAT_NGW_WMS_LAYER,              /**< NextGIS Web WMS Layer */
     CAT_NGW_TRACKER,                /**< NextGIS Web tracker */
     CAT_NGW_WEBMAP,                 /**< NextGIS Web map */
-    CAT_NGW_WEBMAP_GROUP,           /**< NextGIS Web map group */
-    CAT_NGW_WEBMAP_LAYER,           /**< NextGIS Web map layer */
-    CAT_NGW_WEBMAP_BASEMAP,         /**< NextGIS Web map basemap */
     CAT_NGW_FORMBUILDER_FORM,       /**< NextGIS Web FormBuilder form */
     CAT_NGW_LOOKUP_TABLE,           /**< NextGIS Web lookup table */
     CAT_NGW_FILE_BUCKET,            /**< NextGIS Web File bucket */
@@ -302,6 +297,13 @@ enum ngsEditDeleteResult {
     EDT_HOLE,               /**< Hole is deleted. Outer ring selected */
     EDT_PART,               /**< Part is deleted. Other part selected */
     EDT_GEOMETRY            /**< Whole geometry is deleted */
+};
+
+enum ngsWebMapItemType {
+    WMT_UNKNOWN,
+    WMT_ROOT,
+    WMT_GROUP,
+    WMT_LAYER
 };
 
 #endif // NGSCODES_H

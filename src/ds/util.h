@@ -75,6 +75,44 @@ std::string downloadAttachment(StoreObject *storeObject, GIntBig fid, GIntBig ai
                                const Progress &progress);
 } // namespace ngw
 
+/**
+ * @brief QMS namespace
+ */
+namespace qms {
+
+typedef struct _Item
+{
+    int id;
+    std::string name;
+    std::string desc;
+    enum ngsCatalogObjectType type; /**< May be CAT_RASTER_TMS, CAT_RASTER_WMS, CAT_FC_GEOJSON */
+    std::string iconUrl;
+    enum ngsCode status; /**< May be COD_SUCCESS, COD_WARNING, COD_REQUEST_FAILED */
+    Envelope extent;
+} Item;
+
+typedef struct _ItemProperties
+{
+    int id;
+    enum ngsCode status; /**< May be COD_SUCCESS, COD_WARNING, COD_REQUEST_FAILED */
+    std::string url;
+    std::string name;
+    std::string desc;
+    enum ngsCatalogObjectType type; /**< May be CAT_RASTER_TMS, CAT_RASTER_WMS, CAT_FC_GEOJSON */
+    int epsg;
+    int z_min;
+    int z_max;
+    std::string iconUrl;
+    Envelope extent;
+    char y_origin_top;
+} ItemProperties;
+
+std::vector<Item> QMSQuery(const Options &options);
+CPLJSONObject QMSItemProperties(int id);
+ItemProperties QMSQueryProperties(int id);
+
+}; // namespace qms
+
 } // namespace ngs
 
 #endif // NGWBASEFUNCTIONS_H

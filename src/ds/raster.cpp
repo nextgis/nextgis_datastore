@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -100,12 +100,12 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         CPLString url = root.GetString(URL_KEY, "");
         url = url.replaceAll("{", "${");
         url = url.replaceAll("&", "&amp;");
-        int epsg = root.GetInteger(KEY_EPSG, 3857);
+        int epsg = root.GetInteger(KEY_EPSG, DEFAULT_EPSG);
 
         m_spatialReference = SpatialReferencePtr::importFromEPSG(epsg);
 
         int z_min = root.GetInteger(KEY_Z_MIN, 0);
-        int z_max = root.GetInteger(KEY_Z_MAX, 18);
+        int z_max = root.GetInteger(KEY_Z_MAX, DEFAULT_MAX_ZOOM);
         bool y_origin_top = root.GetBool(KEY_Y_ORIGIN_TOP, true);
         unsigned short bandCount = static_cast<unsigned short>(
                     root.GetInteger(KEY_BAND_COUNT, 4));

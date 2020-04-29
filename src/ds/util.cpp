@@ -205,4 +205,222 @@ std::string downloadAttachment(StoreObject *storeObject, GIntBig fid, GIntBig ai
 
 } // namespace ngw
 
+namespace qms {
+
+constexpr const char *qmsAPIURL = "https://qms.nextgis.com/api/v1/";
+
+static enum ngsCode qmsStatusToCode(const std::string &status)
+{
+    if(status.empty()) {
+        return COD_REQUEST_FAILED;
+    }
+
+    if(EQUAL(status.c_str(), "works")) {
+        return COD_SUCCESS;
+    }
+
+    if(EQUAL(status.c_str(), "problematic")) {
+        return COD_WARNING;
+    }
+
+    return COD_REQUEST_FAILED;
+}
+
+static enum ngsCatalogObjectType qmsTypeToCode(const std::string &type)
+{
+    if(type.empty()) {
+        return CAT_UNKNOWN;
+    }
+
+    if(EQUAL(type.c_str(), "tms")) {
+        return CAT_RASTER_TMS;
+    }
+
+    if(EQUAL(type.c_str(), "wms")) {
+        return CAT_CONTAINER_WMS;
+    }
+
+    if(EQUAL(type.c_str(), "wfs")) {
+        return CAT_CONTAINER_WFS;
+    }
+
+    if(EQUAL(type.c_str(), "geojson")) {
+        return CAT_FC_GEOJSON;
+    }
+
+    return CAT_UNKNOWN;
+}
+
+static Envelope qmsExtentToEnvelope(const std::string &extent)
+{
+    Envelope out(DEFAULT_BOUNDS);
+    if(extent.empty() || extent.size() < 11) {
+        return out;
+    }
+    // Drop SRID part - 10 chars
+    std::string wkt = extent.substr(10);
+    OGRGeometry *poGeom = nullptr;
+    if(OGRGeometryFactory::createFromWkt(wkt.c_str(),
+        OGRSpatialReference::GetWGS84SRS(), &poGeom) != OGRERR_NONE ) {
+        SpatialReferencePtr srsWebMercator = SpatialReferencePtr::importFromEPSG(3857);
+        if(poGeom->transformTo(srsWebMercator) != OGRERR_NONE) {
+            OGREnvelope env;
+            poGeom->getEnvelope(&env);
+            out.setMinX(env.MinX);
+            out.setMinY(env.MinY);
+            out.setMaxX(env.MaxX);
+            out.setMaxY(env.MaxY);
+        }
+    }
+    return out;
+}
+
+std::vector<Item> QMSQuery(const Options &options)
+{
+    std::string url(qmsAPIURL);
+    url.append("geoservices/");
+    bool firstParam = true;
+
+    std::string val = options.asString("type");
+    if(!val.empty()) {
+        url.append("?type=" + val);
+        firstParam = false;
+    }
+
+    val = options.asString("epsg");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?epsg=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&epsg=" + val);
+        }
+    }
+
+    val = options.asString("cumulative_status");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?cumulative_status=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&cumulative_status=" + val);
+        }
+    }
+
+    val = options.asString("search");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?search=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&search=" + val);
+        }
+    }
+
+    val = options.asString("intersects_extent");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?intersects_extent=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&intersects_extent=" + val);
+        }
+    }
+
+    val = options.asString("ordering");
+    if(!val.empty()) {
+        if(firstParam) {
+            url.append("?ordering=" + val);
+            firstParam = false;
+        }
+        else {
+            url.append("&ordering=" + val);
+        }
+    }
+
+    val = options.asString("limit", "20");
+    if(firstParam) {
+        url.append("?limit=" + val);
+        firstParam = false;
+    }
+    else {
+        url.append("&limit=" + val);
+    }
+
+    val = options.asString("offset", "0");
+    if(firstParam) {
+        url.append("?offset=" + val);
+    }
+    else {
+        url.append("&offset=" + val);
+    }
+
+    Envelope ext;
+    std::vector<Item> out;
+    CPLJSONObject root = http::fetchJson(url);
+    if(root.IsValid()) {
+        CPLJSONArray services = root.GetArray("results");
+        for(int i = 0; i < services.Size(); ++i) {
+            CPLJSONObject service = services[i];
+            int iconId = service.GetInteger("icon", -1);
+            std::string iconUrl;
+            if(iconId != -1) {
+                iconUrl = std::string(qmsAPIURL) + "icons/" +
+                        std::to_string(iconId) + "/content";
+            }
+
+            Item item = { service.GetInteger("id"),
+                          service.GetString("name"),
+                          service.GetString("desc"),
+                          qmsTypeToCode(service.GetString("type")),
+                          iconUrl,
+                          qmsStatusToCode(service.GetString("status")),
+                          qmsExtentToEnvelope(service.GetString("extent"))
+                     };
+            out.emplace_back(item);
+        }
+    }
+
+    return out;
+}
+
+CPLJSONObject QMSItemProperties(int id)
+{
+    return http::fetchJson(std::string(qmsAPIURL) + "geoservices/" +
+                           std::to_string(id));
+}
+
+ItemProperties QMSQueryProperties(int id)
+{
+    ItemProperties out;
+    out.id = NOT_FOUND;
+    auto jsonProp = QMSItemProperties(id);
+    if(jsonProp.IsValid()) {
+        out.id = id;
+        out.status = qmsStatusToCode(jsonProp.GetString("cumulative_status", "failed"));
+        out.url = jsonProp.GetString("url");
+        out.name = jsonProp.GetString("name");
+        out.desc = jsonProp.GetString("desc");
+        out.type = qmsTypeToCode(jsonProp.GetString("type"));
+        out.epsg = jsonProp.GetInteger("epsg", 3857);
+        out.z_min = jsonProp.GetInteger("z_min", 0);
+        out.z_max = jsonProp.GetInteger("z_max", 20);
+        int iconId = jsonProp.GetInteger("icon", NOT_FOUND);
+        if(iconId != NOT_FOUND) {
+            out.iconUrl = std::string(qmsAPIURL) + "icons/" +
+                    std::to_string(iconId) + "/content";
+        }
+        out.y_origin_top = jsonProp.GetBool("y_origin_top");
+        out.extent = qmsExtentToEnvelope(jsonProp.GetString("extent"));
+    }
+
+    return out;
+}
+
+} // namespace qms
+
 } // namespace ngs

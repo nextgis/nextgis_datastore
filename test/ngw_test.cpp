@@ -22,7 +22,7 @@
 #include "test.h"
 
 #include "ngstore/api.h"
-
+/*
 TEST(NGWTests, TestReadConnection) {
     initLib();
 
@@ -402,7 +402,112 @@ TEST(NGWTests, TestCreateStyle) {
 
 TEST(NGWTests, TestCreateWebMap) {
     initLib();
-    // Create web map with groups
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+
+    // Create resource group
+    time_t rawTime = std::time(nullptr);
+    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto group = createGroup(connection, groupName);
+    ASSERT_NE(group, nullptr);
+
+    uploadMIToNGW("/data/bld.tab", "новый слой 4", group);
+
+    // Find loaded layer by name
+    auto vectorLayer = ngsCatalogObjectGetByName(group, "новый слой 4", 1);
+    ASSERT_NE(vectorLayer, nullptr);
+
+    char **options = nullptr;
+    // WMS
+    // Add style to layer
+    auto style = createStyle(vectorLayer, "новый стиль",
+                             "test Mapserver style", CAT_NGW_MAPSERVER_STYLE,
+                             "<map><layer><styleitem>OGR_STYLE</styleitem><class><name>default</name></class></layer></map>");
+    ASSERT_NE(style, nullptr);
+
+    // Create web map
+    options = nullptr;
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_NGW_WEBMAP);
+    options = ngsListAddNameValue(options, "DESCRIPTION", "тестовая веб карта");
+    auto webMap = ngsCatalogObjectCreate(group, "новая веб карта", options);
+    ngsListFree(options);
+
+    ASSERT_NE(webMap, nullptr);
+    // Create basemap
+    // Add basemap to web map
+    options = nullptr;
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_NGW_BASEMAP);
+    options = ngsListAddNameValue(options, "DESCRIPTION", "тестовая базовая карта");
+    options = ngsListAddNameValue(options, "QMS_ID", "448");
+    auto basebMap1 = ngsCatalogObjectCreate(group, "новая базовая карта", options);
+    ngsListFree(options);
+
+    ASSERT_NE(basebMap1, nullptr);
+
+    ngsNGWWebmapBasemapInfo bmInfo1 = {100, 1, "basemap 1", basebMap1};
+    EXPECT_EQ(ngsNGWWebMapAddBaseMap(webMap, bmInfo1), 1);
+
+    options = nullptr;
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_NGW_BASEMAP);
+    options = ngsListAddNameValue(options, "DESCRIPTION", "тестовая базовая карта 2");
+    options = ngsListAddNameValue(options, "QMS_ID", "487");
+    auto basebMap2 = ngsCatalogObjectCreate(group, "новая базовая карта 2", options);
+    ngsListFree(options);
+
+    ASSERT_NE(basebMap2, nullptr);
+
+    ngsNGWWebmapBasemapInfo bmInfo2 = {100, 1, "basemap 2", basebMap2};
+    EXPECT_EQ(ngsNGWWebMapAddBaseMap(webMap, bmInfo2), 1);
+
+    // Create web map layers with groups
+    auto webMapGroup = new ngsNGWWebmapGroupInfo;
+    webMapGroup->expanded = 1;
+    webMapGroup->itemInfo.displayName = "группа 1";
+    webMapGroup->itemInfo.itemType = WMT_GROUP;
+    webMapGroup->children = static_cast<ngsNGWWebmapItemInfo**>(
+                ngsMalloc(sizeof(ngsNGWWebmapItemInfo*) * 2));
+
+    auto webMapLayer = new ngsNGWWebmapLayerInfo;
+    webMapLayer->layer = style;
+    webMapLayer->adapter = "image";
+    webMapLayer->enabled = 0;
+    webMapLayer->itemInfo.itemType = WMT_LAYER;
+    webMapLayer->itemInfo.displayName = "слой 1";
+    webMapLayer->transparency = 0;
+    webMapLayer->maxScaleDenom = nullptr;
+    webMapLayer->minScaleDenom = nullptr;
+    webMapLayer->orderPosition = 0;
+
+    webMapGroup->children[0] = reinterpret_cast<ngsNGWWebmapItemInfo*>(webMapLayer);
+    webMapGroup->children[1] = new ngsNGWWebmapItemInfo({WMT_UNKNOWN, nullptr});
+
+    EXPECT_NE(ngsNGWWebMapInsertItem(webMap, -1, reinterpret_cast<ngsNGWWebmapItemInfo*>(webMapGroup)), -1);
+
+    ngsNGWWebmapGroupInfoFree(webMapGroup);
+
+    EXPECT_EQ(ngsCatalogObjectSync(webMap), 1);
+
+    auto tree = ngsNGWWebMapLayerTree(webMap);
+    ASSERT_NE(tree, nullptr);
+    ASSERT_NE(tree->children, nullptr);
+
+    int counter = 0;
+    ngsNGWWebmapItemInfo *webMapItem = nullptr;
+    while((webMapItem = tree->children[counter++])->itemType != WMT_UNKNOWN) {
+        std::cout << "  " << webMapItem->displayName << '\n';
+    }
+
+    ngsNGWWebmapGroupInfoFree(tree);
+
+    // Delete resource group
+    EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
     ngsUnInit();
 }
 
@@ -516,7 +621,7 @@ TEST(NGWTests, TestCreateLookupTable) {
     // delete
     ngsUnInit();
 }
-
+*/
 TEST(NGWTests, TestConnection) {
     initLib();
     // Create connection
@@ -524,23 +629,23 @@ TEST(NGWTests, TestConnection) {
     ASSERT_NE(connection, nullptr);
 
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "guest");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "yes");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "YES");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
 
     // change
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "login", "test", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "yes");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "YES");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
 
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "is_guest", "OFF", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "no");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "NO");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
 
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "url", "http://box.nextgis.com", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "no");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "NO");
     auto urlProp = ngsCatalogObjectProperty(connection, "url", "", "");
     EXPECT_STREQ(urlProp, "http://box.nextgis.com");
 
@@ -552,7 +657,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "guest");
     options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
-    options = ngsListAddNameValue(options, "is_guest", "ON");
+    options = ngsListAddNameValue(options, "is_guest", "YES");
 
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
     ngsListFree(options);
@@ -561,7 +666,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "qqq");
     options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
-    options = ngsListAddNameValue(options, "is_guest", "ON");
+    options = ngsListAddNameValue(options, "is_guest", "YES");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
     ngsListFree(options);
     options = nullptr;
@@ -569,7 +674,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "guest");
     options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
-    options = ngsListAddNameValue(options, "is_guest", "OFF");
+    options = ngsListAddNameValue(options, "is_guest", "NO");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
     ngsListFree(options);
     options = nullptr;
@@ -578,7 +683,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameValue(options, "login", "administrator");
     options = ngsListAddNameValue(options, "password", "demodemo1");
     options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
-    options = ngsListAddNameValue(options, "is_guest", "OFF");
+    options = ngsListAddNameValue(options, "is_guest", "NO");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 0);
     ngsListFree(options);
     options = nullptr;
@@ -587,7 +692,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameValue(options, "login", "administrator");
     options = ngsListAddNameValue(options, "password", "demodemo");
     options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
-    options = ngsListAddNameValue(options, "is_guest", "OFF");
+    options = ngsListAddNameValue(options, "is_guest", "NO");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
     ngsListFree(options);
     options = nullptr;

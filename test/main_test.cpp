@@ -289,10 +289,10 @@ TEST(CatalogTests, TestDelete) {
 
 TEST(CatalogTests, TestCreateConnection) {
     initLib();
-    char** options = nullptr;
 
     CatalogObjectH conn = ngsCatalogObjectGet("ngc://GIS Server connections");
     ASSERT_NE(conn, nullptr);
+    char** options = nullptr;
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
     options = ngsListAddNameValue(options, "login", "guest");
@@ -1033,7 +1033,7 @@ TEST(MiscTests, TestCrypt) {
     EXPECT_STREQ(ptext, rtext);
 
     const char *deviceId = ngsGetDeviceId(false);
-    CPLDebug("ngstore", "Device ID: %s", deviceId);
+    std::cout << "Device ID: " << deviceId << "\n";
 
     EXPECT_STRNE(deviceId, "");
 
