@@ -506,7 +506,7 @@ const char *ngsFormFileName(const char *path, const char *name,
  * @param size Allocate memory size.
  * @return Pointer to allocated memory.
  */
-void *ngsMalloc(SIZE size)
+void *ngsMalloc(POINTER_SIZE size)
 {
     return CPLMalloc(static_cast<size_t>(size));
 }
@@ -2141,7 +2141,7 @@ int ngsFeatureClassUpdateFeature(CatalogObjectH object, FeatureH feature,
  * not this edit operation
  * @return COD_SUCCESS if everything is OK
  */
-int ngsFeatureClassDeleteFeature(CatalogObjectH object, SIZE id,
+int ngsFeatureClassDeleteFeature(CatalogObjectH object, POINTER_SIZE id,
                                  char logEdits)
 {
     Table *table = getTableFromHandle(object);
@@ -2173,7 +2173,7 @@ int ngsFeatureClassDeleteFeatures(CatalogObjectH object, char logEdits)
  * @param object Handle to Table, FeatureClass or SingleLayerDataset catalog object
  * @return Feature/Row count
  */
-SIZE ngsFeatureClassCount(CatalogObjectH object)
+POINTER_SIZE ngsFeatureClassCount(CatalogObjectH object)
 {
     Table *table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -2220,7 +2220,7 @@ FeatureH ngsFeatureClassNextFeature(CatalogObjectH object)
  * @param id Feature identifier
  * @return Feature handle
  */
-FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, SIZE id)
+FeatureH ngsFeatureClassGetFeature(CatalogObjectH object, POINTER_SIZE id)
 {
     Table *table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -2328,7 +2328,7 @@ char ngsFeatureIsFieldSet(FeatureH feature, int fieldIndex)
 
 }
 
-SIZE ngsFeatureGetId(FeatureH feature)
+POINTER_SIZE ngsFeatureGetId(FeatureH feature)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -2570,7 +2570,7 @@ ngsCoordinate ngsCoordinateTransformationDo(CoordinateTransformationH ct,
     return coordinates;
 }
 
-SIZE ngsFeatureAttachmentAdd(FeatureH feature, const char *name,
+POINTER_SIZE ngsFeatureAttachmentAdd(FeatureH feature, const char *name,
                                   const char *description, const char *path,
                                   char **options, char logEdits)
 {
@@ -2610,7 +2610,7 @@ char ngsFeatureAttachmentDeleteAll(FeatureH feature, char logEdits)
  * @param logEdits Add operaton to edit log or not.
  * @return 1 on success or 0.
  */
-char ngsFeatureAttachmentDelete(FeatureH feature, SIZE aid, char logEdits)
+char ngsFeatureAttachmentDelete(FeatureH feature, POINTER_SIZE aid, char logEdits)
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
@@ -2663,7 +2663,7 @@ ngsFeatureAttachmentInfo *ngsFeatureAttachmentsGet(FeatureH feature)
  * @param logEdits Add operaton to edit log or not.
  * @return 1 on success or 0.
  */
-char ngsFeatureAttachmentUpdate(FeatureH feature, SIZE aid,
+char ngsFeatureAttachmentUpdate(FeatureH feature, POINTER_SIZE aid,
                                const char *name, const char *description,
                                char logEdits)
 {
@@ -3561,7 +3561,7 @@ int ngsLayerSetStyleName(LayerH layer, const char *name)
     return renderLayerPtr->setStyleName(fromCString(name)) ? COD_SUCCESS : COD_SET_FAILED;
 }
 
-int ngsLayerSetSelectionIds(LayerH layer, SIZE *ids, int size)
+int ngsLayerSetSelectionIds(LayerH layer, POINTER_SIZE *ids, int size)
 {
     if(nullptr == layer) {
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
@@ -3581,7 +3581,7 @@ int ngsLayerSetSelectionIds(LayerH layer, SIZE *ids, int size)
     return COD_SUCCESS;
 }
 
-int ngsLayerSetHideIds(LayerH layer, SIZE *ids, int size)
+int ngsLayerSetHideIds(LayerH layer, POINTER_SIZE *ids, int size)
 {
     if(nullptr == layer) {
         return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
@@ -3799,7 +3799,7 @@ int ngsEditOverlayCreateGeometry(char mapId, ngsGeometryType type)
     return COD_SUCCESS;
 }
 
-int ngsEditOverlayEditGeometry(char mapId, LayerH layer, SIZE featureId)
+int ngsEditOverlayEditGeometry(char mapId, LayerH layer, POINTER_SIZE featureId)
 {
     EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
     if(nullptr == editOverlay) {
