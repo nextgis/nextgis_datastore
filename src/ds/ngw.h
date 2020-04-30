@@ -73,6 +73,10 @@ public:
     virtual bool open(unsigned int openFlags, const Options &options) override;
     virtual void close() override;
 
+    // Dataset interface
+protected:
+    virtual void fillFeatureClasses() const override;
+
     //static
 public:
     static NGWLayerDataset *createFeatureClass(NGWResourceGroup *resourceGroup,
@@ -89,6 +93,7 @@ public:
 
 private:
     ObjectPtr m_fc;
+
 };
 
 /**

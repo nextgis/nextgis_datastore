@@ -92,6 +92,7 @@ NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
 {
     m_geometryType = FeatureClass::geometryTypeFromName(
                 resource.GetString("vector_layer/geometry_type"));
+    m_childrenLoaded = true;
 }
 
 NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
@@ -227,6 +228,11 @@ void NGWLayerDataset::close()
     sync();
     DatasetBase::close();
     m_fc = nullptr;
+}
+
+void NGWLayerDataset::fillFeatureClasses() const
+{
+    // Do nothing
 }
 
 bool NGWLayerDataset::destroy()

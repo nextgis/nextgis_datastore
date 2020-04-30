@@ -236,7 +236,7 @@ void ObjectContainer::removeDuplicates(std::vector<std::string> &deleteNames,
         auto itan = addNames.begin();
         bool deleteName = false;
         while(itan != addNames.end()) {
-            if(EQUAL((*it).c_str(), (*itan).c_str())) {
+            if(compare(*it, *itan)) {
                 it = deleteNames.erase(it);
                 itan = addNames.erase(itan);
                 deleteName = true;

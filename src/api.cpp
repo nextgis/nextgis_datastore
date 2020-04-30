@@ -132,14 +132,22 @@ static const char *storeCString(const std::string &str)
     return data;
 }
 
+#ifdef NGS_MOBILE
+constexpr size_t STRINGS_ARRAY_MAX = 150;
+constexpr size_t STRINGS_ARRAY_FREE = 75;
+#else
+constexpr size_t STRINGS_ARRAY_MAX = 300;
+constexpr size_t STRINGS_ARRAY_FREE = 150;
+#endif // NGS_MOBILE
+
 static void clearCStrings()
 {
-    if(cStrings.size() > 150) {
+    if(cStrings.size() > STRINGS_ARRAY_MAX) {
         MutexHolder holder(gMutex);
-        for(size_t i = 0; i < 75; ++i) {
+        for(size_t i = 0; i < STRINGS_ARRAY_FREE; ++i) {
             CPLFree(cStrings[i]);
         }
-        cStrings.erase(cStrings.begin(), cStrings.begin() + 75);
+        cStrings.erase(cStrings.begin(), cStrings.begin() + STRINGS_ARRAY_FREE);
     }
 }
 
@@ -1261,7 +1269,6 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
         return nullptr;
     }
 
-    clearCStrings();
 
     if(!container->loadChildren()) {
         errorMessage(_("Failed to load children"));
@@ -1273,6 +1280,7 @@ static ngsCatalogObjectInfo *catalogObjectQuery(CatalogObjectH object,
         return nullptr;
     }
 
+    clearCStrings();
     ngsCatalogObjectInfo *output = nullptr;
     size_t outputSize = 0;
     for(const auto &child : children) {
