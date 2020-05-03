@@ -23,6 +23,7 @@
 
 #include "ngstore/codes.h"
 #include "util/settings.h"
+#include "util/options.h"
 
 // gdal
 #include "cpl_vsi.h"
@@ -72,4 +73,16 @@ TEST(SettingsTests, Settings) {
     EXPECT_STREQ(ngsSettingsGetString("catalog/show_hidden", "OFF"), "ON");
 
     ngsUnInit();
+}
+
+TEST(OptionsTests, Settings) {
+    initLib();
+	
+	ngs::Options opt;
+	EXPECT_EQ(opt.asBool("MOVE", false), false);
+	EXPECT_EQ(opt.asBool("MOVE", true), true);
+	opt.add("MOVE", true);
+	EXPECT_EQ(opt.asBool("MOVE", false), true);
+	
+	ngsUnInit();
 }

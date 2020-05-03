@@ -23,6 +23,7 @@
 
 // gdal
 #include "cpl_string.h"
+#include "ngstore/common.h"
 
 // std
 #include <map>
@@ -31,7 +32,7 @@
 
 namespace ngs {
 
-class Options
+class NGS_EXTERN Options
 {
 public:
     Options() = default;
