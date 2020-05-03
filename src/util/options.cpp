@@ -67,17 +67,12 @@ bool Options::asBool(const std::string &key, bool defaultOption) const
     if(it == m_options.end())
         return defaultOption;
 
-    if(it->second.empty())
-        return false;
-    else if(compare(it->second, "OFF"))
-        return false;
-    else if(compare(it->second, "FALSE"))
-        return false;
-    else if(compare(it->second, "NO"))
-        return false;
-    else if(compare(it->second, "0"))
-        return false;
-    return true;
+    auto result = toBool(it->second);
+    if(result) {
+        return true;
+    }
+
+    return false;
 }
 
 int Options::asInt(const std::string &key, int defaultOption) const

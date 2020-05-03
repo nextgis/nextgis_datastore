@@ -355,7 +355,8 @@ std::string deviceId(bool regenerate)
 
 bool toBool(const std::string &val)
 {
-    return compare(val, "ON") || compare(val, "YES") || compare(val, "1");
+    return compare(val, "ON", false) || compare(val, "YES", false) ||
+            compare(val, "1", false) || compare(val, "TRUE", false);
 }
 
 std::string fromBool(bool val)
