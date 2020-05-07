@@ -766,7 +766,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     ObjectPtr existsChild = getChild(newName);
     if(existsChild) {
         if(options.asBool("OVERWRITE", false)) {
-            if(!child->destroy()) {
+            if(!existsChild->destroy()) {
                 errorMessage(_("Failed to overwrite %s\nError: %s"),
                     newName.c_str(), getLastError());
                 return COD_DELETE_FAILED;
