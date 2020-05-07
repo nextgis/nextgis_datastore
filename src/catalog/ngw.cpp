@@ -1196,6 +1196,7 @@ Properties NGWConnection::properties(const std::string &domain) const
         out.add("url", m_url);
         out.add("login", m_user);
         out.add("is_guest", fromBool(m_isGuest || compare(m_user, "guest")));
+        out.append(NGWResourceBase::metadata(domain));
         return out;
     }
     return out;
@@ -1217,6 +1218,11 @@ std::string NGWConnection::property(const std::string &key,
 
         if(compare(key, "is_guest")) {
             return fromBool(m_isGuest || compare(m_user, "guest"));
+        }
+
+        auto out = NGWResourceBase::metadataItem(key, defaultValue, domain);
+        if(out != defaultValue) {
+            return out;
         }
     }
     return ObjectContainer::property(key, defaultValue, domain);
@@ -1760,6 +1766,7 @@ bool NGWStyle::canDestroy() const
 Properties NGWStyle::properties(const std::string &domain) const
 {
     auto out = Raster::properties(domain);
+    out.append(NGWResourceBase::metadata(domain));
     if(domain.empty()) {
         out.add("style", m_style);
         out.add("style_path", m_stylePath);
@@ -1783,7 +1790,7 @@ std::string NGWStyle::property(const std::string &key,
         return m_stylePath;
     }
 
-    return Raster::property(key, defaultValue, domain);
+    return NGWResourceBase::metadataItem(key, defaultValue, domain);
 }
 
 bool NGWStyle::setProperty(const std::string &key, const std::string &value,
@@ -2767,7 +2774,8 @@ bool NGWBaseMap::canDestroy() const
 
 Properties NGWBaseMap::properties(const std::string &domain) const
 {
-    auto out = Raster::properties(domain);
+    auto out = Raster::properties(domain);    
+    out.append(NGWResourceBase::metadata(domain));
     if(domain.empty()) {
         out.add("url", m_url);
         out.add("qms", m_qms);
@@ -2791,7 +2799,7 @@ std::string NGWBaseMap::property(const std::string &key,
         return m_qms;
     }
 
-    return Raster::property(key, defaultValue, domain);
+    return NGWResourceBase::metadataItem(key, defaultValue, domain);
 }
 
 bool NGWBaseMap::setProperty(const std::string &key, const std::string &value,

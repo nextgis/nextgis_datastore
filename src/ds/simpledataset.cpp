@@ -66,7 +66,7 @@ std::string SingleDataset::property(const std::string &key,
                                          const std::string &domain) const
 {
     if(domain.empty()) {
-        if(key == "sub_type") {
+        if(compare(key, "sub_type")) {
             return std::to_string(m_subType);
         }
     }
@@ -103,7 +103,7 @@ std::string SingleLayerDataset::property(const std::string &key,
                                          const std::string &domain) const
 {
     if(domain.empty()) {
-        if(key == "geometry_type") {
+        if(compare(key, "geometry_type")) {
             return FeatureClass::geometryTypeName(m_geometryType,
                                                   FeatureClass::GeometryReportType::OGC);
         }

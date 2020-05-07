@@ -22,7 +22,7 @@
 #include "test.h"
 
 #include "ngstore/api.h"
-/*
+
 TEST(NGWTests, TestReadConnection) {
     initLib();
 
@@ -459,6 +459,8 @@ TEST(NGWTests, TestCreateWebMap) {
 
     ASSERT_NE(basebMap2, nullptr);
 
+    EXPECT_STRNE(ngsCatalogObjectProperty(basebMap2, "id", "layer", ""), "layer");
+
     ngsNGWWebmapBasemapInfo bmInfo2 = {100, 1, "basemap 2", basebMap2};
     EXPECT_EQ(ngsNGWWebMapAddBaseMap(webMap, bmInfo2), 1);
 
@@ -621,7 +623,7 @@ TEST(NGWTests, TestCreateLookupTable) {
     // delete
     ngsUnInit();
 }
-*/
+
 TEST(NGWTests, TestConnection) {
     initLib();
     // Create connection

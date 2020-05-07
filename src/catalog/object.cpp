@@ -22,6 +22,7 @@
 
 #include "api_priv.h"
 #include "catalog.h"
+#include "util/stringutil.h"
 
 namespace ngs {
 
@@ -116,7 +117,7 @@ std::string Object::property(const std::string &key,
                              const std::string &defaultValue,
                              const std::string &domain) const
 {
-    if(key == "system_path" && domain.empty()) {
+    if(domain.empty() && compare(key, "system_path") ) {
         return m_path;
     }
     return defaultValue;

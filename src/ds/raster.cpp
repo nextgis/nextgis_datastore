@@ -303,6 +303,9 @@ std::string Raster::property(const std::string &key,
                      const std::string &defaultValue,
                      const std::string &domain) const
 {
+    if(nullptr == m_DS) {
+        return Object::property(key, defaultValue, domain);
+    }
     auto ret = m_DS->GetMetadataItem(key.c_str(), domain.c_str());
     if(nullptr == ret) {
         return Object::property(key, defaultValue, domain);
