@@ -236,11 +236,17 @@ ObjectPtr LocalConnections::getObjectBySystemPath(const std::string &path) const
     std::string sep = Catalog::separator();
     for(const ObjectPtr &child : m_children) {
         const std::string &testPath = child->path();
-        if(len <= testPath.size()) {
+
+		if (compare(path, testPath)) {
+			return child;
+		}
+
+		size_t checkLen = testPath.size();
+        if(len <= checkLen) {
             continue;
         }
 
-        if(comparePart(path, testPath, static_cast<unsigned>(testPath.size()))) {
+        if(comparePart(path, testPath, static_cast<unsigned>(checkLen))) {
             ObjectContainer * const container =
                     ngsDynamicCast(ObjectContainer, child);
             if(nullptr != container) {

@@ -398,19 +398,19 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
     initLib();
     resetCounter();
 
-    CPLString testPath = ngsGetCurrentDirectory();
-    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
-    CPLString storePath = catalogPath + "/tmp/main.ngst";
-    CPLString shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
-    CatalogObjectH store = ngsCatalogObjectGet(storePath);
-    CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
+    std::string testPath = ngsGetCurrentDirectory();
+	std::string catalogPath = ngsCatalogPathFromSystem(testPath.c_str());
+	std::string storePath = catalogPath + "/tmp/main.ngst";
+	std::string shapePath = catalogPath + "/data/railway.zip/railway-line.shp";
+    CatalogObjectH store = ngsCatalogObjectGet(storePath.c_str());
+    CatalogObjectH shape = ngsCatalogObjectGet(shapePath.c_str());
 
     ngsFeatureClassBatchMode(store, 1);
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr), COD_FUNCTION_NOT_AVAILABLE);
 
     shapePath = catalogPath + "/data/railway-mini.zip/railway-mini.shp";
-    shape = ngsCatalogObjectGet(shapePath);
+    shape = ngsCatalogObjectGet(shapePath.c_str());
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFeatureClassBatchMode(store, 0);

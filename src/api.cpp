@@ -485,6 +485,7 @@ void ngsListFree(char **list)
  * @param path A parent path
  * @param name A file name
  * @param extension A file extension
+ * @param catalog If catalog path 1 els 0
  * @return The new path string
  */
 const char *ngsFormFileName(const char *path, const char *name,

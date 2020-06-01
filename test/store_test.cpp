@@ -246,6 +246,31 @@ TEST(MIStoreTests, TestLogEdits) {
     ngsUnInit();
 }
 
+TEST(MIStoreTests, TestTabPathFromSystem) {
+	initLib();
+
+	auto path = ngsFormFileName(ngsGetCurrentDirectory(), "data", nullptr, 0);
+	auto tabPath = ngsFormFileName(path, "bld", "tab", 0);
+	auto catalogPath = ngsCatalogPathFromSystem(tabPath);
+	ASSERT_STRNE(catalogPath, "");
+		
+	tabPath = ngsFormFileName(path, "BLD", "TAB", 0);
+	catalogPath = ngsCatalogPathFromSystem(tabPath);
+	ASSERT_STRNE(catalogPath, "");
+
+	// Check wrong path
+	tabPath = ngsFormFileName(path, "bld", "tab", 1);
+	catalogPath = ngsCatalogPathFromSystem(tabPath);
+	ASSERT_STREQ(catalogPath, "");
+
+#ifdef _WIN32
+	catalogPath = ngsCatalogPathFromSystem("C:\\");
+	ASSERT_STRNE(catalogPath, "");
+#endif
+
+	ngsUnInit();
+}
+
 TEST(MIStoreTests, TestLoadFromNGW) {
     initLib();
 
