@@ -688,7 +688,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
         OGRFeatureDefn * const srcDefinition = srcFClass->definition();
-        bool ogrStyleField = options.asBool("OGR_STYLE_FIELD", false);
+        bool ogrStyleField = options.asBool("OGR_STYLE_STRING_TO_FIELD", false);
         if(ogrStyleField) {
             OGRFieldDefn ogrStyleField(OGR_STYLE_FIELD, OFTString);
             srcDefinition->AddFieldDefn(&ogrStyleField);

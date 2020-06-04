@@ -263,6 +263,10 @@ TEST(MIStoreTests, TestTabPathFromSystem) {
 	catalogPath = ngsCatalogPathFromSystem(tabPath);
 	ASSERT_STREQ(catalogPath, "");
 
+	tabPath = ngsFormFileName(path, "bld", "tab1", 0);
+	catalogPath = ngsCatalogPathFromSystem(tabPath);
+	ASSERT_STREQ(catalogPath, "");
+
 #ifdef _WIN32
 	catalogPath = ngsCatalogPathFromSystem("C:\\");
 	ASSERT_STRNE(catalogPath, "");
@@ -308,7 +312,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     const char *layerName = "новый слой 4";
     // Set new layer name. If not set, the source layer name will use.
     options = ngsListAddNameValue(options, "NEW_NAME", layerName);
-    options = ngsListAddNameValue(options, "OGR_STYLE_TO_FIELD", "TRUE");
+    options = ngsListAddNameValue(options, "OGR_STYLE_STRING_TO_FIELD", "TRUE");
 
     // TODO: Add MI thematic maps (theme Legends) from wor file
 //    options = ngsListAddNameValue(options, "WOR_STYLE", "...");
@@ -324,7 +328,19 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     ASSERT_NE(vectorLayer, nullptr);
 
     EXPECT_STRNE(ngsCatalogObjectProperty(vectorLayer, "id", "", ""), "");
+	auto fields = ngsFeatureClassFields(vectorLayer);
+	int counter = 0;
+	bool hasOGRStyle = false;
+	while (fields[counter].name != nullptr) {
+		std::string name(fields[counter].name);
+		if (name == "OGR_STYLE") {
+			hasOGRStyle = true;
+			break;
+		}
+		counter++;
+	}
 
+	EXPECT_EQ(hasOGRStyle, true);
     EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
 
     // Add attachment to first feature
@@ -441,7 +457,7 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     options = ngsListAddNameValue(options, "SKIP_INVALID_GEOMETRY", "TRUE");
     const char *layerName = "новый слой 4";
     options = ngsListAddNameValue(options, "NEW_NAME", layerName);
-    options = ngsListAddNameValue(options, "OGR_STYLE_TO_FIELD", "TRUE");
+    options = ngsListAddNameValue(options, "OGR_STYLE_STRING_TO_FIELD", "TRUE");
 
     CatalogObjectH tab = getLocalFile("/data/bld.tab");
     EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
@@ -455,6 +471,20 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
 
     EXPECT_STRNE(ngsCatalogObjectProperty(vectorLayer, "id", "", ""), "");
 
+	auto fields = ngsFeatureClassFields(vectorLayer);
+	ASSERT_NE(vectorLayer, nullptr);
+	int counter = 0;
+	bool hasOGRStyle = false;
+	while (fields[counter].name != nullptr) {
+		std::string name(fields[counter].name);
+		if (name == "OGR_STYLE") {
+			hasOGRStyle = true;
+			break;
+		}
+		counter++;
+	}
+
+	EXPECT_EQ(hasOGRStyle, true);
     EXPECT_GE(ngsFeatureClassCount(vectorLayer), 5);
 
     // Create MI Store
