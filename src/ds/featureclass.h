@@ -66,7 +66,6 @@ public:
     virtual Envelope extent() const;
     virtual int copyFeatures(const FeatureClassPtr srcFClass,
                              const FieldMapPtr fieldMap,
-                             OGRwkbGeometryType filterGeomType,
                              const Progress &progress = Progress(),
                              const Options &options = Options());
 

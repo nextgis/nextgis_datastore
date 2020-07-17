@@ -81,7 +81,6 @@ std::vector<std::string> FeatureClass::geometryColumns() const
 
 int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                                const FieldMapPtr fieldMap,
-                               OGRwkbGeometryType filterGeomType,
                                const Progress &progress, const Options &options)
 {
     if(!srcFClass) {
@@ -132,10 +131,11 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
 
             OGRwkbGeometryType geomType = geom->getGeometryType();
             OGRwkbGeometryType multiGeomType = geomType;
-            if(OGR_GT_Flatten(geomType) < wkbPolygon && toMulti) {
+            if(OGR_GT_Flatten(geomType) <= wkbPolygon && toMulti) {
                 multiGeomType = static_cast<OGRwkbGeometryType>(geomType + 3);
             }
-            if(filterGeomType != wkbUnknown && filterGeomType != multiGeomType) {
+
+            if(geometryType() != wkbUnknown && geometryType() != multiGeomType) { // MapInfo can store multiple types at one layer and so the reported type is Unknonw
                 continue;
             }
 
@@ -305,29 +305,29 @@ std::vector<OGRwkbGeometryType> FeatureClass::geometryTypes() const
         emptyFields(false);
 
         if(counts[wkbPoint] > 0) {
-            if(counts[wkbMultiPoint] > 0) {
-                out.push_back(wkbMultiPoint);
-            }
-            else {
-                out.push_back(wkbPoint);
-            }
+            out.push_back(wkbPoint);
         }
-        else if(counts[wkbLineString] > 0) {
-            if(counts[wkbMultiLineString] > 0) {
-                out.push_back(wkbMultiLineString);
-            }
-            else {
-                out.push_back(wkbLineString);
-            }
+
+        if(counts[wkbMultiPoint] > 0) {
+            out.push_back(wkbMultiPoint);
         }
-        else if(counts[wkbPolygon] > 0) {
-            if(counts[wkbMultiPolygon] > 0) {
-                out.push_back(wkbMultiPolygon);
-            }
-            else {
-                out.push_back(wkbPolygon);
-            }
+
+        if(counts[wkbLineString] > 0) {
+            out.push_back(wkbLineString);
         }
+
+        if(counts[wkbMultiLineString] > 0) {
+            out.push_back(wkbMultiLineString);
+        }
+
+        if(counts[wkbPolygon] > 0) {
+            out.push_back(wkbPolygon);
+        }
+
+        if(counts[wkbMultiPolygon] > 0) {
+            out.push_back(wkbMultiPolygon);
+        }
+
     }
     else {
         out.push_back (geomType);

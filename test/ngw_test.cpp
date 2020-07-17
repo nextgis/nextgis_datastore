@@ -239,6 +239,42 @@ TEST(NGWTests, TestPasteMI) {
     ngsUnInit();
 }
 
+TEST(NGWTests, TestPasteMIMulti) {
+    initLib();
+
+    // Create connection
+    auto connection = createConnection("sandbox.nextgis.com");
+    ASSERT_NE(connection, nullptr);
+
+    // Create resource group
+    time_t rawTime = std::time(nullptr);
+    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto group = createGroup(connection, groupName);
+    ASSERT_NE(group, nullptr);
+
+    uploadMIToNGW("/data/data.zip", "новый слой 5", group);
+
+    ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(group, 0);
+    size_t count = 0;
+    if(nullptr != pathInfo) {
+        while(pathInfo[count].name) {
+            count++;
+        }
+        ngsFree(pathInfo);
+    }
+
+    // Expected 3 layers created
+    EXPECT_GE(count, 3);
+
+    // Delete resource group
+    EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
+
+    // Delete connection
+    EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
+
+    ngsUnInit();
+}
+
 TEST(NGWTests, TestAttachments) {
     initLib();
 

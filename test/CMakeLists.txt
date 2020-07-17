@@ -72,6 +72,9 @@ file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.tab ${CMAKE_CURRENT_BINARY_DIR
 file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.dat ${CMAKE_CURRENT_BINARY_DIR}/data/bld.dat)
 file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.map ${CMAKE_CURRENT_BINARY_DIR}/data/bld.map)
 file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/bld.id ${CMAKE_CURRENT_BINARY_DIR}/data/bld.id)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/data/data.zip)
+file(DOWNLOAD ${TEST_DATA_URL}/vector/mapinfo/data.zip ${CMAKE_CURRENT_BINARY_DIR}/data/data.zip)
 endif()"
     )
 

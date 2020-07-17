@@ -148,11 +148,21 @@ CatalogObjectH createMIStore(const std::string &name)
             std::cout << count << ". " << tmpCatalogPath << "/" <<  pathInfo[count].name << '\n';
             count++;
         }
+        ngsFree(pathInfo);
     }
-    ngsFree(pathInfo);
     // End debug output
 
     return mistore;
+}
+
+static bool endsWith(const std::string& str, const std::string& suffix)
+{
+    return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
+}
+
+static bool startsWith(const std::string& str, const std::string& prefix)
+{
+    return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
 }
 
 void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
@@ -184,10 +194,27 @@ void uploadMIToNGW(const std::string &miPath, const std::string &layerName,
     //    options = ngsListAddNameValue(options, "WOR_STYLE", "...");
 
     CatalogObjectH tab = getLocalFile(miPath);
+    if(endsWith(miPath, ".zip")) {
+        ngsCatalogObjectInfo *pathInfo = ngsCatalogObjectQuery(tab, 0);
+        if(nullptr != pathInfo) {
+            size_t count = 0;
+            while(pathInfo[count].name) {
+                if(pathInfo[count].type == CAT_FC_MAPINFO_TAB ||
+                        pathInfo[count].type == CAT_FC_MAPINFO_MIF) {
+                    tab = pathInfo[count].object;
+                    options = ngsListAddNameValue(options, "FORCE_GEOMETRY_TO_MULTI", "ON");
+                    break;
+                }
+                count++;
+            }
+            ngsFree(pathInfo);
+        }
+    }
+
     EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
 
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 1);
 }
 
 CatalogObjectH createStyle(CatalogObjectH parent, const std::string &name,

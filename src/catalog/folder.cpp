@@ -496,7 +496,6 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
         // Create fields map. We expected equal count of fields
         FieldMapPtr fieldMap(srcFClass->fields(), dstFClass->fields());
         int result = dstFClass->copyFeatures(srcFClass, fieldMap,
-                                             filterFeometryType,
                                              progress, options);
         if(result != COD_SUCCESS) {
             return result;

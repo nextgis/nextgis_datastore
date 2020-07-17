@@ -908,7 +908,6 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             progressMulti.setStep(0);
 
             int result = dstFClass->copyFeatures(srcFClass, fieldMap,
-                                                 filterGeometryType,
                                                  progressMulti, options);
             if(result != COD_SUCCESS) {
                 delete dstFClass;

@@ -710,7 +710,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             if(geometryTypes.size() > 1 && filterGeometryType == wkbUnknown) {
                 auto key = createOptions.asString("KEY");
                 if(!key.empty()) {
-                    warningMessage(_("The key metadata item set, but %d diffeerent layers will create. Omit key."),
+                    warningMessage(_("The key metadata item set, but %d different layers will create. Omit key."),
                                    static_cast<int>(geometryTypes.size()));
                     createOptions.remove("KEY");
                 }
@@ -718,9 +718,10 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
                 createName += "_";
                 createName += FeatureClass::geometryTypeName(geometryType,
                                       FeatureClass::GeometryReportType::SIMPLE);
-                if(toMulti && OGR_GT_Flatten(geometryType) < wkbMultiPoint) {
-                    newGeometryType = static_cast<OGRwkbGeometryType>(geometryType + 3);
-                }
+            }
+
+            if(toMulti && OGR_GT_Flatten(geometryType) < wkbMultiPoint) {
+                newGeometryType = static_cast<OGRwkbGeometryType>(geometryType + 3);
             }
 
             auto userPwd = m_connection->userPwd();
@@ -755,7 +756,6 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             progressMulti.setStep(0);
 
             int result = dstFClass->copyFeatures(srcFClass, fieldMap,
-                                                 filterGeometryType,
                                                  progressMulti, createOptions);
             if(result != COD_SUCCESS) {
                 delete dstDS;
@@ -764,6 +764,10 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
             progressMulti.setStep(1);
             auto fullNameStr = dstFClass->fullName();
+            if(!dstFClass->sync()) {
+                warningMessage(_("Sync of feature class '%s' failed."),
+                               fullNameStr.c_str());
+            }
             // Execute postprocess after features copied.
             if(!dstFClass->onRowsCopied(srcFClass, progressMulti, createOptions)) {
                 warningMessage(_("Postprocess features after copy in feature class '%s' failed."),
