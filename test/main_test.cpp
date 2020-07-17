@@ -211,7 +211,9 @@ TEST(CatalogTests, TestCreate) {
 
     char **metadata = ngsCatalogObjectProperties(osmRaster, "");
     if(metadata != nullptr) {
-        EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "555"), true);
+        auto val = CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES");
+        ASSERT_NE(val, nullptr);
+        EXPECT_EQ(EQUAL(val, "555"), 1);
     }
 
     ngsUnInit();
@@ -246,7 +248,9 @@ TEST(CatalogTests, TestAreaDownload) {
     EXPECT_EQ(ngsCatalogObjectOpen(osmRaster, nullptr), 1);
     char **metadata = ngsCatalogObjectProperties(osmRaster, "");
     if(metadata != nullptr) {
-        EXPECT_EQ(EQUAL(CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES"), "300"), true);
+        auto val = CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES");
+        ASSERT_NE(val, nullptr);
+        EXPECT_EQ(EQUAL(val, "300"), 1);
     }
 
     // Download area

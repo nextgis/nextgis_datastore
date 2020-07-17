@@ -252,24 +252,24 @@ TEST(MIStoreTests, TestTabPathFromSystem) {
 	auto path = ngsFormFileName(ngsGetCurrentDirectory(), "data", nullptr, 0);
 	auto tabPath = ngsFormFileName(path, "bld", "tab", 0);
 	auto catalogPath = ngsCatalogPathFromSystem(tabPath);
-	ASSERT_STRNE(catalogPath, "");
+    EXPECT_STRNE(catalogPath, "");
 		
 	tabPath = ngsFormFileName(path, "BLD", "TAB", 0);
 	catalogPath = ngsCatalogPathFromSystem(tabPath);
-	ASSERT_STRNE(catalogPath, "");
-
-	// Check wrong path
-	tabPath = ngsFormFileName(path, "bld", "tab", 1);
-	catalogPath = ngsCatalogPathFromSystem(tabPath);
-	ASSERT_STREQ(catalogPath, "");
+    EXPECT_STRNE(catalogPath, "");
 
 	tabPath = ngsFormFileName(path, "bld", "tab1", 0);
 	catalogPath = ngsCatalogPathFromSystem(tabPath);
-	ASSERT_STREQ(catalogPath, "");
+    EXPECT_STREQ(catalogPath, "");
 
 #ifdef _WIN32
-	catalogPath = ngsCatalogPathFromSystem("C:\\");
-	ASSERT_STRNE(catalogPath, "");
+    // Check wrong path
+    tabPath = ngsFormFileName(path, "bld", "tab", 1);
+    catalogPath = ngsCatalogPathFromSystem(tabPath);
+    EXPECT_STREQ(catalogPath, "");
+
+    catalogPath = ngsCatalogPathFromSystem("C:\\");
+    EXPECT_STRNE(catalogPath, "");
 #endif
 
 	ngsUnInit();
