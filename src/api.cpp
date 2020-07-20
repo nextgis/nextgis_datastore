@@ -136,7 +136,7 @@ static const char *storeCString(const std::string &str)
 constexpr size_t STRINGS_ARRAY_MAX = 150;
 constexpr size_t STRINGS_ARRAY_FREE = 75;
 #else
-constexpr size_t STRINGS_ARRAY_MAX = 300;
+constexpr size_t STRINGS_ARRAY_MAX = 65535;
 constexpr size_t STRINGS_ARRAY_FREE = 150;
 #endif // NGS_MOBILE
 
