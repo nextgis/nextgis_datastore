@@ -608,6 +608,26 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     }
     EXPECT_NE(hasOGRStyle, true);
 
+    // Paste layer back to NGW
+    options = nullptr;
+    // Add descritpion to NGW vector layer
+    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест обратной загрузки 1");
+    options = ngsListAddNameValue(options, "FORCE_GEOMETRY_TO_MULTI", "TRUE");
+    options = ngsListAddNameValue(options, "SKIP_EMPTY_GEOMETRY", "TRUE");
+    options = ngsListAddNameValue(options, "SKIP_INVALID_GEOMETRY", "TRUE");
+    const char *layerName1 = "новый слой 6";
+    options = ngsListAddNameValue(options, "NEW_NAME", layerName1);
+    options = ngsListAddNameValue(options, "OGR_STYLE_STRING_TO_FIELD", "TRUE");
+
+    resetCounter();
+    EXPECT_EQ(ngsCatalogObjectCopy(storeLayer, group, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    ngsFree(options);
+    EXPECT_GE(getCounter(), 5);
+
+    auto storeLayer1 = ngsCatalogObjectGetByName(group, layerName1, 1);
+    ASSERT_NE(storeLayer1, nullptr);
+
     // Delete resource group
     EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
 
