@@ -150,7 +150,7 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
 
         CPLStringList requestOptions;
         std::string headers = "Accept: */*";
-        if(!isGuest || password.empty()) {
+        if(!isGuest || !password.empty()) {
             Options authOptions;
             authOptions.add(KEY_TYPE, "basic");
             authOptions.add(KEY_LOGIN, login);

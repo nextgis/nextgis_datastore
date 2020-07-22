@@ -864,7 +864,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         }
 
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
-        auto srcDefinition = srcFClass->definition();
+        std::shared_ptr<OGRFeatureDefn> srcDefinition(srcFClass->definition()->Clone());
 
         bool ogrStyleFieldToStyle = options.asBool("OGR_STYLE_FIELD_TO_STRING", false);
         if(ogrStyleFieldToStyle) {
@@ -887,14 +887,14 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                 createName += "_";
                 createName += FeatureClass::geometryTypeName(geometryType,
                                         FeatureClass::GeometryReportType::SIMPLE);
-                if(toMulti && OGR_GT_Flatten(geometryType) < wkbMultiPoint) {
+                if(toMulti && OGR_GT_Flatten(geometryType) <= wkbPolygon) {
                     newGeometryType =
                             static_cast<OGRwkbGeometryType>(geometryType + 3);
                 }
             }
 
             auto dstFClass = createFeatureClass(createName,
-                CAT_FC_ANY, srcDefinition, srcFClass->spatialReference(),
+                CAT_FC_ANY, srcDefinition.get(), srcFClass->spatialReference(),
                 newGeometryType, options);
             if(nullptr == dstFClass) {
                 return move ? COD_MOVE_FAILED : COD_COPY_FAILED;

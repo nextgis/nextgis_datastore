@@ -687,11 +687,16 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
         }
 
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
-        OGRFeatureDefn * const srcDefinition = srcFClass->definition();
+        std::shared_ptr<OGRFeatureDefn> srcDefinition(srcFClass->definition()->Clone());
         bool ogrStyleField = options.asBool("OGR_STYLE_STRING_TO_FIELD", false);
         if(ogrStyleField) {
-            OGRFieldDefn ogrStyleField(OGR_STYLE_FIELD, OFTString);
-            srcDefinition->AddFieldDefn(&ogrStyleField);
+            if(srcDefinition->GetFieldIndex(OGR_STYLE_FIELD) == -1) {
+                OGRFieldDefn ogrStyleField(OGR_STYLE_FIELD, OFTString);
+                srcDefinition->AddFieldDefn(&ogrStyleField);
+            }
+            else {
+                warningMessage(_("The field %s already exists. All values will rewrite by OGR_STYLE. To prevent this remove OGR_STYLE_STRING_TO_FIELD option."), OGR_STYLE_FIELD);
+            }
         }
         std::vector<OGRwkbGeometryType> geometryTypes =
                 srcFClass->geometryTypes();
@@ -720,7 +725,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
                                       FeatureClass::GeometryReportType::SIMPLE);
             }
 
-            if(toMulti && OGR_GT_Flatten(geometryType) < wkbMultiPoint) {
+            if(toMulti && OGR_GT_Flatten(geometryType) <= wkbPolygon) {
                 newGeometryType = static_cast<OGRwkbGeometryType>(geometryType + 3);
             }
 
@@ -729,7 +734,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
                 createOptions.add("USERPWD", userPwd);
             }
             auto dstDS = NGWLayerDataset::createFeatureClass(this, createName,
-                srcDefinition, spatialRef, newGeometryType, createOptions);
+                srcDefinition.get(), spatialRef, newGeometryType, createOptions);
             if(nullptr == dstDS) {
                 return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
             }

@@ -434,6 +434,11 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
                           _("Destination type %d is not supported"), dstType);
     }
 
+    if(child->type() == CAT_CONTAINER_SIMPLE) {
+        auto dataset = ngsDynamicCast(SingleLayerDataset, child);
+        child = dataset->internalObject();
+    }
+
     auto srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
     if(!srcFClass) {
         return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
@@ -454,7 +459,11 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
     std::string newName = File::getBaseName(newPath);
 
     bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
-    OGRFeatureDefn * const srcDefinition = srcFClass->definition();
+    std::shared_ptr<OGRFeatureDefn> srcDefinition(srcFClass->definition()->Clone());
+    bool ogrStyleFieldToStyle = options.asBool("OGR_STYLE_FIELD_TO_STRING", false);
+    if(ogrStyleFieldToStyle) {
+        srcDefinition->DeleteFieldDefn(srcDefinition->GetFieldIndex(OGR_STYLE_FIELD));
+    }
     std::vector<OGRwkbGeometryType> geometryTypes =
             srcFClass->geometryTypes();
     OGRwkbGeometryType filterFeometryType =
@@ -487,7 +496,7 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
             newGeometryType = wkbPoint25D;
         }
         std::unique_ptr<FeatureClass> dstFClass(ds->createFeatureClass(fc_name,
-            dstType, srcDefinition, srcFClass->spatialReference(),
+            dstType, srcDefinition.get(), srcFClass->spatialReference(),
             newGeometryType, options));
         if(nullptr == dstFClass) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;

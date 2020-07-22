@@ -568,9 +568,21 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     resetCounter();
     EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
+
+    EXPECT_GE(getCounter(), 5);
+
+    resetCounter();
+    options = ngsListAddNameIntValue(options, "TYPE", CAT_FC_MAPINFO_TAB);
+    std::string path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr, 0);
+    std::string catalogPath = ngsCatalogPathFromSystem(path.c_str());
+    ASSERT_STRNE(catalogPath.c_str(), "");
+    CatalogObjectH folder = ngsCatalogObjectGet(catalogPath.c_str());
+    ASSERT_NE(folder, nullptr);
+    EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, folder, options,
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+
     ngsFree(options);
     options = nullptr;
-    EXPECT_GE(getCounter(), 5);
 
     // Find loaded layer by name
     storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
@@ -579,6 +591,22 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     EXPECT_GE(ngsFeatureClassCount(storeLayer), 5);
     systemPath = ngsCatalogObjectProperty(storeLayer, "system_path", "", "");
     EXPECT_STRNE(systemPath, "");
+
+    auto storeLayerTab = ngsCatalogObjectGetByName(folder, CPLSPrintf("%s.tab", storeLayerName), 1);
+    ASSERT_NE(storeLayerTab, nullptr);
+
+    fields = ngsFeatureClassFields(storeLayerTab);
+    counter = 0;
+    hasOGRStyle = false;
+    while (fields[counter].name != nullptr) {
+        std::string name(fields[counter].name);
+        if (name == "OGR_STYLE") {
+            hasOGRStyle = true;
+            break;
+        }
+        counter++;
+    }
+    EXPECT_NE(hasOGRStyle, true);
 
     // Delete resource group
     EXPECT_EQ(ngsCatalogObjectDelete(group), COD_SUCCESS);
