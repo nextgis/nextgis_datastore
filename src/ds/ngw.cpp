@@ -300,14 +300,14 @@ NGWLayerDataset *NGWLayerDataset::createFeatureClass(NGWResourceGroup *resourceG
         return nullptr;
     }
 
-    std::string connectionString = "NGW:" + resourceGroup->property("url", "", "");
+    std::string connectionString = "NGW:" + resourceGroup->url() + "/resource/" +
+        resourceGroup->resourceId();
 
-    auto openOp = openOptions("", options);
+    auto openOp = openOptions(resourceGroup->connection()->userPwd(), options);
     CPLStringList dsOptionsList = openOp.asCPLStringList();
     GDALDatasetPtr DS = static_cast<GDALDataset*>(
-                GDALOpenEx(connectionString.c_str(),
-                           DatasetBase::defaultOpenFlags | GDAL_OF_VECTOR,
-                           nullptr, dsOptionsList, nullptr));
+        GDALOpenEx(connectionString.c_str(), DatasetBase::defaultOpenFlags |
+            GDAL_OF_VECTOR, nullptr, dsOptionsList, nullptr));
 
     if(nullptr == DS) {
         errorMessage(_("Create of %s file failed. %s"), CPLGetLastErrorMsg());
