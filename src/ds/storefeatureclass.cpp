@@ -389,7 +389,7 @@ bool TracksTable::sync()
             payload->Add(item);
 
             if(payload->Size() >= maxPointCount) {
-                if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::Plain))) {
+                if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::PrettyFormat::Plain))) {
                     updateWhere.emplace_back(
                         fid + " >= " + std::to_string(first) + " AND " +
                         fid + " <= " + std::to_string(last));
@@ -406,7 +406,7 @@ bool TracksTable::sync()
     OGRCoordinateTransformation::DestroyCT(ct);
 
     if(payload->Size() > 0) {
-        if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::Plain))) {
+        if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::PrettyFormat::Plain))) {
             updateWhere.emplace_back(
                 fid + " >= " + std::to_string(first) + " AND " +
                 fid + " <= " + std::to_string(last));

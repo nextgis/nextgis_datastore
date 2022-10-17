@@ -358,7 +358,7 @@ bool renameResource(const std::string &url, const std::string &resourceId,
     CPLJSONObject payload;
     CPLJSONObject resource("resource", payload);
     resource.Add("display_name", newName);
-    std::string payloadStr = payload.Format(CPLJSONObject::Plain);
+    std::string payloadStr = payload.Format(CPLJSONObject::PrettyFormat::Plain);
 
     return updateResource( url, resourceId, payloadStr, httpOptions);
 }
@@ -366,10 +366,10 @@ bool renameResource(const std::string &url, const std::string &resourceId,
 std::string resmetaSuffix(CPLJSONObject::Type eType)
 {
     switch( eType ) {
-        case CPLJSONObject::Integer:
-        case CPLJSONObject::Long:
+        case CPLJSONObject::Type::Integer:
+        case CPLJSONObject::Type::Long:
             return ".d";
-        case CPLJSONObject::Double:
+        case CPLJSONObject::Type::Double:
             return ".f";
         default:
             return "";

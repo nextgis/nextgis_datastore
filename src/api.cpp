@@ -828,9 +828,9 @@ int ngsJsonObjectType(JsonObjectH object)
 {
     if(nullptr == object) {
         errorMessage(_("The object handle is null"));
-        return CPLJSONObject::Type::Null;
+        return static_cast<int>(CPLJSONObject::Type::Null);
     }
-    return static_cast<CPLJSONObject*>(object)->GetType();
+    return static_cast<int>(static_cast<CPLJSONObject*>(object)->GetType());
 }
 
 /**

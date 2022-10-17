@@ -623,7 +623,7 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     fileUpload.Set("size", size);
 
     auto aid = ngw::addAttachment(url, resourceId, featureId,
-                                  newAttachment.Format(CPLJSONObject::Plain),
+                                  newAttachment.Format(CPLJSONObject::PrettyFormat::Plain),
                                   http::getGDALHeaders(url).StealList());
     if(aid == NOT_FOUND) {
         return NOT_FOUND;
@@ -646,7 +646,7 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     attachment.Set("is_image", false);
 
     attachments.Add(attachment);
-    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+    auto nativeDataStr = root.Format(CPLJSONObject::PrettyFormat::Plain);
 
     feature->SetNativeData(nativeDataStr.c_str());
     if(m_layer->SetFeature(feature) != OGRERR_NONE) {
@@ -692,7 +692,7 @@ bool NGWFeatureClass::deleteAttachment(GIntBig fid, GIntBig aid, bool logEdits)
     root.Delete("attachment");
     root.Add("attachment", newAttachments);
 
-    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+    auto nativeDataStr = root.Format(CPLJSONObject::PrettyFormat::Plain);
     feature->SetNativeData(nativeDataStr.c_str());
     return m_layer->SetFeature(feature) == OGRERR_NONE;
 }
@@ -722,7 +722,7 @@ bool NGWFeatureClass::deleteAttachments(GIntBig fid, bool logEdits)
         attachments = CPLJSONArray();
         root.Add("attachment", attachments);
     }
-    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+    auto nativeDataStr = root.Format(CPLJSONObject::PrettyFormat::Plain);
 
     feature->SetNativeData(nativeDataStr.c_str());
     return m_layer->SetFeature(feature) == OGRERR_NONE;
@@ -766,7 +766,7 @@ bool NGWFeatureClass::updateAttachment(GIntBig fid, GIntBig aid,
         }
     }
 
-    auto nativeDataStr = root.Format(CPLJSONObject::Plain);
+    auto nativeDataStr = root.Format(CPLJSONObject::PrettyFormat::Plain);
     feature->SetNativeData(nativeDataStr.c_str());
     return m_layer->SetFeature(feature) == OGRERR_NONE;
 }

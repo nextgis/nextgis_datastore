@@ -78,7 +78,7 @@ bool LocalConnections::loadChildren()
     CPLJSONDocument doc;
     if(doc.Load (m_path)) {
         CPLJSONObject root = doc.GetRoot();
-        if(root.GetType() == CPLJSONObject::Object) {
+        if(root.GetType() == CPLJSONObject::Type::Object) {
             CPLJSONArray connections = root.GetArray("connections");
             for(int i = 0; i < connections.Size(); ++i) {
                 CPLJSONObject connection = connections[i];

@@ -340,7 +340,7 @@ std::string NGWResource::property(const std::string &key,
 bool NGWResource::sync()
 {
     auto result = ngw::updateResource(url(), resourceId(),
-                                      asJson().Format(CPLJSONObject::Plain),
+                                      asJson().Format(CPLJSONObject::PrettyFormat::Plain),
                                       http::getGDALHeaders(url()).StealList());
     if(result) {
         m_hasPendingChanges = false;
@@ -590,7 +590,7 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     else {        
         CPLJSONObject payload = createResourcePayload(this, type, name, options);
         std::string resourceId = ngw::createResource(url(),
-            payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
+            payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
         if(compare(resourceId, "-1", true)) {
             return ObjectPtr();
         }
@@ -876,7 +876,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
 
         std::string resourceId = ngw::createResource(url(),
-            payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
+            payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
         if(compare(resourceId, "-1", true)) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
@@ -1023,7 +1023,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     tracker.Add("is_registered", "");
 
     std::string resourceId = ngw::createResource(url(),
-        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url()).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
     if(compare(resourceId, "-1", true)) {
         return ObjectPtr();
     }
@@ -1748,7 +1748,7 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
     }
 
     std::string resourceId = ngw::createResource(url,
-        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url).StealList());
     if(compare(resourceId, "-1", true)) {
         return nullptr;
     }
@@ -2560,7 +2560,7 @@ NGWWebMap *NGWWebMap::create(NGWResourceBase *parent, const std::string &name,
     rootItem.Add("children", CPLJSONArray());
 
     std::string resourceId = ngw::createResource(url,
-        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url).StealList());
     if(compare(resourceId, "-1", true)) {
         return nullptr;
     }
@@ -2744,7 +2744,7 @@ NGWBaseMap *NGWBaseMap::create(NGWResourceBase *parent,
     if(bmUrl.empty()) {
         auto bmQmsId = options.asInt("QMS_ID");
         auto qmsJson = qms::QMSItemProperties(bmQmsId);
-        qmsStr = qmsJson.Format(CPLJSONObject::Plain);
+        qmsStr = qmsJson.Format(CPLJSONObject::PrettyFormat::Plain);
         bmUrl = getUrl(qmsStr);
     }
 
@@ -2757,7 +2757,7 @@ NGWBaseMap *NGWBaseMap::create(NGWResourceBase *parent,
     }
 
     std::string resourceId = ngw::createResource(url,
-        payload.Format(CPLJSONObject::Plain), http::getGDALHeaders(url).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url).StealList());
     if(compare(resourceId, "-1", true)) {
         return nullptr;
     }
@@ -2832,7 +2832,7 @@ bool NGWBaseMap::setProperty(const std::string &key, const std::string &value,
 
     if(compare(key, "qms_id")) {
         auto qmsJson = qms::QMSItemProperties(atoi(value.c_str()));
-        m_qms = qmsJson.Format(CPLJSONObject::Plain);
+        m_qms = qmsJson.Format(CPLJSONObject::PrettyFormat::Plain);
         m_url = getUrl(m_qms);
         return sync();
     }

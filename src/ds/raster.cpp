@@ -160,28 +160,28 @@ bool Raster::open(unsigned int openFlags, const Options &options)
                     std::string name = child.GetName();
                     std::string value;
                     switch(child.GetType()) {
-                    case CPLJSONObject::Null:
+                    case CPLJSONObject::Type::Null:
                         value = "<null>";
                         break;
-                    case CPLJSONObject::Object:
+                    case CPLJSONObject::Type::Object:
                         value = "<object>";
                         break;
-                    case CPLJSONObject::Array:
+                    case CPLJSONObject::Type::Array:
                         value = "<array>";
                         break;
-                    case CPLJSONObject::Boolean:
+                    case CPLJSONObject::Type::Boolean:
                         value = child.ToBool(true) ? "TRUE" : "FALSE";
                         break;
-                    case CPLJSONObject::String:
+                    case CPLJSONObject::Type::String:
                         value = child.ToString("");
                         break;
-                    case CPLJSONObject::Integer:
+                    case CPLJSONObject::Type::Integer:
                         value = std::to_string(child.ToInteger(0));
                         break;
-                    case CPLJSONObject::Long:
+                    case CPLJSONObject::Type::Long:
                         value = std::to_string(child.ToLong(0));
                         break;
-                    case CPLJSONObject::Double:
+                    case CPLJSONObject::Type::Double:
                         value = std::to_string(child.ToDouble(0.0));
                         break;
                     default:
