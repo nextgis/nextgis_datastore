@@ -1,0 +1,5 @@
+file(GLOB_RECURSE COPY_FILES ${SRC_PATH}/third-party/*.dll)
+message("Copy files to ${DST_PATH}\nFiles:\n${COPY_FILES}")
+foreach(FILE ${COPY_FILES})
+    file(COPY ${FILE} DESTINATION ${DST_PATH})
+endforeach()

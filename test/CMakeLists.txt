@@ -100,7 +100,10 @@ endif()"
                 $<TARGET_FILE:${exe_name}>)
         endif()
 
-        add_test(NAME ${name} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${exe_name})
+        add_test(NAME ${name} COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exe_name})
+        set_property(TEST ${name} PROPERTY
+            ENVIRONMENT_MODIFICATION "PROJ_LIB=set:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}"
+        )
     endmacro ()
 
     add_ngs_test(MainTests main_test main_test.cpp)
@@ -112,4 +115,55 @@ endif()"
     endif()
     add_ngs_test(NGWTests ngw_test ngw_test.cpp)
 
+    # Copy dependencies to bin dir
+    set(TEST_DEPENDENCIES
+        lib_expat
+        lib_geotiff
+        lib_gif
+        lib_hdf4
+        lib_iconv
+        lib_jbig
+        lib_jpeg
+        lib_jsonc
+        lib_kml
+        lib_curl
+        lib_lzma
+        lib_png
+        lib_xml2
+        lib_oci
+        lib_opencad
+        lib_openjpeg
+        lib_pq
+        lib_proj
+        lib_qhull
+        lib_spatialite
+        lib_sqlite
+        lib_szip
+        lib_tiff
+        lib_uriparser
+        lib_webp
+    )
+
+    if(WIN32)
+        set(TEST_DEPENDENCIES ${TEST_DEPENDENCIES} lib_z)
+        set(DST_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}")
+        
+        add_custom_command(TARGET main_test
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -DDST_PATH=${DST_PATH} -DSRC_PATH="${PROJECT_BINARY_DIR}" -P ${PROJECT_SOURCE_DIR}/cmake/test_dependency_win.cmake
+            COMMENT "Copy compiled dll files"
+        )
+    elseif(OSX_FRAMEWORK)
+        set(DST_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+    endif()
+
+    get_compiler_version(COMPILER)
+
+    foreach(TEST_DEPENDENCY ${TEST_DEPENDENCIES})
+        add_custom_command(TARGET main_test
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -DDST_PATH="${DST_PATH}" -DSRC_PATH="${PROJECT_BINARY_DIR}" -DREPKA_PACKAGE="${TEST_DEPENDENCY}" -DCOMPILER="${COMPILER}" -DOSX_FRAMEWORK="${OSX_FRAMEWORK}" -P ${PROJECT_SOURCE_DIR}/cmake/test_dependency.cmake
+            COMMENT "Get dependency ${TEST_DEPENDENCY}"
+        )
+    endforeach()
 endif()

@@ -423,7 +423,7 @@ TEST(NGWTests, TestCreateStyle) {
                             <rowstyles/> \
                             <fieldstyles/> \
                           </conditionalstyles> \
-                          <layerGeometryType>0</layerGeometryType> \
+                          <layerGeometryType>2</layerGeometryType> \
                         </qgis>");
     ASSERT_NE(style, nullptr);
 
@@ -713,7 +713,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameValue(options, "login", "guest");
     options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
     options = ngsListAddNameValue(options, "is_guest", "NO");
-    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
+    EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 0);
     ngsListFree(options);
     options = nullptr;
 

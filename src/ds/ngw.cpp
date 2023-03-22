@@ -567,8 +567,8 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
 
     CPLJSONDocument doc;
     auto nativeData = fromCString(feature->GetNativeData());
-    if(!doc.LoadMemory(nativeData)) {
-        return NOT_FOUND;
+    if (!nativeData.empty() && !doc.LoadMemory(nativeData)) {
+       return NOT_FOUND;
     }
     auto root = doc.GetRoot();
     if(!root.IsValid()) {
