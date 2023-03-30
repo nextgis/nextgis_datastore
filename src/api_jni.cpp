@@ -381,11 +381,11 @@ NGS_JNI_FUNC(jstring, getCurrentDirectory)(JNIEnv *env, jobject thisObj)
     return env->NewStringUTF(ngsGetCurrentDirectory());
 }
 
-NGS_JNI_FUNC(jstring, formFileName)(JNIEnv *env, jobject thisObj, jstring path, jstring name, jstring extension)
+NGS_JNI_FUNC(jstring, formFileName)(JNIEnv *env, jobject thisObj, jstring path, jstring name, jstring extension, char catalog)
 {
     ngsUnused(thisObj);
     return env->NewStringUTF(ngsFormFileName(jniString(env, path).c_str(), jniString(env, name).c_str(),
-                             jniString(env, extension).c_str()));
+                             jniString(env, extension).c_str(), catalog));
 }
 
 NGS_JNI_FUNC(void, free)(JNIEnv *env, jobject thisObj, jlong pointer)
@@ -2222,7 +2222,7 @@ NGS_JNI_FUNC(jobjectArray, QMSQuery)(JNIEnv *env, jobject thisObj, jobjectArray 
     int counter = 0;
     std::vector<jobject> obArray;
     while(result[counter].id != -1) {
-        jvalue args[8];
+        jvalue args[7];
         args[0].i = result[counter].id;
         args[1].l = env->NewStringUTF(result[counter].name);
         args[2].l = env->NewStringUTF(result[counter].desc);
@@ -2230,7 +2230,6 @@ NGS_JNI_FUNC(jobjectArray, QMSQuery)(JNIEnv *env, jobject thisObj, jobjectArray 
         args[4].l = env->NewStringUTF(result[counter].iconUrl);
         args[5].i = result[counter].status;
         args[6].l = toEnvelope(env, result[counter].extent);
-        args[7].i = result[counter].total;
         obArray.push_back(env->NewObjectA(g_QMSItemClass, g_QMSItemInitMid, args));
         counter++;
     }
