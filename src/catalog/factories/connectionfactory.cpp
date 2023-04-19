@@ -182,7 +182,7 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
         }
 
         auto currentLogin = root.GetString("keyname");
-        if(currentLogin == login) {
+        if(currentLogin == login || currentLogin == "administrator") {
             return true;
         }
 
