@@ -120,6 +120,13 @@ static void initGDAL(const char *dataPath, const char *cachePath)
 #else
     GDALAllRegister();
 #endif
+
+    CPLHTTPSetAuthHeaderCallback([](const char *pszURL)
+    {
+        if (!pszURL)
+            return std::string();
+        return AuthStore::authHeader(std::string(pszURL));
+    });
 }
 
 static Mutex gMutex;
@@ -283,6 +290,7 @@ int ngsInit(char **options)
  */
 void ngsUnInit()
 {
+    CPLHTTPSetAuthHeaderCallback(nullptr);
     MapStore::setInstance(nullptr);
     Catalog::setInstance(nullptr);
     GDALDestroyDriverManager();
