@@ -4219,6 +4219,11 @@ char ngsAccountUpdateSupportInfo()
     return Account::instance().updateSupportInfo() ? API_TRUE : API_FALSE;
 }
 
+NGS_EXTERNC char ngsAccountUpdateTeamsInfo()
+{
+    return Account::instance().updateTeamsInfo() ? API_TRUE : API_FALSE;
+}
+
 static DataStore *getDataStoreFromHandle(CatalogObjectH object)
 {
     auto catalogObject = static_cast<Object*>(object);
@@ -4228,6 +4233,48 @@ static DataStore *getDataStoreFromHandle(CatalogObjectH object)
     }
 
     return dynamic_cast<DataStore*>(catalogObject);
+}
+
+NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams()
+{
+    const auto teams = Account::instance().teams();
+    ngsNGWTeamInfo **ngwTeams = static_cast<ngsNGWTeamInfo **>(ngsMalloc(sizeof(ngsNGWTeamInfo *) * teams.size()));
+
+    size_t i = 0;
+    for (const auto &team : teams)
+    {
+        ngsNGWTeamInfo *ngwTeamInfo = static_cast<ngsNGWTeamInfo *>(ngsMalloc(sizeof(ngsNGWTeamInfo)));
+        ngwTeamInfo->id = storeCString(team.id);
+        ngwTeamInfo->ownerId = storeCString(team.ownerId);
+        ngwTeamInfo->webgis = storeCString(team.webgis);
+        ngwTeamInfo->startDate = storeCString(team.startDate);
+        ngwTeamInfo->endDate = storeCString(team.endDate);
+
+        ngwTeamInfo->usersSize = team.users.size();
+        ngwTeamInfo->users = static_cast<ngsNGWUserInfo **>(ngsMalloc(sizeof(ngsNGWUserInfo *) * team.users.size()));
+
+        size_t j = 0;
+        for (const auto& user : team.users)
+        {
+            ngsNGWUserInfo *ngwUserInfo = static_cast<ngsNGWUserInfo *>(ngsMalloc(sizeof(ngsNGWUserInfo)));
+            ngwUserInfo->firstName = storeCString(user.firstName);
+            ngwUserInfo->lastName = storeCString(user.lastName);
+            ngwUserInfo->username = storeCString(user.username);
+            ngwUserInfo->guid = storeCString(user.guid);
+            ngwUserInfo->locale = storeCString(user.locale);
+
+            ngwTeamInfo->users[j++] = ngwUserInfo;
+        }
+
+        ngwTeams[i++] = ngwTeamInfo;
+    }
+
+    return ngwTeams;
+}
+
+NGS_EXTERNC size_t ngsAccountGetTeamsCount()
+{
+    return Account::instance().teams().size();
 }
 
 /**

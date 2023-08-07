@@ -135,6 +135,44 @@ bool Account::updateSupportInfo()
     return true;
 }
 
+bool Account::updateTeamsInfo()
+{
+    m_teams.clear();
+
+    std::string apiEndpoint(API_ENDPOINT);
+    CPLJSONObject root = http::fetchJson(apiEndpoint + "/teams/");
+    if(!root.IsValid()) {
+        return false;
+    }
+
+    TeamInfo team;
+    const auto teamArray = root.ToArray();
+    for (const auto &teamIt : teamArray)
+    {
+        team.id = teamIt.GetString("id");
+        team.ownerId = teamIt.GetString("owner_id");
+        team.startDate = teamIt.GetString("start_date");
+        team.endDate = teamIt.GetString("end_date");
+
+        UserInfo user;
+        const auto userArray = teamIt.GetArray("users");
+        for (const auto& userIt : userArray)
+        {
+            user.firstName = userIt.GetString("first_name");
+            user.lastName = userIt.GetString("last_name");
+            user.username = userIt.GetString("username");
+            user.guid = userIt.GetString("nextgis_guid");
+            user.locale = userIt.GetString("locale");
+
+            team.users.push_back(user);
+        }
+
+        m_teams.push_back(team);
+    }
+
+    return true;
+}
+
 static time_t timeFromString(const char *str)
 {
     int day(0), month(1), year(1970);

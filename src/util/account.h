@@ -23,11 +23,29 @@
 #define NGSACCOUNT_H
 
 #include <string>
+#include <vector>
 
 namespace ngs {
 
 constexpr unsigned short MAX_FEATURES4UNSUPPORTED = 999;
 constexpr unsigned short MAX_RASTERSIZE4UNSUPPORTED = 999;
+
+struct UserInfo {
+    std::string firstName;
+    std::string lastName;
+    std::string username;
+    std::string guid;
+    std::string locale;
+};
+
+struct TeamInfo {
+    std::string id;
+    std::string ownerId;
+    std::string webgis;
+    std::string startDate;
+    std::string endDate;
+    std::vector<UserInfo> users;
+};
 
 class Account
 {
@@ -39,12 +57,14 @@ public:
     std::string lastName() const { return m_lastName; }
     std::string email() const { return m_email; }
     std::string avatarFilePath() const { return m_avatarPath; }
+    std::vector<TeamInfo> teams() const { return m_teams; }
     void exit();
     bool isFunctionAvailable(const std::string &app, const std::string &func) const;
     bool isUserSupported() const { return m_supported; }
     bool isUserAuthorized() const { return m_authorized; }
     bool updateUserInfo();
     bool updateSupportInfo();
+    bool updateTeamsInfo();
 
 private:
     bool checkSupported();
@@ -62,6 +82,7 @@ private:
     bool m_authorized;
     bool m_supported;
     std::string m_avatarPath;
+    std::vector<TeamInfo> m_teams;
 };
 
 } // namespace ngs
