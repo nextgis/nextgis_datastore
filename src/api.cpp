@@ -121,12 +121,7 @@ static void initGDAL(const char *dataPath, const char *cachePath)
     GDALAllRegister();
 #endif
 
-    CPLHTTPSetAuthHeaderCallback([](const char *pszURL)
-    {
-        if (!pszURL)
-            return std::string();
-        return AuthStore::authHeader(std::string(pszURL));
-    });
+    CPLHTTPSetAuthHeaderCallback(AuthHeaderCallback);
 }
 
 static Mutex gMutex;
@@ -4280,7 +4275,7 @@ NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams()
     return ngwTeams;
 }
 
-NGS_EXTERNC size_t ngsAccountGetTeamsCount()
+NGS_EXTERNC size_t ngsAccountGetTeamsSize()
 {
     return Account::instance().teams().size();
 }

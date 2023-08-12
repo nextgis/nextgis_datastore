@@ -130,7 +130,11 @@ std::string HTTPAuthBearer::header()
                                            m_clientId.c_str(),
                                            m_updateToken.c_str()));
 
+    CPLHTTPSetAuthHeaderCallback(nullptr);
+
     CPLHTTPResult *result = CPLHTTPFetch(m_tokenServer.c_str(), requestOptions);
+
+    CPLHTTPSetAuthHeaderCallback(AuthHeaderCallback);
 
     if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
         CPLHTTPDestroyResult( result );
@@ -190,9 +194,9 @@ bool AuthStore::authAdd(const std::string &url, const Options &options)
         time_t lastCheck = 0;
         if(expiresIn == -1) {
             std::string postPayload =
-                    CPLSPrintf("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s",
+                    CPLSPrintf("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s&code_verifier=%s",
                                options["code"].c_str(),
-                               options["redirectUri"].c_str(), clientId.c_str());
+                               options["redirectUri"].c_str(), clientId.c_str(), options["codeVerifier"].c_str());
 
             CPLStringList requestOptions;
             requestOptions.AddNameValue("CUSTOMREQUEST", "POST");
