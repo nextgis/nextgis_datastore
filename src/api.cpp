@@ -4241,9 +4241,12 @@ static DataStore *getDataStoreFromHandle(CatalogObjectH object)
 NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams()
 {
     const auto teams = Account::instance().teams();
+    if (teams.empty())
+        return NULL;
+
     ngsNGWTeamInfo **ngwTeams = static_cast<ngsNGWTeamInfo **>(ngsMalloc(sizeof(ngsNGWTeamInfo *) * teams.size()));
 
-    size_t i = 0;
+    int i = 0;
     for (const auto &team : teams)
     {
         ngsNGWTeamInfo *ngwTeamInfo = static_cast<ngsNGWTeamInfo *>(ngsMalloc(sizeof(ngsNGWTeamInfo)));
@@ -4254,19 +4257,23 @@ NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams()
         ngwTeamInfo->endDate = storeCString(team.endDate);
 
         ngwTeamInfo->usersSize = team.users.size();
-        ngwTeamInfo->users = static_cast<ngsNGWUserInfo **>(ngsMalloc(sizeof(ngsNGWUserInfo *) * team.users.size()));
 
-        size_t j = 0;
-        for (const auto& user : team.users)
-        {
-            ngsNGWUserInfo *ngwUserInfo = static_cast<ngsNGWUserInfo *>(ngsMalloc(sizeof(ngsNGWUserInfo)));
-            ngwUserInfo->firstName = storeCString(user.firstName);
-            ngwUserInfo->lastName = storeCString(user.lastName);
-            ngwUserInfo->username = storeCString(user.username);
-            ngwUserInfo->guid = storeCString(user.guid);
-            ngwUserInfo->locale = storeCString(user.locale);
+        if (ngwTeamInfo->usersSize > 0) {
+            ngwTeamInfo->users = static_cast<ngsNGWUserInfo **>(ngsMalloc(
+                    sizeof(ngsNGWUserInfo *) * team.users.size()));
 
-            ngwTeamInfo->users[j++] = ngwUserInfo;
+            int j = 0;
+            for (const auto &user: team.users) {
+                ngsNGWUserInfo *ngwUserInfo = static_cast<ngsNGWUserInfo *>(ngsMalloc(
+                        sizeof(ngsNGWUserInfo)));
+                ngwUserInfo->firstName = storeCString(user.firstName);
+                ngwUserInfo->lastName = storeCString(user.lastName);
+                ngwUserInfo->username = storeCString(user.username);
+                ngwUserInfo->guid = storeCString(user.guid);
+                ngwUserInfo->locale = storeCString(user.locale);
+
+                ngwTeamInfo->users[j++] = ngwUserInfo;
+            }
         }
 
         ngwTeams[i++] = ngwTeamInfo;
@@ -4275,7 +4282,7 @@ NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams()
     return ngwTeams;
 }
 
-NGS_EXTERNC size_t ngsAccountGetTeamsSize()
+NGS_EXTERNC int ngsAccountGetTeamsSize()
 {
     return Account::instance().teams().size();
 }

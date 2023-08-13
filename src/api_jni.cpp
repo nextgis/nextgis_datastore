@@ -2333,6 +2333,71 @@ NGS_JNI_FUNC(jboolean, accountUpdateSupportInfo)(JNIEnv *env, jobject thisObj)
     return ngsAccountUpdateSupportInfo() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
 
+NGS_JNI_FUNC(jboolean, accountUpdateTeamsInfo)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountUpdateTeamsInfo() ? NGS_JNI_TRUE : NGS_JNI_FALSE;
+}
+
+NGS_JNI_FUNC(jint, accountGetTeamsSize)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+    ngsUnused(env);
+    return ngsAccountGetTeamsSize();
+}
+
+NGS_JNI_FUNC(jobjectArray, accountGetTeams)(JNIEnv *env, jobject thisObj)
+{
+    ngsUnused(thisObj);
+
+    const auto size = ngsAccountGetTeamsSize();
+    auto **teams = ngsAccountGetTeams();
+
+    std::vector<jobject> teamsObArray;
+    if(teams) {
+        for (auto i = 0; i < size; ++i) {
+            jvalue args[5];
+            args[0].l = env->NewStringUTF(teams[i]->id);
+            args[1].l = env->NewStringUTF(teams[i]->ownerId);
+            args[2].l = env->NewStringUTF(teams[i]->webgis);
+            args[3].l = env->NewStringUTF(teams[i]->startDate);
+            args[4].l = env->NewStringUTF(teams[i]->endDate);
+
+            const auto usersSize = teams[i]->usersSize;
+            if (usersSize > 0) {
+                std::vector<jobject> userObArray;
+                for (auto j = 0; j < usersSize; ++j) {
+                    jvalue args[5];
+                    args[0].l = env->NewStringUTF(teams[i]->users[j]->firstName);
+                    args[1].l = env->NewStringUTF(teams[i]->users[j]->lastName);
+                    args[2].l = env->NewStringUTF(teams[i]->users[j]->username);
+                    args[3].l = env->NewStringUTF(teams[i]->users[j]->guid);
+                    args[4].l = env->NewStringUTF(teams[i]->users[j]->locale);
+
+                    userObArray.push_back(
+                            env->NewObjectA(g_TrackInfoClass, g_TrackInfoInitMid, args));
+                }
+
+                jobjectArray usersArray = env->NewObjectArray(static_cast<jsize>(teamsObArray.size()), g_TrackInfoClass, nullptr);
+                for(int i = 0; i < userObArray.size(); ++i) {
+                    env->SetObjectArrayElement(usersArray, i, userObArray[i]);
+                }
+                args[5].l = usersArray;
+            }
+
+            teamsObArray.push_back(env->NewObjectA(g_TrackInfoClass, g_TrackInfoInitMid, args));
+        }
+        ngsFree(teams);
+    }
+
+    jobjectArray teamsArray = env->NewObjectArray(static_cast<jsize>(teamsObArray.size()), g_TrackInfoClass, nullptr);
+    for(int i = 0; i < teamsObArray.size(); ++i) {
+        env->SetObjectArrayElement(teamsArray, i, teamsObArray[i]);
+    }
+    return teamsArray;
+}
+
 NGS_JNI_FUNC(jlong, storeGetTracksTable)(JNIEnv *env, jobject thisObj, jlong object)
 {
     ngsUnused(thisObj);

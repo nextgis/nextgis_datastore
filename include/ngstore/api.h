@@ -561,12 +561,12 @@ typedef struct _ngsNGWTeamInfo {
     const char *webgis;
     const char *startDate;
     const char *endDate;
-    size_t usersSize;
+    int usersSize;
     ngsNGWUserInfo **users;
 } ngsNGWTeamInfo;
 
 NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams();
-NGS_EXTERNC size_t ngsAccountGetTeamsCount();
+NGS_EXTERNC int ngsAccountGetTeamsSize();
 
 /*
  * Tracks
