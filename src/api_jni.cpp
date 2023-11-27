@@ -2402,3 +2402,10 @@ NGS_JNI_FUNC(jboolean, trackDeletePoints)(JNIEnv *env, jobject thisObj, jlong ob
     ngsUnused(thisObj);
     return ngsTrackDeletePoints(reinterpret_cast<CatalogObjectH>(object), start, stop) == 1 ? NGS_JNI_TRUE : NGS_JNI_FALSE;
 }
+
+NGS_JNI_FUNC(void, addNotifyFunction)(JNIEnv *env, jobject thisObj, jint notifyType)
+{
+    ngsUnused(env);
+    ngsUnused(thisObj);
+    ngsAddNotifyFunction(notifyProxyFunc, notifyType);
+}
