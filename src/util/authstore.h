@@ -72,6 +72,13 @@ private:
     std::map<std::string, IHTTPAuthPtr> m_auths;
 };
 
+auto AuthHeaderCallback = [](const char* pszURL)
+{
+    if (!pszURL)
+        return std::string();
+    return AuthStore::authHeader(std::string(pszURL));
+};
+
 } // namespace ngs
 
 #endif // NGSAUTHSTORE_H

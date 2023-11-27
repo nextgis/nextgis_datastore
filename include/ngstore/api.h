@@ -545,6 +545,28 @@ NGS_EXTERNC char ngsAccountIsFuncAvailable(const char *application,
 NGS_EXTERNC char ngsAccountSupported();
 NGS_EXTERNC char ngsAccountUpdateUserInfo();
 NGS_EXTERNC char ngsAccountUpdateSupportInfo();
+NGS_EXTERNC char ngsAccountUpdateTeamsInfo();
+
+typedef struct _ngsNGWUserInfo {
+    const char *firstName;
+    const char *lastName;
+    const char *username;
+    const char *guid;
+    const char *locale;
+} ngsNGWUserInfo;
+
+typedef struct _ngsNGWTeamInfo {
+    const char *id;
+    const char *ownerId;
+    const char *webgis;
+    const char *startDate;
+    const char *endDate;
+    int usersSize;
+    ngsNGWUserInfo **users;
+} ngsNGWTeamInfo;
+
+NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams();
+NGS_EXTERNC int ngsAccountGetTeamsSize();
 
 /*
  * Tracks
