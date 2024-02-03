@@ -104,10 +104,12 @@ static void notifyProxyFunc(const char *uri, enum ngsChangeCode operation)
     JNIEnv * g_env;
     // double check it's all ok
     int getEnvStat = g_vm->GetEnv((void **)&g_env, JNI_VERSION_1_6);
-    if (getEnvStat == JNI_EDETACHED) {
+    bool isMainThread = true;
+    if( getEnvStat == JNI_EDETACHED && g_env == nullptr) {
         if (g_vm->AttachCurrentThread(&g_env, nullptr) != 0) {
             return;
         }
+        isMainThread = false;
     } else if (getEnvStat == JNI_EVERSION) {
         return;
     }
@@ -120,7 +122,9 @@ static void notifyProxyFunc(const char *uri, enum ngsChangeCode operation)
         g_env->ExceptionDescribe();
     }
 
-    g_vm->DetachCurrentThread();
+    if (!isMainThread) {
+        g_vm->DetachCurrentThread();
+    }
 }
 
 static int progressProxyFunc(enum ngsCode status, double complete,
