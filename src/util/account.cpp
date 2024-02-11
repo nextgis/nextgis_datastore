@@ -90,8 +90,9 @@ bool Account::updateUserInfo()
         return false;
     }
 
+    const auto userId = root.GetString("nextgis_guid");
     Settings &settings = Settings::instance();
-    settings.set("account/user_id", root.GetString("nextgis_guid"));
+    settings.set("account/user_id", userId);
     m_firstName = root.GetString("first_name");
     settings.set("account/first_name", m_firstName);
     m_lastName = root.GetString("last_name");
@@ -99,7 +100,7 @@ bool Account::updateUserInfo()
     m_email = root.GetString("email");
     settings.set("account/email", m_email);
 
-    m_authorized = true;
+    m_authorized = !userId.empty();
     // Get avatar
     std::string emailHash = md5(root.GetString("email"));
     return http::getFile(CPLSPrintf("https://www.gravatar.com/avatar/%s?s=64&r=pg&d=robohash",
@@ -124,13 +125,13 @@ bool Account::updateSupportInfo()
         settings.set("account/start_date", root.GetString("start_date"));
         settings.set("account/end_date", root.GetString("end_date"));
 
+        m_supported = checkSupported();
+
         // Get key file
         const char *settingsPath = CPLGetConfigOption("NGS_SETTINGS_PATH", nullptr);
         std::string keyFilePath = File::formFileName(settingsPath, KEY_FILE, "");
         return http::getFile(apiEndpoint + "/rsa_public_key/", keyFilePath);
     }
-
-    m_supported = checkSupported();
 
     return true;
 }
@@ -176,7 +177,7 @@ bool Account::updateTeamsInfo()
 static time_t timeFromString(const char *str)
 {
     int day(0), month(1), year(1970);
-    sscanf(str, "%4d-%2d-%2d", &month, &day, &year);
+    sscanf(str, "%4d-%2d-%2d", &year, &month, &day);
 
     struct tm stTm = {0};
 	stTm.tm_mday = day;
