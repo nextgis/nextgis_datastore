@@ -322,6 +322,8 @@ bool TracksTable::sync()
     int fixIndex = -1;
     int speedIndex = -1;
     int accIndex = -1;
+    int courseIndex = -1;
+
     int index = 0;
     auto fields = m_pointsLayer->fields();
     for(const auto &field: fields) {
@@ -342,6 +344,9 @@ bool TracksTable::sync()
         }
         if(field.m_name == "pdop") {
             accIndex = index;
+        }
+        if(field.m_name == "course") {
+            courseIndex = index;
         }
 
         if(timeIndex >= 0 && eleIndex >= 0 && satIndex >= 0 && fixIndex >= 0 &&
@@ -385,6 +390,7 @@ bool TracksTable::sync()
             item.Add("ft", fix);
             item.Add("sp", feature->GetFieldAsDouble(speedIndex) * 3.6); // Convert from meters pre second to kilometers per hour
             item.Add("ha", feature->GetFieldAsDouble(accIndex));
+            item.Add("c", feature->GetFieldAsDouble(courseIndex));
 
             payload->Add(item);
 
