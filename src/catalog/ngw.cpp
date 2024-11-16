@@ -1073,8 +1073,7 @@ bool NGWConnection::loadChildren()
         fillCapabilities();
         if(!m_searchApiUrl.empty()) {
             CPLJSONDocument searchReq;
-            if(searchReq.LoadUrl(m_searchApiUrl + "?serialization=full",
-                                 http::getGDALHeaders(m_url))) {
+            if(searchReq.LoadUrl(m_searchApiUrl, http::getGDALHeaders(m_url))) {
                 CPLJSONArray root(searchReq.GetRoot());
                 if(root.IsValid()) {
                     m_childrenLoaded = true;
