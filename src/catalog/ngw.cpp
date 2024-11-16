@@ -1020,7 +1020,7 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
         tracker.SetNull("consumption_lpkm");
     }
 
-    tracker.Add("is_registered", "");
+    tracker.Add("is_registered", nullptr);
 
     std::string resourceId = ngw::createResource(url(),
         payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
