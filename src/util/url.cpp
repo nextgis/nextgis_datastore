@@ -24,6 +24,7 @@
 #include "catalog/file.h"
 #include "error.h"
 #include "stringutil.h"
+#include "settings.h"
 
 namespace ngs {
 
@@ -58,27 +59,70 @@ HTTPResultPtr::operator CPLHTTPResult *() const
 }
 
 //------------------------------------------------------------------------------
+// ngsURLRequestResultPtr
+//------------------------------------------------------------------------------
+
+
+ngsURLRequestResultPtr::ngsURLRequestResultPtr(ngsURLRequestResult *result) :
+    shared_ptr(result, ngsURLRequestResultFree)
+{
+
+}
+
+ngsURLRequestResultPtr::ngsURLRequestResultPtr() :
+    shared_ptr(nullptr, ngsURLRequestResultFree)
+{
+
+}
+
+ngsURLRequestResultPtr &ngsURLRequestResultPtr::operator=(ngsURLRequestResult *result)
+{
+    reset(result);
+    return *this;
+}
+
+ngsURLRequestResultPtr::operator ngsURLRequestResult *() const
+{
+     return get();
+}
+
+//------------------------------------------------------------------------------
 //
 //------------------------------------------------------------------------------
 
-ngsURLRequestResult *fetch(const std::string &url, const Progress &progress,
+ngsURLRequestResult *httpFetch(const std::string &url, const Progress &progress,
                            const Options &options)
 {
     resetError();
-    ngsURLRequestResult *out = new ngsURLRequestResult;
-    auto requestOptions = options.asCPLStringList();
-    requestOptions = addAuthHeaders(url, requestOptions);
+    auto requestOptions = addAuthHeaders(url, options);
+
 
     Progress progressIn(progress);
-    HTTPResultPtr result = CPLHTTPFetchEx(url.c_str(), requestOptions,
+    HTTPResultPtr result = CPLHTTPFetchEx(url.c_str(), requestOptions.asStringList(),
                                            ngsGDALProgress, &progressIn, nullptr,
                                            nullptr);
     if(nullptr == result) {
-        outMessage(COD_REQUEST_FAILED, _("Unexpected error"));
+        putMessage(COD_REQUEST_FAILED, _("Unexpected error"));
         return nullptr;
     }
     if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
-        outMessage(COD_REQUEST_FAILED, result->pszErrBuf);
+        std::string errorMessageStr(result->pszErrBuf);
+        CPLJSONDocument resultDoc;
+        if(resultDoc.LoadMemory(result->pabyData, result->nDataLen)) {
+            CPLJSONObject root = resultDoc.GetRoot();
+            if(root.IsValid()) {
+                errorMessageStr = root.GetString("message");
+                if(errorMessageStr.empty()) {
+                    errorMessageStr = root.GetString("error");
+                    if(errorMessageStr.empty()) {
+                        errorMessageStr = std::string(result->pszErrBuf);
+                    }
+                }
+            }
+        }
+
+        putMessage(COD_REQUEST_FAILED, errorMessageStr.c_str());
+        ngsURLRequestResult *out = new ngsURLRequestResult;
         out->status = result->nStatus;
         out->headers = nullptr;
         out->dataLen = 0;
@@ -86,6 +130,7 @@ ngsURLRequestResult *fetch(const std::string &url, const Progress &progress,
         return out;
     }
 
+    ngsURLRequestResult *out = new ngsURLRequestResult;
     out->status = result->nStatus;
     out->headers = result->papszHeaders;
     out->dataLen = result->nDataLen;
@@ -98,14 +143,13 @@ ngsURLRequestResult *fetch(const std::string &url, const Progress &progress,
     return out;
 }
 
-CPLJSONObject fetchJson(const std::string &url, const Progress &progress,
+CPLJSONObject jsonFetch(const std::string &url, const Progress &progress,
                         const Options &options)
 {
     CPLJSONDocument doc;
-    auto requestOptions = options.asCPLStringList();
-    requestOptions = addAuthHeaders(url, requestOptions);
+    auto requestOptions = addAuthHeaders(url, options);
     Progress progressIn(progress);
-    if(doc.LoadUrl(url, requestOptions, ngsGDALProgress, &progressIn)) {
+    if(doc.LoadUrl(url, requestOptions.asStringList(), ngsGDALProgress, &progressIn)) {
         return doc.GetRoot();
     }
     return CPLJSONObject();
@@ -133,52 +177,66 @@ bool getFile(const std::string &url, const std::string &path,
         return errorMessage(_("Create file %s failed"), path.c_str());
     }
 
-    auto requestOptions = options.asCPLStringList();
-    requestOptions = addAuthHeaders(url, requestOptions);
+    auto requestOptions = addAuthHeaders(url, options);
     Progress progressIn(progress);
-    HTTPResultPtr result = CPLHTTPFetchEx(url.c_str(), requestOptions,
+    HTTPResultPtr result = CPLHTTPFetchEx(url.c_str(), requestOptions.asStringList(),
                                            ngsGDALProgress, &progressIn,
                                            ngsWriteFct, fp);
 
     bool ret = VSIFCloseL(fp) == 0;
     if(nullptr == result) {
-        outMessage(COD_REQUEST_FAILED, _("Unexpected error"));
+        putMessage(COD_REQUEST_FAILED, _("Unexpected error"));
         return false;
     }
     if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
-        outMessage(COD_REQUEST_FAILED, result->pszErrBuf);
+        std::string errorMessageStr(result->pszErrBuf);
+        CPLJSONDocument resultDoc;
+        if(resultDoc.LoadMemory(result->pabyData, result->nDataLen)) {
+            CPLJSONObject root = resultDoc.GetRoot();
+            if(root.IsValid()) {
+                errorMessageStr = root.GetString("message");
+                if(errorMessageStr.empty()) {
+                    errorMessageStr = root.GetString("error");
+                    if(errorMessageStr.empty()) {
+                        errorMessageStr = std::string(result->pszErrBuf);
+                    }
+                }
+            }
+        }
+        putMessage(COD_REQUEST_FAILED, errorMessageStr.c_str());
         return false;
     }
 
     return ret;
 }
 
-CPLStringList addAuthHeaders(const std::string &url, CPLStringList &options)
+Options addAuthHeaders(const std::string &url, const Options &options)
 {
-    std::string auth = AuthStore::authHeader(url);
+    Options out(options);
+    auto auth = AuthStore::authHeader(url);
     if(!auth.empty()) {
-        const char *headers = options.FetchNameValue("HEADERS");
-        if(nullptr != headers) {
-            auth += "\r\n" + std::string(headers);
-            options.SetNameValue("HEADERS", auth.c_str());
+        auto headers = options.asString("HEADERS");
+        if(!headers.empty()) {
+            auth += "\r\n" + headers;
+            out.add("HEADERS", auth);
         }
         else {
-            options.AddNameValue("HEADERS", auth.c_str());
+            out.add("HEADERS", auth);
         }
     }
-    return options;
+    return out;
 }
 
-CPLStringList getGDALHeaders(const std::string &url)
+Options getGDALHeaders(const std::string &url)
 {
-    CPLStringList out;
+    Options out;
     std::string headers = "Accept: */*";
     std::string auth = AuthStore::authHeader(url);
     if(!auth.empty()) {
         headers += "\r\n";
         headers += auth;
     }
-    out.AddNameValue("HEADERS", headers.c_str());
+    out.add("HEADERS", headers);
     return out;
 }
 
@@ -186,25 +244,38 @@ CPLJSONObject uploadFile(const std::string &url, const std::string &filePath,
                          const Progress &progress, const Options &options)
 {
     resetError();
-    auto requestOptions = options.asCPLStringList();
-    requestOptions = addAuthHeaders(url, requestOptions);
-    requestOptions.AddNameValue("FORM_FILE_PATH", filePath.c_str());
-    requestOptions.AddNameValue("FORM_FILE_NAME", "file");
-    requestOptions.AddNameValue("FORM_KEY_0", "name");
-    requestOptions.AddNameValue("FORM_VALUE_0", File::getFileName(filePath).c_str());
-    requestOptions.AddNameValue("FORM_ITEM_COUNT", "1");
+    auto requestOptions = addAuthHeaders(url, options);
+    requestOptions.add("FORM_FILE_PATH", filePath);
+    requestOptions.add("FORM_FILE_NAME", "file");
+    requestOptions.add("FORM_KEY_0", "name");
+    requestOptions.add("FORM_VALUE_0", File::getFileName(filePath));
+    requestOptions.add("FORM_ITEM_COUNT", "1");
 
     Progress progressIn(progress);
 
-    HTTPResultPtr httpResult = CPLHTTPFetchEx(url.c_str(), requestOptions,
+    HTTPResultPtr httpResult = CPLHTTPFetchEx(url.c_str(), requestOptions.asStringList(),
                                            ngsGDALProgress, &progressIn,
                                            nullptr, nullptr);
     if(nullptr == httpResult) {
-        outMessage(COD_REQUEST_FAILED, _("Unexpected error"));
+        putMessage(COD_REQUEST_FAILED, _("Unexpected error"));
         return CPLJSONObject();
     }
     if(httpResult->nStatus != 0 || httpResult->pszErrBuf != nullptr) {
-        outMessage(COD_REQUEST_FAILED, _("Error: %s"), httpResult->pszErrBuf);
+        std::string errorMessageStr(httpResult->pszErrBuf);
+        CPLJSONDocument resultDoc;
+        if(resultDoc.LoadMemory(httpResult->pabyData, httpResult->nDataLen)) {
+            CPLJSONObject root = resultDoc.GetRoot();
+            if(root.IsValid()) {
+                errorMessageStr = root.GetString("message");
+                if(errorMessageStr.empty()) {
+                    errorMessageStr = root.GetString("error");
+                    if(errorMessageStr.empty()) {
+                        errorMessageStr = std::string(httpResult->pszErrBuf);
+                    }
+                }
+            }
+        }
+        putMessage(COD_REQUEST_FAILED, errorMessageStr.c_str());
         return CPLJSONObject();
     }
 
@@ -214,7 +285,7 @@ CPLJSONObject uploadFile(const std::string &url, const std::string &filePath,
         result = fileJson.GetRoot();
     }
     else {
-        outMessage(COD_REQUEST_FAILED, _("Upload file %s failed"), filePath.c_str());
+        putMessage(COD_REQUEST_FAILED, _("Upload file %s failed"), filePath.c_str());
     }
     return result;
 }

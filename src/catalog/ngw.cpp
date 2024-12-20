@@ -267,13 +267,13 @@ bool NGWResourceBase::isNGWResource(const enum ngsCatalogObjectType type)
 bool NGWResourceBase::remove()
 {
     return ngw::deleteResource(url(), m_resourceId,
-                               http::getGDALHeaders(url()).StealList());
+                               http::getGDALHeaders(url()));
 }
 
 bool NGWResourceBase::changeName(const std::string &newName)
 {
-    return ngw::renameResource(url(), m_resourceId, newName,
-                               http::getGDALHeaders(url()).StealList());
+    return ngw::renameResource(url(), m_resourceId, newName, 
+        http::getGDALHeaders(url()));
 }
 
 //------------------------------------------------------------------------------
@@ -341,7 +341,7 @@ bool NGWResource::sync()
 {
     auto result = ngw::updateResource(url(), resourceId(),
                                       asJson().Format(CPLJSONObject::PrettyFormat::Plain),
-                                      http::getGDALHeaders(url()).StealList());
+                                      http::getGDALHeaders(url()));
     if(result) {
         m_hasPendingChanges = false;
     }
@@ -590,7 +590,8 @@ ObjectPtr NGWResourceGroup::create(const enum ngsCatalogObjectType type,
     else {        
         CPLJSONObject payload = createResourcePayload(this, type, name, options);
         std::string resourceId = ngw::createResource(url(),
-            payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
+            payload.Format(CPLJSONObject::PrettyFormat::Plain), 
+                http::getGDALHeaders(url()));
         if(compare(resourceId, "-1", true)) {
             return ObjectPtr();
         }
@@ -652,7 +653,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
     }
 
     if(!child) {
-        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+        return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                           _("Source object is invalid"));
     }
 
@@ -672,7 +673,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
     if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
-            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+            return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                 child->name().c_str());
         }
@@ -680,7 +681,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
         if(srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
             const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
             if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
                     _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
                     move ? _("move") : _("copy"), srcFClass->featureCount());
             }
@@ -786,7 +787,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
     else if(Filter::isRaster(child->type())) {
         RasterPtr srcRaster = std::dynamic_pointer_cast<Raster>(child);
         if(!srcRaster) {
-            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+            return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                 _("Source object '%s' report type RASTER, but it is not a raster"),
                 child->name().c_str());
         }
@@ -796,7 +797,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
                 srcRaster->height() > MAX_RASTERSIZE4UNSUPPORTED) {
             const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
             if(!Account::instance().isFunctionAvailable(appName, "paste_raster")) {
-                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
                     _("Cannot %s raster on your plan, or account is not authorized"),
                     move ? _("move") : _("copy"));
             }
@@ -813,7 +814,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             Settings &settings = Settings::instance();
             auto tmpPath = settings.getString("common/cache_path", "");
             if(tmpPath.empty()) {
-                return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                   _("Cache path option must be present"));
             }
             auto tmpName = random(10) + "." + Filter::extension(CAT_RASTER_TIFF);
@@ -823,7 +824,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             auto tempFolder = catalog->getObjectBySystemPath(tmpPath);
             auto tempObjectContainer = ngsDynamicCast(ObjectContainer, tempFolder);
             if(nullptr == tempObjectContainer) {
-                return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+                return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                   _("Cannot %s raster. Temp path not defined."),
                                   move ? _("move") : _("copy"));
             }
@@ -876,7 +877,8 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
 
         std::string resourceId = ngw::createResource(url(),
-            payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
+            payload.Format(CPLJSONObject::PrettyFormat::Plain), 
+                http::getGDALHeaders(url()));
         if(compare(resourceId, "-1", true)) {
             return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
         }
@@ -888,7 +890,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
         }
     }
     else {
-        return outMessage(COD_UNSUPPORTED,
+        return putMessage(COD_UNSUPPORTED,
                           _("'%s' has unsuported type"), child->name().c_str());
     }
 
@@ -1023,7 +1025,8 @@ ObjectPtr NGWTrackersGroup::create(const enum ngsCatalogObjectType type,
     tracker.Add("is_registered", "");
 
     std::string resourceId = ngw::createResource(url(),
-        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url()).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), 
+            http::getGDALHeaders(url()));
     if(compare(resourceId, "-1", true)) {
         return ObjectPtr();
     }
@@ -1074,7 +1077,7 @@ bool NGWConnection::loadChildren()
         if(!m_searchApiUrl.empty()) {
             CPLJSONDocument searchReq;
             if(searchReq.LoadUrl(m_searchApiUrl + "?serialization=full",
-                                 http::getGDALHeaders(m_url))) {
+                                 http::getGDALHeaders(m_url).asStringList())) {
                 CPLJSONArray root(searchReq.GetRoot());
                 if(root.IsValid()) {
                     m_childrenLoaded = true;
@@ -1130,7 +1133,7 @@ void NGWConnection::fillCapabilities()
 {
     // Check NGW version. Paging available from 3.1
     CPLJSONDocument routeReq;
-    if(routeReq.LoadUrl( ngw::getRouteUrl(m_url), http::getGDALHeaders(m_url) )) {
+    if(routeReq.LoadUrl( ngw::getRouteUrl(m_url), http::getGDALHeaders(m_url).asStringList() )) {
         CPLJSONObject root = routeReq.GetRoot();
         if(root.IsValid()) {
             CPLJSONArray search = root.GetArray("resource.search");
@@ -1147,7 +1150,7 @@ void NGWConnection::fillCapabilities()
         }
     }
     CPLJSONDocument schemaReq;
-    if(schemaReq.LoadUrl( ngw::getSchemaUrl(m_url), http::getGDALHeaders(m_url) )) {
+    if(schemaReq.LoadUrl( ngw::getSchemaUrl(m_url), http::getGDALHeaders(m_url).asStringList() )) {
         CPLJSONObject root = schemaReq.GetRoot();
         if(root.IsValid()) {
             CPLJSONObject resources = root.GetObj("resources");
@@ -1667,8 +1670,8 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
     CPLJSONObject tileCache("tile_cache", payload);
     tileCache.Add("enabled", options.asBool("CACHE_ENABLED", false));
     tileCache.Add("image_compose", options.asBool("CACHE_IMAGE_COMPOSE", false));
-    tileCache.Add("max_z", options.asString("CACHE_MAX_Z", "5"));
-    tileCache.Add("ttl", options.asString("CACHE_TTL", "2630000"));
+    tileCache.Add("max_z", options.asInt("CACHE_MAX_Z", 5));
+    tileCache.Add("ttl", options.asInt("CACHE_TTL", 2630000));
     tileCache.Add("track_changes", options.asBool("CACHE_TRACK_CHANGES", false));
 
     if(type == CAT_NGW_QGISVECTOR_STYLE || type == CAT_NGW_QGISRASTER_STYLE) {
@@ -1748,7 +1751,8 @@ NGWStyle *NGWStyle::createStyle(NGWResourceBase *parent,
     }
 
     std::string resourceId = ngw::createResource(url,
-        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), 
+            http::getGDALHeaders(url));
     if(compare(resourceId, "-1", true)) {
         return nullptr;
     }
@@ -1895,7 +1899,7 @@ NGWWebMap::NGWWebMap(ObjectContainer * const parent, const std::string &name,
         m_drawOrderEnabled = resource.GetBool("webmap/draw_order_enabled", false);
         m_editable = resource.GetBool("webmap/editable", false);
         m_annotationEnabled = resource.GetBool("webmap/annotation_enabled", false);
-        m_annotationDefault = resource.GetBool("webmap/annotation_default", false);
+        m_annotationDefault = resource.GetBool("webmap/annotation_default", "no");
         m_bookmarkResourceId = resource.GetLong("webmap/bookmark_resource/id", -1);
 
         fill(resource.GetObj("webmap/root_item"));
@@ -2553,14 +2557,15 @@ NGWWebMap *NGWWebMap::create(NGWResourceBase *parent, const std::string &name,
     webmap.Add("draw_order_enabled", false);
     webmap.Add("editable", false);
     webmap.Add("annotation_enabled", false);
-    webmap.Add("annotation_default", false);
+    webmap.Add("annotation_default", "no");
 
     CPLJSONObject rootItem("root_item", webmap);
     rootItem.Add("item_type", "root");
     rootItem.Add("children", CPLJSONArray());
 
     std::string resourceId = ngw::createResource(url,
-        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), 
+            http::getGDALHeaders(url));
     if(compare(resourceId, "-1", true)) {
         return nullptr;
     }
@@ -2670,7 +2675,7 @@ CPLJSONObject NGWWebMap::asJson() const
     webmap.Add("draw_order_enabled", m_drawOrderEnabled);
     webmap.Add("editable", m_editable);
     webmap.Add("annotation_enabled", m_annotationEnabled);
-    webmap.Add("annotation_default", m_annotationDefault);
+    webmap.Add("annotation_default", m_annotationDefault ? "yes" : "no");
 
     if(m_bookmarkResourceId == NOT_FOUND) {
         webmap.SetNull("bookmark_resource");
@@ -2757,7 +2762,8 @@ NGWBaseMap *NGWBaseMap::create(NGWResourceBase *parent,
     }
 
     std::string resourceId = ngw::createResource(url,
-        payload.Format(CPLJSONObject::PrettyFormat::Plain), http::getGDALHeaders(url).StealList());
+        payload.Format(CPLJSONObject::PrettyFormat::Plain), 
+            http::getGDALHeaders(url));
     if(compare(resourceId, "-1", true)) {
         return nullptr;
     }
@@ -2901,7 +2907,7 @@ bool NGWBaseMap::open(unsigned int openFlags, const Options &options)
     int cacheMaxSize = defaultCacheMaxSize;
 
     const Settings &settings = Settings::instance();
-    int timeout = settings.getInteger("http/timeout", 5);
+    int timeout = settings.getInteger("http/timeout", 120);
 
     const char *connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
         "<ServerUrl>%s</ServerUrl></Service><DataWindow>"

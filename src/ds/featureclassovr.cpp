@@ -22,7 +22,7 @@
 #include "datastore.h"
 #include "featureclassovr.h"
 
-#include "map/maptransform.h"
+#include "util/geo.h"
 #include "util/error.h"
 
 namespace ngs {
@@ -201,7 +201,7 @@ bool FeatureClassOverview::tilingDataJobThreadFunc(ThreadData *threadData)
         CPLDebug("ngstore", "tilingDataJobThreadFunc for zoom %d", zoomLevel);
         Envelope extent = extraExtentForZoom(zoomLevel, env);
 
-        std::vector<TileItem> items = MapTransform::getTilesForExtent(
+        std::vector<TileItem> items = getTilesForExtent(
                     extent, zoomLevel, false, true);
 
         double step = FeatureClassOverview::pixelSize(zoomLevel, precisePixelSize);
@@ -308,7 +308,7 @@ bool FeatureClassOverview::createOverviews(const Progress &progress, const Optio
 //        CPLDebug("ngstore", "Tile size to store %d", data->size());
 
         if(m_ovrTable->CreateFeature(newFeature) != OGRERR_NONE) {
-            outMessage(COD_INSERT_FAILED, _("Failed to create feature"));
+            putMessage(COD_INSERT_FAILED, _("Failed to create feature"));
         }
 
         newProgress.onProgress(COD_IN_PROCESS, counter/m_genTiles.size(),
@@ -547,7 +547,7 @@ void FeatureClassOverview::onFeatureInserted(FeaturePtr feature)
         unsigned char zoomLevel = *it;
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
         std::vector<TileItem> items =
-                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+                getTilesForExtent(extent, zoomLevel, false, true);
 
         double step = FeatureClassOverview::pixelSize(zoomLevel, precisePixelSize);
         geosGeom->simplify(step);
@@ -636,7 +636,7 @@ void FeatureClassOverview::onFeatureUpdated(FeaturePtr oldFeature,
         Envelope extent = extraExtentForZoom(zoomLevel, extentBase);
 
         std::vector<TileItem> items =
-                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+                getTilesForExtent(extent, zoomLevel, false, true);
 
         double step = FeatureClassOverview::pixelSize(zoomLevel, precisePixelSize);
         geosGeom->simplify(step);
@@ -699,7 +699,7 @@ void FeatureClassOverview::onFeatureDeleted(FeaturePtr delFeature)
     for(auto zoomLevel : zoomLevels()) {
         Envelope extent = extraExtentForZoom(zoomLevel, env);
         std::vector<TileItem> items =
-                MapTransform::getTilesForExtent(extent, zoomLevel, false, true);
+                getTilesForExtent(extent, zoomLevel, false, true);
         for(auto tileItem : items) {
             FeaturePtr tile = getTileFeature(tileItem.tile);
 

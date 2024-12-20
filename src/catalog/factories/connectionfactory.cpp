@@ -25,6 +25,7 @@
 #include "util/authstore.h"
 #include "util/error.h"
 #include "util/stringutil.h"
+#include "util/settings.h"
 
 namespace ngs {
 
@@ -155,21 +156,31 @@ bool ConnectionFactory::checkRemoteConnection(const enum ngsCatalogObjectType ty
             authOptions.add(KEY_TYPE, "basic");
             authOptions.add(KEY_LOGIN, login);
             authOptions.add(KEY_PASSWORD, password);
-            // Fake url just for auth headers
-            std::string tmpUrl = "http://" + random(5) + ".info";
-            AuthStore::authAdd(tmpUrl, authOptions);
-            std::string auth = AuthStore::authHeader(tmpUrl);
-            AuthStore::authRemove(tmpUrl);
+
+            AuthStore::authAdd(url, authOptions);
+            std::string auth = AuthStore::authHeader(url);
+            AuthStore::authRemove(url);
             if(!auth.empty()) {
                 headers += "\r\n";
                 headers += auth;
             }
+        } else {
+            AuthStore::authRemove(url);
         }
+
+        const Settings &settings = Settings::instance();
+        auto timeout = settings.getString("http/timeout", HTTP_TIMEOUT);
+        auto connTimeout = settings.getString("http/conn_timeout", HTTP_CONN_TIMEOUT);
+        auto maxRetry = settings.getString("http/max_retry", HTTP_MAX_RETRY);
+        auto retryDelay = settings.getString("http/retry_delay", HTTP_RETRY_DELAY);
+        auto sslVerify = settings.getString("http/ssl_verify", HTTP_SSL_VERIFY);
+
         requestOptions.AddNameValue("HEADERS", headers.c_str());
-        requestOptions.AddNameValue("CONNECTTIMEOUT", "30");
-        requestOptions.AddNameValue("TIMEOUT", "65");
-        requestOptions.AddNameValue("MAX_RETRY", "5");
-        requestOptions.AddNameValue("RETRY_DELAY", "5");
+        requestOptions.AddNameValue("CONNECTTIMEOUT", connTimeout.c_str());
+        requestOptions.AddNameValue("TIMEOUT", timeout.c_str());
+        requestOptions.AddNameValue("MAX_RETRY", maxRetry.c_str());
+        requestOptions.AddNameValue("RETRY_DELAY", retryDelay.c_str());
+        requestOptions.AddNameValue("SSL_VERIFYSTATUS", sslVerify.c_str());
 
         CPLJSONDocument checkReq;
         if(!checkReq.LoadUrl(ngw::getCurrentUserUrl(url), requestOptions)) {

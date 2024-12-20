@@ -156,12 +156,13 @@ std::string FeaturePtr::dump(FeaturePtr::DumpOutputType type) const
         }
     }
     switch (type) {
-    case DumpOutputType::SIMPLE:
-        return out;
     case DumpOutputType::HASH:
     case DumpOutputType::HASH_FULL:
     case DumpOutputType::HASH_STYLE:
-        return md5(out);
+        return sha256(out);
+    case DumpOutputType::SIMPLE:
+    default:
+        return out;
     }
 }
 
@@ -171,12 +172,12 @@ GIntBig FeaturePtr::addAttachment(const std::string &fileName,
                                   const Options &options, bool logEdits)
 {
     if(nullptr == m_table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
+        putMessage(COD_INVALID, _("The feature detached from table"));
         return NOT_FOUND;
     }
     if(m_table->type() == CAT_QUERY_RESULT ||
        m_table->type() == CAT_QUERY_RESULT_FC) {
-        outMessage(COD_INVALID, _("The feature from table that is result of query"));
+        putMessage(COD_INVALID, _("The feature from table that is result of query"));
         return NOT_FOUND;
     }
 
@@ -193,7 +194,7 @@ GIntBig FeaturePtr::addAttachment(const FeaturePtr::AttachmentInfo &info,
 std::vector<FeaturePtr::AttachmentInfo> FeaturePtr::attachments() const
 {
     if(nullptr == m_table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
+        putMessage(COD_INVALID, _("The feature detached from table"));
         return std::vector<FeaturePtr::AttachmentInfo>();
     }
     return m_table->attachments(get()->GetFID());
@@ -202,7 +203,7 @@ std::vector<FeaturePtr::AttachmentInfo> FeaturePtr::attachments() const
 bool FeaturePtr::deleteAttachment(GIntBig aid, bool logEdits)
 {
     if(nullptr == m_table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
+        putMessage(COD_INVALID, _("The feature detached from table"));
         return false;
     }
     return m_table->deleteAttachment(get()->GetFID(), aid, logEdits);
@@ -211,7 +212,7 @@ bool FeaturePtr::deleteAttachment(GIntBig aid, bool logEdits)
 bool FeaturePtr::deleteAttachments(bool logEdits)
 {
     if(nullptr == m_table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
+        putMessage(COD_INVALID, _("The feature detached from table"));
         return false;
     }
     return m_table->deleteAttachments(get()->GetFID(), logEdits);
@@ -221,7 +222,7 @@ bool FeaturePtr::updateAttachment(GIntBig aid, const std::string &fileName,
                                   const std::string &description, bool logEdits)
 {
     if(nullptr == m_table) {
-        outMessage(COD_INVALID, _("The feature detached from table"));
+        putMessage(COD_INVALID, _("The feature detached from table"));
         return false;
     }
     return m_table->updateAttachment(get()->GetFID(), aid, fileName, description,
@@ -441,7 +442,7 @@ int Table::copyRows(const TablePtr srcTable, const FieldMapPtr fieldMap,
                     const Progress& progress, const Options &options)
 {
     if(!srcTable) {
-        return outMessage(COD_COPY_FAILED, _("Source table is invalid"));
+        return putMessage(COD_COPY_FAILED, _("Source table is invalid"));
     }
 
     progress.onProgress(COD_IN_PROCESS, 0.0,

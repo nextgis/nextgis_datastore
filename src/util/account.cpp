@@ -84,7 +84,7 @@ bool Account::isFunctionAvailable(const std::string &app, const std::string &fun
 bool Account::updateUserInfo()
 {
     std::string apiEndpoint(API_ENDPOINT);
-    CPLJSONObject root = http::fetchJson(apiEndpoint + "/user_info/");
+    CPLJSONObject root = http::jsonFetch(apiEndpoint + "/user_info/");
     if(!root.IsValid()) {
         m_authorized = false;
         return false;
@@ -102,7 +102,7 @@ bool Account::updateUserInfo()
 
     m_authorized = !userId.empty();
     // Get avatar
-    std::string emailHash = md5(root.GetString("email"));
+    std::string emailHash = sha256(root.GetString("email"));
     return http::getFile(CPLSPrintf("https://www.gravatar.com/avatar/%s?s=64&r=pg&d=robohash",
                              emailHash.c_str()), m_avatarPath);
 }
@@ -110,7 +110,7 @@ bool Account::updateUserInfo()
 bool Account::updateSupportInfo()
 {
     std::string apiEndpoint(API_ENDPOINT);
-    CPLJSONObject root = http::fetchJson(apiEndpoint + "/support_info/");
+    CPLJSONObject root = http::jsonFetch(apiEndpoint + "/support_info/");
     if(!root.IsValid()) {
         return false;
     }
@@ -141,7 +141,7 @@ bool Account::updateTeamsInfo()
     m_teams.clear();
 
     std::string apiEndpoint(API_ENDPOINT);
-    CPLJSONObject root = http::fetchJson(apiEndpoint + "/teams/");
+    CPLJSONObject root = http::jsonFetch(apiEndpoint + "/teams/");
     if(!root.IsValid()) {
         return false;
     }
@@ -234,7 +234,7 @@ static bool verifyRSASignature(const unsigned char *originalMessage,
     EVP_MD_CTX_destroy(ctx);
     EVP_PKEY_free(evp_pubkey);
 
-    outMessage(result == 1 ? COD_SUCCESS : COD_UNEXPECTED_ERROR,
+    putMessage(result == 1 ? COD_SUCCESS : COD_UNEXPECTED_ERROR,
                "Signature is %s", result == 1 ? "valid" : "invalid");
 
     return result == 1;

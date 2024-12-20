@@ -44,7 +44,8 @@ public:
     int asInt(const std::string &key, int defaultOption = 0) const;
     long asLong(const std::string &key, long defaultOption = 0) const;
     double asDouble(const std::string &key, double defaultOption = 0.0) const;
-    CPLStringList asCPLStringList() const;
+    CPLStringList asStringList() const;
+    operator CPLStringList() const;
 
     void add(const std::string &key, const std::string &value);
     void add(const std::string &key, const char *value);

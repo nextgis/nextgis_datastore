@@ -430,7 +430,7 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
 
     auto driver = Filter::getGDALDriver(dstType);
     if(nullptr == driver || !Filter::isFileBased(dstType)) {
-        return outMessage(COD_UNSUPPORTED,
+        return putMessage(COD_UNSUPPORTED,
                           _("Destination type %d is not supported"), dstType);
     }
 
@@ -441,7 +441,7 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
 
     auto srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
     if(!srcFClass) {
-        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+        return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                           _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                           child->name().c_str());
     }
@@ -450,7 +450,7 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
     if(dstType != CAT_FC_GPX && srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
         const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
         if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-            return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+            return putMessage(COD_FUNCTION_NOT_AVAILABLE,
                               _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
                               move ? _("move") : _("copy"), srcFClass->featureCount());
         }
@@ -488,7 +488,7 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
 
         std::unique_ptr<Dataset> ds(Dataset::create(this, dstType, createName, options));
         if(!ds || !ds->isOpened()) {
-            return outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+            return putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         }
 
         std::string fc_name = options.asString("LAYER_NAME", newName);
@@ -520,7 +520,7 @@ int Folder::pasteRaster(ObjectPtr child, bool move, const std::string &newPath,
 {
     auto srcRaster = std::dynamic_pointer_cast<Raster>(child);
     if(!srcRaster) {
-        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+        return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                           _("Source object '%s' report type RASTER, but it is not a raster"),
                           child->name().c_str());
     }
@@ -547,7 +547,7 @@ int Folder::pasteRaster(ObjectPtr child, bool move, const std::string &newPath,
 
     auto driver = Filter::getGDALDriver(dstType);
     if(nullptr == driver || !Filter::isFileBased(dstType)) {
-        return outMessage(COD_UNSUPPORTED,
+        return putMessage(COD_UNSUPPORTED,
                           _("Destination type %d is not supported"), dstType);
     }
 
@@ -556,7 +556,7 @@ int Folder::pasteRaster(ObjectPtr child, bool move, const std::string &newPath,
             srcRaster->height() > MAX_RASTERSIZE4UNSUPPORTED) {
         const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
         if(!Account::instance().isFunctionAvailable(appName, "paste_raster")) {
-            return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+            return putMessage(COD_FUNCTION_NOT_AVAILABLE,
                 _("Cannot %s raster on your plan, or account is not authorized"),
                 move ? _("move") : _("copy"));
         }

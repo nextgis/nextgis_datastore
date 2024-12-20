@@ -102,13 +102,18 @@ double Options::asDouble(const std::string &key, double defaultOption) const
     return CPLAtofM(it->second.c_str());
 }
 
-CPLStringList Options::asCPLStringList() const
+CPLStringList Options::asStringList() const
 {
     CPLStringList out;
     for(auto pair : m_options) {
         out.AddNameValue(pair.first.c_str(), pair.second.c_str());
     }
     return out;
+}
+
+Options::operator CPLStringList() const
+{
+    return asStringList();
 }
 
 void Options::remove(const std::string &key)

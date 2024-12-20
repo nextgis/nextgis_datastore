@@ -22,6 +22,15 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
+find_package(Threads)
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_THREAD_LIBS_INIT})
+
+set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_DL_LIBS})
+if(UNIX)
+    find_library(M_LIB m)
+    set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${M_LIB})
+endif()
+
 if(ANDROID OR (UNIX AND NOT APPLE))
     find_package(EGL REQUIRED)
     if(EGL_FOUND)
@@ -30,7 +39,7 @@ if(ANDROID OR (UNIX AND NOT APPLE))
         set(OPENGL_FOUND ON)
     endif()
 
-    find_package(GLES2 REQUIRED)
+    find_package(OpenGLES2 REQUIRED)
     if(OPENGLES2_FOUND)
         include_directories(${OPENGLES2_INCLUDE_DIRS})
         set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
@@ -133,7 +142,6 @@ endif()
 set(OBJ_LIBRARIES)
 add_subdirectory (ds)
 add_subdirectory (catalog)
-add_subdirectory (map)
 add_subdirectory (util)
 
 
@@ -171,8 +179,8 @@ if(BUILD_SHARED_LIBS)
             set_target_properties(${LIB_NAME}static PROPERTIES OUTPUT_NAME ${LIB_NAME})
         endif()
         set_target_properties(${LIB_NAME}static PROPERTIES
-            CXX_STANDARD 11
-            C_STANDARD 11
+            CXX_STANDARD 14
+            C_STANDARD 14
             CLEAN_DIRECT_OUTPUT 1)
     endif()
 elseif(OSX_FRAMEWORK)
@@ -217,8 +225,8 @@ if(IOS)
 endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES
-    CXX_STANDARD 11
-    C_STANDARD 11
+    CXX_STANDARD 14
+    C_STANDARD 14
     CXX_VISIBILITY_PRESET hidden
     C_VISIBILITY_PRESET hidden
 )
@@ -259,7 +267,7 @@ export(TARGETS ${LIB_NAME}
     FILE ${PROJECT_BINARY_DIR}/${PACKAGE_UPPER_NAME}Targets.cmake)
     
 # Create the <Package>Config.cmake file
-configure_file(${PROJECT_SOURCE_DIR}/cmake/PackageConfig.cmake.in
+configure_file(${PROJECT_SOURCE_DIR}/cmake/borsch/cmake/PackageConfig.cmake.in
     ${PROJECT_BINARY_DIR}/${PACKAGE_UPPER_NAME}Config.cmake @ONLY)
 
 if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)

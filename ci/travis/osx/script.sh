@@ -99,7 +99,7 @@ export PROJ_LIB=$HOME/build/nextgis/lib_proj/nad
 cd $HOME/build/nextgis/nextgis_datastore
 mkdir build
 cd build
-cmake -DBUILD_SHARED_LIBS=ON -DBUILD_TARGET_PLATFORM=Desktop -DBUILD_TESTING=ON -DBUILD_TESTS=ON ..
+cmake -DBUILD_SHARED_LIBS=ON -DBUILD_TARGET_PLATFORM=DESKTOP -DBUILD_TESTING=ON ..
 cmake --build . --config release -- -j 4
 #cmake --build . --config release --target test
 ctest -V

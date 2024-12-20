@@ -102,7 +102,7 @@ OGRLayer *createAttachmentsTable(GDALDataset *ds, const std::string &name)
     resetError();
     OGRLayer *attLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -117,7 +117,7 @@ OGRLayer *createAttachmentsTable(GDALDataset *ds, const std::string &name)
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
        attLayer->CreateField(&descField) != OGRERR_NONE ||
        attLayer->CreateField(&ridField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -129,7 +129,7 @@ OGRLayer *createEditHistoryTable(GDALDataset *ds, const std::string &name)
     resetError();
     OGRLayer *logLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == logLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -147,7 +147,7 @@ OGRLayer *createEditHistoryTable(GDALDataset *ds, const std::string &name)
        logLayer->CreateField(&opField) != OGRERR_NONE ||
        logLayer->CreateField(&ridField) != OGRERR_NONE ||
        logLayer->CreateField(&aridField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -361,7 +361,7 @@ std::vector<Item> QMSQuery(const Options &options)
 
     Envelope ext;
     std::vector<Item> out;
-    CPLJSONObject root = http::fetchJson(url);
+    CPLJSONObject root = http::jsonFetch(url);
     if(root.IsValid()) {
         CPLJSONArray services = root.GetArray("results");
         for(int i = 0; i < services.Size(); ++i) {
@@ -390,7 +390,7 @@ std::vector<Item> QMSQuery(const Options &options)
 
 CPLJSONObject QMSItemProperties(int id)
 {
-    return http::fetchJson(std::string(qmsAPIURL) + "geoservices/" +
+    return http::jsonFetch(std::string(qmsAPIURL) + "geoservices/" +
                            std::to_string(id));
 }
 

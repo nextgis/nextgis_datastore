@@ -34,13 +34,12 @@
 
 #include "catalog/catalog.h"
 #include "catalog/ngw.h"
-#include "catalog/mapfile.h"
 #include "catalog/folder.h"
 #include "catalog/factories/connectionfactory.h"
+#include "ds/datastore.h"
 #include "ds/simpledataset.h"
 #include "ds/storefeatureclass.h"
 #include "ds/util.h"
-#include "map/mapstore.h"
 #include "ngstore/catalog/filter.h"
 #include "ngstore/version.h"
 #include "ngstore/util/constants.h"
@@ -121,7 +120,7 @@ static void initGDAL(const char *dataPath, const char *cachePath)
     GDALAllRegister();
 #endif
 
-    CPLHTTPSetAuthHeaderCallback(AuthHeaderCallback);
+    CPLHTTPSetAuthHeaderCallback(authHeaderCallback);
 }
 
 static Mutex gMutex;
@@ -275,7 +274,6 @@ int ngsInit(char **options)
     }
 
     Catalog::setInstance(new Catalog());
-    MapStore::setInstance(new MapStore());
 
     return COD_SUCCESS;
 }
@@ -286,7 +284,6 @@ int ngsInit(char **options)
 void ngsUnInit()
 {
     CPLHTTPSetAuthHeaderCallback(nullptr);
-    MapStore::setInstance(nullptr);
     Catalog::setInstance(nullptr);
     GDALDestroyDriverManager();
 }
@@ -297,10 +294,6 @@ void ngsUnInit()
  */
 void ngsFreeResources(char full)
 {
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr != mapStore) {
-        mapStore->freeResources();
-    }
     if(full) {
         CatalogPtr catalog = Catalog::instance();
         if(catalog) {
@@ -376,23 +369,23 @@ int ngsBackup(const char *name, CatalogObjectH dstObjectContainer, CatalogObject
         ngsProgressFunc callback, void *callbackData)
 {
     if(name == nullptr) {
-        return outMessage(COD_INVALID, _("Backup name must be set."));
+        return putMessage(COD_INVALID, _("Backup name must be set."));
     }
     if(objects == nullptr) {
-        return outMessage(COD_INVALID, _("Backup paths array cannot be null."));
+        return putMessage(COD_INVALID, _("Backup paths array cannot be null."));
     }
     Object *dstObject = static_cast<Object*>(dstObjectContainer);
     ObjectContainer *dstCatalogObjectContainer = dynamic_cast<ObjectContainer*>(dstObject);
     if(!dstCatalogObjectContainer) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        return putMessage(COD_INVALID, _("The object handle is null"));
     }
 
     if(dstCatalogObjectContainer->type() != CAT_CONTAINER_DIR) {
-        return outMessage(COD_INVALID, _("Path must be a file system directory"));
+        return putMessage(COD_INVALID, _("Path must be a file system directory"));
     }
 
     if(!dstCatalogObjectContainer->canCreate(CAT_CONTAINER_ARCHIVE_ZIP)) {
-        return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
+        return putMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
     }
 
     Options options;
@@ -400,12 +393,12 @@ int ngsBackup(const char *name, CatalogObjectH dstObjectContainer, CatalogObject
     ObjectPtr archive = dstCatalogObjectContainer->create(
         CAT_CONTAINER_ARCHIVE_ZIP, name, options);
     if(!archive) {
-        return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
+        return putMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
     }
 
     ObjectContainer *archiveCont = ngsDynamicCast(ObjectContainer, archive);
     if(!archiveCont) {
-        return outMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
+        return putMessage(COD_CREATE_FAILED, _("Failed to create backup archive"));
     }
 
     std::string settingPath = CPLGetConfigOption("NGS_SETTINGS_PATH", "");
@@ -590,7 +583,7 @@ ngsURLRequestResult *ngsURLRequest(enum ngsURLRequestType type, const char *url,
     }
 
     Progress progress(callback, callbackData);
-    return http::fetch(fromCString(url), progress, requestOptions);
+    return http::httpFetch(fromCString(url), progress, requestOptions);
 }
 
 /**
@@ -620,7 +613,7 @@ ngsURLRequestResult *ngsURLUploadFile(const char *path, const char *url,
     requestOptions.add("FORM_FILE_PATH", fromCString(path));
     Progress progress(callback, callbackData);
 
-    return http::fetch(fromCString(url), progress, requestOptions);
+    return http::httpFetch(fromCString(url), progress, requestOptions);
 }
 
 /**
@@ -677,7 +670,8 @@ char **ngsURLAuthGet(const char *url)
     if(properties.empty()) {
         return nullptr;
     }
-    return properties.asCPLStringList().StealList();
+    CPLStringList lst = properties;
+    return lst.StealList();
 }
 
 /**
@@ -696,9 +690,9 @@ int ngsURLAuthDelete(const char *url)
  * @param value String to transform
  * @return Hex presentation of MD5 hash
  */
-const char *ngsMD5(const char *value)
+const char *ngsSHA256(const char *value)
 {
-    return storeCString(md5(fromCString(value)));
+    return storeCString(sha256(fromCString(value)));
 }
 
 /**
@@ -776,11 +770,10 @@ int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url, char **optio
 {
     CPLJSONDocument *doc = static_cast<CPLJSONDocument*>(document);
     if(nullptr == doc) {
-        return outMessage(COD_LOAD_FAILED, _("Layer pointer is null"));
+        return putMessage(COD_LOAD_FAILED, _("Layer pointer is null"));
     }
 
-    CPLStringList requestOptions(options, FALSE);
-    requestOptions = http::addAuthHeaders(url, requestOptions);
+    auto requestOptions = http::addAuthHeaders(url, Options(options)).asStringList();
     Progress progress(callback, callbackData);
     return doc->LoadUrl(fromCString(url), requestOptions, ngsGDALProgress,
                         &progress) ? COD_SUCCESS : COD_LOAD_FAILED;
@@ -1352,14 +1345,14 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
 {
     auto catalogObject = static_cast<Object*>(object);
     if(nullptr == catalogObject) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        return putMessage(COD_INVALID, _("The object handle is null"));
     }
 
     // Check can delete
     if(catalogObject->canDestroy()) {
         return catalogObject->destroy() ? COD_SUCCESS : COD_DELETE_FAILED;
     }
-    return outMessage(COD_UNSUPPORTED,
+    return putMessage(COD_UNSUPPORTED,
                       _("The path cannot be deleted (write protected, locked, etc.)"));
 }
 
@@ -1484,7 +1477,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
     ObjectContainer *dstCatalogObjectContainer =
             static_cast<ObjectContainer*>(dstObjectContainer);
     if(!srcCatalogObject || !dstCatalogObjectContainer) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        return putMessage(COD_INVALID, _("The object handle is null"));
     }
 
     ObjectPtr srcCatalogObjectPointer = srcCatalogObject->pointer();
@@ -1495,7 +1488,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
     copyOptions.remove("MOVE");
 
     if(move && !srcCatalogObjectPointer->canDestroy()) {
-        return outMessage(COD_MOVE_FAILED,
+        return putMessage(COD_MOVE_FAILED,
                           _("Cannot move source dataset '%s'"),
                           srcCatalogObjectPointer->fullName().c_str());
     }
@@ -1511,7 +1504,7 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
                                                 copyOptions, progress);
     }
 
-    return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+    return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                         _("Destination container '%s' cannot accept source dataset '%s'"),
                         dstCatalogObjectContainer->fullName().c_str(),
                         srcCatalogObjectPointer->fullName().c_str());
@@ -1528,10 +1521,10 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        return putMessage(COD_INVALID, _("The object handle is null"));
     }
     if(!catalogObject->canRename()) {
-        return outMessage(COD_RENAME_FAILED,
+        return putMessage(COD_RENAME_FAILED,
                           _("Cannot rename catalog object '%s' to '%s'"),
                           catalogObject->fullName().c_str(), newName);
     }
@@ -1694,7 +1687,8 @@ char **ngsCatalogObjectProperties(CatalogObjectH object, const char *domain)
     auto propetiesList = static_cast<Object*>(object)->properties(
                 fromCString(domain));
 
-    return propetiesList.asCPLStringList().StealList();
+    CPLStringList lst = propetiesList;
+    return lst.StealList();
 }
 
 /**
@@ -1734,7 +1728,7 @@ int ngsCatalogObjectSetProperty(CatalogObjectH object, const char *name,
 {
     Object *catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        return putMessage(COD_INVALID, _("The object handle is null"));
     }
     return catalogObject->setProperty(fromCString(name), fromCString(value),
                                       fromCString(domain)) ? COD_SUCCESS :
@@ -2389,7 +2383,7 @@ int ngsFeatureGetFieldAsDateTime(FeatureH feature, int field, int *year,
 {
     FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
-        return outMessage(COD_INVALID, _("The object handle is null"));
+        return putMessage(COD_INVALID, _("The object handle is null"));
     }
     return (*featurePtrPointer)->GetFieldAsDateTime(field, year, month, day,
         hour, minute, second, TZFlag) == 1 ? COD_SUCCESS : COD_GET_FAILED;
@@ -2503,7 +2497,7 @@ int ngsGeometryTransformTo(GeometryH geometry, int EPSG)
 {
     SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(EPSG);
     if(to == nullptr) {
-        return outMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
+        return putMessage(COD_UNSUPPORTED, _("Unsupported from EPSG with code %d"),
                           EPSG);
     }
     return static_cast<OGRGeometry*>(geometry)->transformTo(to.get()) == OGRERR_NONE ?
@@ -2705,7 +2699,7 @@ int ngsRasterCacheArea(CatalogObjectH object, char** options,
 {
     Raster *raster = getRasterFromHandle(object);
     if(!raster) {
-        return outMessage(COD_INVALID, _("Source dataset type is incompatible"));
+        return putMessage(COD_INVALID, _("Source dataset type is incompatible"));
     }
 
     Options createOptions(options);
@@ -2714,1342 +2708,6 @@ int ngsRasterCacheArea(CatalogObjectH object, char** options,
     return raster->cacheArea(createOptions, createProgress) ?
                 COD_SUCCESS : COD_CREATE_FAILED;
 }
-
-
-//------------------------------------------------------------------------------
-// Map
-//------------------------------------------------------------------------------
-
-/**
- * @brief ngsMapCreate Creates new empty map
- * @param name Map name
- * @param description Map description
- * @param epsg EPSG code
- * @param minX minimum X coordinate
- * @param minY minimum Y coordinate
- * @param maxX maximum X coordinate
- * @param maxY maximum Y coordinate
- * @return -1 if create failed or map identifier.
- */
-char ngsMapCreate(const char *name, const char *description,
-                 unsigned short epsg, double minX, double minY,
-                 double maxX, double maxY)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return MapStore::invalidMapId();
-    }
-    Envelope bound(minX, minY, maxX, maxY);
-    return mapStore->createMap(fromCString(name), fromCString(description), epsg, bound);
-}
-
-/**
- * @brief ngsMapOpen Opens existing map from file
- * @param path Path to map file inside catalog in form ngc://some path/
- * @return -1 if open failed or map id.
- */
-char ngsMapOpen(const char *path)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return MapStore::invalidMapId();
-    }
-    CatalogPtr catalog = Catalog::instance();
-    ObjectPtr object = catalog->getObject(fromCString(path));
-    MapFile * const mapFile = ngsDynamicCast(MapFile, object);
-    return mapStore->openMap(mapFile);
-}
-
-/**
- * @brief ngsMapSave Saves map to file
- * @param mapId Map identifier to save
- * @param path Path to store map data
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSave(char mapId, const char *path)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return COD_SAVE_FAILED;
-    }
-    CatalogPtr catalog = Catalog::instance();
-    ObjectPtr mapFileObject = catalog->getObject(fromCString(path));
-    MapFile *mapFile;
-    if(mapFileObject) {
-        mapFile = ngsDynamicCast(MapFile, mapFileObject);
-    }
-    else { // create new MapFile
-        std::string newPath = File::resetExtension(fromCString(path), MapFile::extension());
-        std::string saveFolder = File::getPath(newPath);
-        std::string saveName = File::getFileName(newPath);
-        ObjectPtr object = catalog->getObject(saveFolder);
-        ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
-        mapFile = new MapFile(container, saveName, File::formFileName(object->path(), saveName, ""));
-        mapFileObject = ObjectPtr(mapFile);
-    }
-
-    if(!mapStore->saveMap(mapId, mapFile)) {
-        return COD_SAVE_FAILED;
-    }
-
-    return COD_SUCCESS;
-}
-
-/**
- * @brief ngsMapClose Closes map and free resources
- * @param mapId Map identifier
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapClose(char mapId)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_CLOSE_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->closeMap(mapId) ? COD_SUCCESS : COD_CLOSE_FAILED;
-}
-
-/**
- * @brief ngsMapReopen. Reopen map.
- * @param mapId Map identifier
- * @param path Path to store map data
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapReopen(char mapId, const char *path)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return COD_SAVE_FAILED;
-    }
-    CatalogPtr catalog = Catalog::instance();
-    ObjectPtr mapFileObject = catalog->getObject(fromCString(path));
-    MapFile *mapFile;
-    if(mapFileObject) {
-        mapFile = ngsDynamicCast(MapFile, mapFileObject);
-    }
-    else { // create new MapFile
-        std::string newPath = File::resetExtension(fromCString(path),
-                                                   MapFile::extension());
-        std::string saveFolder = File::getPath(newPath);
-        std::string saveName = File::getFileName(newPath);
-        ObjectPtr object = catalog->getObject(saveFolder);
-        ObjectContainer * const container = ngsDynamicCast(ObjectContainer, object);
-        mapFile = new MapFile(container, saveName,
-                              File::formFileName(object->path(), saveName, ""));
-        mapFileObject = ObjectPtr(mapFile);
-    }
-    return mapStore->reopenMap(mapId, mapFile) ? COD_SUCCESS : COD_CLOSE_FAILED;
-}
-
-
-/**
- * @brief ngsMapSetSize Sets map size in pixels
- * @param mapId Map identifier received from create or open map functions
- * @param width Output image width
- * @param height Output image height
- * @param isYAxisInverted Is Y axis inverted (1 - inverted, 0 - ont inverted)
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetSize(char mapId, int width, int height, char isYAxisInverted)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_CLOSE_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->setMapSize(mapId, width, height, isYAxisInverted == 1) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-/**
- * @brief ngsDrawMap Starts drawing map in specified (in ngsInitMap) extent
- * @param mapId Map identifier received from create or open map functions
- * @param state Draw state (NORMAL, PRESERVED, REDRAW)
- * @param callback Progress function (template is ngsProgressFunc) executed
- * periodically to report progress and cancel. If returns 1 the execution will
- * continue, 0 - cancelled. May be null.
- * @param callbackData Progress function parameter. May be null.
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapDraw(char mapId, enum ngsDrawState state, ngsProgressFunc callback, void *callbackData)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_DRAW_FAILED, _("MapStore is not initialized"));
-    }
-    Progress progress(callback, callbackData);
-    return mapStore->drawMap(mapId, state, progress) ? COD_SUCCESS : COD_DRAW_FAILED;
-}
-
-int ngsMapInvalidate(char mapId, ngsExtent bounds)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_UPDATE_FAILED, _("MapStore is not initialized"));
-    }
-    Envelope env(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
-    mapStore->invalidateMap(mapId, env);
-    return COD_SUCCESS;
-}
-
-/**
- * @brief ngsGetMapBackgroundColor Map background color
- * @param mapId Map identifier received from create or open map functions
- * @return map background color struct
- */
-ngsRGBA ngsMapGetBackgroundColor(char mapId)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return {0,0,0,0};
-    }
-    return mapStore->getMapBackgroundColor(mapId);
-}
-
-/**
- * @brief ngsSetMapBackgroundColor Sets map background color
- * @param mapId Map identifier received from create or open map functions
- * @param color Background color
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetBackgroundColor(char mapId, ngsRGBA color)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_SET_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->setMapBackgroundColor(mapId, color) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-/**
- * @brief ngsMapSetCenter Sets new map center coordinates
- * @param mapId Map identifier
- * @param x X coordinate
- * @param y Y coordinate
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetCenter(char mapId, double x, double y)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
-    }
-    return mapStore->setMapCenter(mapId, x, y) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-/**
- * @brief ngsMapGetCenter Gets map center for current view (extent)
- * @param mapId Map identifier
- * @return Coordinate structure. If error occurred all coordinates set to 0.0
- */
-ngsCoordinate ngsMapGetCenter(char mapId)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return {0, 0, 0};
-    }
-    return mapStore->getMapCenter(mapId);
-}
-
-/**
- * @brief ngsMapGetCoordinate Geographic coordinates for display position
- * @param mapId Map identifier
- * @param x X position
- * @param y Y position
- * @return Geographic coordinates
- */
-ngsCoordinate ngsMapGetCoordinate(char mapId, double x, double y)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return {0, 0, 0};
-    }
-    return mapStore->getMapCoordinate(mapId, x, y);
-}
-
-/**
- * @brief ngsMapSetScale Sets current map scale
- * @param mapId Map identifier
- * @param scale value to set
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetScale(char mapId, double scale)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_SET_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->setMapScale(mapId, scale);
-}
-
-/**
- * @brief ngsMapGetScale Returns current map scale
- * @param mapId Map identifier
- * @return Current map scale or 1
- */
-double ngsMapGetScale(char mapId)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return 1.0;
-    }
-    return mapStore->getMapScale(mapId);
-}
-
-/**
- * @brief ngsMapCreateLayer Creates new layer in map
- * @param mapId Map identifier
- * @param name Layer name
- * @param path Path to map file inside catalog in form ngc://some path/
- * @return Layer Id or -1
- */
-int ngsMapCreateLayer(char mapId, const char *name, const char *path)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return NOT_FOUND;
-    }
-
-    CatalogPtr catalog = Catalog::instance();
-    ObjectPtr object = catalog->getObject(path);
-    if(!object) {
-        errorMessage(_("Source dataset '%s' not found"), path);
-        return NOT_FOUND;
-    }
-
-    return mapStore->createLayer(mapId, fromCString(name), object);
-}
-
-/**
- * @brief ngsMapLayerReorder Reorders layers in map
- * @param mapId Map identifier
- * @param beforeLayer Before this layer insert movedLayer. May be null. In that
- * case layer will be moved to the end of map
- * @param movedLayer Layer to move
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapLayerReorder(char mapId, LayerH beforeLayer, LayerH movedLayer)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_INVALID, _("MapStore is not initialized"));
-    }
-    return mapStore->reorderLayers(
-                mapId, static_cast<Layer*>(beforeLayer),
-                static_cast<Layer*>(movedLayer)) ? COD_SUCCESS : COD_MOVE_FAILED;
-}
-
-/**
- * @brief ngsMapSetRotate Sets map rotate
- * @param mapId Map identifier
- * @param dir Rotate direction. May be X, Y or Z
- * @param rotate value to set
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetRotate(char mapId, ngsDirection dir, double rotate)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_INVALID, _("MapStore is not initialized"));
-    }
-    return mapStore->setMapRotate(mapId, dir, rotate);
-}
-
-/**
- * @brief ngsMapGetRotate Returns map rotate value
- * @param mapId Map identifier
- * @param dir Rotate direction. May be X, Y or Z
- * @return rotate value or 0 if error occured
- */
-double ngsMapGetRotate(char mapId, ngsDirection dir)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return 0.0;
-    }
-    return mapStore->getMapRotate(mapId, dir);
-}
-
-/**
- * @brief ngsMapGetDistance Map distance from display length
- * @param mapId Map identifier
- * @param w Width
- * @param h Height
- * @return ngsCoordinate where X distance along x axis and Y along y axis
- */
-ngsCoordinate ngsMapGetDistance(char mapId, double w, double h)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return {0.0, 0.0, 0.0};
-    }
-    return mapStore->getMapDistance(mapId, w, h);
-}
-
-/**
- * @brief ngsMapLayerCount Returns layer count in map
- * @param mapId Map identifier
- * @return Layer count in map
- */
-int ngsMapLayerCount(char mapId)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return 0;
-    }
-    return static_cast<int>(mapStore->getLayerCount(mapId));
-}
-
-/**
- * @brief ngsMapLayerGet Returns map layer handle
- * @param mapId Map identifier
- * @param layerId Layer index
- * @return Layer handle. The caller should not delete it.
- */
-LayerH ngsMapLayerGet(char mapId, int layerId)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return nullptr;
-    }
-    return mapStore->getLayer(mapId, layerId).get();
-}
-
-/**
- * @brief ngsMapLayerDelete Deletes layer from map
- * @param mapId Map identifier
- * @param layer Layer handle get from ngsMapLayerGet() function.
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapLayerDelete(char mapId, LayerH layer)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->deleteLayer(mapId, static_cast<Layer*>(layer)) ?
-                COD_SUCCESS : COD_DELETE_FAILED;
-}
-
-/**
- * @brief ngsMapSetOptions Set map options
- * @param mapId Map identifier
- * @param options Key=Value list of options. Available options are:
- *   ZOOM_INCREMENT - Add integer value to zoom level correspondent to scale. May be negative
- *   VIEWPORT_REDUCE_FACTOR - Reduce view size on provided value. Make sense to
- *     reduce number of tiles in map extent. The tiles will be more pixelate
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetOptions(char mapId, char **options)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
-    }
-    Options mapOptions(options);
-    return mapStore->setOptions(mapId, mapOptions) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-/**
- * @brief ngsMapSetExtentLimits Set limits to prevent pan out of them.
- * @param mapId Map identifier
- * @param minX Minimum X coordinate
- * @param minY Minimum Y coordinate
- * @param maxX Maximum X coordinate
- * @param maxY Maximum Y coordinate
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsMapSetExtentLimits(char mapId, double minX, double minY, double maxX, double maxY)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
-    }
-
-    Envelope extentLimits(minX, minY, maxX, maxY);
-    return mapStore->setExtentLimits(mapId, extentLimits) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-ngsExtent ngsMapGetExtent(char mapId, int epsg)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return {0.0, 0.0, 0.0, 0.0};
-    }
-
-    auto map = mapStore->getMap(mapId);
-    if(map) {
-        unsigned short fromEPSG = map->epsg();
-        Envelope env = map->getExtent();
-
-        if(fromEPSG == epsg) {
-            return {env.minX(), env.minY(), env.maxX(), env.maxY()};
-        }
-
-        SpatialReferencePtr from = SpatialReferencePtr::importFromEPSG(fromEPSG);
-        if(from == nullptr) {
-            errorMessage(_("Unsupported from EPSG with code %d"), fromEPSG);
-            return {0.0, 0.0, 0.0, 0.0};
-        }
-
-        SpatialReferencePtr to = SpatialReferencePtr::importFromEPSG(epsg);
-        if(to == nullptr) {
-            errorMessage(_("Unsupported from EPSG with code %d"), epsg);
-            return {0.0, 0.0, 0.0, 0.0};
-        }
-
-        OGRCoordinateTransformation* ct =
-                OGRCreateCoordinateTransformation(from, to);
-        if(nullptr != ct) {
-            double x[4], y[4];
-            x[0] = env.minX();
-            y[0] = env.minY();
-            x[1] = env.minX();
-            y[1] = env.maxY();
-            x[2] = env.maxX();
-            y[2] = env.maxY();
-            x[3] = env.maxX();
-            y[3] = env.minY();
-            ct->Transform(4, x, y, nullptr);
-
-            ngsExtent out = {100000000.0, 100000000.0, -100000000.0, -100000000.0};
-            for(int i = 0; i < 4; ++i) {
-                if(x[i] < out.minX)
-                    out.minX = x[i];
-                if(x[i] > out.maxX)
-                    out.maxX = x[i];
-                if(y[i] < out.minY)
-                    out.minY = y[i];
-                if(y[i] > out.maxY)
-                    out.maxY = y[i];
-            }
-
-            return out;
-        }
-    }
-
-    return {0.0, 0.0, 0.0, 0.0};
-}
-
-int ngsMapSetExtent(char mapId, ngsExtent extent)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_SET_FAILED, _("MapStore is not initialized"));
-    }
-    auto map = mapStore->getMap(mapId);
-    if(map) {
-        Envelope env(extent.minX, extent.minY, extent.maxX, extent.maxY);
-        if(map->setExtent(env)) {
-            return COD_SUCCESS;
-        }
-    }
-    return COD_SET_FAILED;
-}
-
-/**
- * @brief ngsMapGetSelectionStyle Map selection style as json
- * @param mapId Map identifier
- * @param styleType Style type (Point, Line or fill)
- * @return NULL or JSON style handle. The handle must be freed by ngsJsonObjectFree.
- */
-JsonObjectH ngsMapGetSelectionStyle(char mapId, enum ngsStyleType styleType)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return nullptr;
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        errorMessage(_("MapView pointer is null"));
-        return nullptr;
-    }
-
-    return new CPLJSONObject(mapView->selectionStyle(styleType));
-}
-
-int ngsMapSetSelectionsStyle(char mapId, enum ngsStyleType styleType, JsonObjectH style)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        return outMessage(COD_SET_FAILED,  _("Failed to get mapview"));
-    }
-
-    CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(style);
-
-    return mapView->setSelectionStyle(styleType, *gdalJsonObject) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-const char *ngsMapGetSelectionStyleName(char mapId, ngsStyleType styleType)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return "";
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        errorMessage(_("Failed to get mapview"));
-        return "";
-    }
-
-    return storeCString(mapView->selectionStyleName(styleType));
-}
-
-int ngsMapSetSelectionStyleName(char mapId, enum ngsStyleType styleType, const char *name)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_SET_FAILED,  _("MapStore is not initialized"));
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        return outMessage(COD_SET_FAILED,  _("Failed to get mapview"));
-    }
-    return mapView->setSelectionStyleName(styleType, fromCString(name)) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-int ngsMapIconSetAdd(char mapId, const char *name, const char *path, char ownByMap)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_INSERT_FAILED, _("MapStore is not initialized"));
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        return outMessage(COD_INSERT_FAILED, _("Failed to get mapview"));
-    }
-    return mapView->addIconSet(fromCString(name), fromCString(path), ownByMap == 1) ?
-                COD_SUCCESS : COD_INSERT_FAILED;
-}
-
-int ngsMapIconSetRemove(char mapId, const char *name)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        return outMessage(COD_DELETE_FAILED, _("Failed to get mapview"));
-    }
-
-    return mapView->removeIconSet(fromCString(name)) ? COD_SUCCESS : COD_DELETE_FAILED;
-}
-
-char ngsMapIconSetExists(char mapId, const char *name)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return errorMessage(_("MapStore is not initialized"));
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        return errorMessage(_("Failed to get mapview"));
-    }
-
-    return mapView->hasIconSet(fromCString(name));
-}
-
-//------------------------------------------------------------------------------
-// Layer
-//------------------------------------------------------------------------------
-
-/**
- * @brief ngsLayerGetName Returns layer name
- * @param layer Layer handle
- * @return Layer name
- */
-const char *ngsLayerGetName(LayerH layer)
-{
-    if(nullptr == layer) {
-        errorMessage(_("Layer pointer is null"));
-        return "";
-    }
-    return storeCString(static_cast<Layer*>(layer)->name());
-}
-
-/**
- * @brief ngsLayerSetName Sets new layer name
- * @param layer Layer handle
- * @param name New name
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsLayerSetName(LayerH layer, const char *name)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-    static_cast<Layer*>(layer)->setName(fromCString(name));
-    return COD_SUCCESS;
-}
-
-/**
- * @brief ngsLayerGetVisible Returns layer visible state
- * @param layer Layer handle
- * @return true if visible or false
- */
-char ngsLayerGetVisible(LayerH layer)
-{
-    if(nullptr == layer) {
-        return errorMessage(_("Layer pointer is null"));
-    }
-    return static_cast<Layer*>(layer)->visible();
-}
-
-/**
- * @brief ngsLayerGetMaxZoom Returns layer maximum available zoom
- * @param layer Layer handle
- * @return maximum available zoom level there layer is shown
- */
-float ngsLayerGetMaxZoom(LayerH layer)
-{
-    if(nullptr == layer) {
-        return errorMessage(_("Layer pointer is null"));
-    }
-    return static_cast<Layer*>(layer)->maxZoom();
-}
-
-/**
- * @brief ngsLayerGetMinZoom Returns layer minimum available zoom
- * @param layer Layer handle
- * @return minimum available zoom level there layer is shown
- */
-float ngsLayerGetMinZoom(LayerH layer)
-{
-    if(nullptr == layer) {
-        return errorMessage(_("Layer pointer is null"));
-    }
-    return static_cast<Layer*>(layer)->minZoom();
-}
-
-/**
- * @brief ngsLayerSetVisible Sets layer visibility
- * @param layer Layer handle
- * @param visible
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsLayerSetVisible(LayerH layer, char visible)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-    static_cast<Layer*>(layer)->setVisible(visible == 1);
-    return COD_SUCCESS;
-}
-
-/**
- * @brief ngsLayerSetMaxZoom Sets layer maximum available zoom
- * @param layer Layer handle
- * @param zoom
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsLayerSetMaxZoom(LayerH layer, float zoom)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-    static_cast<Layer*>(layer)->setMaxZoom(zoom);
-    return COD_SUCCESS;
-}
-
-/**
- * @brief ngsLayerSetMinZoom Sets layer minimum available zoom
- * @param layer Layer handle
- * @param zoom
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsLayerSetMinZoom(LayerH layer, float zoom)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-    static_cast<Layer*>(layer)->setMinZoom(zoom);
-    return COD_SUCCESS;
-}
-
-/**
- * @brief ngsLayerGetDataSource Layer datasource
- * @param layer Layer handle
- * @return Layer datasource catalog object or NULL
- */
-CatalogObjectH ngsLayerGetDataSource(LayerH layer)
-{
-    if(nullptr == layer) {
-        errorMessage(_("Layer pointer is null"));
-        return nullptr;
-    }
-
-    return static_cast<Layer*>(layer)->datasource().get();
-}
-
-JsonObjectH ngsLayerGetStyle(LayerH layer)
-{
-    if(nullptr == layer) {
-        errorMessage(_("Layer pointer is null"));
-        return nullptr;
-    }
-
-    Layer *layerPtr = static_cast<Layer*>(layer);
-    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
-    if(nullptr == renderLayerPtr) {
-        errorMessage(_("Layer type is unsupported. Mast be GlRenderLayer"));
-        return nullptr;
-    }
-
-    return new CPLJSONObject(renderLayerPtr->style());
-}
-
-int ngsLayerSetStyle(LayerH layer, JsonObjectH style)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-
-    Layer *layerPtr = static_cast<Layer*>(layer);
-    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
-    if(nullptr == renderLayerPtr) {
-        errorMessage(_("Layer type is unsupported. Mast be GlRenderLayer"));
-    }
-
-    CPLJSONObject *gdalJsonObject = static_cast<CPLJSONObject*>(style);
-    return renderLayerPtr->setStyle(*gdalJsonObject) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-const char *ngsLayerGetStyleName(LayerH layer)
-{
-    if(nullptr == layer) {
-        errorMessage(_("Layer pointer is null"));
-        return "";
-    }
-
-    Layer *layerPtr = static_cast<Layer*>(layer);
-    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
-    if(nullptr == renderLayerPtr) {
-        errorMessage(_("Layer type is unsupported. Mast be GlRenderLayer"));
-        return "";
-    }
-
-    return storeCString(renderLayerPtr->styleName());
-}
-
-int ngsLayerSetStyleName(LayerH layer, const char *name)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-
-    Layer *layerPtr = static_cast<Layer*>(layer);
-    IRenderLayer *renderLayerPtr = dynamic_cast<IRenderLayer*>(layerPtr);
-    if(nullptr == renderLayerPtr) {
-        return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlRenderLayer"));
-    }
-
-    return renderLayerPtr->setStyleName(fromCString(name)) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-int ngsLayerSetSelectionIds(LayerH layer, POINTER_SIZE *ids, int size)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-    Layer *layerPtr = static_cast<Layer*>(layer);
-    ISelectableFeatureLayer *renderLayerPtr =
-            dynamic_cast<ISelectableFeatureLayer*>(layerPtr);
-    if(nullptr == renderLayerPtr) {
-        return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be GlFeatureLayer"));
-    }
-
-    std::set<GIntBig> selectIds;
-    for(int i = 0; i < size; ++i) {
-        selectIds.insert(ids[i]);
-    }
-    renderLayerPtr->setSelectedIds(selectIds);
-    return COD_SUCCESS;
-}
-
-int ngsLayerSetHideIds(LayerH layer, POINTER_SIZE *ids, int size)
-{
-    if(nullptr == layer) {
-        return outMessage(COD_SET_FAILED, _("Layer pointer is null"));
-    }
-    Layer *layerPtr = static_cast<Layer*>(layer);
-    ISelectableFeatureLayer *renderLayerPtr = dynamic_cast<ISelectableFeatureLayer*>(layerPtr);
-    if(nullptr == renderLayerPtr) {
-        return outMessage(COD_UNSUPPORTED, _("Layer type is unsupported. Mast be ISelectableFeatureLayer"));
-    }
-
-    std::set<GIntBig> hideIds;
-    for(int i = 0; i < size; ++i) {
-        hideIds.insert(ids[i]);
-    }
-    renderLayerPtr->setHideIds(hideIds);
-    return COD_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Overlay
-//------------------------------------------------------------------------------
-
-
-static OverlayPtr getOverlayPtr(char mapId, enum ngsMapOverlayType type)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        errorMessage(_("MapStore is not initialized"));
-        return nullptr;
-    }
-    MapViewPtr mapView = mapStore->getMap(mapId);
-    if(!mapView) {
-        errorMessage(_("MapView pointer is null"));
-        return nullptr;
-    }
-    return mapView->getOverlay(type);
-}
-
-template<typename T>
-static T *getOverlay(char mapId, enum ngsMapOverlayType type)
-{
-    OverlayPtr overlay = getOverlayPtr(mapId, type);
-    if(!overlay) {
-        errorMessage(_("Overlay pointer is null"));
-        return nullptr;
-    }
-    return ngsDynamicCast(T, overlay);
-}
-
-int ngsOverlaySetVisible(char mapId, int typeMask, char visible)
-{
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_DELETE_FAILED, _("MapStore is not initialized"));
-    }
-    return mapStore->setOverlayVisible(mapId, typeMask, visible) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-char ngsOverlayGetVisible(char mapId, enum ngsMapOverlayType type)
-{
-    OverlayPtr overlay = getOverlayPtr(mapId, type);
-    if(!overlay) {
-        return false;
-    }
-    return overlay->visible();
-}
-
-/**
- * @brief ngsOverlaySetOptions Set overlay options for given overlay type
- * @param mapId Map identifier
- * @param type Overlay type
- * @param options Key=Value list of options.
- *  Available options for edit overlay are:
- *   CROSS - ON/OFF, show or hide a cross in the map center
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsOverlaySetOptions(char mapId, enum ngsMapOverlayType type, char **options)
-{
-    OverlayPtr overlay = getOverlayPtr(mapId, type);
-    if(!overlay) {
-        return COD_GET_FAILED;
-    }
-    Options editOptions(options);
-    return overlay->setOptions(editOptions) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-/**
- * @brief ngsOverlayGetOptions Get overlay options.
- * @param mapId Map identifier.
- * @param type Overlay type.
- * @return Key=value list (may be empty). User must free returned
- * value via ngsDestroyList.
- */
-char **ngsOverlayGetOptions(char mapId, enum ngsMapOverlayType type)
-{
-    OverlayPtr overlay = getOverlayPtr(mapId, type);
-    if(!overlay) {
-        return nullptr;
-    }
-    Options options = overlay->options();
-    if(options.empty()) {
-        return nullptr;
-    }
-    return options.asCPLStringList().StealList();
-}
-
-ngsPointId ngsEditOverlayTouch(char mapId, double x, double y, enum ngsMapTouchType type)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return {NOT_FOUND, 0};
-    }
-    return editOverlay->touch(x, y, type);
-}
-
-char ngsEditOverlayUndo(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return API_FALSE;
-    }
-    return editOverlay->undo() ? API_TRUE : API_FALSE;
-}
-
-char ngsEditOverlayRedo(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return API_FALSE;
-    }
-    return editOverlay->redo() ? API_TRUE : API_FALSE;
-}
-
-char ngsEditOverlayCanUndo(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return API_FALSE;
-    }
-    return editOverlay->canUndo() ? API_TRUE : API_FALSE;
-}
-
-char ngsEditOverlayCanRedo(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return API_FALSE;
-    }
-    return editOverlay->canRedo() ? API_TRUE : API_FALSE;
-}
-
-/**
- * @brief ngsEditOverlaySave Saves edits in feature class
- * @param mapId Map identifier the edit overlay belongs to
- * @return Feature handle or NULL if error occurred
- */
-FeatureH ngsEditOverlaySave(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return nullptr;
-    }
-
-    FeaturePtr savedFeature = editOverlay->save();
-    if(!savedFeature) {
-        errorMessage(_("Edit saving is failed"));
-        return nullptr;
-    }
-    return new FeaturePtr(savedFeature);
-}
-
-int ngsEditOverlayCancel(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_INVALID;
-    }
-    editOverlay->cancel();
-    return COD_SUCCESS;
-}
-
-int ngsEditOverlayCreateGeometryInLayer(char mapId, LayerH layer, char empty)
-{
-    if(!layer) {
-        return outMessage(COD_CREATE_FAILED, _("Layer pointer is null"));
-    }
-    Layer *pLayer = static_cast<Layer*>(layer);
-    FeatureClassPtr datasource =
-            std::dynamic_pointer_cast<FeatureClass>(pLayer->datasource());
-    if(!datasource) {
-        return outMessage(COD_CREATE_FAILED, _("Layer datasource is null"));
-    }
-
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_CREATE_FAILED;
-    }
-    if(!editOverlay->createGeometry(datasource, empty == 1)) {
-        return outMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
-    }
-    return COD_SUCCESS;
-}
-
-
-int ngsEditOverlayCreateGeometry(char mapId, ngsGeometryType type)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_CREATE_FAILED;
-    }
-    if(!editOverlay->createGeometry(OGRwkbGeometryType(type))) {
-        return outMessage(COD_CREATE_FAILED, _("Geometry creation is failed"));
-    }
-    return COD_SUCCESS;
-}
-
-int ngsEditOverlayEditGeometry(char mapId, LayerH layer, POINTER_SIZE featureId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_UPDATE_FAILED;
-    }
-
-    MapStore * const mapStore = MapStore::instance();
-    if(nullptr == mapStore) {
-        return outMessage(COD_GET_FAILED, _("MapStore is not initialized"));
-    }
-
-    LayerPtr editLayer;
-    if(layer) {
-        int layerCount = static_cast<int>(mapStore->getLayerCount(mapId));
-        for(int i = 0; i < layerCount; ++i) {
-            LayerPtr layerPtr = mapStore->getLayer(mapId, i);
-            if(layerPtr.get() == static_cast<Layer*>(layer)) {
-                editLayer = layerPtr;
-                break;
-            }
-        }
-    }
-    if(!editLayer) {
-        return outMessage(COD_UPDATE_FAILED, _("Geometry edit is failed"));
-    }
-
-    if(!editOverlay->editGeometry(editLayer, featureId)) {
-        return outMessage(COD_UPDATE_FAILED, _("Geometry edit is failed"));
-    }
-    return COD_SUCCESS;
-}
-
-int ngsEditOverlayDeleteGeometry(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_DELETE_FAILED;
-    }
-
-    if(editOverlay->isGeometryValid() && !editOverlay->deleteGeometry()) {
-        return outMessage(COD_DELETE_FAILED, _("Geometry delete failed"));
-    }
-    return COD_SUCCESS;
-}
-
-int ngsEditOverlayAddPoint(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_INSERT_FAILED;
-    }
-
-    return editOverlay->createPoint() ? COD_SUCCESS : COD_INSERT_FAILED;
-}
-
-int ngsEditOverlayAddVertex(char mapId, ngsCoordinate coordinates)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_INSERT_FAILED;
-    }
-
-    return editOverlay->addPoint(coordinates.X, coordinates.Y) ?
-                COD_SUCCESS : COD_INSERT_FAILED;
-}
-
-enum ngsEditDeleteResult ngsEditOverlayDeletePoint(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return EDT_SELTYPE_NO_CHANGE;
-    }
-    return editOverlay->deletePoint();
-}
-
-int ngsEditOverlayAddHole(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_INSERT_FAILED;
-    }
-    if(!editOverlay->addHole()) {
-        return outMessage(COD_INSERT_FAILED, _("Add hole failed"));
-    }
-    return COD_SUCCESS;
-}
-
-enum ngsEditDeleteResult ngsEditOverlayDeleteHole(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-       return EDT_SELTYPE_NO_CHANGE;
-    }
-    return editOverlay->deleteHole();
-}
-
-int ngsEditOverlayAddGeometryPart(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return COD_INSERT_FAILED;
-    }
-    if(!editOverlay->addGeometryPart()) {
-        return outMessage(COD_INSERT_FAILED, _("Geometry part adding is failed"));
-    }
-    return COD_SUCCESS;
-}
-
-void ngsEditOverlaySetWalkingMode(char mapId, char enable)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return;
-    }
-    editOverlay->setWalkingMode(enable == 1);
-}
-
-char ngsEditOverlayGetWalkingMode(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return API_FALSE;
-    }
-    return editOverlay->isWalkingMode() ? API_TRUE : API_FALSE;
-}
-
-/**
- *
- * @param mapId
- * @return The value from enum ngsEditDeleteResult
- */
-enum ngsEditDeleteResult ngsEditOverlayDeleteGeometryPart(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return EDT_SELTYPE_NO_CHANGE;
-    }
-    return editOverlay->deleteGeometryPart();
-}
-
-GeometryH ngsEditOverlayGetGeometry(char mapId)
-{
-    EditLayerOverlay *editOverlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == editOverlay) {
-        return nullptr;
-    }
-    return editOverlay->geometry();
-}
-
-int ngsEditOverlaySetStyle(char mapId, enum ngsEditStyleType type,
-                           JsonObjectH style)
-{
-    EditLayerOverlay *overlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == overlay) {
-        return COD_DELETE_FAILED;
-    }
-    return overlay->setStyle(type, *static_cast<CPLJSONObject*>(style)) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-int ngsEditOverlaySetStyleName(char mapId, enum ngsEditStyleType type,
-                               const char* name)
-{
-    EditLayerOverlay *overlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == overlay) {
-        return COD_DELETE_FAILED;
-    }
-    return overlay->setStyleName(type, name) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-JsonObjectH ngsEditOverlayGetStyle(char mapId, enum ngsEditStyleType type)
-{
-    EditLayerOverlay *overlay = getOverlay<EditLayerOverlay>(mapId, MOT_EDIT);
-    if(nullptr == overlay) {
-        return nullptr;
-    }
-    return new CPLJSONObject(overlay->style(type));
-}
-
-int ngsLocationOverlayUpdate(char mapId, ngsCoordinate location, float direction,
-                             float accuracy)
-{
-    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
-    if(nullptr == overlay) {
-        return COD_UPDATE_FAILED;
-    }
-
-    overlay->setLocation(location, direction, accuracy);
-    return COD_SUCCESS;
-}
-
-int ngsLocationOverlaySetStyle(char mapId, JsonObjectH style)
-{
-    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
-    if(nullptr == overlay) {
-        return COD_UPDATE_FAILED;
-    }
-
-    return overlay->setStyle(*static_cast<CPLJSONObject*>(style)) ?
-                COD_SUCCESS : COD_SET_FAILED;
-}
-
-int ngsLocationOverlaySetStyleName(char mapId, const char* name)
-{
-    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
-    if(nullptr == overlay) {
-        return COD_UPDATE_FAILED;
-    }
-
-    return overlay->setStyleName(name) ? COD_SUCCESS : COD_SET_FAILED;
-}
-
-JsonObjectH ngsLocationOverlayGetStyle(char mapId)
-{
-    LocationOverlay *overlay = getOverlay<LocationOverlay>(mapId, MOT_LOCATION);
-    if(nullptr == overlay) {
-        return nullptr;
-    }
-    return new CPLJSONObject(overlay->style());
-}
-
-/**
- * @brief ngsDisplayGetPosition Display position for geographic coordinates
- * @param mapId Map id
- * @param x X coordinate
- * @param y Y coordinate
- * @return Display position
- */
-//ngsPosition ngsDisplayGetPosition(unsigned char mapId, double x, double y)
-//{
-//    initMapStore();
-//    return gMapStore->getDisplayPosition (mapId, x, y);
-//}
-
-/**
- * @brief ngsDisplayGetLength Display length from map distance
- * @param mapId Map id
- * @param w Width
- * @param h Height
- * @return ngsPosition where X length along x axis and Y along y axis
- */
-//ngsPosition ngsDisplayGetLength(unsigned char mapId, double w, double h)
-//{
-//    initMapStore();
-//    return gMapStore->getDisplayLength (mapId, w, h);
-//}
 
 /**
  * @brief ngsQMSQuery Query QuickMapServices for specific geoservices

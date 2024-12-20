@@ -29,6 +29,13 @@
 
 namespace ngs {
 
+std::string authHeaderCallback(const char* pszURL)
+{
+    if (!pszURL)
+        return std::string();
+    return AuthStore::authHeader(std::string(pszURL));
+};
+
 /**
  * @brief The HTTPAuthBasic class Basic HTTP authorisation.
  */
@@ -134,7 +141,7 @@ std::string HTTPAuthBearer::header()
 
     CPLHTTPResult *result = CPLHTTPFetch(m_tokenServer.c_str(), requestOptions);
 
-    CPLHTTPSetAuthHeaderCallback(AuthHeaderCallback);
+    CPLHTTPSetAuthHeaderCallback(authHeaderCallback);
 
     if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
         CPLHTTPDestroyResult( result );

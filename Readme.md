@@ -74,7 +74,7 @@ appropriate overviews generated as well.
 The online data is cached for fast access in common place to use from different
 instances of library.
 
-# Usage
+## Usage
 
 The library can be linked from desktop software or used via bindings. There are
 special support scripts for mobile platforms (Android and iOS). See /opt/ios folder.
@@ -86,14 +86,37 @@ For iOS special Python script *build_framework.py* to build XCode framework.
 Carthage support enabled. The special swift wrapper library is at
 [separate repository](https://github.com/nextgis/ios_maplib).
 
-# License
+## License
 
 The library code, CMake scripts and other files are distributed under the terms
 of GNU Lesser Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version.
 
-# Commercial support
+## Commercial support
 
 Need to fix a bug or add a feature to NextGIS Datastore? We provide custom
 development and support for this software.
 [Contact us](http://nextgis.ru/en/contact/) to discuss options!
+
+## Configure
+
+> mkdir build
+> cd build
+> cmake -DBUILD_SHARED_LIBS=ON -DBUILD_TARGET_PLATFORM=DESKTOP -DBUILD_TESTING=ON ..
+
+## Build
+
+Supported build types are:
+
+* Release
+* Debug
+* RelWithDebInfo
+* MinSizeRel
+
+For example:
+
+> cmake --build . --config Debug -- -j4
+
+## Testing
+
+> ctest --build-config Debug --output-on-failure

@@ -407,7 +407,7 @@ NGS_JNI_FUNC(jobject, URLRequest)(JNIEnv *env, jobject thisObj, jint type, jstri
         jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result;
+    ngsURLRequestResultPtr result;
     if(callbackId == 0) {
         result = ngsURLRequest(static_cast<ngsURLRequestType>(type), jniString(env, url).c_str(),
                                toOptions(env, options), nullptr, nullptr);
@@ -421,7 +421,6 @@ NGS_JNI_FUNC(jobject, URLRequest)(JNIEnv *env, jobject thisObj, jint type, jstri
     std::string value(reinterpret_cast<const char*>(result->data),
                       static_cast<unsigned long>(result->dataLen));
     jstring outStr = env->NewStringUTF(value.c_str());
-    ngsURLRequestResultFree(result);
 
     jvalue args[2];
     args[0].i = status;
@@ -433,7 +432,7 @@ NGS_JNI_FUNC(jobject, URLRequestJson)(JNIEnv *env, jobject thisObj, jint type, j
         jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result;
+    ngsURLRequestResultPtr result;
     if(callbackId == 0) {
         result = ngsURLRequest(static_cast<ngsURLRequestType>(type), jniString(env, url).c_str(),
                                toOptions(env, options), nullptr, nullptr);
@@ -449,7 +448,6 @@ NGS_JNI_FUNC(jobject, URLRequestJson)(JNIEnv *env, jobject thisObj, jint type, j
     if(doc.LoadMemory(result->data, result->dataLen)) {
         handle = reinterpret_cast<long>(new CPLJSONObject(doc.GetRoot()));
     }
-    ngsURLRequestResultFree(result);
 
     jvalue args[2];
     args[0].i = status;
@@ -461,7 +459,7 @@ NGS_JNI_FUNC(jobject, URLRequestRaw)(JNIEnv *env, jobject thisObj, jint type, js
         jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result;
+    ngsURLRequestResultPtr result;
     if(callbackId == 0) {
         result = ngsURLRequest(static_cast<ngsURLRequestType>(type),
                                jniString(env, url).c_str(), toOptions(env, options), nullptr,
@@ -476,7 +474,6 @@ NGS_JNI_FUNC(jobject, URLRequestRaw)(JNIEnv *env, jobject thisObj, jint type, js
     jbyteArray barray = env->NewByteArray(result->dataLen);
     env->SetByteArrayRegion(barray, 0, result->dataLen,
                             reinterpret_cast<const jbyte *>(result->data));
-    ngsURLRequestResultFree(result);
 
     jvalue args[2];
     args[0].i = status;
@@ -488,7 +485,7 @@ NGS_JNI_FUNC(jobject, URLUploadFile)(JNIEnv *env, jobject thisObj, jstring path,
                                      jobjectArray options, jint callbackId)
 {
     ngsUnused(thisObj);
-    ngsURLRequestResult *result;
+    ngsURLRequestResultPtr result;
 
     if(callbackId == 0) {
         result = ngsURLUploadFile(jniString(env, path).c_str(), jniString(env, url).c_str(),
@@ -506,7 +503,6 @@ NGS_JNI_FUNC(jobject, URLUploadFile)(JNIEnv *env, jobject thisObj, jstring path,
     if(doc.LoadMemory(result->data, result->dataLen)) {
         handle = reinterpret_cast<long>(new CPLJSONObject(doc.GetRoot()));
     }
-    ngsURLRequestResultFree(result);
 
     jvalue args[2];
     args[0].i = status;

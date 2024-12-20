@@ -84,7 +84,7 @@ int FeatureClass::copyFeatures(const FeatureClassPtr srcFClass,
                                const Progress &progress, const Options &options)
 {
     if(!srcFClass) {
-        return outMessage(COD_COPY_FAILED, _("Source feature class is invalid"));
+        return putMessage(COD_COPY_FAILED, _("Source feature class is invalid"));
     }
 
     progress.onProgress(COD_IN_PROCESS, 0.0,

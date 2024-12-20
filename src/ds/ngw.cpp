@@ -304,7 +304,7 @@ NGWLayerDataset *NGWLayerDataset::createFeatureClass(NGWResourceGroup *resourceG
         resourceGroup->resourceId();
 
     auto openOp = openOptions(resourceGroup->connection()->userPwd(), options);
-    CPLStringList dsOptionsList = openOp.asCPLStringList();
+    CPLStringList dsOptionsList = openOp;
     GDALDatasetPtr DS = static_cast<GDALDataset*>(
         GDALOpenEx(connectionString.c_str(), DatasetBase::defaultOpenFlags |
             GDAL_OF_VECTOR, nullptr, dsOptionsList, nullptr));
@@ -624,7 +624,7 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
 
     auto aid = ngw::addAttachment(url, resourceId, featureId,
                                   newAttachment.Format(CPLJSONObject::PrettyFormat::Plain),
-                                  http::getGDALHeaders(url).StealList());
+                                  http::getGDALHeaders(url));
     if(aid == NOT_FOUND) {
         return NOT_FOUND;
     }

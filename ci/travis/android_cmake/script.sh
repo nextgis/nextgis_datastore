@@ -9,7 +9,7 @@ export PATH=$HOME/android-cmake/bin:$PATH
 mkdir -p build
 cd build
 
-# TODO: -DBUILD_TESTING=ON -DBUILD_TESTS=ON CC="arm-linux-androideabi-gcc" CXX="arm-linux-androideabi-g++" -DANDROID_ABI=x86_64
+# TODO: -DBUILD_TESTING=ON CC="arm-linux-androideabi-gcc" CXX="arm-linux-androideabi-g++" -DANDROID_ABI=x86_64
 cmake .. \
  -DANDROID_NDK=$HOME/android-ndk/android-ndk-r17c \
  -DCMAKE_TOOLCHAIN_FILE=$HOME/android-ndk/android-ndk-r13b/build/cmake/android.toolchain.cmake \

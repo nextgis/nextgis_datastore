@@ -46,7 +46,7 @@ bool endsWith(const std::string &str, const std::string &part,
               bool caseSensetive = false);
 std::string replace(const std::string &str, const std::string &from,
                     const std::string to);
-std::string md5(const std::string &val);
+std::string sha256(const std::string &val);
 std::string fromCString(const char *str);
 std::string random(int size);
 std::string crypt_salt();

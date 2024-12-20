@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2024 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -18,36 +18,21 @@
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#include "filefactory.h"
+#ifndef NGSGEO_H
+#define NGSGEO_H
+
+#include "ds/geometry.h"
+
+#include <vector>
 
 namespace ngs {
 
-FileFactory::FileFactory() : ObjectFactory()
-{
+constexpr unsigned short MAX_TILES_COUNT = 32768; // 1.5 mb // 4096 * (4 + 4 + 1 + 8 * 4) = 164 kb
 
-}
+std::vector<TileItem> getTilesForExtent(
+    const Envelope &extent, unsigned char zoom, bool reverseY, bool unlimitX);
 
-std::string FileFactory::name() const
-{
-    return _("Files");
-}
+} // namespace ngs
 
-void FileFactory::createObjects(ObjectContainer * const container,
-                                       std::vector<std::string> &names)
-{
-    /* TODO: 
-    auto it = names.begin();
-    while( it != names.end() ) {
-        std::string ext = File::getExtension(*it);
-        if(compare(MapFile::extension(), ext)) {
-            std::string path = File::formFileName(container->path(), *it);
-            addChild(container, ObjectPtr(new MapFile(container, *it, path)));
-            it = names.erase(it);
-        } // TODO: Add txt, log support. Do we need prj, spr support here?
-        else {
-            ++it;
-        }
-    }*/
-}
 
-}
+#endif // NGSGEO_H

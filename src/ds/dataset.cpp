@@ -189,7 +189,7 @@ bool DatasetBase::open(const std::string &path, unsigned int openFlags,
     // NOTE: VALIDATE_OPEN_OPTIONS can be set to NO to avoid warnings
 
     resetError();
-    auto openOptions = options.asCPLStringList();
+    CPLStringList openOptions = options;
     m_DS = static_cast<GDALDataset*>(GDALOpenEx(path.c_str(), openFlags, nullptr,
                                                 openOptions, nullptr));
     if(nullptr == m_DS) {
@@ -255,8 +255,8 @@ FeatureClass *Dataset::createFeatureClass(const std::string &name,
     }
 
     resetError();
-    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
-                                        options.asCPLStringList());
+    CPLStringList newOptions = options;
+    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type, newOptions);
 
     if(layer == nullptr) {
         errorMessage(_("Failed to create layer %s. %s"), name.c_str(), CPLGetLastErrorMsg());
@@ -508,7 +508,7 @@ GDALDataset *Dataset::createAdditionsDatasetInt(const std::string &path,
     resetError();
     GDALDriver *driver = Filter::getGDALDriver(type);
     if(driver == nullptr) {
-        outMessage(COD_CREATE_FAILED, _("Driver is not present"));
+        putMessage(COD_CREATE_FAILED, _("Driver is not present"));
         return nullptr;
     }
 
@@ -517,8 +517,7 @@ GDALDataset *Dataset::createAdditionsDatasetInt(const std::string &path,
     options.add("SPATIALITE", "NO");
     options.add("INIT_WITH_EPSG", "NO");
 
-    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown,
-                                       options.asCPLStringList());
+    GDALDataset *DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, options.asStringList());
     if(DS == nullptr) {
         errorMessage(_("Failed to create additional dataset on path %s. %s"),
                      path.c_str(), CPLGetLastErrorMsg());
@@ -796,14 +795,14 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     }
 
     if(!child) {
-        return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+        return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                           _("Source object is invalid"));
     }
 
     if(Filter::isTable(child->type())) {
         TablePtr srcTable = std::dynamic_pointer_cast<Table>(child);
         if(!srcTable) {
-            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+            return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                                 _("Source object '%s' report type TABLE, but it is not a table"),
                                 child->name().c_str());
         }
@@ -811,7 +810,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         if(srcTable->featureCount() > MAX_FEATURES4UNSUPPORTED) {
             const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
             if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
                                   _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
                                   move ? _("move") : _("copy"), srcTable->featureCount());
             }
@@ -849,7 +848,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     else if(Filter::isFeatureClass(child->type())) {
         FeatureClassPtr srcFClass = std::dynamic_pointer_cast<FeatureClass>(child);
         if(!srcFClass) {
-            return outMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
+            return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                 child->name().c_str());
         }
@@ -857,7 +856,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
         if(srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
             const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
             if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-                return outMessage(COD_FUNCTION_NOT_AVAILABLE,
+                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
                     _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
                     move ? _("move") : _("copy"), srcFClass->featureCount());
             }
@@ -928,7 +927,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
     }
     else {
         // TODO: raster and container support
-        return outMessage(COD_UNSUPPORTED,
+        return putMessage(COD_UNSUPPORTED,
                           _("'%s' has unsuported type"), child->name().c_str());
     }
 
@@ -992,8 +991,7 @@ Dataset *Dataset::create(ObjectContainer * const parent,
         out = new Dataset(parent, type, name, path);
     }
 
-    out->m_DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown,
-                               options.asCPLStringList());
+    out->m_DS = driver->Create(path.c_str(), 0, 0, 0, GDT_Unknown, options.asStringList());
 
     return out;
 }
@@ -1092,7 +1090,7 @@ OGRLayer *Dataset::createMetadataTable(GDALDataset *ds)
     feature->SetField(META_KEY, keyStr.c_str());
     feature->SetField(META_VALUE, NGS_VERSION_NUM);
     if(metadataLayer->CreateFeature(feature) != OGRERR_NONE) {
-        outMessage(COD_WARNING, _("Failed to add version to methadata"));
+        putMessage(COD_WARNING, _("Failed to add version to methadata"));
     }
 
     if(ds->GetDriver() == Filter::getGDALDriver(CAT_CONTAINER_GPKG)) {
@@ -1118,7 +1116,7 @@ OGRLayer *Dataset::createEditHistoryTable(GDALDataset *ds, const std::string &na
 {
     OGRLayer *logLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == logLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -1133,7 +1131,7 @@ OGRLayer *Dataset::createEditHistoryTable(GDALDataset *ds, const std::string &na
        logLayer->CreateField(&afidField) != OGRERR_NONE ||
        logLayer->CreateField(&opField) != OGRERR_NONE ||
        logLayer->CreateField(&metaField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -1144,7 +1142,7 @@ OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &na
 {
     OGRLayer *attLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == attLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -1160,7 +1158,7 @@ OGRLayer *Dataset::createAttachmentsTable(GDALDataset *ds, const std::string &na
        attLayer->CreateField(&nameField) != OGRERR_NONE ||
        attLayer->CreateField(&descField) != OGRERR_NONE ||
        attLayer->CreateField(&dataField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 

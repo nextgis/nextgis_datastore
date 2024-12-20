@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -238,7 +238,6 @@ TEST(NGWTests, TestPasteMI) {
 
     ngsUnInit();
 }
-
 TEST(NGWTests, TestPasteMIMulti) {
     initLib();
 
@@ -652,13 +651,14 @@ TEST(NGWTests, TestCreateRaster) {
     ngsUnInit();
 }
 
-TEST(NGWTests, TestCreateLookupTable) {
-    initLib();
-    // create
-    // change
-    // delete
-    ngsUnInit();
-}
+// TEST(NGWTests, TestCreateLookupTable) {
+//   // TODO:
+//     initLib();
+//     // create
+//     // change
+//     // delete
+//     ngsUnInit();
+// }
 
 TEST(NGWTests, TestConnection) {
     initLib();
@@ -668,18 +668,18 @@ TEST(NGWTests, TestConnection) {
 
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "guest");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "YES");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), SANDBOX_URL);
 
     // change
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "login", "test", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "YES");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), SANDBOX_URL);
 
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "is_guest", "OFF", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "is_guest", "", ""), "NO");
-    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), "https://sandbox.nextgis.com");
+    EXPECT_STREQ(ngsCatalogObjectProperty(connection, "url", "", ""), SANDBOX_URL);
 
     EXPECT_EQ(ngsCatalogObjectSetProperty(connection, "url", "http://box.nextgis.com", ""), COD_SUCCESS);
     EXPECT_STREQ(ngsCatalogObjectProperty(connection, "login", "", ""), "test");
@@ -694,7 +694,7 @@ TEST(NGWTests, TestConnection) {
     char **options = nullptr;
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "guest");
-    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "url", SANDBOX_URL);
     options = ngsListAddNameValue(options, "is_guest", "YES");
 
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
@@ -703,7 +703,7 @@ TEST(NGWTests, TestConnection) {
 
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "qqq");
-    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "url", SANDBOX_URL);
     options = ngsListAddNameValue(options, "is_guest", "YES");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
     ngsListFree(options);
@@ -711,7 +711,7 @@ TEST(NGWTests, TestConnection) {
 
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "guest");
-    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "url", SANDBOX_URL);
     options = ngsListAddNameValue(options, "is_guest", "NO");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 0);
     ngsListFree(options);
@@ -720,7 +720,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "administrator");
     options = ngsListAddNameValue(options, "password", "demodemo1");
-    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "url", SANDBOX_URL);
     options = ngsListAddNameValue(options, "is_guest", "NO");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 0);
     ngsListFree(options);
@@ -729,7 +729,7 @@ TEST(NGWTests, TestConnection) {
     options = ngsListAddNameIntValue(options, "TYPE", CAT_CONTAINER_NGW);
     options = ngsListAddNameValue(options, "login", "administrator");
     options = ngsListAddNameValue(options, "password", "demodemo");
-    options = ngsListAddNameValue(options, "url", "sandbox.nextgis.com");
+    options = ngsListAddNameValue(options, "url", SANDBOX_URL);
     options = ngsListAddNameValue(options, "is_guest", "NO");
     EXPECT_EQ(ngsCatalogCheckConnection(CAT_CONTAINER_NGW, options), 1);
     ngsListFree(options);
@@ -737,5 +737,3 @@ TEST(NGWTests, TestConnection) {
 
     ngsUnInit();
 }
-
-

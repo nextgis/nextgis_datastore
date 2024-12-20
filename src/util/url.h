@@ -49,22 +49,35 @@ public:
     operator CPLHTTPResult*() const;
 };
 
+
+/**
+ * @brief The ngsURLRequestResultPtr class
+ */
+class ngsURLRequestResultPtr : public std::shared_ptr<ngsURLRequestResult>
+{
+public:
+    ngsURLRequestResultPtr(ngsURLRequestResult *result);
+    ngsURLRequestResultPtr();
+    ngsURLRequestResultPtr &operator=(ngsURLRequestResult *result);
+    operator ngsURLRequestResult*() const;
+};
+
 //------------------------------------------------------------------------------
-ngsURLRequestResult *fetch(const std::string &url, const Progress &progress,
+ngsURLRequestResult *httpFetch(const std::string &url, const Progress &progress,
                            const Options &options);
 bool getFile(const std::string &url, const std::string &path,
              const Progress &progress = Progress(),
              const Options &options = Options());
-CPLJSONObject fetchJson(const std::string &url,
+CPLJSONObject jsonFetch(const std::string &url,
                         const Progress &progress = Progress(),
                         const Options &options = Options());
-CPLStringList addAuthHeaders(const std::string &url, CPLStringList &options);
-CPLStringList getGDALHeaders(const std::string &url);
+Options addAuthHeaders(const std::string &url, const Options &options);
+Options getGDALHeaders(const std::string &url);
 CPLJSONObject uploadFile(const std::string &url, const std::string &filePath,
                          const Progress &progress = Progress(),
                          const Options &options = Options());
-}
-
-}
+} // namespace http
+ 
+} // namespace ngs
 
 #endif // NGSURL_H

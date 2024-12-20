@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -22,8 +22,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-option(BUILD_TESTS "Build unit tests" OFF)
-if(BUILD_TESTS)
+option(BUILD_TESTING "Build unit tests" OFF)
+if(BUILD_TESTING)
     include(CTest)
 
     set(WITH_GTest ON CACHE BOOL "Google test on")
@@ -88,8 +88,8 @@ endif()"
         add_executable(${exe_name} ${files} ${CSOURCES} ${HHEADERS})
         target_link_extlibraries(${exe_name})
         set_target_properties(${exe_name} PROPERTIES
-            CXX_STANDARD 11
-            C_STANDARD 11
+            CXX_STANDARD 14
+            C_STANDARD 14
         )
 
         if(APPLE)
@@ -101,69 +101,71 @@ endif()"
         endif()
 
         add_test(NAME ${name} COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exe_name})
-        set_property(TEST ${name} PROPERTY
-            ENVIRONMENT_MODIFICATION "PROJ_LIB=set:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}"
-        )
+        if(WIN32 OR OSX_FRAMEWORK)
+            set_property(TEST ${name} PROPERTY
+                ENVIRONMENT_MODIFICATION "PROJ_LIB=set:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}"
+            )
+        endif()
     endmacro ()
 
     add_ngs_test(MainTests main_test main_test.cpp)
+    add_ngs_test(DataSourceTests ds_test ds_test.cpp)
     add_ngs_test(SettingsTests settings_test settings_test.cpp)
     add_ngs_test(StorageTests store_test store_test.cpp)
-    if(UNIX)
-	add_ngs_test(GlTests gl_test gl_test.cpp)
-	add_ngs_test(MapTests map_test map_test.cpp)
-    endif()
     add_ngs_test(NGWTests ngw_test ngw_test.cpp)
 
-    # Copy dependencies to bin dir
-    set(TEST_DEPENDENCIES
-        lib_expat
-        lib_geotiff
-        lib_gif
-        lib_hdf4
-        lib_iconv
-        lib_jbig
-        lib_jpeg
-        lib_jsonc
-        lib_kml
-        lib_curl
-        lib_lzma
-        lib_png
-        lib_xml2
-        lib_oci
-        lib_opencad
-        lib_openjpeg
-        lib_pq
-        lib_proj
-        lib_qhull
-        lib_spatialite
-        lib_sqlite
-        lib_szip
-        lib_tiff
-        lib_uriparser
-        lib_webp
-    )
+    if(WIN32 OR OSX_FRAMEWORK)
 
-    if(WIN32)
-        set(TEST_DEPENDENCIES ${TEST_DEPENDENCIES} lib_z)
-        set(DST_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}")
-        
-        add_custom_command(TARGET main_test
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -DDST_PATH=${DST_PATH} -DSRC_PATH="${PROJECT_BINARY_DIR}" -P ${PROJECT_SOURCE_DIR}/cmake/test_dependency_win.cmake
-            COMMENT "Copy compiled dll files"
+        # Copy dependencies to bin dir
+        set(TEST_DEPENDENCIES
+            lib_expat
+            lib_geotiff
+            lib_gif
+            lib_hdf4
+            lib_iconv
+            lib_jbig
+            lib_jpeg
+            lib_jsonc
+            lib_kml
+            lib_curl
+            lib_lzma
+            lib_png
+            lib_xml2
+            lib_oci
+            lib_opencad
+            lib_openjpeg
+            lib_pq
+            lib_proj
+            lib_qhull
+            lib_spatialite
+            lib_sqlite
+            lib_szip
+            lib_tiff
+            lib_uriparser
+            lib_webp
         )
-    elseif(OSX_FRAMEWORK)
-        set(DST_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+
+        if(WIN32)
+            set(TEST_DEPENDENCIES ${TEST_DEPENDENCIES} lib_z)
+            set(DST_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}")
+            
+            add_custom_command(TARGET main_test
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -DDST_PATH=${DST_PATH} -DSRC_PATH="${PROJECT_BINARY_DIR}" -P ${PROJECT_SOURCE_DIR}/cmake/test_dependency_win.cmake
+                COMMENT "Copy compiled dll files"
+            )
+        elseif(OSX_FRAMEWORK)
+            set(DST_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+        endif()
+
+        get_compiler_version(COMPILER)
+
+        foreach(TEST_DEPENDENCY ${TEST_DEPENDENCIES})
+            add_custom_command(TARGET main_test
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -DDST_PATH="${DST_PATH}" -DSRC_PATH="${PROJECT_BINARY_DIR}" -DREPKA_PACKAGE="${TEST_DEPENDENCY}" -DCOMPILER="${COMPILER}" -DOSX_FRAMEWORK="${OSX_FRAMEWORK}" -P ${PROJECT_SOURCE_DIR}/cmake/test_dependency.cmake
+                COMMENT "Get dependency ${TEST_DEPENDENCY}"
+            )
+        endforeach()
     endif()
-
-    get_compiler_version(COMPILER)
-
-    foreach(TEST_DEPENDENCY ${TEST_DEPENDENCIES})
-        add_custom_command(TARGET main_test
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -DDST_PATH="${DST_PATH}" -DSRC_PATH="${PROJECT_BINARY_DIR}" -DREPKA_PACKAGE="${TEST_DEPENDENCY}" -DCOMPILER="${COMPILER}" -DOSX_FRAMEWORK="${OSX_FRAMEWORK}" -P ${PROJECT_SOURCE_DIR}/cmake/test_dependency.cmake
-            COMMENT "Get dependency ${TEST_DEPENDENCY}"
-        )
-    endforeach()
 endif()

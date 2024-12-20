@@ -25,6 +25,10 @@
 
 #include "ngstore/api.h"
 
+constexpr char SANDBOX_URL[] = "https://sandbox.nextgis.com";
+constexpr char NEXTGIS_URL[] = "https://nextgis.com";
+constexpr int TTL = 30; // sec
+
 //#define TMS_URL "http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1"
 //#define TMS_NAME "2gis"
 //#define TMS_ALIAS "maps.2gis.com"

@@ -149,12 +149,12 @@ int Connections::paste(ObjectPtr child, bool move, const Options& options,
     if(hasChild(newName)) {
         if(options.asBool("OVERWRITE", false)) {
             if(!File::deleteFile(newPath)) {
-                return outMessage(COD_DELETE_FAILED, _("Failed to overwrite %s"),
+                return putMessage(COD_DELETE_FAILED, _("Failed to overwrite %s"),
                                   newName.c_str());
             }
         }
         else {
-            return outMessage(COD_CANCELED, _("Object %s already exists. Add overwrite option or create_unique option to create object here"),
+            return putMessage(COD_CANCELED, _("Object %s already exists. Add overwrite option or create_unique option to create object here"),
                               newName.c_str());
         }
     }

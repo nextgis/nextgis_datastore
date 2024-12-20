@@ -200,8 +200,8 @@ FeatureClass *DataStore::createFeatureClass(const std::string &name,
 
     MutexHolder holder(m_executeSQLMutex);
 
-    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type,
-                                        options.asCPLStringList());
+    CPLStringList newOptions = options;
+    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), spatialRef, type, newOptions);
 
     if(layer == nullptr) {
         errorMessage(_("Failed to create feature class. %s"), CPLGetLastErrorMsg());
@@ -259,8 +259,8 @@ Table *DataStore::createTable(const std::string &name,
 
     MutexHolder holder(m_executeSQLMutex);
 
-    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), nullptr, wkbNone,
-                                        options.asCPLStringList());
+    CPLStringList newOptions = options;
+    OGRLayer *layer = m_DS->CreateLayer(name.c_str(), nullptr, wkbNone, newOptions);
 
     if(layer == nullptr) {
         errorMessage(_("Failed to create table %s. %s"), name.c_str(), CPLGetLastErrorMsg());
@@ -825,7 +825,7 @@ OGRLayer *DataStore::createOverviewsTable(GDALDataset *ds, const std::string &na
 {
     OGRLayer *ovrLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
     if (nullptr == ovrLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -838,7 +838,7 @@ OGRLayer *DataStore::createOverviewsTable(GDALDataset *ds, const std::string &na
        ovrLayer->CreateField(&yField) != OGRERR_NONE ||
        ovrLayer->CreateField(&zField) != OGRERR_NONE ||
        ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 

@@ -38,6 +38,7 @@ set(HHEADERS
     url.h
     mutex.h
     account.h
+    geo.h
 )
 
 set(CSOURCES
@@ -54,6 +55,7 @@ set(CSOURCES
     url.cpp
     mutex.cpp
     account.cpp
+    geo.cpp
 )
 
 set_property(SOURCE url.cpp APPEND_STRING PROPERTY CMAKE_CXX_FLAGS " -Wdisabled-macro-expansion ")
@@ -66,8 +68,8 @@ endif()
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
     
 set_target_properties(${LIB_NAME} PROPERTIES
-    CXX_STANDARD 11
-    C_STANDARD 11
+    CXX_STANDARD 14
+    C_STANDARD 14
 )
 
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)

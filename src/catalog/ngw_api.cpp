@@ -26,6 +26,7 @@
 #include "util/settings.h"
 #include "util/url.h"
 
+
 namespace ngs {
 
 // API
@@ -160,7 +161,19 @@ bool checkVersion(const std::string &version, int major, int minor, int patch)
         currentMajor = atoi(versionPartsList[0]);
     }
 
-    return currentMajor >= major && currentMinor >= minor && currentPatch >= patch;
+    if(currentMajor < major) {
+        return false;
+    }
+
+    if(currentMinor < minor){
+        return false;
+    }
+
+    if(currentPatch < patch){
+        return false;
+    }
+
+    return true;
 }
 
 static void reportError(const GByte *pabyData, int nDataLen)
@@ -182,46 +195,36 @@ static void reportError(const GByte *pabyData, int nDataLen)
 
 bool sendTrackPoints(const std::string &payload)
 {
-    CPLErrorReset();
-    std::string payloadInt = "POSTFIELDS=" + payload;
-    char **httpOptions = nullptr;
-    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=POST");
-    httpOptions = CSLAddString(httpOptions, payloadInt.c_str());
-    httpOptions = CSLAddString(httpOptions,
-            "HEADERS=Content-Type: application/json\r\nAccept: */*" );
+    Options httpOptions;
+    httpOptions.add("CUSTOMREQUEST", "POST");
+    httpOptions.add("POSTFIELDS", payload);
+    httpOptions.add("HEADERS", "Content-Type: application/json\r\nAccept: */*" );
 
     std::string url = ngw::getTrackerUrl() + "/packet";
 
-    http::HTTPResultPtr result = CPLHTTPFetch(url.c_str(), httpOptions);
-    CSLDestroy(httpOptions);
+    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), httpOptions);
 
     bool outResult = false;
-    if(result) {
-        outResult = result->nStatus == 0 && result->pszErrBuf == nullptr;
-
-        // Get error message.
-        if(!outResult) {
-            reportError(result->pabyData, result->nDataLen);
-        }
+    if(!result || result->status != 0) {
+        return false;
     }
 
-    return outResult;
+    return true;
 }
 
-std::string createResource(const std::string &url, const std::string &payload,
-                           char **httpOptions)
+std::string createResource(const std::string &baseUrl, const std::string &payload,
+                           const Options &httpOptions)
 {
     resetError();
-    std::string payloadInt = "POSTFIELDS=" + payload;
 
-    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=POST");
-    httpOptions = CSLAddString(httpOptions, payloadInt.c_str());
-    httpOptions = CSLAddString(httpOptions,
-        "HEADERS=Content-Type: application/json\r\nAccept: */*");
+    Options options(httpOptions);
+    options.add("POSTFIELDS", payload);
+    options.add("CUSTOMREQUEST", "POST");
+    options.add("HEADERS", "Content-Type: application/json\r\nAccept: */*");
 
     CPLJSONDocument createReq;
-    bool bResult = createReq.LoadUrl(getResourceUrl(url, ""), httpOptions);
-    CSLDestroy(httpOptions);
+    bool bResult = createReq.LoadUrl(getResourceUrl(baseUrl, ""), options.asStringList());
+
     std::string resourceId("-1");
     CPLJSONObject root = createReq.GetRoot();
     if(root.IsValid()) {
@@ -241,118 +244,85 @@ std::string createResource(const std::string &url, const std::string &payload,
     return resourceId;
 }
 
-bool updateResource(const std::string &url, const std::string &resourceId,
-    const std::string &payload, char **httpOptions)
+bool updateResource(const std::string &baseUrl, const std::string &resourceId,
+    const std::string &payload, const Options &httpOptions)
 {
-    CPLErrorReset();
-    std::string payloadInt = "POSTFIELDS=" + payload;
+    Options options(httpOptions);
+    options.add("CUSTOMREQUEST", "PUT");
+    options.add("POSTFIELDS", payload);
+    options.add("HEADERS", "Content-Type: application/json\r\nAccept: */*");
 
-    httpOptions = CSLAddString( httpOptions, "CUSTOMREQUEST=PUT" );
-    httpOptions = CSLAddString( httpOptions, payloadInt.c_str() );
-    httpOptions = CSLAddString( httpOptions,
-        "HEADERS=Content-Type: application/json\r\nAccept: */*" );
-
-    http::HTTPResultPtr httpResult = CPLHTTPFetch(
-                getResourceUrl(url, resourceId).c_str(), httpOptions);
-    CSLDestroy(httpOptions);
-    bool result = false;
-    if(httpResult) {
-        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
-
-        // Get error message.
-        if(!result) {
-            reportError(httpResult->pabyData, httpResult->nDataLen);
-        }
+    auto url = getResourceUrl(baseUrl, resourceId);
+    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), options);
+    
+    if(!result || result->status != 0) {   
+        return false;
     }
-    else {
-        errorMessage(_("Update resource %s failed"), resourceId.c_str());
-    }
-    return result;
+
+    return true;
 }
 
-bool deleteResource(const std::string &url, const std::string &resourceId,
-    char **httpOptions)
+bool deleteResource(const std::string &baseUrl, const std::string &resourceId,
+    const Options &httpOptions)
 {
-    CPLErrorReset();
-    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=DELETE");
-    http::HTTPResultPtr httpResult = CPLHTTPFetch(
-                getResourceUrl(url, resourceId).c_str(), httpOptions);
-    CSLDestroy(httpOptions);
-    bool result = false;
-    if(httpResult) {
-        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
-        // Get error message.
-        if(!result) {
-            reportError(httpResult->pabyData, httpResult->nDataLen);
-        }
+    Options options(httpOptions);
+    options.add("CUSTOMREQUEST", "DELETE");
+
+    auto url = getResourceUrl(baseUrl, resourceId);
+    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), options);
+    
+    if(!result || result->status != 0) {
+        return false;
     }
-    return result;
+    return true;
 }
 
 
-bool deleteAttachment(const std::string &url, const std::string &resourceId,
+bool deleteAttachment(const std::string &baseUrl, const std::string &resourceId,
                       const std::string &featureId,
                       const std::string &attachmentId,
-                      char **httpOptions)
+                      const Options &httpOptions)
 {
-    CPLErrorReset();
-    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=DELETE");
-    http::HTTPResultPtr httpResult =
-            CPLHTTPFetch(getAttachmentUrl(url, resourceId, featureId,
-                                          attachmentId).c_str(), httpOptions);
-    CSLDestroy(httpOptions);
-    bool result = false;
-    if(httpResult) {
-        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
-        // Get error message.
-        if(!result) {
-            reportError(httpResult->pabyData, httpResult->nDataLen);
-        }
+    Options options(httpOptions);
+    options.add("CUSTOMREQUEST", "DELETE");
+    auto url = getAttachmentUrl(baseUrl, resourceId, featureId, attachmentId);
+    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), options);
+
+    if(!result || result->status != 0) {
+        return false;
     }
-    return result;
+    return true;
 }
 
 
-bool updateFeature(const std::string &url, const std::string &resourceId,
+bool updateFeature(const std::string &baseUrl, const std::string &resourceId,
                         const std::string &featureId, const std::string &payload,
-                        char **httpOptions)
+                        const Options &httpOptions)
 {
-    auto featureUrl = getFeatureUrl(url, resourceId, featureId);
-    CPLErrorReset();
-    std::string payloadInt = "POSTFIELDS=" + payload;
+    auto url = getFeatureUrl(baseUrl, resourceId, featureId);
 
-    httpOptions = CSLAddString( httpOptions, "CUSTOMREQUEST=PUT" );
-    httpOptions = CSLAddString( httpOptions, payloadInt.c_str() );
-    httpOptions = CSLAddString( httpOptions,
-        "HEADERS=Content-Type: application/json\r\nAccept: */*" );
+    Options options(httpOptions);
+    options.add("POSTFIELDS", payload);
+    options.add("CUSTOMREQUEST", "PUT");
+    options.add("HEADERS", "Content-Type: application/json\r\nAccept: */*");
 
-    http::HTTPResultPtr httpResult = CPLHTTPFetch(featureUrl.c_str(), httpOptions);
-    CSLDestroy(httpOptions);
-    bool result = false;
-    if(httpResult) {
-        result = httpResult->nStatus == 0 && httpResult->pszErrBuf == nullptr;
+    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), options);
 
-        // Get error message.
-        if(!result) {
-            reportError(httpResult->pabyData, httpResult->nDataLen);
-        }
+    if(!result || result->status != 0) {
+        return false;
     }
-    else {
-        errorMessage(_("Update feature %s in feature class %s failed"),
-                     featureId.c_str(), resourceId.c_str());
-    }
-    return result;
+    return true;
 }
 
-bool deleteAttachments(const std::string &url, const std::string &resourceId,
-                       const std::string &featureId, char **httpOptions)
+bool deleteAttachments(const std::string &baseUrl, const std::string &resourceId,
+                       const std::string &featureId, const Options &httpOptions)
 {
-    return updateFeature(url, resourceId, featureId,
+    return updateFeature(baseUrl, resourceId, featureId,
                          "{\"extensions\":{\"attachment\":[]}}", httpOptions);
 }
 
-bool renameResource(const std::string &url, const std::string &resourceId,
-    const std::string &newName, char **httpOptions)
+bool renameResource(const std::string &baseUrl, const std::string &resourceId,
+    const std::string &newName, const Options &httpOptions)
 {
     CPLErrorReset();
     CPLJSONObject payload;
@@ -360,7 +330,7 @@ bool renameResource(const std::string &url, const std::string &resourceId,
     resource.Add("display_name", newName);
     std::string payloadStr = payload.Format(CPLJSONObject::PrettyFormat::Plain);
 
-    return updateResource( url, resourceId, payloadStr, httpOptions);
+    return updateResource(baseUrl, resourceId, payloadStr, httpOptions);
 }
 
 std::string resmetaSuffix(CPLJSONObject::Type eType)
@@ -411,20 +381,19 @@ GIntBig addAttachment(const std::string &url,
                           const std::string &resourceId,
                           const std::string &featureId,
                           const std::string &payload,
-                          char **httpOptions)
+                          const Options &httpOptions)
 {
     resetError();
-    std::string payloadInt = "POSTFIELDS=" + payload;
 
-    httpOptions = CSLAddString(httpOptions, "CUSTOMREQUEST=POST");
-    httpOptions = CSLAddString(httpOptions, payloadInt.c_str());
-    httpOptions = CSLAddString(httpOptions,
-        "HEADERS=Content-Type: application/json\r\nAccept: */*");
+    Options options(httpOptions);
+    options.add("POSTFIELDS", payload);
+    options.add("CUSTOMREQUEST", "POST");
+    options.add("HEADERS", "Content-Type: application/json\r\nAccept: */*");
 
     CPLJSONDocument createReq;
     bool bResult = createReq.LoadUrl(
-                getAttachmentCreateUrl(url, resourceId, featureId), httpOptions);
-    CSLDestroy(httpOptions);
+                getAttachmentCreateUrl(url, resourceId, featureId), options.asStringList());
+
     GIntBig attachmentId(-1);
     CPLJSONObject root = createReq.GetRoot();
     if(root.IsValid()) {

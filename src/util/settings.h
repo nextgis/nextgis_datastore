@@ -26,6 +26,13 @@
 
 namespace ngs {
 
+constexpr const char *HTTP_TIMEOUT = "120";
+constexpr const char *HTTP_CONN_TIMEOUT = "60";
+constexpr const char *HTTP_MAX_RETRY = "5";
+constexpr const char *HTTP_RETRY_DELAY = "15";
+constexpr const char *HTTP_USE_GZIP = "YES";
+constexpr const char *HTTP_SSL_VERIFY = "NO";
+
 /**
  * @brief The Settings class provides persistent platform-independent library
  * settings.

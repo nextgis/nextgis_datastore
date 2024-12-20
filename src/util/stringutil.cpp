@@ -36,7 +36,6 @@
 #include <sstream>
 
 #include <openssl/evp.h>
-#include <openssl/md5.h>
 #include <openssl/rand.h>
 
 namespace ngs {
@@ -176,14 +175,19 @@ static std::string toHex(unsigned char *value, int size)
     return out.str();
 }
 
-std::string md5(const std::string &val)
+std::string sha256(const std::string &val)
 {
-    unsigned char digest[MD5_DIGEST_LENGTH];
+    auto digest = EVP_sha256();
 
-    auto preparedVal = reinterpret_cast<const unsigned char*>(val.c_str());
-    MD5(preparedVal, val.size(), digest);
+    auto evp = std::shared_ptr<EVP_MD_CTX>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+    unsigned int mdlen = EVP_MD_size(digest);
+    std::vector<unsigned char> md(mdlen);
 
-    return toHex(digest, MD5_DIGEST_LENGTH);
+    EVP_DigestInit(evp.get(), digest);
+    EVP_DigestUpdate(evp.get(), val.c_str(), val.size());
+    EVP_DigestFinal(evp.get(), md.data(), &mdlen);
+
+    return toHex(md.data(), mdlen);
 }
 
 std::string crypt_salt()

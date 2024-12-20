@@ -20,14 +20,12 @@
  ****************************************************************************/
 #include "raster.h"
 
-// gdal
-#include "cpl_http.h"
-
 #include "catalog/file.h"
 #include "catalog/folder.h"
-#include "map/maptransform.h"
 #include "ngstore/catalog/filter.h"
+#include "util/geo.h"
 #include "util/error.h"
+#include "util/url.h"
 #include "util/notify.h"
 #include "util/settings.h"
 #include "util/stringutil.h"
@@ -117,7 +115,7 @@ bool Raster::open(unsigned int openFlags, const Options &options)
         int cacheMaxSize = root.GetInteger(KEY_CACHE_MAX_SIZE, defaultCacheMaxSize);
 
         const Settings &settings = Settings::instance();
-        int timeout = settings.getInteger("http/timeout", 5);
+        int timeout = settings.getInteger("http/timeout", 60);
 
         const char *connStr = CPLSPrintf("<GDAL_WMS><Service name=\"TMS\">"
             "<ServerUrl>%s</ServerUrl></Service><DataWindow>"
@@ -531,7 +529,7 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
     url = url.replaceAll("${y}", std::to_string(data->m_tile.y));
     url = url.replaceAll("${z}", std::to_string(data->m_tile.z));
 
-    std::string fileName = md5(url);
+    std::string fileName = sha256(url);
     std::string dirPath = CPLSPrintf("%c/%c", fileName[0], fileName[1]);
     std::string path = File::formFileName(data->m_basePath, dirPath, "");
 
@@ -550,30 +548,24 @@ bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
     }
 
     // Download tile and save it to cache
-    auto requestOptions = data->m_options.asCPLStringList();
-    CPLHTTPResult *result = CPLHTTPFetch(url, requestOptions);
-    if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
-        outMessage(COD_REQUEST_FAILED, result->pszErrBuf);
-        CPLHTTPDestroyResult(result);
+    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), data->m_options);
+    if(!result || result->status != 0) {
         return false;
     }
 
-    bool out = File::writeFile(path, result->pabyData,
-                               static_cast<size_t>(result->nDataLen));
-
-    CPLHTTPDestroyResult(result);
-
+    bool out = File::writeFile(path, result->data,
+                               static_cast<size_t>(result->dataLen));
     return out;
 }
 
 bool Raster::cacheArea(const Options &options, const Progress &progress)
 {
     if(!isOpened()) {
-        outMessage(COD_UNSUPPORTED, "Raster must be opened.");
+        putMessage(COD_UNSUPPORTED, "Raster must be opened.");
         return false;
     }
     if(m_type != CAT_RASTER_TMS) {
-        outMessage(COD_UNSUPPORTED, "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
+        putMessage(COD_UNSUPPORTED, "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
         return false;
     }
 
@@ -597,7 +589,7 @@ bool Raster::cacheArea(const Options &options, const Progress &progress)
     }
 
     if(zoomLevels.empty()) {
-        outMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
+        putMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
         return false;
     }
 
@@ -630,8 +622,7 @@ bool Raster::cacheArea(const Options &options, const Progress &progress)
 
     for(auto zoomLevel : zoomLevels) {
         std::vector<TileItem> items =
-                MapTransform::getTilesForExtent(extent, zoomLevel, reverseY,
-                                                true);
+                getTilesForExtent(extent, zoomLevel, reverseY, true);
 
         for(auto item : items) {
             threadPool.addThreadData(new DownloadData(basePath, url, expires,
@@ -673,7 +664,7 @@ bool Raster::createCopy(const std::string &outPath,
 
     Progress progressIn(progress);
     auto outDS = driver->CreateCopy(outPath.c_str(),
-        m_DS, strict, newOptions.asCPLStringList(), ngsGDALProgress, &progressIn);
+        m_DS, strict, newOptions.asStringList(), ngsGDALProgress, &progressIn);
     bool result = outDS != nullptr;
     GDALClose(outDS);
     return result;

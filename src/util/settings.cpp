@@ -35,12 +35,6 @@ namespace ngs {
 constexpr const char *SETTINGS_FILE = "settings";
 constexpr const char *SETTINGS_FILE_EXT = "json";
 
-constexpr const char *HTTP_TIMEOUT = "190";
-constexpr const char *HTTP_CONN_TIMEOUT = "10";
-constexpr const char *HTTP_MAX_RETRY = "2";
-constexpr const char *HTTP_RETRY_DELAY = "5";
-constexpr const char *HTTP_USE_GZIP = "YES";
-
 #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
 constexpr const char *CACHEMAX = "4";
 #elif __ANDROID__
@@ -81,34 +75,7 @@ std::string Settings::getConfigOption(const std::string &key,
     return CPLGetConfigOption(key.c_str(), defaultVal.c_str());
 }
 
-void Settings::set(const std::string &path, bool val)
-{
-    m_root.Set(path, val);
-    m_hasChanges = true;
-}
-
-void Settings::set(const std::string &path, double val)
-{
-    m_root.Set(path, val);
-    m_hasChanges = true;
-}
-
-void Settings::set(const std::string &path, int val)
-{
-    m_root.Set(path, val);
-    m_hasChanges = true;
-}
-
-void Settings::set(const std::string &path, long val)
-{
-    m_root.Set(path, static_cast<GInt64>(val));
-    m_hasChanges = true;
-}
-
-void Settings::set(const std::string &path, const std::string &val)
-{
-    m_root.Set(path, val);
-    m_hasChanges = true;
+static void updateEnv(const std::string& path, const std::string &val) {
 
     if(compare(path, "common/cachemax")) {
         CPLSetConfigOption("GDAL_CACHEMAX", val.c_str());
@@ -138,6 +105,10 @@ void Settings::set(const std::string &path, const std::string &val)
         CPLSetConfigOption("GDAL_HTTP_RETRY_DELAY", val.c_str());
     }
 
+    if(compare(path, "http/ssl_verify")) {
+        CPLSetConfigOption("GDAL_HTTP_SSL_VERIFYSTATUS", val.c_str());
+    }
+
     if(compare(path, "gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS")) {
         CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", val.c_str());
     }
@@ -145,6 +116,46 @@ void Settings::set(const std::string &path, const std::string &val)
     if(compare(path, "common/zip_encoding")) {
         CPLSetConfigOption("CPL_ZIP_ENCODING", val.c_str());
     }
+}
+
+void Settings::set(const std::string &path, bool val)
+{
+    m_root.Set(path, val);
+    m_hasChanges = true;
+
+    updateEnv(path, val ? "YES" : "NO");
+}
+
+void Settings::set(const std::string &path, double val)
+{
+    m_root.Set(path, val);
+    m_hasChanges = true;
+
+    updateEnv(path, std::to_string(val));
+}
+
+void Settings::set(const std::string &path, int val)
+{
+    m_root.Set(path, val);
+    m_hasChanges = true;
+
+    updateEnv(path, std::to_string(val));
+}
+
+void Settings::set(const std::string &path, long val)
+{
+    m_root.Set(path, static_cast<GInt64>(val));
+    m_hasChanges = true;
+
+    updateEnv(path, std::to_string(val));
+}
+
+void Settings::set(const std::string &path, const std::string &val)
+{
+    m_root.Set(path, val);
+    m_hasChanges = true;
+
+    updateEnv(path, val);
 }
 
 bool Settings::getBool(const std::string &path, bool defaultVal) const
@@ -202,6 +213,8 @@ void Settings::init()
                        getString("http/retry_delay", HTTP_RETRY_DELAY).c_str());
     CPLSetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS",
                        getString("gdal/CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", ".ngmd").c_str());
+    CPLSetConfigOption("GDAL_HTTP_SSL_VERIFYSTATUS",
+                       getString("http/ssl_verify", HTTP_SSL_VERIFY).c_str());
 
     CPLDebug("ngstore", "ZIP support %s", CPLGetConfigOption("CPL_VSIL_ZIP_ALLOWED_EXTENSIONS", ""));
 

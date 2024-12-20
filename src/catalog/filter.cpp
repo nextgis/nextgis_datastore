@@ -20,7 +20,6 @@
  ****************************************************************************/
 #include "ngstore/catalog/filter.h"
 
-#include "catalog/mapfile.h"
 #include "ds/datastore.h"
 #ifndef NGS_MOBILE
 #include "ds/mapinfodatastore.h"
@@ -260,8 +259,9 @@ std::string Filter::extension(const enum ngsCatalogObjectType type)
         return "wconn";
     case CAT_CONTAINER_NGS:
         return DataStore::extension();
-    case CAT_FILE_NGMAPDOCUMENT:
-        return MapFile::extension();
+        // TODO: Add rendering lib
+    // case CAT_FILE_NGMAPDOCUMENT:
+    //     return MapFile::extension();
 #ifndef NGS_MOBILE
     case CAT_CONTAINER_MAPINFO_STORE:
         return MapInfoDataStore::extension();

@@ -29,7 +29,7 @@ namespace ngs {
 static CPLLock *hAtomicOpLock = nullptr;
 static std::string gLastMsg;
 
-int outMessage(enum ngsCode errorCode, const char *fmt, ...)
+int putMessage(enum ngsCode errorCode, const char *fmt, ...)
 {
     if(errorCode >= COD_UNEXPECTED_ERROR && nullptr != fmt) {
         va_list args;

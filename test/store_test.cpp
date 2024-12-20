@@ -31,15 +31,10 @@
 TEST(StoreTests, TestJSONSAXParser) {
     initLib();
 
-    char **options = nullptr;
-    options = ngsListAddNameValue(options, "MAX_RETRY", "20");
-    options = ngsListAddNameValue(options, "RETRY_DELAY", "5");
-    options = ngsListAddNameValue(options, "UNSAFESSL", "ON");
     resetCounter();
     CPLJSONDocument doc;
     EXPECT_EQ(doc.LoadUrl("https://sandbox.nextgis.com/api/component/pyramid/pkg_version",
-                          options, nullptr, nullptr), true);
-    ngsListFree(options);
+                          nullptr, nullptr, nullptr), true);
 
     CPLJSONObject obj = doc.GetRoot();
     CPLString ngwVersion = obj.GetString("nextgisweb", "0");
@@ -102,7 +97,6 @@ TEST(MIStoreTests, TestCreate) {
     }
     EXPECT_GE(count, 1);
     ngsFree(pathInfo);
-
 
     // Delete
     EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
@@ -282,16 +276,9 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     auto connection = createConnection("sandbox.nextgis.com");
     ASSERT_NE(connection, nullptr);
 
-    // NOTE: To use this test the madcity layer must exists.
-//    std::string connPath = ngsCatalogObjectPath(connection);
-//    std::string testP = connPath + "/examples/madison/madcity";
-//    auto testVl = ngsCatalogObjectGet(testP.c_str());
-//    auto testId = ngsCatalogObjectProperty(testVl, "id", "", "");
-//    EXPECT_STRNE(testId, "");
-
     // Create resource group
     time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = std::string("ngstest_group_") + std::to_string(rawTime);
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -299,7 +286,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     resetCounter();
     char **options = nullptr;
     // Add descritpion to NGW vector layer
-    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест1");
+    options = ngsListAddNameValue(options, "DESCRIPTION", "описание тест 1");
     // If source layer has mixed geometries (point + multipoints, lines +
     // multilines, etc.) create output vector layers with multi geometries.
     // Otherwise the layer for each type geometry form source layer will create.
@@ -639,14 +626,12 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
 
     ngsUnInit();
 }
-
-
 /*
 TEST(MIStoreTests, TestLoadFromNGW2) {
     initLib();
 
     // Create connection
-    auto connection = createConnection("mikhail.nextgis.com", "http://");
+    auto connection = createConnection("mikhail.nextgis.com", "https://");
     ASSERT_NE(connection, nullptr);
 
     std::string connPath = ngsCatalogObjectPath(connection);
@@ -708,7 +693,7 @@ TEST(MIStoreTests, TestLoadFromNGW2) {
 */
 /*
 TEST(StoreTests, TestCreate) {
-    EXPECT_EQ(ngsInit(nullptr, nullptr), ngsErrorCodes::EC_SUCCESS);
+    EXPECT_EQ(ngsInit(), ngsErrorCodes::EC_SUCCESS);
     const char* epsgPath = CPLFindFile ("gdal", "gcs.csv");
     EXPECT_NE(epsgPath, nullptr);
 

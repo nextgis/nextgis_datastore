@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -21,74 +21,31 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
-set(REQUIREMENTS JBIG ICONV SQLite3 CURL PROJ EXPAT TIFF GeoTIFF JPEG PNG LibXml2 LibLZMA ZLIB)
 
-if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
+if(BUILD_TARGET_PLATFORM STREQUAL "DESKTOP")
     set(EXTERNAL_SHARED ON)
 else()
+    set(REQUIREMENTS 
+        JBIG ICONV SQLite3 CURL PROJ EXPAT TIFF GeoTIFF JPEG PNG LibXml2 LibLZMA 
+        ZLIB OpenSSL GEOS GDAL JSONC PostgreSQL
+    )
+
+    # No needed Boost CGAL ICONV JPEG12
 
     foreach(REQUIREMENT ${REQUIREMENTS})
         set(WITH_${REQUIREMENT} ON CACHE BOOL "${REQUIREMENT} on" FORCE)
         set(WITH_${REQUIREMENT}_EXTERNAL ON CACHE BOOL "${REQUIREMENT} external on" FORCE)
     endforeach()
-    
-
-    set(WITH_OpenSSL ON CACHE BOOL "OpenSSL on" FORCE)
-    set(WITH_GEOS ON CACHE BOOL "GEOS on" FORCE)
-    set(WITH_GDAL ON CACHE BOOL "GDAL on" FORCE)
-    set(WITH_ZLIB ON CACHE BOOL "ZLIB on" FORCE)
-    set(WITH_JSONC ON CACHE BOOL "JSONC on" FORCE)
-    # set(WITH_ICONV ON CACHE BOOL "ICONV on" FORCE)
-
-    # Not needed set(WITH_Boost ON CACHE BOOL "Boost on" FORCE)
-    # Not needed set(WITH_CGAL ON CACHE BOOL "CGAL on" FORCE)
-
-    set(WITH_OpenSSL_EXTERNAL ON CACHE BOOL "OpenSSL external on" FORCE)
-    set(WITH_GEOS_EXTERNAL ON CACHE BOOL "GEOS external on" FORCE)
-    set(WITH_GDAL_EXTERNAL ON CACHE BOOL "GDAL external on" FORCE)
-    set(WITH_JSONC_EXTERNAL ON CACHE BOOL "JSONC external on" FORCE)
-    set(WITH_ZLIB_EXTERNAL ON CACHE BOOL "ZLIB external on" FORCE)
-
-    # Not needed set(WITH_Boost_EXTERNAL ON CACHE BOOL "Boost external on" FORCE)
-    # Not needed set(WITH_CGAL_EXTERNAL ON CACHE BOOL "CGAL external on" FORCE)
-
-    # if(ANDROID)
-    #     set(WITH_ICONV_EXTERNAL ON CACHE BOOL "iconv external on")
-    # else()
-    #     set(WITH_ICONV_EXTERNAL OFF CACHE BOOL "iconv external on")
-    # endif()
-
-    set(WITH_JPEG12 OFF CACHE BOOL "JPEG12 off" FORCE)
-    set(WITH_JPEG12_EXTERNAL OFF CACHE BOOL "JPEG12 external off" FORCE)
-    # set(WITH_LibLZMA OFF CACHE BOOL "LibLZMA off" FORCE)
-    # set(WITH_LibLZMA_EXTERNAL OFF CACHE BOOL "LibLZMA external off" FORCE)
-    set(WITH_PostgreSQL OFF CACHE BOOL "PostgreSQL off" FORCE)
-    set(WITH_PostgreSQL_EXTERNAL OFF CACHE BOOL "PostgreSQL external off" FORCE)
-    # if(ANDROID)
-    #     set(WITH_LibXml2 OFF CACHE BOOL "LibXml2 off" FORCE)
-    #     set(WITH_LibXml2_EXTERNAL OFF CACHE BOOL "LibXml2 external off" FORCE)
-    # else()
-    #     set(WITH_LibXml2 ON CACHE BOOL "LibXml2 off" FORCE)
-    # endif()
 
     foreach(REQUIREMENT ${REQUIREMENTS})
-        find_anyproject(${REQUIREMENT} REQUIRED SHARED OFF)
+        if(${REQUIREMENTS} STREQUAL "JSONC")
+            find_anyproject(JSONC REQUIRED NAMES jsonc json-c SHARED OFF)
+        else()  
+            find_anyproject(${REQUIREMENT} REQUIRED SHARED OFF)
+        endif()
     endforeach()
-    find_anyproject(JSONC REQUIRED NAMES jsonc json-c SHARED OFF)
 
     set(THIRD_PARTY_INCLUDE_PATH ${CMAKE_BINARY_DIR}/third-party)
-
-    macro( find_exthost_path )
-        set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER )
-        set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER )
-        set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER )
-
-        find_path( ${ARGN} )
-
-        set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM ONLY )
-        set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY )
-        set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY )
-    endmacro()
 
     macro(FIND_HEADERS lib header have)
         string(TOUPPER ${lib} UPPER_LIB)
@@ -197,22 +154,8 @@ find_anyproject(GDAL REQUIRED SHARED ${EXTERNAL_SHARED} CMAKE_ARGS
     -DGDAL_BUILD_APPS=OFF
     -DGDAL_BUILD_DOCS=OFF)
 
-if(NOT BUILD_TARGET_PLATFORM STREQUAL "Desktop")   
-    # Copy data to shared
-    macro(copy_share INC_DIR DIR GET_PARENT)
-        get_filename_component(PARENT_DIR ${INC_DIR} DIRECTORY)
-        if(${GET_PARENT})
-            get_filename_component(PARENT_DIR ${PARENT_DIR} DIRECTORY)
-        endif()
-        file(COPY ${PARENT_DIR}/share/${DIR}/ DESTINATION ${PROJECT_BINARY_DIR}/data)
-    endmacro()
 
-    copy_share(${PROJ_INCLUDE_DIRS} "proj" FALSE)
-    copy_share(${GDAL_INCLUDE_DIRS} "gdal" TRUE)
-    copy_share(${OPENSSL_INCLUDE_DIRS} "ssl/certs" FALSE)
-endif()
-
-if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
+if(BUILD_TARGET_PLATFORM STREQUAL "DESKTOP")
     # this only need for API report version
 
     set(THIRD_PARTY_INCLUDE_PATH ${CMAKE_BINARY_DIR}/third-party/install/include)
@@ -417,4 +360,17 @@ if(BUILD_TARGET_PLATFORM STREQUAL "Desktop")
 #        add_definitions (-DHAVE_CGAL_VERSION_H)
 #    endif()
 
+else()
+    # Copy data to shared
+    macro(copy_share INC_DIR DIR GET_PARENT)
+        get_filename_component(PARENT_DIR ${INC_DIR} DIRECTORY)
+        if(${GET_PARENT})
+            get_filename_component(PARENT_DIR ${PARENT_DIR} DIRECTORY)
+        endif()
+        file(COPY ${PARENT_DIR}/share/${DIR}/ DESTINATION ${PROJECT_BINARY_DIR}/data)
+    endmacro()
+
+    copy_share(${PROJ_INCLUDE_DIRS} "proj" FALSE)
+    copy_share(${GDAL_INCLUDE_DIRS} "gdal" TRUE)
+    copy_share(${OPENSSL_INCLUDE_DIRS} "ssl/certs" FALSE)
 endif()

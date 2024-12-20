@@ -34,7 +34,6 @@ set(HHEADERS
     ${INCLUDE_DIR}/ngstore/catalog/filter.h
     localconnections.h
     remoteconnections.h
-    mapfile.h
     ngw.h
     factories/objectfactory.h
     factories/folderfactory.h
@@ -55,7 +54,6 @@ set(CSOURCES
     filter.cpp
     localconnections.cpp
     remoteconnections.cpp
-    mapfile.cpp
     ngw.cpp
     ngw_api.cpp
     factories/objectfactory.cpp
@@ -70,8 +68,8 @@ set(CSOURCES
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 
 set_target_properties(${LIB_NAME} PROPERTIES
-    CXX_STANDARD 11
-    C_STANDARD 11
+    CXX_STANDARD 14
+    C_STANDARD 14
 )
 
 set(OBJ_LIBRARIES ${OBJ_LIBRARIES} $<TARGET_OBJECTS:${LIB_NAME}> PARENT_SCOPE)

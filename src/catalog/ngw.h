@@ -53,13 +53,13 @@ namespace ngw {
                           const std::vector<std::string> &resourceIds);
     bool checkVersion(const std::string &version, int major, int minor, int patch);
     std::string createResource(const std::string &url, const std::string &payload,
-                               char **httpOptions);
+                               const Options &httpOptions);
     bool deleteResource(const std::string &url, const std::string &resourceId,
-        char **httpOptions);
+        const Options &httpOptions);
     bool renameResource(const std::string &url, const std::string &resourceId,
-        const std::string &newName, char **httpOptions);
+        const std::string &newName, const Options &httpOptions);
     bool updateResource(const std::string &url, const std::string &resourceId,
-        const std::string &payload, char **httpOptions);
+        const std::string &payload, const Options &httpOptions);
     std::string objectTypeToNGWClsType(enum ngsCatalogObjectType type);
     std::string resmetaSuffix(CPLJSONObject::Type eType);
 
@@ -91,14 +91,14 @@ namespace ngw {
     bool deleteAttachment(const std::string &url,
                           const std::string &resourceId,
                           const std::string &featureId,
-                          const std::string &attachmentId, char **httpOptions);
+                          const std::string &attachmentId, const Options &httpOptions);
     bool deleteAttachments(const std::string &url,
                            const std::string &resourceId,
-                           const std::string &featureId, char **httpOptions);
+                           const std::string &featureId, const Options &httpOptions);
 
     GIntBig addAttachment(const std::string &url, const std::string &resourceId,
                           const std::string &featureId,
-                          const std::string &payload, char **httpOptions);
+                          const std::string &payload, const Options &httpOptions);
 } // namespace ngw
 
 /**

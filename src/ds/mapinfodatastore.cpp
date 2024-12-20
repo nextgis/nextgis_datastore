@@ -76,7 +76,7 @@ static OGRLayer *createHashTableInt(GDALDataset *ds, const std::string &name)
     OGRLayer *hashLayer = ds->CreateLayer(name.c_str(), nullptr,
                                           wkbNone, nullptr);
     if (nullptr == hashLayer) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -94,7 +94,7 @@ static OGRLayer *createHashTableInt(GDALDataset *ds, const std::string &name)
     if(hashLayer->CreateField(&fidField) != OGRERR_NONE ||
        hashLayer->CreateField(&hashField) != OGRERR_NONE ||
        hashLayer->CreateField(&ridField) != OGRERR_NONE) {
-        outMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
+        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
         return nullptr;
     }
 
@@ -676,7 +676,7 @@ int MapInfoStoreFeatureClass::fillHash(const Progress &progress,
         newFeature->SetField(FEATURE_ID_FIELD, feature->GetFID());
         newFeature->SetField(HASH_FIELD, hash.c_str());
         if(hashTable->CreateFeature(newFeature) != OGRERR_NONE) {
-            outMessage(COD_INSERT_FAILED, _("Failed to create feature"));
+            putMessage(COD_INSERT_FAILED, _("Failed to create feature"));
         }
     }
 
@@ -1117,7 +1117,7 @@ Table *MapInfoDataStore::createTable(const std::string& name,
         return nullptr;
     }
 
-    auto optionsList = options.asCPLStringList();
+    CPLStringList optionsList = options;
     auto encoding = options.asString("ENCODING", "");
     if(encoding.empty()) {
         encoding = property("ENCODING", "CP1251", NG_ADDITIONS_KEY);
@@ -1189,7 +1189,7 @@ FeatureClass *MapInfoDataStore::createFeatureClass(const std::string &name,
         return nullptr;
     }
 
-    auto optionsList = options.asCPLStringList();
+    CPLStringList optionsList = options;
     auto defaultEncoding = property("ENCODING", "CP1251", NG_ADDITIONS_KEY);
     auto encoding = options.asString("ENCODING", defaultEncoding);
     if(!encoding.empty()) {
