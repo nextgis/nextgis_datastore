@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -289,17 +289,54 @@ bool File::destroy()
     return Object::destroy();
 }
 
-bool File::canDestroy() const
+bool File::isReadOnly() const
 {
-    //return access(m_path, W_OK) != 0;
+	return isReadOnly(m_path);
+}
+
+bool File::isReadOnly(const std::string &path)
+{
     VSIStatBufL sbuf;
-    return VSIStatL(m_path.c_str(), &sbuf) == 0 && (sbuf.st_mode & S_IWUSR ||
-                                                    sbuf.st_mode & S_IWGRP ||
-                                                    sbuf.st_mode & S_IWOTH);
-
+    if (VSIStatL(path.c_str(), &sbuf) != 0) { // If failed stats - RO
+        return true;
+    } 
+    
+    return !(sbuf.st_mode & S_IWUSR ||
+        sbuf.st_mode & S_IWGRP ||
+        sbuf.st_mode & S_IWOTH);
 }
 
+Properties File::properties(const std::string &domain) const
+{
+    if(domain.empty()) {
+        auto out = Object::properties(domain);
+        out.add("is_readonly", isReadOnly());
+        out.add("can_destroy", !isReadOnly());
+        out.add("can_rename", !isReadOnly());
+        return out;
+    }
+    return Object::properties(domain);
 }
+
+std::string File::property(const std::string &key,
+                             const std::string &defaultValue,
+                             const std::string &domain) const
+{
+    if(domain.empty()) {
+        if (compare(key, "is_readonly") ) {
+            return fromBool(isReadOnly());
+        }
+        else if (compare(key, "can_destroy") ) {
+            return fromBool(!isReadOnly());
+        }
+        else if (compare(key, "can_rename") ) {
+            return fromBool(!isReadOnly());
+        }
+    }
+
+    return Object::property(key, defaultValue, domain);
+}
+} // namespace ngs
 
 
 

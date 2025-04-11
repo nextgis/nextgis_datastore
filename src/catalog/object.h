@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,7 @@
 #include "ngstore/codes.h"
 
 #include "util/options.h"
+#include "util/progress.h"
 
 namespace ngs {
 
@@ -55,9 +56,7 @@ public:
 
     virtual std::string fullName() const;
     virtual bool destroy();
-    virtual bool canDestroy() const;
     virtual bool rename(const std::string &newName);
-    virtual bool canRename() const;
     virtual ObjectPtr pointer() const;
     virtual Properties properties(const std::string &domain) const;
     virtual std::string property(const std::string &key,
@@ -67,7 +66,8 @@ public:
                              const std::string &value,
                              const std::string &domain);
     virtual void deleteProperties(const std::string &domain);
-    virtual bool sync();
+    virtual bool sync(ngsSyncMergeType type, 
+        std::vector<ngsFeatureChange> conflicts, const Progress& progress);
 
 protected:
     void setName(const std::string &value);

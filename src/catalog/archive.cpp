@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -40,11 +40,6 @@ bool ArchiveFolder::canCreate(const enum ngsCatalogObjectType type) const
     return false;
 }
 
-bool ArchiveFolder::canDestroy() const
-{
-    return false;
-}
-
 Archive::Archive(ObjectContainer * const parent,
                  const enum ngsCatalogObjectType type,
                  const std::string &name,
@@ -53,11 +48,6 @@ Archive::Archive(ObjectContainer * const parent,
 {
     m_type = type;
     m_path = pathPrefix(type) + m_path;
-}
-
-bool Archive::canDestroy() const
-{
-    return Folder::canDestroy();
 }
 
 bool Archive::destroy()
@@ -79,6 +69,5 @@ std::string Archive::pathPrefix(const enum ngsCatalogObjectType type)
         return "";
     }
 }
-
 
 }

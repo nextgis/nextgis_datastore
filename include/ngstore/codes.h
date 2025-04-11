@@ -4,7 +4,7 @@
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  * Author:  NikitaFeodonit, nfeodonit@yandex.com
  ******************************************************************************
- *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -25,78 +25,72 @@
 /**
  * @brief The NextGIS store and visualisation library codes enum
  */
-enum ngsCode {
-    COD_CONTINUE = 100,     /**< Continue */
-    COD_PENDING,            /**< Pending */
-    COD_IN_PROCESS,         /**< In process */
-    COD_SUCCESS = 200,      /**< Success */
-    COD_CANCELED,           /**< Canceled */
-    COD_FINISHED,           /**< Finished */
-    COD_WARNING = 300,      /**< Warning, not error */
-    COD_UNEXPECTED_ERROR = 400,   /**< Unexpected error */
-    COD_NOT_SPECIFIED,      /**< Path, value, etc. is not specified */
-    COD_INVALID,            /**< Path, map, structure, etc. is invalid */
-    COD_UNSUPPORTED,        /**< The feature is unsupported */
-    COD_CREATE_FAILED,      /**< Create failed */
-    COD_DELETE_FAILED,      /**< Failed to delete file, folder or something else */
-    COD_SAVE_FAILED,        /**< Failed to save file, folder or something else */
-    COD_SET_FAILED,         /**< Failed to set value */
-    COD_GET_FAILED,         /**< Failed to get value */
-    COD_OPEN_FAILED,        /**< Failed to open file, folder or something else */
-    COD_INSERT_FAILED,      /**< Insert new feature failed */
-    COD_UPDATE_FAILED,      /**< Update feature failed */
-    COD_INIT_FAILED,        /**< Initialise failed */
-    COD_COPY_FAILED,        /**< Copy failed */
-    COD_MOVE_FAILED,        /**< Move failed */
-    COD_CLOSE_FAILED,       /**< Close failed */
-    COD_LOAD_FAILED,        /**< Load failed */
-    COD_RENAME_FAILED,      /**< Rename failed */
-    COD_DRAW_FAILED,        /**< Draw failed */
-    COD_REQUEST_FAILED,     /**< URL Request failed */
-    COD_FUNCTION_NOT_AVAILABLE /**< Function is not available for current plan or account is not authorized */
+enum ngsCode
+{
+    COD_CONTINUE = 100,         /**< Continue */
+    COD_PENDING,                /**< Pending */
+    COD_IN_PROCESS,             /**< In process */
+    COD_SUCCESS = 200,          /**< Success */
+    COD_CANCELED,               /**< Canceled */
+    COD_FINISHED,               /**< Finished */
+    COD_WARNING = 300,          /**< Warning, not error */
+    COD_UNEXPECTED_ERROR = 400, /**< Unexpected error */
+    COD_NOT_SPECIFIED,          /**< Path, value, etc. is not specified */
+    COD_INVALID,                /**< Path, map, structure, etc. is invalid */
+    COD_UNSUPPORTED,            /**< The feature is unsupported */
+    COD_CREATE_FAILED,          /**< Create failed */
+    COD_DELETE_FAILED,          /**< Failed to delete file, folder or something else */
+    COD_SAVE_FAILED,            /**< Failed to save file, folder or something else */
+    COD_SET_FAILED,             /**< Failed to set value */
+    COD_GET_FAILED,             /**< Failed to get value */
+    COD_OPEN_FAILED,            /**< Failed to open file, folder or something else */
+    COD_INSERT_FAILED,          /**< Insert new feature failed */
+    COD_UPDATE_FAILED,          /**< Update feature failed */
+    COD_INIT_FAILED,            /**< Initialise failed */
+    COD_COPY_FAILED,            /**< Copy failed */
+    COD_MOVE_FAILED,            /**< Move failed */
+    COD_CLOSE_FAILED,           /**< Close failed */
+    COD_LOAD_FAILED,            /**< Load failed */
+    COD_RENAME_FAILED,          /**< Rename failed */
+    COD_DRAW_FAILED,            /**< Draw failed */
+    COD_REQUEST_FAILED,         /**< URL Request failed */
+    COD_FUNCTION_NOT_AVAILABLE  /**< Function is not available for current plan or account is not authorized */
 };
 
 /**
  * @brief The table, datasource, map and etc. change codes enum
  */
-enum ngsChangeCode {
-    CC_NOP                  = 1 << 0,
-    CC_CREATE_OBJECT        = 1 << 1,
-    CC_DELETE_OBJECT        = 1 << 2,
-    CC_CHANGE_OBJECT        = 1 << 3,
-    CC_CREATE_FEATURE       = 1 << 4,
-    CC_CHANGE_FEATURE       = 1 << 5,
-    CC_DELETE_FEATURE       = 1 << 6,
-    CC_DELETEALL_FEATURES   = 1 << 7,
-    CC_CREATE_ATTACHMENT    = 1 << 8,
-    CC_CHANGE_ATTACHMENT    = 1 << 9,
-    CC_DELETE_ATTACHMENT    = 1 << 10,
+enum ngsChangeCode
+{
+    CC_NOP = 1 << 0,
+    CC_CREATE_OBJECT = 1 << 1,
+    CC_CHANGE_OBJECT = 1 << 2,
+    CC_DELETE_OBJECT = 1 << 3,
+    CC_CREATE_FEATURE = 1 << 4,
+    CC_CHANGE_FEATURE = 1 << 5,
+    CC_DELETE_FEATURE = 1 << 6,
+    CC_DELETEALL_FEATURES = 1 << 7,
+    CC_CREATE_ATTACHMENT = 1 << 8,
+    CC_CHANGE_ATTACHMENT = 1 << 9,
+    CC_DELETE_ATTACHMENT = 1 << 10,
     CC_DELETEALL_ATTACHMENTS = 1 << 11,
-    CC_CREATE_MAP           = 1 << 12,
-    CC_CHANGE_MAP           = 1 << 13,
-    CC_CREATE_LAYER         = 1 << 14,
-    CC_DELETE_LAYER         = 1 << 15,
-    CC_CHANGE_LAYER         = 1 << 16,
-    CC_TOKEN_EXPIRED        = 1 << 17,
-    CC_TOKEN_CHANGED        = 1 << 18,
+    CC_CREATE_MAP = 1 << 12,
+    CC_CHANGE_MAP = 1 << 13,
+    CC_CREATE_LAYER = 1 << 14,
+    CC_CHANGE_LAYER = 1 << 15,
+    CC_DELETE_LAYER = 1 << 16,
+    CC_TOKEN_EXPIRED = 1 << 17,
+    CC_TOKEN_CHANGED = 1 << 18,
+    CC_SYNC_FEATURES_DIFFER = 1 << 19,
+    CC_SYNC_ATACHMENTS_DIFFER = 1 << 20,
     CC_ALL = CC_CREATE_OBJECT | CC_DELETE_OBJECT | CC_CHANGE_OBJECT | CC_CREATE_FEATURE | CC_CHANGE_FEATURE | CC_DELETE_FEATURE | CC_DELETEALL_FEATURES | CC_CREATE_ATTACHMENT | CC_CHANGE_ATTACHMENT | CC_DELETE_ATTACHMENT | CC_DELETEALL_ATTACHMENTS | CC_CREATE_MAP | CC_CHANGE_MAP | CC_CREATE_LAYER | CC_DELETE_LAYER | CC_CHANGE_LAYER | CC_TOKEN_EXPIRED | CC_TOKEN_CHANGED
-};
-
-/**
- * @brief The draw state enum
- */
-enum ngsDrawState {
-    DS_NORMAL = 1,  /**< Normal draw */
-    DS_REDRAW,      /**< Free all caches and draw from the scratch */
-    DS_REFILL,      /**< Refill tiles from layers */
-    DS_PRESERVED,   /**< Draw from caches */
-    DS_NOTHING      /**< Draw nothing */
 };
 
 /**
  * @brief The ngsDataStoreOptionsTypes enum
  */
-enum ngsOptionType {
+enum ngsOptionType
+{
     OT_CREATE_DATASOURCE,
     OT_CREATE_RASTER,
     OT_CREATE_LAYER,
@@ -105,23 +99,19 @@ enum ngsOptionType {
     OT_LOAD
 };
 
-enum ngsDirection {
-    DIR_X = 0,
-    DIR_Y,
-    DIR_Z
-};
-
-enum ngsFileMode {
-    FM_READ   = 1 << 1,
-    FM_WRITE  = 1 << 2
+enum ngsFileMode
+{
+    FM_READ = 1 << 1,
+    FM_WRITE = 1 << 2
 };
 
 /**
  * @brief The Catalog Object Types enum
  */
-enum ngsCatalogObjectType {
+enum ngsCatalogObjectType
+{
     CAT_UNKNOWN,
-    CAT_CONTAINER_ANY = 50,         /**< Any container border */
+    CAT_CONTAINER_ANY = 50, /**< Any container border */
     CAT_CONTAINER_ROOT,
     CAT_CONTAINER_LOCALCONNECTIONS, /**< Local system folder connections */
     CAT_CONTAINER_DIR,
@@ -134,21 +124,21 @@ enum ngsCatalogObjectType {
     CAT_CONTAINER_POSTGRES_SCHEMA,
     CAT_CONTAINER_WFS,
     CAT_CONTAINER_WMS,
-    CAT_CONTAINER_NGW,              /**< NextGIS Web connection */
-    CAT_CONTAINER_NGS,              /**< NextGIS storage (GPKG with additions) */
+    CAT_CONTAINER_NGW, /**< NextGIS Web connection */
+    CAT_CONTAINER_NGS, /**< NextGIS storage (GPKG with additions) */
     CAT_CONTAINER_KML,
     CAT_CONTAINER_KMZ,
     CAT_CONTAINER_SXF,
     CAT_CONTAINER_GPKG,
     CAT_CONTAINER_SQLITE,
-    CAT_CONTAINER_SIMPLE,           /**< For one layer containers */
-    CAT_CONTAINER_MEM,              /**< For memory layers */
-    CAT_CONTAINER_GISCONNECTIONS,   /**< GIS Servers/services connections */
-    CAT_CONTAINER_DBCONNECTIONS,    /**< Database servers connections */
-    CAT_CONTAINER_DIR_LINK,         /**< Local connection to folder or symlink */
-    CAT_CONTAINER_MAPINFO_STORE,    /**< NextGIS storage based on MapInfo tabs */
+    CAT_CONTAINER_SIMPLE,         /**< For one layer containers */
+    CAT_CONTAINER_MEM,            /**< For memory layers */
+    CAT_CONTAINER_GISCONNECTIONS, /**< GIS Servers/services connections */
+    CAT_CONTAINER_DBCONNECTIONS,  /**< Database servers connections */
+    CAT_CONTAINER_DIR_LINK,       /**< Local connection to folder or symlink */
+    CAT_CONTAINER_MAPINFO_STORE,  /**< NextGIS storage based on MapInfo tabs */
     CAT_CONTAINER_ALL = 499,
-    CAT_FC_ANY = 500,               /**< Any Feature class */
+    CAT_FC_ANY = 500, /**< Any Feature class */
     CAT_FC_ESRI_SHAPEFILE,
     CAT_FC_MAPINFO_TAB,
     CAT_FC_MAPINFO_MIF,
@@ -167,7 +157,7 @@ enum ngsCatalogObjectType {
     CAT_FC_LITE,
     CAT_FC_GPX,
     CAT_FC_ALL = 999,
-    CAT_RASTER_ANY = 1000,          /**< Any raster */
+    CAT_RASTER_ANY = 1000, /**< Any raster */
     CAT_RASTER_BMP,
     CAT_RASTER_TIFF,
     CAT_RASTER_TIL,
@@ -185,7 +175,7 @@ enum ngsCatalogObjectType {
     CAT_RASTER_LITE,
     CAT_RASTER_MEM,
     CAT_RASTER_ALL = 1499,
-    CAT_TABLE_ANY = 1500,           /**< Any table */
+    CAT_TABLE_ANY = 1500, /**< Any table */
     CAT_TABLE_POSTGRES,
     CAT_TABLE_MAPINFO_TAB,
     CAT_TABLE_MAPINFO_MIF,
@@ -206,26 +196,26 @@ enum ngsCatalogObjectType {
     CAT_QUERY_RESULT_FC,
     CAT_RASTER_FC_ANY,
     CAT_NGW_ANY = 3000,
-    CAT_NGW_GROUP,                  /**< NextGIS Web resource group */
-    CAT_NGW_TRACKERGROUP,           /**< NextGIS Web trackers group */
-    CAT_NGW_POSTGIS_CONNECTION,     /**< NextGIS Web PostGIS connection */
-    CAT_NGW_WMS_CONNECTION,         /**< NextGIS Web WMS connection */
-    CAT_NGW_WMS_SERVICE,            /**< NextGIS Web WMS service */
-    CAT_NGW_WFS_SERVICE,            /**< NextGIS Web WFS service */
-    CAT_NGW_VECTOR_LAYER,           /**< NextGIS Web vector layer */
-    CAT_NGW_POSTGIS_LAYER,          /**< NextGIS Web PostGIS layer */
-    CAT_NGW_RASTER_LAYER,           /**< NextGIS Web raster layer */
-    CAT_NGW_BASEMAP,                /**< NextGIS Web base map */
-    CAT_NGW_QGISRASTER_STYLE,       /**< NextGIS Web QGIS raster style */
-    CAT_NGW_QGISVECTOR_STYLE,       /**< NextGIS Web QGOS vector style */
-    CAT_NGW_MAPSERVER_STYLE,        /**< NextGIS Web MapServer style */
-    CAT_NGW_RASTER_STYLE,           /**< NextGIS Web raster style */
-    CAT_NGW_WMS_LAYER,              /**< NextGIS Web WMS Layer */
-    CAT_NGW_TRACKER,                /**< NextGIS Web tracker */
-    CAT_NGW_WEBMAP,                 /**< NextGIS Web map */
-    CAT_NGW_FORMBUILDER_FORM,       /**< NextGIS Web FormBuilder form */
-    CAT_NGW_LOOKUP_TABLE,           /**< NextGIS Web lookup table */
-    CAT_NGW_FILE_BUCKET,            /**< NextGIS Web File bucket */
+    CAT_NGW_GROUP,              /**< NextGIS Web resource group */
+    CAT_NGW_TRACKERGROUP,       /**< NextGIS Web trackers group */
+    CAT_NGW_POSTGIS_CONNECTION, /**< NextGIS Web PostGIS connection */
+    CAT_NGW_WMS_CONNECTION,     /**< NextGIS Web WMS connection */
+    CAT_NGW_WMS_SERVICE,        /**< NextGIS Web WMS service */
+    CAT_NGW_WFS_SERVICE,        /**< NextGIS Web WFS service */
+    CAT_NGW_VECTOR_LAYER,       /**< NextGIS Web vector layer */
+    CAT_NGW_POSTGIS_LAYER,      /**< NextGIS Web PostGIS layer */
+    CAT_NGW_RASTER_LAYER,       /**< NextGIS Web raster layer */
+    CAT_NGW_BASEMAP,            /**< NextGIS Web base map */
+    CAT_NGW_QGISRASTER_STYLE,   /**< NextGIS Web QGIS raster style */
+    CAT_NGW_QGISVECTOR_STYLE,   /**< NextGIS Web QGOS vector style */
+    CAT_NGW_MAPSERVER_STYLE,    /**< NextGIS Web MapServer style */
+    CAT_NGW_RASTER_STYLE,       /**< NextGIS Web raster style */
+    CAT_NGW_WMS_LAYER,          /**< NextGIS Web WMS Layer */
+    CAT_NGW_TRACKER,            /**< NextGIS Web tracker */
+    CAT_NGW_WEBMAP,             /**< NextGIS Web map */
+    CAT_NGW_FORMBUILDER_FORM,   /**< NextGIS Web FormBuilder form */
+    CAT_NGW_LOOKUP_TABLE,       /**< NextGIS Web lookup table */
+    CAT_NGW_FILE_BUCKET,        /**< NextGIS Web File bucket */
     CAT_NGW_ALL = 3499,
     CAT_MAX
 };
@@ -233,7 +223,8 @@ enum ngsCatalogObjectType {
 /**
  * @brief The URL Request Type enum
  */
-enum ngsURLRequestType {
+enum ngsURLRequestType
+{
     URT_GET = 1,
     URT_POST,
     URT_PUT,
@@ -241,69 +232,25 @@ enum ngsURLRequestType {
 };
 
 /**
- * @brief The map view overlay type enum
+ * @brief NGW Web map item type
  */
-enum ngsMapOverlayType
+enum ngsWebMapItemType
 {
-    MOT_UNKNOWN = 1 << 0,
-    MOT_LOCATION = 1 << 1,  /**< Overlay with current location */
-    MOT_TRACK = 1 << 2,     /**< Overlay with current track */
-    MOT_EDIT = 1 << 3,      /**< Overlay for geometry edit */
-    MOT_FIGURES = 1 << 4,   /**< Overlay for some layer/datasource independent graphics */
-    MOT_ALL = MOT_LOCATION | MOT_TRACK | MOT_EDIT | MOT_FIGURES
-};
-
-enum ngsMapTouchType
-{
-    MTT_ON_DOWN,
-    MTT_ON_MOVE,
-    MTT_ON_UP,
-    MTT_SINGLE
-};
-
-/**
- * @brief The map layer draw style Type enum
- */
-enum ngsStyleType {
-    ST_POINT = 1,
-    ST_LINE,
-    ST_FILL,
-    ST_IMAGE
-};
-
-enum ngsEditElementType {
-    EET_POLYGON,
-    EET_SELECTED_POLYGON,
-    EET_LINE,
-    EET_SELECTED_LINE,
-    EET_MEDIAN_POINT,
-    EET_SELECTED_MEDIAN_POINT,
-    EET_WALK_POINT,
-    EET_POINT,
-    EET_SELECTED_POINT,
-    EET_CROSS
-};
-
-enum ngsEditStyleType {
-    EST_POINT,
-    EST_LINE,
-    EST_FILL,
-    EST_CROSS
-};
-
-enum ngsEditDeleteResult {
-    EDT_FAILED = 1,         /**< Delete operation failed */
-    EDT_SELTYPE_NO_CHANGE,  /**< Same piece type is selected after delete operation */
-    EDT_HOLE,               /**< Hole is deleted. Outer ring selected */
-    EDT_PART,               /**< Part is deleted. Other part selected */
-    EDT_GEOMETRY            /**< Whole geometry is deleted */
-};
-
-enum ngsWebMapItemType {
     WMT_UNKNOWN,
     WMT_ROOT,
     WMT_GROUP,
     WMT_LAYER
+};
+
+/**
+ * @brief Sync conflicts resolve types
+ */
+enum ngsSyncMergeType
+{
+    SMT_UNKNOWN,          /**< Merge type undefined */
+    SMT_SERVER_PRIORITY,  /**< Server changes have priority while merge */
+    SMT_CLIENT_PRIORITY,  /**< Client changes have priority while merge */
+    SMT_REPORT_CONFLICTS, /**< Report if conflict occures */
 };
 
 #endif // NGSCODES_H

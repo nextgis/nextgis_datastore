@@ -22,130 +22,129 @@
 #define NGSSTOREFEATURECLASS_H
 
 #include "store.h"
-#include "featureclassovr.h"
 #include "dataset.h"
 
-namespace ngs {
-
-/**
- * StoreTable
- */
-class StoreTable : public Table, public StoreObject
+namespace ngs
 {
-public:
-    StoreTable(OGRLayer *layer, ObjectContainer * const parent = nullptr,
-               const std::string &name = "");
-    virtual ~StoreTable() override = default;
+    /**
+     * StoreTable Plain table in local file system storage
+     */
+    class StoreTable : public Table, public StoreObject
+    {
+    public:
+        StoreTable(OGRLayer *layer, ObjectContainer *const parent = nullptr,
+                   const std::string &name = "");
+        virtual ~StoreTable() override = default;
 
-    // Table interface
-public:
-    virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
-                                  const std::string &description,
-                                  const std::string &filePath,
-                                  const Options &options = Options(),
-                                  bool logEdits = true) override;
-    virtual bool setProperty(const std::string &key, const std::string &value,
-                             const std::string &domain) override;
-    virtual std::vector<ngsEditOperation> editOperations() override;
+        // Table interface
+    public:
+        virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
+                                      const std::string &description,
+                                      const std::string &filePath,
+                                      const Options &options = Options(),
+                                      bool logEdits = true) override;
 
-    // Table interface
-protected:
-    virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
-                                      enum ngsChangeCode code) override;
+        virtual std::vector<ngsFeatureChange> editOperations() override;
 
-protected:
-    virtual void fillFields() const override;
-};
+        // Table interface
+    protected:
+        virtual FeaturePtr logEditFeature(FeaturePtr feature,
+                                          FeaturePtr attachFeature,
+                                          enum ngsChangeCode code) override;
 
-/**
- * StoreFeatureClass
- */
-class StoreFeatureClass : public FeatureClass, public StoreObject
-{
-public:
-    StoreFeatureClass(OGRLayer *layer, ObjectContainer * const parent = nullptr,
-                      const std::string &name = "");
-    virtual ~StoreFeatureClass() override = default;
+    protected:
+        virtual void fillFields() const override;
+    };
 
-    // Table interface
-public:
-    virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
-                                  const std::string &description,
-                                  const std::string &filePath,
-                                  const Options  &options = Options(),
-                                  bool logEdits = true) override;
-    virtual bool setProperty(const std::string &key, const std::string &value,
-                             const std::string &domain) override;
-    virtual std::vector<ngsEditOperation> editOperations() override;
+    /**
+     * StoreFeatureClass Feature class in local file system storage
+     */
+    class StoreFeatureClass : public FeatureClass, public StoreObject
+    {
+    public:
+        StoreFeatureClass(OGRLayer *layer, ObjectContainer *const parent = nullptr,
+                          const std::string &name = "");
+        virtual ~StoreFeatureClass() override = default;
 
-    // Table interface
-protected:
-    virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
-                                      enum ngsChangeCode code) override;
+        // Table interface
+    public:
+        virtual GIntBig addAttachment(GIntBig fid, const std::string &fileName,
+                                      const std::string &description,
+                                      const std::string &filePath,
+                                      const Options &options = Options(),
+                                      bool logEdits = true) override;
+        virtual std::vector<ngsFeatureChange> editOperations() override;
 
-protected:
-    virtual void fillFields() const override;
-};
+        // Table interface
+    protected:
+        virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
+                                          enum ngsChangeCode code) override;
 
-/**
- * TracksTable
- */
+    protected:
+        virtual void fillFields() const override;
+    };
 
-typedef struct _TrackInfo {
-    std::string name;
-    long startTimeStamp;
-    long stopTimeStamp;
-    long count;
-} TrackInfo;
+    /**
+     * TracksTable
+     */
 
-class TrackPointsTable : public FeatureClass
-{
-public:
-    TrackPointsTable(OGRLayer *layer, ObjectContainer * const parent = nullptr);
-    virtual ~TrackPointsTable() override;
+    typedef struct _TrackInfo
+    {
+        std::string name;
+        long startTimeStamp;
+        long stopTimeStamp;
+        long count;
+    } TrackInfo;
 
-    // Object interface
-public:
-    virtual ObjectPtr pointer() const override;
-};
+    class TrackPointsTable : public FeatureClass
+    {
+    public:
+        TrackPointsTable(OGRLayer *layer, ObjectContainer *const parent = nullptr);
+        virtual ~TrackPointsTable() override;
 
-class TracksTable : public FeatureClass
-{
-public:
-    TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectContainer * const parent = nullptr);
-    virtual ~TracksTable() override;
+        // Object interface
+    public:
+        virtual ObjectPtr pointer() const override;
+    };
 
-    virtual bool sync() override;
-    std::vector<TrackInfo> getTracks();
-    bool addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed, float course,
-            long timeStamp, int satCount, bool newTrack, bool newSegment);
-    void deletePoints(long start, long end);
-    ObjectPtr getPointsLayer() const;
+    class TracksTable : public FeatureClass
+    {
+    public:
+        TracksTable(OGRLayer *linesLayer, OGRLayer *pointsLayer, ObjectContainer *const parent = nullptr);
+        virtual ~TracksTable() override;
 
-    // Object interface
-public:
-    virtual ObjectPtr pointer() const override;
-    virtual Properties properties(const std::string &domain) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const override;
-    virtual bool destroy() override;
+        virtual bool sync(ngsSyncMergeType type, 
+            std::vector<ngsFeatureChange> conflicts, const Progress& progress) override;
+        std::vector<TrackInfo> getTracks();
+        bool addPoint(const std::string &name, double x, double y, double z, float accuracy, float speed, float course,
+                      long timeStamp, int satCount, bool newTrack, bool newSegment);
+        void deletePoints(long start, long end);
+        ObjectPtr getPointsLayer() const;
 
-private:
-    bool flashBuffer();
+        // Object interface
+    public:
+        virtual ObjectPtr pointer() const override;
+        virtual Properties properties(const std::string &domain) const override;
+        virtual std::string property(const std::string &key,
+                                     const std::string &defaultValue,
+                                     const std::string &domain) const override;
+        virtual bool destroy() override;
 
-private:
-    int m_lastTrackId;
-    int m_lastSegmentId;
-    int m_lastSegmentPtId;
-    Mutex m_syncMutex, m_bufferMutex;
-    std::vector<FeaturePtr> mPointBuffer;
-    FeaturePtr m_currentTrack;
-    long m_lastGmtTimeStamp;
-    bool m_newTrack;
-    GIntBig m_pointCount;
-    FeatureClassPtr m_pointsLayer;
-};
+    private:
+        bool flashBuffer();
+
+    private:
+        int m_lastTrackId;
+        int m_lastSegmentId;
+        int m_lastSegmentPtId;
+        Mutex m_syncMutex, m_bufferMutex;
+        std::vector<FeaturePtr> mPointBuffer;
+        FeaturePtr m_currentTrack;
+        long m_lastGmtTimeStamp;
+        bool m_newTrack;
+        GIntBig m_pointCount;
+        FeatureClassPtr m_pointsLayer;
+    };
 
 } // namespace ngs
 

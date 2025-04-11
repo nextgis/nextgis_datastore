@@ -83,14 +83,12 @@ public:
                    int bufXSize, int bufYSize, GDALDataType dataType,
                    int bandCount, int *bandList, bool read = true,
                    bool skipLastBand = false);
-    bool cacheArea(const Options &options, const Progress &progress);
     bool createCopy(const std::string &outPath, const Options &options,
                     const Progress &progress);
     bool moveTo(const std::string &dstPath, const Progress &progress);
 
     // Object interface
     virtual bool destroy() override;
-    virtual bool canDestroy() const override;
     virtual Properties properties(const std::string &domain) const override;
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,

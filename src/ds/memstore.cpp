@@ -237,14 +237,9 @@ bool MemoryStore::open(unsigned int openFlags, const Options &options)
     return false;
 }
 
-bool MemoryStore::isReadOnly() const
-{
-    return Folder::isReadOnly(m_path);
-}
-
 bool MemoryStore::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly()) {
+    if(!isOpened()) {
         return false;
     }
     return type == CAT_FC_MEM || type == CAT_TABLE_MEM || type == CAT_RASTER_MEM;

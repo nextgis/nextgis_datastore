@@ -40,8 +40,6 @@ FeaturePtr StoreObject::getFeatureByRemoteId(GIntBig rid) const
         return FeaturePtr();
     }
 
-    auto dataset = dynamic_cast<Dataset*>(table->parent());
-    DatasetExecuteSQLLockHolder holder(dataset);
     auto attFilterStr = CPLSPrintf("%s = " CPL_FRMT_GIB, ngw::REMOTE_ID_KEY, rid);
     if(m_storeIntLayer->SetAttributeFilter(attFilterStr) != OGRERR_NONE) {
         return FeaturePtr();
@@ -64,8 +62,7 @@ bool StoreObject::setAttachmentRemoteId(GIntBig aid, GIntBig rid)
         return false;
     }
 
-    auto dataset = dynamic_cast<Dataset*>(table->parent());
-    DatasetExecuteSQLLockHolder holder(dataset);
+    auto dataset = dynamic_cast<const Dataset*>(table->parent());
     FeaturePtr attFeature = attTable->GetFeature(aid);
     if(!attFeature) {
         return false;
@@ -103,10 +100,10 @@ void StoreObject::close()
     m_storeIntLayer = nullptr;
 }
 
-std::vector<ngsEditOperation> StoreObject::fillEditOperations(
+std::vector<ngsFeatureChange> StoreObject::fillEditOperations(
         OGRLayer *editHistoryTable, Dataset *dataset) const
 {
-    std::vector<ngsEditOperation> out;
+    std::vector<ngsFeatureChange> out;
     if(nullptr == editHistoryTable) {
         return out;
     }
@@ -115,7 +112,7 @@ std::vector<ngsEditOperation> StoreObject::fillEditOperations(
     FeaturePtr feature;
     editHistoryTable->ResetReading();
     while((feature = editHistoryTable->GetNextFeature())) {
-        ngsEditOperation op;
+        ngsFeatureChange op;
         op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
         op.aid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
         op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(

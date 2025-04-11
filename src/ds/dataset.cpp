@@ -340,6 +340,31 @@ std::string Dataset::property(const std::string &key,
                               const std::string &defaultValue,
                               const std::string &domain) const
 {
+    if(domain.empty()) {
+        bool isRO = false;    
+        if (Folder::isDir(m_path)) {
+            isRO = Folder::isReadOnly(m_path);
+        }
+        else {
+            isRO = File::isReadOnly(m_path);
+        }
+
+        auto isOpennedRO = isReadOnly(m_DS);
+
+        if (compare(key, "is_readonly") ) {
+            return fromBool(isOpennedRO);
+        }
+        else if (compare(key, "can_sync")) {
+            return fromBool(!isOpennedRO);
+        }
+        else if (compare(key, "can_destroy") ) {
+            return fromBool(!isRO);
+        }
+        else if (compare(key, "can_rename") ) {
+            return fromBool(!isRO);
+        }
+    }
+
     if(!m_DS) {
         return ObjectContainer::property(key, defaultValue, domain);
     }
@@ -432,11 +457,6 @@ bool Dataset::destroy()
     return true;
 }
 
-bool Dataset::canDestroy() const
-{
-    return !Folder::isReadOnly(m_path);
-}
-
 Properties Dataset::properties(const std::string &domain) const {
     if(nullptr == m_DS) {
         return ObjectContainer::properties(domain);
@@ -447,6 +467,22 @@ Properties Dataset::properties(const std::string &domain) const {
     // 1. Get gdal metadata
     Properties out(m_DS->GetMetadata(domain.c_str()));
     out.append(ObjectContainer::properties(domain));
+
+    // Fix values from object container
+    bool isRO = false;    
+    if (Folder::isDir(m_path)) {
+        isRO = Folder::isReadOnly(m_path);
+    }
+    else {
+        isRO = File::isReadOnly(m_path);
+    }
+
+    auto isOpennedRO = isReadOnly(m_DS);
+
+    out.add("can_destroy", !isRO);
+    out.add("can_rename", !isRO);
+    out.add("can_sync", !isOpennedRO);
+    out.add("is_readonly", isOpennedRO);
 
     if(nullptr == m_metadata) {
         return out;
@@ -482,12 +518,6 @@ bool Dataset::isNameValid(const std::string &name) const
 {
     if(name.empty()) {
         return false;
-    }
-
-    for(const ObjectPtr &object : m_children) {
-        if(compare(object->name(), name)) {
-            return false;
-        }
     }
 
     if(compare(METADATA_TABLE_NAME, name)) {
@@ -690,7 +720,7 @@ std::string Dataset::options(enum ngsOptionType optionType) const
 bool DatasetBase::isReadOnly(GDALDataset *ds)
 {
     if(ds == nullptr) {
-        return true;
+        return false;
     }
 
     // https://github.com/OSGeo/gdal/issues/2162
@@ -700,12 +730,6 @@ bool DatasetBase::isReadOnly(GDALDataset *ds)
     return false;
 #endif
 }
-
-bool Dataset::isReadOnly() const
-{
-    return DatasetBase::isReadOnly(m_DS);
-}
-
 
 ObjectPtr Dataset::getChild(const std::string &name) const
 {
@@ -752,6 +776,8 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
     std::string newName = options.asString("NEW_NAME",
                                            File::getBaseName(child->name()));
+
+
     if(options.asBool("CREATE_UNIQUE", false)) {
         newName = createUniqueName(newName, false);
     }
@@ -807,15 +833,6 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
                                 child->name().c_str());
         }
 
-        if(srcTable->featureCount() > MAX_FEATURES4UNSUPPORTED) {
-            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-            if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
-                                  _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
-                                  move ? _("move") : _("copy"), srcTable->featureCount());
-            }
-        }
-
         auto srcDefinition = srcTable->definition();
         auto dstTable = createTable(newName, CAT_TABLE_ANY, srcDefinition, options);
         if(nullptr == dstTable) {
@@ -851,15 +868,6 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
             return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                 _("Source object '%s' report type FEATURECLASS, but it is not a feature class"),
                 child->name().c_str());
-        }
-
-        if(srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
-            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-            if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
-                    _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
-                    move ? _("move") : _("copy"), srcFClass->featureCount());
-            }
         }
 
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
@@ -939,7 +947,7 @@ int Dataset::paste(ObjectPtr child, bool move, const Options &options,
 
 bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly()) {
+    if (!isOpened() || toBool(property("is_readonly", "YES", ""))) {
         return false;
     }
     return Filter::isFeatureClass(type) || Filter::isTable(type);
@@ -947,7 +955,7 @@ bool Dataset::canPaste(const enum ngsCatalogObjectType type) const
 
 bool Dataset::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly()) {
+    if (!isOpened() || toBool(property("is_eadonly", "YES", ""))) {
         return false;
     }
     return Filter::isFeatureClass(type) || Filter::isTable(type);
@@ -1364,6 +1372,29 @@ bool Dataset::loadChildren()
     }
 
     m_childrenLoaded = true;
+
+    return true;
+}
+
+bool Dataset::sync(ngsSyncMergeType type, 
+    std::vector<ngsFeatureChange> conflicts, const Progress& progress)
+{
+    if(!isOpened() || toBool(property("is_readonly", "YES", ""))) {
+        return false;
+    }
+
+    Progress intProgres(progress);
+    intProgres.setTotalSteps(m_children.size());
+    int counter = 0;
+    for(const auto &child : m_children) {
+        intProgres.setStep(counter++);
+        if(nullptr != child) {
+            auto result = child->sync(type, conflicts, intProgres);
+            if(!result) {
+                return false;
+            }
+        }
+    }
 
     return true;
 }

@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -43,7 +43,6 @@ public:
     virtual void clear();
     virtual void refresh();
     virtual bool hasChildren() const;
-    virtual bool isReadOnly() const;
     virtual bool canCreate(const enum ngsCatalogObjectType type) const;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
                         const std::string &name,

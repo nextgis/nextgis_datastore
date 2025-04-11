@@ -24,7 +24,6 @@
 #include "dataset.h"
 #include "catalog/file.h"
 #include "catalog/folder.h"
-#include "ngstore/api.h"
 #include "util/error.h"
 #include "util/notify.h"
 
@@ -819,37 +818,6 @@ std::vector<FeaturePtr::AttachmentInfo> Table::attachments(GIntBig fid) const
     return out;
 }
 
-bool Table::canDestroy() const
-{
-    Dataset * const dataset = dynamic_cast<Dataset*>(m_parent);
-    if(nullptr == dataset) {
-        return false;
-    }
-
-    if(dataset->type() == CAT_CONTAINER_SIMPLE) {
-        return dataset->canDestroy();
-    }
-
-    return !dataset->isReadOnly();
-}
-
-bool Table::checkSetProperty(const std::string &key, const std::string &value,
-                             const std::string &domain)
-{
-    if(compare(key, LOG_EDIT_HISTORY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        auto prevValue = saveEditHistory();
-        auto currentValue = toBool(value);
-        if(prevValue != currentValue && prevValue == true) {
-            // Clear history table
-            Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
-            if(nullptr != parentDataset) {
-                parentDataset->clearEditHistoryTable(m_name);
-            }
-        }
-    }
-    return true;
-}
-
 bool Table::saveEditHistory()
 {
     return toBool(property(LOG_EDIT_HISTORY_KEY, "OFF", NG_ADDITIONS_KEY));
@@ -903,8 +871,16 @@ bool Table::setProperty(const std::string &key, const std::string &value,
                                           domain.c_str()) == CE_None;
     }
 
-    if(!checkSetProperty(key, value, domain)) {
-        return false;
+    if(compare(key, LOG_EDIT_HISTORY_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
+        auto prevValue = saveEditHistory();
+        auto currentValue = toBool(value);
+        if(prevValue != currentValue && prevValue == true) {
+            // Clear history table
+            Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
+            if(nullptr != parentDataset) {
+                parentDataset->clearEditHistoryTable(m_name);
+            }
+        }
     }
 
     Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
@@ -919,11 +895,25 @@ std::string Table::property(const std::string &key,
                             const std::string &defaultValue,
                             const std::string &domain) const
 {
-    auto out = Object::property(key, defaultValue, domain);
-    if(out != defaultValue) {
-        return out;
-    }
     Dataset* parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr != parentDataset) {
+        if(domain.empty()) {
+            auto isRO = parentDataset->property("is_readonly", defaultValue, domain);
+
+            if (compare(key, "is_readonly") ) {
+                return isRO;
+            }
+            else if (compare(key, "can_destroy") ) {
+                return fromBool(!toBool(isRO));
+            }
+            else if (compare(key, "can_rename") ) {
+                return fromBool(!toBool(isRO));
+            }
+        }
+
+        return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
+    }
+    
     if(nullptr != m_layer) {
         DatasetExecuteSQLLockHolder holder(parentDataset);
         std::string internalProperty = fromCString(
@@ -936,6 +926,7 @@ std::string Table::property(const std::string &key,
     if(nullptr != parentDataset) {
         return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
     }
+
     return defaultValue;
 }
 
@@ -943,14 +934,23 @@ Properties Table::properties(const std::string &domain) const
 {
     Properties out = Object::properties(domain);
     Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
+    if(nullptr == parentDataset) {
+        return out;
+    }
+
+    if (domain.empty()) {
+        auto isRO = parentDataset->property("is_readonly", "YES", domain);
+
+        out.add("is_readonly", toBool(isRO));
+        out.add("can_destroy", !toBool(isRO));
+        out.add("can_rename", !toBool(isRO));
+    }
+
     if(nullptr != m_layer) {
         DatasetExecuteSQLLockHolder holder(parentDataset);
         out.append(Properties(m_layer->GetMetadata(domain.c_str())));
     }
 
-    if(nullptr == parentDataset) {
-        return out;
-    }
     Properties moreProperties = parentDataset->properties(fullPropertyDomain(domain));
     out.append(moreProperties);
     return out;
@@ -1170,7 +1170,7 @@ void Table::logEditOperation(const FeaturePtr &opFeature)
 
 }
 
-void Table::deleteEditOperation(const ngsEditOperation& op)
+void Table::deleteEditOperation(const ngsFeatureChange &op)
 {
     Dataset *parentDataset = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDataset) {
@@ -1188,9 +1188,9 @@ void Table::deleteEditOperation(const ngsEditOperation& op)
                            nullptr, nullptr);
 }
 
-std::vector<ngsEditOperation> Table::editOperations()
+std::vector<ngsFeatureChange> Table::editOperations()
 {
-    std::vector<ngsEditOperation> out;
+    std::vector<ngsFeatureChange> out;
     if(!initEditHistoryTable()) {
         return out;
     }
@@ -1199,7 +1199,7 @@ std::vector<ngsEditOperation> Table::editOperations()
     FeaturePtr feature;
     m_editHistoryTable->ResetReading();
     while((feature = m_editHistoryTable->GetNextFeature())) {
-        ngsEditOperation op;
+        ngsFeatureChange op;
         op.fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
         op.aid = feature->GetFieldAsInteger64(ATTACH_FEATURE_ID_FIELD);
         op.code = static_cast<enum ngsChangeCode>(feature->GetFieldAsInteger64(
@@ -1211,8 +1211,11 @@ std::vector<ngsEditOperation> Table::editOperations()
     return out;
 }
 
-bool Table::sync()
+bool Table::sync(ngsSyncMergeType type, 
+    std::vector<ngsFeatureChange> conflicts, const Progress& progress)
 {
+
+    CPLDebug("ngstore", " Table::sync %s", m_name.c_str());
     if(nullptr != m_layer) {
         m_layer->ResetReading();
         return m_layer->SyncToDisk() == OGRERR_NONE;

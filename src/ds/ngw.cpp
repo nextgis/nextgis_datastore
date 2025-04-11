@@ -93,6 +93,11 @@ NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
     m_geometryType = FeatureClass::geometryTypeFromName(
                 resource.GetString("vector_layer/geometry_type"));
     m_childrenLoaded = true;
+
+
+    m_VersioningEnabled = resource.GetBool("feature_layer/versioning/enabled");
+    m_VersioningEpoch = resource.GetInteger("feature_layer/versioning/epoch");
+    m_VersioninLatest = resource.GetInteger("feature_layer/versioning/latest");
 }
 
 NGWLayerDataset::NGWLayerDataset(ObjectContainer * const parent,
@@ -225,7 +230,7 @@ bool NGWLayerDataset::open(unsigned int openFlags, const Options &options)
 
 void NGWLayerDataset::close()
 {
-    sync();
+    sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     DatasetBase::close();
     m_fc = nullptr;
 }
@@ -244,25 +249,21 @@ bool NGWLayerDataset::destroy()
     return Object::destroy();
 }
 
-bool NGWLayerDataset::canDestroy() const
-{
-    return true; // Not check user rights here as server will report error if no access.
-}
-
 bool NGWLayerDataset::rename(const std::string &newName)
 {
     return NGWResourceBase::changeName(newName);
-}
-
-bool NGWLayerDataset::canRename() const
-{
-    return true; // Not check user rights here as server will report error if no access.
 }
 
 Properties NGWLayerDataset::properties(const std::string &domain) const
 {
     auto out = metadata(domain);
     out.append(SingleLayerDataset::properties(domain));
+
+    if (domain.empty()) {
+        out.add("versioning_enabled",  m_VersioningEnabled);
+        out.add("versioning_epoch", m_VersioningEpoch);
+        out.add("versioning_latest", m_VersioninLatest);
+    }
     return out;
 }
 
@@ -270,11 +271,27 @@ std::string NGWLayerDataset::property(const std::string &key,
                                       const std::string &defaultValue,
                                       const std::string &domain) const
 {
-    auto out = metadataItem(key, defaultValue, domain);
-    if(out == defaultValue) {
+    if (domain.empty()) {
+        if (compare(key, "versioning_enabled") ) {
+            return fromBool(m_VersioningEnabled);
+        }
+        if (compare(key, "versioning_epoch") ) {
+            return std::to_string(m_VersioningEpoch);
+        }
+        if (compare(key, "versioning_latest") ) {
+            return std::to_string(m_VersioninLatest);
+        }
         return SingleLayerDataset::property(key, defaultValue, domain);
     }
-    return out;
+    return metadataItem(key, defaultValue, domain);
+}
+
+bool NGWLayerDataset::setProperty(const std::string &key, 
+    const std::string &value,
+    const std::string &domain)
+{
+    // TODO: set or unset versioning_enabled
+    return SingleLayerDataset::setProperty(key, value, domain);
 }
 
 
@@ -480,11 +497,6 @@ bool NGWFeatureClass::destroy()
     return m_parent->destroy();
 }
 
-bool NGWFeatureClass::canDestroy() const
-{
-    return true; // Not check user rights here as server will report error if no access.
-}
-
 bool NGWFeatureClass::rename(const std::string &newName)
 {
     if(nullptr == m_parent) {
@@ -496,11 +508,6 @@ bool NGWFeatureClass::rename(const std::string &newName)
         return true;
     }
     return false;
-}
-
-bool NGWFeatureClass::canRename() const
-{
-    return true; // Not check user rights here as server will report error if no access.
 }
 
 std::vector<FeaturePtr::AttachmentInfo> NGWFeatureClass::attachments(GIntBig fid) const

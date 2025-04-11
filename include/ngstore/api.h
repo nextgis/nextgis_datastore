@@ -25,26 +25,12 @@
 #include "ngstore/common.h"
 #include "ngstore/codes.h"
 
-/* Color in RGBA notation */
-typedef struct _ngsRGBA {
-    unsigned char R;
-    unsigned char G;
-    unsigned char B;
-    unsigned char A;
-} ngsRGBA;
-
 /* Spatial coordinates */
 typedef struct _ngsCoordinate {
     double X;
     double Y;
     double Z;
 } ngsCoordinate;
-
-/* Display coordinates */
-typedef struct _ngsPosition {
-    double X;
-    double Y;
-} ngsPosition;
 
 /* Spatial extent */
 typedef struct _ngsExtent {
@@ -78,6 +64,14 @@ typedef unsigned int ngsGeometryType;
 #ifndef POINTER_SIZE
 typedef long long POINTER_SIZE;
 #endif // POINTER_SIZE
+
+typedef struct _ngsFeatureChange {
+    POINTER_SIZE fid;
+    POINTER_SIZE aid;
+    enum ngsChangeCode code;
+    POINTER_SIZE rid;
+    POINTER_SIZE arid;
+} ngsFeatureChange;
 
 /**
  * @brief Prototype of function, which executed periodically during some long
@@ -245,7 +239,9 @@ NGS_EXTERNC char ngsCatalogCheckConnection(enum ngsCatalogObjectType type,
 NGS_EXTERNC char ngsCatalogObjectOpen(CatalogObjectH object, char **openOptions);
 NGS_EXTERNC char ngsCatalogObjectIsOpened(CatalogObjectH object);
 NGS_EXTERNC char ngsCatalogObjectClose(CatalogObjectH object);
-NGS_EXTERNC char ngsCatalogObjectSync(CatalogObjectH object);
+NGS_EXTERNC char ngsCatalogObjectSync(CatalogObjectH object, 
+    ngsSyncMergeType type, ngsFeatureChange **conflicts, ngsProgressFunc callback,
+    void *callbackData);
 
 /*
  * Feature class
@@ -259,14 +255,6 @@ typedef struct _ngsField {
     const char *alias;
     int type;
 } ngsField;
-
-typedef struct _ngsEditOperation {
-    POINTER_SIZE fid;
-    POINTER_SIZE aid;
-    enum ngsChangeCode code;
-    POINTER_SIZE rid;
-    POINTER_SIZE arid;
-} ngsEditOperation;
 
 NGS_EXTERNC ngsField *ngsFeatureClassFields(CatalogObjectH object);
 NGS_EXTERNC ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object);
@@ -290,13 +278,8 @@ NGS_EXTERNC int ngsFeatureClassSetSpatialFilter(CatalogObjectH object,
                                                 double minX, double minY,
                                                 double maxX, double maxY);
 NGS_EXTERNC int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
-                                                  ngsEditOperation operation);
-NGS_EXTERNC ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object);
-
-NGS_EXTERNC int ngsFeatureClassCreateOverviews(CatalogObjectH object,
-                                               char **options,
-                                               ngsProgressFunc callback,
-                                               void *callbackData);
+                                                  ngsFeatureChange operation);
+NGS_EXTERNC ngsFeatureChange *ngsFeatureClassGetEditOperations(CatalogObjectH object);
 
 NGS_EXTERNC void ngsFeatureFree(FeatureH feature);
 NGS_EXTERNC int ngsFeatureFieldCount(FeatureH feature);
@@ -364,12 +347,6 @@ NGS_EXTERNC char ngsFeatureAttachmentUpdate(FeatureH feature,
                                            const char *name,
                                            const char *description,
                                            char logEdits);
-
-/*
- * Raster
- */
-NGS_EXTERNC int ngsRasterCacheArea(CatalogObjectH object, char **options,
-                                   ngsProgressFunc callback, void *callbackData);
 
 /* Location */
 NGS_EXTERNC int ngsLocationOverlayUpdate(char mapId, ngsCoordinate location,

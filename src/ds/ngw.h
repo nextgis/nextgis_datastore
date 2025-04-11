@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2020 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2020-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -50,13 +50,14 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override;
     virtual bool rename(const std::string &newName) override;
-    virtual bool canRename() const override;
     virtual Properties properties(const std::string &domain) const override;
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
                                  const std::string &domain) const override;
+    virtual bool setProperty(const std::string &key,
+                            const std::string &value,
+                            const std::string &domain) override;
 
     // SingleLayerDataset interface
 public:
@@ -94,6 +95,9 @@ public:
 private:
     ObjectPtr m_fc;
 
+    bool m_VersioningEnabled = false;
+    long m_VersioningEpoch = 0;
+    long m_VersioninLatest = 0;
 };
 
 /**
@@ -136,9 +140,7 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override;
     virtual bool rename(const std::string &newName) override;
-    virtual bool canRename() const override;
 
     // Table interface
 public:

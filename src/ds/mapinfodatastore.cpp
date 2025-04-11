@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -65,42 +65,6 @@ static bool deleteTab(const std::string &path) {
     return true;
 }
 
-static std::string hashTableName(const std::string &name)
-{
-    return NG_PREFIX + name + "_" + HASH_SUFFIX;
-}
-
-static OGRLayer *createHashTableInt(GDALDataset *ds, const std::string &name)
-{
-    resetError();
-    OGRLayer *hashLayer = ds->CreateLayer(name.c_str(), nullptr,
-                                          wkbNone, nullptr);
-    if (nullptr == hashLayer) {
-        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    // Add id field
-    OGRFieldDefn fidField(FEATURE_ID_FIELD, OFTInteger64);
-
-    // Add row hash field
-    OGRFieldDefn hashField(HASH_FIELD, OFTString);
-    hashField.SetWidth(64);
-
-    OGRFieldDefn ridField(ngw::REMOTE_ID_KEY, OFTInteger64);
-    ridField.SetDefault(CPLSPrintf(CPL_FRMT_GIB, ngw::INIT_RID_COUNTER));
-
-    // Create table  fields
-    if(hashLayer->CreateField(&fidField) != OGRERR_NONE ||
-       hashLayer->CreateField(&hashField) != OGRERR_NONE ||
-       hashLayer->CreateField(&ridField) != OGRERR_NONE) {
-        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    return hashLayer;
-}
-
 static bool isChildExists(const std::string &checkPath,
                           const std::vector<ObjectPtr> &list)
 {
@@ -110,50 +74,6 @@ static bool isChildExists(const std::string &checkPath,
         }
     }
     return false;
-}
-
-static FeaturePtr getFeatureByRemoteIdInt(const Table *table, OGRLayer *storeTable,
-                                       GIntBig rid)
-{
-    if(nullptr == table) {
-        return FeaturePtr();
-    }
-
-    auto dataset = dynamic_cast<Dataset*>(table->parent());
-    DatasetExecuteSQLLockHolder holder(dataset);
-    auto attFilterStr = CPLSPrintf("%s = " CPL_FRMT_GIB, ngw::REMOTE_ID_KEY, rid);
-    if(storeTable->SetAttributeFilter(attFilterStr) != OGRERR_NONE) {
-        return FeaturePtr();
-    }
-    FeaturePtr intFeature = storeTable->GetNextFeature();
-    storeTable->SetAttributeFilter(nullptr);
-
-    if(nullptr == intFeature) {
-        return FeaturePtr();
-    }
-    auto fid = intFeature->GetFieldAsInteger64(FEATURE_ID_FIELD);
-    return table->getFeature(fid);
-}
-
-static std::string getState(GDALDataset *ds) {
-    if(ds == nullptr) {
-        return STATE_CLOSE;
-    }
-    if(DatasetBase::isReadOnly(ds)) {
-        return STATE_RO;
-    }
-    return STATE_RW;
-}
-
-static FeaturePtr getFeatureByLocalIdInt(OGRLayer *lyr, GIntBig fid)
-{
-    if(nullptr == lyr) {
-        return FeaturePtr();
-    }
-    lyr->SetAttributeFilter(CPLSPrintf("%s = " CPL_FRMT_GIB, FEATURE_ID_FIELD, fid));
-    FeaturePtr out(lyr->GetNextFeature());
-    lyr->SetAttributeFilter(nullptr);
-    return out;
 }
 
 //------------------------------------------------------------------------------
@@ -180,44 +100,11 @@ MapInfoStoreTable::MapInfoStoreTable(GDALDatasetPtr DS,
     if(m_name.empty()) {
         m_name = File::getBaseName(m_path);
     }
-
-    auto store = dynamic_cast<MapInfoDataStore*>(parent);
-    if(nullptr == store) {
-        m_storeIntLayer = store->getHashTable(storeName());
-    }
 }
 
 MapInfoStoreTable::~MapInfoStoreTable()
 {
     close();
-}
-
-Properties MapInfoStoreTable::properties(const std::string &domain) const
-{
-    auto out = Table::properties(domain);
-    if(m_TABDS) {
-        out.add(STATE_KEY, m_TABDS->GetAccess() == GA_ReadOnly);
-        if(m_layer) {
-            out.add(DESCRIPTION_KEY, m_layer->GetMetadataItem(DESCRIPTION_KEY));
-        }
-    }
-    return out;
-}
-
-std::string MapInfoStoreTable::property(const std::string &key,
-                                        const std::string &defaultValue,
-                                        const std::string &domain) const
-{
-    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        if(m_TABDS) {
-            return m_TABDS->GetAccess() == GA_ReadOnly ? "ON" : "OFF";
-        }
-    }
-    else if(m_layer && compare(key, DESCRIPTION_KEY) &&
-            compare(domain, NG_ADDITIONS_KEY)) {
-        return m_layer->GetMetadataItem(DESCRIPTION_KEY);
-    }
-    return Table::property(key, defaultValue, domain);
 }
 
 bool MapInfoStoreTable::destroy()
@@ -235,64 +122,6 @@ std::string MapInfoStoreTable::storeName() const
     return m_storeName;
 }
 
-bool MapInfoStoreTable::checkSetProperty(const std::string &key,
-                                         const std::string &value,
-                                         const std::string &domain)
-{
-    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-
-        if(compare(value, STATE_CLOSE)) {
-            // Already closed
-            if(m_TABDS == nullptr) {
-                return true;
-            }
-            close();
-            return true;
-        }
-
-        unsigned oo = 0;
-        if(compare(value, STATE_RO)) {
-            if(DatasetBase::isReadOnly(m_TABDS)) {
-                return true;
-            }
-            oo = GDAL_OF_READONLY;
-        }
-
-        if(compare(value, STATE_RW)) {
-            if(!DatasetBase::isReadOnly(m_TABDS.get())) {
-                return true;
-            }
-            oo = GDAL_OF_UPDATE;
-        }
-
-        close();
-        m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
-            GDAL_OF_SHARED|GDAL_OF_VERBOSE_ERROR|oo, nullptr, nullptr, nullptr));
-        if(!m_TABDS) {
-            return false;
-        }
-        m_layer = m_TABDS->GetLayer(0);
-        return m_layer != nullptr &&
-                Table::checkSetProperty(key, value, domain);
-    }
-    else if(m_layer && compare(key, DESCRIPTION_KEY) &&
-            compare(domain, NG_ADDITIONS_KEY)) {
-        return m_layer->SetMetadataItem(DESCRIPTION_KEY, value.c_str()) == CE_None &&
-                Table::checkSetProperty(key, value, domain);
-    }
-    return Table::checkSetProperty(key, value, domain);
-}
-
-bool MapInfoStoreTable::sync()
-{
-    return true;
-}
-
-FeaturePtr MapInfoStoreTable::getFeatureByRemoteId(GIntBig rid) const
-{
-    auto table = dynamic_cast<const Table*>(this);
-    return getFeatureByRemoteIdInt(table, m_storeIntLayer, rid);
-}
 
 void MapInfoStoreTable::close()
 {
@@ -321,37 +150,6 @@ MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDatasetPtr DS,
     if(m_name.empty()) {
         m_name = File::getBaseName(m_path);
     }
-
-    auto store = dynamic_cast<MapInfoDataStore*>(parent);
-    if(nullptr == store) {
-        m_storeIntLayer = store->getHashTable(storeName());
-    }
-}
-
-Properties MapInfoStoreFeatureClass::properties(const std::string &domain) const
-{
-    auto out = FeatureClass::properties(domain);
-    if(m_TABDS) {
-        out.add(STATE_KEY, getState(m_TABDS));
-        if(m_layer) {
-            out.add(DESCRIPTION_KEY, m_layer->GetMetadataItem(DESCRIPTION_KEY));
-        }
-    }
-    return out;
-}
-
-std::string MapInfoStoreFeatureClass::property(const std::string &key,
-                                               const std::string &defaultValue,
-                                               const std::string &domain) const
-{
-    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-        return getState(m_TABDS);
-    }
-    else if(m_layer && compare(key, DESCRIPTION_KEY) &&
-            compare(domain, NG_ADDITIONS_KEY)) {
-        return m_layer->GetMetadataItem(DESCRIPTION_KEY);
-    }
-    return FeatureClass::property(key, defaultValue, domain);
 }
 
 bool MapInfoStoreFeatureClass::destroy()
@@ -368,54 +166,6 @@ bool MapInfoStoreFeatureClass::destroy()
 std::string MapInfoStoreFeatureClass::storeName() const
 {
     return m_storeName;
-}
-
-bool MapInfoStoreFeatureClass::checkSetProperty(const std::string &key,
-                                                const std::string &value,
-                                                const std::string &domain)
-{
-    if(compare(key, STATE_KEY) && compare(domain, NG_ADDITIONS_KEY)) {
-
-        if(compare(value, STATE_CLOSE)) {
-            // Already closed
-            if(m_TABDS == nullptr) {
-                return true;
-            }
-            close();
-            return true;
-        }
-
-        unsigned oo = 0;
-        if(compare(value, STATE_RO)) {
-            if(DatasetBase::isReadOnly(m_TABDS)) {
-                return true;
-            }
-            oo = GDAL_OF_READONLY;
-        }
-
-        if(compare(value, STATE_RW)) {
-            if(!DatasetBase::isReadOnly(m_TABDS.get())) {
-                return true;
-            }
-            oo = GDAL_OF_UPDATE;
-        }
-
-        close();
-        m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
-            GDAL_OF_SHARED|GDAL_OF_VERBOSE_ERROR|oo, nullptr, nullptr, nullptr));
-        if(!m_TABDS) {
-            return false;
-        }
-        m_layer = m_TABDS->GetLayer(0);
-        return m_layer != nullptr &&
-                FeatureClass::checkSetProperty(key, value, domain);
-    }
-    else if(m_layer && compare(key, DESCRIPTION_KEY) &&
-            compare(domain, NG_ADDITIONS_KEY)) {
-        return m_layer->SetMetadataItem(DESCRIPTION_KEY, value.c_str()) == CE_None &&
-                FeatureClass::checkSetProperty(key, value, domain);
-    }
-    return FeatureClass::checkSetProperty(key, value, domain);
 }
 
 void MapInfoStoreFeatureClass::onRowCopied(FeaturePtr srcFeature,
@@ -447,321 +197,68 @@ void MapInfoStoreFeatureClass::onRowCopied(FeaturePtr srcFeature,
     }
 }
 
-bool MapInfoStoreFeatureClass::insertFeature(const FeaturePtr &feature,
-                                             bool logEdits)
-{
-    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
-    if(nullptr != parentDS) {
-        resetError();
-        auto hashTable = parentDS->getHashTable(storeName());
-        if(hashTable) {
-            auto hashFeature = OGRFeature::CreateFeature(hashTable->GetLayerDefn());
-            hashFeature->SetField(FEATURE_ID_FIELD, feature->GetFID());
-            hashFeature->SetField(
-                HASH_FIELD, feature.dump(FeaturePtr::DumpOutputType::HASH_STYLE).c_str());
-        }
-    }
-    return FeatureClass::insertFeature(feature, logEdits);
-}
-
-bool MapInfoStoreFeatureClass::updateFeature(const FeaturePtr &feature,
-                                             bool logEdits)
-{
-    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
-    if(nullptr != parentDS) {
-        resetError();
-        auto hashTable = parentDS->getHashTable(storeName());
-        auto hashFeature = getFeatureByLocalIdInt(hashTable, feature->GetFID());
-        if(hashFeature) {
-            hashFeature->SetField(
-                HASH_FIELD, feature.dump(FeaturePtr::DumpOutputType::HASH_STYLE).c_str());
-            if(hashTable->SetFeature(hashFeature) != OGRERR_NONE) {
-                return errorMessage("Update feature failed. Error: %s",
-                                    CPLGetLastErrorMsg());
-            }
-        }
-    }
-    return FeatureClass::updateFeature(feature, logEdits);
-}
-
-bool MapInfoStoreFeatureClass::deleteFeature(GIntBig id, bool logEdits)
-{
-    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
-    if(nullptr != parentDS) {
-        resetError();
-        auto hashTable = parentDS->getHashTable(storeName());
-        auto feature = getFeatureByLocalIdInt(hashTable, id);
-        if(feature) {
-            if(hashTable->DeleteFeature(feature->GetFID()) != OGRERR_NONE) {
-                return errorMessage("Delete feature failed. Error: %s",
-                                    CPLGetLastErrorMsg());
-            }
-        }
-    }
-    return FeatureClass::deleteFeature(id, logEdits);
-}
-
-bool MapInfoStoreFeatureClass::deleteFeatures(bool logEdits)
-{
-    MapInfoDataStore *parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
-    if(nullptr != parentDS) {
-        parentDS->clearHashTable(storeName());
-    }
-    return FeatureClass::deleteFeatures(logEdits);
-}
-
-std::vector<ngsEditOperation> MapInfoStoreFeatureClass::editOperations()
-{
-    updateHashAndEditLog();
-    return FeatureClass::editOperations();
-}
-
 bool MapInfoStoreFeatureClass::onRowsCopied(const TablePtr srcTable,
                                             const Progress &progress,
                                             const Options &options)
+
 {
-    if(m_TABDS) {
-        m_TABDS->FlushCache();
-    }
-    auto sync = options.asString(ngw::SYNC_KEY, ngw::SYNC_DISABLE);
-    if(!compare(sync, ngw::SYNC_DISABLE)) {
-        if(!setProperty(LOG_EDIT_HISTORY_KEY, "ON", NG_ADDITIONS_KEY)) {
-            return false;
-        }
-        auto resource = ngsDynamicCast(NGWResourceBase, srcTable);
-        if(nullptr == resource) {
-            resource = dynamic_cast<NGWResourceBase*>(srcTable->parent());
-            if(nullptr == resource) {
-                warningMessage(_("Not NextGIS Web resource."));
-                return true;
-            }
-        }
+    // FIXME: do we need sync here? Just start syncing on user command or timer
+    // if(m_TABDS) {
+    //     m_TABDS->FlushCache();
+    // }
+    // auto sync = options.asString(ngw::SYNC_KEY, ngw::SYNC_DISABLE);
+    // if(!compare(sync, ngw::SYNC_DISABLE)) {
+    //     if(!setProperty(LOG_EDIT_HISTORY_KEY, "ON", NG_ADDITIONS_KEY)) {
+    //         return false;
+    //     }
+    //     auto resource = ngsDynamicCast(NGWResourceBase, srcTable);
+    //     if(nullptr == resource) {
+    //         resource = dynamic_cast<NGWResourceBase*>(srcTable->parent());
+    //         if(nullptr == resource) {
+    //             warningMessage(_("Not NextGIS Web resource."));
+    //             return true;
+    //         }
+    //     }
 
 
-        // Write source table to properties
-        if(!resource->isSyncable()) {
-            warningMessage(_("Cannot sync resource %s"), srcTable->name().c_str());
-        }
-        else {
-            NGWConnection *connection =
-                    dynamic_cast<NGWConnection*>(resource->connection());
-            if(nullptr != connection) {
-                std::string syncResourceId = resource->resourceId();
-                std::string connPath = connection->fullName();
-                std::string syncAttachments = options.asString(ngw::SYNC_ATT_KEY,
-                                                               ngw::SYNC_DISABLE);
+    //     // Write source table to properties
+    //     if(!resource->isSyncable()) {
+    //         warningMessage(_("Cannot sync resource %s"), srcTable->name().c_str());
+    //     }
+    //     else {
+    //         NGWConnection *connection =
+    //                 dynamic_cast<NGWConnection*>(resource->connection());
+    //         if(nullptr != connection) {
+    //             std::string syncResourceId = resource->resourceId();
+    //             std::string connPath = connection->fullName();
+    //             std::string syncAttachments = options.asString(ngw::SYNC_ATT_KEY,
+    //                                                            ngw::SYNC_DISABLE);
 
-                setProperty(ngw::NGW_ID, syncResourceId, NG_ADDITIONS_KEY);
-                setProperty(ngw::NGW_CONNECTION, connPath, NG_ADDITIONS_KEY);
-                setProperty(ngw::SYNC_KEY, sync, NG_ADDITIONS_KEY);
-                setProperty(ngw::SYNC_ATT_KEY, syncAttachments,
-                                     NG_ADDITIONS_KEY);
-            }
-        }
+    //             setProperty(ngw::NGW_ID, syncResourceId, NG_ADDITIONS_KEY);
+    //             setProperty(ngw::NGW_CONNECTION, connPath, NG_ADDITIONS_KEY);
+    //             setProperty(ngw::SYNC_KEY, sync, NG_ADDITIONS_KEY);
+    //             setProperty(ngw::SYNC_ATT_KEY, syncAttachments,
+    //                                  NG_ADDITIONS_KEY);
+    //         }
+    //     }
 
-        return fillHash(progress, options);
-    }
-    auto logEdit = options.asBool(LOG_EDIT_HISTORY_KEY, false);
-    if(logEdit) {
-        if(!setProperty(LOG_EDIT_HISTORY_KEY, "ON", NG_ADDITIONS_KEY)) {
-            return false;
-        }
-        return fillHash(progress, options);
-    }
+    //     return fillHash(progress, options);
+    // }
+    // auto logEdit = options.asBool(LOG_EDIT_HISTORY_KEY, false);
+    // if(logEdit) {
+    //     if(!setProperty(LOG_EDIT_HISTORY_KEY, "ON", NG_ADDITIONS_KEY)) {
+    //         return false;
+    //     }
+    //     return fillHash(progress, options);
+    // }
     return FeatureClass::onRowsCopied(srcTable, progress, options);
 }
 
-bool MapInfoStoreFeatureClass::sync()
-{
-    /*
-    auto isSyncStr = property(ngw::SYNC_KEY, "OFF", NG_ADDITIONS_KEY);
-    if(!toBool(isSyncStr)) {
-        return true; // No sync
-    }*/
-
-    // TODO: Get edits from server
-
-    // Change state to open
-    auto status = getState(m_TABDS);
-    close();
-
-    if(nullptr == m_TABDS) {
-        m_TABDS = static_cast<GDALDataset*>(GDALOpenEx(m_path.c_str(),
-            GDAL_OF_INTERNAL|GDAL_OF_VERBOSE_ERROR|GDAL_OF_UPDATE, nullptr,
-            nullptr, nullptr));
-        if(nullptr == m_TABDS) {
-            return true;
-        }
-        m_layer = m_TABDS->GetLayer(0);
-    }
-
-    // Get local changes
-    auto editOperationsList = editOperations();
-
-    // Update local changes base on server changes (use server or client priority option)
-
-    // Apply server changes
-
-    for(int i = 0; i < 10; ++i) {
-        CPLSleep(1.1);
-    }
-
-    // Get local changes
-    std::vector<FeaturePtr> localChanges;
-    reset();
-    FeaturePtr feature;
-    while((feature = nextFeature())) {
-        localChanges.emplace_back(feature);
-    }
-
-    checkSetProperty(STATE_KEY, status, NG_ADDITIONS_KEY);
-
-    // Send local changes to server (may be close layer here and get changes to FeaturePtr array)
-
-    // Attachments sync
-
-    // Save last sync time
-
-    return true;
-}
-
-FeaturePtr MapInfoStoreFeatureClass::getFeatureByRemoteId(GIntBig rid) const
-{
-    auto table = dynamic_cast<const Table*>(this);
-    return getFeatureByRemoteIdInt(table, m_storeIntLayer, rid);
-}
 
 void MapInfoStoreFeatureClass::close()
 {
     m_TABDS = nullptr;
     m_layer = nullptr;
-}
-
-int MapInfoStoreFeatureClass::fillHash(const Progress &progress,
-                                        const Options &options)
-{
-    ngsUnused(options);
-    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
-    if(nullptr == parentDS) {
-        progress.onProgress(COD_CREATE_FAILED, 0.0,
-                            _("Unsupported feature class"));
-        return errorMessage(_("Unsupported feature class"));
-    }
-
-    auto hashTable  = parentDS->getHashTable(storeName());
-    if(nullptr == hashTable) {
-        hashTable = parentDS->createHashTable(storeName());
-    }
-    else {
-        parentDS->clearHashTable(storeName());
-    }
-
-    // Hash features.
-
-    emptyFields(true);
-    reset();
-    progress.onProgress(COD_IN_PROCESS, 0.0, _("Start hashing features"));
-    double counter(0.0);
-    auto featureCountVal = featureCount();
-    FeaturePtr feature;
-    while((feature = nextFeature())) {
-        double complete = counter / featureCountVal;
-        if(!progress.onProgress(COD_IN_PROCESS, complete,
-                                _("Hash in process ..."))) {
-            return  COD_CANCELED;
-        }
-        auto hash = feature.dump(FeaturePtr::DumpOutputType::HASH_STYLE);
-        FeaturePtr newFeature = OGRFeature::CreateFeature(
-                    hashTable->GetLayerDefn() );
-        newFeature->SetField(FEATURE_ID_FIELD, feature->GetFID());
-        newFeature->SetField(HASH_FIELD, hash.c_str());
-        if(hashTable->CreateFeature(newFeature) != OGRERR_NONE) {
-            putMessage(COD_INSERT_FAILED, _("Failed to create feature"));
-        }
-    }
-
-    progress.onProgress(COD_FINISHED, 1.0, _("Hashing features finished"));
-
-    emptyFields(false);
-    reset();
-
-    return true;
-}
-
-bool MapInfoStoreFeatureClass::updateHashAndEditLog()
-{
-    auto parentDS = dynamic_cast<MapInfoDataStore*>(m_parent);
-    if(nullptr == parentDS) {
-        return false; // Should never happen.
-    }
-
-    auto hashTable = parentDS->getHashTable(storeName());
-    if(nullptr == hashTable) {
-        return true; // Hash table is not exists. Should never happen.
-    }
-
-    resetError();
-
-    FeaturePtr feature;
-    hashTable->ResetReading();
-    std::vector<GIntBig> deleteIDs;
-    std::vector<GIntBig> presentIDs;
-    while((feature = hashTable->GetNextFeature())) {
-        // Check update or delete
-        auto fid = feature->GetFieldAsInteger64(FEATURE_ID_FIELD);
-        auto rid = feature->GetFieldAsInteger64(ngw::REMOTE_ID_KEY);
-        auto tabFeature = getFeature(fid);
-        // Check update
-        if(tabFeature) {
-            auto storedHash = feature->GetFieldAsString(HASH_FIELD);
-            auto currentHash = tabFeature.dump(FeaturePtr::DumpOutputType::HASH_STYLE);
-            if(!compare(storedHash, currentHash)) {
-                FeaturePtr opFeature = logEditFeature(FeaturePtr(), FeaturePtr(),
-                                                  CC_CHANGE_FEATURE);
-                opFeature->SetField(FEATURE_ID_FIELD, fid);
-                opFeature->SetField(ngw::REMOTE_ID_KEY, rid);
-
-                logEditOperation(opFeature);
-
-                // Update hash
-                feature->SetField(HASH_FIELD, currentHash.c_str());
-                if (hashTable->SetFeature(feature) != OGRERR_NONE) {
-                    warningMessage(_("Failed to save new hash for feature " CPL_FRMT_GIB),
-                                   tabFeature->GetFID());
-                }
-            }
-            presentIDs.push_back(fid);
-        }
-        else { // Feature deleted
-            deleteIDs.push_back(feature->GetFID());
-            FeaturePtr opFeature = logEditFeature(FeaturePtr(), FeaturePtr(),
-                                                  CC_DELETE_FEATURE);
-            opFeature->SetField(FEATURE_ID_FIELD, fid);
-            opFeature->SetField(ngw::REMOTE_ID_KEY, rid);
-            logEditOperation(opFeature);
-        }
-    }
-
-    for(auto deleteID : deleteIDs) {
-        if(hashTable->DeleteFeature(deleteID) != OGRERR_NONE) {
-            warningMessage("Failed delete hash table item " CPL_FRMT_GIB, deleteID);
-        }
-    }
-
-    // Check add
-    reset();
-    while((feature = nextFeature())) {
-        if(std::find(presentIDs.begin(), presentIDs.end(), feature->GetFID()) ==
-                presentIDs.end() ) {
-            // New feature added
-            FeaturePtr opFeature = logEditFeature(FeaturePtr(), FeaturePtr(),
-                                                  CC_CREATE_FEATURE);
-            opFeature->SetField(FEATURE_ID_FIELD, feature->GetFID());
-            logEditOperation(opFeature);
-        }
-    }
-
-    return true;
 }
 
 //------------------------------------------------------------------------------
@@ -844,41 +341,6 @@ bool MapInfoDataStore::upgrade(int oldVersion)
     return true;
 }
 
-OGRLayer *MapInfoDataStore::getHashTable(const std::string &name)
-{
-    if(!m_addsDS) {
-        return nullptr;
-    }
-    return m_addsDS->GetLayerByName(hashTableName(name).c_str());
-}
-
-OGRLayer *MapInfoDataStore::createHashTable(const std::string &name)
-{
-    if(!m_addsDS) {
-        createAdditionsDataset();
-    }
-
-    if(!m_addsDS) {
-        return nullptr;
-    }
-
-    return createHashTableInt(m_addsDS, hashTableName(name));
-}
-
-void MapInfoDataStore::clearHashTable(const std::string &name)
-{
-    deleteFeatures(hashTableName(name));
-}
-
-bool MapInfoDataStore::destroyHashTable(const std::string &name)
-{
-    auto layer = getHashTable(name);
-    if(!layer) {
-        return false;
-    }
-    return destroyTable(m_addsDS, layer);
-}
-
 std::string MapInfoDataStore::tempPath() const
 {
     auto tmpDir = File::formFileName(m_path, "tmp");
@@ -892,7 +354,7 @@ std::string MapInfoDataStore::tempPath() const
 
 bool MapInfoDataStore::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly()) {
+    if(!isOpened() || isReadOnly(m_DS)) {
         return false;
     }
     return type == CAT_FC_MAPINFO_TAB; // NGW cannot store plain tables now. Disable it temporary. || type == CAT_TABLE_MAPINFO_TAB;
@@ -973,26 +435,6 @@ int MapInfoDataStore::paste(ObjectPtr child, bool move, const Options &options,
         newOptions.add(DESCRIPTION_KEY, child->name());
     }
     return Dataset::paste(child, move, newOptions, progress);
-}
-
-bool MapInfoDataStore::sync()
-{
-    if(!isOpened()) {
-        if(!open()) {
-            return false;
-        }
-    }
-
-    for(const auto &child : m_children) {
-        if(nullptr != child) {
-            auto result = child->sync();
-            if(!result) {
-                return false;
-            }
-        }
-    }
-
-    return true;
 }
 
 std::string MapInfoDataStore::additionsDatasetPath() const

@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -37,7 +37,6 @@ set(HHEADERS
     geometry.h
     util.h
     ngw.h
-    featureclassovr.h
     store.h
 )
 
@@ -54,7 +53,6 @@ set(CSOURCES
     geometry.cpp
     util.cpp
     ngw.cpp
-    featureclassovr.cpp
     store.cpp
 )
 
@@ -66,15 +64,6 @@ if(DESKTOP)
         mapinfodatastore.cpp
     )
 endif()
-
-# Triangulation by MapBox
-set(HHEADERS ${HHEADERS}
-    earcut.hpp
-)
-
-set(CSOURCES ${CSOURCES}
-
-)
 
 add_library(${LIB_NAME} OBJECT ${CSOURCES} ${HHEADERS})
 

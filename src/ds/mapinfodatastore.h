@@ -28,8 +28,7 @@ namespace ngs {
 /**
  * The MapInfoDataStore class
  */
-class MapInfoDataStore : public Dataset, public SpatialDataset,
-        public StoreObjectContainer
+class MapInfoDataStore : public Dataset, public SpatialDataset
 {
     friend class MapInfoStoreFeatureClass;
     friend class MapInfoStoreTable;
@@ -75,10 +74,6 @@ public:
                       const Options &options = Options(),
                       const Progress &progress = Progress()) override;
 
-    // StoreObjectContainer interface
-public:
-    virtual bool sync() override;
-
     // Dataset interface
 protected:
     virtual std::string additionsDatasetPath() const override;
@@ -89,10 +84,6 @@ protected:
 
 protected:
     bool upgrade(int oldVersion);
-    OGRLayer *getHashTable(const std::string &name);
-    OGRLayer *createHashTable(const std::string &name);
-    void clearHashTable(const std::string &name);
-    bool destroyHashTable(const std::string &name);
     std::string tempPath() const;
 };
 
@@ -109,23 +100,14 @@ public:
     virtual ~MapInfoStoreTable() override;
 
     //Object interface
-    virtual Properties properties(const std::string &domain) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const override;
     virtual bool destroy() override;
 
     // Table interface
 protected:
     virtual std::string storeName() const override;
-    virtual bool checkSetProperty(const std::string &key,
-                                  const std::string &value,
-                                  const std::string &domain) override;
 
     // StoreObject
 public:
-    virtual bool sync() override;
-    virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
     virtual void close() override;
 
 private:
@@ -146,25 +128,11 @@ public:
                              const std::string &encoding = "CP1251");
 
     //Object interface
-    virtual Properties properties(const std::string &domain) const override;
-    virtual std::string property(const std::string &key,
-                                 const std::string &defaultValue,
-                                 const std::string &domain) const override;
     virtual bool destroy() override;
 
     // Table interface
-public:
-    virtual bool insertFeature(const FeaturePtr &feature, bool logEdits) override;
-    virtual bool updateFeature(const FeaturePtr &feature, bool logEdits) override;
-    virtual bool deleteFeature(GIntBig id, bool logEdits) override;
-    virtual bool deleteFeatures(bool logEdits) override;
-    virtual std::vector<ngsEditOperation> editOperations() override;
-    // Table interface
 protected:
     virtual std::string storeName() const override;
-    virtual bool checkSetProperty(const std::string &key,
-                                  const std::string &value,
-                                  const std::string &domain) override;
 
     // Table interface
  public:
@@ -173,10 +141,6 @@ protected:
     virtual bool onRowsCopied(const TablePtr srcTable, const Progress &progress,
                               const Options &options) override;
 
-   // StoreObject interface
-public:
-    virtual bool sync() override;
-    virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const override;
     virtual void close() override;
 
 protected:

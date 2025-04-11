@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -309,11 +309,6 @@ bool Folder::destroy()
     return ObjectContainer::destroy();
 }
 
-bool Folder::canDestroy() const
-{
-    return !isReadOnly(); // FIXME: Do we need to check parent can write too?
-}
-
 void Folder::refresh()
 {
     if(!m_childrenLoaded) {
@@ -446,16 +441,6 @@ int Folder::pasteFeatureClass(ObjectPtr child, bool move,
                           child->name().c_str());
     }
 
-    // Check function available except GPX.
-    if(dstType != CAT_FC_GPX && srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
-        const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-        if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-            return putMessage(COD_FUNCTION_NOT_AVAILABLE,
-                              _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
-                              move ? _("move") : _("copy"), srcFClass->featureCount());
-        }
-    }
-
     std::string newName = File::getBaseName(newPath);
 
     bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
@@ -549,17 +534,6 @@ int Folder::pasteRaster(ObjectPtr child, bool move, const std::string &newPath,
     if(nullptr == driver || !Filter::isFileBased(dstType)) {
         return putMessage(COD_UNSUPPORTED,
                           _("Destination type %d is not supported"), dstType);
-    }
-
-    // Check available paste rasters
-    if(srcRaster->width() > MAX_RASTERSIZE4UNSUPPORTED ||
-            srcRaster->height() > MAX_RASTERSIZE4UNSUPPORTED) {
-        const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-        if(!Account::instance().isFunctionAvailable(appName, "paste_raster")) {
-            return putMessage(COD_FUNCTION_NOT_AVAILABLE,
-                _("Cannot %s raster on your plan, or account is not authorized"),
-                move ? _("move") : _("copy"));
-        }
     }
 
     bool result = srcRaster->createCopy(newPath, options, progress);
@@ -805,4 +779,35 @@ std::string Folder::createUniquePath(const std::string &path,
     }
 }
 
+Properties Folder::properties(const std::string &domain) const
+{
+    if(domain.empty()) {
+        auto out = Object::properties(domain);
+        out.add("is_readonly", isReadOnly());
+        out.add("can_destroy", !isReadOnly());
+        out.add("can_rename", !isReadOnly());
+        return out;
+    }
+    return Object::properties(domain);
 }
+
+std::string Folder::property(const std::string &key,
+                             const std::string &defaultValue,
+                             const std::string &domain) const
+{
+    if(domain.empty()) {
+        if (compare(key, "is_readonly") ) {
+            return fromBool(isReadOnly());
+        }
+        else if (compare(key, "can_destroy") ) {
+            return fromBool(!isReadOnly());
+        }
+        else if (compare(key, "can_rename") ) {
+            return fromBool(!isReadOnly());
+        }
+    }
+
+    return Object::property(key, defaultValue, domain);
+}
+
+} // namespace ngs

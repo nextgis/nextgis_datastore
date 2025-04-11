@@ -35,20 +35,6 @@
   * useful functions
   */
 
-inline std::string ngsRGBA2HEX(const ngsRGBA &color) {
-    return CPLSPrintf("#%02x%02x%02x%02x", color.R, color.G, color.B, color.A);
-}
-
-inline ngsRGBA ngsHEX2RGBA(const std::string &color) {
-    unsigned int r, g, b, a;
-    sscanf(color.c_str(), "#%02x%02x%02x%02x", &r, &g, &b, &a);
-    ngsRGBA out = {static_cast<unsigned char>(r),
-                   static_cast<unsigned char>(g),
-                   static_cast<unsigned char>(b),
-                   static_cast<unsigned char>(a)};
-    return out;
-}
-
 #define ngsDynamicCast(type, shared) dynamic_cast<type*>(shared.get ())
 #define ngsStaticCast(type, shared) static_cast<type*>(shared.get ())
 #define ngsUnused(x) std::ignore = x

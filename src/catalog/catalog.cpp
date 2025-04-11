@@ -177,8 +177,8 @@ std::string Catalog::toRelativePath(const Object *object,
         return "";
     }
 
-    std::vector<ObjectContainer*> parents;
-    ObjectContainer *parent = object->parent();
+    std::vector<const ObjectContainer*> parents;
+    const ObjectContainer* parent = object->parent();
     if(parent == objectContainer) {
         return "." + sep + object->name();
     }

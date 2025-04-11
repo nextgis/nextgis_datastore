@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2017 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -40,6 +40,7 @@ public:
 public:
     static bool deleteFile(const std::string &path);
     static time_t modificationDate(const std::string &path);
+	static bool isReadOnly(const std::string &path);
     static GIntBig fileSize(const std::string &path);
     static bool copyFile(const std::string &src, const std::string &dst,
                          const Progress &progress = Progress());
@@ -62,8 +63,12 @@ public:
     static std::string getPath(const std::string &path);
     // Object interface
 public:
-    virtual bool destroy() override;
-    virtual bool canDestroy() const override;
+    virtual bool destroy() override;    
+    virtual bool isReadOnly() const;
+    virtual Properties properties(const std::string &domain) const override;
+    virtual std::string property(const std::string &key,
+                                 const std::string &defaultValue,
+                                 const std::string &domain) const override;
 };
 
 }

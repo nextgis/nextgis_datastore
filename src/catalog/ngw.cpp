@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2019-2020 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -86,13 +86,6 @@ static CPLJSONObject createResourcePayload(NGWResourceBase *parent,
     return payload;
 }
 
-static bool checkIsSyncable(const CPLJSONObject &resource)
-{
-    // TODO: Add vector layer support
-    auto cls = resource.GetString("resource/cls");
-    return compare(cls, "lookup_table");
-}
-
 //------------------------------------------------------------------------------
 // NGWConnectionBase
 //------------------------------------------------------------------------------
@@ -143,7 +136,8 @@ NGWResourceBase::NGWResourceBase(const CPLJSONObject &resource,
             m_resmeta[child.GetName() + osSuffix] = child.ToString();
         }
 
-        m_isSyncable = checkIsSyncable(resource);
+        m_permissions = ngw::checkPermissions(url(), m_resourceId, 
+            http::getGDALHeaders(url()), true);
     }
 }
 
@@ -164,7 +158,16 @@ Properties NGWResourceBase::metadata(const std::string &domain) const
         out.add("creation_date", m_creationDate);
         out.add("keyname", m_keyName);
         out.add("description", m_description);
-        out.add("is_syncable", m_isSyncable);
+        out.add("can_read", m_permissions.bResourceCanRead);
+        out.add("can_create", m_permissions.bResourceCanCreate);
+        out.add("can_update", m_permissions.bResourceCanUpdate);
+        out.add("can_destroy", m_permissions.bResourceCanDelete);
+        out.add("can_read_datastruct", m_permissions.bDatastructCanRead);
+        out.add("can_alter", m_permissions.bDatastructCanWrite);
+        out.add("can_read_data", m_permissions.bDataCanRead);
+        out.add("is_readonly", !m_permissions.bDataCanWrite);
+        out.add("can_read_metadata", m_permissions.bMetadataCanRead);
+        out.add("can_write_metadata", m_permissions.bMetadataCanWrite);
     }
 
     if(domain == NGW_METADATA_DOMAIN) {
@@ -183,20 +186,64 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
         if(compare(key, "url")) {
             return url() + "/resource/" + m_resourceId;
         }
-        else if(compare(key, "id")) {
+        
+        if(compare(key, "id")) {
             return m_resourceId;
         }
-        else if(compare(key, "creation_date")) {
+        
+        if(compare(key, "creation_date")) {
             return m_creationDate;
         }
-        else if(compare(key, "keyname")) {
+        
+        if(compare(key, "keyname")) {
             return m_keyName;
         }
-        else if(compare(key, "description")) {
+        
+        if(compare(key, "description")) {
             return m_description;
         }
-        else if(compare(key, "is_syncable")) {
-            return fromBool(m_isSyncable);
+        
+        if(compare(key, "can_read")) {
+            return fromBool(m_permissions.bResourceCanRead);
+        }
+        
+        if(compare(key, "can_read")) {
+            return fromBool(m_permissions.bResourceCanRead);
+        }
+        if(compare(key, "can_create")) {
+            return fromBool(m_permissions.bResourceCanCreate);
+        }
+
+        if(compare(key, "can_update")) {
+            return fromBool(m_permissions.bResourceCanUpdate);
+        }
+
+        if(compare(key, "can_destroy")) {
+            return fromBool(m_permissions.bResourceCanDelete);
+        }
+
+        if(compare(key, "can_read_datastruct")) {
+            return fromBool(m_permissions.bDatastructCanRead);
+        }
+
+        if(compare(key, "can_alter")) {
+            return fromBool(m_permissions.bDatastructCanWrite);
+        }
+
+        if(compare(key, "can_read_data")) {
+            return fromBool(m_permissions.bDataCanRead);
+        }
+
+        if(compare(key, "is_readonly")) {
+            return fromBool(!m_permissions.bDataCanWrite);
+        }
+
+        if(compare(key, "can_read_metadata")) {
+            return fromBool(!m_permissions.bMetadataCanRead);
+        }
+
+        if(compare(key, "can_write_metadata")) {
+            return fromBool(!m_permissions.bMetadataCanWrite);
         }
     }
 
@@ -206,11 +253,6 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
         }
     }
     return defaultValue;
-}
-
-bool NGWResourceBase::isSyncable() const
-{
-    return m_isSyncable;
 }
 
 CPLJSONObject NGWResourceBase::asJson() const
@@ -293,7 +335,7 @@ NGWResource::NGWResource(ObjectContainer * const parent,
 NGWResource::~NGWResource()
 {
     if(m_hasPendingChanges) {
-        sync();
+        sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     }
 }
 
@@ -306,11 +348,6 @@ bool NGWResource::destroy()
     return Object::destroy();
 }
 
-bool NGWResource::canDestroy() const
-{
-    return true; // Not check user rights here as server will report error if no access.
-}
-
 bool NGWResource::rename(const std::string &newName)
 {
     if(NGWResourceBase::changeName(newName)) {
@@ -318,11 +355,6 @@ bool NGWResource::rename(const std::string &newName)
         return true;
     }
     return false;
-}
-
-bool NGWResource::canRename() const
-{
-    return true; // Not check user rights here as server will report error if no access.
 }
 
 Properties NGWResource::properties(const std::string &domain) const
@@ -337,7 +369,8 @@ std::string NGWResource::property(const std::string &key,
     return metadataItem(key, defaultValue, domain);
 }
 
-bool NGWResource::sync()
+bool NGWResource::sync(ngsSyncMergeType type, 
+    std::vector<ngsFeatureChange> conflicts, const Progress& progress)
 {
     auto result = ngw::updateResource(url(), resourceId(),
                                       asJson().Format(CPLJSONObject::PrettyFormat::Plain),
@@ -428,72 +461,88 @@ void NGWResourceGroup::addResource(const CPLJSONObject &resource)
     std::string name = resource.GetString("resource/display_name");
 
     if(cls == "resource_group") {
-        addChild(ObjectPtr(new NGWResourceGroup(this, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResourceGroup(this, name, resource, 
+            m_connection)));
     }
     else if(cls == "trackers_group") {
-        addChild(ObjectPtr(new NGWTrackersGroup(this, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWTrackersGroup(this, name, resource, 
+            m_connection)));
     }
     else if(cls == "trackers") {
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_TRACKER, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_TRACKER, 
+            name, resource, m_connection)));
     }
     else if(cls == "postgis_connection") {
         // TODO: List DB schemes and tables if client can connect to Postgres server
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_POSTGIS_CONNECTION, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_POSTGIS_CONNECTION, 
+            name, resource, m_connection)));
     }
     else if(cls == "wmsclient_connection") {
         // TODO: List WMS layers if client can connect to WMS server
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_CONNECTION, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_CONNECTION, name, 
+            resource, m_connection)));
     }
     else if(cls == "vector_layer") {
-
-        addChild(ObjectPtr(new NGWLayerDataset(this, CAT_NGW_VECTOR_LAYER, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWLayerDataset(this, CAT_NGW_VECTOR_LAYER, name, 
+            resource, m_connection)));
     }
     else if(cls == "postgis_layer") {
-
-        addChild(ObjectPtr(new NGWLayerDataset(this, CAT_NGW_POSTGIS_LAYER, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWLayerDataset(this, CAT_NGW_POSTGIS_LAYER, name, 
+            resource, m_connection)));
     }
     else if(cls == "raster_style") {
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_RASTER_STYLE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_RASTER_STYLE, name, 
+            resource, m_connection)));
     }
     else if(cls == "basemap_layer") {
         addChild(ObjectPtr(new NGWBaseMap(this, name, resource, m_connection)));
     }
     else if(cls == "wmsclient_layer") {
         // TODO: Same as raster style
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_LAYER, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_WMS_LAYER, name, 
+            resource, m_connection)));
     }
     else if(cls == "raster_layer") {
-        addChild(ObjectPtr(new NGWRasterDataset(this, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWRasterDataset(this, name, resource, 
+            m_connection)));
     }
     else if(cls == "mapserver_style") {
-        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_MAPSERVER_STYLE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_MAPSERVER_STYLE, name, 
+            resource, m_connection)));
     }
     else if(cls == "qgis_raster_style") {
-        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_QGISRASTER_STYLE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_QGISRASTER_STYLE, name, 
+            resource, m_connection)));
     }
     else if(cls == "qgis_vector_style") {
-        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_QGISVECTOR_STYLE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWStyle(this, CAT_NGW_QGISVECTOR_STYLE, name, 
+            resource, m_connection)));
     }
     else if(cls == "formbuilder_form") {
         // TODO: Upload/download form
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FORMBUILDER_FORM, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FORMBUILDER_FORM, name, 
+            resource, m_connection)));
     }
     else if(cls == "lookup_table") {
         // TODO: Download content for fields mapping. Change content. Sync content
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_LOOKUP_TABLE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_LOOKUP_TABLE, name, 
+            resource, m_connection)));
     }
     else if(cls == "webmap") {
         addChild(ObjectPtr(new NGWWebMap(this, name, resource, m_connection)));
     }
     else if(cls == "file_bucket") {
         // TODO: Add/change/remove groups and files
-        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FILE_BUCKET, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWResource(this, CAT_NGW_FILE_BUCKET, name, 
+            resource, m_connection)));
     }
     else if(cls == "wmsserver_service") {
-        addChild(ObjectPtr(new NGWService(this, CAT_NGW_WMS_SERVICE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWService(this, CAT_NGW_WMS_SERVICE, name, 
+            resource, m_connection)));
     }
     else if(cls == "wfsserver_service") {
-        addChild(ObjectPtr(new NGWService(this, CAT_NGW_WFS_SERVICE, name, resource, m_connection)));
+        addChild(ObjectPtr(new NGWService(this, CAT_NGW_WFS_SERVICE, name, 
+            resource, m_connection)));
     }
 }
 
@@ -510,11 +559,6 @@ bool NGWResourceGroup::canCreate(const enum ngsCatalogObjectType type) const
     return m_connection->isClsSupported(ngw::objectTypeToNGWClsType(type));
 }
 
-bool NGWResourceGroup::canDestroy() const
-{
-    return true; // Not check user rights here as server will report error if no access.
-}
-
 bool NGWResourceGroup::rename(const std::string &newName)
 {
     if(NGWResourceBase::changeName(newName)) {
@@ -522,11 +566,6 @@ bool NGWResourceGroup::rename(const std::string &newName)
         return true;
     }
     return false;
-}
-
-bool NGWResourceGroup::canRename() const
-{
-    return true; // Not check user rights here as server will report error if no access.
 }
 
 Properties NGWResourceGroup::properties(const std::string &domain) const
@@ -678,15 +717,6 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
                 child->name().c_str());
         }
 
-        if(srcFClass->featureCount() > MAX_FEATURES4UNSUPPORTED) {
-            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-            if(!Account::instance().isFunctionAvailable(appName, "paste_features")) {
-                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
-                    _("Cannot %s " CPL_FRMT_GIB " features on your plan, or account is not authorized"),
-                    move ? _("move") : _("copy"), srcFClass->featureCount());
-            }
-        }
-
         bool toMulti = options.asBool("FORCE_GEOMETRY_TO_MULTI", false);
         std::shared_ptr<OGRFeatureDefn> srcDefinition(srcFClass->definition()->Clone());
         bool ogrStyleField = options.asBool("OGR_STYLE_STRING_TO_FIELD", false);
@@ -770,7 +800,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
             progressMulti.setStep(1);
             auto fullNameStr = dstFClass->fullName();
-            if(!dstFClass->sync()) {
+            if(!dstFClass->sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress())) {
                 warningMessage(_("Sync of feature class '%s' failed."),
                                fullNameStr.c_str());
             }
@@ -790,17 +820,6 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             return putMessage(move ? COD_MOVE_FAILED : COD_COPY_FAILED,
                 _("Source object '%s' report type RASTER, but it is not a raster"),
                 child->name().c_str());
-        }
-
-        // Check available paste rasters
-        if(srcRaster->width() > MAX_RASTERSIZE4UNSUPPORTED ||
-                srcRaster->height() > MAX_RASTERSIZE4UNSUPPORTED) {
-            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-            if(!Account::instance().isFunctionAvailable(appName, "paste_raster")) {
-                return putMessage(COD_FUNCTION_NOT_AVAILABLE,
-                    _("Cannot %s raster on your plan, or account is not authorized"),
-                    move ? _("move") : _("copy"));
-            }
         }
 
         std::string rasterPath = child->path();
@@ -1771,11 +1790,6 @@ bool NGWStyle::destroy()
     return Object::destroy();
 }
 
-bool NGWStyle::canDestroy() const
-{
-    return true;
-}
-
 Properties NGWStyle::properties(const std::string &domain) const
 {
     auto out = Raster::properties(domain);
@@ -1820,7 +1834,7 @@ bool NGWStyle::setProperty(const std::string &key, const std::string &value,
         else {
             m_stylePath = value;
         }
-        return sync();
+        return sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     }
 
     if(compare(key, "style_path")) {
@@ -1830,7 +1844,7 @@ bool NGWStyle::setProperty(const std::string &key, const std::string &value,
         else {
             m_stylePath = value;
         }
-        return sync();
+        return sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     }
 
     if(m_DS != nullptr) {
@@ -2782,11 +2796,6 @@ bool NGWBaseMap::destroy()
     return Object::destroy();
 }
 
-bool NGWBaseMap::canDestroy() const
-{
-    return true;
-}
-
 Properties NGWBaseMap::properties(const std::string &domain) const
 {
     auto out = Raster::properties(domain);    
@@ -2827,20 +2836,20 @@ bool NGWBaseMap::setProperty(const std::string &key, const std::string &value,
     if(compare(key, "url")) {
         m_url = value;
         m_qms.clear();
-        return sync();
+        return sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     }
 
     if(compare(key, "qms")) {
         m_qms = value;
         m_url = getUrl(m_qms);
-        return sync();
+        return sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     }
 
     if(compare(key, "qms_id")) {
         auto qmsJson = qms::QMSItemProperties(atoi(value.c_str()));
         m_qms = qmsJson.Format(CPLJSONObject::PrettyFormat::Plain);
         m_url = getUrl(m_qms);
-        return sync();
+        return sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress());
     }
 
     if(m_DS != nullptr) {

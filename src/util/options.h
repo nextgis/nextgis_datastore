@@ -52,6 +52,7 @@ public:
     void add(const std::string &key, long value);
     void add(const std::string &key, GIntBig value);
     void add(const std::string &key, bool value);
+    
     void remove(const std::string &key);
     bool empty() const;
     std::map< std::string, std::string >::const_iterator begin() const;

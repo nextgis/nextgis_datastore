@@ -26,15 +26,6 @@
 namespace ngs {
 
 /**
-  * StoreObjectContainer
-  */
-class StoreObjectContainer
-{
-public:
-    virtual ~StoreObjectContainer() = default;
-};
-
-/**
  * StoreObject
  */
 class StoreObject
@@ -43,7 +34,7 @@ public:
     StoreObject(OGRLayer *layer);
     virtual ~StoreObject() = default;
     virtual FeaturePtr getFeatureByRemoteId(GIntBig rid) const;
-    std::vector<ngsEditOperation> fillEditOperations(OGRLayer *editHistoryTable,
+    std::vector<ngsFeatureChange> fillEditOperations(OGRLayer *editHistoryTable,
                                                      Dataset *dataset) const;
     virtual std::string downloadAttachment(GIntBig fid, GIntBig aid,
                                            const Progress &progress = Progress());

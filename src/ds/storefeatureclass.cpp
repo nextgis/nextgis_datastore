@@ -27,6 +27,7 @@
 #include "catalog/ngw.h"
 #include "ngstore/version.h"
 #include "util/error.h"
+#include "util/url.h"
 #include "util.h"
 
 #ifdef WIN32
@@ -95,19 +96,10 @@ GIntBig StoreTable::addAttachment(GIntBig fid, const std::string &fileName,
     return NOT_FOUND;
 }
 
-bool StoreTable::setProperty(const std::string &key, const std::string &value,
-                                    const std::string &domain)
-{
-    checkSetProperty(key, value, domain);
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_layer->SetMetadataItem(key.c_str(),
-                                    value.c_str(), domain.c_str()) == OGRERR_NONE;
-}
-
-std::vector<ngsEditOperation> StoreTable::editOperations()
+std::vector<ngsFeatureChange> StoreTable::editOperations()
 {
     if(!initEditHistoryTable()) {
-        return std::vector<ngsEditOperation>();
+        return std::vector<ngsFeatureChange>();
     }
 
     return fillEditOperations(m_editHistoryTable, dynamic_cast<Dataset*>(m_parent));
@@ -188,19 +180,10 @@ GIntBig StoreFeatureClass::addAttachment(GIntBig fid, const std::string &fileNam
     return NOT_FOUND;
 }
 
-bool StoreFeatureClass::setProperty(const std::string &key, const std::string &value,
-                                    const std::string &domain)
-{
-    checkSetProperty(key, value, domain);
-    DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return m_layer->SetMetadataItem(key.c_str(),
-                                    value.c_str(), domain.c_str()) == OGRERR_NONE;
-}
-
-std::vector<ngsEditOperation> StoreFeatureClass::editOperations()
+std::vector<ngsFeatureChange> StoreFeatureClass::editOperations()
 {
     if(!initEditHistoryTable()) {
-        return std::vector<ngsEditOperation>();
+        return std::vector<ngsFeatureChange>();
     }
 
     return fillEditOperations(m_editHistoryTable, dynamic_cast<Dataset*>(m_parent));
@@ -309,7 +292,8 @@ static long dateFieldToLong(const FeaturePtr &feature, int field,
     return timegm(&timeInfo);
 }
 
-bool TracksTable::sync()
+bool TracksTable::sync(ngsSyncMergeType type, 
+    std::vector<ngsFeatureChange> conflicts, const Progress& progress)
 {
     MutexHolder holder(m_syncMutex); // Don't allow simultaneous syncing
     m_pointsLayer->setAttributeFilter("synced = 0");
@@ -395,7 +379,9 @@ bool TracksTable::sync()
             payload->Add(item);
 
             if(payload->Size() >= maxPointCount) {
-                if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::PrettyFormat::Plain))) {
+                if(ngw::sendTrackPoints(
+                    payload->Format(CPLJSONObject::PrettyFormat::Plain), 
+                        http::getGDALHeaders(ngw::getTrackerUrl()))) {
                     updateWhere.emplace_back(
                         fid + " >= " + std::to_string(first) + " AND " +
                         fid + " <= " + std::to_string(last));
@@ -412,7 +398,8 @@ bool TracksTable::sync()
     OGRCoordinateTransformation::DestroyCT(ct);
 
     if(payload->Size() > 0) {
-        if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::PrettyFormat::Plain))) {
+        if(ngw::sendTrackPoints(payload->Format(CPLJSONObject::PrettyFormat::Plain),
+            http::getGDALHeaders(ngw::getTrackerUrl()))) {
             updateWhere.emplace_back(
                 fid + " >= " + std::to_string(first) + " AND " +
                 fid + " <= " + std::to_string(last));
@@ -681,7 +668,7 @@ std::string TracksTable::property(const std::string &key,
                             const std::string &defaultValue,
                             const std::string &domain) const
 {
-    if(compare(NG_ADDITIONS_KEY, domain) && compare(key, "left_to_sync_points")) {
+    if(compare(NG_ADDITIONS_KEY, domain) && compare(key, "remains_to_sync_points")) {
         Dataset *dataset = dynamic_cast<Dataset*>(m_parent);
         TablePtr result = dataset->executeSQL(
                 std::string("SELECT COUNT(*) FROM ") + TRACKS_POINTS_TABLE + " WHERE synced = 0",
@@ -703,7 +690,8 @@ Properties TracksTable::properties(const std::string &domain) const
 {
     if(compare(NG_ADDITIONS_KEY, domain)) {
         Properties out = FeatureClass::properties(domain);
-        out.add("left_to_sync_points", property("left_to_sync_points", "0", NG_ADDITIONS_KEY));
+        out.add("remains_to_sync_points", property("remains_to_sync_points", "0", 
+            NG_ADDITIONS_KEY));
         return out;
     }
     else {

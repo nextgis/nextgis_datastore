@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2020 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,6 @@
 #include "catalog/file.h"
 #include "catalog/folder.h"
 #include "ngstore/catalog/filter.h"
-#include "util/geo.h"
 #include "util/error.h"
 #include "util/url.h"
 #include "util/notify.h"
@@ -31,38 +30,6 @@
 #include "util/stringutil.h"
 
 namespace ngs {
-
-//------------------------------------------------------------------------------
-// DownloadData
-//------------------------------------------------------------------------------
-constexpr unsigned short DOWNLOAD_THREAD_COUNT = 5;
-
-class DownloadData : public ThreadData {
-public:
-    DownloadData(const std::string &basePath, const std::string &url, int expires,
-                 const Tile &tile, const Options &options, bool own);
-    virtual ~DownloadData() override;
-    Tile m_tile;
-    std::string m_basePath, m_url;
-    int m_expires;
-    Options m_options;
-};
-
-DownloadData::DownloadData(const std::string &basePath, const std::string &url,
-                           int expires, const Tile &tile, const Options &options,
-                           bool own) :
-    ThreadData(own),
-    m_tile(tile),
-    m_basePath(basePath),
-    m_url(url),
-    m_expires(expires),
-    m_options(options)
-{
-}
-
-DownloadData::~DownloadData()
-{
-}
 
 //------------------------------------------------------------------------------
 // Raster
@@ -284,23 +251,41 @@ bool Raster::destroy()
                         m_type, m_path.c_str());
 }
 
-bool Raster::canDestroy() const
-{
-    return Filter::isFileBased(m_type); // NOTE: Now supported only file based raster sources
-}
-
 Properties Raster::properties(const std::string &domain) const {
     if(nullptr == m_DS) {
         return Object::properties(domain);
     }
     DatasetExecuteSQLLockHolder holder(dynamic_cast<Dataset*>(m_parent));
-    return Properties(m_DS->GetMetadata(domain.c_str()));
+    auto out = Properties(m_DS->GetMetadata(domain.c_str()));
+
+    if(domain.empty()) {
+        auto isRO = File::isReadOnly(m_path);
+        auto out = Object::properties(domain);
+        out.add("is_readonly", isRO);
+        out.add("can_destroy", !isRO);
+        out.add("can_rename", !isRO);
+    }
+
+    return out;
 }
 
 std::string Raster::property(const std::string &key,
                      const std::string &defaultValue,
                      const std::string &domain) const
 {
+    if (Filter::isFileBased(m_type) && domain.empty()) {
+        auto isRO = File::isReadOnly(m_path);
+        if (compare(key, "is_readonly") ) {
+            return fromBool(isRO);
+        }
+        else if (compare(key, "can_destroy") ) {
+            return fromBool(!isRO);
+        }
+        else if (compare(key, "can_rename") ) {
+            return fromBool(!isRO);
+        }
+    }
+
     if(nullptr == m_DS) {
         return Object::property(key, defaultValue, domain);
     }
@@ -515,134 +500,6 @@ int Raster::getBestOverview(int &xOff, int &yOff, int &xSize, int &ySize,
                                          xSize, ySize, bufXSize, bufYSize, nullptr);
 }
 
-static CPLLock *hLock = nullptr;
-
-bool Raster::cacheAreaJobThreadFunc(ThreadData* threadData)
-{
-    auto data = dynamic_cast<DownloadData*>(threadData);
-    if(nullptr == data) {
-        return true;
-    }
-
-    CPLString url(data->m_url);
-    url = url.replaceAll("${x}", std::to_string(data->m_tile.x));
-    url = url.replaceAll("${y}", std::to_string(data->m_tile.y));
-    url = url.replaceAll("${z}", std::to_string(data->m_tile.z));
-
-    std::string fileName = sha256(url);
-    std::string dirPath = CPLSPrintf("%c/%c", fileName[0], fileName[1]);
-    std::string path = File::formFileName(data->m_basePath, dirPath, "");
-
-    if(!Folder::isExists(path)) {
-        CPLLockHolderD(&hLock, LOCK_RECURSIVE_MUTEX)
-
-        if(!Folder::mkDir(path, true)) {
-            return false;
-        }
-    }
-
-    path = File::formFileName(path, fileName, "");
-    File::modificationDate(path);
-    if(time(nullptr) - File::modificationDate(path) < data->m_expires) {
-        return true;
-    }
-
-    // Download tile and save it to cache
-    http::ngsURLRequestResultPtr result = http::httpFetch(url, Progress(), data->m_options);
-    if(!result || result->status != 0) {
-        return false;
-    }
-
-    bool out = File::writeFile(path, result->data,
-                               static_cast<size_t>(result->dataLen));
-    return out;
-}
-
-bool Raster::cacheArea(const Options &options, const Progress &progress)
-{
-    if(!isOpened()) {
-        putMessage(COD_UNSUPPORTED, "Raster must be opened.");
-        return false;
-    }
-    if(m_type != CAT_RASTER_TMS) {
-        putMessage(COD_UNSUPPORTED, "Unsupported type of raster. Mast be web based like TMS, WMS, etc.");
-        return false;
-    }
-
-    double minX = options.asDouble("MINX", DEFAULT_BOUNDS.minX());
-    double minY = options.asDouble("MINY", DEFAULT_BOUNDS.minY());
-    double maxX = options.asDouble("MAXX", DEFAULT_BOUNDS.maxX());
-    double maxY = options.asDouble("MAXY", DEFAULT_BOUNDS.maxY());
-    Envelope extent(minX, minY, maxX, maxY);
-
-    std::set<unsigned char> zoomLevels;
-
-    const std::string zoomLevelListStr = options.asString("ZOOM_LEVELS", "");
-    char **zoomLevelArray = CSLTokenizeString2(zoomLevelListStr.c_str(), ",", 0);
-    if(nullptr != zoomLevelArray) {
-        int i = 0;
-        const char *zoomLevel;
-        while((zoomLevel = zoomLevelArray[i++]) != nullptr) {
-            zoomLevels.insert(static_cast<unsigned char>(std::stoi(zoomLevel)));
-        }
-        CSLDestroy(zoomLevelArray);
-    }
-
-    if(zoomLevels.empty()) {
-        putMessage(COD_UNSUPPORTED, _("Zoom level list is empty."));
-        return false;
-    }
-
-    Options loadOptions(options);
-    loadOptions.remove("MINX");
-    loadOptions.remove("MINY");
-    loadOptions.remove("MAXX");
-    loadOptions.remove("MAXY");
-    loadOptions.remove("ZOOM_LEVELS");
-
-    // Get cache path
-    std::string basePath = fromCString(m_DS->GetMetadataItem("CACHE_PATH"));
-    std::string url = fromCString(m_DS->GetMetadataItem("TMS_URL"));
-    const char *strExpires = m_DS->GetMetadataItem("TMS_CACHE_EXPIRES");
-    int expires = std::stoi(strExpires == nullptr ? "0" : strExpires);
-
-    bool reverseY = false;
-    if(compare(fromCString(m_DS->GetMetadataItem("TMS_Y_ORIGIN_TOP")), "top")) {
-        reverseY = true;
-    }
-
-    // Get tiles list
-    progress.onProgress(COD_IN_PROCESS, 0.0, _("Start download area..."));
-
-    // Multithreaded thread pool
-    CPLDebug("ngstore", "cache area");
-
-    ThreadPool threadPool;
-    threadPool.init(DOWNLOAD_THREAD_COUNT, cacheAreaJobThreadFunc, 3, true);
-
-    for(auto zoomLevel : zoomLevels) {
-        std::vector<TileItem> items =
-                getTilesForExtent(extent, zoomLevel, reverseY, true);
-
-        for(auto item : items) {
-            threadPool.addThreadData(new DownloadData(basePath, url, expires,
-                                                      item.tile, loadOptions,
-                                                      true));
-        }
-    }
-
-    threadPool.waitComplete(progress);
-    threadPool.clearThreadData();
-
-    if(threadPool.isFailed()) {
-        progress.onProgress(COD_GET_FAILED, 1.0, _("Download area failed"));
-        return false;
-    }
-    progress.onProgress(COD_FINISHED, 1.0, _("Finish download area"));
-
-    CPLDebug("ngstore", "finish cache area");
-    return true;
-}
 
 bool Raster::createCopy(const std::string &outPath,
                         const Options &options, const Progress &progress)

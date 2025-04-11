@@ -52,8 +52,6 @@ namespace ngs {
 constexpr const char *STORE_EXT = "ngst"; // NextGIS Store
 constexpr int STORE_EXT_LEN = length(STORE_EXT);
 
-// Overviews
-constexpr const char *OVR_SUFFIX = "overviews";
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -303,6 +301,12 @@ void DataStore::close()
     m_tracksTable = nullptr;
 }
 
+int DataStore::paste(ObjectPtr child, bool move, const Options &options,
+                    const Progress &progress) {
+    // TODO: Save NGW ID and connection identifier in properties
+    return Dataset::paste(child, move, options, progress);
+}
+
 bool DataStore::setProperty(const std::string &key, const std::string &value,
                             const std::string &domain)
 {
@@ -312,7 +316,7 @@ bool DataStore::setProperty(const std::string &key, const std::string &value,
 
 bool DataStore::canCreate(const enum ngsCatalogObjectType type) const
 {
-    if(!isOpened() || isReadOnly()) {
+    if(!isOpened() || toBool(property("is_readonly", "YES", ""))) {
         return false;
     }
     return type == CAT_FC_GPKG || type == CAT_TABLE_GPKG;
@@ -728,122 +732,5 @@ bool DataStore::destroyTracksTable()
     }
     return false;
 }
-
-
-OGRLayer *DataStore::createOverviewsTable(const std::string &name)
-{
-    if(!m_addsDS) {
-        createAdditionsDataset();
-    }
-
-    if(!m_addsDS)
-        return nullptr;
-
-    return createOverviewsTable(m_addsDS, overviewsTableName(name));
-}
-
-bool DataStore::createOverviewsTableIndex(const std::string &name)
-{
-    if(!m_addsDS)
-        return false;
-
-    return createOverviewsTableIndex(m_addsDS, overviewsTableName(name));
-}
-
-bool DataStore::dropOverviewsTableIndex(const std::string &name)
-{
-    if(!m_addsDS)
-        return false;
-
-    return dropOverviewsTableIndex(m_addsDS, overviewsTableName(name));
-}
-
-std::string DataStore::overviewsTableName(const std::string &name) const
-{
-    return NG_PREFIX + name + "_" + OVR_SUFFIX;
-}
-
-bool DataStore::createOverviewsTableIndex(GDALDataset *ds, const std::string &name)
-{
-    ds->ExecuteSQL(CPLSPrintf("CREATE INDEX IF NOT EXISTS %s_idx on %s (%s, %s, %s)",
-                              name.c_str(), name.c_str(), OVR_X_KEY, OVR_Y_KEY,
-                              OVR_ZOOM_KEY), nullptr, nullptr);
-    return true;
-}
-
-bool DataStore::dropOverviewsTableIndex(GDALDataset *ds, const std::string &name)
-{
-    ds->ExecuteSQL(CPLSPrintf("DROP INDEX IF EXISTS %s_idx", name.c_str()),
-                   nullptr, nullptr);
-    return true;
-}
-
-bool DataStore::sync()
-{
-    if(isOpened()) {
-        return false;
-    }
-
-    for(const auto &child : m_children) {
-        if(nullptr != child) {
-            auto result = child->sync();
-            if(!result) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool DataStore::destroyOverviewsTable(const std::string &name)
-{
-    if(!m_addsDS)
-        return false;
-
-    OGRLayer *layer = m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
-    if(!layer)
-        return false;
-    return destroyTable(m_DS, layer);
-}
-
-bool DataStore::clearOverviewsTable(const std::string &name)
-{
-    return deleteFeatures(overviewsTableName(name));
-}
-
-OGRLayer *DataStore::getOverviewsTable(const std::string &name)
-{
-    if(!m_addsDS)
-        return nullptr;
-
-    return m_addsDS->GetLayerByName(overviewsTableName(name).c_str());
-}
-
-
-OGRLayer *DataStore::createOverviewsTable(GDALDataset *ds, const std::string &name)
-{
-    OGRLayer *ovrLayer = ds->CreateLayer(name.c_str(), nullptr, wkbNone, nullptr);
-    if (nullptr == ovrLayer) {
-        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    OGRFieldDefn xField(OVR_X_KEY, OFTInteger);
-    OGRFieldDefn yField(OVR_Y_KEY, OFTInteger);
-    OGRFieldDefn zField(OVR_ZOOM_KEY, OFTInteger);
-    OGRFieldDefn tileField(OVR_TILE_KEY, OFTBinary);
-
-    if(ovrLayer->CreateField(&xField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&yField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&zField) != OGRERR_NONE ||
-       ovrLayer->CreateField(&tileField) != OGRERR_NONE) {
-        putMessage(COD_CREATE_FAILED, CPLGetLastErrorMsg());
-        return nullptr;
-    }
-
-    return ovrLayer;
-}
-
 
 } // namespace ngs

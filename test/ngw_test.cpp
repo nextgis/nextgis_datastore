@@ -307,7 +307,8 @@ TEST(NGWTests, TestAttachments) {
     EXPECT_EQ(ngsFeatureAttachmentUpdate(feature, id, "notest.txt",
                                       "test update attachment", 0), 1);
 
-    EXPECT_EQ(ngsCatalogObjectSync(vectorLayer), 1);
+    EXPECT_EQ(ngsCatalogObjectSync(vectorLayer, SMT_UNKNOWN, nullptr, nullptr, 
+      nullptr), 1);
 
     EXPECT_EQ(ngsFeatureAttachmentDelete(feature, id, 0), 1);
 
@@ -525,7 +526,8 @@ TEST(NGWTests, TestCreateWebMap) {
 
     ngsNGWWebmapGroupInfoFree(webMapGroup);
 
-    EXPECT_EQ(ngsCatalogObjectSync(webMap), 1);
+    EXPECT_EQ(ngsCatalogObjectSync(webMap, SMT_UNKNOWN, nullptr, nullptr, 
+      nullptr), 1);
 
     auto tree = ngsNGWWebMapLayerTree(webMap);
     ASSERT_NE(tree, nullptr);
@@ -583,7 +585,8 @@ TEST(NGWTests, TestCreateWebService) {
 
     ASSERT_NE(wmsService, nullptr);
     EXPECT_EQ(ngsNGWServiceAddLayer(wmsService, "layer1", "layer 1", style), 1);
-    EXPECT_EQ(ngsCatalogObjectSync(wmsService), 1);
+    EXPECT_EQ(ngsCatalogObjectSync(wmsService, SMT_UNKNOWN, nullptr, nullptr, 
+      nullptr), 1);
 
     // WFS
     // Create WFS service
@@ -597,7 +600,8 @@ TEST(NGWTests, TestCreateWebService) {
     ASSERT_NE(wfsService, nullptr);
 
     EXPECT_EQ(ngsNGWServiceAddLayer(wfsService, "layer1", "layer 1", vectorLayer), 1);
-    EXPECT_EQ(ngsCatalogObjectSync(wfsService), 1);
+    EXPECT_EQ(ngsCatalogObjectSync(wfsService, SMT_UNKNOWN, nullptr, nullptr, 
+      nullptr), 1);
 
     // Delete service
     EXPECT_EQ(ngsCatalogObjectDelete(wfsService), COD_SUCCESS);

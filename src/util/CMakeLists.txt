@@ -38,7 +38,6 @@ set(HHEADERS
     url.h
     mutex.h
     account.h
-    geo.h
 )
 
 set(CSOURCES
@@ -55,7 +54,6 @@ set(CSOURCES
     url.cpp
     mutex.cpp
     account.cpp
-    geo.cpp
 )
 
 set_property(SOURCE url.cpp APPEND_STRING PROPERTY CMAKE_CXX_FLAGS " -Wdisabled-macro-expansion ")

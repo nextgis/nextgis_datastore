@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -72,7 +72,7 @@ TEST(DataStoreTests, TestCreateDataStore) {
         std::cout << count << ". " << catalogPath << "/" <<  pathInfo[count].name << '\n';
         count++;
     }
-    EXPECT_GE(count, 3);
+    EXPECT_GE(count, 2); // At least connections and storage
     ngsFree(pathInfo);
     ngsUnInit();
 }
@@ -134,8 +134,10 @@ TEST(DataStoreTests, TestLoadDataStoreZippedShapefile) {
 
     ngsFeatureClassBatchMode(store, 1);
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
-                                   ngsTestProgressFunc, nullptr), COD_FUNCTION_NOT_AVAILABLE);
-
+                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
+    EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
+                                   ngsTestProgressFunc, nullptr), 
+                                   COD_FUNCTION_NOT_AVAILABLE);
     shapePath = catalogPath + "/data/railway-mini.zip/railway-mini.shp";
     shape = ngsCatalogObjectGet(shapePath.c_str());
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
@@ -158,7 +160,6 @@ TEST(DataStoreTests, TestLoadAndDelete) {
     CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
 
     char **options = nullptr;
-    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "ON");
     options = ngsListAddNameValue(options, "NEW_NAME", "delete_me");
 
     EXPECT_EQ(ngsCatalogObjectCopy(shape, store, options,
@@ -168,18 +169,6 @@ TEST(DataStoreTests, TestLoadAndDelete) {
 
     CatalogObjectH newFC1 = ngsCatalogObjectGet(CPLString(storePath + "/delete_me"));
     EXPECT_NE(newFC1, nullptr);
-
-    // TODO: Move overview to map
-    /*
-    resetCounter();
-    options = nullptr;
-    options = ngsListAddNameValue(options, "FORCE", "ON");
-    options = ngsListAddNameValue(options, "ZOOM_LEVELS",
-                              "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
-    EXPECT_EQ(ngsFeatureClassCreateOverviews(newFC1, options, ngsTestProgressFunc, nullptr), COD_SUCCESS);
-    EXPECT_GE(getCounter(), 1);
-    ngsListFree(options);
-    */
 
     EXPECT_GE(ngsFeatureClassCount(newFC1), 1);
 
@@ -377,7 +366,7 @@ TEST(DataStoreTests, TestCreateFeature) {
     ASSERT_GE(counter, 1);
     ngsFree(list);
 
-    ngsEditOperation *ops = ngsFeatureClassGetEditOperations(featureClass);
+    ngsFeatureChange *ops = ngsFeatureClassGetEditOperations(featureClass);
     ASSERT_NE(ops, nullptr);
     counter = 0;
     bool hasCreate = false;

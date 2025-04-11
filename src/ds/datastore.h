@@ -32,10 +32,8 @@ constexpr const char *TRACKS_TABLE = "nga_tracks";
  * @brief The storage and manipulation class for raster and vector spatial data
  * and attachments
  */
-class DataStore : public Dataset, public SpatialDataset,
-        public StoreObjectContainer
+class DataStore : public Dataset, public SpatialDataset
 {
-    friend class FeatureClassOverview;
 public:
     explicit DataStore(ObjectContainer * const parent = nullptr,
               const std::string &name = "",
@@ -71,6 +69,9 @@ public:
                                const Options &options = Options(),
                                const Progress &progress = Progress()) override;
     virtual void close() override;
+    virtual int paste(ObjectPtr child, bool move = false,
+                    const Options &options = Options(),
+                    const Progress &progress = Progress()) override; 
 
     // Dataset interface
 protected:
@@ -89,18 +90,6 @@ public:
                         const std::string& name,
                         const Options &options) override;
 
-    // static
-protected:
-    static OGRLayer *createOverviewsTable(GDALDataset *ds,
-                                          const std::string &name);
-    static bool createOverviewsTableIndex(GDALDataset *ds,
-                                          const std::string &name);
-    static bool dropOverviewsTableIndex(GDALDataset *ds,
-                                        const std::string &name);
-    // StoreObjectContainer interface
-public:
-    virtual bool sync() override;
-
 protected:
     virtual bool isNameValid(const std::string &name) const override;
     virtual std::string normalizeFieldName(const std::string &name,
@@ -108,14 +97,6 @@ protected:
                                            int counter = 0) const override;
     virtual void fillFeatureClasses() const override;
     bool createTracksTable();
-
-    virtual OGRLayer *createOverviewsTable(const std::string &name);
-    virtual bool destroyOverviewsTable(const std::string &name);
-    virtual bool clearOverviewsTable(const std::string &name);
-    virtual OGRLayer *getOverviewsTable(const std::string &name);
-    virtual bool createOverviewsTableIndex(const std::string &name);
-    virtual bool dropOverviewsTableIndex(const std::string &name);
-    virtual std::string overviewsTableName(const std::string &name) const;
 
 protected:
     void enableJournal(bool enable);

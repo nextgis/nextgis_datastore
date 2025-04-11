@@ -481,7 +481,7 @@ void ngsListFree(char **list)
  * @param path A parent path
  * @param name A file name
  * @param extension A file extension
- * @param catalog If catalog path 1 els 0
+ * @param catalog If catalog path 1 else 0
  * @return The new path string
  */
 const char *ngsFormFileName(const char *path, const char *name,
@@ -1349,7 +1349,7 @@ int ngsCatalogObjectDelete(CatalogObjectH object)
     }
 
     // Check can delete
-    if(catalogObject->canDestroy()) {
+    if(toBool(catalogObject->property("can_destroy", "NO", ""))) {
         return catalogObject->destroy() ? COD_SUCCESS : COD_DELETE_FAILED;
     }
     return putMessage(COD_UNSUPPORTED,
@@ -1487,13 +1487,13 @@ int ngsCatalogObjectCopy(CatalogObjectH srcObject,
     bool move = copyOptions.asBool("MOVE", false);
     copyOptions.remove("MOVE");
 
-    if(move && !srcCatalogObjectPointer->canDestroy()) {
+    if(move && !toBool(srcCatalogObjectPointer->property("can_destroy", "NO", ""))) {
         return putMessage(COD_MOVE_FAILED,
                           _("Cannot move source dataset '%s'"),
                           srcCatalogObjectPointer->fullName().c_str());
     }
 
-    // If dataset - let's open it.
+    // If dataset not oppened - let's open it.
     DatasetBase *datasetBase = dynamic_cast<DatasetBase*>(dstCatalogObjectContainer);
     if(datasetBase && !datasetBase->isOpened()) {
         datasetBase->open(DatasetBase::defaultOpenFlags);
@@ -1523,7 +1523,7 @@ int ngsCatalogObjectRename(CatalogObjectH object, const char *newName)
     if(!catalogObject) {
         return putMessage(COD_INVALID, _("The object handle is null"));
     }
-    if(!catalogObject->canRename()) {
+    if(!toBool(catalogObject->property("can_rename", "NO", ""))) {
         return putMessage(COD_RENAME_FAILED,
                           _("Cannot rename catalog object '%s' to '%s'"),
                           catalogObject->fullName().c_str(), newName);
@@ -1948,9 +1948,17 @@ char ngsCatalogObjectClose(CatalogObjectH object)
 /**
  * @brief ngsCatalogObjectSync Flush pending changes to disk and/or sync local and remote changes.
  * @param object Handle to catalog object.
+ * @param type enum ngsSyncMergeType merge type.
+ * @param conflicts Conflicts array. User must free array as it allocated in function.
+ * @param callback Progress function (template is ngsProgressFunc) executed
+ * periodically to report progress and cancel. If returns 1 the execution will
+ * continue, 0 - cancelled. May be null.
+ * @param callbackData Progress function parameter. May be null.
  * @return 1 on success else 0.
  */
-char ngsCatalogObjectSync(CatalogObjectH object)
+char ngsCatalogObjectSync(CatalogObjectH object, ngsSyncMergeType type, 
+    ngsFeatureChange **conflicts, ngsProgressFunc callback,
+    void *callbackData)
 {
     auto catalogObject = static_cast<Object*>(object);
     if(!catalogObject) {
@@ -1958,7 +1966,23 @@ char ngsCatalogObjectSync(CatalogObjectH object)
         return API_FALSE;
     }
 
-    return catalogObject->sync() ? API_TRUE : API_FALSE;
+    Progress syncProgress(callback, callbackData);
+    std::vector<ngsFeatureChange> syncConflicts;
+    bool out = catalogObject->sync(type, syncConflicts, syncProgress);
+
+    int size = syncConflicts.size() + 1;
+
+    ngsFeatureChange *pConflicts = static_cast<ngsFeatureChange *>(ngsMalloc(sizeof(ngsFeatureChange) * size));
+
+    int counter = 0;
+    for(const auto&  syncConflict : syncConflicts) {
+        pConflicts[counter++] = syncConflict;
+    }
+    pConflicts[counter++] = {-1, -1, CC_NOP, -1, -1};
+
+    conflicts = &pConflicts;
+
+    return out ? API_TRUE : API_FALSE;
 }
 
 /**
@@ -2007,31 +2031,6 @@ ngsGeometryType ngsFeatureClassGeometryType(CatalogObjectH object)
         return wkbUnknown;
     }
     return featureClass->geometryType();
-}
-
-/**
- * @brief ngsFeatureClassCreateOverviews Creates Gl optimized vector tiles
- * @param object Catalog object handle. Must be feature class or simple datasource.
- * @param options The options key-value array specific to operation.
- * @param callback Progress function (template is ngsProgressFunc) executed
- * periodically to report progress and cancel. If returns 1 the execution will
- * continue, 0 - cancelled. May be null.
- * @param callbackData Progress function parameter. May be null.
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsFeatureClassCreateOverviews(CatalogObjectH object, char **options,
-                                   ngsProgressFunc callback, void *callbackData)
-{
-    FeatureClassOverview *featureClass = dynamic_cast<FeatureClassOverview*>(
-                getFeatureClassFromHandle(object));
-    if(!featureClass) {
-        return COD_INVALID;
-    }
-
-    Options createOptions(options);
-    Progress createProgress(callback, callbackData);
-    return featureClass->createOverviews(createProgress, createOptions) ?
-                COD_SUCCESS : COD_CREATE_FAILED;
 }
 
 
@@ -2268,7 +2267,7 @@ int ngsFeatureClassSetSpatialFilter(CatalogObjectH object, double minX,
 }
 
 int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
-                                       ngsEditOperation operation)
+                                       ngsFeatureChange operation)
 {
     Table *table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -2280,7 +2279,7 @@ int ngsFeatureClassDeleteEditOperation(CatalogObjectH object,
     return COD_SUCCESS;
 }
 
-ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object)
+ngsFeatureChange *ngsFeatureClassGetEditOperations(CatalogObjectH object)
 {
     auto table = getTableFromHandle(object);
     if(nullptr == table) {
@@ -2288,8 +2287,8 @@ ngsEditOperation *ngsFeatureClassGetEditOperations(CatalogObjectH object)
     }
 
     auto operations = table->editOperations();
-    ngsEditOperation *out = static_cast<ngsEditOperation*>(
-                CPLMalloc((operations.size() + 1) * sizeof(ngsEditOperation)));
+    ngsFeatureChange *out = static_cast<ngsFeatureChange*>(
+                CPLMalloc((operations.size() + 1) * sizeof(ngsFeatureChange)));
     int counter = 0;
     for(const auto &op : operations) {
         out[counter++] = op;
@@ -2675,40 +2674,6 @@ char ngsFeatureAttachmentUpdate(FeatureH feature, POINTER_SIZE aid,
         fromCString(description), logEdits == 1) ? API_TRUE : API_FALSE;
 }
 
-//------------------------------------------------------------------------------
-// Raster
-//------------------------------------------------------------------------------
-
-/**
- * @brief ngsRasterCacheArea Download tiles for zoom levels and area
- * @param object Raster to download tiles
- * @param options Key=value list of options.
- * - MINX - minimum X coordinate of bounding box
- * - MINY - minimum Y coordinate of bounding box
- * - MAXX - maximum X coordinate of bounding box
- * - MAXY - maximum Y coordinate of bounding box
- * - ZOOM_LEVELS - comma separated values of zoom levels
- * @param callback Progress function (template is ngsProgressFunc) executed
- * periodically to report progress and cancel. If returns 1 the execution will
- * continue, 0 - cancelled. May be null.
- * @param callbackData Progress function parameter. May be null.
- * @return ngsCode value - COD_SUCCESS if everything is OK
- */
-int ngsRasterCacheArea(CatalogObjectH object, char** options,
-                       ngsProgressFunc callback, void* callbackData)
-{
-    Raster *raster = getRasterFromHandle(object);
-    if(!raster) {
-        return putMessage(COD_INVALID, _("Source dataset type is incompatible"));
-    }
-
-    Options createOptions(options);
-    Progress createProgress(callback, callbackData);
-
-    return raster->cacheArea(createOptions, createProgress) ?
-                COD_SUCCESS : COD_CREATE_FAILED;
-}
-
 /**
  * @brief ngsQMSQuery Query QuickMapServices for specific geoservices
  * @param options key-value list. All keys are optional. Available keys are:
@@ -2902,42 +2867,42 @@ NGS_EXTERNC ngsNGWTeamInfo **ngsAccountGetTeams()
     if (teams.empty())
         return NULL;
 
-    ngsNGWTeamInfo **ngwTeams = static_cast<ngsNGWTeamInfo **>(ngsMalloc(sizeof(ngsNGWTeamInfo *) * teams.size()));
+    ngsNGWTeamInfo *ngwTeams = 
+    static_cast<ngsNGWTeamInfo *>(ngsMalloc(sizeof(ngsNGWTeamInfo) * teams.size()));
 
     int i = 0;
     for (const auto &team : teams)
     {
-        ngsNGWTeamInfo *ngwTeamInfo = static_cast<ngsNGWTeamInfo *>(ngsMalloc(sizeof(ngsNGWTeamInfo)));
-        ngwTeamInfo->id = storeCString(team.id);
-        ngwTeamInfo->ownerId = storeCString(team.ownerId);
-        ngwTeamInfo->webgis = storeCString(team.webgis);
-        ngwTeamInfo->startDate = storeCString(team.startDate);
-        ngwTeamInfo->endDate = storeCString(team.endDate);
+        ngsNGWTeamInfo ngwTeamInfo;
+        ngwTeamInfo.id = storeCString(team.id);
+        ngwTeamInfo.ownerId = storeCString(team.ownerId);
+        ngwTeamInfo.webgis = storeCString(team.webgis);
+        ngwTeamInfo.startDate = storeCString(team.startDate);
+        ngwTeamInfo.endDate = storeCString(team.endDate);
 
-        ngwTeamInfo->usersSize = team.users.size();
+        ngwTeamInfo.usersSize = team.users.size();
 
-        if (ngwTeamInfo->usersSize > 0) {
-            ngwTeamInfo->users = static_cast<ngsNGWUserInfo **>(ngsMalloc(
-                    sizeof(ngsNGWUserInfo *) * team.users.size()));
+        if (ngwTeamInfo.usersSize > 0) {
+            *ngwTeamInfo.users = static_cast<ngsNGWUserInfo *>(ngsMalloc(
+                    sizeof(ngsNGWUserInfo) * team.users.size()));
 
             int j = 0;
             for (const auto &user: team.users) {
-                ngsNGWUserInfo *ngwUserInfo = static_cast<ngsNGWUserInfo *>(ngsMalloc(
-                        sizeof(ngsNGWUserInfo)));
-                ngwUserInfo->firstName = storeCString(user.firstName);
-                ngwUserInfo->lastName = storeCString(user.lastName);
-                ngwUserInfo->username = storeCString(user.username);
-                ngwUserInfo->guid = storeCString(user.guid);
-                ngwUserInfo->locale = storeCString(user.locale);
+                ngsNGWUserInfo ngwUserInfo;
+                ngwUserInfo.firstName = storeCString(user.firstName);
+                ngwUserInfo.lastName = storeCString(user.lastName);
+                ngwUserInfo.username = storeCString(user.username);
+                ngwUserInfo.guid = storeCString(user.guid);
+                ngwUserInfo.locale = storeCString(user.locale);
 
-                ngwTeamInfo->users[j++] = ngwUserInfo;
+                *ngwTeamInfo.users[j++] = ngwUserInfo;
             }
         }
 
         ngwTeams[i++] = ngwTeamInfo;
     }
 
-    return ngwTeams;
+    return &ngwTeams;
 }
 
 NGS_EXTERNC int ngsAccountGetTeamsSize()

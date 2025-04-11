@@ -24,8 +24,9 @@
 // gdal
 #include "ogrsf_frmts.h"
 
+
+#include "ngstore/api.h"
 #include "catalog/object.h"
-#include "ngstore/codes.h"
 
 #include "util/mutex.h"
 #include "util/options.h"
@@ -164,14 +165,14 @@ public:
     OGRLayer *attachmentsTable(bool init = false) const;
 
     // Edit log
-    virtual void deleteEditOperation(const ngsEditOperation &op);
-    virtual std::vector<ngsEditOperation> editOperations();
+    virtual void deleteEditOperation(const ngsFeatureChange &op);
+    virtual std::vector<ngsFeatureChange> editOperations();
 
-    virtual bool sync() override;
+    virtual bool sync(ngsSyncMergeType type, 
+        std::vector<ngsFeatureChange> conflicts, const Progress& progress) override;
 
     // Object interface
 public:
-    virtual bool canDestroy() const override;
     virtual bool destroy() override;
     virtual Properties properties(const std::string &domain) const override;
     virtual std::string property(const std::string &key,
@@ -195,8 +196,6 @@ protected:
     virtual void logEditOperation(const FeaturePtr &opFeature);
     virtual FeaturePtr logEditFeature(FeaturePtr feature, FeaturePtr attachFeature,
                                       enum ngsChangeCode code);
-    virtual bool checkSetProperty(const std::string &key, const std::string &value,
-                                  const std::string &domain);
     virtual std::string fullPropertyDomain(const std::string &domain) const;
     virtual std::string storeName() const;
     // Events
@@ -217,5 +216,6 @@ protected:
     Mutex m_featureMutex;
 };
 
-}
+} // namespace ngs
+
 #endif // NGSTABLE_H

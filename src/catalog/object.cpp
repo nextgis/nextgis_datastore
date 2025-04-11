@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2018 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -82,19 +82,9 @@ bool Object::destroy()
     return true;
 }
 
-bool Object::canDestroy() const
-{
-    return false;
-}
-
 bool Object::rename(const std::string &newName)
 {
     ngsUnused(newName);
-    return false;
-}
-
-bool Object::canRename() const
-{
     return false;
 }
 
@@ -108,6 +98,10 @@ Properties Object::properties(const std::string &domain) const
     if(domain.empty()) {
         Properties out;
         out.add("system_path", m_path);
+        out.add("can_destroy", false);
+        out.add("can_rename", false);
+        out.add("can_sync", false);
+        out.add("is_readonly", true);
         return out;
     }
     return Properties();
@@ -117,8 +111,22 @@ std::string Object::property(const std::string &key,
                              const std::string &defaultValue,
                              const std::string &domain) const
 {
-    if(domain.empty() && compare(key, "system_path") ) {
-        return m_path;
+    if(domain.empty()) {
+        if (compare(key, "system_path") ) {
+            return m_path;
+        }
+        else if (compare(key, "can_destroy") ) {
+            return "NO";
+        }
+        else if (compare(key, "can_rename") ) {
+            return "NO";
+        }
+        else if (compare(key, "can_sync") ) {
+            return "NO";
+        }
+        else if (compare(key, "is_readonly") ) {
+            return "YES";
+        }
     }
     return defaultValue;
 }
@@ -139,9 +147,13 @@ void Object::deleteProperties(const std::string &domain)
 
 /**
  * @brief Object::sync. Sync changes to disk or remote server.
+ * @param [in] type Merging type
+ * @param [out] conflicts Syncing conflicts array
+ * @param [in] progress Progress of syncing operation
  * @return true on success.
  */
-bool Object::sync()
+bool Object::sync(ngsSyncMergeType type, 
+    std::vector<ngsFeatureChange> conflicts, const Progress& progress)
 {
     return true;
 }

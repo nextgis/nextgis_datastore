@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualization support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -85,16 +85,6 @@ TEST(BasicTests, TestVersions) {
     std::cout << "Available formats:\n" << formats << std::endl;
 
     ngsUnInit();
-}
-
-TEST(BasicTests, TestInlines) {
-    ngsRGBA color = {254, 253, 252, 251};
-    CPLString hexColor = ngsRGBA2HEX(color);
-    ngsRGBA newColor = ngsHEX2RGBA(hexColor);
-    EXPECT_EQ(color.R, newColor.R);
-    EXPECT_EQ(color.G, newColor.G);
-    EXPECT_EQ(color.B, newColor.B);
-    EXPECT_EQ(color.A, newColor.A);
 }
 
 TEST(CatalogTests, TestCatalogQuery) {
@@ -214,55 +204,6 @@ TEST(CatalogTests, TestCreate) {
         ASSERT_NE(val, nullptr);
         EXPECT_EQ(EQUAL(val, "555"), 1);
     }
-
-    ngsUnInit();
-}
-
-TEST(CatalogTests, TestAreaDownload) {
-    initLib();
-    auto path = ngsFormFileName(ngsGetCurrentDirectory(), "tmp", nullptr, 0);
-	auto catalogPath = ngsCatalogPathFromSystem(path);
-    ASSERT_STRNE(catalogPath, "");
-    CatalogObjectH catalog = ngsCatalogObjectGet(catalogPath);
-
-    char **options = nullptr;
-    options = ngsListAddNameIntValue(options, "TYPE", CAT_RASTER_TMS);
-    options = ngsListAddNameValue(options, "CREATE_UNIQUE", "ON");
-    options = ngsListAddNameValue(options, "url", "http://bing.com/maps/default.aspx?cp={x}~{y}&lvl={z}&style=r");
-    // options = ngsListAddNameValue(options, "url", "http://tile.openstreetmap.org/{z}/{x}/{y}.png");
-    options = ngsListAddNameValue(options, "epsg", "3857");
-    options = ngsListAddNameValue(options, "z_min", "0");
-    options = ngsListAddNameValue(options, "z_max", "19");
-    options = ngsListAddNameValue(options, "cache_expires", "300");
-
-    EXPECT_NE(ngsCatalogObjectCreate(catalog, "cache_test.wconn", options),
-              nullptr);
-
-    ngsListFree(options);
-    options = nullptr;
-
-    // Test metadata
-	auto osmPath = ngsFormFileName(catalogPath, "cache_test.wconn", nullptr, 1);
-    CatalogObjectH osmRaster = ngsCatalogObjectGet(osmPath);
-    EXPECT_EQ(ngsCatalogObjectOpen(osmRaster, nullptr), 1);
-    char **metadata = ngsCatalogObjectProperties(osmRaster, "");
-    if(metadata != nullptr) {
-        auto val = CSLFetchNameValue(metadata, "TMS_CACHE_EXPIRES");
-        ASSERT_NE(val, nullptr);
-        EXPECT_EQ(EQUAL(val, "300"), 1);
-    }
-
-    // Download area
-    options = ngsListAddNameValue(options, "MINX", "4183837.05");
-    options = ngsListAddNameValue(options, "MINY", "7505200.05");
-    options = ngsListAddNameValue(options, "MAXX", "4192825.05");
-    options = ngsListAddNameValue(options, "MAXY", "7513067.05");
-    options = ngsListAddNameValue(options, "ZOOM_LEVELS", "8,9");
-
-    EXPECT_EQ(ngsRasterCacheArea(osmRaster, options, nullptr, nullptr),
-              COD_SUCCESS);
-    ngsListFree(options);
-    options = nullptr;
 
     ngsUnInit();
 }

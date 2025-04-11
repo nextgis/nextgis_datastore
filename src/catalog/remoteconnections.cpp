@@ -3,7 +3,7 @@
  * Purpose: NextGIS store and visualization support library
  * Author:  Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2019 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2019-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -76,12 +76,6 @@ bool Connections::loadChildren()
 
     return true;
 }
-
-bool Connections::canDestroy() const
-{
-    return false;
-}
-
 
 void Connections::refresh()
 {
@@ -306,6 +300,7 @@ ObjectPtr DatabaseConnections::create(const enum ngsCatalogObjectType type,
     // TODO:
     return ObjectPtr();
 }
+
 
 //--------------------------------------------------------------------------------------------------
 // ConnectionBase

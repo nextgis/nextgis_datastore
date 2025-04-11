@@ -55,7 +55,6 @@ public:
     virtual bool canCreate(const enum ngsCatalogObjectType type) const override;
     virtual ObjectPtr create(const enum ngsCatalogObjectType type,
         const std::string &name, const Options &options) override;
-    virtual bool isReadOnly() const override;
 
     // Dataset
 protected:

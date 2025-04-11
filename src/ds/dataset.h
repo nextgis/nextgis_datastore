@@ -54,7 +54,6 @@ constexpr int USER_PREFIX_KEY_LEN = length(USER_PREFIX_KEY);
 constexpr const char *NGS_VERSION_KEY = "version";
 
 constexpr const char *METADATA_TABLE_NAME = "nga_meta";
-constexpr const char *STATE_KEY = "state";
 
 /**
  * @brief The wrapper class around GDALDataset pointer
@@ -149,7 +148,6 @@ public:
     // Object interface
 public:
     virtual bool destroy() override;
-    virtual bool canDestroy() const override;
     virtual Properties properties(const std::string &domain) const override;
     virtual std::string property(const std::string &key,
                                  const std::string &defaultValue,
@@ -157,10 +155,11 @@ public:
     virtual bool setProperty(const std::string &key, const std::string &value,
                              const std::string &domain) override;
     virtual void deleteProperties(const std::string &domain) override;
+    virtual bool sync(ngsSyncMergeType type, 
+        std::vector<ngsFeatureChange> conflicts, const Progress& progress) override;
 
     // ObjectContainer interface
 public:
-    virtual bool isReadOnly() const override;
     virtual int paste(ObjectPtr child, bool move = false,
                       const Options &options = Options(),
                       const Progress &progress = Progress()) override;
