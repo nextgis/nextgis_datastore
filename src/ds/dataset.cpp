@@ -1178,6 +1178,7 @@ OGRLayer *Dataset::createAttachmentsTable(const std::string &name)
     createAdditionsDataset();
 
     if(!m_addsDS) {
+        errorMessage(_("Failed create additions dataset"));
         return nullptr;
     }
 

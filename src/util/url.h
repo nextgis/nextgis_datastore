@@ -76,6 +76,8 @@ Options getGDALHeaders(const std::string &url);
 CPLJSONObject uploadFile(const std::string &url, const std::string &filePath,
                          const Progress &progress = Progress(),
                          const Options &options = Options());
+bool pushFetchCallback();
+bool popFetchCallback();                         
 } // namespace http
  
 } // namespace ngs

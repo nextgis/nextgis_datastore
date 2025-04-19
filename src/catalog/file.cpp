@@ -117,7 +117,7 @@ bool File::copyFile(const std::string &src, const std::string &dst, const Progre
         size_t read = VSIFReadL(buffer, 1, BUFFER_SIZE, fpOld);
         size_t written = VSIFWriteL(buffer, 1, read, fpNew);
         if(written != read) {
-            errorMessage("Copying of %s to %s failed", src.c_str(), dst.c_str());
+            errorMessage(_("Copying of %s to %s failed"), src.c_str(), dst.c_str());
             ret = false;
             break;
         }

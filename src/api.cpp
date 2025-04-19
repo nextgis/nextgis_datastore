@@ -120,7 +120,7 @@ static void initGDAL(const char *dataPath, const char *cachePath)
     GDALAllRegister();
 #endif
 
-    CPLHTTPSetAuthHeaderCallback(authHeaderCallback);
+    http::pushFetchCallback();
 }
 
 static Mutex gMutex;
@@ -283,7 +283,7 @@ int ngsInit(char **options)
  */
 void ngsUnInit()
 {
-    CPLHTTPSetAuthHeaderCallback(nullptr);
+    http::popFetchCallback();
     Catalog::setInstance(nullptr);
     GDALDestroyDriverManager();
 }
@@ -2571,7 +2571,7 @@ POINTER_SIZE ngsFeatureAttachmentAdd(FeatureH feature, const char *name,
                                   const char *description, const char *path,
                                   char **options, char logEdits)
 {
-    FeaturePtr *featurePtrPointer = static_cast<FeaturePtr*>(feature);
+    auto featurePtrPointer = static_cast<FeaturePtr*>(feature);
     if(!featurePtrPointer) {
         errorMessage(_("The object handle is null"));
         return NOT_FOUND;

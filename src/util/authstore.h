@@ -72,7 +72,7 @@ private:
     std::map<std::string, IHTTPAuthPtr> m_auths;
 };
 
-std::string authHeaderCallback(const char* pszURL);
+// std::string authHeaderCallback(const char* pszURL);
 
 } // namespace ngs
 

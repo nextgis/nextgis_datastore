@@ -26,15 +26,16 @@
 #include "api_priv.h"
 #include "util/error.h"
 #include "util/notify.h"
+#include "util/url.h"
 
 namespace ngs {
 
-std::string authHeaderCallback(const char* pszURL)
-{
-    if (!pszURL)
-        return std::string();
-    return AuthStore::authHeader(std::string(pszURL));
-};
+// std::string authHeaderCallback(const char* pszURL)
+// {
+//     if (!pszURL)
+//         return std::string();
+//     return AuthStore::authHeader(std::string(pszURL));
+// };
 
 /**
  * @brief The HTTPAuthBasic class Basic HTTP authorisation.
@@ -130,34 +131,28 @@ std::string HTTPAuthBearer::header()
     }
 
     // 2. Try to update token
-    CPLStringList requestOptions;
-    requestOptions.AddNameValue("CUSTOMREQUEST", "POST");
-    requestOptions.AddNameValue("POSTFIELDS",
+    Options requestOptions;
+    requestOptions.add("CUSTOMREQUEST", "POST");
+    requestOptions.add("POSTFIELDS",
                                 CPLSPrintf("grant_type=refresh_token&client_id=%s&refresh_token=%s",
                                            m_clientId.c_str(),
                                            m_updateToken.c_str()));
 
-    CPLHTTPSetAuthHeaderCallback(nullptr);
+    http::ngsURLRequestResultPtr result = http::httpFetch(m_tokenServer, Progress(), 
+        requestOptions);
 
-    CPLHTTPResult *result = CPLHTTPFetch(m_tokenServer.c_str(), requestOptions);
-
-    CPLHTTPSetAuthHeaderCallback(authHeaderCallback);
-
-    if(result->nStatus != 0 || result->pszErrBuf != nullptr) {
-        CPLHTTPDestroyResult( result );
+    if(result->status != 0 || result->data != nullptr) {
         CPLDebug("ngstore", "Failed to refresh token. Return last not expired. Url: %s",
                  m_url.c_str());
         return "Authorization: Bearer " + m_accessToken;
     }
 
     CPLJSONDocument resultJson;
-    if(!resultJson.LoadMemory(result->pabyData, result->nDataLen)) {
-        CPLHTTPDestroyResult( result );
+    if(!resultJson.LoadMemory(result->data, result->dataLen)) {
         CPLDebug("ngstore", "Token is expired. Url: %s", m_url.c_str());
         Notify::instance().onNotify(m_url, CC_TOKEN_EXPIRED);
         return "expired";
     }
-    CPLHTTPDestroyResult( result );
 
     // 4. Save new update and access tokens
     CPLJSONObject root = resultJson.GetRoot();

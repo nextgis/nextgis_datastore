@@ -68,13 +68,13 @@ static Options openOptions(const std::string &userpwd, const Options &options)
        out.add("USERPWD", userpwd);
    }
    if(!options.hasKey("PAGE_SIZE")) {
-       out.add("PAGE_SIZE", settings.getString("NGW_PAGE_SIZE", "50"));
+       out.add("PAGE_SIZE", settings.getLong("NGW_PAGE_SIZE", 50));
    }
    if(!options.hasKey("BATCH_SIZE")) {
-       out.add("BATCH_SIZE", settings.getString("NGW_BATCH_SIZE", "100"));
+       out.add("BATCH_SIZE", settings.getLong("NGW_BATCH_SIZE", 100));
    }
    if(!options.hasKey("NATIVE_DATA")) {
-       out.add("NATIVE_DATA", "YES");
+       out.add("NATIVE_DATA", true);
    }
    return out;
 }
@@ -590,33 +590,11 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     auto url = resourceBase->url();
     auto resourceId = resourceBase->resourceId();
     auto uploadInfo = http::uploadFile(ngw::getUploadUrl(url), filePath);
-    // {"upload_meta": [{"id": "9226e604-cdbe-4719-842b-d180970100c7", "name": "96.qml", "mime_type": "application/octet-stream", "size": 1401}]}
     auto uploadMetaArray = uploadInfo.GetArray("upload_meta");
     auto uploadMeta = uploadMetaArray[0];
     auto size = uploadMeta.GetLong("size");
     auto id = uploadMeta.GetString("id");
     auto mime = uploadMeta.GetString("mime_type");
-
-//    "attachment": [
-//        {
-//            "id": 4,
-//            "name": "49.qml",
-//            "size": 12349,
-//            "mime_type": "application/octet-stream",
-//            "description": "qqq",
-//            "is_image": false
-//        },
-//        {
-//            "name": "96.qml",
-//            "size": 1401,
-//            "mime_type": "application/octet-stream",
-//            "file_upload": {
-//                "id": "9226e604-cdbe-4719-842b-d180970100c7",
-//                "size": 1401
-//            }
-//        }
-//    ]
-
     auto featureId = std::to_string(feature->GetFID());
 
     CPLJSONObject newAttachment;
@@ -655,8 +633,14 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     attachments.Add(attachment);
     auto nativeDataStr = root.Format(CPLJSONObject::PrettyFormat::Plain);
 
+    // Debug
+    auto poLayerDefn = m_layer->GetLayerDefn();
+    OGRFieldDefn *poFieldDefn = poLayerDefn->GetFieldDefn(0);
+    CPLDebug("testing", "Field 0 comment %s", poFieldDefn->GetComment().c_str());
+
     feature->SetNativeData(nativeDataStr.c_str());
     if(m_layer->SetFeature(feature) != OGRERR_NONE) {
+        errorMessage(CPLGetLastErrorMsg());
         return NOT_FOUND;
     }
 

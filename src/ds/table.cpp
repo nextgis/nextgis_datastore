@@ -558,6 +558,7 @@ bool Table::initAttachmentsTable() const
 
     Dataset* parentDS = dynamic_cast<Dataset*>(m_parent);
     if(nullptr == parentDS) {
+        errorMessage(_("Failed get parent dataset"));
         return false;
     }
 

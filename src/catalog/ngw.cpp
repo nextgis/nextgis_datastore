@@ -1434,13 +1434,13 @@ static bool isResourceTypeLayer(NGWResourceBase *resource) {
 static bool isResourceTypeForService(enum ngsCatalogObjectType type,
                                      NGWResourceBase *resource) {
     if(type == CAT_NGW_WFS_SERVICE && !isResourceTypeLayer(resource)) {
-        return errorMessage("Unsupported layer source. Expected vector layer or PostGIS layer, got %d",
+        return errorMessage(_("Unsupported layer source. Expected vector layer or PostGIS layer, got %d"),
                             type);
     }
 
     if(type == CAT_NGW_WMS_SERVICE &&
             !isResourceTypeStyle(resource)) {
-        return errorMessage("Unsupported layer source. Expected style or WMS layer, got %d",
+        return errorMessage(_("Unsupported layer source. Expected style or WMS layer, got %d"),
                             type);
     }
     return true;

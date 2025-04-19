@@ -198,7 +198,7 @@ namespace ngs
                     std::string errorMessageStr = root.GetString("message");
                     if (!errorMessageStr.empty())
                     {
-                        errorMessage("%s", errorMessageStr.c_str());
+                        errorMessage(errorMessageStr.c_str());
                         return;
                     }
                 }
@@ -254,11 +254,11 @@ namespace ngs
                     std::string errorMessageStr = root.GetString("message");
                     if (errorMessageStr.empty())
                     {
-                        errorMessage("%s", _("Create resource failed. No error message from server."));
+                        errorMessage(_("Create resource failed. No error message from server."));
                     }
                     else
                     {
-                        errorMessage("%s", errorMessageStr.c_str());
+                        errorMessage(errorMessageStr.c_str());
                     }
                 }
             }
@@ -347,7 +347,7 @@ namespace ngs
         bool renameResource(const std::string &baseUrl, const std::string &resourceId,
                             const std::string &newName, const Options &httpOptions)
         {
-            CPLErrorReset();
+            resetError();
             CPLJSONObject payload;
             CPLJSONObject resource("resource", payload);
             resource.Add("display_name", newName);
@@ -430,11 +430,11 @@ namespace ngs
                     std::string errorMessageStr = root.GetString("message");
                     if (errorMessageStr.empty())
                     {
-                        errorMessage("%s", _("Create attachment failed. No error message from server."));
+                        errorMessage(_("Create attachment failed. No error message from server."));
                     }
                     else
                     {
-                        errorMessage("%s", errorMessageStr.c_str());
+                        errorMessage(errorMessageStr.c_str());
                     }
                 }
             }
@@ -447,7 +447,7 @@ namespace ngs
                                      bool defaultReadWrite)
         {
             Permissions out;
-            CPLErrorReset();
+            resetError();
             CPLJSONDocument permissionReq;
             bool bResult = permissionReq.LoadUrl(getPermisionsUrl(url, resourceId),
                                                  httpOptions.asStringList());
@@ -476,14 +476,14 @@ namespace ngs
                     std::string osErrorMessage = root.GetString("message");
                     if (osErrorMessage.empty())
                     {
-                        osErrorMessage = "Get permissions failed";
+                        osErrorMessage = _("Get permissions failed");
                     }
-                    CPLError(CE_Failure, CPLE_AppDefined, "%s", osErrorMessage.c_str());
+                    errorMessage(osErrorMessage.c_str());
                 }
             }
             else
             {
-                CPLError(CE_Failure, CPLE_AppDefined, "Get permissions failed");
+                errorMessage(_("Get permissions failed"));
             }
 
             return out;
