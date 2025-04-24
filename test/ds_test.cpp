@@ -480,48 +480,6 @@ TEST(DataStoreTest, TestTracksTable) {
     ngsUnInit();
 }
 
-/* TODO: Return test back for mobile rendering lib
-TEST(DataStoreTest, TestCreateVectorOverviews) {
-    char** options = nullptr;
-    options = ngsListAddNameValue(options, "DEBUG_MODE", "ON");
-    options = ngsListAddNameValue(options, "SETTINGS_DIR",
-                              ngsFormFileName(ngsGetCurrentDirectory(), "tmp",
-                                              nullptr));
-    EXPECT_EQ(ngsInit(options), COD_SUCCESS);
-
-    ngsListFree(options);
-    CPLString testPath = ngsGetCurrentDirectory();
-    CPLString catalogPath = ngsCatalogPathFromSystem(testPath);
-    CPLString storePath = catalogPath + "/tmp";
-    CPLString shapePath = catalogPath + "/data/bld.shp";
-    CatalogObjectH store = ngsCatalogObjectGet(storePath);
-    CatalogObjectH shape = ngsCatalogObjectGet(shapePath);
-
-    // Copy bld.shp to tmp folder
-    ASSERT_EQ(ngsCatalogObjectCopy(shape, store, nullptr,
-                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
-    // Create overviews
-    options = nullptr;
-    options = ngsListAddNameValue(options, "FORCE", "ON");
-    options = ngsListAddNameValue(options, "ZOOM_LEVELS",
-                              "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20");
-
-    CPLString cpdShapePath = catalogPath + "/tmp/bld.shp";
-    CatalogObjectH cpdShape = ngsCatalogObjectGet(cpdShapePath);
-    counter = 0;
-    EXPECT_EQ(ngsFeatureClassCreateOverviews(cpdShape, options,
-                                   ngsTestProgressFunc, nullptr), COD_SUCCESS);
-    ngsListFree(options);
-    EXPECT_GE(counter, 1);
-
-    // Check db exists
-    VSIStatBufL sbuf;
-    CPLString path = testPath + "/tmp/bld.ngadds";
-
-    EXPECT_EQ(VSIStatL(path, &sbuf), 0);
-}
-*/
-
 TEST(DataStoreTest, TestCreateMemoryDatasource) {
 	initLib();
     char **options = nullptr;

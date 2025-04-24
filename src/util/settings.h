@@ -59,6 +59,7 @@ public:
     std::string getString(const std::string &path, const std::string &defaultVal) const;
 
     // settings
+    void init();
     bool save();
 
 private:
@@ -66,7 +67,6 @@ private:
     ~Settings();
     Settings(Settings const&) = delete;
     Settings &operator= (Settings const&) = delete;
-    void init();
 
 private:
     CPLJSONDocument m_settings;

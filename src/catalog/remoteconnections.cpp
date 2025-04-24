@@ -188,28 +188,8 @@ bool GISServerConnections::canCreate(const enum ngsCatalogObjectType type) const
     switch (type) {
     case CAT_CONTAINER_WFS:
     case CAT_CONTAINER_WMS:
-        return true;
     case CAT_CONTAINER_NGW:
-    {
-        int counter = 0;
-        for (const auto &child : m_children) {
-            if(child->type() == type) {
-                counter++;
-            }
-
-            if(counter > 1) {
-                break;
-            }
-        }
-
-        if(counter > 1) {
-            const char *appName = CPLGetConfigOption("APP_NAME", "ngstore");
-            if(!Account::instance().isFunctionAvailable(appName, "create_ngw_connection")) {
-                return errorMessage(_("Cannot create more than 1 NextGIS Web connection on your plan, or account is not authorized"));
-            }
-        }
         return true;
-    }
     default:
         return false;
     }
@@ -297,7 +277,7 @@ ObjectPtr DatabaseConnections::create(const enum ngsCatalogObjectType type,
     ngsUnused(name);
     ngsUnused(options);
 
-    // TODO:
+    // TODO: Add create PG Connection
     return ObjectPtr();
 }
 

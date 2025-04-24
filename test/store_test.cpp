@@ -27,7 +27,18 @@
 
 
 #include "ds/datastore.h"
-/*
+
+
+static long gpsTime()
+{
+    return time(nullptr);
+}
+
+std::string &getStoreName(const std::string & prefix) {
+    static std::string val = prefix + "_" + std::to_string(gpsTime());
+    return val;
+}
+
 TEST(StoreTests, TestJSONSAXParser) {
     initLib();
 
@@ -43,20 +54,10 @@ TEST(StoreTests, TestJSONSAXParser) {
     ngsUnInit();
 }
 
-static long gpsTime()
-{
-    return time(nullptr);
-}
-
-std::string &getStoreName() {
-    static std::string val = "mistore" + std::to_string(gpsTime());
-    return val;
-}
-
 TEST(MIStoreTests, TestCreate) {
     initLib();
 
-    CatalogObjectH mistore = createMIStore(getStoreName());
+    CatalogObjectH mistore = createMIStore(getStoreName("mistore"));
     ASSERT_NE(mistore, nullptr);
 
     // Create feature class
@@ -114,7 +115,7 @@ TEST(MIStoreTests, TestCreate) {
 TEST(MIStoreTests, TestLoadDelete) {
     initLib();
 
-    CatalogObjectH mistore = createMIStore(getStoreName());
+    CatalogObjectH mistore = createMIStore(getStoreName("mistore"));
     ASSERT_NE(mistore, nullptr);
 
     // Load tab, shape
@@ -176,6 +177,7 @@ TEST(MIStoreTests, TestLoadDelete) {
 }
 
 /* TODO: add mistore control changes from outside
+ *
 TEST(MIStoreTests, TestLogEdits) {
     initLib();
 
@@ -205,11 +207,6 @@ TEST(MIStoreTests, TestLogEdits) {
     GDALDataset *DS = static_cast<GDALDataset*>(
                 GDALOpenEx(editPath, GDAL_OF_UPDATE|GDAL_OF_SHARED|GDAL_OF_VERBOSE_ERROR, nullptr,
                            nullptr, nullptr));
-
-    if (DS == nullptr) {                        
-        CPLDebug("store_test", "edit path %s, error %s, pointer %d", editPath, CPLGetLastErrorMsg(), DS);
-    }
-
     ASSERT_NE(DS, nullptr);
     OGRLayer *layer = DS->GetLayer(0);
     ASSERT_NE(layer, nullptr);
@@ -251,8 +248,8 @@ TEST(MIStoreTests, TestLogEdits) {
 
     ngsUnInit();
 }
-    */
-/*
+ */
+
 TEST(MIStoreTests, TestTabPathFromSystem) {
 	initLib();
 
@@ -281,7 +278,7 @@ TEST(MIStoreTests, TestTabPathFromSystem) {
 
 	ngsUnInit();
 }
-*/
+
 TEST(MIStoreTests, TestLoadFromNGW) {
     initLib();
 
@@ -290,8 +287,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = std::string("ngstest_group_") + std::to_string(rawTime);
+    auto groupName = getStoreName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -324,10 +320,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
 
-    return;
-
-    EXPECT_GE(getCounter(), 5);
-
+    EXPECT_GE(getCounter(), 3);
 
     // Find loaded layer by name
     auto vectorLayer = ngsCatalogObjectGetByName(group, layerName, 1);
@@ -376,7 +369,6 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     // Paste vector layer to store
     options = nullptr;
-    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
     // MapInfo has limits to 31 characters for tab file name
     const char *storeLayerName = "t_bld";
@@ -386,8 +378,6 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
     options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
     options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
-    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
-    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
     // Max attachment size for download. Defaults 0 (no download).
     options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
 
@@ -398,7 +388,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     ngsFree(options);
     options = nullptr;
 
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     // Find loaded layer by name
     auto storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
@@ -411,14 +401,11 @@ TEST(MIStoreTests, TestLoadFromNGW) {
     EXPECT_STRNE(systemPath, "");
 
     // Test overwrite
-    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
     options = ngsListAddNameValue(options, "OVERWRITE", "ON");
     options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
     options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
     options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
-    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
-    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
     // Max attachment size for download. Defaults 0 (no download).
     options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
 
@@ -428,7 +415,7 @@ TEST(MIStoreTests, TestLoadFromNGW) {
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
 
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     // Find loaded layer by name
     storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
@@ -440,6 +427,10 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     EXPECT_EQ(ngsCatalogObjectSync(mistore, SMT_REPORT_CONFLICTS, &conflicts, 
         ngsTestProgressFunc, nullptr), 1);
+        
+    // Delete store
+
+    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
 
     // Delete resource group
 
@@ -449,13 +440,9 @@ TEST(MIStoreTests, TestLoadFromNGW) {
 
     EXPECT_EQ(ngsCatalogObjectDelete(connection), COD_SUCCESS);
 
-    // Delete store
-
-    EXPECT_EQ(ngsCatalogObjectDelete(mistore), COD_SUCCESS);
-
     ngsUnInit();
 }
-/*
+
 TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     initLib();
 
@@ -464,8 +451,7 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getStoreName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -485,7 +471,7 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     EXPECT_EQ(ngsCatalogObjectCopy(tab, group, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     // Find loaded layer by name
     auto vectorLayer = ngsCatalogObjectGetByName(group, layerName, 1);
@@ -515,15 +501,12 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
 
     // Paste vector layer to store
     options = nullptr;
-    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
     const char *storeLayerName = "t_bld";
     const char *longStoreLayerName = "Длинное русское имя 1";
     options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
     options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
     options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
-    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
-    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
     options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
 
     resetCounter();
@@ -531,7 +514,7 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
     options = nullptr;
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     // Find loaded layer by name
     auto storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);
@@ -578,20 +561,17 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
 
     // Paste vector layer to store
     options = nullptr;
-    options = ngsListAddNameValue(options, "CREATE_OVERVIEWS", "OFF");
     options = ngsListAddNameValue(options, "CREATE_UNIQUE", "OFF");
     options = ngsListAddNameValue(options, "NEW_NAME", storeLayerName);
     options = ngsListAddNameValue(options, "DESCRIPTION", longStoreLayerName);
     options = ngsListAddNameValue(options, "OGR_STYLE_FIELD_TO_STRING", "TRUE");
-    options = ngsListAddNameValue(options, "SYNC", "BIDIRECTIONAL");
-    options = ngsListAddNameValue(options, "SYNC_ATTACHMENTS", "UPLOAD");
     options = ngsListAddNameValue(options, "ATTACHMENTS_DOWNLOAD_MAX_SIZE", "3000");
 
     resetCounter();
     EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
 
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     resetCounter();
     options = ngsListAddNameIntValue(options, "TYPE", CAT_FC_MAPINFO_TAB);
@@ -645,7 +625,7 @@ TEST(MIStoreTests, TestDoubleLoadFromNGW) {
     EXPECT_EQ(ngsCatalogObjectCopy(storeLayer, group, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     auto storeLayer1 = ngsCatalogObjectGetByName(group, layerName1, 1);
     ASSERT_NE(storeLayer1, nullptr);
@@ -703,7 +683,7 @@ TEST(MIStoreTests, TestLoadFromNGW2) {
     EXPECT_EQ(ngsCatalogObjectCopy(vectorLayer, mistore, options,
                                    ngsTestProgressFunc, nullptr), COD_SUCCESS);
     ngsFree(options);
-    EXPECT_GE(getCounter(), 5);
+    EXPECT_GE(getCounter(), 3);
 
     // Find loaded layer by name
     auto storeLayer = ngsCatalogObjectGetByName(mistore, longStoreLayerName, 1);

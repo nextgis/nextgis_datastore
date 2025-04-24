@@ -150,6 +150,7 @@ MapInfoStoreFeatureClass::MapInfoStoreFeatureClass(GDALDatasetPtr DS,
     if(m_name.empty()) {
         m_name = File::getBaseName(m_path);
     }
+    CPLDebug("testing", "MapInfoStoreFeatureClass - %s / %s", m_path.c_str(), m_name.c_str());
 }
 
 bool MapInfoStoreFeatureClass::destroy()

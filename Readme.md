@@ -98,6 +98,11 @@ Need to fix a bug or add a feature to NextGIS Datastore? We provide custom
 development and support for this software.
 [Contact us](http://nextgis.ru/en/contact/) to discuss options!
 
+
+## GDAL from sources
+
+cmake -DGDAL_ENABLE_DRIVER_NGW=ON -DGDAL_ENABLE_DRIVER_WMS=ON -DGDAL_ENABLE_DRIVER_RAW=ON -DGDAL_ENABLE_DRIVER_JPEG=ON -DGDAL_ENABLE_DRIVER_PNG=ON -DOGR_ENABLE_DRIVER_NGW=ON -DOGR_ENABLE_DRIVER_TAB=ON -DOGR_ENABLE_DRIVER_RAW=ON -DOGR_ENABLE_DRIVER_GPKG=ON -DOGR_ENABLE_DRIVER_MEM=ON -DOGR_ENABLE_DRIVER_GPX=ON -DOGR_ENABLE_DRIVER_WFS=ON .. 
+
 ## Configure
 
 > mkdir build

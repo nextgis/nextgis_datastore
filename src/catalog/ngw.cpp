@@ -677,6 +677,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
         errorMessage(_("Failed to create unique name."));
         return COD_LOAD_FAILED;
     }
+
     if(move) {
         progress.onProgress(COD_IN_PROCESS, 0.0,
                         _("Move '%s' to '%s'"), newName.c_str(), m_name.c_str());
@@ -769,6 +770,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
             if(nullptr == dstDS) {
                 return move ? COD_MOVE_FAILED : COD_COPY_FAILED;
             }
+
             auto dstFClass = ngsDynamicCast(NGWFeatureClass, dstDS->internalObject());
             if(nullptr == dstFClass) {
                 delete dstDS;
@@ -800,6 +802,7 @@ int NGWResourceGroup::paste(ObjectPtr child, bool move, const Options &options,
 
             progressMulti.setStep(1);
             auto fullNameStr = dstFClass->fullName();
+
             if(!dstFClass->sync(SMT_CLIENT_PRIORITY, std::vector<ngsFeatureChange>(), Progress())) {
                 warningMessage(_("Sync of feature class '%s' failed."),
                                fullNameStr.c_str());
@@ -1118,7 +1121,6 @@ bool NGWConnection::loadChildren()
 
                     int counter = 15;
                     while(!noParentResources.empty()) {
-                        CPLDebug("--", "counter %d, size: %ld", counter, noParentResources.size());
                         auto it = noParentResources.begin();
                         while(it != noParentResources.end()) {
                             ObjectPtr parent;
@@ -1224,6 +1226,11 @@ Properties NGWConnection::properties(const std::string &domain) const
     Properties out = ObjectContainer::properties(domain);
     if(domain.empty()) {
         fillProperties();
+        auto isRO = File::isReadOnly(m_path);
+        out.add("is_readonly", isRO);
+        out.add("can_destroy", !isRO);
+        out.add("can_rename", !isRO);
+
         out.add("url", m_url);
         out.add("login", m_user);
         out.add("is_guest", fromBool(m_isGuest || compare(m_user, "guest")));
@@ -1249,6 +1256,17 @@ std::string NGWConnection::property(const std::string &key,
 
         if(compare(key, "is_guest")) {
             return fromBool(m_isGuest || compare(m_user, "guest"));
+        }
+
+        auto isRO = File::isReadOnly(m_path);
+        if (compare(key, "is_readonly") ) {
+            return fromBool(isRO);
+        }
+        if (compare(key, "can_destroy") ) {
+            return fromBool(!isRO);
+        }
+        if (compare(key, "can_rename") ) {
+            return fromBool(!isRO);
         }
 
         auto out = NGWResourceBase::metadataItem(key, defaultValue, domain);

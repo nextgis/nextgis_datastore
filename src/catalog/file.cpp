@@ -313,6 +313,13 @@ Properties File::properties(const std::string &domain) const
         out.add("is_readonly", isReadOnly());
         out.add("can_destroy", !isReadOnly());
         out.add("can_rename", !isReadOnly());
+
+        VSIStatBufL sbuf;
+        if (VSIStatL(m_path.c_str(), &sbuf) == 0) {
+            out.add("size", sbuf.st_size);
+            out.add("mod_time", sbuf.st_mtime);
+        }
+
         return out;
     }
     return Object::properties(domain);
@@ -331,6 +338,20 @@ std::string File::property(const std::string &key,
         }
         else if (compare(key, "can_rename") ) {
             return fromBool(!isReadOnly());
+        }
+        else if (compare(key, "size") ) {
+            VSIStatBufL sbuf;
+            if (VSIStatL(m_path.c_str(), &sbuf) == 0) {
+                return std::to_string(sbuf.st_size);
+            }
+            return "0";
+        }
+        else if (compare(key, "mod_time") ) {
+            VSIStatBufL sbuf;
+            if (VSIStatL(m_path.c_str(), &sbuf) == 0) {
+                return std::to_string(sbuf.st_mtime);
+            }
+            return "0";
         }
     }
 

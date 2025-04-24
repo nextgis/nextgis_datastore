@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public Licens v3
 #
-#  Copyright (c) 2016-2019 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -29,37 +29,6 @@ set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${CMAKE_DL_LIBS})
 if(UNIX)
     find_library(M_LIB m)
     set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${M_LIB})
-endif()
-
-if(ANDROID OR (UNIX AND NOT APPLE))
-    find_package(EGL REQUIRED)
-    if(EGL_FOUND)
-        include_directories(${EGL_INCLUDE_DIRS})
-        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${EGL_LIBRARIES})
-        set(OPENGL_FOUND ON)
-    endif()
-
-    find_package(OpenGLES2 REQUIRED)
-    if(OPENGLES2_FOUND)
-        include_directories(${OPENGLES2_INCLUDE_DIRS})
-        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
-    endif()
-elseif(IOS)
-    find_package(GLES2 REQUIRED)
-    if(OPENGLES2_FOUND)
-        include_directories(${OPENGLES2_INCLUDE_DIRS})
-        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGLES2_LIBRARIES})
-        set(OPENGL_FOUND ON)
-    endif()
-elseif(MSVC)
-	# TODO: Windows?
-	set(OPENGL_FOUND OFF)
-else()
-    find_package(OpenGL REQUIRED)
-    if(OPENGL_FOUND)
-        include_directories(${OPENGL_INCLUDE_DIR})
-        set(TARGET_LINK_LIB ${TARGET_LINK_LIB} ${OPENGL_LIBRARIES})
-    endif()
 endif()
 
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)

@@ -212,10 +212,6 @@ int ngsInit(char **options)
 
     // Number threads
     CPLSetConfigOption("GDAL_NUM_THREADS", CPLSPrintf("%d", getNumberThreads()));
-    const char *multisample = CSLFetchNameValue(options, "GL_MULTISAMPLE");
-    if(multisample) {
-        CPLSetConfigOption("GL_MULTISAMPLE", multisample);
-    }
 
     const char *cainfo = CSLFetchNameValue(options, "SSL_CERT_FILE");
     if(cainfo) {
@@ -240,6 +236,8 @@ int ngsInit(char **options)
         CPLSetConfigOption("CRYPT_KEY", cryptKey);
         CPLDebug("ngstore", "CRYPT_KEY set to %s", cryptKey);
     }
+
+    Settings::instance().init();
 
     const char *trackerApiEndpoint = CSLFetchNameValue(options, "NEXTGIS_TRACKER_API");
     if(trackerApiEndpoint) {
@@ -268,9 +266,8 @@ int ngsInit(char **options)
     const char *projData = CSLFetchNameValue(options, "PROJ_DATA");
     if(projData) {
         CPLDebug("ngstore", "PROJ_DATA set to %s", projData);
-        char **pathsList = CSLAddString(nullptr, projData);
+        CPLStringList pathsList( CSLAddString(nullptr, projData) );
         OSRSetPROJSearchPaths(pathsList);
-        CSLDestroy(pathsList);
     }
 
     Catalog::setInstance(new Catalog());
@@ -283,6 +280,7 @@ int ngsInit(char **options)
  */
 void ngsUnInit()
 {
+    Settings::instance().save();
     http::popFetchCallback();
     Catalog::setInstance(nullptr);
     GDALDestroyDriverManager();
@@ -773,9 +771,8 @@ int ngsJsonDocumentLoadUrl(JsonDocumentH document, const char *url, char **optio
         return putMessage(COD_LOAD_FAILED, _("Layer pointer is null"));
     }
 
-    auto requestOptions = http::addAuthHeaders(url, Options(options)).asStringList();
     Progress progress(callback, callbackData);
-    return doc->LoadUrl(fromCString(url), requestOptions, ngsGDALProgress,
+    return doc->LoadUrl(fromCString(url), options, ngsGDALProgress,
                         &progress) ? COD_SUCCESS : COD_LOAD_FAILED;
 }
 

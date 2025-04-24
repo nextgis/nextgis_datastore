@@ -636,7 +636,6 @@ GIntBig NGWFeatureClass::addAttachment(GIntBig fid, const std::string &fileName,
     // Debug
     auto poLayerDefn = m_layer->GetLayerDefn();
     OGRFieldDefn *poFieldDefn = poLayerDefn->GetFieldDefn(0);
-    CPLDebug("testing", "Field 0 comment %s", poFieldDefn->GetComment().c_str());
 
     feature->SetNativeData(nativeDataStr.c_str());
     if(m_layer->SetFeature(feature) != OGRERR_NONE) {

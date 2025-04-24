@@ -6,7 +6,7 @@
 ################################################################################
 #  GNU Lesser General Public License v3
 #
-#  Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
+#  Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published by
@@ -334,31 +334,6 @@ if(BUILD_TARGET_PLATFORM STREQUAL "DESKTOP")
         include_directories (${OPENSSL_PATH})
         add_definitions (-DHAVE_OPENSSLV_H)
     endif()
-
-# Not needed
-#    #include "boost/version.hpp"
-#    find_path(BOOST_PATH version.hpp PATHS
-#        ${THIRD_PARTY_INCLUDE_PATH}/boost
-#        /usr/include/boost
-#        /usr/local/include/boost)
-#    if(BOOST_PATH)
-#        # cut boost
-#        string(REPLACE "boost" "" BOOST_PATH ${BOOST_PATH})
-#        include_directories (${BOOST_PATH})
-#        add_definitions (-DHAVE_BOOST_VERSION_HPP)
-#    endif()
-
-#    #include "CGAL/version.h"
-#    find_path(CGAL_PATH version.h PATHS
-#        ${THIRD_PARTY_INCLUDE_PATH}/CGAL
-#        /usr/include/CGAL
-#        /usr/local/include/CGAL)
-#    if(CGAL_PATH)
-#        # cut CGAL
-#        string(REPLACE "CGAL" "" CGAL_PATH ${CGAL_PATH})
-#        include_directories (${CGAL_PATH})
-#        add_definitions (-DHAVE_CGAL_VERSION_H)
-#    endif()
 
 else()
     # Copy data to shared

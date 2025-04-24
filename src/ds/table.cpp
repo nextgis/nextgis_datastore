@@ -910,6 +910,10 @@ std::string Table::property(const std::string &key,
             else if (compare(key, "can_rename") ) {
                 return fromBool(!toBool(isRO));
             }
+            auto prop = Object::property(key, "invalid property", domain);
+            if(!compare(prop, "invalid property")) {
+                return prop;
+            }
         }
 
         return parentDataset->property(key, defaultValue, fullPropertyDomain(domain));
@@ -1215,8 +1219,6 @@ std::vector<ngsFeatureChange> Table::editOperations()
 bool Table::sync(ngsSyncMergeType type, 
     std::vector<ngsFeatureChange> conflicts, const Progress& progress)
 {
-
-    CPLDebug("ngstore", " Table::sync %s", m_name.c_str());
     if(nullptr != m_layer) {
         m_layer->ResetReading();
         return m_layer->SyncToDisk() == OGRERR_NONE;
