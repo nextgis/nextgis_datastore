@@ -161,6 +161,7 @@ Properties NGWResourceBase::metadata(const std::string &domain) const
         out.add("can_read", m_permissions.bResourceCanRead);
         out.add("can_create", m_permissions.bResourceCanCreate);
         out.add("can_update", m_permissions.bResourceCanUpdate);
+        out.add("can_rename", m_permissions.bResourceCanUpdate);
         out.add("can_destroy", m_permissions.bResourceCanDelete);
         out.add("can_read_datastruct", m_permissions.bDatastructCanRead);
         out.add("can_alter", m_permissions.bDatastructCanWrite);
@@ -207,9 +208,10 @@ std::string NGWResourceBase::metadataItem(const std::string &key,
             return fromBool(m_permissions.bResourceCanRead);
         }
         
-        if(compare(key, "can_read")) {
-            return fromBool(m_permissions.bResourceCanRead);
+        if(compare(key, "can_rename")) {
+            return fromBool(m_permissions.bResourceCanUpdate);
         }
+        
         if(compare(key, "can_create")) {
             return fromBool(m_permissions.bResourceCanCreate);
         }

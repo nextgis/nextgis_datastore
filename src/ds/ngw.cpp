@@ -281,6 +281,12 @@ std::string NGWLayerDataset::property(const std::string &key,
         if (compare(key, "versioning_latest") ) {
             return std::to_string(m_VersioninLatest);
         }
+
+        auto prop = metadataItem(key, "invalid value", domain);
+        if(!compare(prop, "invalid value")) {
+            return prop;
+        }
+
         return SingleLayerDataset::property(key, defaultValue, domain);
     }
     return metadataItem(key, defaultValue, domain);

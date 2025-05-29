@@ -3,7 +3,7 @@
  * Purpose:  NextGIS store and visualisation support library
  * Author: Dmitry Baryshnikov, dmitry.baryshnikov@nextgis.com
  ******************************************************************************
- *   Copyright (c) 2016-2024 NextGIS, <info@nextgis.com>
+ *   Copyright (c) 2016-2025 NextGIS, <info@nextgis.com>
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,16 @@
 
 #include "test.h"
 
+// gdal
+#include "cpl_conv.h"
+
 #include "ngstore/api.h"
+
+std::string &getRandomName(const std::string & prefix) {
+    static std::string val = prefix + "_" + std::to_string(time(nullptr));
+    return val;
+}
+
 
 TEST(NGWTests, TestReadConnection) {
     initLib();
@@ -33,12 +42,14 @@ TEST(NGWTests, TestReadConnection) {
     // Read contents
     auto pathInfo = ngsCatalogObjectQuery(connection, 0);
     ASSERT_NE(pathInfo, nullptr);
+
     std::string connPath = ngsCatalogObjectPath(connection);
     int count = 0;
     while(pathInfo[count].name) {
+      CPLDebug("testing", "name %s", pathInfo[count].name);
         const char *id = ngsCatalogObjectProperty(pathInfo[count].object, "id", "", "");
         EXPECT_STRNE(id, "");
-        std::cout << count << ". " << connPath << "/" <<  pathInfo[count].name << " [" << id << "]" <<'\n';
+        // std::cout << count << ". " << connPath << "/" <<  pathInfo[count].name << " [" << id << "]" <<'\n';
 //        char **ppid = ngsCatalogObjectProperties(pathInfo[count].object, "");
 //        if(nullptr != ppid) {
 //            int cc = 0;
@@ -65,14 +76,13 @@ TEST(NGWTests, TestResourceGroup) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
 
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
     // Rename resource group
-    auto newName = groupName + "_2";
+    auto newName = groupName + "_tmp";
     EXPECT_EQ(ngsCatalogObjectRename(group, newName.c_str()), COD_SUCCESS);
 
     // Delete resource group
@@ -92,8 +102,7 @@ TEST(NGWTests, TestVectorLayer) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
 
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
@@ -147,8 +156,7 @@ TEST(NGWTests, TestPaste) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -205,8 +213,7 @@ TEST(NGWTests, TestPasteMI) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -238,6 +245,7 @@ TEST(NGWTests, TestPasteMI) {
 
     ngsUnInit();
 }
+
 TEST(NGWTests, TestPasteMIMulti) {
     initLib();
 
@@ -246,8 +254,7 @@ TEST(NGWTests, TestPasteMIMulti) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -282,8 +289,7 @@ TEST(NGWTests, TestAttachments) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -331,8 +337,7 @@ TEST(NGWTests, TestCreateStyle) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -445,8 +450,7 @@ TEST(NGWTests, TestCreateWebMap) {
 
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -558,8 +562,7 @@ TEST(NGWTests, TestCreateWebService) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
@@ -623,8 +626,7 @@ TEST(NGWTests, TestCreateRaster) {
     ASSERT_NE(connection, nullptr);
 
     // Create resource group
-    time_t rawTime = std::time(nullptr);
-    auto groupName = "ngstest_group_" + std::to_string(rawTime);
+    auto groupName = getRandomName("ngstest_group");
     auto group = createGroup(connection, groupName);
     ASSERT_NE(group, nullptr);
 
